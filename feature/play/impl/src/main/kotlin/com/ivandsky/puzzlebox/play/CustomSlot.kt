@@ -7,7 +7,7 @@ import androidx.compose.ui.Modifier
 
 /**
  * The Games screen's Custom tab, handed in by the app shell so this module needs no create
- * edge (ADR-0008); without one the pills stay Dailies, Friends, Duels. It acts only beside a
+ * edge (ADR-0008). It acts only beside a
  * [DuelsSlot], which is what makes Games tabbed at all. [content] lays out the whole Custom
  * list on the [LazyListState] it is given (Games scrolls that list to its top on a section
  * request, a reselect and a return to the tab) and places `friends`, the From friends rows,

@@ -67,6 +67,8 @@ class LibraryDuelsPaneTest {
                 calendar = CalendarActions(),
                 onOpenRanks = { _, _ -> },
                 duels = slot,
+                custom = CustomSlot { _, _, _ -> },
+                onMakeOne = {},
             )
         }
     }

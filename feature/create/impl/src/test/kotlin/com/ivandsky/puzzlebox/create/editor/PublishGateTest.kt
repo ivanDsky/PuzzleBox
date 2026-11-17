@@ -8,7 +8,6 @@ import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
 import com.ivandsky.puzzlebox.create.FakeGameEditor
 import com.ivandsky.puzzlebox.create.FakeGameEditorUi
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.navigation.editorEntry
 import com.ivandsky.puzzlebox.data.model.Draft
@@ -55,7 +54,7 @@ class PublishGateTest {
     private val editor = FakeGameEditor()
     private val ui = FakeGameEditorUi()
     private val drafts = FakeDraftRepository()
-    private val navigator = Navigator(NavigationState(CreateKey, listOf(listOf(CreateKey, EditorKey(DRAFT_ID)))))
+    private val navigator = Navigator(NavigationState(StudioRootKey, listOf(listOf(StudioRootKey, EditorKey(DRAFT_ID)))))
 
     @After
     fun tearDown() {

@@ -11,5 +11,5 @@ internal enum class BenchmarkTab(val label: String, val ready: BySelector) {
     Today("Today", By.text("Recent")),
     Games("Games", By.text("Dailies")),
     Ranks("Ranks", By.desc("Tune ranks")),
-    Create("Create", By.text("Make a puzzle for someone")),
+    Community("Community", By.text("New today")),
 }

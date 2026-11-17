@@ -39,7 +39,7 @@ class LibraryMakeOneTest {
         koin?.close()
     }
 
-    private fun openZipPage(onMakeOne: ((GameId) -> Unit)?) {
+    private fun openZipPage(onMakeOne: (GameId) -> Unit) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 LibraryScreen(
@@ -54,6 +54,7 @@ class LibraryMakeOneTest {
                     onOpenLesson = {},
                     calendar = CalendarActions(),
                     onOpenRanks = { _, _ -> },
+                    custom = CustomSlot { _, _, _ -> },
                     onMakeOne = onMakeOne,
                 )
             }
@@ -68,12 +69,5 @@ class LibraryMakeOneTest {
         openZipPage { made += it }
         composeRule.onNodeWithTag("library.page.makeOne").performScrollTo().performClick()
         composeRule.runOnIdle { assertEquals(listOf(GameId("zip")), made) }
-    }
-
-    @Test
-    fun `without a handler the opened page has no Make one`() {
-        openZipPage(onMakeOne = null)
-        composeRule.onNodeWithTag("library.page.zip").assertExists()
-        composeRule.onNodeWithTag("library.page.makeOne").assertDoesNotExist()
     }
 }

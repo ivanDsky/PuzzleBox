@@ -54,7 +54,7 @@ private val Hairline = 1.dp
 private const val UnpublishedAlpha = 0.72f
 
 /**
- * One published puzzle on the Create root (01 handoff, "Published row"): the game's glyph
+ * One published puzzle in the Custom list (01 handoff, "Published row"): the game's glyph
  * tile, the title, "3 solves · Author 1:42" ("No solves yet" at zero, the author time alone
  * until a count is first fetched), and at the end the share code on the game's tint over
  * "published 2 h ago". An unpublished puzzle keeps its row as a record: tile and title fade,

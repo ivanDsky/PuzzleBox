@@ -5,7 +5,6 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.e2e.CloudSyncWorld.Device
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.model.PublishedPuzzle
@@ -68,7 +67,7 @@ class CloudSyncPublishedRestoreE2ETest {
         assertEquals("A's author time", AUTHOR_TIME_MS, published.authorTimeMs)
         assertEquals("the cloud holds the kept draft's code", CODE, world.space.docs(ada.uid, "drafts").mapNotNull { it.fields["reservedCode"] }.single())
 
-        phoneB.shell(CreateKey) {
+        phoneB.shell {
             phoneB.signIn(ada)
             awaitCloud("B's restore") { phoneB.synced() && phoneB.shownDrafts().size == 2 && phoneB.published() != null }
 
@@ -78,12 +77,12 @@ class CloudSyncPublishedRestoreE2ETest {
             assertEquals("the kept draft came with its code", CODE, phoneB.shownDrafts().single { it.id == KEPT }.reservedCode)
             assertTrue("the kept draft's board is A's", keptBoard.contentEquals(phoneB.shownDrafts().single { it.id == KEPT }.blob))
 
-            // The Drafts tab lists the ordinary draft only; the kept one is the published puzzle's board.
+            // Custom lists the ordinary draft only; the kept one is the published puzzle's board.
+            tap("library.tab.custom")
             awaitTag("create.draft.row")
             rule.waitForIdle()
-            assertEquals("one draft on the Drafts tab", 1, rule.onAllNodesWithTag("create.draft.row").fetchSemanticsNodes().size)
+            assertEquals("one draft under Custom", 1, rule.onAllNodesWithTag("create.draft.row").fetchSemanticsNodes().size)
 
-            tap("create.tab.published")
             tap("create.published.row")
             awaitTag("route.publishedPuzzle")
             awaitTag("create.studio.board.readOnly")

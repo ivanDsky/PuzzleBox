@@ -4,7 +4,6 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTextInput
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.model.TestSolve
@@ -70,7 +69,8 @@ class SudokuPublishOpenLoopE2ETest {
         shared.signedInUid = AUTHOR
         seedReadyDraft()
 
-        tapTab(CreateKey)
+        tapTab(PlayKey)
+        tap("library.tab.custom")
         tap("create.draft.row")
         awaitTag("create.readiness.ready")
         tap("create.action.publish")
@@ -78,7 +78,9 @@ class SudokuPublishOpenLoopE2ETest {
         val code = published.rows.keys.single()
         assertEquals("the shared doc is the draft's", TITLE, shared.docs.getValue(code).title)
 
-        tapTab(PlayKey)
+        // The Studio is full-window: Back is the way out, to Custom.
+        back()
+        assertRoute("route.library")
         tap("library.enterCode")
         rule.onNodeWithTag("friend.code.field").performTextInput(code.display)
         tap("friend.code.open")

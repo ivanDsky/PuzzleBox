@@ -40,6 +40,7 @@ class FriendOpenLoopE2ETest(name: String) {
     fun `a friend opens a published puzzle by code and wins it once to its own board, every daily as it was`() =
         shellRobot(graph = world.graph) {
             val code = world.publishAsAuthor(this, game.board, TITLE)
+            back() // the Studio is full-window, with no tab bar to leave by
             world.signInFriend()
             val before = world.settleDailies(this, game.id)
 

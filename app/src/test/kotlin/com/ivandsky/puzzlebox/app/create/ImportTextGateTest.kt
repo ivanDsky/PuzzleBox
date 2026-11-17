@@ -11,8 +11,6 @@ import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
 import com.ivandsky.puzzlebox.create.CreateViewModel
-import com.ivandsky.puzzlebox.create.api.CreateKey
-import com.ivandsky.puzzlebox.create.navigation.createEntry
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.CreateDraft
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
@@ -22,8 +20,8 @@ import com.ivandsky.puzzlebox.games.queens.queensPlugin
 import com.ivandsky.puzzlebox.games.queensui.editor.QueensEditorUi
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
-import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
@@ -42,8 +40,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The Create header's Import pill (M5-01-d) shows on the Create root and opens the Import from
- * text sheet.
+ * Import from text (M5-01-d) is offered by the New puzzle sheet on Games' Custom list and opens the Import
+ * from text sheet.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = DrainTestApplication::class)
@@ -52,7 +50,7 @@ class ImportTextGateTest {
     @get:Rule
     val rule = createAndroidComposeRule<ComponentActivity>()
 
-    private val navigator = Navigator(NavigationState(CreateKey, listOf(listOf(CreateKey))))
+    private val navigator = customRootNavigator()
 
     @After
     fun tearDown() {
@@ -60,10 +58,11 @@ class ImportTextGateTest {
     }
 
     @Test
-    fun `the Import pill shows and opens the sheet`() {
+    fun `the New puzzle sheet offers Import and it opens the sheet`() {
         show()
 
-        rule.onNodeWithTag(PILL).performClick()
+        rule.onNodeWithTag(NEW).performClick()
+        rule.onNodeWithTag(IMPORT).performClick()
 
         rule.onAllNodesWithTag(SHEET).assertCountEquals(1)
     }
@@ -97,14 +96,15 @@ class ImportTextGateTest {
         }
         rule.setContent {
             PuzzleBoxTheme {
-                entryProvider<NavKey> { createEntry(navigator) }(CreateKey).Content()
+                entryProvider<NavKey> { customRootEntry(navigator) }(PlayKey).Content()
             }
         }
     }
 
     private companion object {
         val NOW: Instant = Instant.parse("2026-11-08T10:00:00Z")
-        const val PILL = "create.header.import"
+        const val NEW = "custom.new"
+        const val IMPORT = "create.new.import"
         const val SHEET = "create.import.sheet"
     }
 }

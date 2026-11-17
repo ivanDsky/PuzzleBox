@@ -16,9 +16,8 @@ import com.ivandsky.puzzlebox.play.api.PlayKey
  *   mid-puzzle) selecting Play is the whole move, since a key appears once per stack.
  * - A match pushes its duel once the same way.
  * - Invalid text returns Play to its root, the library that hosts the code sheet; a board
- *   popped on the way saves like any other. Without a Create tab in [tabSet] (Custom in Games)
- *   it also asks Games for its Custom section ([LibraryRequests.openCustom]), where Enter code
- *   lives.
+ *   popped on the way saves like any other. Without a Community tab in [tabSet] it also asks Games
+ *   for its Custom section ([LibraryRequests.openCustom]), where Enter code lives.
  *
  * With a Community tab in [tabSet] (M10-1) Custom's list, its code sheet included, is Community's
  * root: a code and invalid text go there instead of Play, the same way (a code's card on Community's
@@ -38,7 +37,7 @@ internal fun Navigator.applyFriendLink(link: FriendLink, tabSet: TabSet, library
         }
         // Reselecting the selected tab pops it to its root.
         is FriendLink.Invalid ->
-            if (!tabSet.hasCreateTab && !tabSet.hasCommunityTab) libraryRequests.openCustom(this, tabSet)
+            if (!tabSet.hasCommunityTab) libraryRequests.openCustom(this, tabSet)
             else if (state.currentStack.size > 1) selectTab(owner)
     }
 }

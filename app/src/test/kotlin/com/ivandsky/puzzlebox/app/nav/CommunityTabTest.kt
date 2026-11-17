@@ -29,7 +29,6 @@ import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -39,9 +38,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * M10-1: Community is its own tab while CustomInGames and CommunityPuzzles are both on: Today, Games,
- * Community, Ranks. Either flag alone keeps today's sets, and the links and shared text land on the
- * Community tab, where Custom's list lives, instead of a Games section.
+ * M10-1: Community is its own tab while CommunityPuzzles is on: Today, Games, Community, Ranks. The links
+ * and shared text land on the Community tab, where Custom's list lives, instead of a Games section.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = DrainTestApplication::class)
@@ -51,8 +49,8 @@ class CommunityTabTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun `with both flags on the tabs are today, games, community, ranks`() {
-        val tabSet = TabSetSource(FakeReleaseFlags(ReleaseFlag.CustomInGames, ReleaseFlag.CommunityPuzzles)).tabSet
+    fun `with CommunityPuzzles on the tabs are today, games, community, ranks`() {
+        val tabSet = TabSetSource(FakeReleaseFlags(ReleaseFlag.CommunityPuzzles)).tabSet
 
         assertEquals(listOf("Today", "Games", "Community", "Ranks"), tabSet.destinations.map { it.label })
         assertEquals(listOf(HomeKey, PlayKey, CommunityKey, HistoryRootKey), tabSet.destinations.map { it.key })
@@ -61,24 +59,13 @@ class CommunityTabTest {
     }
 
     @Test
-    fun `with both flags on the Studio is immersive on Community and the published page keeps the bar`() {
-        val tabSet = TabSetSource(FakeReleaseFlags(ReleaseFlag.CustomInGames, ReleaseFlag.CommunityPuzzles)).tabSet
+    fun `with CommunityPuzzles on the Studio is immersive on Community and the published page keeps the bar`() {
+        val tabSet = TabSetSource(FakeReleaseFlags(ReleaseFlag.CommunityPuzzles)).tabSet
 
         assertTrue(isImmersive(EditorKey("d1"), tabSet.placement))
         assertEquals(Placement(Home.PushedOn(Tab.Community), Chrome.Immersive), placementOf(EditorKey("d1"), tabSet.placement))
         assertEquals(Placement(Home.PushedOn(Tab.Community), Chrome.Bar), placementOf(PublishedPuzzleKey("K7Q2MX"), tabSet.placement))
         assertEquals(Placement(Home.PushedOn(Tab.Community), Chrome.Bar), placementOf(FriendPuzzleKey("K7Q2MX"), tabSet.placement))
-    }
-
-    @Test
-    fun `CommunityPuzzles alone leaves the four tabs and CustomInGames alone the three`() {
-        val communityOnly = TabSetSource(FakeReleaseFlags(ReleaseFlag.CommunityPuzzles)).tabSet
-        val customOnly = TabSetSource(FakeReleaseFlags(ReleaseFlag.CustomInGames)).tabSet
-
-        assertEquals(listOf("Today", "Games", "Ranks", "Create"), communityOnly.destinations.map { it.label })
-        assertEquals(listOf("Today", "Games", "Ranks"), customOnly.destinations.map { it.label })
-        assertFalse(communityOnly.hasCommunityTab)
-        assertFalse(customOnly.hasCommunityTab)
     }
 
     @Test
@@ -184,7 +171,7 @@ class CommunityTabTest {
     }
 
     @Test
-    fun `a state saved with four tabs is reconciled when Community replaces Create`() {
+    fun `a legacy state saved with a Create stack is reconciled when Community is on`() {
         val saved = NavigationState(
             tab = CreateKey,
             stacks = listOf(listOf(HomeKey), listOf(PlayKey), listOf(HistoryRootKey), listOf(CreateKey, EditorKey("castle"))),

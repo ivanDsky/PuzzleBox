@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.create
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -11,12 +12,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
-import androidx.navigation3.runtime.NavKey
-import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
-import com.ivandsky.puzzlebox.create.api.CreateKey
-import com.ivandsky.puzzlebox.create.api.EditorKey
-import com.ivandsky.puzzlebox.create.navigation.createEntry
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.CreateDraft
@@ -38,8 +34,6 @@ import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import com.ivandsky.puzzlebox.model.GameId
-import com.ivandsky.puzzlebox.navigation.NavigationState
-import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
@@ -62,18 +56,18 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The Create root's New puzzle sheet over stand-in games (spec A1, A5): it lists one row
+ * The Custom list's New puzzle sheet over stand-in games (spec A1, A5): it lists one row
  * per game with a registered editor, in registration order, each with its glyph tile, its
  * default size and its one-line rule when one is written; a picked game lists exactly
- * its editor's variants, in order; picking a size stores that draft and pushes its Studio.
+ * its editor's variants, in order; picking a size stores that draft and opens its Studio.
  * A game with a single size (`solo`) has no sizes step: its row stores that draft directly.
  * `beta` ships without an editor and `gamma` has an editor but no editor UI: neither is
  * offered. One stored draft keeps the list (and its New puzzle button) on screen. The real
  * Queens sizes and labels are the app's NewPuzzleSheetQueensTest.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
-class NewPuzzleSheetTest {
+@Config(sdk = [34], qualifiers = "w360dp-h640dp")
+class CustomBodyNewPuzzleTest {
 
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
@@ -89,7 +83,7 @@ class NewPuzzleSheetTest {
     private val soloSize = VariantId("solo/only")
 
     private val drafts = FakeDraftRepository()
-    private val navigator = Navigator(NavigationState(CreateKey, listOf(listOf(CreateKey))))
+    private val openedDrafts = mutableListOf<String>()
 
     @Before
     fun setUp() {
@@ -132,7 +126,13 @@ class NewPuzzleSheetTest {
         }
         composeRule.setContent {
             PuzzleBoxTheme {
-                entryProvider<NavKey> { createEntry(navigator) }(CreateKey).Content()
+                CustomBody(
+                    listState = rememberLazyListState(),
+                    friendsEmpty = true,
+                    friends = {},
+                    onOpenDraft = { openedDrafts += it },
+                    onOpenPublished = {},
+                )
             }
         }
     }
@@ -175,7 +175,7 @@ class NewPuzzleSheetTest {
         assertEquals(solo, draft.gameId)
         assertEquals(soloSize, draft.variant)
         composeRule.waitForIdle()
-        assertEquals(listOf(CreateKey, EditorKey("draft-1")), navigator.state.currentStack)
+        assertEquals(listOf("draft-1"), openedDrafts)
         composeRule.onAllNodesWithTag(SHEET).fetchSemanticsNodes().let { assertEquals(0, it.size) }
     }
 
@@ -190,7 +190,7 @@ class NewPuzzleSheetTest {
         assertEquals(queens, draft.gameId)
         assertEquals(VariantId("queens/8"), draft.variant)
         composeRule.waitForIdle()
-        assertEquals(listOf(CreateKey, EditorKey("draft-1")), navigator.state.currentStack)
+        assertEquals(listOf("draft-1"), openedDrafts)
         composeRule.onAllNodesWithTag(SHEET).fetchSemanticsNodes().let { assertEquals(0, it.size) }
     }
 
@@ -208,7 +208,7 @@ class NewPuzzleSheetTest {
 
         assertEquals(setOf("seed", "draft-1"), drafts.rows.keys)
         assertEquals(VariantId("queens/8"), drafts.rows.getValue("draft-1").variant)
-        assertEquals(listOf(CreateKey, EditorKey("draft-1")), navigator.state.currentStack)
+        assertEquals(listOf("draft-1"), openedDrafts)
     }
 
     private fun seed(): Draft = Draft(
@@ -263,7 +263,7 @@ class NewPuzzleSheetTest {
 
     private companion object {
         val NOW: Instant = Instant.parse("2026-11-06T10:00:00Z")
-        const val NEW = "create.new"
+        const val NEW = "custom.new"
         const val SHEET = "create.new.sheet"
         const val BACK = "create.new.back"
         const val GAME = "create.new.game."

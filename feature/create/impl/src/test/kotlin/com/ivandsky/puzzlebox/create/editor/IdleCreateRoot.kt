@@ -20,7 +20,7 @@ import org.koin.core.module.dsl.viewModel
 private val IdleNow: Instant = Instant.parse("2026-11-08T10:00:00Z")
 
 /**
- * Registers the activity-scoped Create root view model the Create entries reach (the delete
+ * Registers the activity-scoped view model the Studio entry reaches (the delete
  * Undo and the import notice ride on it), over [drafts] and no games. For Studio tests that
  * never list drafts: it holds nothing they look at.
  */

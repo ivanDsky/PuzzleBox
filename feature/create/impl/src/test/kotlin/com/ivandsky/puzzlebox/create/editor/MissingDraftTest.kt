@@ -35,7 +35,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowLooper
 
-/** A draft the Studio can't open still offers a way back to the Create root. */
+/** A draft the Studio can't open still offers a way back to the Studio's root. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class MissingDraftTest {

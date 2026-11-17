@@ -33,7 +33,7 @@ class BaselineProfileGenerator {
         selectTab(BenchmarkTab.Ranks)
         tap(By.desc("Tune ranks"))
         tap(By.desc("Close sheet"))
-        selectTab(BenchmarkTab.Create)
+        selectTab(BenchmarkTab.Community)
         selectTab(BenchmarkTab.Today)
     }
 }

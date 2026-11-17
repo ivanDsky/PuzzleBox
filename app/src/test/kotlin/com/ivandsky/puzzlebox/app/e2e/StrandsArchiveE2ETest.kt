@@ -12,7 +12,6 @@ import androidx.room.Room
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.testing.room.RoomQueryThread
 import com.ivandsky.puzzlebox.common.di.commonModule
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.di.dataModule
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
@@ -274,7 +273,7 @@ class StrandsArchiveE2ETest {
 
     private val playHub = NavigationState(
         tab = PlayKey,
-        stacks = listOf<List<NavKey>>(listOf(HomeKey), listOf(PlayKey), listOf(HistoryRootKey), listOf(CreateKey)),
+        stacks = listOf<List<NavKey>>(listOf(HomeKey), listOf(PlayKey), listOf(HistoryRootKey)),
     )
 
     private companion object {

@@ -41,8 +41,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * The Create root (spec A3, A7): drafts newest edit first, the search and game filter only past
- * 8 drafts, each row's verdict chip analysed once per (id, updatedAt), and with no drafts the
+ * The Custom list's view model (spec A3, A7): drafts newest edit first, each row's verdict chip analysed once per (id, updatedAt), and with no drafts the
  * empty state offering exactly the games with an editor UI, each at its default size. A row's
  * Duplicate stores an untested copy; Delete is undoable for 5 s and Undo restores it unchanged.
  */
@@ -91,33 +90,6 @@ class CreateViewModelTest {
     }
 
     @Test
-    fun `the search and game filter appear only past 8 drafts`() = runTest(mainRule.testDispatcher) {
-        repeat(8) { store("d$it", minutesAgo = it.toLong()) }
-        val vm = viewModel()
-        assertFalse(vm.uiState.value.searchVisible)
-
-        store("d8", minutesAgo = 8)
-        assertTrue(vm.uiState.value.searchVisible)
-        assertEquals(listOf(fake.gameId), vm.uiState.value.filters.map { it.id })
-        assertEquals(listOf(9), vm.uiState.value.filters.map { it.count })
-    }
-
-    @Test
-    fun `the query and the game filter narrow the rows`() = runTest(mainRule.testDispatcher) {
-        repeat(8) { store("f$it", minutesAgo = it.toLong(), title = "Fake $it") }
-        store("w", minutesAgo = 20, game = wideId, title = "Wide one")
-        val vm = viewModel()
-
-        vm.onQuery("WIDE")
-        assertEquals(listOf("w"), vm.uiState.value.drafts.map { it.id })
-
-        vm.onQuery("")
-        vm.onFilter(fake.gameId)
-        assertEquals((0..7).map { "f$it" }, vm.uiState.value.drafts.map { it.id })
-        assertEquals(fake.gameId, vm.uiState.value.filter)
-    }
-
-    @Test
     fun `each row's chip is analysed once per id and updatedAt`() = runTest(mainRule.testDispatcher) {
         store("a", minutesAgo = 5, marks = 1)
         store("b", minutesAgo = 4, marks = 2)
@@ -126,10 +98,8 @@ class CreateViewModelTest {
         assertEquals(2, fake.analyzed.size)
         assertTrue(vm.uiState.value.drafts.all { it.verdict is Verdict.Unique })
 
-        // A re-emission (a new row, a query) keeps the cached verdicts.
+        // A re-emission (a new row) keeps the cached verdicts.
         store("c", minutesAgo = 3, marks = 0)
-        vm.onQuery("x")
-        vm.onQuery("")
         assertEquals(3, fake.analyzed.size)
         assertTrue(vm.uiState.value.drafts.single { it.id == "c" }.verdict is Verdict.Incomplete)
 

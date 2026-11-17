@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.play
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -90,10 +91,10 @@ import org.robolectric.annotation.Config
 
 /**
  * The Games screen's tabs: with no Duels slot the screen is the single list with its From
- * friends carousel; with one it shows Dailies, Friends and Duels, Dailies first, each tab
- * swapping the body below the pinned pills, the third carrying the slot's need-you count,
- * and the chosen tab surviving a recreation. With a Custom slot too, the header's Enter code
- * still opens a code that names a duel.
+ * friends carousel; with one it shows Dailies, Duels and Custom, Dailies first, each tab
+ * swapping the body below the pinned pills, Duels carrying the slot's need-you count,
+ * and the chosen tab surviving a recreation. The header's Enter code still opens a code that
+ * names a duel.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp")
@@ -167,7 +168,10 @@ class LibraryTabsTest {
         pane = { _ -> },
     )
 
-    private fun content(duels: DuelsSlot?, custom: CustomSlot? = null): @Composable () -> Unit = {
+    /** A stand-in for the create module's list: just the friend puzzles the screen hands it. */
+    private val friendsCustom = CustomSlot { state, _, friendRows -> LazyColumn(state = state) { friendRows() } }
+
+    private fun content(duels: DuelsSlot?, custom: CustomSlot = friendsCustom): @Composable () -> Unit = {
         PuzzleBoxTheme(darkTheme = false) {
             LibraryRoute(
                 layout = PlayLayout.SinglePane,
@@ -176,11 +180,12 @@ class LibraryTabsTest {
                 onOpenRanks = { _, _ -> },
                 duels = duels,
                 custom = custom,
+                onMakeOne = {},
             )
         }
     }
 
-    private fun setContent(duels: DuelsSlot?, custom: CustomSlot? = null) = composeRule.setContent(content(duels, custom))
+    private fun setContent(duels: DuelsSlot?, custom: CustomSlot = friendsCustom) = composeRule.setContent(content(duels, custom))
 
     private fun count(tag: String): Int =
         composeRule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().size
@@ -196,7 +201,7 @@ class LibraryTabsTest {
 
         awaitTag("library.friends.carousel")
         awaitTag("library.row.zip")
-        listOf("dailies", "friends", "duels", "duels.count").forEach { composeRule.onNodeWithTag("library.tab.$it").assertDoesNotExist() }
+        listOf("dailies", "duels", "custom", "duels.count").forEach { composeRule.onNodeWithTag("library.tab.$it").assertDoesNotExist() }
     }
 
     @Test
@@ -205,7 +210,7 @@ class LibraryTabsTest {
 
         awaitTag("library.row.zip")
         composeRule.onNodeWithTag("library.tab.dailies").assertIsSelected()
-        composeRule.onNodeWithTag("library.tab.friends").assertIsNotSelected()
+        composeRule.onNodeWithTag("library.tab.custom").assertIsNotSelected()
         composeRule.onNodeWithTag("library.tab.duels").assertIsNotSelected()
         composeRule.onNodeWithTag(DUELS_BODY).assertDoesNotExist()
     }
@@ -221,7 +226,7 @@ class LibraryTabsTest {
         awaitGone("library.row.zip")
         composeRule.onNodeWithTag("library.tab.duels").assertIsSelected()
 
-        composeRule.onNodeWithTag("library.tab.friends").performClick()
+        composeRule.onNodeWithTag("library.tab.custom").performClick()
         awaitTag("library.friends.row.${A.value}")
         awaitGone(DUELS_BODY)
         composeRule.onNodeWithTag("library.row.zip").assertDoesNotExist()
@@ -271,7 +276,7 @@ class LibraryTabsTest {
         setContent(slot)
         awaitTag("library.tab.duels.count")
 
-        listOf("dailies", "friends", "duels").forEach { composeRule.onNodeWithTag("library.tab.$it").assertHeightIsAtLeast(48.dp) }
+        listOf("dailies", "duels", "custom").forEach { composeRule.onNodeWithTag("library.tab.$it").assertHeightIsAtLeast(48.dp) }
     }
 
     @Test
@@ -290,7 +295,7 @@ class LibraryTabsTest {
     }
 
     @Test
-    fun withACustomSlotTheHeadersEnterCodeStillOpensADuelCode() {
+    fun theHeadersEnterCodeStillOpensADuelCode() {
         val openedDuels = ArrayList<DuelKey>()
         val legs = listOf(MatchLeg(LegRef.Daily(zip, today, 1), authorUid = null))
         runBlocking { matches.create(MatchDraft(A, 24, Player(ANN, "Ann", null), invitedUid = null, legs, includeFriends = false, rematchOf = null)) }

@@ -4,7 +4,6 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTextInput
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.model.TestSolve
@@ -79,7 +78,8 @@ class ZipPublishOpenLoopE2ETest {
             seedReadyDraft()
             val todayBefore = todaySet()
 
-            tapTab(CreateKey)
+            tapTab(PlayKey)
+            tap("library.tab.custom")
             tap("create.draft.row")
             awaitTag("create.readiness.ready")
             tap("create.action.publish")
@@ -88,7 +88,9 @@ class ZipPublishOpenLoopE2ETest {
             assertEquals("the shared doc is the draft's", TITLE, shared.docs.getValue(code).title)
             assertEquals("the shared doc is a Zip board", ZipDefinition.id.value, shared.docs.getValue(code).gameId)
 
-            tapTab(PlayKey)
+            // The Studio is full-window: Back is the way out, to Custom.
+            back()
+            assertRoute("route.library")
             tap("library.enterCode")
             rule.onNodeWithTag("friend.code.field").performTextInput(code.display)
             tap("friend.code.open")

@@ -13,7 +13,6 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.model.TestSolve
@@ -87,7 +86,8 @@ class StrandsPublishOpenLoopE2ETest {
             shared.signedInUid = AUTHOR
             seedReadyDraft()
 
-            tapTab(CreateKey)
+            tapTab(PlayKey)
+            tap("library.tab.custom")
             tap("create.draft.row")
             awaitTag("create.readiness.ready")
             tap("create.action.publish")
@@ -95,7 +95,9 @@ class StrandsPublishOpenLoopE2ETest {
             val code = published.rows.keys.single()
             assertEquals("the shared doc is the draft's", TITLE, shared.docs.getValue(code).title)
 
-            tapTab(PlayKey)
+            // The Studio is full-window: Back is the way out, to Custom.
+            back()
+            assertRoute("route.library")
             tap("library.enterCode")
             rule.onNodeWithTag("friend.code.field").performTextInput(code.display)
             tap("friend.code.open")
@@ -141,7 +143,8 @@ class StrandsPublishOpenLoopE2ETest {
         shellRobot(graph = graph) {
             seedReadyDraft(clue = "")
 
-            tapTab(CreateKey)
+            tapTab(PlayKey)
+            tap("library.tab.custom")
             tap("create.draft.row")
             fun count(tag: String) = rule.onAllNodesWithTag(tag).fetchSemanticsNodes().size
             // Unique: the Not unique block is gone and the clue's own phrase stands in the line.
@@ -158,7 +161,8 @@ class StrandsPublishOpenLoopE2ETest {
             seedReadyDraft()
             fun clue() = rule.onNodeWithTag("strands.editor.clue").fetchSemanticsNode().config[SemanticsProperties.EditableText].text
 
-            tapTab(CreateKey)
+            tapTab(PlayKey)
+            tap("library.tab.custom")
             tap("create.draft.row")
             awaitTag("create.details")
             rule.waitUntil(TIMEOUT_MS) { rule.onAllNodesWithTag("create.tool.strip").fetchSemanticsNodes().isEmpty() }

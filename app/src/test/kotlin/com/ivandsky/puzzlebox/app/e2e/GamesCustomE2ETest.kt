@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.app.e2e
 
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
 import com.ivandsky.puzzlebox.data.model.PublishedPuzzle
@@ -33,16 +32,15 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Making puzzles inside Games (N9, N10) over the real shell with CustomInGames on: the Custom
- * pill's draft and published rows and the two Make-one doors each open their screen on the Games
- * stack, and Back or the Studio's Delete returns to the screen the door was on. One flag-off row
- * pins that none of those doors shows.
+ * Making puzzles inside Games (N9, N10) over the real shell: the Custom pill's draft and
+ * published rows and the two Make-one doors each open their screen on the Games stack, and Back
+ * or the Studio's Delete returns to the screen the door was on.
  */
 @RunWith(RobolectricTestRunner::class)
 // DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 // A real phone's height: the Studio's board slot needs room for its grid.
 @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
-class CustomInGamesE2ETest {
+class GamesCustomE2ETest {
 
     private val drafts = FakeDraftRepository()
     private val published = FakePublishedPuzzleRepository()
@@ -53,7 +51,7 @@ class CustomInGamesE2ETest {
 
     @Test
     fun `a draft row under Custom opens its Studio full-window on Games and Back returns to Custom`() =
-        shellRobot(graph = shellGraph(ReleaseFlag.CustomInGames, overrides = stores)) {
+        shellRobot(graph = shellGraph(overrides = stores)) {
             seedDraft()
             tapTab(PlayKey)
             tap(CUSTOM_PILL)
@@ -71,7 +69,7 @@ class CustomInGamesE2ETest {
 
     @Test
     fun `a published row under Custom opens its page on Games with the bar and Back returns to Custom`() =
-        shellRobot(graph = shellGraph(ReleaseFlag.CustomInGames, overrides = stores)) {
+        shellRobot(graph = shellGraph(overrides = stores)) {
             seedPublished()
             tapTab(PlayKey)
             tap(CUSTOM_PILL)
@@ -90,7 +88,7 @@ class CustomInGamesE2ETest {
 
     @Test
     fun `Make one on a game page starts a default-size draft in the Studio and Back returns to the page`() =
-        shellRobot(graph = shellGraph(ReleaseFlag.CustomInGames, overrides = stores)) {
+        shellRobot(graph = shellGraph(overrides = stores)) {
             openZipPage()
 
             tap(PAGE_MAKE_ONE)
@@ -109,7 +107,7 @@ class CustomInGamesE2ETest {
 
     @Test
     fun `a result has no Make one like this`() =
-        shellRobot(graph = shellGraph(ReleaseFlag.CustomInGames, overrides = stores)) {
+        shellRobot(graph = shellGraph(overrides = stores)) {
             tapTab(PlayKey)
             openGame(ZIP)
             solveTodaysZip()
@@ -123,7 +121,7 @@ class CustomInGamesE2ETest {
 
     @Test
     fun `Delete in a Studio opened from a game page returns to the page and removes the draft`() =
-        shellRobot(graph = shellGraph(ReleaseFlag.CustomInGames, overrides = stores)) {
+        shellRobot(graph = shellGraph(overrides = stores)) {
             openZipPage()
             tap(PAGE_MAKE_ONE)
             assertRoute(EDITOR)
@@ -135,19 +133,6 @@ class CustomInGamesE2ETest {
             assertRoute(LIBRARY)
             awaitTag(ZIP_PAGE)
             awaitIdling { drafts.rows.isEmpty() }
-        }
-
-    @Test
-    fun `with the flag off Games has no Custom pill and a game page no Make one`() =
-        shellRobot(graph = shellGraph(overrides = stores)) {
-            tapTab(PlayKey)
-            awaitTag(DAILIES_PILL)
-            assertFalse("Custom pill", shows(CUSTOM_PILL))
-
-            tap(ZIP_ROW)
-            awaitTag(ZIP_PAGE)
-            awaitTag(PAGE_PLAY)
-            assertFalse("Make one", shows(PAGE_MAKE_ONE))
         }
 
     private fun ShellRobot.openZipPage() {
@@ -191,7 +176,6 @@ class CustomInGamesE2ETest {
         const val EDITOR = "route.editor"
         const val RESULT = "route.result"
         const val PUBLISHED_PAGE = "route.publishedPuzzle"
-        const val DAILIES_PILL = "library.tab.dailies"
         const val CUSTOM_PILL = "library.tab.custom"
         const val CUSTOM_LIST = "custom.list"
         const val DRAFT_ROW = "create.draft.row"

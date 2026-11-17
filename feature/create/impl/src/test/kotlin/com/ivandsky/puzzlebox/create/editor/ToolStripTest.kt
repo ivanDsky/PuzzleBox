@@ -13,7 +13,6 @@ import com.ivandsky.puzzlebox.create.FakeEditorController
 import com.ivandsky.puzzlebox.create.FakeGameEditor
 import com.ivandsky.puzzlebox.create.FakeGameEditorUi
 import com.ivandsky.puzzlebox.create.TestDraft
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.navigation.editorEntry
 import com.ivandsky.puzzlebox.data.model.Draft
@@ -68,7 +67,7 @@ class ToolStripTest {
     private val editor = FakeGameEditor()
     private val ui = FakeGameEditorUi()
     private val drafts = FakeDraftRepository()
-    private val navigator = Navigator(NavigationState(CreateKey, listOf(listOf(CreateKey, EditorKey(DRAFT_ID)))))
+    private val navigator = Navigator(NavigationState(StudioRootKey, listOf(listOf(StudioRootKey, EditorKey(DRAFT_ID)))))
 
     @Before
     fun setUp() {

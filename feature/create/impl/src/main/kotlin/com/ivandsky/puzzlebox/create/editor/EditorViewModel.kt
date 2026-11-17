@@ -236,7 +236,7 @@ class EditorViewModel(
     }
 
     /**
-     * Delete stores the pending edit and takes no more, then hands the id on: the Create root's
+     * Delete stores the pending edit and takes no more, then hands the id on: the Custom list's
      * Undo restores the board the author last saw, and no late save brings the draft back.
      */
     fun delete(onDelete: (draftId: String) -> Unit) {

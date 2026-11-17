@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.create
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -8,11 +9,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
-import androidx.navigation3.runtime.NavKey
-import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
-import com.ivandsky.puzzlebox.create.api.CreateKey
-import com.ivandsky.puzzlebox.create.navigation.createEntry
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.CreateDraft
@@ -23,8 +20,6 @@ import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.model.GameId
-import com.ivandsky.puzzlebox.navigation.NavigationState
-import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
@@ -48,13 +43,13 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The Create root's import entries (M5-06) over the real view model: the empty state's text
+ * The Custom list's import entries (M5-06) over the real view model: the empty state's text
  * button and the New puzzle sheet's row each open the one Import sheet. A draft row shows its
  * imported tag for an imported draft only: the suffix is data, not a gate.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
-class ImportEntriesTest {
+@Config(sdk = [34], qualifiers = "w360dp-h640dp")
+class CustomBodyImportTest {
 
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
@@ -145,10 +140,15 @@ class ImportEntriesTest {
                 },
             )
         }
-        val navigator = Navigator(NavigationState(CreateKey, listOf(listOf(CreateKey))))
         composeRule.setContent {
             PuzzleBoxTheme {
-                entryProvider<NavKey> { createEntry(navigator) }(CreateKey).Content()
+                CustomBody(
+                    listState = rememberLazyListState(),
+                    friendsEmpty = true,
+                    friends = {},
+                    onOpenDraft = {},
+                    onOpenPublished = {},
+                )
             }
         }
     }
@@ -186,7 +186,7 @@ class ImportEntriesTest {
 
     private companion object {
         val NOW: Instant = Instant.parse("2026-11-06T10:00:00Z")
-        const val NEW = "create.new"
+        const val NEW = "custom.new"
         const val NEW_SHEET = "create.new.sheet"
         const val DRAFT_MORE = "create.draft.more"
         const val ACTIONS_CONTINUE = "create.actions.continue"

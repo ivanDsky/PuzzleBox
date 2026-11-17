@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -39,14 +38,12 @@ import com.ivandsky.puzzlebox.model.GameId
  * offline pill and each row carries a chevron.
  *
  * With a [duels] slot the list is tabbed instead ([UnderlineTabbedList]): the header stays put over the shared
- * underline strip over a swipeable pager, one page per tab of [gamesTabs]. Dailies scrolls on [scroll], Friends
- * ([friendsTab], [friendCount] on its tab) on [friendsScroll] and Duels on [duelsScroll], which the Duels body lays
- * its list out on; each tab keeps its own scroll, and a tab change ([onTab]) scrolls nothing back to the top. There is
- * no From friends carousel then: the Friends tab is where those cards live. With a [customTab] too the tabs are
- * Dailies, Duels, Custom ([gamesTabs]): Custom takes Friends' place ([shownWith]), its body is [customTab], laid out
- * on [customScroll], and its tab carries [customCount]. The Duels body is handed the pending [duelPrefill] and
- * reports it taken ([onDuelPrefillTaken]). With a [community] tab the tabs are Dailies and Duels only; Friends and
- * Custom are not shown, and a saved one shows Dailies.
+ * underline strip over a swipeable pager, one page per tab of [gamesTabs]: Dailies, Duels, Custom. Dailies scrolls on
+ * [scroll], Duels on [duelsScroll], which the Duels body lays its list out on, and Custom's body is [customTab], laid
+ * out on [customScroll], its tab carrying [customCount]; each tab keeps its own scroll, and a tab change ([onTab])
+ * scrolls nothing back to the top. There is no From friends carousel then: the friend puzzles live in Custom. The
+ * Duels body is handed the pending [duelPrefill] and reports it taken ([onDuelPrefillTaken]). With a [community] tab
+ * the tabs are Dailies and Duels only; Custom is not shown, and a saved one shows Dailies.
  */
 @Composable
 internal fun LibraryList(
@@ -60,33 +57,29 @@ internal fun LibraryList(
     duels: DuelsSlot? = null,
     tab: GamesTab = GamesTab.Dailies,
     onTab: (GamesTab) -> Unit = {},
-    friendsTab: @Composable () -> Unit = {},
-    friendCount: Int = 0,
     duelsScroll: LazyListState = rememberLazyListState(),
-    customTab: (@Composable () -> Unit)? = null,
+    customTab: @Composable () -> Unit,
     customCount: Int = 0,
     customScroll: LazyListState = rememberLazyListState(),
     duelPrefill: DuelPrefill? = null,
     onDuelPrefillTaken: () -> Unit = {},
     community: Boolean = false,
-    friendsScroll: ScrollState = rememberScrollState(),
 ) {
     val phone = layout == PlayLayout.SinglePane
     // Only the list on screen glides.
-    val shown by rememberUpdatedState(if (duels == null) null else tab.shownWith(customTab != null, community))
+    val shown by rememberUpdatedState(if (duels == null) null else tab.shownWith(community))
     OnTabReselect {
         when (shown) {
             GamesTab.Duels -> duelsScroll.animateScrollToItem(0)
             GamesTab.Custom -> customScroll.animateScrollToItem(0)
-            GamesTab.Friends -> friendsScroll.animateScrollTo(0)
             else -> scroll.animateScrollTo(0)
         }
     }
     if (duels != null) {
         UnderlineTabbedList(
-            state, phone, GamesScrolls(scroll, friendsScroll, duelsScroll, customScroll), onRow, modifier,
+            state, phone, GamesScrolls(scroll, duelsScroll, customScroll), onRow, modifier,
             header = { Box(if (phone) Modifier.padding(horizontal = Spacing.lg) else Modifier) { ListHeader(headerAction) } },
-            duels, tab, onTab, friendsTab, friendCount, customTab, customCount, duelPrefill, onDuelPrefillTaken, community,
+            duels, tab, onTab, customTab, customCount, duelPrefill, onDuelPrefillTaken, community,
         )
         return
     }

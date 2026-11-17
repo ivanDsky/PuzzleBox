@@ -93,6 +93,8 @@ class LibraryPaneCrossfadeTest {
                     onOpenLesson = {},
                     calendar = CalendarActions(),
                     onOpenRanks = { _, _ -> },
+                    custom = CustomSlot { _, _, _ -> },
+                    onMakeOne = {},
                     paneCrossfade = crossfade,
                 )
             }

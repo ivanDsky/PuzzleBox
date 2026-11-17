@@ -14,9 +14,9 @@ import androidx.compose.ui.platform.testTag
 private const val DELETED_TITLE_MAX = 28
 
 /**
- * The delete-Undo snackbar of both Create roots (the Create tab and the Custom list). While [deleted] is set it says
+ * The delete-Undo snackbar of the Custom list. While [deleted] is set it says
  * "Deleted “{title}”" and offers Undo ([onUndo]); it leaves when the state clears [deleted] (the 5 s window is the
- * ViewModel's). The returned state goes to [DeleteUndoSnackbar], and tells a root whether the snackbar is up.
+ * ViewModel's). The returned state goes to [DeleteUndoSnackbar], and tells the list whether the snackbar is up.
  */
 @Composable
 internal fun rememberDeleteUndo(deleted: CreateUiState.Deleted?, onUndo: () -> Unit): SnackbarHostState {
@@ -30,7 +30,7 @@ internal fun rememberDeleteUndo(deleted: CreateUiState.Deleted?, onUndo: () -> U
     return snackbar
 }
 
-/** Where [rememberDeleteUndo]'s snackbar shows; the root places it with [modifier]. */
+/** Where [rememberDeleteUndo]'s snackbar shows; the list places it with [modifier]. */
 @Composable
 internal fun DeleteUndoSnackbar(state: SnackbarHostState, modifier: Modifier = Modifier) {
     SnackbarHost(state, modifier.testTag("create.snackbar"))

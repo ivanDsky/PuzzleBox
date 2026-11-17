@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.app.nav
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.nav.Home.DebugOnly
 import com.ivandsky.puzzlebox.app.nav.Home.PushedOn
+import com.ivandsky.puzzlebox.app.nav.Home.Retired
 import com.ivandsky.puzzlebox.app.nav.Home.Shell
 import com.ivandsky.puzzlebox.app.nav.Home.TabRoot
 import com.ivandsky.puzzlebox.compete.api.DuelKey
@@ -43,8 +44,8 @@ internal data class Placement(val home: Home, val chrome: Chrome)
 /** One row of the table: [key]'s class and its [placement]. */
 internal data class PlacementRow(val key: KClass<out NavKey>, val placement: Placement)
 
-/** The five tabs a shell can show (never all at once). A tab is named here, not by a key. */
-internal enum class Tab { Today, Games, Community, History, Create }
+/** The four tabs a shell can show (never all at once). A tab is named here, not by a key. */
+internal enum class Tab { Today, Games, Community, History }
 
 /** Where a key lives. */
 internal sealed interface Home {
@@ -62,6 +63,9 @@ internal sealed interface Home {
 
     /** Exists in debug builds only. */
     data object DebugOnly : Home
+
+    /** A key only an old saved state holds: its tab is gone and nothing pushes it. Restore drops its stack. */
+    data object Retired : Home
 }
 
 /**
@@ -81,7 +85,7 @@ internal val placementRows: List<PlacementRow> = listOf(
     PlacementRow(HomeKey::class, Placement(TabRoot(Tab.Today), Chrome.Bar)),
     PlacementRow(PlayKey::class, Placement(TabRoot(Tab.Games), Chrome.Bar)),
     PlacementRow(CommunityKey::class, Placement(TabRoot(Tab.Community), Chrome.Bar)),
-    PlacementRow(CreateKey::class, Placement(TabRoot(Tab.Create), Chrome.Bar)),
+    PlacementRow(CreateKey::class, Placement(Retired, Chrome.Bar)),
     PlacementRow(HistoryRootKey::class, Placement(TabRoot(Tab.History), Chrome.Bar)),
     PlacementRow(HistoryKey::class, Placement(PushedOn(Tab.History), Chrome.Bar)),
     PlacementRow(ProfileKey::class, Placement(Shell, Chrome.Bar)),
@@ -98,8 +102,8 @@ internal val placementRows: List<PlacementRow> = listOf(
     PlacementRow(MatchLegResultKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
     PlacementRow(DuelKey::class, Placement(PushedOn(Tab.Games), Chrome.Bar)),
     PlacementRow(DuelRevealKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
-    PlacementRow(EditorKey::class, Placement(PushedOn(Tab.Create), Chrome.Bar)),
-    PlacementRow(PublishedPuzzleKey::class, Placement(PushedOn(Tab.Create), Chrome.Bar)),
+    PlacementRow(EditorKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
+    PlacementRow(PublishedPuzzleKey::class, Placement(PushedOn(Tab.Games), Chrome.Bar)),
     PlacementRow(CatalogKey::class, Placement(DebugOnly, Chrome.Bar)),
 )
 

@@ -35,6 +35,7 @@ class StrandsFriendHintE2ETest {
     @Test
     fun `three non-theme words on a friend's Strands board light the hint button`() = shellRobot(graph = world.graph) {
         val code = world.publishAsAuthor(this, StrandsWoods.board, "Woods")
+        back() // the Studio is full-window, with no tab bar to leave by
         world.signInFriend()
         tapTab(PlayKey)
         openByCode(code)

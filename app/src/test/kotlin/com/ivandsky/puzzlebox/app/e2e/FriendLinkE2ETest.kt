@@ -108,11 +108,11 @@ class FriendLinkE2ETest {
     }
 
     @Test
-    fun `a link while the app runs on Create opens the card in Play`() = launching(fromRecents(view(LINK))) {
+    fun `a link while the app runs on Ranks opens the card in Play`() = launching(fromRecents(view(LINK))) {
         // Relaunched from Recents, the link that first started the task is not re-applied.
         assertRoute("route.home")
-        tap("nav.tab.create")
-        assertRoute("route.create")
+        tap("nav.tab.ranks")
+        assertRoute("route.ranks")
 
         rule.runOnUiThread { InstrumentationRegistry.getInstrumentation().callActivityOnNewIntent(rule.activity, view(LINK)) }
         rule.waitForIdle()
@@ -220,7 +220,7 @@ class FriendLinkE2ETest {
         val isRoute = SemanticsMatcher("test tag route.*") {
             it.config.getOrNull(SemanticsProperties.TestTag)?.startsWith("route.") == true
         }
-        val TABS = listOf("nav.tab.home", "nav.tab.play", "nav.tab.ranks", "nav.tab.create")
+        val TABS = listOf("nav.tab.home", "nav.tab.play", "nav.tab.ranks")
         const val TIMEOUT_MS = 10_000L
     }
 }

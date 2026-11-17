@@ -33,10 +33,12 @@ class LinkedInNavTest {
         val navigator = Navigator(puzzleBoxNavigationState())
         val entry = puzzleBoxEntryProvider(
             navigator = navigator,
-            tabSet = TabSet.FourTabs,
+            tabSet = TabSet.ThreeTabs,
             homeLayout = HomeLayout.SinglePane,
             playLayout = PlayLayout.SinglePane,
             historyLayout = HistoryLayout.SinglePane,
+            custom = testCustomSlot(),
+            makeOne = testMakeOne(navigator),
             visibility = VisibilitySlot(flowOf(OwnTier.Unset)) {},
             tuneDefaults = testTuneDefaults(),
         ).invoke(LinkedInLoginKey)

@@ -1,8 +1,12 @@
 package com.ivandsky.puzzlebox.create
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.key
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -10,13 +14,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.navigation3.runtime.NavEntry
-import androidx.navigation3.runtime.NavKey
-import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
-import com.ivandsky.puzzlebox.create.api.CreateKey
-import com.ivandsky.puzzlebox.create.api.EditorKey
-import com.ivandsky.puzzlebox.create.navigation.createEntry
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.CreateDraft
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
@@ -30,8 +28,6 @@ import com.ivandsky.puzzlebox.game.editor.NotationHeader
 import com.ivandsky.puzzlebox.game.editor.NotationResult
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
-import com.ivandsky.puzzlebox.navigation.NavigationState
-import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
@@ -57,22 +53,25 @@ import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowLooper
 
 /**
- * Text shared to PuzzleBox (M5-09) over the real Create root, view model and
+ * The lifecycle of text shared to PuzzleBox (M5-09) over the real Custom list, view model and
  * `ImportDraftFromText`: [SharedTextStore]'s waiting text goes through the one Import sheet
- * (open, then submit), exactly once and only while the root shows. A good text stores one
- * imported draft and opens its Studio; any error leaves the sheet open with the typed error, and
- * an over-cap one an empty box and no draft (spec criterion 14).
+ * (open, then submit), exactly once and only while the list shows and is resumed. An over-cap
+ * text leaves an empty box and no draft (spec criterion 14). The plain import and the malformed
+ * text are [CustomBodyTest]'s.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w360dp-h640dp")
-class SharedTextImportTest {
+class CustomBodySharedTextTest {
 
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     private val drafts = FakeDraftRepository()
     private val store = FakeSharedTextStore()
-    private val navigator = Navigator(NavigationState(CreateKey, listOf(listOf(CreateKey))))
+    private val opened = mutableListOf<String>()
+
+    /** Another screen over the list, as the Studio is once a draft opens. */
+    private var covered by mutableStateOf(false)
     private lateinit var vm: CreateViewModel
     private val editor = NotatedEditor()
 
@@ -82,44 +81,16 @@ class SharedTextImportTest {
     }
 
     @Test
-    fun `text waiting before the root shows imports one draft and opens its Studio`() {
-        store.put(NOTATION)
-        show()
-
-        awaitTrue { navigator.state.currentStack.last() != CreateKey }
-
-        assertEquals(listOf(CreateKey, EditorKey("draft-1")), navigator.state.currentStack)
-        assertEquals(setOf("draft-1"), drafts.rows.keys)
-        assertTrue(drafts.rows.getValue("draft-1").imported)
-        assertNull(store.pending.value)
-        assertNull(store.take())
-    }
-
-    @Test
-    fun `text arriving while the root shows does the same`() {
+    fun `text arriving while the list shows imports one draft and opens it`() {
         show()
         awaitTag(ROOT)
 
         store.put(NOTATION)
-        awaitTrue { navigator.state.currentStack.last() != CreateKey }
+        awaitTrue { opened.isNotEmpty() }
 
-        assertEquals(listOf(CreateKey, EditorKey("draft-1")), navigator.state.currentStack)
+        assertEquals(listOf("draft-1"), opened)
         assertEquals(setOf("draft-1"), drafts.rows.keys)
         assertTrue(drafts.rows.getValue("draft-1").imported)
-        assertNull(store.pending.value)
-    }
-
-    @Test
-    fun `a malformed text stores nothing and leaves the sheet open with the error`() {
-        store.put("no header here")
-        show()
-
-        awaitTag(SHEET)
-        awaitTrue { vm.importText.ui.value.error != null }
-
-        assertTrue(vm.importText.ui.value.error is ImportResult.Malformed)
-        assertEquals(emptySet<String>(), drafts.rows.keys)
-        assertEquals(listOf<NavKey>(CreateKey), navigator.state.currentStack)
         assertNull(store.pending.value)
     }
 
@@ -134,14 +105,14 @@ class SharedTextImportTest {
         assertEquals("", vm.importText.ui.value.text)
         assertTrue(vm.importText.ui.value.visible)
         assertEquals(emptySet<String>(), drafts.rows.keys)
-        assertEquals(listOf<NavKey>(CreateKey), navigator.state.currentStack)
+        assertEquals(emptyList<String>(), opened)
     }
 
     @Test
-    fun `text arriving while another screen covers the root waits for the root`() {
+    fun `text arriving while another screen covers the list waits for the list`() {
         show()
         awaitTag(ROOT)
-        navigator.pushOnce(EditorKey("elsewhere"))
+        composeRule.runOnUiThread { covered = true }
         awaitTrue { !composeRule.exists(ROOT) }
 
         store.put(NOTATION)
@@ -150,30 +121,30 @@ class SharedTextImportTest {
         assertEquals(NOTATION, store.pending.value)
         assertEquals(emptySet<String>(), drafts.rows.keys)
 
-        navigator.pop()
+        composeRule.runOnUiThread { covered = false }
         idle()
-        awaitTrue { navigator.state.currentStack.last() != CreateKey }
+        awaitTrue { opened.isNotEmpty() }
 
         assertEquals(setOf("draft-1"), drafts.rows.keys)
         assertNull(store.pending.value)
     }
 
     @Test
-    fun `the root showing again after an import takes nothing a second time`() {
+    fun `the list showing again after an import takes nothing a second time`() {
         store.put(NOTATION)
         show()
-        awaitTrue { navigator.state.currentStack.last() != CreateKey }
+        awaitTrue { opened.isNotEmpty() }
 
-        navigator.pop()
+        composeRule.runOnUiThread { covered = false }
         awaitTag(ROOT)
         idle()
 
         assertEquals(setOf("draft-1"), drafts.rows.keys)
-        assertEquals(listOf<NavKey>(CreateKey), navigator.state.currentStack)
+        assertEquals(listOf("draft-1"), opened)
     }
 
     @Test
-    fun `a root that is only started takes nothing until it is resumed`() {
+    fun `a list that is only started takes nothing until it is resumed`() {
         val owner = ManualLifecycle(Lifecycle.State.STARTED)
         store.put(NOTATION)
         show(owner)
@@ -184,7 +155,7 @@ class SharedTextImportTest {
         assertEquals(emptySet<String>(), drafts.rows.keys)
 
         composeRule.runOnUiThread { owner.moveTo(Lifecycle.State.RESUMED) }
-        awaitTrue { navigator.state.currentStack.last() != CreateKey }
+        awaitTrue { opened.isNotEmpty() }
 
         assertEquals(setOf("draft-1"), drafts.rows.keys)
         assertNull(store.pending.value)
@@ -206,8 +177,8 @@ class SharedTextImportTest {
 
         editor.release.countDown()
         awaitTrue {
-            // The first Studio may cover the root before the waiting text is taken; it waits there.
-            if (store.pending.value != null && navigator.state.currentStack.last() != CreateKey) navigator.pop()
+            // The first Studio may cover the list before the waiting text is taken; it waits there.
+            if (store.pending.value != null && covered) covered = false
             drafts.rows.size == 2 && store.pending.value == null
         }
 
@@ -240,21 +211,31 @@ class SharedTextImportTest {
                 },
             )
         }
-        val entries = entryProvider<NavKey>(fallback = { unknown -> NavEntry(unknown) {} }) {
-            createEntry(navigator)
-        }
         composeRule.setContent {
             PuzzleBoxTheme {
-                val top = navigator.state.currentStack.last()
                 if (owner == null) {
-                    key(top) { entries(top).Content() }
+                    List()
                 } else {
-                    CompositionLocalProvider(LocalLifecycleOwner provides owner) {
-                        key(top) { entries(top).Content() }
-                    }
+                    CompositionLocalProvider(LocalLifecycleOwner provides owner) { List() }
                 }
             }
         }
+    }
+
+    /** The Custom list, gone while [covered], reporting each draft it opens and then covered by that draft's screen. */
+    @Composable
+    private fun List() {
+        if (covered) return
+        CustomBody(
+            listState = rememberLazyListState(),
+            friendsEmpty = false,
+            friends = {},
+            onOpenDraft = {
+                opened += it
+                covered = true
+            },
+            onOpenPublished = {},
+        )
     }
 
     private fun ComposeTestRule.exists(tag: String): Boolean =
@@ -340,7 +321,7 @@ class SharedTextImportTest {
         const val TIMEOUT_MS = 5_000L
         const val FRAME_MS = 16L
         const val IDLE_MS = 200L
-        const val ROOT = "route.create"
+        const val ROOT = "custom.list"
         const val SHEET = "create.import.sheet"
     }
 }

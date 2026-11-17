@@ -6,7 +6,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.compete.api.DuelRevealKey
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
@@ -29,7 +28,7 @@ import org.robolectric.annotation.Config
 
 /**
  * The real shell (SC1, SC5, SC6), on a phone's bar and a tablet's rail: the tab set
- * is Today, Games, History and Create; the rail carries the avatar once at
+ * is Today, Games and Ranks; the rail carries the avatar once at
  * its bottom on every screen it shows, centres its tabs on the window and gives the avatar a 48dp
  * target below them, the bar carries the avatar only in Today's header and nowhere else; the
  * avatar opens Profile and Profile's gear opens Settings in the layer over the current tab (on a bar from Today),
@@ -43,11 +42,11 @@ class ShellTabsE2ETest {
 
     @Test
     @Config(qualifiers = PHONE)
-    fun `a phone's bar shows Today, Games, History and Create with Today selected`() = tabSet(Width.Phone)
+    fun `a phone's bar shows Today, Games and Ranks with Today selected`() = tabSet(Width.Phone)
 
     @Test
     @Config(qualifiers = RAIL)
-    fun `a tablet's rail shows Today, Games, History and Create with Today selected`() = tabSet(Width.Rail)
+    fun `a tablet's rail shows Today, Games and Ranks with Today selected`() = tabSet(Width.Rail)
 
     @Test
     @Config(qualifiers = PHONE)
@@ -126,7 +125,6 @@ class ShellTabsE2ETest {
                 listOf(HomeKey, HistoryKey()),
                 listOf(PlayKey, DuelKey(CODE), FriendPuzzleKey(CODE)),
                 listOf(HistoryRootKey),
-                listOf(CreateKey),
             ),
         ),
     ) {
@@ -153,10 +151,6 @@ class ShellTabsE2ETest {
         tapTab(HistoryRootKey)
         assertRoute(RANKS)
         assertChromeFor(rail)
-
-        tapTab(CreateKey)
-        assertRoute(CREATE)
-        assertChromeFor(rail)
     }
 
     private fun noChrome(rail: Boolean) = shellRobot(
@@ -166,7 +160,6 @@ class ShellTabsE2ETest {
                 listOf(HomeKey, ResultKey(ZIP, E2E_TODAY.toString(), timeMs = 61_000, hintsUsed = 0)),
                 listOf(PlayKey, GameKey(ZIP)),
                 listOf(HistoryRootKey, DuelRevealKey(CODE)),
-                listOf(CreateKey, SettingsKey),
             ),
         ),
     ) {
@@ -182,12 +175,8 @@ class ShellTabsE2ETest {
         assertEquals("the reveal is on top", DuelRevealKey(CODE), state.currentStack.last())
         assertChromeFor(rail)
 
-        switchTab(CreateKey)
-        assertRoute(SETTINGS)
-        assertChromeFor(rail)
-
         back()
-        assertRoute(CREATE)
+        assertRoute(RANKS)
         if (rail) {
             tapAvatar()
             assertRoute(PROFILE)
@@ -257,7 +246,6 @@ class ShellTabsE2ETest {
         const val HOME = "route.home"
         const val LIBRARY = "route.library"
         const val RANKS = "route.ranks"
-        const val CREATE = "route.create"
         const val FRIEND = "route.friend"
         const val GAME = "route.game"
         const val RESULT = "route.result"
@@ -267,8 +255,7 @@ class ShellTabsE2ETest {
             "nav.tab.home" to "Today",
             "nav.tab.play" to "Games",
             "nav.tab.ranks" to "Ranks",
-            "nav.tab.create" to "Create",
         )
-        val ROOTS = listOf(HomeKey to HOME, PlayKey to LIBRARY, HistoryRootKey to RANKS, CreateKey to CREATE)
+        val ROOTS = listOf(HomeKey to HOME, PlayKey to LIBRARY, HistoryRootKey to RANKS)
     }
 }

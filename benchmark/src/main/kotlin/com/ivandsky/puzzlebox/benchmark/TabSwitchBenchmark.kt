@@ -6,7 +6,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/** Today to Games to Ranks to Create and back to Today, each tab waited on until its root composes. */
+/** Today to Games to Ranks to Community and back to Today, each tab waited on until its root composes. */
 @RunWith(AndroidJUnit4::class)
 class TabSwitchBenchmark {
     @get:Rule
@@ -16,7 +16,7 @@ class TabSwitchBenchmark {
     fun allTabs() = rule.journey {
         selectTab(BenchmarkTab.Games)
         selectTab(BenchmarkTab.Ranks)
-        selectTab(BenchmarkTab.Create)
+        selectTab(BenchmarkTab.Community)
         selectTab(BenchmarkTab.Today)
     }
 
@@ -29,8 +29,8 @@ class TabSwitchBenchmark {
     }
 
     @Test
-    fun createOpen() = rule.journey {
-        selectTab(BenchmarkTab.Create)
+    fun communityOpen() = rule.journey {
+        selectTab(BenchmarkTab.Community)
         selectTab(BenchmarkTab.Today)
     }
 }

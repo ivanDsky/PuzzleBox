@@ -16,13 +16,12 @@ import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
  * under a Community head. On the phone a friend's puzzle pushes its [FriendPuzzleKey] card on the Community stack, so
  * back returns here; on the tablet it shows beside the list and nothing is pushed, and its Play pushes the board
  * ([CustomGameKey]) over the two-pane, so back returns to the same selection. The code sheet opens on [codeDraft]'s
- * text and hands it back through [onCodeDraftTaken]; [duels] is what it calls when a code names a duel. The key is
- * registered with no slot too (the tab is not shown then) and draws nothing.
+ * text and hands it back through [onCodeDraftTaken]; [duels] is what it calls when a code names a duel.
  */
 fun EntryProviderScope<NavKey>.communityEntry(
     navigator: Navigator,
     layout: PlayLayout,
-    custom: CustomSlot? = null,
+    custom: CustomSlot,
     codeDraft: () -> String? = { null },
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,

@@ -74,7 +74,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `ObserveTodaySet` reports any of today's games in progress or a duel needs the player;
   holds the Enter-code draft and the one-shot `LibraryRequests`; the rail carries the avatar), `nav/` the shell
   (ADR-0011, ADR-0027): `TopLevelDestination.kt` (`topLevelDestinations` tab registry: key, label, icon,
-  test tag, `Tab`; the four-tab set Today, Games, Ranks, Create),
+  test tag, `Tab`; the three-tab set Today, Games, Ranks; `TabSetSource` swaps in Community's set while CommunityPuzzles is on),
   `PuzzleBoxNavigationState.kt` (fresh state, start tab first),
   `RememberNavigator.kt` (`rememberNavigator`, saved under `NAVIGATION_STATE_KEY`
   `"puzzlebox.navigation.v1"`, restored via `reconciledWith`; foreign/undecodable → fresh),
@@ -144,7 +144,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `ReplayKey(gameId, kind, day, puzzleNumber, puzzleId, code, legIndex)` (the replay page; `kind` is record, latest, myLeg or theirLeg; build it with `ReplayKey.daily`/`custom`/`leg`),
   `FriendPuzzleKey`, `CustomGameKey`, `CustomResultKey`, `MatchLegKey`, `MatchLegResultKey`;
   `HistoryKey` and `HistoryRootKey` (the Ranks tab root); `ProfileKey` and `SettingsKey`;
-  `CreateKey` (Create tab root), `EditorKey(draftId)`, `PublishedPuzzleKey`; compete's `DuelKey`
+  `CreateKey` (legacy only: the retired Create tab's key, kept registered so an old four-tab saved state decodes; its `Placement.kt` row is `Home.Retired`), `EditorKey(draftId)`, `PublishedPuzzleKey`; compete's `DuelKey`
   and `DuelRevealKey`) and a
   `*NavKeys()` polymorphic registration; serial names keep
   the `com.ivandsky.puzzlebox.app.nav.*` prefix by convention, compatibility is versioned by
@@ -402,7 +402,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   → Unavailable; undecodable row deleted), `SlotWriter` (per-slot 300 ms trailing-throttle
   saves, `discard` on solve), `WriteLane` (one Mutex-ordered lane for every saved-play I/O),
   `LibraryRoute` + `LibraryViewModel` (the Games screen: `GamesTabs` pills over `GamesTab`
-  Dailies, Friends and Duels, the Duels body handed in as a `DuelsSlot`; the Dailies tab is a row per game with today's status;
+  Dailies, Duels and Custom, the Duels body handed in as a `DuelsSlot` and the Custom body (`feature:create`'s `CustomBody`) as a required `CustomSlot`; the Dailies tab is a row per game with today's status;
   two-pane shows the list beside the selected game's `LibraryGamePage` — `ArchiveDayCard` (today, or the
   picked past day → `GameKey(game, day)`), `ArchiveMonthCalendar` (`ArchiveMonthNav` ‹ › + jumps,
   `ArchiveDayDisc` per day from `ObserveArchiveMonth`), `GameStatsCard`, `HowToPlayCard` (rules + Open the lesson); with the
@@ -412,8 +412,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   best live, Play again; today's solve asks `ObserveResultNextThing` once for its moments, next thing and Challenge friend,
   a past day's first solve offers `ResultArchiveNext`), duel legs
   (`MatchLegRoute`/`MatchLegViewModel`, `MatchLegResultRoute`, `LegCompletionRepository`
-  tagging a leg solve with its match), `friend/` (a friend's puzzle: `FriendsTabBody`,
-  `EnterCodeSheet`, `FriendPuzzleRoute`, `CustomResultRoute`), `di/PlayModule`; `navigation/PlayEntries` (`playEntry`,
+  tagging a leg solve with its match), `friend/` (a friend's puzzle: `EnterCodeSheet`, `FriendPuzzleRoute`, `CustomResultRoute`), `di/PlayModule`; `navigation/PlayEntries` (`playEntry`,
   `resultEntry`) and `navigation/GameEntry`; `GameStatsPanel` is the tablet side panel's content (`PlayStatsPanel`: timer, today's progress and the day board).
 - `feature/history/impl/` (`:feature:history:impl`, the Ranks hub; the module keeps its History name) —
   `navigation/RanksEntry` (the tab root `HistoryRootKey` and the pushed `HistoryKey`, both open the hub),
@@ -433,15 +432,15 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   the back icon and `onOpenSettings` the gear, both required). The Google ID-token provider moved
   to `:core:auth`.
 - `feature/create/impl/` (`:feature:create:impl`, ADR-0019; no `games:*` dependency; `published/` hosts `PublishedPuzzleRoute`) —
-  `navigation/CreateEntries` (`CreateKey`, `EditorKey`, `PublishedPuzzleKey`), `CreateRoute`/`CreateScreen` +
-  `CreateViewModel` (draft list over `DraftRepository`, `NewPuzzleSheet`, `DraftActionsSheet`),
+  `navigation/CreateEntries` (`EditorKey`, `PublishedPuzzleKey`; Create is not a tab: Games' Custom pill hosts `CustomBody` over
+  `CreateViewModel`: the draft list over `DraftRepository`, `NewPuzzleSheet`, `DraftActionsSheet`; the Studio is full screen),
   `editor/` `EditorRoute` + `EditorViewModel` (one draft through `GameEditorRegistry`;
   `DraftAutosave`, `EditHistory`), `StudioScreen` (`StudioLayout`, top bar, `ToolStrip`, side
   pane, `ActionArea`, `VerdictCard`/`VerdictPill`), `VerdictPipeline` (debounced
   `analyze` → `Verdict` flow), `TestSolveScreen` + `TestSolveSession` (play the draft before
   publish); `di/CreateModule`. `importtext/`: `ImportTextState` (the Import-from-text sheet's
   holder: open/edit/submit, clipboard offer, `onImported(draftId)`; one per screen that offers
-  the sheet — Create root and Studio) over `ImportDraftFromText`, with `ImportSheetActions`
+  the sheet — the Custom body and the Studio) over `ImportDraftFromText`, with `ImportSheetActions`
   (its callbacks). `CreateViewModel.importSharedText` imports text another app shared.
   Use cases in `core:domain`: `CreateDraft`, `ValidatePublish`, `ImportDraftFromText`.
 - `feature/compete/` (`:feature:compete:api`, `:feature:compete:impl`, ADR-0026; plugin
@@ -485,8 +484,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
 - `PuzzleBoxApp` route table (`puzzleBoxEntryProvider`, entries contributed by each feature
   impl's `*Entry` builder; placement of every key is a row in `Placement.kt`, ADR-0027). Tab
   roots: HomeKey → `HomeRoute` (Today), PlayKey → `LibraryRoute` (Games, with
-  its Dailies, Friends and Duels tabs), HistoryRootKey → `HistoryRoute` (History, no back arrow),
-  CreateKey → `CreateRoute`. Shell screens pushed on the current tab's stack: ProfileKey → `ProfileRoute`
+  its Dailies, Duels and Custom pills), HistoryRootKey → `HistoryRoute` (History, no back arrow). Shell screens pushed on the current tab's stack: ProfileKey → `ProfileRoute`
   (slim, with a back icon and the gear) and SettingsKey → `SettingsRoute`. Pushed on a tab:
   EditorKey(draftId) → `EditorRoute` (the Studio; swaps to `TestSolveScreen` while
   test-solving), PublishedPuzzleKey → `PublishedPuzzleRoute`, HistoryKey →
@@ -503,8 +501,8 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   (`PanePolicy.isTwoPane(width, height)` mapped to `HomeLayout`/`PlayLayout`/`HistoryLayout`); the rail also carries the avatar.
 - Share target: the main manifest gives `MainActivity` a plain-text `SEND` intent filter.
   `MainActivity` (new intent or fresh start) → `SharedText.of` → `SharedTextStore.put` → `PuzzleBoxApp`'s
-  `pendingShare` → `Navigator.applySharedText()` (select Create, pop to its root, from any
-  tab) → the Create root's `CreateViewModel.importSharedText` takes the text and imports it
+  `pendingShare` → `Navigator.applySharedText()` (open Games' Custom pill, or the Community tab, from any
+  tab) → the Custom body's `CreateViewModel.importSharedText` takes the text and imports it
   while RESUMED.
 - `puzzle-cli` — `PuzzleCliKt.main` (`:tools:puzzle-cli`), run from `installDist`, never
   from the app: `puzzle-cli validate|solve <file>` → one JSON verdict line, exit code `CliExit`.
@@ -544,7 +542,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `placementOf` throws for a key with no row. `isImmersive` (`Immersive.kt`) derives only the
   bar-hiding predicate from it. Konsist P9 fails a production `NavKey` without a row. The
   per-key table is never copied into docs.
-- **Tab set** (ADR-0027) — `topLevelDestinations` is the one registry: Today, Games, Ranks, Create.
+- **Tab set** (ADR-0027) — `topLevelDestinations` is the one registry: Today, Games, Ranks.
   Features never read a flag for it: an entry takes a nullable callback or a slot for an optional
   link, and the app passes it (ADR-0027 §10).
 - **Shell actions and the avatar** (ADR-0027) — `ShellAvatar` (`app/nav/ShellChrome.kt`) is the
@@ -556,7 +554,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
 - **`SummaryLinkRow`** (`core:designsystem`) — the one summary card: Today's rank and duels
   rows (`HomeSummaries`) and the game page's "Your history" row.
 - **`LocalTabReselect`** (`core:designsystem`) — the shell tells tab roots that the selected
-  tab was tapped again; Today, History, the Games list and Create's lists scroll to the top.
+  tab was tapped again; Today, History, the Games list and Custom's lists scroll to the top.
 - **`openOwner`** (`app/nav/OpenOwner.kt`) and **`LibraryRequests`** (`app/nav/LibraryRequests.kt`)
   — "go to owner" composes `selectTab` and `push`; the app holds a one-shot `LibraryRequest`
   (open a game's page, or a Games section such as Duels) and the Games entry takes it once.

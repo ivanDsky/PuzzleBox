@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -14,8 +15,8 @@ import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import com.ivandsky.puzzlebox.create.CreateScreen
 import com.ivandsky.puzzlebox.create.CreateUiState
+import com.ivandsky.puzzlebox.create.CustomBodyContent
 import com.ivandsky.puzzlebox.create.GOLDEN_PHONE
 import com.ivandsky.puzzlebox.create.GOLDEN_TABLET
 import com.ivandsky.puzzlebox.create.NewPuzzleSheet
@@ -45,7 +46,7 @@ import org.robolectric.annotation.GraphicsMode
  * rendered from fake state: the sheet empty (Import off), with the clipboard banner for one
  * line and for several, with text filled in, checking (spinner row, read-only box), and each
  * failure kind (malformed with line and column, header, unknown game, unsupported version, too
- * large). The sheet is its own window, so the whole screen is captured, over the Create root
+ * large). The sheet is its own window, so the whole screen is captured, over the Custom list
  * it opens from. Then the New puzzle sheet's Import row, the Studio's overflow with Import from
  * text, and the Studio of an imported draft with its Imported chip. Goldens in `snapshots/import/`.
  */
@@ -104,14 +105,14 @@ abstract class ImportGoldenScreenshots(private val layout: PlayLayout, private v
     @Test fun `studio imported chip dark`() = studio("studio-imported", dark = true, overflow = false)
 
     private fun sheet(name: String, ui: ImportSheetUi, dark: Boolean) {
-        rule.showGolden(dark) { CreateRoot(ui) }
+        rule.showGolden(dark) { CustomList(ui) }
         clearWindowFocus()
         rule.settleAndCapture("import", name, device, dark)
     }
 
     private fun newPuzzle(dark: Boolean) {
         rule.showGolden(dark) {
-            CreateRoot(ImportSheetUi())
+            CustomList(ImportSheetUi())
             NewPuzzleSheet(games = PreviewGames, onPick = { _, _ -> }, onDismiss = {}, onImport = {})
         }
         rule.settleAndCapture("import", "new-puzzle-row", device, dark)
@@ -148,22 +149,24 @@ abstract class ImportGoldenScreenshots(private val layout: PlayLayout, private v
         rule.mainClock.advanceTimeBy(FRAME_SETTLE_MS)
     }
 
-    /** The Create root with a few drafts, the Import pill on, as the sheet opens over it. */
+    /** The Custom list with a few drafts, the Import pill on, as the sheet opens over it. */
     @Composable
-    private fun CreateRoot(ui: ImportSheetUi) {
-        CreateScreen(
-            state = ROOT,
-            onNew = { _, _ -> },
-            onOpen = {},
-            onQuery = {},
-            onFilter = {},
-            onTab = {},
+    private fun CustomList(ui: ImportSheetUi) {
+        CustomBodyContent(
+            state = LISTED,
+            listState = rememberLazyListState(),
+            friendsEmpty = true,
+            friends = {},
+            community = null,
+            onNewPuzzle = {},
+            onStart = { _, _ -> },
+            onImport = {},
+            onOpenDraft = {},
+            onDraftActions = {},
             onOpenPublished = {},
-            onDuplicate = {},
-            onDelete = {},
             onUndoDelete = {},
-            importSheet = ui,
         )
+        ImportSheet(ui = ui, actions = ImportSheetActions())
     }
 
     /** An imported draft's Studio, its overflow offering Import from text. */
@@ -251,7 +254,7 @@ abstract class ImportGoldenScreenshots(private val layout: PlayLayout, private v
             error = ImportResult.TooLarge(bytes = 66_000, line = 412, col = 1),
         )
 
-        val ROOT = CreateUiState(
+        val LISTED = CreateUiState(
             loading = false,
             drafts = (0 until 3).map { index ->
                 val game = PreviewGames[index % PreviewGames.size]

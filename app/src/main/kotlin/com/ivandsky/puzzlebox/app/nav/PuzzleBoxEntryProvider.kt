@@ -7,7 +7,6 @@ import com.ivandsky.puzzlebox.app.CatalogScreen
 import com.ivandsky.puzzlebox.app.DebugSettingsSlot
 import com.ivandsky.puzzlebox.compete.navigation.competeEntry
 import com.ivandsky.puzzlebox.create.TestSolvePlaySlot
-import com.ivandsky.puzzlebox.create.navigation.createEntry
 import com.ivandsky.puzzlebox.create.navigation.editorEntry
 import com.ivandsky.puzzlebox.create.navigation.publishedPuzzleEntry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
@@ -46,10 +45,9 @@ import java.time.LocalDate
  * Loop wiring: Home's Today card selects the Play tab; its history teaser opens
  * the Ranks tab; the Ranks hub's rows push the day's game key; Settings' Component catalog row pushes [CatalogKey] on the current
  * tab's stack.
- * The Create tab's New puzzle and its draft rows push that draft's
- * Studio on Create's stack, and its published rows that puzzle's page. Once Custom lives in Games, [custom] fills
- * the Games Custom pill (its rows push the same two screens on the Games stack) and [makeOne] backs the game
- * page's Make one (the default size); both are null until then, and neither door shows. Back pops the layer or
+ * Custom lives in Games: [custom] fills the Games Custom pill, its New puzzle and draft rows push that draft's
+ * Studio on the Games stack and its published rows that puzzle's page, and [makeOne] backs the game
+ * page's Make one (the default size). Back pops the layer or
  * the current tab's stack
  * ([Navigator.pop]), including after process-death restore. A [codeDraft] (a tapped link's text that isn't a
  * code) opens the Play library's code sheet holding it. With a Community tab in [tabSet] (M10-1) Custom is that tab's
@@ -78,8 +76,8 @@ internal fun puzzleBoxEntryProvider(
     codeDraft: () -> String? = { null },
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
-    custom: CustomSlot? = null,
-    makeOne: MakeOne? = null,
+    custom: CustomSlot,
+    makeOne: MakeOne,
     libraryRequests: LibraryRequests = LibraryRequests(),
     visibility: VisibilitySlot,
     tuneDefaults: RanksTuneDefaults,
@@ -100,11 +98,10 @@ internal fun puzzleBoxEntryProvider(
         onLibraryRequestTaken = libraryRequests::take,
         onCodeDraftTaken = onCodeDraftTaken,
         duels = duels,
-        // With a Community tab the Custom list is that tab's, not a Games pill.
-        custom = if (communityTab) null else custom,
+        custom = custom,
         onReconnectLinkedIn = { navigator.pushOnce(LinkedInLoginKey) },
         onOpenRanks = openRanks(navigator, tabSet),
-        onMakeOne = makeOne?.let { make -> { game -> make(game) } },
+        onMakeOne = { game -> makeOne(game) },
         communityTab = communityTab,
     )
     communityEntry(
@@ -121,7 +118,6 @@ internal fun puzzleBoxEntryProvider(
         onOpenRanks = openRanks(navigator, tabSet),
         onChallenge = { prefill -> libraryRequests.openChallenge(navigator, tabSet, prefill) },
     )
-    createEntry(navigator)
     editorEntry(navigator, playLayout, testSolvePlay = TestSolveOnPlay)
     publishedPuzzleEntry(navigator, playLayout)
     val back: () -> Unit = { navigator.pop() }

@@ -59,7 +59,7 @@ import org.koin.core.parameter.parametersOf
 
 /**
  * A published puzzle's page (spec A6): under a compact bar whose Back ([onBack]) returns to the
- * Create root, the board as published (read-only; with CommunityPuzzles on, the plain sharp board with no
+ * Games root, the board as published (read-only; with CommunityPuzzles on, the plain sharp board with no
  * verdict, see [PublishedPageBoard]), the game's own publish details as published
  * (disabled; Strands' theme clue), the share ticket with Copy code and Share, a
  * note that it can't be edited, **Duplicate as new draft**, which stores an editable copy and

@@ -42,7 +42,7 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 
 /**
- * The Custom list of Games (spec N9, N10): everything the Create tab does, as one list on [listState] that fills
+ * The Custom list of Games (spec N9, N10): the author's drafts and published puzzles, as one list on [listState] that fills
  * the space it is given. Top to bottom:
  *
  * 1. **New puzzle** opens the New puzzle sheet; the draft it starts is reported to [onOpenDraft].
@@ -52,12 +52,12 @@ import com.ivandsky.puzzlebox.model.ShareCode
  * 4. **Published by you**: a tap reports the puzzle's share code to [onOpenPublished].
  * 5. The caller's [community] items; null adds nothing.
  *
- * With no drafts, nothing published, [friendsEmpty] and no [community], the first-time Create screen shows in the
+ * With no drafts, nothing published, [friendsEmpty] and no [community], the first-time empty state shows in the
  * list's place (pick a game to start a draft, or import one) and [friends] is not asked for items.
  *
  * It is a root of the one activity-scoped [CreateViewModel], so drafts, the Undo window and an import carry over
  * to and from the Studio. While it shows, text another app shared is imported and opened through [onOpenDraft],
- * and the published rows' solve counts are fetched once. It must not show beside the Create tab's root.
+ * and the published rows' solve counts are fetched once.
  *
  * Motion: rows **Fade in** / **Fade out** and slide to new places; the first cloud restore's fill-in is a
  * **Fade through**. Reduced motion drops the row motion and shortens the fade.
@@ -141,7 +141,7 @@ internal fun CustomBodyContent(
     val reducedMotion = rememberReducedMotion()
     val nothingElse = friendsEmpty && community == null
     Box(Modifier.fillMaxSize()) {
-        // Keyed on the restoring card alone, as the Create tab is: only the first cloud restore's fill-in animates.
+        // Keyed on the restoring card alone, only the first cloud restore's fill-in animates.
         Crossfade(
             targetState = state.restoringScreen() && nothingElse,
             animationSpec = tween(createFadeMillis(reducedMotion)),

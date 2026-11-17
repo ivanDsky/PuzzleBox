@@ -21,7 +21,7 @@ import kotlinx.coroutines.withContext
 internal data class DraftStamp(val id: String, val updatedAt: Instant)
 
 /**
- * The Create root's verdict chips (spec A7): `analyze(draft, Budget.within(1_500…))` on
+ * The Custom list's verdict chips (spec A7): `analyze(draft, Budget.within(1_500…))` on
  * [DispatcherProvider.default], once per [DraftStamp]. [analyzeNew] is called on the main
  * thread with the drafts now listed; it drops the stamps of drafts no longer listed, so an
  * edited draft is analysed again and a restored one too. [grading] says how a Unique board is

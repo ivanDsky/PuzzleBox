@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.create.editor
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.key
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -15,11 +16,10 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
 import com.ivandsky.puzzlebox.create.CreateViewModel
+import com.ivandsky.puzzlebox.create.CustomBody
 import com.ivandsky.puzzlebox.create.FakeGameEditor
 import com.ivandsky.puzzlebox.create.FakeGameEditorUi
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
-import com.ivandsky.puzzlebox.create.navigation.createEntry
 import com.ivandsky.puzzlebox.create.navigation.editorEntry
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -63,7 +63,7 @@ import org.robolectric.shadows.ShadowLooper
  * The Studio top bar (02 handoff "Top bar", "Overflow menu"; spec A25): Rename's Save is
  * enabled only for a 1–60 character title and stores it; the overflow's Duplicate copies
  * the draft through CreateDraftCopy and opens the copy in place of the source; Delete
- * returns to the Create root, whose snackbar Undo puts back an equal draft.
+ * returns to the Custom list, whose snackbar Undo puts back an equal draft.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -76,7 +76,7 @@ class StudioTopBarTest {
     private val ui = FakeGameEditorUi()
     private val drafts = FakeDraftRepository()
     private val stored = storedRow(editor.draft(marks = 1).encode())
-    private val navigator = Navigator(NavigationState(CreateKey, listOf(listOf(CreateKey, EditorKey(DRAFT_ID)))))
+    private val navigator = Navigator(NavigationState(StudioRootKey, listOf(listOf(StudioRootKey, EditorKey(DRAFT_ID)))))
 
     @After
     fun tearDown() {
@@ -140,18 +140,18 @@ class StudioTopBarTest {
         composeRule.onNodeWithTag(MENU_DUPLICATE).performClick()
 
         awaitTrue { navigator.state.currentStack.last() == EditorKey(COPY_ID) }
-        assertEquals(listOf(CreateKey, EditorKey(COPY_ID)), navigator.state.currentStack)
+        assertEquals(listOf(StudioRootKey, EditorKey(COPY_ID)), navigator.state.currentStack)
         assertEquals(stored.copy(id = COPY_ID, title = "Untitled 1 2"), drafts.rows[COPY_ID])
     }
 
     @Test
-    fun `delete returns to Create, whose snackbar Undo restores an equal draft`() {
+    fun `delete returns to the Custom list, whose snackbar Undo restores an equal draft`() {
         open()
 
         composeRule.onNodeWithTag(MORE).performClick()
         composeRule.onNodeWithTag(MENU_DELETE).performClick()
 
-        awaitTrue { navigator.state.currentStack == listOf(CreateKey) && drafts.rows[DRAFT_ID] == null }
+        awaitTrue { navigator.state.currentStack == listOf(StudioRootKey) && drafts.rows[DRAFT_ID] == null }
         val undo = hasAnyAncestor(hasTestTag(SNACKBAR)) and hasClickAction()
         awaitTrue { composeRule.onAllNodes(undo).fetchSemanticsNodes().isNotEmpty() }
 
@@ -198,7 +198,9 @@ class StudioTopBarTest {
             )
         }
         val entries = entryProvider<NavKey> {
-            createEntry(navigator)
+            entry<StudioRootKey> {
+                CustomBody(listState = rememberLazyListState(), friendsEmpty = true, friends = {}, onOpenDraft = {}, onOpenPublished = {})
+            }
             editorEntry(navigator, PlayLayout.SinglePane)
         }
         composeRule.setContent {

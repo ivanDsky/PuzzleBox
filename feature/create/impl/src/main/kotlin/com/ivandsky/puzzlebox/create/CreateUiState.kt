@@ -7,35 +7,25 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 
 /**
- * The Create root: the shown [drafts], newest edit first, narrowed by [query] and [filter]
- * only while [searchVisible] (more than 8 stored drafts); [draftCount] counts every stored
- * draft. [games] are the games with an editor in this build, in editor registration order:
- * the New puzzle sheet's rows and, with no drafts at all ([isEmpty]), the empty state's.
- * [deleted] is the draft just deleted while its Undo is offered. [tab] is the list shown:
- * the drafts, or the [published] puzzles, newest first (no published draft is a draft row).
- * [restoring] is true while the cloud's first restore on this device runs (A34): the empty
- * state says the drafts are coming back instead of its first-time copy.
+ * The Custom list: the shown [drafts], newest edit first, and [draftCount] of them. [games] are the games with an
+ * editor in this build, in editor registration order: the New puzzle sheet's rows and, with nothing stored or
+ * published at all ([isEmpty]), the empty state's. [deleted] is the draft just deleted while its Undo is offered.
+ * [published] are the published puzzles, newest first (no published draft is a draft row). [restoring] is true while
+ * the cloud's first restore on this device runs (A34): the empty state says the drafts are coming back instead of
+ * its first-time copy.
  */
 data class CreateUiState(
     val loading: Boolean = true,
     val drafts: List<DraftRow> = emptyList(),
     val draftCount: Int = 0,
     val games: List<NewGame> = emptyList(),
-    val searchVisible: Boolean = false,
-    val query: String = "",
-    val filters: List<GameFilter> = emptyList(),
-    val filter: GameId? = null,
     val deleted: Deleted? = null,
-    val tab: Tab = Tab.Drafts,
     val published: List<PublishedRow> = emptyList(),
     val restoring: Boolean = false,
 ) {
 
-    /** Nothing stored or published yet: the first-time empty state instead of the tabs (spec A3). */
+    /** Nothing stored or published yet: the first-time empty state instead of the lists (spec A3). */
     val isEmpty: Boolean get() = !loading && draftCount == 0 && published.isEmpty()
-
-    /** The root's two lists. */
-    enum class Tab { Drafts, Published }
 
     /**
      * One published puzzle's row: its game's [brand] tile, [title], its share [code], its
@@ -84,9 +74,6 @@ data class CreateUiState(
 
     /** One size choice: the editor's [variant] under its UI's [label] ("8×8"). */
     data class Size(val variant: VariantId, val label: String)
-
-    /** A game filter chip: a game with [count] stored drafts. */
-    data class GameFilter(val id: GameId, val name: String, val brand: GameBrand, val count: Int)
 
     /** A just-deleted draft: its [id] and the [title] the Undo snackbar names. */
     data class Deleted(val id: String, val title: String)

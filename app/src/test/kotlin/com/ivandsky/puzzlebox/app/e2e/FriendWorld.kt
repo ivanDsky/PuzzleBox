@@ -6,9 +6,9 @@ import androidx.compose.ui.test.performTextInput
 import com.ivandsky.puzzlebox.app.leaderboard.CustomBoardSubmitter
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.di.dataModule
 import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.model.Draft
@@ -102,7 +102,8 @@ internal class FriendWorld(flags: List<ReleaseFlag> = emptyList()) {
         graph.identity.currentIdentity = Identity(uid = AUTHOR, displayName = "Ivan", photoUrl = null)
         shared.signedInUid = AUTHOR
         runBlocking { drafts.upsert(readyDraft(board, title)) }
-        tapTab(CreateKey)
+        tapTab(PlayKey)
+        tap("library.tab.custom")
         tap("create.draft.row")
         awaitTag("create.readiness.ready")
         tap("create.action.publish")

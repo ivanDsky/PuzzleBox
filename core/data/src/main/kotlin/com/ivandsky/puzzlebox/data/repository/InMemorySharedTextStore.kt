@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * In-memory [SharedTextStore]: the shared text is transient, so after process death the user
- * shares again. [take] is an atomic get-and-set to null, so the Create root consumes the text
+ * shares again. [take] is an atomic get-and-set to null, so the Custom body consumes the text
  * exactly once even under recomposition races.
  */
 internal class InMemorySharedTextStore : SharedTextStore {
