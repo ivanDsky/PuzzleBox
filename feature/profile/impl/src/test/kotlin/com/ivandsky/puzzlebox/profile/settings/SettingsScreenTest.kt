@@ -15,6 +15,7 @@ import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -51,6 +52,7 @@ class SettingsScreenTest {
     private val timeLeft = mutableListOf<Boolean>()
     private var backClicks = 0
     private var catalogClicks = 0
+    private var signInClicks = 0
 
     private fun setContent(
         state: SettingsUiState = SettingsUiState(themeMode = ThemeMode.LIGHT, versionName = "1.4.0"),
@@ -69,6 +71,7 @@ class SettingsScreenTest {
                     onSetRanksFriendsDefault = { ranksFriends += it },
                     onSetVibration = { vibration += it },
                     onSetShowSelfDuelTimeLeft = { timeLeft += it },
+                    onSignIn = { signInClicks++ },
                     onBack = { backClicks++ },
                     onOpenCatalog = if (showCatalog) ({ catalogClicks++ }) else null,
                     debugSections = debugSections,
@@ -162,6 +165,33 @@ class SettingsScreenTest {
         }
 
         assertEquals(emptyList<VisibilityTier>(), tiers)
+    }
+
+    @Test
+    fun `signed out the visibility section says why and a tap on sign-in starts it`() {
+        setContent(state = SettingsUiState(themeMode = ThemeMode.LIGHT, versionName = "1.4.0", visibility = OwnTier.Unknown))
+
+        composeRule.onNodeWithTag("settings.visibility.reason").performScrollTo().assertTextEquals("Sign in to choose")
+        composeRule.onNodeWithTag("settings.visibility.signin").performScrollTo().performClick()
+
+        assertEquals(1, signInClicks)
+    }
+
+    @Test
+    fun `signed in with the tier not read yet shows no sign-in prompt but keeps the rows off`() {
+        setContent(state = SettingsUiState(themeMode = ThemeMode.LIGHT, versionName = "1.4.0", visibility = OwnTier.Unknown, signedIn = true))
+
+        composeRule.onNodeWithTag("settings.visibility.reason").assertDoesNotExist()
+        composeRule.onNodeWithTag("settings.visibility.signin").assertDoesNotExist()
+        composeRule.onNodeWithTag("settings.visibility.board").performScrollTo().assertIsNotEnabled()
+    }
+
+    @Test
+    fun `a chosen tier shows no sign-in prompt`() {
+        setContent(state = SettingsUiState(themeMode = ThemeMode.LIGHT, versionName = "1.4.0", visibility = OwnTier.Unset))
+
+        composeRule.onNodeWithTag("settings.visibility.reason").assertDoesNotExist()
+        composeRule.onNodeWithTag("settings.visibility.signin").assertDoesNotExist()
     }
 
     @Test

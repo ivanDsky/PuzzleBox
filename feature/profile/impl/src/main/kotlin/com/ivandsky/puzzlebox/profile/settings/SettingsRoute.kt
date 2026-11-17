@@ -24,7 +24,8 @@ internal fun SettingsRoute(
     viewModel: SettingsViewModel = koinViewModel(parameters = { parametersOf(*listOfNotNull(visibility).toTypedArray()) }),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val debuggable = LocalContext.current.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
+    val context = LocalContext.current
+    val debuggable = context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
     SettingsScreen(
         state = state,
         onSetThemeMode = viewModel::onSetThemeMode,
@@ -35,6 +36,7 @@ internal fun SettingsRoute(
         onSetRanksFriendsDefault = viewModel::onSetRanksFriendsDefault,
         onSetVibration = viewModel::onSetVibration,
         onSetShowSelfDuelTimeLeft = viewModel::onSetShowSelfDuelTimeLeft,
+        onSignIn = { viewModel.onSignIn(context) },
         onBack = onBack,
         onOpenCatalog = onOpenCatalog.takeIf { debuggable },
         debugSections = debugSections.takeIf { debuggable },
