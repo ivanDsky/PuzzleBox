@@ -57,4 +57,10 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
      * game UI DI, which holds a non-null `PlayTuning` only while this is on (spec A2).
      */
     BoardErgonomics(label = "Fixed play controls and board size caps", releaseDefault = false),
+
+    /**
+     * Same feel in every game (spec A19): one Boolean that every play board hands its games. Read only in feature/play's DI,
+     * which binds it once and provides it to the games as LocalPlayFeel (spec A2).
+     */
+    PlayFeel(label = "Same feel in every game", releaseDefault = false),
 }

@@ -52,56 +52,58 @@ internal fun PlayBoardChrome(
     sidePanel: (@Composable (clock: PlayClock?, showTimer: Boolean) -> (@Composable ColumnScope.() -> Unit)?)?,
     modifier: Modifier,
 ) {
-    PlayTuningHost { tuning ->
-        Column(modifier = modifier) {
-            val playing = tutorial == TutorialGate.Closed
-            // A game's clock opens the moment its puzzle is adopted, which can be behind the
-            // first-open tutorial: fold that window so lesson time never counts. The board's
-            // chrome reopens it when the tutorial gives way to the Screen.
-            val clockBehindTutorial = if (playing) null else controller as? PlayClock
-            LaunchedEffect(clockBehindTutorial, status) { clockBehindTutorial?.onBackground() }
-            PlayTopBar(
-                title = title,
-                label = label,
-                pastDay = pastDay,
-                onBack = onBack,
-                glyph = { GameGlyph(ui.brand, GameGlyphSize.Badge) },
-            ) {
-                if (!playing) return@PlayTopBar
-                val clock = controller as? PlayClock
-                // Without a tuning TwoPane's side panel draws the large live timer in place of this one.
-                val timerInBar = tuning != null || layout != PlayLayout.TwoPane || sidePanel == null
-                if (timerInBar && status is PlayBoardStatus.Ready && clock != null) {
-                    TimerBar({ clock.displayedElapsedMs() }, Modifier.width(IntrinsicSize.Max).testTag("play.timer"))
+    PlayFeelHost {
+        PlayTuningHost { tuning ->
+            Column(modifier = modifier) {
+                val playing = tutorial == TutorialGate.Closed
+                // A game's clock opens the moment its puzzle is adopted, which can be behind the
+                // first-open tutorial: fold that window so lesson time never counts. The board's
+                // chrome reopens it when the tutorial gives way to the Screen.
+                val clockBehindTutorial = if (playing) null else controller as? PlayClock
+                LaunchedEffect(clockBehindTutorial, status) { clockBehindTutorial?.onBackground() }
+                PlayTopBar(
+                    title = title,
+                    label = label,
+                    pastDay = pastDay,
+                    onBack = onBack,
+                    glyph = { GameGlyph(ui.brand, GameGlyphSize.Badge) },
+                ) {
+                    if (!playing) return@PlayTopBar
+                    val clock = controller as? PlayClock
+                    // Without a tuning TwoPane's side panel draws the large live timer in place of this one.
+                    val timerInBar = tuning != null || layout != PlayLayout.TwoPane || sidePanel == null
+                    if (timerInBar && status is PlayBoardStatus.Ready && clock != null) {
+                        TimerBar({ clock.displayedElapsedMs() }, Modifier.width(IntrinsicSize.Max).testTag("play.timer"))
+                    }
+                    if (onHowToPlay != null && ui.tutorial.isNotEmpty()) {
+                        IconButton(onClick = onHowToPlay, modifier = Modifier.testTag("play.how_to_play")) {
+                            Icon(
+                                imageVector = PuzzleIcons.HowTo,
+                                contentDescription = "How to play",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    PlayOverflow(ui.overflowFor(controller) + overflow)
                 }
-                if (onHowToPlay != null && ui.tutorial.isNotEmpty()) {
-                    IconButton(onClick = onHowToPlay, modifier = Modifier.testTag("play.how_to_play")) {
-                        Icon(
-                            imageVector = PuzzleIcons.HowTo,
-                            contentDescription = "How to play",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                when (tutorial) {
+                    is TutorialGate.Open -> TutorialHost(
+                        ui = ui,
+                        session = tutorial.session,
+                        onFinished = onTutorialFinished,
+                    )
+                    TutorialGate.Closed -> {
+                        val clock = (controller as? PlayClock)?.takeIf { status is PlayBoardStatus.Ready }
+                        ui.Screen(
+                            controller = controller,
+                            status = status,
+                            layout = layout,
+                            sidePanel = sidePanel?.invoke(clock, tuning == null),
+                            onRetry = onRetry,
+                            onSolved = onSolved,
+                            modifier = Modifier,
                         )
                     }
-                }
-                PlayOverflow(ui.overflowFor(controller) + overflow)
-            }
-            when (tutorial) {
-                is TutorialGate.Open -> TutorialHost(
-                    ui = ui,
-                    session = tutorial.session,
-                    onFinished = onTutorialFinished,
-                )
-                TutorialGate.Closed -> {
-                    val clock = (controller as? PlayClock)?.takeIf { status is PlayBoardStatus.Ready }
-                    ui.Screen(
-                        controller = controller,
-                        status = status,
-                        layout = layout,
-                        sidePanel = sidePanel?.invoke(clock, tuning == null),
-                        onRetry = onRetry,
-                        onSolved = onSolved,
-                        modifier = Modifier,
-                    )
                 }
             }
         }
