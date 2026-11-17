@@ -9,7 +9,6 @@ import androidx.compose.ui.text.TextLayoutResult
 import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.TodayStatus
-import com.ivandsky.puzzlebox.home.HomeScreenTest.Companion.TODAY
 import com.ivandsky.puzzlebox.home.HomeScreenTest.Companion.row
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -21,10 +20,21 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+/** The real five-game Today set; the name and badge-row goldens both render it. */
+internal val FIVE_TODAY_GAMES = listOf(
+    row("zip", "Zip", TodayStatus.Solved(9_000L)),
+    row("tango", "Tango", TodayStatus.InProgress(192_000L)),
+    row("queens", "Queens", TodayStatus.NotStarted),
+    row("strands", "Strands", TodayStatus.Solved(261_000L)),
+    row("sudoku", "Mini Sudoku", TodayStatus.NotStarted),
+)
+
 /**
  * The Today badge shows "Mini Sudoku" in full (A13): its name wraps onto a second line rather than
- * ellipsizing, at the 360 dp phone floor (compact badges) and on tablet. NATIVE graphics so the text
- * metrics are real.
+ * ellipsizing. The fixture is the real five-game set (as the update-pill previews): at the 360 dp
+ * phone floor five badges leave about 56 dp each, and that is where the name wraps. On tablet the
+ * badges are Expanded and the name fits one line before and after the fix, so that case is a
+ * guard only. NATIVE graphics so the text metrics are real.
  */
 abstract class TodayBadgeNameScenes(private val layout: HomeLayout) {
 
@@ -32,13 +42,12 @@ abstract class TodayBadgeNameScenes(private val layout: HomeLayout) {
     val composeRule = createComposeRule()
 
     protected fun assertNameShownInFull() {
-        val today = TODAY.take(3) + row("mini", "Mini Sudoku", TodayStatus.NotStarted)
         composeRule.setContent {
             CompositionLocalProvider(LocalTabReselect provides MutableSharedFlow()) {
                 PuzzleBoxTheme {
                     HomeScreen(
                         layout = layout,
-                        state = HomeScreenTest.state(today, emptyList(), GameId("zip")),
+                        state = HomeScreenTest.state(FIVE_TODAY_GAMES, emptyList(), GameId("zip")),
                         onOpenGame = {},
                         onSelectDay = {},
                         modifier = Modifier,

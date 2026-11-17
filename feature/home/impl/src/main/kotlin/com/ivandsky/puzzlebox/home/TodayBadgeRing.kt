@@ -18,6 +18,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.LocalFlatSurfaces
@@ -33,6 +34,11 @@ internal enum class TodayBadgeSize(val ring: Dp) {
     Compact(56.dp),
     Expanded(72.dp),
 }
+
+/** The name's style at this size; [TodayBadge] and the row's wrap check both read it. */
+@Composable
+internal fun TodayBadgeSize.nameStyle(): TextStyle =
+    if (this == TodayBadgeSize.Expanded) MaterialTheme.typography.labelLarge else MaterialTheme.typography.labelMedium
 
 private const val GLYPH_SHARE = 0.46f
 private const val HALF_SWEEP = 180f

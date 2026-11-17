@@ -54,7 +54,7 @@ internal fun HomeRecentSection(
             color = MaterialTheme.colorScheme.onSurface,
         )
         OutlinedCard(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag("home.recent_card"),
             shape = MaterialTheme.shapes.large,
         ) {
             when {

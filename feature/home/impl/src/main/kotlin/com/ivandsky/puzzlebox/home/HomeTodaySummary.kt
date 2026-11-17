@@ -13,14 +13,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.LocalPrimaryText
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
@@ -65,6 +69,15 @@ internal fun HomeTodaySummary(
     ) {
         BoxWithConstraints {
             val badgeSize = if (maxWidth >= ExpandedFrom) TodayBadgeSize.Expanded else TodayBadgeSize.Compact
+            val count = state.today.size.coerceAtLeast(1)
+            val columnWidth = (maxWidth - Spacing.lg * 2 - BadgeColumnGap * (count - 1)) / count
+            val widthPx = with(LocalDensity.current) { columnWidth.toPx().toInt() }
+            val measurer = rememberTextMeasurer()
+            val nameStyle = badgeSize.nameStyle()
+            // Truncated width: the measure errs toward a wrap, and a reserved line costs less than a clipped name.
+            val nameLines = remember(state.today, nameStyle, widthPx, measurer) {
+                if (state.today.any { measurer.measure(it.displayName, nameStyle, constraints = Constraints(maxWidth = widthPx)).lineCount > 1 }) 2 else 1
+            }
             Column(
                 modifier = Modifier.padding(start = Spacing.lg, end = Spacing.lg, top = Spacing.xl, bottom = Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.lg),
@@ -76,6 +89,7 @@ internal fun HomeTodaySummary(
                             row = row,
                             next = row.game == next?.game,
                             size = badgeSize,
+                            nameLines = nameLines,
                             onClick = { onOpenGame(row.game) },
                             // Keyed like Home's push, so the board lifts out of this badge (tablet).
                             modifier = Modifier.weight(1f).testTag("$badgeTagPrefix${row.game.value}")
