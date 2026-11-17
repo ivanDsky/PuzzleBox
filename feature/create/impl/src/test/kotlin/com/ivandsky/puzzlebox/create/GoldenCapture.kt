@@ -17,8 +17,9 @@ import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import java.io.File
 
-/** Robolectric qualifiers of the two golden devices: a phone, and a landscape tablet. */
+/** Robolectric qualifiers of the golden devices: a phone, a narrow (360 dp) phone, and a landscape tablet. */
 internal const val GOLDEN_PHONE = "w411dp-h891dp-420dpi"
+internal const val GOLDEN_PHONE_360 = "w360dp-h800dp-420dpi"
 internal const val GOLDEN_TABLET = "w1280dp-h800dp-land-mdpi"
 
 /**

@@ -105,7 +105,7 @@ fun PublishDetails(
                 value = details.authorName,
                 onValueChange = onAuthorName,
                 label = "by",
-                placeholder = if (signedIn) "Anonymous" else "Filled from Google on sign-in",
+                placeholder = if (signedIn) "Anonymous" else "From Google",
                 max = Draft.AUTHOR_MAX,
                 tooLong = PublishBlock.AUTHOR_TOO_LONG in blocked,
                 tag = "create.details.author",
