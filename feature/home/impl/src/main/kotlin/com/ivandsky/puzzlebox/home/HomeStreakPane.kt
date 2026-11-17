@@ -63,7 +63,8 @@ private val EntranceSlide = 24.dp
 /**
  * The tablet detail pane with no day selected (handoff 05-b "Streak & stats pane"): the
  * streak eyebrow and big number, the week strip enlarged and four stat tiles.
- * Everything comes from [state]; nothing new is loaded. [onOpenStreak] and [onOpenDay]
+ * Everything comes from [state]; nothing new is loaded. Until [HomeUiState.isLocalStateLoaded] every number
+ * is an empty slot of its height and width (A2), never a zero. [onOpenStreak] and [onOpenDay]
  * make the streak row and each week disc buttons (nav rethink N2, N3).
  */
 @Composable
@@ -96,7 +97,7 @@ internal fun HomeStreakPane(
         verticalArrangement = Arrangement.spacedBy(Spacing.xl),
     ) {
         Eyebrow("STREAK")
-        BigStreakRow(state.stats, state.freezesHeld, onOpenStreak)
+        BigStreakRow(state.stats, state.freezesHeld, state.isLocalStateLoaded, onOpenStreak)
         WeekStrip(
             days = state.week,
             total = state.today.size,
@@ -105,7 +106,7 @@ internal fun HomeStreakPane(
             modifier = Modifier.testTag("home.pane_week"),
             onDayClick = { date -> onOpenDay(date.toString()) },
         )
-        StatTiles(state.stats)
+        StatTiles(state.stats, state.isLocalStateLoaded)
     }
 }
 
@@ -132,7 +133,7 @@ private fun Eyebrow(text: String) {
 }
 
 @Composable
-private fun BigStreakRow(stats: GameStats, freezesHeld: Int?, onOpenStreak: () -> Unit) {
+private fun BigStreakRow(stats: GameStats, freezesHeld: Int?, loaded: Boolean, onOpenStreak: () -> Unit) {
     StreakDoor(
         onOpen = onOpenStreak,
         verticalAlignment = Alignment.Bottom,
@@ -144,35 +145,44 @@ private fun BigStreakRow(stats: GameStats, freezesHeld: Int?, onOpenStreak: () -
             tint = LocalPrimaryText.current,
             modifier = Modifier.padding(bottom = FlameLift).size(FlameSize),
         )
-        Text(
-            text = grouped(stats.currentStreak),
-            style = MaterialTheme.typography.displayLarge.tabular(),
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.testTag("home.pane_streak"),
-        )
-        Column(Modifier.padding(bottom = Spacing.sm)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                Text(
-                    text = if (stats.currentStreak == 1) "day in a row" else "days in a row",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                freezesHeld?.let { FreezeCount(held = it) }
-            }
+        if (loaded) {
             Text(
-                text = "Best ${grouped(stats.bestStreak)}",
-                style = MaterialTheme.typography.bodySmall.tabular(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = grouped(stats.currentStreak),
+                style = MaterialTheme.typography.displayLarge.tabular(),
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.testTag("home.pane_streak"),
             )
+        } else {
+            BlankValue(MaterialTheme.typography.displayLarge.tabular(), digitWide = true)
+        }
+        Column(Modifier.padding(bottom = Spacing.sm)) {
+            if (loaded) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
+                    Text(
+                        text = if (stats.currentStreak == 1) "day in a row" else "days in a row",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    freezesHeld?.let { FreezeCount(held = it) }
+                }
+                Text(
+                    text = "Best ${grouped(stats.bestStreak)}",
+                    style = MaterialTheme.typography.bodySmall.tabular(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                BlankValue(MaterialTheme.typography.titleLarge)
+                BlankValue(MaterialTheme.typography.bodySmall.tabular())
+            }
         }
     }
 }
 
 @Composable
-private fun StatTiles(stats: GameStats) {
+private fun StatTiles(stats: GameStats, loaded: Boolean) {
     val headline = MaterialTheme.typography.headlineLarge.tabular()
     // Playing since is a date, too long for Headline: Title size. The 34.sp line only sets where its baseline falls
     // before the layout below shifts it onto the headline's.
@@ -190,22 +200,23 @@ private fun StatTiles(stats: GameStats) {
         modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        StatTile("Solved", grouped(stats.solved), headline, "home.stat_solved", Modifier.weight(1f))
-        StatTile("Hint-free", grouped(stats.hintFree), headline, "home.stat_hint_free", Modifier.weight(1f))
+        StatTile("Solved", grouped(stats.solved).takeIf { loaded }, headline, "home.stat_solved", Modifier.weight(1f))
+        StatTile("Hint-free", grouped(stats.hintFree).takeIf { loaded }, headline, "home.stat_hint_free", Modifier.weight(1f))
         StatTile(
             "Average time",
-            stats.averageTimeMs?.let(::formatDuration) ?: NO_VALUE,
+            (stats.averageTimeMs?.let(::formatDuration) ?: NO_VALUE).takeIf { loaded },
             headline,
             "home.stat_average",
             Modifier.weight(1f),
         )
         StatTile(
             "Playing since",
-            stats.playingSince?.format(SINCE_DATE) ?: NO_VALUE,
+            (stats.playingSince?.format(SINCE_DATE) ?: NO_VALUE).takeIf { loaded },
             dateValue,
             "home.stat_since",
             Modifier.weight(1f),
             dateModifier,
+            blankStyle = headline,
         )
     }
 }
@@ -213,11 +224,12 @@ private fun StatTiles(stats: GameStats) {
 @Composable
 private fun StatTile(
     label: String,
-    value: String,
+    value: String?,
     valueStyle: TextStyle,
     tag: String,
     modifier: Modifier,
     valueModifier: Modifier = Modifier,
+    blankStyle: TextStyle = valueStyle,
 ) {
     Column(
         modifier = modifier
@@ -229,14 +241,18 @@ private fun StatTile(
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
         Text(text = label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(
-            text = value,
-            modifier = valueModifier,
-            style = valueStyle,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        if (value != null) {
+            Text(
+                text = value,
+                modifier = valueModifier,
+                style = valueStyle,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        } else {
+            BlankValue(blankStyle)
+        }
     }
 }
 

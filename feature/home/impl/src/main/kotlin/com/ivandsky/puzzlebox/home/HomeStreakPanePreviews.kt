@@ -118,7 +118,7 @@ internal fun HomeStreakCardFrozenPreview() {
     val state = frozenState()
     PuzzleBoxTheme {
         Box(Modifier.background(MaterialTheme.colorScheme.background).padding(Spacing.lg).width(360.dp)) {
-            HomeStreakSection(stats = state.stats, freezesHeld = state.freezesHeld, week = state.week, total = state.today.size, onOpenStreak = {}, onOpenDay = {})
+            HomeStreakSection(stats = state.stats, loaded = state.isLocalStateLoaded, freezesHeld = state.freezesHeld, week = state.week, total = state.today.size, onOpenStreak = {}, onOpenDay = {})
         }
     }
 }

@@ -26,12 +26,14 @@ import com.ivandsky.puzzlebox.gameui.WeekStrip
  * The streak card (A8, identity §2.8): "N days in a row · Best M" from [stats] over the
  * [WeekStrip] of the last 7 puzzle days ([week], oldest first, ending today), each day's
  * game ring counting its solved dailies out of [total] games. The [FreezeCount] of
- * [freezesHeld] sits after the line, and a frozen day shows its snowflake. [onOpenStreak] makes the
+ * [freezesHeld] sits after the line, and a frozen day shows its snowflake. Until [loaded] (Home's local state has
+ * landed) the line is an empty slot of its height, never "0 days in a row · Best 0" (A2). [onOpenStreak] makes the
  * streak row a button and [onOpenDay] each week disc a button that reports its ISO day (nav rethink N2, N3).
  */
 @Composable
 internal fun HomeStreakSection(
     stats: GameStats,
+    loaded: Boolean,
     freezesHeld: Int?,
     week: List<WeekDay>,
     total: Int,
@@ -58,12 +60,16 @@ internal fun HomeStreakSection(
                     tint = LocalPrimaryText.current,
                     modifier = Modifier.size(20.dp),
                 )
-                Text(
-                    text = streakLine(stats),
-                    style = MaterialTheme.typography.titleMedium.tabular(),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
+                if (loaded) {
+                    Text(
+                        text = streakLine(stats),
+                        style = MaterialTheme.typography.titleMedium.tabular(),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                } else {
+                    BlankValue(MaterialTheme.typography.titleMedium.tabular())
+                }
                 freezesHeld?.let { FreezeCount(held = it) }
             }
             WeekStrip(
