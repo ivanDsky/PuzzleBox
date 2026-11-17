@@ -24,7 +24,8 @@ val LocalSolveRestOnBoard = staticCompositionLocalOf { false }
 /**
  * The solve rest of one board: [begin] it the moment the solve lands and await it where the hand-off goes. It lasts
  * [CelebrationMotion.SolveMomentMs] from [begin], and [skip] (a tap on [SolveRestTapLayer]) ends it at once. Without
- * [enabled] it is over already. A pause, so reduced motion keeps it.
+ * [enabled] it is over already. A pause, so reduced motion keeps it. The success buzz is Compose's `Confirm`; below API 30
+ * androidx maps it to VIRTUAL_KEY, a lighter tap than the old LONG_PRESS.
  */
 @Stable
 class SolveRestState internal constructor(val enabled: Boolean, private val haptics: HapticFeedback) {

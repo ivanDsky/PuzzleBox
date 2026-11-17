@@ -11,8 +11,8 @@ object S9HapticsThroughCompose : Rule {
 
     private const val HINT = "play haptics through LocalHapticFeedback, where the Vibration switch gates them"
 
-    /** `HapticFeedbackConstants` as an import or a use; (?<!\w) and (?!\w) keep names that merely contain it out. */
-    private val constants = Regex("""(?<!\w)HapticFeedbackConstants(?!\w)""")
+    /** `HapticFeedbackConstants` or androidx's `HapticFeedbackConstantsCompat` as an import or a use; (?<!\w) and (?!\w) keep names that merely contain it out. */
+    private val constants = Regex("""(?<!\w)HapticFeedbackConstants(?:Compat)?(?!\w)""")
 
     /** The View call: on a view receiver, or with a number, which Compose's typed `performHapticFeedback` never takes. */
     private val viewCall = Regex(

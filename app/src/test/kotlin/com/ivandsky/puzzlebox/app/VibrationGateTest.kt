@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.app
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -14,7 +15,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** The Vibration preference gates the platform haptics at the root, and a flip applies without recomposing the screen. */
+/** The Vibration preference gates the platform haptics at the root, and a flip applies without recomposing the content. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = DrainTestApplication::class)
 class VibrationGateTest {
@@ -29,11 +30,15 @@ class VibrationGateTest {
         }
     }
     private lateinit var haptics: HapticFeedback
+    private var compositions = 0
 
     private fun show(preferences: FakeUserPreferencesRepository) {
         composeRule.setContent {
             CompositionLocalProvider(LocalHapticFeedback provides platform) {
-                VibrationGate(preferences) { haptics = LocalHapticFeedback.current }
+                VibrationGate(preferences) {
+                    haptics = LocalHapticFeedback.current
+                    SideEffect { compositions++ }
+                }
             }
         }
         composeRule.waitForIdle()
@@ -63,6 +68,7 @@ class VibrationGateTest {
         val preferences = FakeUserPreferencesRepository()
         show(preferences)
         val before = haptics
+        val composedBefore = compositions
 
         runBlocking { preferences.setVibration(false) }
         composeRule.waitForIdle()
@@ -75,5 +81,6 @@ class VibrationGateTest {
 
         assertEquals(listOf(HapticFeedbackType.Confirm), calls)
         assertEquals("one gate, not rebuilt per flip", before, haptics)
+        assertEquals("a flip does not recompose the content", composedBefore, compositions)
     }
 }

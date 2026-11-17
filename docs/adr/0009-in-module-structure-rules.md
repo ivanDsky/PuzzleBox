@@ -219,8 +219,8 @@ Every haptic goes through `LocalHapticFeedback`, the one choke point the Vibrati
 `GatedHapticFeedback`).
 
 - **Scope:** production files of every module.
-- **Detection:** in the file's code (comments and string contents removed), the name `HapticFeedbackConstants` (an
-  import or a use), a `performHapticFeedback` call on a receiver named `view` or `LocalView.current`, or a
+- **Detection:** in the file's code (comments and string contents removed), the name `HapticFeedbackConstants` or
+  `HapticFeedbackConstantsCompat` (an import or a use, so `ViewCompat.performHapticFeedback` with the androidx constant is caught), a `performHapticFeedback` call on a receiver named `view` or `LocalView.current`, or a
   `performHapticFeedback(` call whose first argument is a number. A name that only contains one of them is not matched.
   The violation is the file. Test source sets are not scanned.
 - **Accepted misses:** a View reached under another name, a `Vibrator` or `VibrationEffect` used directly, and a call

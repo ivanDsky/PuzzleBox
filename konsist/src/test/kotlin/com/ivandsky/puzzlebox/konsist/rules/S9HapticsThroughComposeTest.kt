@@ -21,10 +21,12 @@ class S9HapticsThroughComposeTest {
         RuleCheck.assertFixture(
             S9HapticsThroughCompose,
             "S9",
-            4,
+            6,
             setOf(
                 Violation("$dir/Constants.kt", null, ""),
-                Violation("$dir/ViewCall.kt", null, ""),
+                Violation("$dir/ViewReceiverCall.kt", null, ""),
+                Violation("$dir/LocalViewCall.kt", null, ""),
+                Violation("$dir/ViewCompatCall.kt", null, ""),
                 Violation("$dir/LiteralCall.kt", null, ""),
             ),
         )

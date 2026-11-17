@@ -19,6 +19,8 @@ import androidx.compose.runtime.saveable.LocalSaveableStateRegistry
 import androidx.compose.runtime.saveable.SaveableStateRegistry
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.hapticfeedback.HapticFeedback
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertHeightIsEqualTo
@@ -102,11 +104,12 @@ internal fun shellRobot(
     destinations: List<TopLevelDestination>? = null,
     darkTheme: Boolean = false,
     flatSurfaces: Boolean = false,
+    platformHaptics: HapticFeedback? = null,
     block: ShellRobot.() -> Unit,
 ) {
     graph.start()
     try {
-        val robot = ShellRobot(graph, state, destinations, darkTheme, flatSurfaces)
+        val robot = ShellRobot(graph, state, destinations, darkTheme, flatSurfaces, platformHaptics)
         val run = object : Statement() {
             override fun evaluate() {
                 robot.launch()
@@ -148,6 +151,8 @@ class ShellRobot internal constructor(
     destinations: List<TopLevelDestination>?,
     private val darkTheme: Boolean = false,
     private val flatSurfaces: Boolean = false,
+    /** Stands in for the platform's haptics, under the shell's own Vibration gate; null keeps the real ones. */
+    private val platformHaptics: HapticFeedback? = null,
 ) {
     // The started graph's tab set: the one the shell under test resolves.
     private val tabSet = graph.koin.get<TabSetSource>().tabSet
@@ -185,7 +190,8 @@ class ShellRobot internal constructor(
         val parent = checkNotNull(LocalSaveableStateRegistry.current)
         val swapping = remember(parent) { SwappingRegistry(parent) }
         registry = swapping
-        CompositionLocalProvider(LocalSaveableStateRegistry provides swapping) {
+        val haptics = platformHaptics ?: LocalHapticFeedback.current
+        CompositionLocalProvider(LocalSaveableStateRegistry provides swapping, LocalHapticFeedback provides haptics) {
             PuzzleBoxTheme(darkTheme = darkTheme, flatSurfaces = flatSurfaces) {
                 PuzzleBoxApp(
                     windowWidthSizeClass = calculateWindowSizeClass(rule.activity).widthSizeClass,

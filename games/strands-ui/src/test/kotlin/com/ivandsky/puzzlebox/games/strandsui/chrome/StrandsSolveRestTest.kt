@@ -1,10 +1,10 @@
 package com.ivandsky.puzzlebox.games.strandsui.chrome
 
 import android.provider.Settings
-import android.view.HapticFeedbackConstants
-import android.view.View
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.hapticfeedback.HapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -41,13 +41,12 @@ class StrandsSolveRestTest {
     val rule = createComposeRule()
 
     private var handOffs = 0
-    private val buzzes = ArrayList<Int>()
+    private val buzzes = ArrayList<HapticFeedbackType>()
 
-    /** A view that records the haptics asked of it: the solve buzz goes through the view. */
-    private val view = object : View(RuntimeEnvironment.getApplication()) {
-        override fun performHapticFeedback(feedbackConstant: Int): Boolean {
-            buzzes += feedbackConstant
-            return true
+    /** Records the haptics asked of it: the solve buzz goes through [LocalHapticFeedback], where the Vibration switch gates it. */
+    private val haptics = object : HapticFeedback {
+        override fun performHapticFeedback(hapticFeedbackType: HapticFeedbackType) {
+            buzzes += hapticFeedbackType
         }
     }
 
@@ -66,7 +65,7 @@ class StrandsSolveRestTest {
     private fun show(controller: StrandsPlayController, rest: Boolean) {
         rule.mainClock.autoAdvance = false
         rule.setContent {
-            CompositionLocalProvider(LocalSolveRestOnBoard provides rest, LocalView provides view) {
+            CompositionLocalProvider(LocalSolveRestOnBoard provides rest, LocalHapticFeedback provides haptics) {
                 PuzzleBoxTheme(darkTheme = false) {
                     StrandsPlayScreen(
                         controller = controller,
@@ -123,7 +122,7 @@ class StrandsSolveRestTest {
         show(controller, rest = true)
         rule.runOnIdle { controller.solve() }
         advance(200)
-        assertEquals(listOf(HapticFeedbackConstants.CONFIRM), buzzes)
+        assertEquals(listOf(HapticFeedbackType.Confirm), buzzes)
         advance(CelebrationMotion.SolveMomentMs * 2)
         assertEquals("once, not again at the hand-off", 1, buzzes.size)
     }
@@ -134,7 +133,7 @@ class StrandsSolveRestTest {
         show(controller, rest = false)
         rule.runOnIdle { controller.solve() }
         advance(1_000)
-        assertEquals(emptyList<Int>(), buzzes)
+        assertEquals(emptyList<HapticFeedbackType>(), buzzes)
     }
 
     @Test
@@ -143,7 +142,7 @@ class StrandsSolveRestTest {
         controller.solve()
         show(controller, rest = true)
         advance(500)
-        assertEquals(emptyList<Int>(), buzzes)
+        assertEquals(emptyList<HapticFeedbackType>(), buzzes)
     }
 
     @Test
