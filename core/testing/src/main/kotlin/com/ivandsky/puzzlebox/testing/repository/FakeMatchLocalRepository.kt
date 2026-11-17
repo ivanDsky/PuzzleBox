@@ -55,6 +55,10 @@ class FakeMatchLocalRepository(private val clock: () -> Instant = Instant::now) 
         edit(code) { it.copy(dismissed = true) }
     }
 
+    override suspend fun forget(code: ShareCode) {
+        store.update { it - code }
+    }
+
     override fun opponentNames(): Flow<Map<String, String>> = store
         .map { rows -> rows.values.mapNotNull { m -> m.opponentName?.let { m.code.value to it } }.toMap() }
         .distinctUntilChanged()

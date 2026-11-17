@@ -45,6 +45,9 @@ interface MatchLocalRepository {
     /** Hides the invite; no-op for an unknown code. */
     suspend fun dismiss(code: ShareCode)
 
+    /** Forgets the row of [code], dismissed or not; a no-op for an unknown code. */
+    suspend fun forget(code: ShareCode)
+
     /** matchCode to opponent name, for rows that have a name (history rows). */
     fun opponentNames(): Flow<Map<String, String>>
 }

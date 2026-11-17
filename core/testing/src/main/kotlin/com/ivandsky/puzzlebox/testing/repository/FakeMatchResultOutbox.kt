@@ -54,6 +54,10 @@ class FakeMatchResultOutbox : MatchResultOutbox {
         }
     }
 
+    override suspend fun delete(code: ShareCode) {
+        store.update { rows -> rows.filterKeys { it.code != code } }
+    }
+
     private fun rows(select: (List<OutboxResult>) -> List<OutboxResult>): Flow<List<OutboxResult>> =
         store.map { select(it.values.toList()) }.distinctUntilChanged()
 }
