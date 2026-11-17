@@ -260,10 +260,7 @@ class ResultViewModel internal constructor(
      * The time the Post to LinkedIn row names: the day's record row, the solve a post sends and LinkedIn holds,
      * never this page's own time, which after a play again is another solve. Null while the day has no record row.
      */
-    val linkedInPostTimeMs: StateFlow<Long?> = completions.observeRecords()
-        .map { records -> records.firstOrNull { it.puzzleRef.gameId == slot.gameId && (it.puzzleRef.key as? PuzzleKey.Daily)?.date == slot.day }?.time }
-        .distinctUntilChanged()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
+    val linkedInPostTimeMs: StateFlow<Long?> get() = post.timeMs
 
     /** The button was tapped. */
     fun postToLinkedIn() = post.tap()

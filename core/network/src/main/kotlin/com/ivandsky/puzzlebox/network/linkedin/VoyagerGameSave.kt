@@ -34,6 +34,7 @@ internal class VoyagerGameSave(
     private val api: LinkedInPostApi,
     private val graphql: VoyagerGraphql,
     private val session: LinkedInSessionCookies,
+    private val clock: () -> Instant,
     private val zone: () -> ZoneId,
 ) {
 
@@ -61,10 +62,10 @@ internal class VoyagerGameSave(
         return try {
             val response = request(headers, body, written) ?: return LinkedInSendResult.Rejected(Kind.Unexpected)
             if (response.code() == HTTP_CONFLICT) {
-                close(response)
+                response.closeBody()
                 conflict(post)
             } else {
-                voyagerSaveOutcome(response.code(), answer(response))
+                voyagerSaveOutcome(response.code(), response.successText())
             }
         } catch (_: IOException) {
             // OkHttp reports a cancelled call as an IOException; that is cancellation, not a dead network.
@@ -83,7 +84,7 @@ internal class VoyagerGameSave(
                 cookie = headers.cookieHeader,
                 csrfToken = headers.csrfToken,
                 userAgent = headers.userAgent,
-                track = LinkedInTrack.header(zone(), Instant.now()),
+                track = LinkedInTrack.header(zone(), clock()),
                 body = body,
                 written = written,
             )
@@ -107,33 +108,7 @@ internal class VoyagerGameSave(
         LinkedInRead.Offline -> LinkedInSendResult.Offline
     }
 
-    /** The body of a 200, or empty: any other status is classified without reading it. */
-    private fun answer(response: Response<ResponseBody>): String {
-        if (response.code() != HTTP_OK) {
-            close(response)
-            return ""
-        }
-        return response.body()?.let(::capped).orEmpty()
-    }
-
-    private fun close(response: Response<ResponseBody>) {
-        response.errorBody()?.close()
-        response.body()?.close()
-    }
-
-    /** The body as text, or null when it is longer than [BODY_CAP_BYTES]. Always closes the body. */
-    private fun capped(body: ResponseBody): String? = body.use {
-        if (it.contentLength() > BODY_CAP_BYTES) return@use null
-        val source = it.source()
-        // Asking for one byte past the cap buffers it only when the body is over: the cap is never crossed unseen.
-        source.request(BODY_CAP_BYTES + 1)
-        if (source.buffer.size > BODY_CAP_BYTES) null else source.readUtf8()
-    }
-
     private companion object {
-        const val HTTP_OK = 200
-        const val HTTP_CONFLICT = 409
-        const val BODY_CAP_BYTES = 1_048_576L
         val JSON = "application/json; charset=UTF-8".toMediaType()
     }
 }

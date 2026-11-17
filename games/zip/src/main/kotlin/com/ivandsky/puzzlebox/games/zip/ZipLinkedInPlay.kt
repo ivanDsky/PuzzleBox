@@ -4,7 +4,6 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInOpening
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInPlay
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInPlayValue
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSolve
-import com.ivandsky.puzzlebox.game.replay.MoveKind
 
 /**
  * Encodes a solved Zip [LinkedInSolve] as the LinkedIn play record (path cell indices, backtracks, flawless flag)
@@ -28,7 +27,7 @@ object ZipLinkedInPlay {
             ),
             payloadKeys = mapOf("playRecord" to PATH_KEY, "numBacktracks" to BACKTRACKS_KEY),
             // A backtrack is a flaw too: the captured client reports it as not flawless and not mistake-free.
-            mistakeFree = final.mistakeCount == 0 && final.backtrackCount == 0 && solve.kinds.none { it in FLAWS },
+            mistakeFree = final.mistakeCount == 0 && final.backtrackCount == 0 && solve.mistakeFree,
             opening = LinkedInOpening(
                 states = mapOf(
                     PATH_KEY to LinkedInPlayValue.Strings(final.path.take(OPENING_CELLS).map { it.idx.toString() }),
@@ -42,6 +41,4 @@ object ZipLinkedInPlay {
     /** The whole second of the first move, as the client's tick reports it; never under one second. */
     private fun openingTimeMs(firstMoveMs: Long?): Long =
         ((firstMoveMs ?: 0L) / TICK_MS * TICK_MS).coerceAtLeast(TICK_MS)
-
-    private val FLAWS = setOf(MoveKind.Mistake, MoveKind.Hint, MoveKind.Undo)
 }

@@ -10,11 +10,11 @@ import kotlinx.coroutines.flow.Flow
  */
 interface LinkedInPosts {
     /**
-     * What the day's Post button says, a running post and its outcome included, emitted again when it changes.
+     * What the day's Post button says and the time it names, a running post and its outcome included, emitted again when it changes.
      * Reads local state only and never asks LinkedIn. A day that is not the game's today has no button. The
      * game's midnight emits nothing by itself, so a button held open across it may stay until a tap is refused.
      */
-    fun observe(game: GameId, day: LocalDate): Flow<LinkedInPostState>
+    fun observe(game: GameId, day: LocalDate): Flow<LinkedInPostView>
 
     /**
      * Posts the day's result unless LinkedIn already holds one, and returns how that ended. LinkedIn is asked

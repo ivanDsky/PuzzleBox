@@ -57,8 +57,7 @@ internal class VoyagerGraphql(
     private fun <T : Any> classify(response: Response<ResponseBody>, parse: (String) -> T?): LinkedInRead<T> {
         val code = response.code()
         if (code != HTTP_OK) {
-            response.errorBody()?.close()
-            response.body()?.close()
+            response.closeBody()
             return LinkedInRead.Rejected(linkedInRejection(code))
         }
         val body = response.body() ?: return LinkedInRead.Rejected(Kind.Unexpected)
@@ -72,7 +71,6 @@ internal class VoyagerGraphql(
     }
 
     private companion object {
-        const val HTTP_OK = 200
         const val CONTENT_TYPE = "Content-Type"
         const val JSON = "json"
     }

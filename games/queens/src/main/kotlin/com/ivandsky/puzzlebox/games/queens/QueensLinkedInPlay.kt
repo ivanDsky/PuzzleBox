@@ -4,7 +4,6 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInOpening
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInPlay
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInPlayValue
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSolve
-import com.ivandsky.puzzlebox.game.replay.MoveKind
 
 /**
  * Encodes a solved Queens [LinkedInSolve] as the LinkedIn play record (the final board, the colours of the first
@@ -27,8 +26,6 @@ object QueensLinkedInPlay {
         "red", "blue", "blue", "red", "green", "blue", "purple", "yellow",
     )
 
-    private val FLAWS = setOf(MoveKind.Mistake, MoveKind.Hint, MoveKind.Undo)
-
     /** Null when the final board is not solved: LinkedIn only takes a finished board. */
     fun encode(solve: LinkedInSolve<QueensSession>): LinkedInPlay? {
         val final = solve.final
@@ -40,7 +37,7 @@ object QueensLinkedInPlay {
                 SOLVE_ORDER_KEY to LinkedInPlayValue.Strings(solveOrderOf(solve)),
             ),
             payloadKeys = mapOf("playRecord" to BOARD_KEY, "solveOrder" to SOLVE_ORDER_KEY),
-            mistakeFree = solve.kinds.none { it in FLAWS },
+            mistakeFree = solve.mistakeFree,
             opening = LinkedInOpening(
                 states = mapOf(
                     BOARD_KEY to LinkedInPlayValue.Strings(List(cells) { EMPTY }),

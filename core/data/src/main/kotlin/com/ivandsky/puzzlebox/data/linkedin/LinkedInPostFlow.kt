@@ -63,11 +63,13 @@ internal class LinkedInPostFlow(
      */
     private val slots = MutableStateFlow<Map<DayKey, Slot>>(emptyMap())
 
-    override fun observe(game: GameId, day: LocalDate): Flow<LinkedInPostState> {
+    override fun observe(game: GameId, day: LocalDate): Flow<LinkedInPostView> {
         val readings = combine(link.posting, link.state, completions.observeRecords(), log.observe(game, day)) { posting, state, records, entry ->
             reading(game, day, posting, state, records, entry)
         }
-        return combine(readings, slots) { reading, slots -> shown(reading.verdict, reading.key?.let(slots::get)) }
+        return combine(readings, slots) { reading, slots ->
+            LinkedInPostView(shown(reading.verdict, reading.key?.let(slots::get)), reading.timeMs)
+        }
             .distinctUntilChanged()
     }
 
@@ -239,6 +241,7 @@ internal class LinkedInPostFlow(
         )
         return Reading(
             key = state.profileId?.let { DayKey(it, game, day) },
+            timeMs = facts.record?.time,
             verdict = LinkedInPostEligibility.decide(facts) { facts.record?.let { play(game, day, it) } },
         )
     }
@@ -250,8 +253,8 @@ internal class LinkedInPostFlow(
         return registry[game]?.linkedInPlayOf(puzzle, replay)
     }
 
-    /** One game day as the rule sees it, and its key under the linked profile, null while not linked. */
-    private class Reading(val key: DayKey?, val verdict: Verdict)
+    /** One game day as the rule sees it, its key under the linked profile (null while not linked) and the time of its record row. */
+    private class Reading(val key: DayKey?, val timeMs: Long?, val verdict: Verdict)
 
     private sealed interface Slot {
         class Flying(val post: Deferred<LinkedInPostState>) : Slot

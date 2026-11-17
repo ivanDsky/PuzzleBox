@@ -19,6 +19,7 @@ import com.ivandsky.puzzlebox.network.linkedin.linkedInResultPoster
 import com.ivandsky.puzzlebox.network.linkedInFeedTransport
 import com.ivandsky.puzzlebox.network.retrofit
 import com.ivandsky.puzzlebox.network.sessionlessClient
+import java.time.Instant
 import kotlinx.serialization.json.Json
 import org.koin.dsl.module
 
@@ -33,7 +34,7 @@ val networkModule = module {
     single<FeedTransport> { linkedInFeedTransport(LINKEDIN_BASE_URL, get()) }
     // Anonymous feed transport stays separate; this client carries the player's session cookies.
     single<LinkedInAccountSource> { linkedInAccountSource(LINKEDIN_BASE_URL, get<LinkedInSessionCookies>()) }
-    single<LinkedInResultPoster> { linkedInResultPoster(LINKEDIN_BASE_URL, get<LinkedInSessionCookies>()) }
+    single<LinkedInResultPoster> { linkedInResultPoster(LINKEDIN_BASE_URL, get<LinkedInSessionCookies>(), clock = Instant::now) }
     // Photos are public files on LinkedIn's image host: their own client, built without the session.
     single<LinkedInPhotoSource> { linkedInPhotoSource() }
     single {

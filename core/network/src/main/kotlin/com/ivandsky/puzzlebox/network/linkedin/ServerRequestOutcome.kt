@@ -7,8 +7,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 
-private const val HTTP_OK = 200
-private const val HTTP_CONFLICT = 409
 private const val RESPONSE_LINE = "0:"
 
 /**

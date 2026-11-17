@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -42,12 +43,12 @@ class LinkedInPostFlowObserveTest {
 
     private fun TestScope.rig(): LinkedInPostRig = LinkedInPostRig(this, folder.newFolder()).also { rigs += it }
 
-    private suspend fun LinkedInPostRig.shown(door: LinkedInPosts = posts): LinkedInPostState = door.observe(game, today).first()
+    private suspend fun LinkedInPostRig.shown(door: LinkedInPosts = posts): LinkedInPostState = door.observe(game, today).first().state
 
     /** Every state the button of today went through, from the moment of the call. */
     private fun TestScope.buttonOf(rig: LinkedInPostRig): List<LinkedInPostState> {
         val seen = mutableListOf<LinkedInPostState>()
-        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { rig.posts.observe(rig.game, rig.today).toList(seen) }
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { rig.posts.observe(rig.game, rig.today).map { it.state }.toList(seen) }
         return seen
     }
 

@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.play
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInPostState
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInPostView
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInPost
 import com.ivandsky.puzzlebox.domain.linkedin.SubmitLinkedInResult
 import com.ivandsky.puzzlebox.gameui.LinkedInPostRowState
@@ -38,17 +39,25 @@ internal class ResultPostButton(
     private val day: LocalDate,
 ) {
 
-    /** The button, null for no button. Observed only while the screen collects it and the flag is on. */
-    val state: StateFlow<LinkedInPostRowState?> =
+    /** What the door shows, null for no button. Observed only while the screen collects it and the flag is on. */
+    private val view: StateFlow<LinkedInPostView?> =
         if (releaseFlags == null || observePost == null) {
             MutableStateFlow(null)
         } else {
             releaseFlags.enabled
                 .map { ReleaseFlag.LinkedInPush in it }
                 .distinctUntilChanged()
-                .flatMapLatest { on -> if (on) observePost(game, day).map(LinkedInPostState::button) else flowOf(null) }
+                .flatMapLatest { on -> if (on) observePost(game, day) else flowOf(null) }
                 .stateIn(scope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
         }
+
+    /** The button, null for no button. */
+    val state: StateFlow<LinkedInPostRowState?> =
+        view.map { it?.state?.button() }.stateIn(scope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
+
+    /** The time the button names: the day's record row, the solve a post sends and LinkedIn holds. Null while the day has none. */
+    val timeMs: StateFlow<Long?> =
+        view.map { it?.timeMs }.stateIn(scope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
     private var posting: Job? = null
 

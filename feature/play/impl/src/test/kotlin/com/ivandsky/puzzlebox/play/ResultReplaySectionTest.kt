@@ -255,6 +255,25 @@ class ResultReplaySectionTest {
         assertEquals(ReplaySectionState.Hidden, vm(board = null).replaySection)
     }
 
+    @Test
+    fun `a cold result whose solve is the record opens the record, whatever newer import row exists`() {
+        kotlinx.coroutines.runBlocking {
+            completions.onCompleted(solve(), replay)
+            completions.onCompleted(solve(timeMs = TIME_MS + 5_000, source = CompletionSource.LinkedIn).copy(isRecord = false), replay = null)
+        }
+        val viewModel = vm()
+
+        assertTrue(viewModel.replaySection is ReplaySectionState.Ready)
+        assertFalse(viewModel.state.value.replayLatest)
+    }
+
+    @Test
+    fun `a live solve opens the latest solve`() {
+        solveLive()
+
+        assertTrue(vm().state.value.replayLatest)
+    }
+
     private object ReplayBoard : GameReplayBoard {
         override val pieces = "pieces"
 
