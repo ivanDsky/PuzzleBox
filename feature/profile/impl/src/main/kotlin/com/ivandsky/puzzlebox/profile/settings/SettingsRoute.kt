@@ -34,6 +34,7 @@ internal fun SettingsRoute(
         onSelectVisibility = viewModel::onSelectVisibility,
         onSetRanksFriendsDefault = viewModel::onSetRanksFriendsDefault,
         onSetVibration = viewModel::onSetVibration,
+        onSetShowSelfDuelTimeLeft = viewModel::onSetShowSelfDuelTimeLeft,
         onBack = onBack,
         onOpenCatalog = onOpenCatalog.takeIf { debuggable },
         debugSections = debugSections.takeIf { debuggable },

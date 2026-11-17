@@ -164,6 +164,21 @@ class PuzzleBoxPreferencesDataSourceTest {
     }
 
     @Test
+    fun `self-duel time left is on until switched off and an off survives a new data source over the same file`() = runTest {
+        val file = tempFile()
+        val firstScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + SupervisorJob())
+        val firstProcess = PuzzleBoxPreferencesDataSource(
+            PreferenceDataStoreFactory.create(scope = firstScope) { file },
+        )
+        assertTrue(firstProcess.preferences.first().showSelfDuelTimeLeft)
+
+        firstProcess.setShowSelfDuelTimeLeft(false)
+        firstScope.cancel()
+
+        assertFalse(newDataSource(file).preferences.first().showSelfDuelTimeLeft)
+    }
+
+    @Test
     fun `an unset game flag emits its default`() = runTest {
         val dataSource = newDataSource(tempFile())
 

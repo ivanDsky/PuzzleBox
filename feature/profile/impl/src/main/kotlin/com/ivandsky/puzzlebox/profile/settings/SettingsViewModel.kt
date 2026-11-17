@@ -2,6 +2,8 @@ package com.ivandsky.puzzlebox.profile.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
 import com.ivandsky.puzzlebox.domain.AppBuild
@@ -9,34 +11,40 @@ import com.ivandsky.puzzlebox.model.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
  * Settings state: the stored theme mode, the Games switches (live from [games]) and [AppBuild.versionName]; a pick is
  * saved through [preferences] and a switch through [games]. [visibility] (null: no Visibility section, repository untouched)
- * supplies and saves the player's own tier.
+ * supplies and saves the player's own tier. The Play section follows [ReleaseFlag.VirtualDuel] live.
  */
 internal class SettingsViewModel(
     private val preferences: UserPreferencesRepository,
     private val games: GameOptions,
     appBuild: AppBuild,
+    releaseFlags: ReleaseFlags,
     private val visibility: VisibilitySlot? = null,
 ) : ViewModel() {
 
     private val gamesSection: Flow<GamesSectionState> =
         combine(games.queensAutoCross, games.sudokuPeerHighlight, games.sudokuSameDigitHighlight, ::GamesSectionState)
 
+    private val duelPlay: Flow<Boolean> = releaseFlags.enabled.map { ReleaseFlag.VirtualDuel in it }
+
+    private val play: Flow<Pair<Boolean, Boolean>> = combine(duelPlay, preferences.showSelfDuelTimeLeft, ::Pair)
+
     val uiState: StateFlow<SettingsUiState> =
         combine(
             preferences.themeMode,
             gamesSection,
             visibility?.ownTier ?: flowOf(null),
-            preferences.ranksFriendsDefault,
-            preferences.vibration,
-        ) { mode, gamesState, ownTier, ranksFriends, vibration ->
+            combine(preferences.ranksFriendsDefault, preferences.vibration, ::Pair),
+            play,
+        ) { mode, gamesState, ownTier, (ranksFriends, vibration), (duelPlay, timeLeft) ->
             SettingsUiState(
                 themeMode = mode,
                 versionName = appBuild.versionName,
@@ -44,6 +52,8 @@ internal class SettingsViewModel(
                 visibility = ownTier,
                 ranksFriendsDefault = ranksFriends,
                 vibration = vibration,
+                duelPlay = duelPlay,
+                showSelfDuelTimeLeft = timeLeft,
             )
         }.stateIn(
             scope = viewModelScope,
@@ -71,6 +81,11 @@ internal class SettingsViewModel(
     /** Vibration: the app-wide haptics switch; the root gate follows the stored value at once. */
     fun onSetVibration(on: Boolean) {
         viewModelScope.launch { preferences.setVibration(on) }
+    }
+
+    /** Play: the stored time-left switch the self-duel timer reads. */
+    fun onSetShowSelfDuelTimeLeft(on: Boolean) {
+        viewModelScope.launch { preferences.setShowSelfDuelTimeLeft(on) }
     }
 
     /** Games: written to the store the in-game overflow toggle reads, so the board shows it next time it opens. */
