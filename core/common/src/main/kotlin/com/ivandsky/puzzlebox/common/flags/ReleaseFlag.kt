@@ -26,13 +26,13 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
      * Custom inside Games and a full-screen Studio: Create stops being a tab, Games gets a Custom pill, and the Studio
      * hides the bar (nav-rethink N9, N10). Read only in a ViewModel, a DI module or the app-graph `TabSetSource` (ADR-0027 §10).
      */
-    CustomInGames(label = "Custom inside Games, full-screen Studio", releaseDefault = false),
+    CustomInGames(label = "Custom inside Games, full-screen Studio", releaseDefault = true),
 
     /**
      * Result moments, celebration and the next-thing chain (nav-rethink L1–L4): every M4 behaviour on Result. Read only in
      * a ViewModel or a DI module (ADR-0022 §3, ADR-0027 §10).
      */
-    ResultMoments(label = "Result moments, celebration and next-thing chain", releaseDefault = false),
+    ResultMoments(label = "Result moments, celebration and next-thing chain", releaseDefault = true),
 
     /**
      * The readable board look (nav-rethink B3): shared board tokens and geometry for all five games. Read only by the app's
@@ -56,7 +56,7 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
      * Community puzzles in Custom (nav-rethink C1, C2): public publishing, the New today list and reporting a puzzle.
      * Read only in a ViewModel or a DI module (spec A2).
      */
-    CommunityPuzzles(label = "Community puzzles in Custom", releaseDefault = false),
+    CommunityPuzzles(label = "Community puzzles in Custom", releaseDefault = true),
 
     /**
      * Fixed play controls and board size caps (nav-rethink B5, B6). Read only by the play-tuning source binding in the
@@ -74,7 +74,7 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
      * In-surface tabs are the shared underline strip with swipe (nav-rethink M12-6): Games swaps its pill row for it
      * (Community's tabs use the same strip). Read only in the app graph, which passes one Boolean down (spec A2).
      */
-    UnderlineTabs(label = "Underline tabs with swipe", releaseDefault = false),
+    UnderlineTabs(label = "Underline tabs with swipe", releaseDefault = true),
 
     /**
      * Duel yourself (Past you): play a puzzle against your own earlier solve. Read only in a ViewModel or a DI module

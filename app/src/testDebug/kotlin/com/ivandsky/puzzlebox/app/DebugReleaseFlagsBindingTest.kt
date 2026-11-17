@@ -87,18 +87,18 @@ class DebugReleaseFlagsBindingTest {
     }
 
     @Test
-    fun `debug graph reads UnderlineTabs off, and the Catalog override turns it on live`() {
+    fun `debug graph reads UnderlineTabs on, and the Catalog override turns it off live`() {
         val koin = startKoin {
             androidContext(RuntimeEnvironment.getApplication())
             modules(PuzzleBoxApplication.appModules)
         }.koin
         try {
             val flags = koin.get<ReleaseFlags>()
-            assertFalse(ReleaseFlag.UnderlineTabs in flags.enabled.value)
-
-            koin.get<DebugReleaseFlags>().setOverride(ReleaseFlag.UnderlineTabs, true)
-
             assertTrue(ReleaseFlag.UnderlineTabs in flags.enabled.value)
+
+            koin.get<DebugReleaseFlags>().setOverride(ReleaseFlag.UnderlineTabs, false)
+
+            assertFalse(ReleaseFlag.UnderlineTabs in flags.enabled.value)
         } finally {
             stopKoin()
         }
