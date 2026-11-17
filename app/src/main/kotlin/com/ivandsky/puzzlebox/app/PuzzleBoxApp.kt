@@ -48,9 +48,6 @@ import com.ivandsky.puzzlebox.app.nav.rememberLibraryRequests
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.compete.create.DuelChallenge
-import com.ivandsky.puzzlebox.compete.tab.DuelsTab
-import com.ivandsky.puzzlebox.compete.tab.rememberDuelsNeedYou
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
@@ -66,7 +63,6 @@ import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.navigation.FirstScreenReady
 import com.ivandsky.puzzlebox.navigation.Navigator
-import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.map
@@ -157,21 +153,7 @@ fun PuzzleBoxApp(
     val anyInProgress by remember(todaySet) {
         todaySet().map { entries -> entries.any { it.status is TodayStatus.InProgress } }
     }.collectAsStateWithLifecycle(initialValue = false)
-    val duels = remember(navigator) {
-        DuelsSlot(
-            content = { listState, prefill, onTaken ->
-                DuelsTab(
-                    onOpenDuel = navigator::pushOnce,
-                    onOpenReveal = navigator::pushOnce,
-                    listState = listState,
-                    challenge = prefill?.let { DuelChallenge(it.friendUid, it.friendName, it.game) },
-                    onChallengeTaken = onTaken,
-                )
-            },
-            needYou = { rememberDuelsNeedYou() },
-            onOpenDuel = navigator::pushOnce,
-        )
-    }
+    val duels = rememberDuelsSlot(navigator, playLayout)
     // The tab set is fixed for the process, so each branch is taken for good.
     val customInGames = !tabSet.hasCreateTab
     val custom = if (customInGames) rememberCustomSlot(navigator) else null

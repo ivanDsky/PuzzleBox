@@ -234,7 +234,7 @@ class LibraryCustomTabTest {
         val K7 = checkNotNull(ShareCode.parse("K7Q2MX"))
         val B4 = checkNotNull(ShareCode.parse("B4R9TZ"))
 
-        val DUELS = DuelsSlot(content = { _, _, _ -> Text("duels body") }, needYou = { 0 }, onOpenDuel = {})
+        val DUELS = DuelsSlot(content = { _, _, _ -> Text("duels body") }, needYou = { 0 }, onOpenDuel = {}, pane = { _ -> })
 
         fun draft(index: Int) = "fake.draft.$index"
         fun published(index: Int) = "fake.published.$index"

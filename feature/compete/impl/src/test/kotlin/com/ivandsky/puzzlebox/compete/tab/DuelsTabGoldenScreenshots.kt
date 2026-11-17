@@ -42,7 +42,7 @@ private const val GOLDEN_PANE = "w400dp-h800dp-mdpi"
 private const val SETTLE_MS = 2_000L
 
 /**
- * The Duels tab body at the two widths it gets, light and dark: every row kind in its section with the challenge card,
+ * The Duels tab body at the two widths it gets, light and dark: every row kind in its section with the challenge card, the selected row the tablet's pane has open,
  * the empty note, the signed-out card, a long opponent name, and a Waiting row with five Finished ones. The phone is the
  * screen less the host's side inset; the pane is the tablet's 400 dp Games column, the same one Dailies and Friends sit
  * in. Goldens in `snapshots/tab/`.
@@ -64,6 +64,9 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
 
     @Test fun `tab populated light`() = tab("tab-populated", POPULATED, dark = false)
     @Test fun `tab populated dark`() = tab("tab-populated", POPULATED, dark = true)
+
+    @Test fun `tab selected light`() = tab("tab-selected", SELECTED, dark = false)
+    @Test fun `tab selected dark`() = tab("tab-selected", SELECTED, dark = true)
 
     @Test fun `tab empty light`() = tab("tab-empty", EMPTY, dark = false)
     @Test fun `tab empty dark`() = tab("tab-empty", EMPTY, dark = true)
@@ -92,6 +95,7 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
                     onNewDuel = {},
                     onOpenDuel = {},
                     onOpenReveal = {},
+                    selected = state.selected,
                     modifier = if (pane) Modifier else Modifier.padding(horizontal = Spacing.lg),
                 )
             }
@@ -128,6 +132,9 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
                 row("OLD999", DuelRowKind.Finished(null, null), "Nia", 3, 3, Duration.ofHours(50)),
             ),
         )
+
+        // The tablet's pane has the Your move duel open: its row is the highlighted one.
+        val SELECTED = POPULATED.copy(selected = code("SAM222"))
 
         // Nothing needs me: one open invite waiting, five finished with a draw among them.
         val WAITING_FINISHED = EMPTY.copy(

@@ -132,7 +132,10 @@ internal fun LibraryScreen(
         Row(modifier.fillMaxSize().padding(start = Spacing.xl, top = Spacing.lg, end = Spacing.xxl, bottom = Spacing.xl)) {
             CompositionLocalProvider(LocalEnterSettled provides paneCrossfade) { GamesList(onRow, Modifier.width(400.dp)) }
             Spacer(Modifier.width(Spacing.xl))
-            if (selected != null) {
+            // The Duels tab's right pane is a duel, never a game's page; going back to Dailies shows the selected game again.
+            if (duels != null && tab.shownWith(customTab != null, communityTab) == GamesTab.Duels) {
+                duels.pane(Modifier.fillMaxSize())
+            } else if (selected != null) {
                 LibraryPane(LibraryPaneFrame(selected, page, month), paneCrossfade) { shown ->
                     Page(shown.row, onBack = null, shown.page, shown.month)
                 }

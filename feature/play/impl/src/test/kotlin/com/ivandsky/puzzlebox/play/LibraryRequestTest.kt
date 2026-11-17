@@ -123,6 +123,7 @@ class LibraryRequestTest {
         content = { _, _, _ -> Text("duels body", Modifier.testTag(DUELS_BODY)) },
         needYou = { 0 },
         onOpenDuel = {},
+        pane = { _ -> },
     )
 
     /** What the body of [prefillSlot] was handed, one entry per prefill it took. */
@@ -142,6 +143,7 @@ class LibraryRequestTest {
         },
         needYou = { 0 },
         onOpenDuel = {},
+        pane = { _ -> },
     )
 
     /** A Duels body that is a long list of its own, laid out on the state Games hands it. */
@@ -153,6 +155,7 @@ class LibraryRequestTest {
         },
         needYou = { 0 },
         onOpenDuel = {},
+        pane = { _ -> },
     )
 
     private var koin: KoinApplication? = null
@@ -347,6 +350,7 @@ class LibraryRequestTest {
             content = { _, prefill, _ -> Text(prefill?.friendName ?: "no prefill", Modifier.testTag(PREFILL)) },
             needYou = { 0 },
             onOpenDuel = {},
+            pane = { _ -> },
         )
         request = LibraryRequest.Challenge(ADA_IN_ALPHA)
         restoration.setContent(content(PlayLayout.SinglePane, duels = holding))

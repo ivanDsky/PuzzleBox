@@ -140,6 +140,7 @@ abstract class LibraryTabsGoldenScreenshots(private val layout: PlayLayout, priv
             },
             needYou = { 3 },
             onOpenDuel = {},
+            pane = { modifier -> DuelPaneStandIn(modifier) },
         )
 
         /** A stand-in for the create module's list: heads and rows that pad their own sides, the friend puzzles between them. */

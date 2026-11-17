@@ -58,6 +58,7 @@ class LibraryTabSwitchOutlineTest {
         content = { _, _, _ -> Text("duels body") },
         needYou = { 0 },
         onOpenDuel = {},
+        pane = { _ -> },
     )
 
     @Test

@@ -46,6 +46,7 @@ internal fun InvitedRow(
     onDecline: () -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    selected: Boolean = false,
 ) {
     val name = row.opponent?.name ?: "A friend"
     DuelRowShell(
@@ -53,6 +54,7 @@ internal fun InvitedRow(
         sub = note?.text() ?: "Best of ${row.legs}",
         onClick = onClick,
         modifier = modifier.testTag("duel.invited"),
+        selected = selected,
         avatar = { PlayerAvatar(name, row.opponent?.photoUrl, size = AvatarSize, tone = DuelTone.Them) },
         below = {
             Row(
@@ -90,7 +92,14 @@ private fun InviteNote.text(): String = when (this) {
  * carry them); [inviter] is the signed-in player's name. [now] is read here for the time left.
  */
 @Composable
-internal fun UnclaimedRow(row: DuelRow, inviter: String?, now: () -> Instant, onClick: () -> Unit, modifier: Modifier = Modifier) {
+internal fun UnclaimedRow(
+    row: DuelRow,
+    inviter: String?,
+    now: () -> Instant,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    selected: Boolean = false,
+) {
     val context = LocalContext.current
     val time = rememberCompeteTime()
     DuelRowShell(
@@ -98,6 +107,7 @@ internal fun UnclaimedRow(row: DuelRow, inviter: String?, now: () -> Instant, on
         sub = "Code ${row.code.display} · Best of ${row.legs} · ${timeLeft(row.deadline, now())} left",
         onClick = onClick,
         modifier = modifier,
+        selected = selected,
         subLines = 2,
         avatar = { UnclaimedAvatar() },
         trailing = {
