@@ -19,7 +19,6 @@ import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
@@ -48,7 +47,6 @@ import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.match.ResultPostState
 import com.ivandsky.puzzlebox.designsystem.MaxContentWidth
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.designsystem.TwoColumnRightWidth
 import com.ivandsky.puzzlebox.domain.DeleteSelfDuel
 import com.ivandsky.puzzlebox.domain.ObserveDuel
 import com.ivandsky.puzzlebox.domain.ObserveMatch
@@ -248,8 +246,8 @@ class DuelsTabPaneTest {
         rule.onNodeWithTag("duel.row.${sealed.value}").assertIsSelected()
         rule.onNodeWithTag("duel.row.${mine.value}").assertIsNotSelected()
         rule.onNode(inPane("duel.legs.card.1")).assertIsDisplayed()
-        // The footer sits under the puzzle list in the pane's own scroll, as it does on the full screen.
-        rule.onNode(inPane("duel.legs.reveal")).performScrollTo().assertIsDisplayed()
+        // The footer is pinned under the puzzle list, outside its scroll.
+        rule.onNode(inPane("duel.legs.reveal")).assertIsDisplayed()
         assertTrue("a row tap only swaps the pane", pushed().isEmpty())
 
         rule.onNode(inPane("duel.legs.reveal")).performClick()
@@ -259,30 +257,28 @@ class DuelsTabPaneTest {
     }
 
     @Test
-    fun `a picked duel sits in a 372 dp right column, centred in the pane across and down`() {
+    fun `a picked duel fills the pane in two panes with a divider, Start under the card`() {
         show()
 
         val pane = bounds("duels.pane")
         val grid = bounds("duel.legs.grid")
         val left = bounds("duel.legs.grid.left")
         val right = bounds("duel.legs.grid.right")
-        assertEquals("the right column", TwoColumnRightWidth.value, right.width.value, 1f)
-        assertEquals("centred across", (pane.left + pane.right).value / 2f, (grid.left + grid.right).value / 2f, 1f)
-        assertTrue("left of the right column", left.right <= right.left)
-        assertTrue("the page is shorter than the pane", grid.height < pane.height)
-        assertEquals("the list column centred down", (pane.top + pane.bottom).value / 2f, (left.top + left.bottom).value / 2f, 1f)
-        assertEquals("the detail column centred down", (pane.top + pane.bottom).value / 2f, (right.top + right.bottom).value / 2f, 1f)
+        assertEquals("fills across", pane.width.value, grid.width.value, 1f)
+        assertEquals("fills down", pane.height.value, grid.height.value, 1f)
+        assertTrue("left of the right pane", left.right <= right.left)
+        assertEquals("Start ends the detail, not pinned to the pane", bounds("duel.legs.detail").bottom.value, bounds("duel.legs.action.0").bottom.value, 1f)
+        assertTrue("room below", bounds("duel.legs.action.0").bottom.value < pane.bottom.value - 8f)
     }
 
     @Test
-    fun `the page is capped and centred in a pane wider than it needs, and Start takes the right column's width`() {
+    fun `a wide pane fills its width too, and Start takes the right pane's width less its padding`() {
         showAlone(1200.dp)
 
         val pane = bounds("duels.pane")
         val grid = bounds("duel.legs.grid")
-        assertTrue("capped: ${grid.width}", grid.width <= MaxContentWidth + 32.dp + 1.dp)
-        assertEquals("centred across", (pane.left + pane.right).value / 2f, (grid.left + grid.right).value / 2f, 1f)
-        assertEquals("Start fills the right column", bounds("duel.legs.grid.right").width.value, bounds("duel.legs.action.0").width.value, 1f)
+        assertEquals("fills across", pane.width.value, grid.width.value, 1f)
+        assertEquals("Start fills the right pane", bounds("duel.legs.grid.right").width.value - 32f, bounds("duel.legs.action.0").width.value, 1.5f)
     }
 
     @Test

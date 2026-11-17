@@ -27,10 +27,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.HiddenBoardTokens
-import com.ivandsky.puzzlebox.designsystem.MaxContentWidth
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.designsystem.TwoColumnFrame
 import com.ivandsky.puzzlebox.designsystem.TwoColumnMinWidth
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 
@@ -49,7 +47,7 @@ private const val TITLE_FRACTION = 0.7f
 internal fun DuelLoading(layout: PlayLayout, modifier: Modifier = Modifier) {
     BoxWithConstraints(modifier.fillMaxSize()) {
         if (layout == PlayLayout.TwoPane && maxWidth >= TwoColumnMinWidth) {
-            DuelLegsSkeleton(maxHeight)
+            DuelLegsSkeleton()
         } else {
             CircularProgressIndicator(Modifier.align(Alignment.Center))
         }
@@ -57,19 +55,17 @@ internal fun DuelLoading(layout: PlayLayout, modifier: Modifier = Modifier) {
 }
 
 /**
- * The duel's two columns on a pane [paneHeight] high while it loads: quiet bars for the header, the list's cards and the
- * board and detail, in the same [TwoColumnFrame] as [DuelLegs], so the loaded page replaces it in place. Each bar takes the text
- * style of what it holds, so it is as high.
+ * The duel's two panes while it loads: quiet bars for the header, the list's cards and the board and detail, in the same
+ * [DuelWideFrame] as [DuelLegs], so the loaded page replaces it in place. Each bar takes the text style of what it holds,
+ * so it is as high.
  */
 @Composable
-internal fun DuelLegsSkeleton(paneHeight: Dp, modifier: Modifier = Modifier) {
-    TwoColumnFrame(
-        paneHeight = paneHeight,
+internal fun DuelLegsSkeleton(modifier: Modifier = Modifier) {
+    DuelWideFrame(
         tag = "$DUEL_GRID_TAG.skeleton",
         modifier = modifier,
-        contentMaxWidth = MaxContentWidth,
-        left = { column, _ ->
-            Column(column, verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        left = {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     Block(Modifier.size(AvatarBlock), PillShape)
                     Column(Modifier.weight(1f)) {
@@ -86,13 +82,15 @@ internal fun DuelLegsSkeleton(paneHeight: Dp, modifier: Modifier = Modifier) {
             }
         },
         right = {
-            Block(Modifier.widthIn(max = HiddenBoardTokens.MaxSide).fillMaxWidth().aspectRatio(1f), MaterialTheme.shapes.medium)
-            Block(Modifier.size(HeroBlock), AppShapes.large)
-            Bar(Modifier.fillMaxWidth(TITLE_FRACTION), MaterialTheme.typography.headlineSmall)
-            Bar(Modifier.width(160.dp), MaterialTheme.typography.bodyMedium)
-            Bar(Modifier.width(120.dp), MaterialTheme.typography.labelMedium, PillShape, Spacing.xs)
-            Bar(Modifier.width(200.dp), MaterialTheme.typography.bodyMedium)
-            Block(Modifier.fillMaxWidth().height(ActionBlockHeight), AppShapes.large)
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                Block(Modifier.widthIn(max = HiddenBoardTokens.MaxSide).fillMaxWidth().aspectRatio(1f), MaterialTheme.shapes.medium)
+                Block(Modifier.size(HeroBlock), AppShapes.large)
+                Bar(Modifier.fillMaxWidth(TITLE_FRACTION), MaterialTheme.typography.headlineSmall)
+                Bar(Modifier.width(160.dp), MaterialTheme.typography.bodyMedium)
+                Bar(Modifier.width(120.dp), MaterialTheme.typography.labelMedium, PillShape, Spacing.xs)
+                Bar(Modifier.width(200.dp), MaterialTheme.typography.bodyMedium)
+                Block(Modifier.fillMaxWidth().height(ActionBlockHeight), AppShapes.large)
+            }
         },
     )
 }

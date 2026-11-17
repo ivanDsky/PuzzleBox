@@ -25,9 +25,9 @@ private val MinBoardSide = 160.dp
 
 /**
  * The tablet's right pane: the selected puzzle's blurred board, then the puzzle large with its status, the opponent's
- * line and, in a self duel, the DONE / IN THIS PUZZLE card, then the Start / Resume button moved here from its card.
- * The column fits [height]: the details keep their size and the board takes the room they leave, at most the friend
- * page's [HiddenBoardTokens.MaxSide] and at least [MinBoardSide], so Start stays on screen.
+ * line and, in a self duel, the DONE / IN THIS PUZZLE card,
+ * then the Start / Resume button. The column fits [height]: the details keep their size and the
+ * board takes the room they leave, at most the friend page's [HiddenBoardTokens.MaxSide] and at least [MinBoardSide].
  */
 @Composable
 internal fun LegDetail(row: LegRowModel, content: LegsContent, brands: GamePlayRegistry, height: Dp) {

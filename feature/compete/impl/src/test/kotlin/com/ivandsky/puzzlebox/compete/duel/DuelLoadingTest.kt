@@ -9,7 +9,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.designsystem.TwoColumnRightWidth
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -27,17 +26,17 @@ class DuelLoadingTest {
     val rule = createAndroidComposeRule<ComponentActivity>()
 
     @Test
-    fun `the pane layout loads as the two columns, the right one 372 dp, both centred in the pane`() {
+    fun `the pane layout loads as two panes edge to edge with a divider between`() {
         rule.setContent { PuzzleBoxTheme { DuelLoading(PlayLayout.TwoPane) } }
 
         val root = rule.onNodeWithTag("duel.legs.grid.skeleton").getUnclippedBoundsInRoot()
         val left = rule.onNodeWithTag("duel.legs.grid.skeleton.left").getUnclippedBoundsInRoot()
         val right = rule.onNodeWithTag("duel.legs.grid.skeleton.right").getUnclippedBoundsInRoot()
-        assertEquals(TwoColumnRightWidth.value, right.width.value, 1f)
-        assertEquals("centred across", 1280f / 2, (root.left + root.right).value / 2f, 1f)
-        assertEquals("left centred down", 800f / 2, (left.top + left.bottom).value / 2f, 1f)
-        assertEquals("right centred down", 800f / 2, (right.top + right.bottom).value / 2f, 1f)
-        assertEquals("the page is shorter than the pane", true, root.height.value < 800f)
+        assertEquals("fills across", 1280f, root.width.value, 1f)
+        assertEquals("fills down", 800f, root.height.value, 1f)
+        assertEquals("left starts at the edge", 0f, left.left.value, 1f)
+        assertEquals("right ends at the edge", 1280f, right.right.value, 1f)
+        assertEquals("equal panes", left.width.value, right.width.value, 2f)
     }
 
     @Test
