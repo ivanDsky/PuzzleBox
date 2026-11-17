@@ -75,9 +75,17 @@ object TangoBoardSpec {
     /** Violation tint alpha over the offending cell (Zip rejection precedent). */
     const val violationTintAlpha: Float = 0.7f
 
-    /** Guide ghost alpha (spec A12): the lesson's answer glyph, faint until the square
-     *  matches (Queens' hint-ghost precedent, a touch lighter for a whole board of them). */
+    /** Ghost alpha on the editor's forced-cell and witness hints: faint, a read-only overlay. */
     const val ghostAlpha: Float = 0.4f
+
+    /** Guide ghost alpha (spec A12, [TangoBoardRenderer]'s `guideGhosts`): the lesson's answer, held clear of
+     *  0.4, where a target square read as disabled (#1186), yet below a placed glyph. */
+    const val guideGhostAlpha: Float = 0.62f
+
+    /** Dashed accent outline on an empty guide square (#1186): an invitation, not a placed piece. */
+    const val ghostOutlineAlpha: Float = 0.7f
+    const val ghostOutlineInsetFraction: Float = 0.08f
+    const val ghostOutlineDashFraction: Float = 0.08f
 
     /** Guide ghost beside a wrong glyph: a corner badge, fraction of the cell box. */
     const val ghostBadgeFraction: Float = 0.4f
