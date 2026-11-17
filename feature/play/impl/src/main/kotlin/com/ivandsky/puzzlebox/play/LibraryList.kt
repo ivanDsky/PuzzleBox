@@ -68,7 +68,7 @@ internal fun LibraryList(
     if (duels != null) {
         UnderlineTabbedList(
             state, phone, GamesScrolls(scroll, duelsScroll), onRow, modifier,
-            header = { Box(if (phone) Modifier.padding(horizontal = Spacing.lg) else Modifier) { ListHeader(headerAction) } },
+            header = { Box(if (phone) Modifier.padding(horizontal = Spacing.lg) else Modifier) { ListHeader(tab.subtitle(), headerAction) } },
             duels, tab, onTab, duelPrefill, onDuelPrefillTaken,
         )
         return
@@ -81,7 +81,7 @@ internal fun LibraryList(
             .padding(bottom = if (phone) Spacing.xl else 0.dp),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        ListHeader(headerAction)
+        ListHeader(GamesTab.Dailies.subtitle(), headerAction)
         if (phone && state.offline) OfflinePill()
         friends()
         DailyRows(state, phone, onRow)
@@ -89,12 +89,12 @@ internal fun LibraryList(
 }
 
 @Composable
-private fun ListHeader(headerAction: @Composable () -> Unit) {
+private fun ListHeader(subtitle: String, headerAction: @Composable () -> Unit) {
     Row(Modifier.fillMaxWidth().heightIn(min = 64.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text("Games", style = MaterialTheme.typography.headlineLarge)
             Text(
-                "Every puzzle, back to #1",
+                subtitle,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
