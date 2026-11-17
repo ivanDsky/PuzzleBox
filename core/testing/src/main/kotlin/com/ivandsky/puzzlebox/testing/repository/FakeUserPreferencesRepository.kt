@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.update
 /**
  * In-memory [UserPreferencesRepository] with the real one's semantics: one theme mode,
  * a per-game tutorial-seen flag that starts false and, once marked, stays set, and the
- * witness auto-show and replay-errors switches, both on by default, and the Ranks Friends default (on). Every change re-emits. [seen] reads the marked
+ * witness auto-show and replay-errors switches, both on by default, the Ranks Friends default (on) and vibration (on). Every change re-emits. [seen] reads the marked
  * games synchronously for assertions.
  */
 class FakeUserPreferencesRepository(
@@ -22,6 +22,7 @@ class FakeUserPreferencesRepository(
     autoShowWitness: Boolean = true,
     showReplayErrors: Boolean = true,
     ranksFriendsDefault: Boolean = true,
+    vibration: Boolean = true,
     private val themeReadFails: Boolean = false,
 ) : UserPreferencesRepository {
 
@@ -30,6 +31,7 @@ class FakeUserPreferencesRepository(
     private val autoShow = MutableStateFlow(autoShowWitness)
     private val replayErrors = MutableStateFlow(showReplayErrors)
     private val ranksFriends = MutableStateFlow(ranksFriendsDefault)
+    private val vibrationOn = MutableStateFlow(vibration)
 
     /** The games whose tutorial is marked seen right now. */
     val seen: Set<GameId> get() = seenGames.value
@@ -64,5 +66,11 @@ class FakeUserPreferencesRepository(
 
     override suspend fun setRanksFriendsDefault(friends: Boolean) {
         ranksFriends.value = friends
+    }
+
+    override val vibration: Flow<Boolean> = vibrationOn
+
+    override suspend fun setVibration(on: Boolean) {
+        vibrationOn.value = on
     }
 }

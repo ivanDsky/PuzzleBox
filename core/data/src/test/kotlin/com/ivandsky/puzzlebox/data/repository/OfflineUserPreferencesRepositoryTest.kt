@@ -118,6 +118,18 @@ class OfflineUserPreferencesRepositoryTest {
     }
 
     @Test
+    fun `vibration is on until switched off`() = runTest {
+        val repository = newRepository()
+        assertTrue(repository.vibration.first())
+
+        repository.setVibration(false)
+        assertFalse(repository.vibration.first())
+
+        repository.setVibration(true)
+        assertTrue(repository.vibration.first())
+    }
+
+    @Test
     fun `the witness auto-shows on first launch`() = runTest {
         assertTrue(newRepository().autoShowWitness.first())
     }

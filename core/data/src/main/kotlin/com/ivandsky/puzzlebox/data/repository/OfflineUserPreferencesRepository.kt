@@ -48,4 +48,11 @@ internal class OfflineUserPreferencesRepository(
     override suspend fun setRanksFriendsDefault(friends: Boolean) {
         dataSource.setRanksFriendsDefault(friends)
     }
+
+    override val vibration: Flow<Boolean> =
+        dataSource.preferences.map { it.vibration }.distinctUntilChanged()
+
+    override suspend fun setVibration(on: Boolean) {
+        dataSource.setVibration(on)
+    }
 }

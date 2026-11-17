@@ -139,6 +139,21 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun `vibration follows the stored switch and a flip writes it`() = runTest(dispatcher) {
+        val preferences = FakeUserPreferencesRepository()
+        val vm = SettingsViewModel(preferences, FakeGameOptions(), appBuild)
+        backgroundScope.launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals(true, vm.uiState.value.vibration)
+
+        vm.onSetVibration(false)
+        advanceUntilIdle()
+
+        assertEquals(false, preferences.vibration.first())
+        assertEquals(false, vm.uiState.value.vibration)
+    }
+
+    @Test
     fun `without the slot a ranks pick writes nothing`() = runTest(dispatcher) {
         val preferences = FakeUserPreferencesRepository()
         val vm = SettingsViewModel(preferences, FakeGameOptions(), appBuild)

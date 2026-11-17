@@ -1,11 +1,12 @@
 package com.ivandsky.puzzlebox.gameui
 
-import android.view.View
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.hapticfeedback.HapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import com.ivandsky.puzzlebox.designsystem.CelebrationMotion
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -26,17 +27,17 @@ val LocalSolveRestOnBoard = staticCompositionLocalOf { false }
  * [enabled] it is over already. A pause, so reduced motion keeps it.
  */
 @Stable
-class SolveRestState internal constructor(val enabled: Boolean, private val view: View) {
+class SolveRestState internal constructor(val enabled: Boolean, private val haptics: HapticFeedback) {
     /** True while the board rests: the tap layer is up. */
     var resting by mutableStateOf(false)
         private set
 
     private val skips = Channel<Unit>(Channel.CONFLATED)
 
-    /** Starts the rest in [scope] now, with the success buzz (L2) once, as the solve moment starts; await the result to wait out what is left of it. */
+    /** Starts the rest in [scope] now, with the success buzz (L2) once, as the solve moment starts, through [HapticFeedback] so the Vibration switch silences it; await the result to wait out what is left of it. */
     fun begin(scope: CoroutineScope): Deferred<Unit> = scope.async {
         if (!enabled) return@async
-        view.performSolveHaptic()
+        haptics.performHapticFeedback(HapticFeedbackType.Confirm)
         skips.tryReceive()
         resting = true
         try {

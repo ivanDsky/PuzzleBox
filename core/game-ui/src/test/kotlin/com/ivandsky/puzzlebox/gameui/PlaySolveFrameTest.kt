@@ -1,8 +1,6 @@
 package com.ivandsky.puzzlebox.gameui
 
 import android.provider.Settings
-import android.view.HapticFeedbackConstants
-import android.view.View
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.CompositionLocalProvider
@@ -11,7 +9,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.hapticfeedback.HapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -41,13 +41,12 @@ class PlaySolveFrameTest {
 
     private var solved by mutableStateOf<Instant?>(null)
     private var handOffs = 0
-    private val buzzes = ArrayList<Int>()
+    private val buzzes = ArrayList<HapticFeedbackType>()
 
-    /** A view that records the haptics asked of it: the buzz goes through the view, never the vibrator. */
-    private val view = object : View(RuntimeEnvironment.getApplication()) {
-        override fun performHapticFeedback(feedbackConstant: Int): Boolean {
-            buzzes += feedbackConstant
-            return true
+    /** The buzz goes through [LocalHapticFeedback], where the Vibration switch gates it; never the view or the vibrator. */
+    private val haptics = object : HapticFeedback {
+        override fun performHapticFeedback(hapticFeedbackType: HapticFeedbackType) {
+            buzzes += hapticFeedbackType
         }
     }
 
@@ -62,7 +61,7 @@ class PlaySolveFrameTest {
     private fun setFrame(rest: Boolean = false) {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
-            CompositionLocalProvider(LocalSolveRestOnBoard provides rest, LocalView provides view) {
+            CompositionLocalProvider(LocalSolveRestOnBoard provides rest, LocalHapticFeedback provides haptics) {
                 PuzzleBoxTheme(darkTheme = false) {
                     PlaySolveFrame(brand = GameBrand.Neutral, solved = solved, onHandOff = { handOffs++ }) {
                         Box(Modifier.size(200.dp))
@@ -192,7 +191,7 @@ class PlaySolveFrameTest {
         setFrame(rest = true)
         solve(Instant.ofEpochSecond(1))
         composeRule.mainClock.advanceTimeBy(100)
-        assertEquals("at the sweep start, not at the hand-off", listOf(HapticFeedbackConstants.CONFIRM), buzzes)
+        assertEquals("at the sweep start, not at the hand-off", listOf(HapticFeedbackType.Confirm), buzzes)
         assertEquals(0, handOffs)
 
         composeRule.mainClock.advanceTimeBy(5_000)
@@ -205,7 +204,7 @@ class PlaySolveFrameTest {
         setFrame(rest = true)
         solve(Instant.ofEpochSecond(1))
         composeRule.mainClock.advanceTimeBy(100)
-        assertEquals(listOf(HapticFeedbackConstants.CONFIRM), buzzes)
+        assertEquals(listOf(HapticFeedbackType.Confirm), buzzes)
     }
 
     @Test
@@ -213,7 +212,7 @@ class PlaySolveFrameTest {
         solved = Instant.ofEpochSecond(1)
         setFrame(rest = true)
         composeRule.mainClock.advanceTimeBy(5_000)
-        assertEquals(emptyList<Int>(), buzzes)
+        assertEquals(emptyList<HapticFeedbackType>(), buzzes)
     }
 
     @Test
@@ -221,6 +220,6 @@ class PlaySolveFrameTest {
         setFrame()
         solve(Instant.ofEpochSecond(1))
         composeRule.mainClock.advanceTimeBy(5_000)
-        assertEquals(emptyList<Int>(), buzzes)
+        assertEquals(emptyList<HapticFeedbackType>(), buzzes)
     }
 }

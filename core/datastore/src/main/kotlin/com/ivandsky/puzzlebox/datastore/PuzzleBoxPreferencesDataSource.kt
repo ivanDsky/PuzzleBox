@@ -25,13 +25,15 @@ data class PuzzleBoxPreferences(
     val showReplayErrors: Boolean,
     /** Whether the Ranks hub opens on Friends rather than Global; Friends until switched. */
     val ranksFriendsDefault: Boolean,
+    /** Whether the app plays haptics at all; on until switched off. */
+    val vibration: Boolean,
 )
 
 /**
  * Owns the Preferences DataStore keys. Reads tolerate a missing or corrupt value by
  * falling back to [ThemeMode.SYSTEM]; writes store the enum name so the file stays
  * human-readable and forward-compatible. Seen tutorials are one string set of game ids.
- * Auto-show, replay errors and the Ranks Friends default are plain booleans, true while the key is absent.
+ * Auto-show, replay errors, the Ranks Friends default and vibration are plain booleans, true while the key is absent.
  */
 class PuzzleBoxPreferencesDataSource(
     private val dataStore: DataStore<Preferences>,
@@ -44,6 +46,7 @@ class PuzzleBoxPreferencesDataSource(
             autoShowWitness = preferences[KEY_AUTO_SHOW_WITNESS] ?: true,
             showReplayErrors = preferences[KEY_SHOW_REPLAY_ERRORS] ?: true,
             ranksFriendsDefault = preferences[KEY_RANKS_FRIENDS_DEFAULT] ?: true,
+            vibration = preferences[KEY_VIBRATION] ?: true,
         )
     }
 
@@ -74,6 +77,10 @@ class PuzzleBoxPreferencesDataSource(
         dataStore.edit { preferences -> preferences[KEY_RANKS_FRIENDS_DEFAULT] = friends }
     }
 
+    suspend fun setVibration(on: Boolean) {
+        dataStore.edit { preferences -> preferences[KEY_VIBRATION] = on }
+    }
+
     /** A game's own boolean setting; [default] while it was never written. */
     fun gameFlag(game: GameId, name: String, default: Boolean): Flow<Boolean> =
         dataStore.data.map { it[gameFlagKey(game, name)] ?: default }
@@ -90,5 +97,6 @@ class PuzzleBoxPreferencesDataSource(
         val KEY_AUTO_SHOW_WITNESS = booleanPreferencesKey("auto_show_witness")
         val KEY_SHOW_REPLAY_ERRORS = booleanPreferencesKey("show_replay_errors")
         val KEY_RANKS_FRIENDS_DEFAULT = booleanPreferencesKey("ranks_friends_default")
+        val KEY_VIBRATION = booleanPreferencesKey("vibration")
     }
 }
