@@ -49,8 +49,8 @@ import java.time.LocalDate
  * The Create tab's New puzzle and its draft rows push that draft's
  * Studio on Create's stack, and its published rows that puzzle's page. Once Custom lives in Games, [custom] fills
  * the Games Custom pill (its rows push the same two screens on the Games stack) and [makeOne] backs the game
- * page's Make one (the default size) and the Result's Make one like this (the played size); both are null until
- * then, and neither door shows. Back pops the layer or the current tab's stack
+ * page's Make one (the default size); both are null until then, and neither door shows. Back pops the layer or
+ * the current tab's stack
  * ([Navigator.pop]), including after process-death restore. A [codeDraft] (a tapped link's text that isn't a
  * code) opens the Play library's code sheet holding it. With a Community tab in [tabSet] (M10-1) Custom is that tab's
  * root ([communityEntry]) and not a Games pill: [custom] fills it, with its own code sheet, and Games shows Dailies and Duels.
@@ -104,7 +104,7 @@ internal fun puzzleBoxEntryProvider(
         custom = if (communityTab) null else custom,
         onReconnectLinkedIn = { navigator.pushOnce(LinkedInLoginKey) },
         onOpenRanks = openRanks(navigator),
-        onMakeOne = makeOne?.let { make -> { game -> make(game, null) } },
+        onMakeOne = makeOne?.let { make -> { game -> make(game) } },
         communityTab = communityTab,
     )
     communityEntry(
@@ -119,7 +119,6 @@ internal fun puzzleBoxEntryProvider(
         navigator,
         linkedIn = true,
         onOpenRanks = openRanks(navigator),
-        onMakeOneLikeThis = makeOne?.let { it::invoke },
         onChallenge = { prefill -> libraryRequests.openChallenge(navigator, tabSet, prefill) },
     )
     createEntry(navigator)

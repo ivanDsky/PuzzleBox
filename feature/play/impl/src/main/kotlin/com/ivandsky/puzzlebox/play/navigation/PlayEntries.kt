@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.play.navigation
 
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
-import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardStyle
 import com.ivandsky.puzzlebox.model.GameId
@@ -147,8 +146,7 @@ fun EntryProviderScope<NavKey>.playEntry(
  * ([PlaySessionStore.playAgain]) and replaces the result with its game; Next replaces it
  * with another game's today (17); Up and Done pop.
  * [linkedIn] adds the day's LinkedIn connections to the rank row. The player's rank is a chip that calls [onOpenRanks]
- * with the game and the result's day. A non-null [onMakeOneLikeThis] adds "Make one like this" to the result, handing back
- * the game and the size just played (null: the game's default). [onChallenge] is what Result's Challenge row and
+ * with the game and the result's day. [onChallenge] is what Result's Challenge row and
  * primary call with the friend to challenge and the game ([DuelPrefill]); the app answers it by opening Games' Duels tab
  * with that prefill. A missed day and a friend's or community puzzle replace the result with that day's or that
  * puzzle's board, as Next does.
@@ -157,7 +155,6 @@ fun EntryProviderScope<NavKey>.resultEntry(
     navigator: Navigator,
     onOpenRanks: (GameId, LocalDate?) -> Unit,
     linkedIn: Boolean = false,
-    onMakeOneLikeThis: ((GameId, VariantId?) -> Unit)? = null,
     onChallenge: (DuelPrefill) -> Unit = {},
 ) {
     entry<ResultKey> { key ->
@@ -173,7 +170,6 @@ fun EntryProviderScope<NavKey>.resultEntry(
             onOpenReplay = { navigator.pushOnce(it) },
             linkedIn = linkedIn,
             onOpenRanks = onOpenRanks,
-            onMakeOneLikeThis = onMakeOneLikeThis,
             onChallenge = onChallenge,
             onOpenDay = { game, day -> navigator.replaceTop(GameKey(game.value, day.toString())) },
             onOpenPuzzle = { code -> navigator.replaceTop(FriendPuzzleKey(code.value)) },

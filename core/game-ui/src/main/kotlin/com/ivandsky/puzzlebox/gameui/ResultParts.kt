@@ -136,8 +136,7 @@ internal fun PlayAgainLine(previousBest: BestScore?, rankOrder: RankOrder) {
  * other next thing); once every daily is solved the [ResultCountdown] to [rolloverAt] stands in its place. Then come
  * Share (tag `result.share`) and, unless [onPlayAgain] is null, Play again (`result.playAgain`), both
  * tonal icon buttons that name themselves "Share" and "Play again" for TalkBack and a long-press tooltip.
- * Under the row: "Challenge <name>" (`result.challenge`) when a [challenge] and its [onChallenge] are given, then
- * a plain "Make one like this" button (`result.makeOne`) when [onMakeOneLikeThis] is.
+ * Under the row: "Challenge <name>" (`result.challenge`) when a [challenge] and its [onChallenge] are given.
  */
 @Composable
 internal fun ResultActions(
@@ -149,7 +148,6 @@ internal fun ResultActions(
     modifier: Modifier = Modifier,
     challenge: ResultPrimaryAction.ChallengeFriend? = null,
     onChallenge: (() -> Unit)? = null,
-    onMakeOneLikeThis: (() -> Unit)? = null,
 ) {
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         ActionRow(primary, onPrimary, onShare, onPlayAgain, rolloverAt)
@@ -159,9 +157,6 @@ internal fun ResultActions(
                 onClick = onChallenge,
                 modifier = Modifier.fillMaxWidth().testTag("result.challenge"),
             )
-        }
-        onMakeOneLikeThis?.let { make ->
-            SecondaryButton(text = "Make one like this", onClick = make, modifier = Modifier.fillMaxWidth().testTag("result.makeOne"))
         }
     }
 }

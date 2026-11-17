@@ -25,6 +25,9 @@ interface CompletionRepository {
 
     fun observePlayAgains(puzzleRef: PuzzleRef): Flow<List<CompletionRecord>>
 
+    /** Every solve of [puzzleRef], the record, play-agains and a LinkedIn import alike, newest completedAt first. */
+    fun observeSolves(puzzleRef: PuzzleRef): Flow<List<CompletionRecord>>
+
     /** Record and play-again rows of one friend puzzle (ref key `custom/<gameId>/<puzzleId>`), newest completedAt first. */
     fun observeCustom(gameId: GameId, puzzleId: String): Flow<List<CompletionRecord>>
 

@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.app.e2e
 
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
@@ -26,7 +25,6 @@ import java.time.Instant
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -110,28 +108,17 @@ class CustomInGamesE2ETest {
         }
 
     @Test
-    fun `Make one like this on a result starts a draft of the played size and Back returns to the result`() =
+    fun `a result has no Make one like this`() =
         shellRobot(graph = shellGraph(ReleaseFlag.CustomInGames, overrides = stores)) {
-            val played = ZipPlayFixture.envelope().variant
-            assertNotEquals("the played size is not the default", ZipEditor.defaultVariant, played)
             tapTab(PlayKey)
             openGame(ZIP)
             solveTodaysZip()
             val result = state.currentStack.last()
             assertTrue("the solve opened $result", result is ResultKey)
-            awaitActionable(RESULT_MAKE_ONE)
-
-            tap(RESULT_MAKE_ONE)
-
-            assertRoute(EDITOR)
-            val draft = drafts.rows.values.single()
-            assertEquals(ZipDefinition.id, draft.gameId)
-            assertEquals(played, draft.variant)
-            assertState(games(result, EditorKey(draft.id)))
-
-            back()
-            assertState(games(result))
             assertRoute(RESULT)
+            awaitTag(RESULT_TIME)
+
+            assertFalse("Make one like this", shows(RESULT_MAKE_ONE))
         }
 
     @Test
@@ -214,6 +201,7 @@ class CustomInGamesE2ETest {
         const val PAGE_PLAY = "library.play"
         const val PAGE_MAKE_ONE = "library.page.makeOne"
         const val RESULT_MAKE_ONE = "result.makeOne"
+        const val RESULT_TIME = "result.hero.time"
         const val STUDIO_MORE = "create.studio.more"
         const val STUDIO_DELETE = "create.studio.delete"
     }

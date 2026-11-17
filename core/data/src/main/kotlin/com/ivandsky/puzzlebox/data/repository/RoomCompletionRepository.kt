@@ -75,6 +75,13 @@ internal class RoomCompletionRepository(
         }
     }
 
+    override fun observeSolves(puzzleRef: PuzzleRef): Flow<List<CompletionRecord>> {
+        val refKey = PuzzleRefKeys.encode(puzzleRef)
+        return owner.visible.flatMapLatest { dao.observeByRef(refKey, it) }.map { rows ->
+            rows.mapNotNull { it.toModel(registry) }
+        }
+    }
+
     // Same key shape PuzzleRefKeys.encode writes for a PuzzleKey.Custom ref.
     override fun observeCustom(gameId: GameId, puzzleId: String): Flow<List<CompletionRecord>> =
         owner.visible.flatMapLatest {

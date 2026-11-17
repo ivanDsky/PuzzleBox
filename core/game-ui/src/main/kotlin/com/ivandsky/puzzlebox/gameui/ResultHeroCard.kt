@@ -132,9 +132,17 @@ internal fun ResultHeroCard(
             model.bestLine?.let { line ->
                 Text(
                     text = line,
-                    style = MaterialTheme.typography.bodyLarge.tabular(),
+                    style = (if (model.compare) MaterialTheme.typography.displaySmall else MaterialTheme.typography.bodyLarge).tabular(),
                     color = if (model.bestImproved) accent.accent else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.resultBeat(ResultBeats.Supporting, 1).testTag("result.hero.best"),
+                )
+            }
+            model.bestSubLine?.let { line ->
+                Text(
+                    text = line,
+                    style = MaterialTheme.typography.bodyLarge.tabular(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.resultBeat(ResultBeats.Supporting, 1).testTag("result.hero.bestOn"),
                 )
             }
             Row(

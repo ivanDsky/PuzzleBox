@@ -46,7 +46,6 @@ class ResultHeroActionsNextThingTest {
                     onPlayAgain = {},
                     challenge = challenge,
                     onChallenge = { challengeTaps++ },
-                    onMakeOneLikeThis = {},
                 )
             }
         }
@@ -92,17 +91,15 @@ class ResultHeroActionsNextThingTest {
     }
 
     @Test
-    fun `without a challenge there is no row, and Make one like this stays`() {
+    fun `without a challenge there is no row, and no Make one like this`() {
         show(ResultPrimaryAction.Next(queens, "Queens"))
         composeRule.onNodeWithTag("result.challenge").assertDoesNotExist()
-        composeRule.onNodeWithTag("result.makeOne").assertTextEquals("Make one like this")
+        composeRule.onNodeWithTag("result.makeOne").assertDoesNotExist()
     }
 
     @Test
-    fun `Make one like this sits below the Challenge row`() {
+    fun `a Result with a challenge row has no Make one like this under it`() {
         show(ResultPrimaryAction.Next(queens, "Queens"), challenge = maya)
-        val challengeBottom = composeRule.onNodeWithTag("result.challenge").getUnclippedBoundsInRoot().bottom
-        val makeTop = composeRule.onNodeWithTag("result.makeOne").getUnclippedBoundsInRoot().top
-        assertTrue(makeTop >= challengeBottom)
+        composeRule.onNodeWithTag("result.makeOne").assertDoesNotExist()
     }
 }

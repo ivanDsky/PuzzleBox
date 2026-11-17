@@ -47,7 +47,6 @@ private fun NextThingPreview(facts: ResultHeroFacts) {
                         onPlayAgain = {},
                         challenge = model.challenge,
                         onChallenge = {},
-                        onMakeOneLikeThis = {},
                     )
                 },
             )
