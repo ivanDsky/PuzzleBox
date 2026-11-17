@@ -17,6 +17,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
@@ -229,6 +231,21 @@ class FriendOpenErrorTest {
     }
 
     @Test
+    fun `typed lowercase shows as capitals`() {
+        showSheet()
+
+        type("k7q")
+
+        assertEquals("K7Q", fieldText())
+    }
+
+    @Test
+    fun `the code field asks for capitals and no autocorrect`() {
+        assertEquals(KeyboardCapitalization.Characters, enterCodeKeyboard.capitalization)
+        assertEquals(false, enterCodeKeyboard.autoCorrectEnabled)
+    }
+
+    @Test
     fun `an offline check shows a notice whose Try again checks again`() {
         shared.online = false
         showSheet()
@@ -271,6 +288,28 @@ class FriendOpenErrorTest {
     }
 
     @Test
+    fun `a pasted share link keeps its case and opens its code`() {
+        runBlocking { received.upsert(stored()) }
+        showSheet()
+
+        paste("https://puzzlebox-f3356.web.app/p/k7q2mx")
+        node("friend.code.open").assertIsEnabled()
+        open()
+
+        composeRule.waitUntil(TIMEOUT_MS) { sheetOpened.isNotEmpty() }
+        assertEquals(listOf(code), sheetOpened)
+    }
+
+    @Test
+    fun `a mixed-case dashed code uppercases in the field`() {
+        showSheet()
+
+        type("k7Q-2mx")
+
+        assertEquals("K7Q-2MX", fieldText())
+    }
+
+    @Test
     fun `Open waits for six valid characters`() {
         showSheet()
 
@@ -300,7 +339,7 @@ class FriendOpenErrorTest {
     fun `the sheet prefills a bad link's capped text`() {
         showSheet(initialText = ShareCode.LINK_PREFIX + "K7Q2M" + "X".repeat(200))
 
-        val text = node("friend.code.field").fetchSemanticsNode().config[SemanticsProperties.EditableText].text
+        val text = fieldText()
 
         assertTrue(text.length <= PREFILL_CAP)
         assertTrue(text.startsWith("K7Q2M"))
@@ -374,6 +413,14 @@ class FriendOpenErrorTest {
         node("friend.code.field").performTextInput(text)
         composeRule.waitForIdle()
     }
+
+    /** Replaces the whole field in one change, as a paste does. */
+    private fun paste(text: String) {
+        node("friend.code.field").performTextReplacement(text)
+        composeRule.waitForIdle()
+    }
+
+    private fun fieldText() = node("friend.code.field").fetchSemanticsNode().config[SemanticsProperties.EditableText].text
 
     private fun open() {
         node("friend.code.open").performClick()

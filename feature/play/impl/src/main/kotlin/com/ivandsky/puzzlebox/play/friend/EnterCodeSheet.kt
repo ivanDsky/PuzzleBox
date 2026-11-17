@@ -112,6 +112,16 @@ internal fun codePrefill(raw: String): String {
 }
 
 /**
+ * The code field's keyboard: capitals as typed, no autocorrect. The state is uppercased too
+ * (see [EnterCodeContent]), since some keyboards ignore the capitalization request.
+ */
+internal val enterCodeKeyboard = KeyboardOptions(
+    capitalization = KeyboardCapitalization.Characters,
+    autoCorrectEnabled = false,
+    imeAction = ImeAction.Go,
+)
+
+/**
  * The field, its help or error line, an [OpenNotice] for a code that can't open, and Open.
  *
  * Motion: a code nobody shared **shakes** the field (MotionTokens' Shake); reduced motion
@@ -151,7 +161,8 @@ private fun EnterCodeContent(
         OutlinedTextField(
             value = text,
             onValueChange = {
-                text = it
+                // A pasted link stays as typed: its host and /p/ path are case-sensitive to fromLink.
+                text = if (ShareCode.fromLink(it.trim()) != null) it else it.uppercase()
                 onEdited()
             },
             modifier = Modifier
@@ -173,7 +184,7 @@ private fun EnterCodeContent(
                     Text(if (text.any { it == 'u' || it == 'U' }) "Codes never use the letter U." else "Case and dashes don't matter.")
                 }
             },
-            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, imeAction = ImeAction.Go),
+            keyboardOptions = enterCodeKeyboard,
             keyboardActions = KeyboardActions(onGo = { submit() }),
         )
         OpenNotice(
