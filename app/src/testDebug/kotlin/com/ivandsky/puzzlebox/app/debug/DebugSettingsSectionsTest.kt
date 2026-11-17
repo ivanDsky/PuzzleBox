@@ -45,13 +45,13 @@ class DebugSettingsSectionsTest {
     }
 
     @Test
-    fun `the release flags panel has a switch for UnderlineTabs, off`() {
+    fun `the release flags panel has a switch for UnderlineTabs, on`() {
         composeRule.setContent {
             PuzzleBoxTheme { ReleaseFlagsPanel(flags = DebugReleaseFlags(LocalContext.current)) }
         }
 
         composeRule.onNodeWithTag("debug.flag.UnderlineTabs").assertExists()
         composeRule.onNodeWithText("Underline tabs with swipe").assertExists()
-        composeRule.onNodeWithText("UnderlineTabs · release: off").assertExists()
+        composeRule.onNodeWithText("UnderlineTabs · release: on").assertExists()
     }
 }

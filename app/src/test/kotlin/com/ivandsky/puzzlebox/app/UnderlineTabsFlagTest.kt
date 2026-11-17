@@ -1,14 +1,14 @@
 package com.ivandsky.puzzlebox.app
 
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
-// UnderlineTabs (nav-rethink 125) merges dark: Games keeps its pill row in every release build until the flip.
+// UnderlineTabs (nav-rethink 125) flipped on in 0.34.1: Games ships the underline strip with swipe.
 class UnderlineTabsFlagTest {
 
     @Test
-    fun `UnderlineTabs ships off in release`() {
-        assertFalse(ReleaseFlag.UnderlineTabs.releaseDefault)
+    fun `UnderlineTabs ships on in release`() {
+        assertTrue(ReleaseFlag.UnderlineTabs.releaseDefault)
     }
 }
