@@ -17,6 +17,7 @@ import java.time.Instant
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -84,6 +85,20 @@ class SudokuBoardStateTest {
         s.erase()
         assertEquals(before, s.session)
         assertEquals("That number is part of the puzzle.", s.rejection?.message)
+        s.select(0)
+        assertNull(s.rejection)
+    }
+
+    @Test
+    fun `a digit with no cell selected is refused with a nudge, again on a repeat`() {
+        val s = state()
+        val before = s.session
+        s.input(1)
+        val first = s.rejection
+        assertEquals("Pick a square first.", first?.message)
+        assertEquals(before, s.session)
+        s.input(1)
+        assertNotEquals(first?.seq, s.rejection?.seq)
         s.select(0)
         assertNull(s.rejection)
     }

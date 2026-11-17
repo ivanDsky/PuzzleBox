@@ -148,11 +148,14 @@ class SudokuBoardState(
         selected = idx
     }
 
-    /** A note in notes mode, otherwise an entry; refused on a Given. */
+    /** A note in notes mode, otherwise an entry; refused on a Given, and nudged to pick a square when none is selected. */
     fun input(digit: Int) {
         onInput()
         clearFeedback()
-        val idx = selected ?: return
+        val idx = selected ?: run {
+            rejection = SudokuRejection(SudokuHintCaptions.NO_SELECTION_REJECTION, ++refused)
+            return
+        }
         if (rejectsGiven(idx)) return
         commit(if (session.notesMode) SudokuReplayMove.ToggleNote(idx, digit) else SudokuReplayMove.Place(idx, digit))
     }

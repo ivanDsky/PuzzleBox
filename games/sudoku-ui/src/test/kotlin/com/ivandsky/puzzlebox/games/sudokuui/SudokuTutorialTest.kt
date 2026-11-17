@@ -167,7 +167,7 @@ class SudokuTutorialTest {
             assertEquals(box, hint.unit)
             // The step completes only once the whole box is filled, so the copy says so (E1).
             assertEquals(
-                "Each box needs every number once, too. Find the one empty square in the box where the $digit fits, then fill the rest.",
+                "Each box needs every number once. Place the $digit, then fill the rest.",
                 step.instruction,
             )
         }

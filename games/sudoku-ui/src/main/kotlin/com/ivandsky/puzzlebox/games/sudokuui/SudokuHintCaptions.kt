@@ -14,6 +14,8 @@ internal object SudokuHintCaptions {
 
     const val GIVEN_REJECTION = "That number is part of the puzzle."
 
+    const val NO_SELECTION_REJECTION = "Pick a square first."
+
     /** The standing rule break: the first conflict on [board], null when the board is legal. */
     fun violation(board: SudokuBoard): String? = SudokuConflicts.find(board).firstOrNull()?.let(::conflict)
 
