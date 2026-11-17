@@ -15,6 +15,7 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
@@ -59,7 +60,7 @@ private const val SETTLE_MS = 2_000L
 /**
  * The duel's compare page and the reveal summary's per-leg Compare actions, phone and tablet, light and dark. The compare
  * has five cases (both sides, mine only, theirs only, a gave-up side frozen, both ended with the final line), each short
- * (12 moves) and long (64 moves over about an hour), captured at the finished state. The both-sides compare is paused mid-play
+ * (12 moves) and long (64 moves over about an hour), seeked to the finished state (a replay opens at move 0 playing). The both-sides compare is paused mid-play
  * (about 45% of the longer timeline) instead. Twin on the tablet, FlipPeek on the phone. The summary offers Compare on one leg of three. Goldens in
  * `snapshots/reveal-replay/`.
  */
@@ -108,7 +109,7 @@ abstract class RevealReplayGoldenScreenshots(private val device: String, private
     @Test fun `summary compare light`() = summary("summary-compare", dark = false)
     @Test fun `summary compare dark`() = summary("summary-compare", dark = true)
 
-    private fun compare(name: String, case: Case, dark: Boolean, seekMs: Long = 0) {
+    private fun compare(name: String, case: Case, dark: Boolean, seekMs: Long? = null) {
         rule.showGolden(dark) {
             ReplayComparePage(
                 mine = case.mine,
@@ -123,7 +124,9 @@ abstract class RevealReplayGoldenScreenshots(private val device: String, private
                 finalLead = case.finalLead,
             )
         }
-        if (seekMs > 0) rule.onNodeWithTag(ReplayTags.SEEK).performSemanticsAction(SemanticsActions.SetProgress) { it(seekMs.toFloat()) }
+        val at = seekMs ?: maxOf(case.mine?.endMs ?: 0L, case.theirs?.endMs ?: 0L)
+        rule.onNodeWithTag(ReplayTags.SEEK).performSemanticsAction(SemanticsActions.SetProgress) { it(at.toFloat()) }
+        if (seekMs != null) rule.onNodeWithTag(ReplayTags.PLAY).performClick()
         rule.settleAndCapture(name, device, dark)
     }
 
@@ -144,7 +147,7 @@ abstract class RevealReplayGoldenScreenshots(private val device: String, private
     }
 
     private companion object {
-                const val SHORT_MID_MS = 6_000L
+        const val SHORT_MID_MS = 6_000L
         const val LONG_MID_MS = 2_070_000L
         const val LONG_MOVES = 64
         const val LONG_STEP_MS = 64_000L

@@ -89,6 +89,7 @@ class ReplayCompareTest {
     @Test
     fun `both present shows two boards, the lead line and one transport`() {
         show(mine, theirs)
+        seekTo(12_000)
 
         assertEquals(listOf("facts 6", "facts 12"), boards())
         // The fixtures place 12 pieces to my 6, so the pieces rule names Maya the winner.
@@ -105,13 +106,11 @@ class ReplayCompareTest {
     fun `only mine plays my board and says No replay for the other side without a lead line`() {
         show(mine, null)
 
-        assertEquals(listOf("facts 6"), boards())
+        assertEquals(listOf("facts 0"), boards())
         composeRule.onNodeWithText(ReplayCopy.NO_REPLAY).assertExists()
         composeRule.onAllNodesWithText("won", substring = true).assertCountEquals(0)
-        composeRule.onNodeWithTag(ReplayTags.POSITION).assertTextEquals("0:06 / 0:06")
+        composeRule.onNodeWithTag(ReplayTags.POSITION).assertTextEquals("0:00 / 0:06")
 
-        seekTo(0)
-        tap(ReplayTags.PLAY)
         playFor(2_000)
         assertEquals(listOf("facts 2"), boards())
     }
@@ -120,13 +119,11 @@ class ReplayCompareTest {
     fun `only theirs plays their board and says No replay in my place without a lead line`() {
         show(null, theirs)
 
-        assertEquals(listOf("facts 12"), boards())
+        assertEquals(listOf("facts 0"), boards())
         composeRule.onNodeWithText(ReplayCopy.NO_REPLAY).assertExists()
         composeRule.onAllNodesWithText("won", substring = true).assertCountEquals(0)
-        composeRule.onNodeWithTag(ReplayTags.POSITION).assertTextEquals("0:12 / 0:12")
+        composeRule.onNodeWithTag(ReplayTags.POSITION).assertTextEquals("0:00 / 0:12")
 
-        seekTo(0)
-        tap(ReplayTags.PLAY)
         playFor(3_000)
         assertEquals(listOf("facts 3"), boards())
     }
@@ -142,12 +139,10 @@ class ReplayCompareTest {
     }
 
     @Test
-    fun `one play tap advances both boards`() {
+    fun `one clock advances both boards`() {
         show(mine, theirs)
-        seekTo(0)
         assertEquals(listOf("facts 0", "facts 0"), boards())
 
-        tap(ReplayTags.PLAY)
         playFor(3_000)
 
         assertEquals(listOf("facts 3", "facts 3"), boards())
@@ -156,9 +151,7 @@ class ReplayCompareTest {
     @Test
     fun `the shorter side stops at its end while the longer goes on`() {
         show(mine, theirs)
-        seekTo(0)
 
-        tap(ReplayTags.PLAY)
         playFor(9_000)
 
         assertEquals(listOf("facts 6", "facts 9"), boards())
@@ -168,9 +161,7 @@ class ReplayCompareTest {
     fun `a side that gave up stays on its give-up board and the line says so`() {
         val gaveUp = ReplayFixtures.timeline(6, outcome = ReplayOutcome.GaveUp)
         show(gaveUp, theirs)
-        seekTo(0)
 
-        tap(ReplayTags.PLAY)
         playFor(9_000)
 
         assertEquals(listOf("facts 6", "facts 9"), boards())
@@ -181,11 +172,9 @@ class ReplayCompareTest {
     fun `flip and peek pages both boards under the one shared transport`() {
         show(mine, theirs, CompareLayout.FlipPeek)
 
-        assertEquals(listOf("facts 6", "facts 12"), boards())
+        assertEquals(listOf("facts 0", "facts 0"), boards())
         composeRule.onAllNodesWithTag(ReplayTags.PLAY).assertCountEquals(1)
 
-        seekTo(0)
-        tap(ReplayTags.PLAY)
         playFor(2_000)
         assertEquals(listOf("facts 2", "facts 2"), boards())
     }
@@ -194,7 +183,7 @@ class ReplayCompareTest {
     fun `flip and peek with only theirs shows their board`() {
         show(null, theirs, CompareLayout.FlipPeek)
 
-        assertEquals(listOf("facts 12"), boards())
+        assertEquals(listOf("facts 0"), boards())
     }
 
     private companion object {

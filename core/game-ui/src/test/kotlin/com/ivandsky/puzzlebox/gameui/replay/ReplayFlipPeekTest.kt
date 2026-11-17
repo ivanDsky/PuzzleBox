@@ -131,6 +131,7 @@ class ReplayFlipPeekTest {
     @Test
     fun `a tab tap flips the board and keeps the position and the paused state`() {
         show()
+        tap(ReplayTags.PLAY)
         settle()
         seekTo(3_000)
 
@@ -147,8 +148,6 @@ class ReplayFlipPeekTest {
     fun `a flip while playing keeps playing`() {
         show()
         settle()
-        seekTo(0)
-        tap(ReplayTags.PLAY)
 
         tap(ReplayFlipTags.TAB_THEIRS)
         composeRule.mainClock.advanceTimeBy(300)
@@ -188,6 +187,7 @@ class ReplayFlipPeekTest {
     @Test
     fun `a hint on the hidden side flashes its tab`() {
         show()
+        tap(ReplayTags.PLAY)
         settle()
         seekTo(0)
 
@@ -200,6 +200,7 @@ class ReplayFlipPeekTest {
     @Test
     fun `a hint on the visible side does not flash`() {
         show()
+        tap(ReplayTags.PLAY)
         settle()
         tap(ReplayFlipTags.TAB_THEIRS)
         settle()
@@ -214,6 +215,7 @@ class ReplayFlipPeekTest {
     @Test
     fun `a seek past a hint on the hidden side does not flash but the count updates`() {
         show()
+        tap(ReplayTags.PLAY)
         settle()
 
         seekTo(3_000)
@@ -234,9 +236,7 @@ class ReplayFlipPeekTest {
     @Test
     fun `reduced motion keeps the hint count current without a flash`() {
         show(reducedMotion = true)
-        seekTo(0)
 
-        tap(ReplayTags.PLAY)
         composeRule.mainClock.advanceTimeBy(2_000 + FIRST_FRAME_SLACK_MS)
 
         composeRule.onAllNodesWithText(ReplayCopy.hintGain(1)).assertCountEquals(0)
@@ -257,7 +257,7 @@ class ReplayFlipPeekTest {
     fun `only theirs shows their board with theirs selected and mine disabled`() {
         show(mine = null)
 
-        assertEquals(listOf("facts 8 hints 4"), boardTexts())
+        assertEquals(listOf("facts 0 hints 0"), boardTexts())
         composeRule.onNodeWithTag(ReplayFlipTags.TAB_THEIRS).assertIsSelected()
         composeRule.onNodeWithTag(ReplayFlipTags.TAB_MINE).assertIsNotEnabled()
         composeRule.onNodeWithText(ReplayCopy.NO_REPLAY).assertExists()

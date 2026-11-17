@@ -10,7 +10,7 @@ import com.ivandsky.puzzlebox.game.replay.Timeline
 
 /**
  * Single-board replay: the game's read-only board centred at the largest size the space allows, the transport
- * under it at the board's width. Opens paused on the finished board. [showErrors] false hides every rule-violation mark.
+ * under it at the board's width. Opens at move 0 and playing. [showErrors] false hides every rule-violation mark.
  */
 @Composable
 fun ReplayPlayer(timeline: Timeline, board: GameReplayBoard, modifier: Modifier = Modifier, showErrors: Boolean = true) {
