@@ -1,20 +1,26 @@
 package com.ivandsky.puzzlebox.gameui
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onLast
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -34,42 +40,70 @@ class HintCostLineTest {
     @get:Rule
     val composeRule = createComposeRule()
 
+    /** What a game's hint does: it counts and explains only when it applies; a refused press does neither. */
     private class Hints : PlayHints {
         override var hintsUsed by mutableIntStateOf(0)
         override var hintEnabled by mutableStateOf(true)
         override var hintCaption: String? by mutableStateOf(null)
-        override fun requestHint() = Unit
+        var explanation: String? = "Fixed your path up to 3"
+        var applies = true
 
-        /** What a game's hint does: a counted hint with its explanation. */
-        fun applyHint(explanation: String?) {
-            hintsUsed++
-            hintCaption = explanation
+        override fun requestHint() {
+            if (hintEnabled && applies) applyHint(explanation)
         }
+
+        fun applyHint(text: String?) {
+            hintsUsed++
+            hintCaption = text
+        }
+    }
+
+    private object NoUndo : PlayUndo {
+        override val canUndo = false
+        override val canRedo = false
+        override fun undo() = Unit
+        override fun redo() = Unit
     }
 
     private var seen by mutableStateOf(false)
+    private var inputs by mutableIntStateOf(0)
     private var marks = 0
     private val hints = Hints()
 
-    /** The slot's merged node and its text child both carry a note-only caption, so a text is found by its drawn node. */
-    private fun shown(text: String) = composeRule.onAllNodesWithText(text, useUnmergedTree = true).onLast().assertIsDisplayed()
+    private fun text(text: String) = composeRule.onAllNodesWithText(text, useUnmergedTree = true)
 
-    private fun gone(text: String) = composeRule.onAllNodesWithText(text, useUnmergedTree = true).assertCountEquals(0)
+    private fun shown(text: String) = text(text).onLast().assertIsDisplayed()
 
-    private fun show(feel: Boolean = true, offered: Boolean = true, startUsed: Int = 0) {
-        hints.hintsUsed = startUsed
+    private fun gone(text: String) = text(text).assertCountEquals(0)
+
+    private fun show(
+        feel: Boolean = true,
+        offered: Boolean = true,
+        enabled: Boolean = true,
+        withActionBar: Boolean = false,
+        cooldown: Boolean = false,
+    ) {
+        hints.hintEnabled = enabled
         composeRule.setContent {
-            val line = HintCostLine(seen = seen, markSeen = { marks++; seen = true }).takeIf { offered }
-            CompositionLocalProvider(LocalPlayFeel provides feel, LocalHintCostLine provides line) {
+            val line = HintCostLine(seen = { seen }, inputs = { inputs }, markSeen = { marks++; seen = true })
+            CompositionLocalProvider(
+                LocalPlayFeel provides feel,
+                LocalHintCostLine provides line.takeIf { offered },
+                LocalHintCooldown provides HINT_COOLDOWN.takeIf { cooldown },
+            ) {
                 PuzzleBoxTheme(darkTheme = false) {
-                    PlayChrome(clock = null, hints = hints, modifier = Modifier.requiredSize(width = 360.dp, height = 200.dp))
+                    Column(Modifier.requiredSize(width = 360.dp, height = 400.dp)) {
+                        PlayChrome(clock = null, hints = hints)
+                        if (withActionBar) PlayActionBar(NoUndo, hints, clear = null, accent = AccentSlot.Teal)
+                    }
                 }
             }
         }
+        composeRule.waitForIdle()
     }
 
     @Test
-    fun `the first hint shows the line after its explanation, and the next move clears both`() {
+    fun `the first hint shows the line after its explanation, and the next input clears both`() {
         show()
         hints.applyHint("Started your path over")
         composeRule.waitForIdle()
@@ -77,19 +111,23 @@ class HintCostLineTest {
         shown(HINT_COST_TEXT)
         assertEquals(1, marks)
 
-        hints.hintCaption = null // a move retires the hint's caption
+        inputs++
+        hints.hintCaption = null // the move retires the hint's caption
         composeRule.waitForIdle()
         gone(HINT_COST_TEXT)
     }
 
     @Test
-    fun `a hint with no explanation shows the line alone, then lets it go on its own`() {
+    fun `a hint with no explanation shows the line alone until the next input`() {
         show()
         hints.applyHint(null)
         composeRule.waitForIdle()
         shown(HINT_COST_TEXT)
         assertEquals(1, marks)
-        composeRule.mainClock.advanceTimeBy(10_000)
+        composeRule.mainClock.advanceTimeBy(60_000)
+        shown(HINT_COST_TEXT) // no timer: it waits for the player
+
+        inputs++
         composeRule.waitForIdle()
         gone(HINT_COST_TEXT)
     }
@@ -99,6 +137,7 @@ class HintCostLineTest {
         show()
         hints.applyHint("one")
         composeRule.waitForIdle()
+        inputs++
         hints.hintCaption = null
         composeRule.waitForIdle()
         hints.applyHint("two")
@@ -109,19 +148,47 @@ class HintCostLineTest {
     }
 
     @Test
-    fun `a tap that applies no hint consumes nothing`() {
-        show()
-        hints.hintEnabled = false // cooldown or a finished board: the tap raises no count
-        hints.requestHint()
+    fun `a saved game restored with hints used never shows it or marks it seen`() {
+        show(enabled = false) // the board is still loading: nothing loaded, so no hint is enabled
+        Snapshot.withMutableSnapshot { // the restore lands: the session's hints and an enabled Hint at once
+            hints.hintsUsed = 2
+            hints.hintEnabled = true
+        }
         composeRule.waitForIdle()
         gone(HINT_COST_TEXT)
         assertEquals(0, marks)
+
+        hints.applyHint("a real hint") // the first hint the player applies still shows it
+        composeRule.waitForIdle()
+        shown(HINT_COST_TEXT)
+        assertEquals(1, marks)
     }
 
     @Test
-    fun `a restored session's earlier hints do not show it`() {
-        show(startUsed = 2)
+    fun `a tap on a disabled Hint consumes nothing, and the next enabled one shows it`() {
+        show(enabled = false, withActionBar = true)
+        composeRule.onNodeWithTag("play.hint").performClick()
         composeRule.waitForIdle()
+        gone(HINT_COST_TEXT)
+        assertEquals(0, marks)
+
+        hints.hintEnabled = true
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("play.hint").performClick()
+        composeRule.waitForIdle()
+        shown(HINT_COST_TEXT)
+        assertEquals(1, marks)
+    }
+
+    @Test
+    fun `a tap swallowed by the cooldown consumes nothing`() {
+        show(withActionBar = true, cooldown = true)
+        composeRule.mainClock.autoAdvance = false // the wait must not run out between the two taps
+        hints.applies = false // the first press applies nothing, and starts the wait
+        composeRule.onNodeWithTag("play.hint").performClick()
+        hints.applies = true
+        composeRule.onNodeWithTag("play.hint").performClick() // inside the cooldown
+        composeRule.mainClock.advanceTimeByFrame()
         gone(HINT_COST_TEXT)
         assertEquals(0, marks)
     }
@@ -141,29 +208,55 @@ class HintCostLineTest {
         hints.applyHint("one")
         composeRule.waitForIdle()
         gone(HINT_COST_TEXT)
+        assertEquals(0, marks)
     }
 
     @Test
-    fun `both lines show at 360 dp over the longest Zip explanation`() = bothLinesFit(ZIP_LONGEST)
+    fun `a two-line explanation keeps both lines, the note waits and a later hint shows it`() {
+        show()
+        hints.applyHint(SUDOKU_LONGEST)
+        composeRule.waitForIdle()
+        shown(SUDOKU_LONGEST)
+        gone(HINT_COST_TEXT)
+        assertEquals(0, marks)
+        assertEquals("the hint keeps both lines", 2, layoutOf(SUDOKU_LONGEST).lineCount)
+
+        inputs++
+        hints.hintCaption = null
+        composeRule.waitForIdle()
+        hints.applyHint("Fixed your path up to 3")
+        composeRule.waitForIdle()
+        shown(HINT_COST_TEXT)
+        assertEquals(1, marks)
+    }
 
     @Test
-    fun `both lines show at 360 dp over the longest Sudoku explanation`() = bothLinesFit(SUDOKU_LONGEST)
-
-    private fun bothLinesFit(explanation: String) {
+    fun `both lines show at 360 dp over the longest Zip explanation without moving the board`() {
         show()
         val slot = composeRule.onNodeWithTag("play.caption_slot")
         val reserved = slot.getBoundsInRoot()
-        hints.applyHint(explanation)
+        hints.applyHint(ZIP_LONGEST)
         composeRule.waitForIdle()
-        val note = composeRule.onAllNodesWithText(HINT_COST_TEXT, useUnmergedTree = true).onLast().getBoundsInRoot()
+        val note = text(HINT_COST_TEXT).onLast().getBoundsInRoot()
         assertEquals("the slot keeps its height", reserved, slot.getBoundsInRoot())
         assertTrue("the cost line is the second line", note.top > reserved.top)
         shown(HINT_COST_TEXT)
+        shown(ZIP_LONGEST)
+    }
+
+    private fun layoutOf(caption: String): TextLayoutResult {
+        val results = mutableListOf<TextLayoutResult>()
+        val node = text(caption).onLast().fetchSemanticsNode()
+        node.config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
+        return results.single()
     }
 
     private companion object {
         const val ZIP_LONGEST = "Fixed your path up to 12"
+
+        /** Sudoku's longest hint caption (a hidden single's reason), as `SudokuHintCaptions.place` words it. */
         const val SUDOKU_LONGEST =
-            "There's no simple step from here, so here's one cell to get you going: row 9, column 9 is 9."
+            "After ruling out some numbers, row 9, column 9 already sees every other number in its row, " +
+                "column and box, so the only number left for it is 9."
     }
 }

@@ -5,58 +5,54 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
-import kotlinx.coroutines.delay
 
 /** The one-time second caption line (spec A11). */
 const val HINT_COST_TEXT = "Hints are counted on your result"
 
-/** How long the line stays when the hint has no caption of its own to clear it (a Spotlight game's hint). */
-private const val DWELL_MS = 6_000L
-
 /**
- * The hint cost line a route offers: [seen] is whether this game has ever shown it, [markSeen] records that it now has.
- * Only routes that record a result provide one; no provider (the sandbox, lessons) never shows the line.
+ * The hint cost line a route offers. [seen] is whether this game has ever shown it, [inputs] counts the player's inputs
+ * (the line clears on the next one), and [markSeen] records that the line has shown. [seen] and [inputs] read state, so
+ * one instance serves the whole screen. Only routes that record a result provide one; no provider (the sandbox,
+ * lessons) never shows the line.
  */
-class HintCostLine(val seen: Boolean, val markSeen: () -> Unit)
+class HintCostLine(val seen: () -> Boolean, val inputs: () -> Int, val markSeen: () -> Unit)
 
 val LocalHintCostLine: ProvidableCompositionLocal<HintCostLine?> = staticCompositionLocalOf { null }
 
+private const val NONE = -1
+
 /**
- * The cost line [PlayChrome]'s caption slot shows right now, or null. It shows when a hint applies ([PlayHints.hintsUsed]
- * rises, so a tap on a disabled Hint never counts) under [LocalPlayFeel] and an unseen [LocalHintCostLine], and calls
- * [HintCostLine.markSeen] then, not on the tap. It clears with the hint's [caption] on the next move, or after
- * [DWELL_MS] when the hint had none. A session restored with hints used does not count as a hint applying.
+ * The cost line [PlayChrome]'s caption slot offers right now, or null. It arms when a hint applies ([PlayHints.hintsUsed]
+ * rises, so a tap on a disabled Hint never counts) under [LocalPlayFeel] and an unseen [LocalHintCostLine], and stays
+ * until the player's next input. The count a session starts from is taken once the hint is enabled, which a game
+ * only is after its session is loaded, so a restored session's earlier hints never arm it. The slot calls
+ * [HintCostLine.markSeen] when it actually draws the line.
  */
 @Composable
-internal fun hintCostNote(hints: PlayHints?, caption: String?): String? {
-    val line by rememberUpdatedState(LocalHintCostLine.current?.takeIf { LocalPlayFeel.current && !it.seen })
+internal fun hintCostNote(hints: PlayHints?): String? {
+    val line = LocalHintCostLine.current?.takeIf { LocalPlayFeel.current }
+    val offered by rememberUpdatedState(line?.takeIf { !it.seen() })
     val used = hints?.hintsUsed ?: 0
-    var baseline by remember { mutableIntStateOf(used) }
-    var shown by remember { mutableStateOf(false) }
-    var sawCaption by remember { mutableStateOf(false) }
-    LaunchedEffect(used) {
-        val offered = line
-        if (used > baseline && offered != null) {
-            shown = true
-            offered.markSeen()
-        }
-        baseline = used
-    }
-    LaunchedEffect(shown, caption) {
+    val enabled = hints?.hintEnabled == true
+    var baseline by remember(hints) { mutableIntStateOf(NONE) }
+    var armedInputs by rememberSaveable { mutableIntStateOf(NONE) }
+    val applying = offered != null && baseline != NONE && used > baseline
+    LaunchedEffect(used, enabled) {
+        val now = offered
         when {
-            !shown -> sawCaption = false
-            caption != null -> sawCaption = true
-            sawCaption -> shown = false
-            else -> {
-                delay(DWELL_MS)
-                shown = false
+            baseline == NONE -> if (enabled) baseline = used
+            used > baseline && now != null -> {
+                armedInputs = now.inputs()
+                baseline = used
             }
+            else -> baseline = used
         }
     }
-    return HINT_COST_TEXT.takeIf { shown }
+    val armed = armedInputs != NONE && line != null && line.inputs() == armedInputs
+    return HINT_COST_TEXT.takeIf { applying || armed }
 }

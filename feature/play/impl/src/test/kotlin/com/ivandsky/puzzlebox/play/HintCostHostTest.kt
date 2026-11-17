@@ -20,6 +20,7 @@ import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeGameSettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -43,20 +44,26 @@ class HintCostHostTest {
     val composeRule = createComposeRule()
 
     private val settings = FakeGameSettingsRepository()
+    private val inputs = MutableStateFlow(0)
 
     @After
     fun tearDown() = stopKoin()
 
-    private fun bind() {
+    private fun bind(feel: Boolean = true) {
         stopKoin() // tests share the JVM-global Koin context
-        startKoin { modules(module { single<GameSettingsRepository> { settings } }) }
+        startKoin {
+            modules(module {
+                single<GameSettingsRepository> { settings }
+                single { PlayFeel(feel) }
+            })
+        }
     }
 
     private fun seen(game: GameId) = runBlocking { settings.flag(GameSetting(game, "hint_cost_seen", default = false)).first() }
 
     private fun lineIn(game: GameId): HintCostLine? {
         var line: HintCostLine? = null
-        composeRule.setContent { HintCostHost(game) { line = LocalHintCostLine.current } }
+        composeRule.setContent { HintCostHost(game, inputs) { line = LocalHintCostLine.current } }
         composeRule.waitForIdle()
         return line
     }
@@ -64,7 +71,7 @@ class HintCostHostTest {
     @Test
     fun `an unseen game is offered an unseen line and nothing is written until it is marked`() {
         bind()
-        assertEquals(false, lineIn(TestGames.alpha)?.seen)
+        assertEquals(false, lineIn(TestGames.alpha)?.seen?.invoke())
         assertEquals(false, seen(TestGames.alpha))
     }
 
@@ -81,7 +88,13 @@ class HintCostHostTest {
     fun `a game that has shown it is offered a seen line`() {
         bind()
         runBlocking { settings.setFlag(GameSetting(TestGames.alpha, "hint_cost_seen", default = false), true) }
-        assertEquals(true, lineIn(TestGames.alpha)?.seen)
+        assertEquals(true, lineIn(TestGames.alpha)?.seen?.invoke())
+    }
+
+    @Test
+    fun `PlayFeel off offers none`() {
+        bind(feel = false)
+        assertNull(lineIn(TestGames.alpha))
     }
 
     @Test
@@ -98,7 +111,7 @@ class HintCostHostTest {
         val fake = FakePlayUi(game)
         val controller = fake.createController(PlayEnvironment(CoroutineScope(Job()), onSessionChanged = {}, onWon = {}))
         (controller as FakeController).adoptToday(TestGames.puzzle(game), TestGames.Ref(game, PuzzleKey.Custom("draft-castle")))
-        var offered: HintCostLine? = HintCostLine(seen = false, markSeen = {})
+        var offered: HintCostLine? = HintCostLine(seen = { false }, inputs = { 0 }, markSeen = {})
         val probe = object : GamePlayUi by fake {
             @Composable
             override fun Screen(
@@ -114,7 +127,7 @@ class HintCostHostTest {
             }
         }
         composeRule.setContent {
-            CompositionLocalProvider(LocalHintCostLine provides HintCostLine(seen = false, markSeen = {})) {
+            CompositionLocalProvider(LocalHintCostLine provides HintCostLine(seen = { false }, inputs = { 0 }, markSeen = {})) {
                 SandboxPlay(probe, controller, title = "Castle", label = "Test solve", layout = PlayLayout.SinglePane, onBack = {}, onSolved = {})
             }
         }

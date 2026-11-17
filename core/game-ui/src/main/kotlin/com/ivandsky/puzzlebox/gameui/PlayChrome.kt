@@ -134,7 +134,11 @@ fun PlayChrome(
             .testTag("play.side_panel"),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        val own = playCaption(feedback, hints)
-        PlayCaptionSlot(caption = own ?: LocalRouteCaption.current, note = hintCostNote(hints, own))
+        val markSeen = LocalHintCostLine.current?.markSeen
+        PlayCaptionSlot(
+            caption = playCaption(feedback, hints) ?: LocalRouteCaption.current,
+            note = hintCostNote(hints),
+            onNoteShown = { markSeen?.invoke() },
+        )
     }
 }

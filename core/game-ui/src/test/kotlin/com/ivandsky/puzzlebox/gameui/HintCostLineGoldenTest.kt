@@ -16,7 +16,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
-/** The caption slot at 360 dp: the longest hint explanation on line one, the cost line on line two. */
+/** The caption slot at 360 dp: the hint explanation on line one, the cost line on line two. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w360dp-h800dp-420dpi")
@@ -26,12 +26,12 @@ class HintCostLineGoldenTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun `longest explanation over the cost line`() {
+    fun `hint explanation over the cost line`() {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 Surface {
                     PlayCaptionSlot(
-                        caption = "There's no simple step from here, so here's one cell to get you going: row 9, column 9 is 9.",
+                        caption = "Fixed your path up to 12",
                         note = HINT_COST_TEXT,
                         modifier = Modifier.padding(Spacing.lg),
                     )

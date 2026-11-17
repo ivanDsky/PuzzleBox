@@ -125,7 +125,7 @@ internal fun GameBoard(
     }
     val record by play.record.collectAsStateWithLifecycle()
     val board by play.board.collectAsStateWithLifecycle()
-    HintCostHost(play.ui.gameId) {
+    HintCostHost(play.ui.gameId, play.inputs) {
         PlayBoardChrome(
             ui = play.ui,
             controller = board.controller,

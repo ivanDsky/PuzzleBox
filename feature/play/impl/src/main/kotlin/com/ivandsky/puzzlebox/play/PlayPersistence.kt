@@ -5,6 +5,10 @@ import com.ivandsky.puzzlebox.game.replay.MoveLog
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.PlayClock
 import com.ivandsky.puzzlebox.model.PlaySlot
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 /** The saves of one play: turns a session change into a slot write; flushes or drops it on close. */
 internal class PlayPersistence(private val slot: PlaySlot, private val writer: SlotWriter) {
@@ -34,9 +38,15 @@ internal class PlayPersistence(private val slot: PlaySlot, private val writer: S
         touched = baseline == null
     }
 
+    private val _inputs = MutableStateFlow(0)
+
+    /** How many inputs have reached the controller; a change means the player has moved on. */
+    val inputs: StateFlow<Int> = _inputs.asStateFlow()
+
     /** The player's input reached the controller. */
     fun touch() {
         touched = true
+        _inputs.update { it + 1 }
     }
 
     /** Stops watching: the next board is a new play. */
