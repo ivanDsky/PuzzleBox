@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.SolveRest
+import com.ivandsky.puzzlebox.play.CustomGameViewModel
 import com.ivandsky.puzzlebox.play.GamePageRankViewModel
 import com.ivandsky.puzzlebox.play.GameViewModel
 import com.ivandsky.puzzlebox.play.LibraryViewModel
@@ -25,6 +26,7 @@ import com.ivandsky.puzzlebox.play.ResultViewModel
 import com.ivandsky.puzzlebox.play.SlotOpening
 import com.ivandsky.puzzlebox.play.SlotWriter
 import com.ivandsky.puzzlebox.play.WriteLane
+import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.MatchLegKey
 import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
@@ -91,6 +93,7 @@ val playModule = module {
         )
     }
     viewModel { (key: GameKey) -> GameViewModel(key, get(), get(), get()) }
+    viewModel { (key: CustomGameKey) -> CustomGameViewModel(key, get(), get(), get()) }
     // Same flag-as-parameter rule as the library: a graph without LinkedIn bindings builds the rank row with it off.
     // The app always binds ObserveFriendDay.Binding.
     viewModel { params ->

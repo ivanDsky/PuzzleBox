@@ -17,7 +17,6 @@ import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import org.koin.androidx.compose.koinViewModel
-import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 
 /**
@@ -68,8 +67,8 @@ internal fun GameRoute(
 }
 
 /**
- * A friend's puzzle's board: the store's live play of the key's custom slot under the same
- * play top bar, without a tutorial gate. A friend's puzzle is never a past day.
+ * A friend's puzzle's board: the live play of the key's custom slot under the same play top bar, behind
+ * the daily's tutorial gate when PlayFeel is on ([CustomGameViewModel]). A friend's puzzle is never a past day.
  */
 @Composable
 internal fun GameRoute(
@@ -79,14 +78,14 @@ internal fun GameRoute(
     onSolved: (slot: PlaySlot, timeMs: Long, hintsUsed: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val store = koinInject<PlaySessionStore>()
-    val play = remember(key) { store.open(key) }
+    val viewModel: CustomGameViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
+    val tutorial by viewModel.tutorial.collectAsStateWithLifecycle()
     GameBoard(
-        play = play,
+        play = viewModel.play,
         pastDay = false,
-        tutorial = TutorialGate.Closed,
-        onHowToPlay = null,
-        onTutorialFinished = {},
+        tutorial = tutorial,
+        onHowToPlay = viewModel.howToPlay,
+        onTutorialFinished = viewModel::closeTutorial,
         layout = layout,
         onBack = onBack,
         onSolved = onSolved,
