@@ -39,9 +39,9 @@ private val MinTouch = 48.dp
 private val StepSize = 24.dp
 
 private val Steps = listOf(
-    "The timer counts down to past you's time.",
+    "The timer counts down to past you’s time.",
     "Hints count against you.",
-    "Past you's time stays hidden until the results.",
+    "Past you’s time stays hidden until the results.",
 )
 
 /**
@@ -126,7 +126,7 @@ private fun Callout(done: Boolean) {
         )
         if (done) {
             Text(
-                text = "You played this one. Past you's time shows in the results.",
+                text = "You played this one. Past you’s time shows in the results.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -153,7 +153,7 @@ private fun CalloutStep(number: Int, text: String) {
 @Composable
 private fun SelfFooter(content: LegsContent) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg),
+        modifier = Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {

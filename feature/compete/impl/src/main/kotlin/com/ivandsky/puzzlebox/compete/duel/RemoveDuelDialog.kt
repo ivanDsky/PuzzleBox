@@ -4,8 +4,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AppDialog
 import com.ivandsky.puzzlebox.designsystem.AppTextButton
 import com.ivandsky.puzzlebox.designsystem.DialogCard
+import com.ivandsky.puzzlebox.designsystem.LocalPrimaryText
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -53,7 +54,7 @@ private fun RemoveDuelActions(onRemove: () -> Unit, onKeep: () -> Unit) {
         AppTextButton(
             text = "Keep",
             onClick = onKeep,
-            modifier = Modifier.border(KeepBorder, MaterialTheme.colorScheme.primary, CircleShape).testTag("duel.remove.keep"),
+            modifier = Modifier.border(KeepBorder, LocalPrimaryText.current, CircleShape).testTag("duel.remove.keep"),
         )
         PrimaryButton(text = "Remove", onClick = onRemove, destructive = true, modifier = Modifier.testTag("duel.remove.confirm"))
     }

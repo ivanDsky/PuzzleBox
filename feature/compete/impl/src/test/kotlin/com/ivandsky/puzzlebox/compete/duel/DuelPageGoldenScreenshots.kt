@@ -36,6 +36,11 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.domain.LegSeen
 import com.ivandsky.puzzlebox.domain.MatchView
 import com.ivandsky.puzzlebox.domain.Outcome
+import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.GamePlugin
+import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.RankOrder
+import com.ivandsky.puzzlebox.game.ScoreModel
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
@@ -86,7 +91,7 @@ abstract class DuelPageGoldenScreenshots(private val device: String, private val
         startKoin {
             modules(
                 module {
-                    single { TestGames.registry(listOf(ZIP, SUDOKU, STRANDS)) }
+                    single { GameRegistry(listOf(TestGames.plugin(ZIP), TestGames.plugin(SUDOKU), hintsFirst(STRANDS))) }
                     single { goldenBrandsOf(ZIP to AccentSlot.Blue, SUDOKU to AccentSlot.Teal, STRANDS to AccentSlot.Pink) }
                 },
             )
@@ -95,6 +100,25 @@ abstract class DuelPageGoldenScreenshots(private val device: String, private val
 
     @After
     fun stopKoinAgain() = stopKoin()
+
+    /** [TestGames.plugin] for [game] ranking hints first, the rule the real Strands has. */
+    private fun hintsFirst(game: GameId): GamePlugin<*, *, *> {
+        val base = TestGames.plugin(game)
+        return GamePlugin(
+            definition = base.definition,
+            rules = base.rules,
+            session = base.session,
+            score = object : ScoreModel<TestGames.Session> {
+                override fun completion(session: TestGames.Session): CompletionRecord? = null
+                override val rankOrder: RankOrder = RankOrder.HintsThenTime
+            },
+            stateOf = base.stateOf,
+            initialSession = base.initialSession,
+            refOf = base.refOf,
+            playAgainSession = base.playAgainSession,
+            rendererModel = base.rendererModel,
+        )
+    }
 
     @Test fun `your move light`() = page("duel-page-your-move", doneLegs = setOf(0), dark = false)
     @Test fun `your move dark`() = page("duel-page-your-move", doneLegs = setOf(0), dark = true)

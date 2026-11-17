@@ -74,6 +74,23 @@ class ObserveDuelTest {
     )
 
     @Test
+    fun firstSolvedAtIsTheViewersOwnFirstSolveDateOfEachSolvedPuzzleOnly() = runTest {
+        annChallenges(viewer = bob)
+        val first = Instant.parse("2026-09-14T09:00:00Z")
+        completions.setRecords(
+            listOf(
+                solved(TestGames.alpha, number = 1).copy(firstCompletedAt = first),
+                solved(TestGames.alpha, number = 7).copy(firstCompletedAt = now),
+            ),
+        )
+
+        observeDuel(code).test {
+            assertEquals(mapOf("alpha/$date/1" to first), awaitItem().firstSolvedAt)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun theMatchStateIsCarriedAsObserved() = runTest {
         viewAs(bob)
 
