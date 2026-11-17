@@ -131,6 +131,7 @@ private fun ColumnScope.HeroPage(
     val insights by viewModel.heroInsights.collectAsStateWithLifecycle()
     val rank by viewModel.heroRank.collectAsStateWithLifecycle()
     val linkedInPost by viewModel.linkedInPost.collectAsStateWithLifecycle()
+    val postTimeMs by viewModel.linkedInPostTimeMs.collectAsStateWithLifecycle()
     val chip = if (state.practice || viewModel.playAgain) {
         null
     } else {
@@ -179,7 +180,7 @@ private fun ColumnScope.HeroPage(
             { columnGap ->
                 ResultBelowCardRows(
                     post = linkedInPost,
-                    time = formatDuration(key.timeMs),
+                    time = postTimeMs?.let(::formatDuration),
                     onPost = viewModel::postToLinkedIn,
                     pending = primary == null,
                     columnGap = columnGap,
