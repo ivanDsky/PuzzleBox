@@ -6,8 +6,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
 import com.ivandsky.puzzlebox.gameui.BoardGrid
+import com.ivandsky.puzzlebox.gameui.hidden.GivensBoard
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
 import com.ivandsky.puzzlebox.gameui.replay.ReplayHintBadge
@@ -26,6 +28,9 @@ import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
  */
 internal object ZipReplayBoard : GameReplayBoard {
     override val pieces: String get() = "cells"
+
+    override fun givens(puzzle: Puzzle): GivensBoard? =
+        zipGivensSession(puzzle)?.let { GivensBoard.of(it.puzzle.board.n, it.puzzle.board.n, this, it) }
 
     @Composable
     override fun Board(frame: ReplayFrame, options: ReplayBoardOptions, modifier: Modifier) {

@@ -11,8 +11,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
 import com.ivandsky.puzzlebox.game.replay.ReplayMove
+import com.ivandsky.puzzlebox.gameui.hidden.GivensBoard
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
 import com.ivandsky.puzzlebox.gameui.replay.rememberStepsForward
@@ -50,6 +52,8 @@ internal object StrandsReplayBoard : GameReplayBoard {
 
     /** A Strands replay can show no error, so Show errors is hidden on the replay pages. */
     override val hasErrors: Boolean = false
+
+    override fun givens(puzzle: Puzzle): GivensBoard? = strandsGivensState(puzzle)?.let(::strandsGivensBoard)
 
     @Composable
     override fun Board(frame: ReplayFrame, options: ReplayBoardOptions, modifier: Modifier) {

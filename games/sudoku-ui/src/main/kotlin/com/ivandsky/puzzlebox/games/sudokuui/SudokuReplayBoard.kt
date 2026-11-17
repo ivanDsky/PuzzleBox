@@ -10,7 +10,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
+import com.ivandsky.puzzlebox.gameui.hidden.GivensBoard
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
 import com.ivandsky.puzzlebox.gameui.replay.rememberStepsForward
@@ -25,6 +27,9 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuSession
  */
 internal object SudokuReplayBoard : GameReplayBoard {
     override val pieces: String get() = "digits"
+
+    override fun givens(puzzle: Puzzle): GivensBoard? =
+        sudokuGivensSession(puzzle)?.let { GivensBoard.of(it.puzzle.geometry.size, it.puzzle.geometry.size, this, it) }
 
     @Composable
     override fun Board(frame: ReplayFrame, options: ReplayBoardOptions, modifier: Modifier) {
