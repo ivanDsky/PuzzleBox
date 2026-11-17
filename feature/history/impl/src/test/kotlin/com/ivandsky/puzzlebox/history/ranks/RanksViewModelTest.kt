@@ -221,7 +221,7 @@ class RanksViewModelTest {
         h.completions.setRecords(listOf(HistoryTestSupport.record(today)))
         val viewModel = h.viewModel()
 
-        val overall = viewModel.uiState.first { it.stats != null }
+        val overall = viewModel.uiState.first { it.calendar.daysWithRows.isNotEmpty() }
         viewModel.select { it.pickBoard(RanksBoard.Game(ZIP)) }
         val zip = viewModel.uiState.first { it.yourSolve != null }
         viewModel.select { it.pickBoard(RanksBoard.Game(TANGO)) }
@@ -230,6 +230,24 @@ class RanksViewModelTest {
         assertNull(overall.yourSolve)
         assertEquals(ZIP, zip.yourSolve?.row?.gameId)
         assertNull(tango.yourSolve)
+    }
+
+    @Test
+    fun `a game's stats count only that game's solves, and Overall shows none`() = runTest {
+        val h = hub()
+        h.daily.setHistory(ZIP, listOf(HistoryTestSupport.entry(today)))
+        h.daily.setHistory(TANGO, listOf(HistoryTestSupport.tangoEntry(today)))
+        h.completions.setRecords(listOf(HistoryTestSupport.record(today, timeMs = 95_000), HistoryTestSupport.tangoRecord(today, timeMs = 61_000)))
+        val viewModel = h.viewModel()
+
+        viewModel.select { it.pickBoard(RanksBoard.Game(ZIP)) }
+        val zip = viewModel.uiState.first { it.board.title.startsWith("Zip") && it.stats != null }
+        viewModel.select { it.pickBoard(RanksBoard.Overall) }
+        val overall = viewModel.uiState.first { it.board.title.startsWith("Overall") }
+
+        assertEquals(95_000L, zip.stats?.best?.timeMs)
+        assertEquals(1, zip.stats?.solved)
+        assertNull(overall.stats)
     }
 
     private val yesterday = today.minusDays(1)
@@ -279,7 +297,7 @@ class RanksViewModelTest {
         val viewModel = h.viewModel()
         viewModel.selectDay(yesterday)
 
-        assertNull(viewModel.uiState.first { it.calendar.selectedDay == yesterday && it.stats != null }.playThisDay)
+        assertNull(viewModel.uiState.first { it.calendar.selectedDay == yesterday }.playThisDay)
     }
 
     @Test
