@@ -182,6 +182,9 @@ abstract class ResultHeroGoldenScreenshots(private val device: String) {
             insights = insights(BestScore(timeMs, hints), earlier, order, streak, weekdayEarlier, freezes, moment),
             rank = rank,
             primary = primary,
+            moments = emptyList(),
+            challenge = null,
+            samePuzzle = null,
         )
 
         val DEFAULT = facts()

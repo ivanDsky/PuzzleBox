@@ -351,21 +351,6 @@ class ResultViewModelTest {
     }
 
     @Test
-    fun `Next skips a registered game the store cannot play`() {
-        // beta has a plugin but no play UI: the hub never lists it, so Next must not name it.
-        val three = FakeGames(listOf(alpha, beta, gamma))
-        val playable = GamePlayRegistry(listOf(three[alpha], three[gamma]))
-        val vm = vm(games = three.games, ui = playable, store = store(three.games, playable)).observed()
-        assertEquals(ResultPrimaryAction.Next(gamma, three.games.displayName(gamma)), vm.primary.value)
-    }
-
-    @Test
-    fun `a past day's result offers done, never next`() {
-        val vm = vm(key.copy(day = day.minusDays(1).toString())).observed()
-        assertEquals(ResultPrimaryAction.Done, vm.primary.value)
-    }
-
-    @Test
     fun `a play again is a past day's result`() {
         assertFalse(vm().playAgain)
         assertTrue(vm(key.copy(day = day.minusDays(1).toString())).playAgain)
@@ -645,10 +630,9 @@ class ResultViewModelTest {
     private val matches = FakeMatchRepository().apply { signedInUid = ME.uid }
     private val visibility = FakeVisibilityRepository()
     private var nextThingsBuilt = 0
-    private val momentsOn = FakeReleaseFlags(ReleaseFlag.ResultMoments)
     private val ann = ResultPrimaryAction.ChallengeFriend("ann", "ann")
 
-    /** The real next-thing use case over this test's fakes, signed in as [ME]; counted, since only the flag may ask for it. */
+    /** The real next-thing use case over this test's fakes, signed in as [ME]; counted, since a past day's result must never ask for it. */
     private fun nextThing(games: GameRegistry): ObserveResultNextThing {
         nextThingsBuilt++
         val identity = FakeIdentityService(initial = ME)
@@ -687,11 +671,11 @@ class ResultViewModelTest {
     }
 
     @Test
-    fun `with moments on a hint-free best with a duel-tier friend above shows the moments, Challenge as primary and the Challenge row's friend`() {
+    fun `a hint-free best with a duel-tier friend above shows the moments, Challenge as primary and the Challenge row's friend`() {
         slowerBestAndAnnAhead(betaSolved = true)
         solveLive()
 
-        val vm = vm(flags = momentsOn).observed()
+        val vm = vm().observed()
 
         assertEquals(listOf(Moment.PersonalBest, Moment.FullSetDone), vm.nextFacts.value.moments)
         assertEquals(ann, vm.primary.value)
@@ -699,23 +683,11 @@ class ResultViewModelTest {
     }
 
     @Test
-    fun `with moments off the same solve shows today's primary, no moments and no challenge, and the next thing is never asked for`() {
-        slowerBestAndAnnAhead(betaSolved = true)
-        solveLive()
-
-        val vm = vm(flags = FakeReleaseFlags()).observed()
-
-        assertEquals(ResultPrimaryAction.AllDone, vm.primary.value)
-        assertEquals(ResultNextFacts(), vm.nextFacts.value)
-        assertEquals(0, nextThingsBuilt)
-    }
-
-    @Test
-    fun `with moments on the next daily stays the primary and the friend is offered beside it`() {
+    fun `the next daily stays the primary and the friend is offered beside it`() {
         slowerBestAndAnnAhead(betaSolved = false)
         solveLive()
 
-        val vm = vm(flags = momentsOn).observed()
+        val vm = vm().observed()
 
         assertEquals(ResultPrimaryAction.Next(beta, fakes.games.displayName(beta)), vm.primary.value)
         assertEquals(ann, vm.nextFacts.value.challenge)
@@ -723,21 +695,21 @@ class ResultViewModelTest {
     }
 
     @Test
-    fun `with moments on a result with no live play claims no personal best and still gets its next thing`() {
+    fun `a result with no live play claims no personal best and still gets its next thing`() {
         slowerBestAndAnnAhead(betaSolved = true)
 
-        val vm = vm(flags = momentsOn).observed()
+        val vm = vm().observed()
 
         assertEquals(listOf(Moment.FullSetDone), vm.nextFacts.value.moments)
         assertEquals(ann, vm.primary.value)
     }
 
     @Test
-    fun `with moments on the next thing waits for the record write, so a best still being written is celebrated`() {
+    fun `the next thing waits for the record write, so a best still being written is celebrated`() {
         slowerBestAndAnnAhead(betaSolved = true)
         val write = CompletableDeferred<Unit>().also { completions.writeGate = it }
         solveLive()
-        val vm = vm(flags = momentsOn).observed()
+        val vm = vm().observed()
         assertEquals(ResultNextFacts(), vm.nextFacts.value)
 
         write.complete(Unit)
@@ -747,10 +719,10 @@ class ResultViewModelTest {
     }
 
     @Test
-    fun `with moments on a play again still offers Done and earns nothing`() {
+    fun `a play again still offers Done and earns nothing`() {
         slowerBestAndAnnAhead(betaSolved = true)
 
-        val vm = vm(key.copy(day = day.minusDays(1).toString()), flags = momentsOn).observed()
+        val vm = vm(key.copy(day = day.minusDays(1).toString())).observed()
 
         assertEquals(ResultPrimaryAction.Done, vm.primary.value)
         assertEquals(ResultNextFacts(), vm.nextFacts.value)
@@ -758,27 +730,27 @@ class ResultViewModelTest {
     }
 
     @Test
-    fun `with moments on a practice puzzle keeps today's next unsolved game and earns nothing`() {
+    fun `a practice puzzle keeps today's next unsolved game and earns nothing`() {
         slowerBestAndAnnAhead(betaSolved = false)
         daily.setHistory(alpha, listOf(DailyEntry(alpha, day, null, "alpha/v1", 0L)))
         solveLive()
 
-        val vm = vm(flags = momentsOn).observed()
+        val vm = vm().observed()
 
         assertEquals(ResultPrimaryAction.Next(beta, fakes.games.displayName(beta)), vm.primary.value)
         assertEquals(ResultNextFacts(primary = vm.primary.value), vm.nextFacts.value)
     }
 
-    // --- a past day's Next (Result moments) -------------------------------------------------
+    // --- a past day's Next  -------------------------------------------------
 
     /** [alpha]'s archive opens 30 days back; today is [day], so yesterday is the last day Next may offer. */
     private fun archiveOpen() = daily.setArchiveRange(alpha, day.minusDays(30)..day)
 
     /** A result of the day [daysAgo] back, whose puzzle the player has fetched (the history row Result reads its edition from). */
-    private fun pastResult(daysAgo: Long, flags: ReleaseFlags? = momentsOn): ResultViewModel {
+    private fun pastResult(daysAgo: Long): ResultViewModel {
         val past = day.minusDays(daysAgo)
         daily.setHistory(alpha, listOf(DailyEntry(alpha, day, 7, "alpha/v1", 0L), DailyEntry(alpha, past, 7, "alpha/v1", 0L)))
-        return vm(key.copy(day = day.minusDays(daysAgo).toString()), flags = flags).observed()
+        return vm(key.copy(day = day.minusDays(daysAgo).toString())).observed()
     }
 
     private fun nextDay(daysAgo: Long) =
@@ -833,11 +805,16 @@ class ResultViewModelTest {
     }
 
     @Test
-    fun `a game with no archive keeps Done, and the moments off keep it too`() {
+    fun `a game with no archive keeps Done`() {
         assertEquals(ResultPrimaryAction.Done, pastResult(3).primary.value)
+    }
 
+    @Test
+    fun `a past day's result never asks for the next thing`() {
         archiveOpen()
-        assertEquals(ResultPrimaryAction.Done, pastResult(3, flags = null).primary.value)
+        pastResult(3)
+
+        assertEquals(0, nextThingsBuilt)
     }
 
     @Test
@@ -846,10 +823,10 @@ class ResultViewModelTest {
         slowerBestAndAnnAhead(betaSolved = false)
         solveLive()
 
-        assertEquals(ResultPrimaryAction.Next(beta, fakes.games.displayName(beta)), vm(flags = momentsOn).observed().primary.value)
+        assertEquals(ResultPrimaryAction.Next(beta, fakes.games.displayName(beta)), vm().observed().primary.value)
     }
 
-    // --- the same puzzle's earlier solves (Result moments) ---------------------------------
+    // --- the same puzzle's earlier solves  ---------------------------------
 
     private fun solve(time: Long, hints: Int = 0, source: CompletionSource = CompletionSource.App, date: LocalDate = day) =
         CompletionRecord(TestGames.Ref(alpha, PuzzleKey.Daily(date, 7)), time, hints, RecordStats(1, "{}"), source = source)
@@ -865,7 +842,7 @@ class ResultViewModelTest {
 
         assertEquals(
             SamePuzzleSolves(BestScore(linkedIn, 0), previousFromLinkedIn = true, best = BestScore(linkedIn, 0)),
-            samePuzzle(vm(flags = momentsOn)),
+            samePuzzle(vm()),
         )
     }
 
@@ -878,7 +855,7 @@ class ResultViewModelTest {
 
         assertEquals(
             SamePuzzleSolves(BestScore(app, 0), previousFromLinkedIn = false, best = BestScore(linkedIn, 0)),
-            samePuzzle(vm(flags = momentsOn)),
+            samePuzzle(vm()),
         )
     }
 
@@ -887,14 +864,14 @@ class ResultViewModelTest {
         completions.setRecords(listOf(solve(FakeController.TIME_MS + 12_000, date = day.minusDays(1))))
         solveLive()
 
-        assertEquals(SamePuzzleSolves.None, samePuzzle(vm(flags = momentsOn)))
+        assertEquals(SamePuzzleSolves.None, samePuzzle(vm()))
     }
 
     @Test
     fun `the solve just recorded is not its own previous solve`() {
         solveLive()
 
-        assertEquals(SamePuzzleSolves.None, samePuzzle(vm(flags = momentsOn)))
+        assertEquals(SamePuzzleSolves.None, samePuzzle(vm()))
     }
 
     @Test
@@ -902,7 +879,7 @@ class ResultViewModelTest {
         val before = FakeController.TIME_MS + 12_000
         completions.setRecords(listOf(solve(before), solve(FakeController.TIME_MS)))
 
-        assertEquals(SamePuzzleSolves(BestScore(before, 0), best = BestScore(before, 0)), samePuzzle(vm(flags = momentsOn)))
+        assertEquals(SamePuzzleSolves(BestScore(before, 0), best = BestScore(before, 0)), samePuzzle(vm()))
     }
 
     @Test
@@ -910,7 +887,7 @@ class ResultViewModelTest {
         completions.setRecords(listOf(solve(FakeController.TIME_MS)))
         completions.writeGate = CompletableDeferred()
         solveLive()
-        val vm = vm(flags = momentsOn).observed()
+        val vm = vm().observed()
 
         val expected = SamePuzzleSolves(BestScore(FakeController.TIME_MS, 0), best = BestScore(FakeController.TIME_MS, 0))
         assertEquals(expected, vm.state.value.samePuzzle)
@@ -923,19 +900,10 @@ class ResultViewModelTest {
     @Test
     fun `the earlier solves are unread until the page reads them, then none when there are none`() {
         solveLive()
-        val vm = vm(flags = momentsOn)
+        val vm = vm()
 
         assertEquals(SamePuzzleSolves.Unread, vm.state.value.samePuzzle)
         assertEquals(SamePuzzleSolves.None, vm.observed().state.value.samePuzzle)
-    }
-
-    @Test
-    fun `with Result moments off the result carries no same-puzzle facts and reads no earlier solves`() {
-        completions.setRecords(listOf(solve(FakeController.TIME_MS + 12_000)))
-        solveLive()
-
-        assertNull(samePuzzle(vm(flags = FakeReleaseFlags())))
-        assertNull(samePuzzle(vm(flags = null)))
     }
 
     @Test
@@ -949,7 +917,7 @@ class ResultViewModelTest {
         hintsFirst[alpha].latest.win()
         dispatcher.scheduler.runCurrent()
 
-        val vm = vm(games = hintsFirst.games, ui = hintsFirst.registry, store = hintsStore, flags = momentsOn)
+        val vm = vm(games = hintsFirst.games, ui = hintsFirst.registry, store = hintsStore)
         assertEquals(
             SamePuzzleSolves(BestScore(fewerHints.time, 0), best = BestScore(fewerHints.time, 0)),
             samePuzzle(vm),

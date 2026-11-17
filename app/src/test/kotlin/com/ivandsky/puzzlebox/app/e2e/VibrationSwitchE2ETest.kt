@@ -28,7 +28,7 @@ class VibrationSwitchE2ETest {
     }
 
     private fun winZip(vibration: Boolean, playFeel: Boolean = false) {
-        val graph = if (playFeel) shellGraph(ReleaseFlag.ResultMoments, ReleaseFlag.PlayFeel) else shellGraph(ReleaseFlag.ResultMoments)
+        val graph = if (playFeel) shellGraph(ReleaseFlag.PlayFeel) else shellGraph()
         runBlocking { graph.preferences.setVibration(vibration) }
         shellRobot(tabAt(PlayKey), graph = graph, platformHaptics = recorder) {
             val win = with(DailySolve.Zip) { playToTheLastMove() }

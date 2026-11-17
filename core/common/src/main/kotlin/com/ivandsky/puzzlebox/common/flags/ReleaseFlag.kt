@@ -29,12 +29,6 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     CustomInGames(label = "Custom inside Games, full-screen Studio", releaseDefault = true),
 
     /**
-     * Result moments, celebration and the next-thing chain (nav-rethink L1–L4): every M4 behaviour on Result. Read only in
-     * a ViewModel or a DI module (ADR-0022 §3, ADR-0027 §10).
-     */
-    ResultMoments(label = "Result moments, celebration and next-thing chain", releaseDefault = true),
-
-    /**
      * The readable board look (nav-rethink B3): shared board tokens and geometry for all five games. Read only by the app's
      * root theme, which hands the theme one Boolean (spec A2).
      */

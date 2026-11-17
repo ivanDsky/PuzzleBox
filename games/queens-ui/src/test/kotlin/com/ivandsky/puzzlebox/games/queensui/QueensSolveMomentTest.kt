@@ -27,8 +27,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Nav-rethink 130: with the rest on, Queens' solve moment starts at the solve (the crowns run inside it) and hands off
- * [CelebrationMotion.SolveMomentMs] later; with it off the frame still waits for the queens' lead.
+ * Nav-rethink 130: Queens' solve moment starts at the solve (the crowns run inside it) and hands off
+ * [CelebrationMotion.SolveMomentMs] later. [LocalSolveRestOnBoard] is the play chrome's, which squeezes the crowns' step.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -48,7 +48,7 @@ class QueensSolveMomentTest {
     }
 
     /** The 8×8 daily, one queen short of solved, on the play screen. */
-    private fun oneQueenShort(rest: Boolean, playFeel: Boolean = false): QueensBoardState {
+    private fun oneQueenShort(playFeel: Boolean = false): QueensBoardState {
         val controller = QueensPlayController(
             env = PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {}),
             settings = InMemoryQueensSettings(),
@@ -58,7 +58,7 @@ class QueensSolveMomentTest {
         rule.mainClock.autoAdvance = false
         rule.setContent {
             CompositionLocalProvider(
-                LocalSolveRestOnBoard provides rest,
+                LocalSolveRestOnBoard provides true,
                 LocalPlayFeel provides playFeel,
                 LocalHapticFeedback provides haptics,
             ) {
@@ -99,13 +99,11 @@ class QueensSolveMomentTest {
     private fun confirms() = buzzes.count { it == HapticFeedbackType.Confirm }
 
     @Test
-    fun `with the rest on the moment starts at the solve, not after the queens' lead`() {
-        val board = oneQueenShort(rest = true)
-        val lead = QueensMotion.solveLeadMs(queens = QueensPlayFixtures.solution.size, reducedMotion = false)
+    fun `the moment starts at the solve, with the queens running inside it`() {
+        val board = oneQueenShort()
 
         commit { board.place(QueensPlayFixtures.solution.last()) }
         advance(200)
-        assertEquals("200 ms is well inside the old lead", true, 200 < lead)
         rule.onNodeWithTag("play.solve_rest").assertExists()
         assertEquals("the buzz came with the solve", 1, confirms())
 
@@ -123,26 +121,8 @@ class QueensSolveMomentTest {
     }
 
     @Test
-    fun `flag off, the frame still waits for the queens' lead`() {
-        val board = oneQueenShort(rest = false)
-        val lead = QueensMotion.solveLeadMs(queens = QueensPlayFixtures.solution.size, reducedMotion = false)
-
-        commit { board.place(QueensPlayFixtures.solution.last()) }
-        advance(200)
-        rule.onNodeWithTag("play.solve_rest").assertDoesNotExist()
-        // The lead, then the sweep (480 ms) and the hold (360 ms).
-        advance(lead + 480 + 360 - 50 - 200)
-        assertEquals("the lead, the sweep and the hold are not over", 0, handOffs)
-        advance(200)
-        assertEquals(1, handOffs)
-        advance(3_000)
-        assertEquals(1, handOffs)
-        assertEquals("no rest, no PlayFeel: no buzz", 0, confirms())
-    }
-
-    @Test
     fun `with PlayFeel the solving queen ticks, then the solve confirms once`() {
-        val board = oneQueenShort(rest = false, playFeel = true)
+        val board = oneQueenShort(playFeel = true)
 
         commit { board.place(QueensPlayFixtures.solution.last()) }
         advance(3_000)

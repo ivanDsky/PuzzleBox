@@ -101,6 +101,8 @@ class ResultViewModelSignInTest {
             board = FriendPuzzleBoard(FakeCustomBoardRepository(), identity, oneGoogleAccount("token"), ComputeCustomBoard()),
             completions = completions,
             loadReplay = loadSolveReplay(fakes.games, daily, completions),
+            nextThing = lazy { error("this test never reads the next thing") },
+            daily = daily,
         )
 
         viewModel.signIn(ApplicationProvider.getApplicationContext())

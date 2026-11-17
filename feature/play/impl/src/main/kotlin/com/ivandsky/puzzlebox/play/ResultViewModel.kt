@@ -3,9 +3,7 @@ package com.ivandsky.puzzlebox.play
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
@@ -50,8 +48,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.runningFold
@@ -70,7 +70,7 @@ import kotlinx.coroutines.launch
  * is solved; [rolloverAt] is when the next puzzles land. [replay] is Ready once this solve is stored with a replay,
  * Hidden before (a pending or failed write), or when there is none (A13). [replayLatest] is false when [replay] read the puzzle's record, so Watch replay opens
  * the record rather than the newest solve. [samePuzzle] holds the player's earlier solves
- * of this puzzle (Result moments on); null with the moments off.
+ * of this puzzle, [SamePuzzleSolves.Unread] until they are read.
  */
 data class ResultUiState(
     val verdict: RecordVerdict? = null,
@@ -85,7 +85,7 @@ data class ResultUiState(
     val rolloverAt: Instant? = null,
     val replay: ReplaySectionState = ReplaySectionState.Hidden,
     val replayLatest: Boolean = true,
-    val samePuzzle: SamePuzzleSolves? = null,
+    val samePuzzle: SamePuzzleSolves = SamePuzzleSolves.Unread,
 )
 
 /**
@@ -104,18 +104,17 @@ data class ResultUiState(
  * [primary] (A7, SC10): on today's slot it is Next — [todaySet]'s next unsolved game after
  * this one that the [store] can play — or AllDone when none is left, and null until the set
  * first lands, so the screen never shows a Done that turns into Next. Any other day's
- * result (a play again) offers Done from the first frame. With Result moments on, a past day solved for the first time
- * offers NextDay instead ([ResultArchiveNext], when [daily] is given), null until its history row lands. The read flows run only while the
- * screen is observed (plus a 5 s grace), so a day change is re-read.
+ * result (a play again) offers Done or, for a past day solved for the first time, NextDay instead ([ResultArchiveNext]
+ * over [daily]), null until its history row lands. The read flows run only while the screen is observed (plus a 5 s
+ * grace), so a day change is re-read.
  *
  * [heroInsights], [heroRank] and [playAgain] feed the hero page. A day's result shows the same side card whether
  * it is today's or a play again: the streak, the time spread and the rank.
  *
  * The Watch replay row is [ResultReplayRow]'s; a game with no replay board skips the load.
  *
- * With Result moments on ([releaseFlags]), today's solve asks [nextThing] once for its moments, next thing and
- * Challenge friend ([nextFacts], see [resultNextFacts]) and [primary] is that next thing; off, [nextThing] is never
- * built and everything above holds as written.
+ * Today's solve asks [nextThing] once for its moments, next thing and Challenge friend ([nextFacts], see
+ * [resultNextFacts]) and [primary] is that next thing; a past day's result never builds [nextThing].
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ResultViewModel internal constructor(
@@ -136,8 +135,8 @@ class ResultViewModel internal constructor(
     releaseFlags: ReleaseFlags? = null,
     observePost: ObserveLinkedInPost? = null,
     submitPost: SubmitLinkedInResult? = null,
-    nextThing: Lazy<ObserveResultNextThing>? = null,
-    daily: DailyRepository? = null,
+    nextThing: Lazy<ObserveResultNextThing>,
+    daily: DailyRepository,
 ) : ViewModel() {
     private val slot = PlaySlot.Daily(GameId(key.gameId), LocalDate.parse(key.day))
     private val solve = ActivePlay.Solve(key.timeMs, key.hintsUsed)
@@ -146,7 +145,6 @@ class ResultViewModel internal constructor(
     private val names: Map<GameId, String> = store.playable.toMap()
     private val today: Boolean = calendar.today(slot.gameId) == slot.day
     private val replayRow = ResultReplayRow(completions, loadReplay, solve, live.takeIf { liveHoldsSolve })
-    private val comparing = releaseFlags?.isEnabled(ReleaseFlag.ResultMoments) == true
     private val samePuzzleRows = ResultSamePuzzle(completions, solve, live.takeIf { liveHoldsSolve }, games.rankOrderOf(slot.gameId))
 
     val brand: GameBrand = ui.brandOf(slot.gameId)
@@ -157,7 +155,6 @@ class ResultViewModel internal constructor(
     /** This solve's record facts, folded eagerly so a later play again never erases them. */
     private val record: StateFlow<ResultUiState> = ResultUiState(
         game = games.displayName(slot.gameId),
-        samePuzzle = SamePuzzleSolves.Unread.takeIf { comparing },
     ).let { blank ->
         if (live != null) {
             val first = resultOf(blank, live.record.value)
@@ -181,9 +178,9 @@ class ResultViewModel internal constructor(
     private val replay: Flow<ResultReplay> = refOfDay
         .flatMapLatest { ref -> if (ref == null || playUi?.replayBoard == null) flowOf(ResultReplay(ReplaySectionState.Hidden)) else replayRow.of(ref) }
 
-    /** With Result moments on, the player's earlier solves of this puzzle; None for a practice puzzle, null with the moments off. */
-    private val samePuzzle: Flow<SamePuzzleSolves?> =
-        if (!comparing) flowOf(null) else refOfDay.flatMapLatest { ref -> ref?.let(samePuzzleRows::of) ?: flowOf(SamePuzzleSolves.None) }
+    /** The player's earlier solves of this puzzle; None for a practice puzzle. */
+    private val samePuzzle: Flow<SamePuzzleSolves> =
+        refOfDay.flatMapLatest { ref -> ref?.let(samePuzzleRows::of) ?: flowOf(SamePuzzleSolves.None) }
 
     val state: StateFlow<ResultUiState> = combine(
         record,
@@ -205,34 +202,31 @@ class ResultViewModel internal constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), record.value)
 
-    /** Today's rule without the moments: the next unsolved game the store can play, or AllDone. */
+    /** A practice puzzle's next step: the next unsolved game the store can play, or AllDone. */
     private val nextUnsolved: Flow<ResultPrimaryAction> = playableToday.map { set ->
         set.nextUnsolved(after = slot.gameId)
             ?.let { next -> ResultPrimaryAction.Next(next, set.first { it.game == next }.displayName) }
             ?: ResultPrimaryAction.AllDone
     }
 
-    /** Null unless Result moments are on and this is today's solve: then nothing of the next thing is built or read. */
-    private val moments: Flow<ResultNextFacts>? =
-        nextThing?.takeIf { today && releaseFlags?.isEnabled(ReleaseFlag.ResultMoments) == true }?.let { observe ->
-            resultNextFacts(observe.value, slot, solve, live.takeIf { liveHoldsSolve }, dayRow, nextUnsolved, games::displayName)
-        }
+    /** Today's solve only: its moments, next thing and Challenge friend, asked once, and [nextThing] is built only when the page first observes it. A past day never builds it. */
+    private val moments: Flow<ResultNextFacts>? = if (today) {
+        flow { emitAll(resultNextFacts(nextThing.value, slot, solve, live.takeIf { liveHoldsSolve }, dayRow, nextUnsolved, games::displayName)) }
+    } else {
+        null
+    }
 
-    /** The moment card, the next thing and the Challenge row's friend; empty for good with the moments off. */
+    /** The moment card, the next thing and the Challenge row's friend; empty for a past day's result. */
     internal val nextFacts: StateFlow<ResultNextFacts> =
         moments?.stateIn(viewModelScope, SharingStarted.Lazily, ResultNextFacts()) ?: MutableStateFlow(ResultNextFacts())
 
-    /** A past day's first solve with the moments on: the same game on its next unsolved day, else Done; null until the day's row lands. */
-    private val archiveNext: Flow<ResultPrimaryAction>? = daily?.takeIf { !today && comparing }?.let { archive ->
-        val next = ResultArchiveNext(archive, completions, calendar, samePuzzleRows, slot, games.displayName(slot.gameId))
+    val primary: StateFlow<ResultPrimaryAction?> = if (moments != null) {
+        nextFacts.map { it.primary }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
+    } else {
+        // A past day's first solve offers the same game on its next unsolved day, else Done; null until the day's row lands.
+        val next = ResultArchiveNext(daily, completions, calendar, samePuzzleRows, slot, games.displayName(slot.gameId))
         refOfDay.filterNotNull().flatMapLatest(next::of).distinctUntilChanged()
-    }
-
-    val primary: StateFlow<ResultPrimaryAction?> = when {
-        archiveNext != null -> archiveNext.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
-        !today -> MutableStateFlow(ResultPrimaryAction.Done)
-        moments != null -> nextFacts.map { it.primary }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
-        else -> nextUnsolved.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
     }
 
     /** True for a past day's result: a play again counts nothing. */

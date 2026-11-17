@@ -180,7 +180,7 @@ class ZipPlayUiScreenTest {
         composeRule.onNodeWithTag("play.board").assertExists()
     }
 
-    /** A14: the solve moment plays first (sweep, then the glyph stamp), then hands off once. */
+    /** A14: the solve moment plays first (the board rests under its tap layer for 1.7 s), then hands off once. */
     @Test
     fun `solving plays the solve moment before the hand off`() {
         val controller = readyController()
@@ -188,9 +188,10 @@ class ZipPlayUiScreenTest {
         // Idle doesn't wait out the moment's delays: the board is solved, the hand-off pending.
         composeRule.waitForIdle()
         check(solvedFacts == null) { "handed off before the solve moment played" }
+        composeRule.onNodeWithTag("play.solve_rest").assertExists()
 
         playSolveMoment()
-        composeRule.onNodeWithTag("play.solve_stamp").assertExists()
+        composeRule.onNodeWithTag("play.solve_rest").assertDoesNotExist()
         check(solvedFacts != null) { "the solve moment never handed off" }
     }
 

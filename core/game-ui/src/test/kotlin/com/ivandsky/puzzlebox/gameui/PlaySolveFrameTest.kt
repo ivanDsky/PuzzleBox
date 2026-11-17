@@ -17,7 +17,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.CelebrationMotion
-import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import java.time.Instant
 import org.junit.After
@@ -30,7 +29,7 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** A6: the solve moment plays once per solve, before the hand-off; reduced motion shows only the outline. */
+/** A6: the solve moment plays once per solve, before the hand-off, and rests the board for [CelebrationMotion.SolveMomentMs]. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34])
@@ -58,11 +57,10 @@ class PlaySolveFrameTest {
         Settings.Global.putFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, scale)
     }
 
-    private fun setFrame(rest: Boolean = false, playFeel: Boolean = false) {
+    private fun setFrame(playFeel: Boolean = false) {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
             CompositionLocalProvider(
-                LocalSolveRestOnBoard provides rest,
                 LocalPlayFeel provides playFeel,
                 LocalHapticFeedback provides haptics,
             ) {
@@ -82,66 +80,12 @@ class PlaySolveFrameTest {
         Snapshot.sendApplyNotifications()
     }
 
-    @Test
-    fun `a solve plays the moment once, then hands off`() {
-        setFrame()
-        composeRule.onNodeWithTag("play.solve_stamp").assertDoesNotExist()
-
-        solve(Instant.ofEpochSecond(1))
-        composeRule.mainClock.advanceTimeBy(16)
-        assertEquals("the hand-off waits for the moment", 0, handOffs)
-
-        composeRule.mainClock.advanceTimeBy(5_000)
-        composeRule.onNodeWithTag("play.solve_stamp").assertExists()
-        assertEquals(1, handOffs)
-
-        composeRule.mainClock.advanceTimeBy(5_000)
-        assertEquals("one solve, one hand-off", 1, handOffs)
-
-        // Play again: a fresh board, then a new solve plays its own moment.
-        solve(null)
-        composeRule.mainClock.advanceTimeBy(16)
-        composeRule.mainClock.advanceTimeBy(5_000)
-        composeRule.onNodeWithTag("play.solve_stamp").assertDoesNotExist()
-        solve(Instant.ofEpochSecond(2))
-        composeRule.mainClock.advanceTimeBy(5_000)
-        assertEquals(2, handOffs)
-    }
 
     @Test
-    fun `a board already solved when it first draws hands off at once`() {
-        solved = Instant.ofEpochSecond(1)
+    fun `a solve rests the board for the solve moment with no stamp, then hands off once`() {
         setFrame()
-        assertEquals(1, handOffs)
-        composeRule.onNodeWithTag("play.solve_stamp").assertDoesNotExist()
-    }
-
-    @Test
-    fun `reduced motion shows only the outline, then hands off`() {
-        setAnimatorScale(0f)
-        setFrame()
-
-        solve(Instant.ofEpochSecond(1))
-        composeRule.mainClock.advanceTimeBy(5_000)
-        composeRule.onNodeWithTag("play.solve_stamp").assertDoesNotExist()
-        assertEquals(1, handOffs)
-    }
-
-    @Test
-    fun `flag off, the hand-off comes after the sweep, the stamp and its 360 ms hold`() {
-        setFrame()
-        solve(Instant.ofEpochSecond(1))
-        composeRule.mainClock.advanceTimeBy(MotionTokens.SweepDuration + 300L)
-        assertEquals("the old hold is not over", 0, handOffs)
-
-        composeRule.mainClock.advanceTimeBy(100)
-        assertEquals(1, handOffs)
         composeRule.onNodeWithTag("play.solve_rest").assertDoesNotExist()
-    }
 
-    @Test
-    fun `with the rest on the solved board stays for the solve moment, with no stamp, then hands off once`() {
-        setFrame(rest = true)
         solve(Instant.ofEpochSecond(1))
         composeRule.mainClock.advanceTimeBy(CelebrationMotion.SolveMomentMs - 100)
         assertEquals("still resting", 0, handOffs)
@@ -154,11 +98,26 @@ class PlaySolveFrameTest {
 
         composeRule.mainClock.advanceTimeBy(5_000)
         assertEquals("one solve, one hand-off", 1, handOffs)
+
+        // Play again: a fresh board, then a new solve plays its own moment.
+        solve(null)
+        composeRule.mainClock.advanceTimeBy(5_000)
+        solve(Instant.ofEpochSecond(2))
+        composeRule.mainClock.advanceTimeBy(5_000)
+        assertEquals(2, handOffs)
+    }
+
+    @Test
+    fun `a board already solved when it first draws hands off at once`() {
+        solved = Instant.ofEpochSecond(1)
+        setFrame()
+        assertEquals(1, handOffs)
+        composeRule.onNodeWithTag("play.solve_rest").assertDoesNotExist()
     }
 
     @Test
     fun `a tap on the board during the rest hands off at once, once`() {
-        setFrame(rest = true)
+        setFrame()
         solve(Instant.ofEpochSecond(1))
         composeRule.mainClock.advanceTimeBy(600)
         composeRule.onNodeWithTag("play.solve_rest").performClick()
@@ -170,9 +129,9 @@ class PlaySolveFrameTest {
     }
 
     @Test
-    fun `reduced motion with the rest keeps the outline and the same rest, with no stamp`() {
+    fun `reduced motion keeps the outline and the same rest, with no stamp`() {
         setAnimatorScale(0f)
-        setFrame(rest = true)
+        setFrame()
         solve(Instant.ofEpochSecond(1))
         composeRule.mainClock.advanceTimeBy(CelebrationMotion.SolveMomentMs - 100)
         assertEquals("the rest is a pause, so reduced motion keeps it", 0, handOffs)
@@ -183,16 +142,8 @@ class PlaySolveFrameTest {
     }
 
     @Test
-    fun `a restored solved board hands off at once even with the rest on`() {
-        solved = Instant.ofEpochSecond(1)
-        setFrame(rest = true)
-        assertEquals(1, handOffs)
-        composeRule.onNodeWithTag("play.solve_rest").assertDoesNotExist()
-    }
-
-    @Test
-    fun `with the rest on the success buzz comes once as the solve moment starts`() {
-        setFrame(rest = true)
+    fun `the success buzz comes once as the solve moment starts`() {
+        setFrame()
         solve(Instant.ofEpochSecond(1))
         composeRule.mainClock.advanceTimeBy(100)
         assertEquals("at the sweep start, not at the hand-off", listOf(HapticFeedbackType.Confirm), buzzes)
@@ -205,7 +156,7 @@ class PlaySolveFrameTest {
     @Test
     fun `reduced motion keeps the success buzz`() {
         setAnimatorScale(0f)
-        setFrame(rest = true)
+        setFrame()
         solve(Instant.ofEpochSecond(1))
         composeRule.mainClock.advanceTimeBy(100)
         assertEquals(listOf(HapticFeedbackType.Confirm), buzzes)
@@ -214,41 +165,14 @@ class PlaySolveFrameTest {
     @Test
     fun `a restored solved board does not buzz`() {
         solved = Instant.ofEpochSecond(1)
-        setFrame(rest = true)
-        composeRule.mainClock.advanceTimeBy(5_000)
-        assertEquals(emptyList<HapticFeedbackType>(), buzzes)
-    }
-
-    @Test
-    fun `flag off the frame does not buzz`() {
         setFrame()
-        solve(Instant.ofEpochSecond(1))
         composeRule.mainClock.advanceTimeBy(5_000)
         assertEquals(emptyList<HapticFeedbackType>(), buzzes)
     }
 
     @Test
-    fun `with PlayFeel on and the rest off the solve confirms once and does not rest`() {
+    fun `with PlayFeel on the solve confirms once`() {
         setFrame(playFeel = true)
-        solve(Instant.ofEpochSecond(1))
-        composeRule.mainClock.advanceTimeBy(100)
-        assertEquals("as the solve moment starts", listOf(HapticFeedbackType.Confirm), buzzes)
-        composeRule.onNodeWithTag("play.solve_rest").assertDoesNotExist()
-
-        // The hand-off keeps the flag-off timing: the sweep, the stamp and its 360 ms hold.
-        composeRule.mainClock.advanceTimeBy(MotionTokens.SweepDuration + 200L)
-        assertEquals("the old hold is not over", 0, handOffs)
-        composeRule.mainClock.advanceTimeBy(100)
-        assertEquals(1, handOffs)
-        composeRule.onNodeWithTag("play.solve_stamp").assertExists()
-
-        composeRule.mainClock.advanceTimeBy(5_000)
-        assertEquals("once, not again at the hand-off", 1, buzzes.size)
-    }
-
-    @Test
-    fun `with PlayFeel on and the rest on the solve confirms once`() {
-        setFrame(rest = true, playFeel = true)
         solve(Instant.ofEpochSecond(1))
         composeRule.mainClock.advanceTimeBy(5_000)
         assertEquals(listOf(HapticFeedbackType.Confirm), buzzes)

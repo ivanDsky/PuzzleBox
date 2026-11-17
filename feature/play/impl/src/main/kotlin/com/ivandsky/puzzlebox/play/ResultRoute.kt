@@ -53,7 +53,7 @@ import org.koin.core.parameter.parametersOf
  * The hero's chip is a rank chip ("#12 of 340") that calls [onOpenRanks] with the game and
  * the result's day, shown once the rank is known.
  *
- * With Result moments on, the view model's [ResultViewModel.nextFacts] add the moment card and the Challenge row, and
+ * The view model's [ResultViewModel.nextFacts] add the moment card and the Challenge row, and
  * the primary may be any next thing: Challenge (the row too) hands [onChallenge] the friend and this game, a missed
  * day hands [onOpenDay] its game and day, and a friend's or a community puzzle hands [onOpenPuzzle] its code.
  */

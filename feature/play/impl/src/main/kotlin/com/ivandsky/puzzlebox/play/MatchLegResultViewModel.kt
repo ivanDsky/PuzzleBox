@@ -204,6 +204,9 @@ internal class MatchLegResultViewModel(
         insights = null,
         rank = ResultRank.Hidden,
         primary = null,
+        moments = emptyList(),
+        challenge = null,
+        samePuzzle = null,
     )
 
     /** The first puzzle without a result of mine; played and given-up ones are taken, and so is this one. */

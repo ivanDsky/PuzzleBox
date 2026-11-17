@@ -5,12 +5,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalHapticFeedback
 
 /**
- * The rest of this composition's board, on or off by [LocalSolveRestOnBoard]; with [LocalPlayFeel] it confirms a solve
- * either way, unless a host above confirms it ([LocalSolveConfirmHosted]).
+ * The rest of this composition's board: on when [enabled], which is [LocalSolveRestOnBoard] unless the caller says
+ * otherwise. With [LocalPlayFeel] it confirms a solve either way, unless a host above confirms it ([LocalSolveConfirmHosted]).
  */
 @Composable
-fun rememberSolveRest(): SolveRestState {
-    val enabled = LocalSolveRestOnBoard.current
+fun rememberSolveRest(enabled: Boolean = LocalSolveRestOnBoard.current): SolveRestState {
     val playFeel = LocalPlayFeel.current
     val haptics = LocalHapticFeedback.current
     val hostConfirms = LocalSolveConfirmHosted.current

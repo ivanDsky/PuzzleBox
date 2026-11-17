@@ -389,6 +389,9 @@ class ResultHeroCopyTest {
         insights = insights,
         rank = rank,
         primary = ResultPrimaryAction.Done,
+        moments = emptyList(),
+        challenge = null,
+        samePuzzle = null,
     )
 
     private fun model(facts: ResultHeroFacts) = resultHeroModel(facts, Locale.US)

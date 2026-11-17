@@ -32,7 +32,7 @@ private val CountdownMinHeight = 52.dp
 /**
  * The one primary step [ResultScreen] offers (spec A7, A16, SC10, L3). Today's result offers
  * [Next] (the next unsolved daily, named) or, when every daily is solved, [AllDone]: the
- * countdown to the next puzzles stands in for the button. A play-again's result offers [Done]; with Result moments on, a
+ * countdown to the next puzzles stands in for the button. A play-again's result offers [Done]; a
  * past day solved for the first time offers [NextDay], the same game on its next unsolved day.
  * The four cases after those are the other next things the chain can offer; each carries what its
  * button's words and its action need. This file only draws them: the domain's next thing is turned into

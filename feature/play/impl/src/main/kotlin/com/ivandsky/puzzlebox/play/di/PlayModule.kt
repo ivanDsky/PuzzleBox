@@ -10,7 +10,6 @@ import com.ivandsky.puzzlebox.domain.ObserveFriendPuzzles
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
-import com.ivandsky.puzzlebox.play.SolveRest
 import com.ivandsky.puzzlebox.play.CustomGameViewModel
 import com.ivandsky.puzzlebox.play.GamePageRankViewModel
 import com.ivandsky.puzzlebox.play.GameViewModel
@@ -110,16 +109,13 @@ val playModule = module {
             linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
         )
     }
-    // Read once per graph: the solved board rests before Result with Result moments on; without ReleaseFlags it is off.
-    single { SolveRest(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.ResultMoments) == true) }
-    // PlayFeel (spec A19) is read once per graph, like SolveRest: every play board and the lessons host hand it down.
+    // PlayFeel (spec A19) is read once per graph: every play board and the lessons host hand it down.
     single { PlayFeel(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.PlayFeel) == true) }
     // TabletCrossfade (backlog #1118) is read once per graph too: the two-pane Games pane crossfades while it is on.
     single { PaneCrossfade(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.TabletCrossfade) == true) }
     // The flag-as-parameter rule again: with it off the result never touches LinkedIn. The Post button's flag is
     // read inside the view model (the release flag), so its bindings resolve only on the same parameter.
-    // Result moments read the same flags without LinkedIn: a graph without ReleaseFlags builds Result with them
-    // off, and the next-thing use case is resolved only when the view model first asks for it.
+    // The next-thing use case is resolved only when the view model first asks for it (today's solve).
     viewModel { params ->
         val linkedIn = params.getOrNull<Boolean>() == true
         ResultViewModel(
@@ -137,7 +133,7 @@ val playModule = module {
             board = get(),
             completions = get(),
             loadReplay = get(),
-            releaseFlags = if (linkedIn) get() else getOrNull(),
+            releaseFlags = if (linkedIn) get() else null,
             observePost = if (linkedIn) get() else null,
             submitPost = if (linkedIn) get() else null,
             nextThing = inject(),

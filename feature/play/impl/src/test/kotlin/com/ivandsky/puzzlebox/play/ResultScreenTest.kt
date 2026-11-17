@@ -1,6 +1,11 @@
 package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
+import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
+import com.ivandsky.puzzlebox.data.visibility.HiddenPuzzles
+import com.ivandsky.puzzlebox.data.visibility.VisibilityRepository
+import com.ivandsky.puzzlebox.domain.nextthing.ObserveResultNextThing
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -56,6 +61,7 @@ import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeHiddenPuzzles
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
@@ -63,6 +69,8 @@ import com.ivandsky.puzzlebox.testing.repository.FakeMatchResultOutbox
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeVisibilityRepository
 import java.time.Instant
 import java.time.LocalDate
 import java.util.Locale
@@ -511,12 +519,23 @@ class ResultScreenTest {
                     factory { loadSolveReplay(get(), get(), get()) }
                     single { identity }
                     single { leaderboard }
+                    single<HiddenPuzzles> { FakeHiddenPuzzles() }
+                    single<UserPreferencesRepository> { FakeUserPreferencesRepository() }
+                    single<VisibilityRepository> { FakeVisibilityRepository() }
                     single { SubmitStatusTracker() }
                     single<CustomBoardRepository> { FakeCustomBoardRepository() }
                     single { dismissedGoogleSignIn }
                     factory { ObserveLeaderboard(get(), get(), get(), get()) }
                     factory { ObserveResultRank(get(), get(), friendDay = null) } // no Friends/Global setting
                     factory { ObserveResultInsights(get(), get(), get(), get()) }
+                    factory { ObserveFriendUids(get(), get()) }
+                    factory {
+                        ObserveResultNextThing(
+                            registry = get(), identity = get(), history = get(), todaySet = get(), friendPuzzles = get(),
+                            friendUids = get(), leaderboard = get(), visibility = get(), computeStreak = get(),
+                            puzzleDay = get(), nextRollover = get(),
+                        )
+                    }
                 },
                 module { single<CloudSync> { FakeCloudSync() } },
                 playModule,

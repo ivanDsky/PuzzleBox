@@ -9,7 +9,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.ivandsky.puzzlebox.common.di.commonModule
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
@@ -92,7 +91,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The Challenge row on Result (L3), through the real board route: a daily win with Result moments on rests on its board
+ * The Challenge row on Result (L3), through the real board route: a daily win rests on its board
  * and hands off to a Result whose Challenge row hands back the friend ahead on the board, and the game.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -147,7 +146,7 @@ class ResultChallengeRowTest {
         composeRule.runOnIdle { assertEquals(DuelPrefill("ann", "ann", alpha), challenged) }
     }
 
-    /** Result moments on, signed in as "me", with the friend ann (tier duel) ahead on alpha's board today. */
+    /** Signed in as "me", with the friend ann (tier duel) ahead on alpha's board today. */
     private fun startGraph(fakes: FakeGames, saved: SavedPlayRepository = FakeSavedPlayRepository()) {
         val me = Identity("me", "Me", null)
         val identity = FakeIdentityService(initial = me)
@@ -194,7 +193,7 @@ class ResultChallengeRowTest {
                     factory { ComputeStreak(get()) }
                     factory { ObserveGameStats(get(), get(), get()) }
                     factory { GetNextRollover(get()) }
-                    single<ReleaseFlags> { FakeReleaseFlags(ReleaseFlag.ResultMoments) }
+                    single<ReleaseFlags> { FakeReleaseFlags() }
                     factory { loadSolveReplay(get(), get(), get()) }
                     single<IdentityService> { identity }
                     single<LeaderboardRepository> { leaderboard }

@@ -5,7 +5,6 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performSemanticsAction
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.designsystem.CelebrationMotion
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import org.junit.Assert.assertEquals
@@ -20,8 +19,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Nav-rethink 104, through the real shell with Result moments on: the win of each of the five dailies stays on its board for about 1.5 s with no stamp, and then Result opens with nothing over it; a tap on the board during the rest opens
- * Result at once. Nav-rethink 129: a board in the solve frame pops once on the way. Nav-rethink 130: all five boards pop, and Result opens 1.5 s from the solve on every one; with the flag off no board pops or rests. The clock is held from
+ * Nav-rethink 104, through the real shell: the win of each of the five dailies stays on its board for about 1.5 s with no stamp, and then Result opens with nothing over it; a tap on the board during the rest opens
+ * Result at once. Nav-rethink 129: a board in the solve frame pops once on the way. Nav-rethink 130: all five boards pop, and Result opens 1.5 s from the solve on every one. The clock is held from
  * the winning move on and stepped a frame (16 ms) at a time.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -82,10 +81,6 @@ class SolveRestE2ETest {
 
     @Test fun `a Strands win opens Result 1700 ms from the solve`() = prompt(DailySolve.Strands)
 
-    @Test fun `flag off, a Mini Sudoku win neither rests nor pops`() = still(DailySolve.MiniSudoku, SUDOKU_GRID)
-
-    @Test fun `flag off, a Strands win neither rests nor pops`() = still(DailySolve.Strands, STRANDS_BOARD)
-
     private fun rests(game: DailySolve) = solving(game) {
         val frames = framesUntil("$game: Result") {
             assertFalse("$game: the board played a stamp", shows(BOARD_STAMP))
@@ -130,21 +125,11 @@ class SolveRestE2ETest {
         assertTrue("$game: Result came ${toResult * FRAME_MS} ms after the solve", toResult * FRAME_MS in MIN_REST_MS..MAX_REST_MS)
     }
 
-    /** With Result moments off the old path runs: no rest, no pop of [board], and Result still opens. */
-    private fun still(game: DailySolve, board: String) = solving(game, flags = emptyArray()) {
-        val atRest = width(board)
-        framesUntil("$game: Result") {
-            assertFalse("$game: the board rests with the flag off", shows(REST))
-            if (shows(board)) assertEquals("$game: the board moved", atRest, width(board), 0f)
-            shows("result.hero.screen")
-        }
-    }
-
     private fun ShellRobot.width(tag: String): Float = rule.onNodeWithTag(tag).fetchSemanticsNode().boundsInRoot.width
 
-    /** Plays [game] to its winning move with [flags] on (Result moments unless told otherwise), holds the clock, wins, then runs [block]. */
-    private fun solving(game: DailySolve, flags: Array<ReleaseFlag> = arrayOf(ReleaseFlag.ResultMoments), block: ShellRobot.() -> Unit) =
-        shellRobot(tabAt(PlayKey), graph = shellGraph(*flags)) {
+    /** Plays [game] to its winning move, holds the clock, wins, then runs [block]. */
+    private fun solving(game: DailySolve, block: ShellRobot.() -> Unit) =
+        shellRobot(tabAt(PlayKey), graph = shellGraph()) {
             val win = with(game) { playToTheLastMove() }
             rule.mainClock.autoAdvance = false
             rule.runOnIdle(win)

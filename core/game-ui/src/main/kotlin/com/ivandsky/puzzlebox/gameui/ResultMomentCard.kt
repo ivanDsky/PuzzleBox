@@ -40,7 +40,7 @@ private val RowIconSize: Dp = 20.dp
 /**
  * The moment card (L1, tag `result.moments`): one card under the hero (above the side card on two panes) with a row per [moments] entry, strongest first
  * (tags `result.moment.0`, `result.moment.1`, ...). With no moments it draws nothing and takes no room, [gap] included,
- * so a Result without moments is laid out as it was. [gap] is the space kept above the card, or below it when
+ * so a Result without moments (a duel leg) is laid out without it. [gap] is the space kept above the card, or below it when
  * [gapBelow] (the card sits first in the two-pane side column).
  *
  * The rows of the first draw are simply there (the card itself lands with the hero's blocks beat). A moment that

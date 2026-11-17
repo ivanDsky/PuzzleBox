@@ -230,6 +230,8 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `ObservePlayStats` (one slot's tablet side-panel data: today progress, times,
   solved → `PlayStats`), `ObserveTodaySet` (saved plays + records + each game's calendar day →
   registry-order `TodayEntry` per game: Solved/InProgress(elapsed)/NotStarted; `nextUnsolved`),
+  `ObserveResultNextThing` (Result's one read: `moments/` `DetectMoments` over `SolveFacts` → the strongest `Moment`s, and the `nextthing/`
+  `NextThingChain` over its providers → one `NextThing`),
   `ImportDraftFromText` (whole-text import: `NotationText.parse` on `dispatchers.default`, and
   only a parsed draft is stored, via `CreateDraft` + one `DraftRepository.upsert`, as an
   imported row → `ImportResult`). Duel use cases (ADR-0026): `CreateMatch`, `ObserveMyDuels`,
@@ -269,7 +271,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `Screen`), `GamePlayController` (+ `PlayClock`/`PlayHints`/`PlayUndo`), `GamePlayRegistry`
   (GameId → `GamePlayUi`; a duplicate id throws), `PlayBoardStatus` + `PlayBoardFallback`,
   `PlayCopy`, `BoardGrid` + `EdgeOverlay`, `DragTrace`, `GridGeometry`, `HintButton`,
-  `TimerBar` + `formatClock`, `PlayScaffold`, `PanePolicy` (the one two-pane decision from window size in dp), `PlayChrome`, `ResultHeroScreen` (daily result), `ResultScreen` (friend result),
+  `TimerBar` + `formatClock`, `PlayScaffold`, `PanePolicy` (the one two-pane decision from window size in dp), `PlayChrome`, `PlaySolveFrame` (the one solve hand-off: the solve moment B rests the board 1.7 s, `SolveRestState` + `SolveRestTapLayer`, then hands off), `ResultHeroScreen` (daily result; `ResultMoments.kt`, `ResultMomentCard`), `ResultScreen` (friend result),
   `CompletionRecordEmitter`, `board/SelfRowJump` (a request the hero card sends the day board to scroll to the viewer's row). `editor/`: `GameEditorUi` (per-game `sizeLabel`,
   `createController`, `Board`), `GameEditorController` (draft `StateFlow`, `adopt`, overlay
   hooks), `GameEditorRegistry` (GameId → `GameEditorUi`), `EditorOverlay` (witness display).
@@ -405,9 +407,10 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   picked past day → `GameKey(game, day)`), `ArchiveMonthCalendar` (`ArchiveMonthNav` ‹ › + jumps,
   `ArchiveDayDisc` per day from `ObserveArchiveMonth`), `GameStatsCard`, `HowToPlayCard` (rules + Open the lesson); with the
   app's arguments it adds `GamePageRankRow` (the game's rank row, over `GamePageRankViewModel`, opening Ranks); a phone pushes the
-  page over the list; a one-shot `LibraryRequest` opens a page or a section), `GameRoute` + `GameViewModel` (one `GameKey`'s board; first-play tutorial
+  page over the list; a one-shot `LibraryRequest` opens a page or a section), `GameRoute` + `GameViewModel` (one `GameKey`'s board, drawn in `PlayBoardChrome`, which provides `LocalSolveRestOnBoard`; first-play tutorial
   and How to play via `TutorialGate`), `ResultRoute` + `ResultViewModel` (verdict + previous
-  best live, Play again, Next unsolved), duel legs
+  best live, Play again; today's solve asks `ObserveResultNextThing` once for its moments, next thing and Challenge friend,
+  a past day's first solve offers `ResultArchiveNext`), duel legs
   (`MatchLegRoute`/`MatchLegViewModel`, `MatchLegResultRoute`, `LegCompletionRepository`
   tagging a leg solve with its match), `friend/` (a friend's puzzle: `FriendsTabBody`,
   `EnterCodeSheet`, `FriendPuzzleRoute`, `CustomResultRoute`), `di/PlayModule`; `navigation/PlayEntries` (`playEntry`,
@@ -694,7 +697,7 @@ Structure rules (ADR-0009): `./gradlew :konsist:test` — runs the 21 in-module 
 census and the engine tests), over the whole repo's sources (not in the count above; reruns
 when any source, build script or allowlist changes).
 
-- `:app:testDebugUnitTest` — 384 (DI graph, nav routes, saved-state restore, per-tab shell,
+- `:app:testDebugUnitTest` — 650 (DI graph, nav routes, saved-state restore, per-tab shell,
   the placement table and the shell: `nav/PlacementTest`, `nav/ShellChromeTest`,
   `nav/OpenOwnerTest`, `nav/LibraryRequestsTest`, `nav/TopLevelNavBarTest`,
   `nav/TabSetWidthChangeTest`; E2E robot rows incl. `e2e/ShellTabsE2ETest`,
@@ -704,27 +707,27 @@ when any source, build script or allowlist changes).
   browser screenshots)
 - `:backend:firebase:testDebugUnitTest` — 109
 - `:core:auth:testDebugUnitTest` — 7
-- `:core:common:testDebugUnitTest` — 11
+- `:core:common:testDebugUnitTest` — 8
 - `:core:data:testDebugUnitTest` — 261
 - `:core:database:testDebugUnitTest` — 33 (DAOs + migrations through 8→9; the LinkedIn database)
 - `:core:datastore:testDebugUnitTest` — 12
 - `:core:designsystem:testDebugUnitTest` — 139
 - `:core:domain:testDebugUnitTest` — 352
 - `:core:game:test` — 87
-- `:core:game-ui:testDebugUnitTest` — 306
+- `:core:game-ui:testDebugUnitTest` — 977
 - `:core:navigation:testDebugUnitTest` — 29
 - `:core:network:test` — 54
 - `:core:model:test` — 10
 - `:core:testing`, `:feature:*:api` — 0
 - `:feature:home:impl:testDebugUnitTest` — 80
 - `:feature:history:impl:testDebugUnitTest` — 53
-- `:feature:play:impl:testDebugUnitTest` — 553
+- `:feature:play:impl:testDebugUnitTest` — 1005
 - `:feature:profile:impl:testDebugUnitTest` — 53
 - `:feature:create:impl:testDebugUnitTest` — 395
 - `:feature:compete:impl:testDebugUnitTest` — 184
 - `:games:zip:test` — 292; `:games:zip-ui:testDebugUnitTest` — 186
 - `:games:tango:test` — 375; `:games:tango-ui:testDebugUnitTest` — 235
-- `:games:queens:test` — 454; `:games:queens-ui:testDebugUnitTest` — 266
+- `:games:queens:test` — 454; `:games:queens-ui:testDebugUnitTest` — 379
 - `:games:sudoku:test` — 265; `:games:sudoku-ui:testDebugUnitTest` — 287
 - `:games:strands:test` — 222; `:games:strands-ui:testDebugUnitTest` — 356
 - `:tools:puzzle-cli:test` — 25 (CLI contract, per-game CLI↔app parity, `NotationDocTest`; the

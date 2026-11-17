@@ -8,22 +8,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
-import com.ivandsky.puzzlebox.gameui.LocalSolveRestOnBoard
 import com.ivandsky.puzzlebox.gameui.PlayActionBar
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
 import com.ivandsky.puzzlebox.gameui.PlayBoardPane
@@ -39,8 +33,6 @@ import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.model.GameId
-import java.time.Instant
-import kotlinx.coroutines.delay
 
 /**
  * Queens' one play registration (ADR-0001): its controller, its board and its play screen. [hintMode] is asked once
@@ -160,13 +152,13 @@ private fun BoxScope.BoardArea(
             .padding(horizontal = board?.let { queensPanePaddingFor(it.session.puzzle.size) / 2 } ?: 0.dp),
     ) {
         if (status is PlayBoardStatus.Ready && board != null) {
-            // With the solve rest on the solve moment B starts at the solve and the queens Pulse inside it.
+            // The solve moment B starts at the solve and the queens Pulse inside it.
             val completedAt = board.session.completedAt
             // Win → result route (Zip's handoff): ONE hand-off per completion, after the
             // solve frame, keyed on the completedAt instance so a play-again hands off again.
             PlaySolveFrame(
                 brand = QueensBrand,
-                solved = if (LocalSolveRestOnBoard.current) completedAt else rememberSolveAfterLead(board, completedAt),
+                solved = completedAt,
                 onHandOff = {
                     controller.board?.session?.takeIf { it.isComplete }?.let { onSolved(it.elapsedMs, it.hintsUsed) }
                 },
@@ -177,23 +169,6 @@ private fun BoxScope.BoardArea(
             PlayBoardFallback(status, onRetry, tagPrefix = "queens")
         }
     }
-}
-
-/**
- * Without [LocalSolveRestOnBoard] the live solve's orchestration (A13) owns the board first: the frame sees
- * [completedAt] once the queens have started their Pulse. A board restored solved was never live, so it is seen at once.
- */
-@Composable
-private fun rememberSolveAfterLead(board: QueensBoardState, completedAt: Instant?): Instant? {
-    val reducedMotion = rememberReducedMotion()
-    var framed by remember(board) { mutableStateOf(completedAt) }
-    LaunchedEffect(completedAt) {
-        if (completedAt != null && framed != completedAt) {
-            delay(QueensMotion.solveLeadMs(board.session.queens.size, reducedMotion))
-        }
-        framed = completedAt
-    }
-    return framed
 }
 
 /**
