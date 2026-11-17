@@ -18,7 +18,6 @@ import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.EmptyState
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.model.ShareCode
@@ -33,7 +32,6 @@ internal fun LazyListScope.fromFriendsSection(
     reduced: Boolean,
     onOpen: (ShareCode) -> Unit,
     onRemove: (ShareCode) -> Unit,
-    onEnterCode: () -> Unit,
 ) {
     item(key = "friend:head", contentType = "friend.head") {
         FriendsSectionHead(
@@ -42,11 +40,11 @@ internal fun LazyListScope.fromFriendsSection(
             modifier = Modifier.padding(horizontal = Spacing.lg).padding(top = Spacing.lg, bottom = Spacing.sm),
         )
     }
-    friendRows(cards, reduced, onOpen, onRemove, onEnterCode)
+    friendRows(cards, reduced, onOpen, onRemove)
 }
 
 /**
- * One [FriendRow] per puzzle in [cards]; with none, the hint that offers [onEnterCode].
+ * One [FriendRow] per puzzle in [cards]; with none, the [FriendsEmptyHint].
  * Every row pads its own sides and carries its own vertical spacing, so the list needs neither;
  * the keys start with `friend:`. A row opens through [onOpen]; its long-press menu removes
  * through [onRemove].
@@ -56,10 +54,9 @@ internal fun LazyListScope.friendRows(
     reduced: Boolean,
     onOpen: (ShareCode) -> Unit,
     onRemove: (ShareCode) -> Unit,
-    onEnterCode: () -> Unit,
 ) {
     if (cards.isEmpty()) {
-        item(key = "friend:empty", contentType = "friend.empty") { FriendsEmptyHint(onEnterCode) }
+        item(key = "friend:empty", contentType = "friend.empty") { FriendsEmptyHint() }
         return
     }
     items(cards, key = { "friend:${it.row.code.value}" }, contentType = { "friend.card" }) { card ->
@@ -83,16 +80,15 @@ internal fun FriendsSectionHead(title: String, count: Int?, modifier: Modifier =
     }
 }
 
-/** What shows for no friend puzzles: the hint and an Enter code button ([onEnterCode]). */
+/** What shows for no friend puzzles: the hint. The header's Enter code is the way in. */
 @Composable
-internal fun FriendsEmptyHint(onEnterCode: () -> Unit, modifier: Modifier = Modifier) {
+internal fun FriendsEmptyHint(modifier: Modifier = Modifier) {
     Column(
         modifier.fillMaxWidth().padding(Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         EmptyState(title = "No puzzles from friends yet", message = "Puzzles friends send you show up here.")
-        SecondaryButton("Enter code", onClick = onEnterCode, modifier = Modifier.testTag("library.friends.enter_code"))
     }
 }
 
@@ -101,7 +97,7 @@ internal fun FriendsEmptyHint(onEnterCode: () -> Unit, modifier: Modifier = Modi
 internal fun FromFriendsSectionPreview() {
     PuzzleBoxTheme {
         Surface {
-            LazyColumn { fromFriendsSection(FriendPreviewCards.take(2), reduced = true, onOpen = {}, onRemove = {}, onEnterCode = {}) }
+            LazyColumn { fromFriendsSection(FriendPreviewCards.take(2), reduced = true, onOpen = {}, onRemove = {}) }
         }
     }
 }
@@ -111,7 +107,7 @@ internal fun FromFriendsSectionPreview() {
 internal fun FromFriendsSectionEmptyPreview() {
     PuzzleBoxTheme {
         Surface {
-            LazyColumn { fromFriendsSection(emptyList(), reduced = true, onOpen = {}, onRemove = {}, onEnterCode = {}) }
+            LazyColumn { fromFriendsSection(emptyList(), reduced = true, onOpen = {}, onRemove = {}) }
         }
     }
 }

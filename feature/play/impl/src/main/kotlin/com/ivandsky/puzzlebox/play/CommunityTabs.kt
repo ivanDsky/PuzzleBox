@@ -146,7 +146,7 @@ internal fun CommunityTabs(
                             null
                         },
                     )
-                    CommunityTab.Friends -> CommunityFriendsPage(friends, offline, friendsList, open, onRemove, onEnterCode)
+                    CommunityTab.Friends -> CommunityFriendsPage(friends, offline, friendsList, open, onRemove)
                     CommunityTab.Yours -> if (yours != null) YoursPage(yours, offline, yoursList)
                 }
             }
