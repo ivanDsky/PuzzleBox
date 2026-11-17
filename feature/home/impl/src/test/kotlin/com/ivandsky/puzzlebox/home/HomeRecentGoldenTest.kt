@@ -23,6 +23,7 @@ import com.ivandsky.puzzlebox.home.HomeScreenTest.Companion.TODAY
 import com.ivandsky.puzzlebox.home.HomeScreenTest.Companion.row
 import com.ivandsky.puzzlebox.model.GameId
 import java.io.File
+import java.time.Instant
 import kotlinx.coroutines.flow.MutableSharedFlow
 import org.junit.Rule
 import org.junit.Test
@@ -112,6 +113,17 @@ class HomeRecentPhoneFramesTest {
     fun `today badges golden`() = capture("home-today-badges-phone360", 0.dp) {
         HomeTodaySummary(
             state = HomeScreenTest.state(FIVE_TODAY_GAMES, emptyList(), GameId("zip")),
+            onOpenGame = {},
+            tagPrefix = "home.today",
+            badgeTagPrefix = "home.badge.",
+        )
+    }
+
+    @Test
+    fun `today badges all solved golden`() = capture("home-today-all-solved-phone360", 0.dp) {
+        val solved = FIVE_TODAY_GAMES.map { it.copy(status = TodayStatus.Solved(36_000L)) }
+        HomeTodaySummary(
+            state = HomeScreenTest.state(solved, emptyList(), GameId("zip")).copy(rolloverAt = Instant.EPOCH),
             onOpenGame = {},
             tagPrefix = "home.today",
             badgeTagPrefix = "home.badge.",
