@@ -238,7 +238,7 @@ class ShareTargetE2ETest {
     }
 
     @Test
-    fun `with Custom in Games a share while the app runs on Ranks opens the Studio on Games and back is Custom, then Today`() {
+    fun `with Custom in Games a share while the app runs on Ranks opens the Studio on Games and back is Custom, then Ranks, then Today`() {
         startGraph(ReleaseFlag.CustomInGames)
         launching(fromRecents(send(UNIQUE))) {
             assertRoute(HOME)
@@ -254,6 +254,10 @@ class ShareTargetE2ETest {
             assertRoute(LIBRARY)
             awaitTag(CUSTOM_LIST)
             rule.onNodeWithTag("nav.tab.play").assertIsSelected()
+
+            // The share switched tab from Ranks, so one Back returns to the screen it arrived on.
+            back()
+            assertRoute(RANKS)
 
             back()
             assertRoute(HOME)
