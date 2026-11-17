@@ -24,6 +24,8 @@ import androidx.compose.ui.unit.DpSize
 import com.ivandsky.puzzlebox.designsystem.LocalBoardGeometry
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.gameui.BoardGrid
+import com.ivandsky.puzzlebox.gameui.LocalPlayFeel
+import com.ivandsky.puzzlebox.gameui.MoveHapticsEffect
 import com.ivandsky.puzzlebox.gameui.replay.ReplayHintBadge
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.render.CellState
@@ -53,11 +55,13 @@ internal fun StrandsBoard(controller: StrandsPlayController, modifier: Modifier 
     val model = controller.baseModel
     if (model.rows == 0) return
     val haptics = LocalHapticFeedback.current
+    val playFeel = LocalPlayFeel.current
     var playing by remember { mutableStateOf<FoundEvent?>(null) }
     val pending = controller.lastFound
     LaunchedEffect(pending) {
         if (pending != null) controller.takeFound()?.let { playing = it }
     }
+    MoveHapticsEffect({ controller.moveSnapshot() }, ::strandsMoveHaptic)
     StrandsBoardContent(
         model = model,
         // The pending event plays from its first frame; the taken copy carries it on (same seq, same trigger).
@@ -69,8 +73,10 @@ internal fun StrandsBoard(controller: StrandsPlayController, modifier: Modifier 
             val traceBefore = controller.trace
             val slotBefore = controller.slot
             controller.onTrace(step)
-            StrandsHaptics.forStep(step, traceBefore, controller.trace, slotBefore, controller.slot)
-                ?.let(haptics::performHapticFeedback)
+            if (!playFeel) {
+                StrandsHaptics.forStep(step, traceBefore, controller.trace, slotBefore, controller.slot)
+                    ?.let(haptics::performHapticFeedback)
+            }
         },
         modifier = modifier,
     )
