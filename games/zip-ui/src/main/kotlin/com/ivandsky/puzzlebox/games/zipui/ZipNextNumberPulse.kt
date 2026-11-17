@@ -20,9 +20,6 @@ private const val PULSE_HALF_CYCLE_MILLIS = 600
 /** How faint the ring gets at the far end of a pulse; it never disappears. */
 private const val PULSE_LOW_ALPHA = 0.35f
 
-/** The ring comes back to full this fast when a drag starts. */
-private const val PULSE_SETTLE_MILLIS = 120
-
 /**
  * The opacity of the ring on the next number to reach, for the live play board (nav-rethink
  * B3, user note 2026-11-16): a gentle loop between full and faint, about 1.2 s a cycle, so the
@@ -49,7 +46,7 @@ internal fun rememberNextNumberPulse(held: () -> Boolean, enabled: Boolean): () 
         }
         snapshotFlow { isHeld() }.collectLatest { down ->
             if (down) {
-                alpha.animateTo(1f, tween(PULSE_SETTLE_MILLIS))
+                alpha.animateTo(1f, tween(MotionTokens.DurationShort))
             } else {
                 alpha.animateTo(
                     PULSE_LOW_ALPHA,

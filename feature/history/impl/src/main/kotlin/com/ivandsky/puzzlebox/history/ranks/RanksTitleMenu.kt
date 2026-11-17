@@ -63,7 +63,7 @@ internal fun RanksTitleMenu(
     val interaction = remember { MutableInteractionSource() }
     val turn by animateFloatAsState(
         targetValue = if (open) CHEVRON_OPEN else 0f,
-        animationSpec = if (reduced) tween(0) else spring(MotionTokens.SpringDampingDefault, MotionTokens.SpringStiffnessDefault),
+        animationSpec = if (reduced) tween(MotionTokens.DurationNone) else spring(MotionTokens.SpringDampingDefault, MotionTokens.SpringStiffnessDefault),
         label = "titleChevron",
     )
     Box(modifier) {

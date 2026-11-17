@@ -136,4 +136,10 @@ class MotionTokensTest {
         assertEquals(0.12f, MotionTokens.PressTintAlpha, 0f)
         assertEquals(0.97f, MotionTokens.PressScale, 0f)
     }
+
+    @Test
+    fun `named durations keep their values`() {
+        assertEquals(0, MotionTokens.DurationNone)
+        assertEquals(900, MotionTokens.RevealQuietFade)
+    }
 }

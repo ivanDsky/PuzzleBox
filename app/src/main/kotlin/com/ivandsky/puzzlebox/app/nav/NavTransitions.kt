@@ -131,7 +131,7 @@ internal data class NavMotion(
         val PredictiveFadeOutMillis = MotionTokens.DurationMedium / 2
 
         /** Before the first move: nothing scrims, nothing lifts. */
-        val Idle = NavMotion(NavMotionKind.Reduced, pop = false, durationMillis = 0, easing = MotionTokens.EasingLinear)
+        val Idle = NavMotion(NavMotionKind.Reduced, pop = false, durationMillis = MotionTokens.DurationNone, easing = MotionTokens.EasingLinear)
     }
 }
 
