@@ -19,6 +19,7 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
+import com.ivandsky.puzzlebox.play.community.CommunityBound
 import com.ivandsky.puzzlebox.play.community.CommunityViewModel
 import com.ivandsky.puzzlebox.play.friend.EnterCodeSheet
 import com.ivandsky.puzzlebox.play.friend.FriendPuzzleRoute
@@ -26,16 +27,16 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * The Community tab's root (nav-rethink M10-1): what Games › Custom showed, as a tab of its own. Under a "Community"
- * head with Enter code it lays out the app's [custom] slot (New today, your puzzles, Make a puzzle) with the From
- * friends rows among them ([CommunityList]). A [codeDraft] opens the code sheet with that text in the field and is
- * handed back through [onCodeDraftTaken]; the sheet's code opens through [onOpen], and a code that names a duel
- * through [onOpenDuel] (null: duels are off, the sheet never tries a code as one). A reselect of the tab scrolls the
- * list to its top. Without a [custom] slot there is nothing to show.
+ * The Community tab's root (nav-rethink M10-1): what Games › Custom showed, as a tab of its own. A [codeDraft] opens
+ * the code sheet with that text in the field and is handed back through [onCodeDraftTaken]; the sheet's code opens
+ * through [onOpen], and a code that names a duel through [onOpenDuel] (null: duels are off, the sheet never tries a
+ * code as one). Without a [custom] slot there is nothing to show.
  *
- * On the phone a row opens a page of its own through [onOpen]. [PlayLayout.TwoPane] is Games' two-pane
- * ([CommunityPanes]): the list at Games' list width, and a row's puzzle on the right as the page that tap opens on the
- * phone, with Play opening the board full screen through [onPlay]. The first New today puzzle shows until one is picked.
+ * On the phone it is three tabs under the head ([CommunityTabs]: New today, Friends, Yours) and a row opens a page of
+ * its own through [onOpen]. [PlayLayout.TwoPane] is Games' two-pane ([CommunityPanes]): the app's [custom] slot as one
+ * list with the From friends rows among them ([CommunityList]) at Games' list width, which a reselect of the tab
+ * scrolls to its top, and a row's puzzle on the right as the page that tap opens on the phone, with Play opening the
+ * board full screen through [onPlay]. The first New today puzzle shows until one is picked.
  */
 @Composable
 internal fun CommunityRoute(
@@ -52,7 +53,8 @@ internal fun CommunityRoute(
     val viewModel: LibraryViewModel = koinViewModel(parameters = { parametersOf(false) })
     val friends by viewModel.friends.collectAsStateWithLifecycle()
     val removedFriend by viewModel.removedFriend.collectAsStateWithLifecycle()
-    val listState = rememberLazyListState()
+    val community: CommunityViewModel = koinViewModel()
+    val communityState by community.state.collectAsStateWithLifecycle()
     var enteringCode by rememberSaveable { mutableStateOf(false) }
     var codePrefill by rememberSaveable { mutableStateOf("") }
     LaunchedEffect(codeDraft) {
@@ -64,29 +66,19 @@ internal fun CommunityRoute(
     }
     // A closed sheet forgets the draft: the next Enter code opens empty.
     if (!enteringCode && codePrefill.isNotEmpty()) LaunchedEffect(Unit) { codePrefill = "" }
-    OnTabReselect { listState.animateScrollToItem(0) }
-    val phone = layout == PlayLayout.SinglePane
-    val list: @Composable (Modifier) -> Unit = { size ->
-        CommunityList(
-            custom = custom,
-            listState = listState,
-            friends = friends,
-            phone = phone,
-            onOpen = onOpen,
-            onRemove = viewModel::removeFriend,
-            onEnterCode = { enteringCode = true },
-            modifier = size,
-        )
-    }
+    val onEnterCode = { enteringCode = true }
     Box(modifier.fillMaxSize().testTag("route.community")) {
-        if (phone) {
-            list(Modifier.fillMaxSize())
+        if (layout == PlayLayout.SinglePane) {
+            CommunityBound(community, communityState, onOpen) { actions ->
+                CommunityTabs(communityState, actions, friends, custom, onOpen, viewModel::removeFriend, onEnterCode, Modifier.fillMaxSize())
+            }
         } else {
-            val phase = koinViewModel<CommunityViewModel>().state.collectAsStateWithLifecycle().value.phase
+            val listState = rememberLazyListState()
+            OnTabReselect { listState.animateScrollToItem(0) }
             CommunityPanes(
-                default = defaultCommunityPick(phase, friends),
-                list = list,
-                empty = { CommunityEmptyPane(phase) },
+                default = defaultCommunityPick(communityState.phase, friends),
+                list = { size -> CommunityList(custom, listState, friends, onOpen, viewModel::removeFriend, onEnterCode, size) },
+                empty = { CommunityEmptyPane(communityState.phase) },
                 detail = { pick, clear -> CommunityPage(pick, clear, custom, onPlay) },
             )
         }

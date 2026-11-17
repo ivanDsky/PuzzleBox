@@ -43,19 +43,10 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The Community tab, light and dark: on the phone the list under its head (New today rows, a Make a puzzle row of the
- * app's, From friends rows), and on the tablet Games' two-pane with the list on the left and the picked puzzle's page on
+ * The tablet's Community tab, light and dark: Games' two-pane with the list on the left and the picked puzzle's page on
  * the right, either with the first puzzle selected by default or, with nothing new today and no friend puzzle, the
- * empty message. Goldens in `snapshots/community-panes/`.
+ * empty message. Goldens in `snapshots/community-panes/`. The phone's tabs are in [CommunityTabsGoldenScreenshots].
  */
-@RunWith(RobolectricTestRunner::class)
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = GOLDEN_PHONE)
-class CommunityPanesGoldenScreenshotsPhone : CommunityPanesGoldenScreenshots("phone") {
-    @Test fun `list light`() = list("list", LOADED, FRIENDS, dark = false)
-    @Test fun `list dark`() = list("list", LOADED, FRIENDS, dark = true)
-}
-
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = GOLDEN_TABLET)
@@ -72,18 +63,12 @@ abstract class CommunityPanesGoldenScreenshots(private val device: String) {
     @get:Rule
     val rule = createAndroidComposeRule<ComponentActivity>()
 
-    /** The phone's list: [CommunityList] as the tab lays it out, with a slot like the app's. */
-    internal fun list(name: String, state: CommunityState, friends: List<FriendCardModel>, dark: Boolean) {
-        rule.showGolden(dark) { TabList(state, friends, phone = true, Modifier.fillMaxSize()) }
-        rule.settleAndCapture("community-panes", name, device, dark)
-    }
-
     /** The tablet's panes: the list pane and, on the right, the first puzzle's page or the empty message. */
     internal fun panes(name: String, state: CommunityState, friends: List<FriendCardModel>, dark: Boolean) {
         rule.showGolden(dark) {
             CommunityPanes(
                 default = defaultCommunityPick(state.phase, friends),
-                list = { size -> TabList(state, friends, phone = false, size) },
+                list = { size -> TabList(state, friends, size) },
                 empty = { CommunityEmptyPane(state.phase) },
                 detail = { _, _ ->
                     FriendPuzzleCard(
@@ -99,7 +84,7 @@ abstract class CommunityPanesGoldenScreenshots(private val device: String) {
     }
 
     @Composable
-    private fun TabList(state: CommunityState, friends: List<FriendCardModel>, phone: Boolean, modifier: Modifier) {
+    private fun TabList(state: CommunityState, friends: List<FriendCardModel>, modifier: Modifier) {
         val picker = LocalCommunityPicker.current
         val actions = CommunityActions(
             onOpen = { picker?.puzzle(it.value) },
@@ -124,7 +109,6 @@ abstract class CommunityPanesGoldenScreenshots(private val device: String) {
             custom = slot,
             listState = rememberLazyListState(),
             friends = friends,
-            phone = phone,
             onOpen = {},
             onRemove = {},
             onEnterCode = {},
