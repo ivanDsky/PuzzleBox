@@ -19,6 +19,7 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Person
@@ -64,6 +65,9 @@ object PuzzleIcons {
     val Close: ImageVector = Icons.Rounded.Close
     val Search: ImageVector = Icons.Rounded.Search
     val ExpandMore: ImageVector = Icons.Rounded.KeyboardArrowDown
+
+    /** A neutral notice: the circled "i" from the core set. */
+    val Info: ImageVector = Icons.Rounded.Info
 
     /** Overflow menu: three dots stacked. */
     val More: ImageVector = Icons.Rounded.MoreVert
@@ -264,6 +268,7 @@ internal fun PuzzleIconsPreview() {
             "Clock" to PuzzleIcons.Clock,
             "Equals" to PuzzleIcons.Equals,
             "Upload" to PuzzleIcons.Upload,
+            "Info" to PuzzleIcons.Info,
         )
         Column(
             modifier = Modifier.background(MaterialTheme.colorScheme.background).padding(Spacing.md),

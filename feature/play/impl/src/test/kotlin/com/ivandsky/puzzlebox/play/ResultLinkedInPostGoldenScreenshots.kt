@@ -75,22 +75,24 @@ abstract class ResultLinkedInPostGoldenScreenshots(private val device: String) {
     @Test fun `tutorial dark`() = capture(LinkedInPostRowState.Tutorial, "tutorial", dark = true)
 
     private fun capture(state: LinkedInPostRowState, name: String, dark: Boolean) {
+        // The not-today row says the puzzle is no longer today's, so its card shows a past date, not "Today".
+        val facts = if (state == LinkedInPostRowState.NotToday) FACTS.copy(dateLine = "Fri 6 Nov") else FACTS
         rule.showGolden(dark) {
             UnderUpBar {
                 ResultHeroScreen(
-                    facts = FACTS,
+                    facts = facts,
                     onSignIn = {},
                     modifier = Modifier.weight(1f),
                     brand = BRAND,
-                    actions = { ResultHeroActions(FACTS.primary, onPrimary = {}, onShare = {}, onPlayAgain = {}) },
+                    actions = { ResultHeroActions(facts.primary, onPrimary = {}, onShare = {}, onPlayAgain = {}) },
                     replay = { columnGap ->
                         ResultBelowCardRows(
                             post = state,
-                            time = formatDuration(FACTS.timeMs),
+                            time = formatDuration(facts.timeMs),
                             onPost = {},
                             columnGap = columnGap,
                             replay = { hairline ->
-                                WatchReplayRow(moves = 31, durationMs = FACTS.timeMs, onClick = {}, hairline = hairline)
+                                WatchReplayRow(moves = 31, durationMs = facts.timeMs, onClick = {}, hairline = hairline)
                             },
                         )
                     },

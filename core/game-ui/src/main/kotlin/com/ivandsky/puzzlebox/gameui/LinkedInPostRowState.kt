@@ -13,10 +13,10 @@ enum class LinkedInPostRowState(val title: String, val enabled: Boolean) {
 
     /** A post's answer never came: a tap checks LinkedIn before it sends. */
     Check("Check LinkedIn", enabled = true),
-    Retry("Try again", enabled = true),
+    Retry("Post again", enabled = true),
     Paused("LinkedIn paused", enabled = false),
     NotToday("Not today's puzzle", enabled = false),
-    Tutorial("LinkedIn tutorial first", enabled = false);
+    Tutorial("Tutorial on LinkedIn today", enabled = false);
 
     /** The line under the title. [time] is the formatted solve time; without it the lines say "your time". */
     fun subtitle(time: String?): String = when (this) {
@@ -27,7 +27,7 @@ enum class LinkedInPostRowState(val title: String, val enabled: Boolean) {
         Check -> "Not sure it reached LinkedIn. Tap to check."
         Retry -> "Couldn't reach LinkedIn"
         Paused -> "Open Profile to resume"
-        NotToday -> "That puzzle is no longer today's"
-        Tutorial -> "LinkedIn shows this account a tutorial today"
+        NotToday -> "Only today's puzzle can be posted"
+        Tutorial -> "Today's puzzle can't be posted from this account"
     }
 }

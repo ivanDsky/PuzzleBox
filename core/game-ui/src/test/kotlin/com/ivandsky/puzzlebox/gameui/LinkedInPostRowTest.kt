@@ -37,10 +37,10 @@ class LinkedInPostRowTest {
         LinkedInPostRowState.Posted to "Posted to LinkedIn",
         LinkedInPostRowState.AlreadyOnLinkedIn to "Already on LinkedIn",
         LinkedInPostRowState.Check to "Check LinkedIn",
-        LinkedInPostRowState.Retry to "Try again",
+        LinkedInPostRowState.Retry to "Post again",
         LinkedInPostRowState.Paused to "LinkedIn paused",
         LinkedInPostRowState.NotToday to "Not today's puzzle",
-        LinkedInPostRowState.Tutorial to "LinkedIn tutorial first",
+        LinkedInPostRowState.Tutorial to "Tutorial on LinkedIn today",
     )
 
     private val subtitles = mapOf(
@@ -51,8 +51,8 @@ class LinkedInPostRowTest {
         LinkedInPostRowState.Check to "Not sure it reached LinkedIn. Tap to check.",
         LinkedInPostRowState.Retry to "Couldn't reach LinkedIn",
         LinkedInPostRowState.Paused to "Open Profile to resume",
-        LinkedInPostRowState.NotToday to "That puzzle is no longer today's",
-        LinkedInPostRowState.Tutorial to "LinkedIn shows this account a tutorial today",
+        LinkedInPostRowState.NotToday to "Only today's puzzle can be posted",
+        LinkedInPostRowState.Tutorial to "Today's puzzle can't be posted from this account",
     )
 
     private fun show(state: LinkedInPostRowState, time: String? = "0:58", pending: Boolean = false) {
