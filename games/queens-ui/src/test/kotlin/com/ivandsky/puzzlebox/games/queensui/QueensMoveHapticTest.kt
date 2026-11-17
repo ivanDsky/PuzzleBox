@@ -45,6 +45,21 @@ class QueensMoveHapticTest {
     }
 
     @Test
+    fun `every step of an erase swipe ticks, not only the first`() {
+        val crossed = start.withCrossToggled(Cell(0), now).withCrossToggled(Cell(1), now)
+        val first = crossed.withCrossErased(Cell(0), extendRun = false, now = now)
+        assertEquals(MoveHaptic.Placed, haptic(crossed, first))
+        assertEquals(MoveHaptic.Placed, haptic(first, first.withCrossErased(Cell(1), extendRun = true, now = now)))
+    }
+
+    @Test
+    fun `an erase step that lifts nothing is silent`() {
+        val crossed = start.withCrossToggled(Cell(0), now)
+        val erased = crossed.withCrossErased(Cell(0), extendRun = false, now = now)
+        assertNull(haptic(erased, erased.withCrossErased(Cell(0), extendRun = true, now = now)))
+    }
+
+    @Test
     fun `a queen that conflicts with a standing one still ticks, never buzzes`() {
         val one = start.withQueenPlaced(solution[0], now)
         val sameRow = one.withQueenPlaced(Cell(solution[0].idx + 1), now)
@@ -55,6 +70,21 @@ class QueensMoveHapticTest {
     fun `two placements between two reads tick once`() {
         val both = start.withQueenPlaced(solution[0], now).withQueenPlaced(solution[1], now)
         assertEquals(MoveHaptic.Placed, haptic(start, both))
+    }
+
+    @Test
+    fun `re-placing a queen that was just undone ticks, by identity not equality`() {
+        val crossed = start.withCrossToggled(Cell(0), now)
+        val undone = crossed.withQueenPlaced(solution[0], now).withUndo()
+        assertEquals(MoveHaptic.Placed, haptic(undone, undone.withQueenPlaced(solution[0], now)))
+    }
+
+    @Test
+    fun `two redos between two reads are silent`() {
+        val placed = start.withQueenPlaced(solution[0], now).withQueenPlaced(solution[1], now)
+        val undone = placed.withUndo().withUndo()
+        assertTrue(undone.history.done.isEmpty())
+        assertNull(haptic(undone, undone.withRedo().withRedo()))
     }
 
     @Test

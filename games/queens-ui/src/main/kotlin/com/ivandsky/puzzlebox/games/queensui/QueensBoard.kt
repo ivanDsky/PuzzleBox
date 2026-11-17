@@ -77,7 +77,7 @@ private fun QueensPlayBoardContent(
     val model = QueensBoardModel.of(state.session, state.guide)
     val haptics = LocalHapticFeedback.current
     val playFeel = LocalPlayFeel.current
-    if (playFeel) MoveHapticsEffect({ state.session }, ::queensMoveHaptic)
+    MoveHapticsEffect({ state.session }, ::queensMoveHaptic)
     var pressedCell by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     var tracedCell by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     var downCell by remember { mutableStateOf<Pair<Int, Int>?>(null) }

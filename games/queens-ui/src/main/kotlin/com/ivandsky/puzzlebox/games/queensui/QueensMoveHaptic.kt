@@ -5,17 +5,23 @@ import com.ivandsky.puzzlebox.games.queens.QueensSession
 import com.ivandsky.puzzlebox.gameui.MoveHaptic
 
 /**
- * The haptic for the step from [before] to [after]: a queen or cross placed or removed, by a tap or an erase swipe,
- * ticks, rule break or not. Queens refuses no input, so it never answers [MoveHaptic.Rejected]. The solving move is
- * silent (the solve confirm owns that moment), and so are undo, redo, clear, hints and auto-cross.
+ * The haptic for the step from [before] to [after]. Ticks once for each queen or cross placed or removed by a tap,
+ * once per newly crossed cell of a paint drag, and once per lifted cross on every step of an erase swipe. Queens
+ * refuses no input, so it never answers [MoveHaptic.Rejected]. The solving move is silent (the solve confirm owns
+ * that moment), and so are undo, redo, clear, hints and auto-cross.
  */
 internal fun queensMoveHaptic(before: QueensSession, after: QueensSession): MoveHaptic? {
     if (after.isComplete) return null
     val was = before.history
     val now = after.history
+    if (now.undone.isNotEmpty()) return null
+    val command = now.done.lastOrNull() ?: return null
+    // An erase swipe widens its one command in place: the history keeps its length, the run grows.
+    if (now.done.size == was.done.size) {
+        return if (command.widens(was.done.last())) MoveHaptic.Placed else null
+    }
     // Several commands between two reads grow the history by more than one and still tick once.
-    if (now.done.size <= was.done.size || now.undone.isNotEmpty()) return null
-    val command = now.done.last()
+    if (now.done.size < was.done.size) return null
     // A redo that empties the redo stack has the shape of a placement, but replays the undone command itself.
     if (was.undone.any { it === command }) return null
     return when (command) {
@@ -26,3 +32,7 @@ internal fun queensMoveHaptic(before: QueensSession, after: QueensSession): Move
         is QueensCommand.Clear -> null
     }
 }
+
+private fun QueensCommand.widens(last: QueensCommand): Boolean =
+    this is QueensCommand.EraseCrosses && last is QueensCommand.EraseCrosses &&
+        cells.size > last.cells.size && cells.containsAll(last.cells)
