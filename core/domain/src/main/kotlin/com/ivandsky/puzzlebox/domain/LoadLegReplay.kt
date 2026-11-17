@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.data.match.MatchFetch
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.MatchResultOutbox
 import com.ivandsky.puzzlebox.data.match.ResultRead
+import com.ivandsky.puzzlebox.data.match.mySeat
 import com.ivandsky.puzzlebox.data.repository.DailyDay
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
@@ -40,12 +41,12 @@ class LoadLegReplay(
             is SolveReplayRef.TheirLeg -> ref.code to ref.legIndex
             is SolveReplayRef.Record, is SolveReplayRef.Latest, is SolveReplayRef.Player -> return LegReplayRead.Absent
         }
-        val me = identity.current.value?.uid ?: return LegReplayRead.Absent
         val match = when (val fetch = matches.observe(code).first()) {
             is MatchFetch.Found -> fetch.match
             MatchFetch.Offline -> return LegReplayRead.Unavailable
             MatchFetch.NotFound, is MatchFetch.UnsupportedVersion -> return LegReplayRead.Absent
         }
+        val me = match.mySeat(identity.current.value?.uid) ?: return LegReplayRead.Absent
         val bytes = when (ref) {
             is SolveReplayRef.TheirLeg -> {
                 val opponent = match.opponentOf(me) ?: return LegReplayRead.Absent
