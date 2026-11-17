@@ -1,24 +1,23 @@
 package com.ivandsky.puzzlebox.play
 
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
+import com.ivandsky.puzzlebox.designsystem.EmptyState
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
-import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.CustomBoardView
+import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.gameui.GameBrand
@@ -28,12 +27,12 @@ import com.ivandsky.puzzlebox.play.community.CommunityActions
 import com.ivandsky.puzzlebox.play.community.CommunityPhase
 import com.ivandsky.puzzlebox.play.community.CommunityRowModel
 import com.ivandsky.puzzlebox.play.community.CommunityState
-import com.ivandsky.puzzlebox.play.community.communitySection
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
 import com.ivandsky.puzzlebox.play.friend.FriendCard as FriendCardState
 import com.ivandsky.puzzlebox.play.friend.FriendCardAction
 import com.ivandsky.puzzlebox.play.friend.FriendPuzzleCard
 import com.ivandsky.puzzlebox.play.friend.PreviewBoardAuthor
+import com.ivandsky.puzzlebox.play.friend.StubGivensBoard
 import java.time.Instant
 import org.junit.Rule
 import org.junit.Test
@@ -43,19 +42,30 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The tablet's Community tab, light and dark: Games' two-pane with the list on the left and the picked puzzle's page on
- * the right, either with the first puzzle selected by default or, with nothing new today and no friend puzzle, the
- * empty message. Goldens in `snapshots/community-panes/`. The phone's tabs are in [CommunityTabsGoldenScreenshots].
+ * The tablet's Community tab, light and dark: the three tabs in the list pane and, on the right, the page of the
+ * current tab's pick, each tab's default being its first puzzle: New today's first row ("selected"), the first friend
+ * ("friends"), your first published puzzle ("yours"). Yours with nothing published ("yours-empty") and a New today
+ * with nothing in it ("empty") show the empty pane. Goldens in `snapshots/community-panes/`. The phone's tabs are in
+ * [CommunityTabsGoldenScreenshots].
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = GOLDEN_TABLET)
 class CommunityPanesGoldenScreenshotsTablet : CommunityPanesGoldenScreenshots("tablet") {
-    @Test fun `selected light`() = panes("selected", LOADED, FRIENDS, dark = false)
-    @Test fun `selected dark`() = panes("selected", LOADED, FRIENDS, dark = true)
+    @Test fun `selected light`() = panes("selected", LOADED, FRIENDS, yours = null, tab = null, dark = false)
+    @Test fun `selected dark`() = panes("selected", LOADED, FRIENDS, yours = null, tab = null, dark = true)
 
-    @Test fun `empty light`() = panes("empty", EMPTY, emptyList(), dark = false)
-    @Test fun `empty dark`() = panes("empty", EMPTY, emptyList(), dark = true)
+    @Test fun `friends light`() = panes("friends", LOADED, FRIENDS, yours = null, tab = FRIENDS_TAB, dark = false)
+    @Test fun `friends dark`() = panes("friends", LOADED, FRIENDS, yours = null, tab = FRIENDS_TAB, dark = true)
+
+    @Test fun `yours light`() = panes("yours", LOADED, FRIENDS, yours = PUBLISHED, tab = YOURS_TAB, dark = false)
+    @Test fun `yours dark`() = panes("yours", LOADED, FRIENDS, yours = PUBLISHED, tab = YOURS_TAB, dark = true)
+
+    @Test fun `yours empty light`() = panes("yours-empty", LOADED, FRIENDS, yours = null, tab = YOURS_TAB, dark = false, yoursCount = 0)
+    @Test fun `yours empty dark`() = panes("yours-empty", LOADED, FRIENDS, yours = null, tab = YOURS_TAB, dark = true, yoursCount = 0)
+
+    @Test fun `empty light`() = panes("empty", EMPTY, emptyList(), yours = null, tab = null, dark = false, yoursCount = 0)
+    @Test fun `empty dark`() = panes("empty", EMPTY, emptyList(), yours = null, tab = null, dark = true, yoursCount = 0)
 }
 
 abstract class CommunityPanesGoldenScreenshots(private val device: String) {
@@ -63,60 +73,85 @@ abstract class CommunityPanesGoldenScreenshots(private val device: String) {
     @get:Rule
     val rule = createAndroidComposeRule<ComponentActivity>()
 
-    /** The tablet's panes: the list pane and, on the right, the first puzzle's page or the empty message. */
-    internal fun panes(name: String, state: CommunityState, friends: List<FriendCardModel>, dark: Boolean) {
+    /**
+     * The tablet's panes over [state], [friends] and your published puzzle [yours] (a code, or null for none): the
+     * tabs on the left, tapping [tab] first when it is not New today, and on the right the pick's page or the empty
+     * message.
+     */
+    internal fun panes(
+        name: String,
+        state: CommunityState,
+        friends: List<FriendCardModel>,
+        yours: String?,
+        tab: String?,
+        dark: Boolean,
+        yoursCount: Int = 3,
+    ) {
+        val summary = YoursSummary(count = yoursCount, firstPublishedCode = yours)
         rule.showGolden(dark) {
             CommunityPanes(
-                default = defaultCommunityPick(state.phase, friends),
-                list = { size -> TabList(state, friends, size) },
-                empty = { CommunityEmptyPane(state.phase) },
-                detail = { _, _ ->
-                    FriendPuzzleCard(
-                        card = PAGE,
-                        onAction = {},
-                        onSignIn = {},
-                        modifier = Modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.xl),
+                default = { page -> defaultCommunityPick(page, state.phase, friends, summary) },
+                list = { size, picks ->
+                    CommunityTabs(
+                        state = state,
+                        actions = CommunityActions(onOpen = {}, onReport = {}, onGame = {}, onDifficulty = {}, onClearFilters = {}, onRetry = {}),
+                        friends = friends,
+                        custom = previewYoursSlot(yoursCount, yours),
+                        onOpen = {},
+                        onRemove = {},
+                        onEnterCode = {},
+                        modifier = size,
+                        picks = picks,
                     )
                 },
+                empty = { page -> CommunityEmptyPane(page, state.phase) },
+                detail = { pick, _ -> PickPage(pick, state, friends) },
             )
+        }
+        if (tab != null) {
+            rule.onNodeWithTag(tab).performClick()
+            rule.mainClock.advanceTimeBy(1_000)
+            rule.onNodeWithTag(tab).assertIsSelected()
         }
         rule.settleAndCapture("community-panes", name, device, dark)
     }
 
+    /**
+     * The right pane's stand-in for the real page ([FriendPuzzleRoute] over its view model): a friend puzzle's card as
+     * the picked row says (game, brand, title and author from the New today or Friends row), with the stub board the
+     * page draws with CommunityPuzzles on; or your published one. The real page's board is tested in
+     * FriendHiddenBoardTest.
+     */
     @Composable
-    private fun TabList(state: CommunityState, friends: List<FriendCardModel>, modifier: Modifier) {
-        val picker = LocalCommunityPicker.current
-        val actions = CommunityActions(
-            onOpen = { picker?.puzzle(it.value) },
-            onReport = {},
-            onGame = {},
-            onDifficulty = {},
-            onClearFilters = {},
-            onRetry = {},
-        )
-        val slot = CustomSlot { listState, _, friendsRows ->
-            LazyColumn(Modifier.fillMaxSize(), state = listState) {
-                communitySection(state, actions)
-                item(key = "make") {
-                    Box(Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.md)) {
-                        SecondaryButton(text = "Make a puzzle", onClick = {})
-                    }
-                }
-                friendsRows()
-            }
+    private fun PickPage(pick: CommunityPick, state: CommunityState, friends: List<FriendCardModel>) {
+        if (pick is CommunityPick.Published) {
+            EmptyState("Your published puzzle", "Page of ${pick.code}")
+            return
         }
-        CommunityList(
-            custom = slot,
-            listState = rememberLazyListState(),
-            friends = friends,
-            onOpen = {},
-            onRemove = {},
-            onEnterCode = {},
-            modifier = modifier,
+        val code = checkNotNull(ShareCode.parse(pick.code))
+        val newToday = (state.phase as? CommunityPhase.Loaded)?.rows?.firstOrNull { it.code == code }
+        val friend = friends.firstOrNull { it.row.code == code }
+        val game = newToday?.game ?: friend?.gameName ?: PAGE.gameName
+        val brand = newToday?.brand ?: friend?.brand ?: PAGE.brand
+        val title = newToday?.title ?: friend?.row?.title ?: PAGE.puzzle.title
+        val author = newToday?.author ?: friend?.row?.authorName ?: PAGE.puzzle.authorName
+        FriendPuzzleCard(
+            card = PAGE.copy(
+                puzzle = PAGE.puzzle.copy(code = code, title = title, authorName = author),
+                gameName = game,
+                brand = brand,
+                givens = StubGivensBoard().givens(Puzzle(PAGE.puzzle.gameId, PAGE.puzzle.variant, 1, ByteArray(0))),
+            ),
+            onAction = {},
+            onSignIn = {},
+            modifier = Modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.xl),
         )
     }
 
     internal companion object {
+        const val FRIENDS_TAB = "community.tab.friends"
+        const val YOURS_TAB = "community.tab.yours"
+        const val PUBLISHED = "Z3Y8QD"
         val ZIP = GameBrand(AccentSlot.Blue, GameGlyphs.Zip)
         val TANGO = GameBrand(AccentSlot.Orange, GameGlyphs.Tango)
         val QUEENS = GameBrand(AccentSlot.Violet, GameGlyphs.Queens)

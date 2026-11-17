@@ -31,10 +31,17 @@ internal sealed interface CommunityPick {
 }
 
 /**
- * What the right pane shows before anyone picks: New today's newest puzzle, else the first friend puzzle, else nothing
- * (the pane then shows [CommunityEmptyPane]).
+ * What the right pane shows on [tab] before anyone picks there: New today's newest puzzle, the first friend's puzzle on
+ * Friends, your newest published puzzle ([yours]) on Yours; else nothing (the pane then shows [CommunityEmptyPane]).
+ * A draft is never one: it opens the Studio.
  */
-internal fun defaultCommunityPick(phase: CommunityPhase, friends: List<FriendCardModel>): CommunityPick? {
-    val code = (phase as? CommunityPhase.Loaded)?.rows?.firstOrNull()?.code ?: friends.firstOrNull()?.row?.code
-    return code?.let { CommunityPick.Puzzle(it.value) }
+internal fun defaultCommunityPick(
+    tab: CommunityTab,
+    phase: CommunityPhase,
+    friends: List<FriendCardModel>,
+    yours: YoursSummary,
+): CommunityPick? = when (tab) {
+    CommunityTab.NewToday -> (phase as? CommunityPhase.Loaded)?.rows?.firstOrNull()?.code?.value?.let(CommunityPick::Puzzle)
+    CommunityTab.Friends -> friends.firstOrNull()?.row?.code?.value?.let(CommunityPick::Puzzle)
+    CommunityTab.Yours -> yours.firstPublishedCode?.let(CommunityPick::Published)
 }

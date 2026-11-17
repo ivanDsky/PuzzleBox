@@ -29,6 +29,7 @@ import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.FakeGames
+import com.ivandsky.puzzlebox.play.GOLDEN_TABLET
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
@@ -107,6 +108,16 @@ class FriendHiddenBoardTest {
     }
 
     @Test
+    @Config(sdk = [34], qualifiers = GOLDEN_TABLET)
+    fun `on a tablet the Community right pane draws the hidden board too, with no Up bar`() {
+        show(communityOn = true, showUp = false)
+
+        node("friend.card.board.hidden").assertIsDisplayed()
+        assertEquals(0, count("friend.up"))
+        node("friend.card.play").assertExists()
+    }
+
+    @Test
     fun `the board sits between the note and the chips`() {
         show(communityOn = true)
 
@@ -170,7 +181,7 @@ class FriendHiddenBoardTest {
         completions.setRecords(listOf(CompletionRecord(ref, 125_000L, 0, RecordStats(1, "{}"))))
     }
 
-    private fun show(communityOn: Boolean, board: GameReplayBoard? = stub) {
+    private fun show(communityOn: Boolean, board: GameReplayBoard? = stub, showUp: Boolean = true) {
         fakes[game].replayBoard = board
         runBlocking { received.upsert(stored()) }
         val now = object : DispatcherProvider {
@@ -207,7 +218,7 @@ class FriendHiddenBoardTest {
         )
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                FriendPuzzleRoute(key = FriendPuzzleKey(code.value), onPlay = { played += it }, onBack = {}, viewModel = viewModel)
+                FriendPuzzleRoute(key = FriendPuzzleKey(code.value), onPlay = { played += it }, onBack = {}, showUp = showUp, viewModel = viewModel)
             }
         }
         composeRule.waitForIdle()
