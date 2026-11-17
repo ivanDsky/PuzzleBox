@@ -1,3 +1,5 @@
 <resources>
     <color name="puzzlebox_launch_background">#101418</color>
+    <!-- Brand primary (DarkColorScheme.primary, ColorTokens.kt) for the splash mark. -->
+    <color name="puzzlebox_splash_mark">#6BDF17</color>
 </resources>
