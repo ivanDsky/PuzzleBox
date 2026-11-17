@@ -31,6 +31,7 @@ import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.GridCell
+import com.ivandsky.puzzlebox.gameui.MoveHapticsEffect
 import com.ivandsky.puzzlebox.gameui.PlayActionBar
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
 import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
@@ -176,6 +177,8 @@ private fun BoxScope.BoardArea(
  */
 @Composable
 private fun ZipBoard(controller: ZipPlayController, paneCap: Dp?, modifier: Modifier) {
+    // Before the early return below, so the haptics fire on every board that holds a session.
+    MoveHapticsEffect({ ZipMoveSnapshot(controller.session, controller.feedback.refusals) }, ::zipMoveHaptic)
     val rejected = controller.feedback.rejectedMove
     val model = remember(controller, controller.session, controller.hintCell, rejected) {
         controller.rendererModel()
