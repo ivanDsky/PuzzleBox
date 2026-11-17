@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.data.linkedin
 
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInAccountSource
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInGamePage
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInPost
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInProgress
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInOwnResult
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead
@@ -232,8 +233,9 @@ class LinkedInPostFlowTest {
         rig.postable()
         val door = rig.door(
             poster = object : LinkedInResultPoster by rig.poster {
-                override suspend fun gamePage(gamePath: String) =
-                    rig.poster.gamePage(gamePath).also { rig.calendar.setAll(rig.today.plusDays(1)) }
+                // The read the flow makes is the post's own, so the wire the play saves through is the one read.
+                override suspend fun gamePage(post: LinkedInPost) =
+                    rig.poster.gamePage(post).also { rig.calendar.setAll(rig.today.plusDays(1)) }
             },
         )
 

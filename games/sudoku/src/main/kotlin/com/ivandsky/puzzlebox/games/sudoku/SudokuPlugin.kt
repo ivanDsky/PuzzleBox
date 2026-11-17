@@ -39,4 +39,6 @@ fun sudokuPlugin(definition: SudokuDefinition): GamePlugin<SudokuState, SudokuSe
         rendererModel = { state, hint, _ -> SudokuRendererModel.of(state, hint) },
         editor = SudokuEditor(definition),
         replay = SudokuReplay,
+        // The game's own data, so every construction of the Mini Sudoku plugin posts and the classic never does.
+        linkedInPlay = definition.linkedInPlay,
     )

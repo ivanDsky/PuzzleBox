@@ -11,4 +11,7 @@ internal interface LinkedInPostApi {
 
     @POST("flagship-web/rsc-action/actions/server-request")
     suspend fun send(@Query("sduiid") sduiid: String): String
+
+    @POST("voyager/api/graphql")
+    suspend fun save(@Query("action") action: String): String
 }

@@ -176,4 +176,10 @@ class LinkedInMiniSudokuDailySourceTest {
     fun `a past-day transport error passes through unchanged`() = runTest {
         assertEquals(FetchResult.Err(FetchError.Throttled()), source(FetchResult.Err(FetchError.Throttled())).fetchPast(date))
     }
+
+    @Test
+    fun `the LinkedIn game route is the Mini Sudoku edition path the feed requests`() {
+        assertEquals("games/mini-sudoku/", source(FetchResult.Ok("{}")).linkedInGamePath)
+        assertEquals(LinkedInMiniSudokuDailySource.REQUEST.path, LinkedInMiniSudokuDailySource.EDITION.path)
+    }
 }

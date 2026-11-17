@@ -1,0 +1,30 @@
+{
+  "variables": {
+    "entity": {
+      "entity": {
+        "gameStoredRecord": {
+          "gamePlayState": "IN_PROGRESS",
+          "timeElapsed": 3,
+          "isFlawless": true,
+          "completionAttributes": {
+            "isHintFree": true,
+            "isMistakeFree": true
+          },
+          "gameStateUnion": {
+            "miniSudokuGameState": [
+              {
+                "cellIdx": 32,
+                "cellContentUnion": {
+                  "cellValue": 6
+                }
+              }
+            ]
+          }
+        }
+      },
+      "resourceKey": "urn:li:fsd_game:(ACoAAFAKEPROFILE0000000000000000000000000,7,463)"
+    }
+  },
+  "queryId": "voyagerIdentityDashGames.f8508525e36bee5f9a5ab6b637854d87",
+  "includeWebMetadata": true
+}

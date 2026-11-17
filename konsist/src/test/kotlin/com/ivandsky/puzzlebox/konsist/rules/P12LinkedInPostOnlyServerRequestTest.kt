@@ -5,7 +5,8 @@ import com.ivandsky.puzzlebox.konsist.core.Violation
 import org.junit.Test
 
 /**
- * P12: the LinkedIn post API has one POST, the `updateGameState` server request, and nothing in the package builds a write by hand.
+ * P12: the LinkedIn post API has two POSTs, the `updateGameState` server request and the voyager save, each
+ * once, and nothing in the package builds a write by hand.
  * Contract and allowlist rules: ADR-0009 (docs/adr/0009-in-module-structure-rules.md).
  */
 class P12LinkedInPostOnlyServerRequestTest {
@@ -21,10 +22,11 @@ class P12LinkedInPostOnlyServerRequestTest {
         RuleCheck.assertFixture(
             P12LinkedInPostOnlyServerRequest,
             "P12",
-            9,
+            10,
             setOf(
                 Violation("$dir/wrongpath/LinkedInPostApi.kt", null, ""),
-                Violation("$dir/twopost/LinkedInPostApi.kt", null, ""),
+                Violation("$dir/thirdpost/LinkedInPostApi.kt", null, ""),
+                Violation("$dir/repeatedpost/LinkedInPostApi.kt", null, ""),
                 Violation("$dir/HandBuiltPost.kt", null, ""),
                 Violation("$dir/HandBuiltPut.kt", null, ""),
                 Violation("$dir/HandBuiltPatch.kt", null, ""),

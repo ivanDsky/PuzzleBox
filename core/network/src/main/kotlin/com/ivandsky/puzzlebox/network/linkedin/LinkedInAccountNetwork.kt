@@ -15,5 +15,5 @@ fun linkedInAccountSource(baseUrl: String, session: LinkedInSessionCookies): Lin
         .client(linkedInSessionClient())
         .build()
         .create(LinkedInAccountApi::class.java)
-    return VoyagerLinkedInAccountSource(api, session)
+    return VoyagerLinkedInAccountSource(VoyagerGraphql(api, session))
 }

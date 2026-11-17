@@ -6,6 +6,6 @@ internal interface LinkedInPostApi {
     @POST("flagship-web/rsc-action/actions/server-request")
     suspend fun send(): String
 
-    @POST("voyager/api/graphql")
-    suspend fun second(): String
+    @POST("flagship-web/rsc-action/actions/server-request")
+    suspend fun again(): String
 }

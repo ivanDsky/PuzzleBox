@@ -10,8 +10,8 @@ import retrofit2.Retrofit
 
 /**
  * The production poster of the player's result to LinkedIn over [baseUrl], with a client of its own. Tests
- * build it through here too, so they run the wire the app runs. [zone] is the device's timezone, which the
- * `x-li-track` header reports.
+ * build it through here too, so they run the wires the app runs: `updateGameState`, and the voyager save for
+ * a play that carries a voyager board. [zone] is the device's timezone, which the `x-li-track` header reports.
  */
 fun linkedInResultPoster(
     baseUrl: String,
@@ -22,12 +22,16 @@ fun linkedInResultPoster(
         .eventListenerFactory(EventListener.Factory { RequestWrittenListener })
         .build()
     // No converter: bodies go out and come in raw.
-    val api = Retrofit.Builder()
+    val retrofit = Retrofit.Builder()
         .baseUrl(baseUrl)
         .client(client)
         .build()
-        .create(LinkedInPostApi::class.java)
-    return SduiLinkedInResultPoster(api, session, zone)
+    val api = retrofit.create(LinkedInPostApi::class.java)
+    val graphql = VoyagerGraphql(retrofit.create(LinkedInAccountApi::class.java), session)
+    return TwoWireLinkedInResultPoster(
+        sdui = SduiLinkedInResultPoster(api, session, zone),
+        voyager = VoyagerGameSave(api, graphql, session, zone),
+    )
 }
 
 /** Sets the [AtomicBoolean] a call carries as its tag once its whole request body is on the wire. */

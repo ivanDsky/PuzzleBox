@@ -5,6 +5,8 @@ import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.GameDefinition
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInPlay
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInSolve
 import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuCodec
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.ZoneId
@@ -12,12 +14,13 @@ import java.time.ZoneId
 /**
  * One Sudoku game. The engine is shared, so a game is just an identity bound to the single
  * [variant] it plays; a payload of another variant is refused rather than played under the
- * wrong game.
+ * wrong game. [linkedInPlay] encodes a solve for LinkedIn; null for a game LinkedIn does not have.
  */
 class SudokuDefinition(
     override val id: GameId,
     override val displayName: String,
     val variant: SudokuVariant,
+    val linkedInPlay: ((LinkedInSolve<SudokuSession>) -> LinkedInPlay?)? = null,
 ) : GameDefinition {
 
     override val cadence: Cadence = Cadence.Daily(ZoneId.of("America/Los_Angeles"))

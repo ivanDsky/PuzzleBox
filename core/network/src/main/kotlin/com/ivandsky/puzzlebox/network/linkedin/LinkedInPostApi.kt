@@ -15,12 +15,13 @@ import retrofit2.http.Streaming
 import retrofit2.http.Tag
 
 /**
- * The requests of a post (ADR-0032): the game page GET and the one write path LinkedIn's web client uses, called
+ * The requests of a post (ADR-0032): the game page GET and the write path LinkedIn's web client uses, called
  * for the first move and again for the win. Headers follow the unsolved-daily capture minus what is
  * redacted there or only a browser sends: the trace and instance headers and `sec-*` are left out, not invented.
- * This is the only file that may declare a non-GET, and only this one (Konsist P12).
+ * [saveGame] is the second write, for a game LinkedIn still saves over voyager (ADR-0032 §11).
+ * This is the only file that may declare a non-GET, and only these two (Konsist P12).
  *
- * Both bodies are [Streaming]: the caller caps how much it reads, so a hostile page cannot fill memory.
+ * Every body is [Streaming]: the caller caps how much it reads, so a hostile page cannot fill memory.
  * The session rides each request as header parameters, as in [LinkedInAccountApi]. `origin` and `referer`
  * name LinkedIn's own web client, not the host the request goes to: they say which page the write came from.
  */
@@ -60,6 +61,31 @@ internal interface LinkedInPostApi {
         @Header("User-Agent") userAgent: String,
         @Header("referer") referer: String,
         @Header("x-li-anchor-page-key") anchorPageKey: String,
+        @Header("x-li-track") track: String,
+        @Body body: RequestBody,
+        @Tag written: AtomicBoolean,
+    ): Response<ResponseBody>
+
+    /**
+     * The voyager save, with the headers of the Mini Sudoku capture whose values are known: its own `accept`,
+     * `origin`, the track header, and the protocol and language headers the voyager reads send
+     * ([LinkedInAccountApi]). The capture's page-instance and PEM values are redacted, so those two are left
+     * out, not invented. [written] as in [serverRequest].
+     */
+    @Headers(
+        "accept: application/vnd.linkedin.normalized+json",
+        "origin: https://www.linkedin.com",
+        "x-restli-protocol-version: 2.0.0",
+        "x-li-lang: en_US",
+    )
+    @Streaming
+    @POST("voyager/api/graphql")
+    suspend fun saveGame(
+        @Query("action") action: String,
+        @Query("queryId", encoded = true) queryId: String,
+        @Header("Cookie") cookie: String,
+        @Header("csrf-token") csrfToken: String,
+        @Header("User-Agent") userAgent: String,
         @Header("x-li-track") track: String,
         @Body body: RequestBody,
         @Tag written: AtomicBoolean,
