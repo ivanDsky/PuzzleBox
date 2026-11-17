@@ -60,7 +60,7 @@ class FullReplayE2ETest {
             assertRoute(REPLAY_ROUTE)
             awaitTag(ReplayTags.NEXT)
             val end = seek().range.endInclusive
-            // The page opens paused on the finished board, so step back to the start before stepping forward.
+            // The page opens playing on the real clock and may already have run to the end, so step back to the start first.
             repeat(MOVE_BUDGET) { tap(ReplayTags.PREVIOUS) }
             assertEquals("stepping back reaches the start", 0f, seek().current, 0f)
             tap(ReplayTags.NEXT)
@@ -92,7 +92,7 @@ class FullReplayE2ETest {
             tap(WATCH_ROW)
             awaitTag(ReplayTags.NEXT)
 
-            rule.onNodeWithTag(ReplayTags.PLAY).assertContentDescriptionEquals(ReplayCopy.PLAY)
+            rule.onNodeWithTag(ReplayTags.PLAY).assertExists()
             rule.onNodeWithTag(ReplayTags.PREVIOUS).assertContentDescriptionEquals(ReplayCopy.PREVIOUS_MOVE)
             rule.onNodeWithTag(ReplayTags.NEXT).assertContentDescriptionEquals(ReplayCopy.NEXT_MOVE)
             rule.onNodeWithTag(ReplayTags.SPEED).assertContentDescriptionEquals(ReplayCopy.speedDescription(1))

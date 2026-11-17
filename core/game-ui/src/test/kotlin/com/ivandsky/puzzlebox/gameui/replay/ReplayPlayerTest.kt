@@ -62,22 +62,19 @@ class ReplayPlayerTest {
     }
 
     @Test
-    fun `opens paused on the finished board`() {
+    fun `opens playing at move 0`() {
         show()
 
-        composeRule.onNodeWithTag(BOARD).assertTextEquals("facts 12")
-        composeRule.onNodeWithTag(ReplayTags.PLAY).assertContentDescriptionEquals("Play")
-        composeRule.onNodeWithTag(ReplayTags.POSITION).assertTextEquals("0:12 / 0:12")
-        composeRule.mainClock.advanceTimeBy(2_000)
-        composeRule.onNodeWithTag(BOARD).assertTextEquals("facts 12")
+        composeRule.onNodeWithTag(BOARD).assertTextEquals("facts 0")
+        composeRule.onNodeWithTag(ReplayTags.PLAY).assertContentDescriptionEquals("Pause")
+        composeRule.onNodeWithTag(ReplayTags.POSITION).assertTextEquals("0:00 / 0:12")
+        playFor(3_000)
+        composeRule.onNodeWithTag(BOARD).assertTextEquals("facts 3")
     }
 
     @Test
     fun `play advances the position with the test clock and pause stops it`() {
         show()
-        seekTo(0)
-
-        tap(ReplayTags.PLAY)
         composeRule.onNodeWithTag(ReplayTags.PLAY).assertContentDescriptionEquals("Pause")
         playFor(3_000)
         composeRule.onNodeWithTag(BOARD).assertTextEquals("facts 3")
@@ -91,6 +88,8 @@ class ReplayPlayerTest {
     @Test
     fun `play from the end starts over and stops at the end again`() {
         show()
+        seekTo(12_000)
+        composeRule.onNodeWithTag(ReplayTags.PLAY).assertContentDescriptionEquals("Play")
 
         tap(ReplayTags.PLAY)
         playFor(2_000)
@@ -136,8 +135,6 @@ class ReplayPlayerTest {
             composeRule.onNodeWithTag(ReplayTags.SPEED).assertContentDescriptionEquals("Speed $expected")
         }
 
-        seekTo(0)
-        tap(ReplayTags.PLAY)
         playFor(2_000)
         composeRule.onNodeWithTag(BOARD).assertTextEquals("facts 4")
     }
@@ -146,9 +143,7 @@ class ReplayPlayerTest {
     fun `skip idle toggles and jumps an idle gap`() {
         val slow = ReplayFixtures.timeline(moves = 3, stepMs = 20_000)
         show(slow)
-        seekTo(0)
 
-        tap(ReplayTags.PLAY)
         composeRule.mainClock.advanceTimeBy(500)
         // Skip idle is on at the start: the 20 s gap before the first move is cut to its 1 s lead-in.
         composeRule.onNodeWithTag(BOARD).assertTextEquals("facts 0")

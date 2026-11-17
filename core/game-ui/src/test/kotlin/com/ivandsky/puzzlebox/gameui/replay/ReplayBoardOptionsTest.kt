@@ -75,6 +75,7 @@ class ReplayBoardOptionsTest {
     @Test
     fun `a paused replay rests`() {
         show()
+        tap(ReplayTags.PLAY)
 
         assertFalse(options().animate)
     }
@@ -82,8 +83,7 @@ class ReplayBoardOptionsTest {
     @Test
     fun `a playing replay animates`() {
         show()
-
-        tap(ReplayTags.PLAY)
+        composeRule.mainClock.advanceTimeBy(100)
 
         assertTrue(options().animate)
     }
@@ -91,7 +91,7 @@ class ReplayBoardOptionsTest {
     @Test
     fun `pausing again rests`() {
         show()
-        tap(ReplayTags.PLAY)
+        composeRule.mainClock.advanceTimeBy(100)
 
         tap(ReplayTags.PLAY)
 
@@ -102,8 +102,7 @@ class ReplayBoardOptionsTest {
     fun `a playing replay with Reduce motion on rests`() {
         setAnimatorScale(0f)
         show()
-
-        tap(ReplayTags.PLAY)
+        composeRule.mainClock.advanceTimeBy(100)
 
         assertFalse(options().animate)
     }
@@ -125,8 +124,6 @@ class ReplayBoardOptionsTest {
     @Test
     fun `a forward seek while playing lands without animation, the next frame of play animates again`() {
         show()
-        seekTo(0)
-        tap(ReplayTags.PLAY)
         composeRule.mainClock.advanceTimeBy(100)
         assertTrue("plain play animates", options().animate)
 
@@ -140,8 +137,6 @@ class ReplayBoardOptionsTest {
     @Test
     fun `a backward seek while playing lands without animation`() {
         show()
-        seekTo(0)
-        tap(ReplayTags.PLAY)
         composeRule.mainClock.advanceTimeBy(3_100)
 
         seekTo(1_000)
@@ -152,8 +147,6 @@ class ReplayBoardOptionsTest {
     @Test
     fun `stepping to the next move while playing is not a seek`() {
         show()
-        seekTo(0)
-        tap(ReplayTags.PLAY)
         composeRule.mainClock.advanceTimeBy(100)
 
         tap(ReplayTags.NEXT)

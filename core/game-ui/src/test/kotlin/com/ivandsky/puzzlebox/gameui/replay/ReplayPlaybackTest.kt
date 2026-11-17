@@ -30,16 +30,26 @@ class ReplayPlaybackTest {
     /** Moves at 20 000, 40 000 and 60 000: every gap is idle. */
     private val slowSolve = ReplayFixtures.timeline(moves = 3, stepMs = 20_000)
 
+    private fun ReplayPlayback.finished() = apply { seekTo(Long.MAX_VALUE) }
+
     @Test
-    fun `opens paused at the end on the finished board`() {
+    fun `opens at move 0 and playing on the empty board`() {
         val state = ReplayPlayback(solve, theirs = null).state.value
 
-        assertEquals(12_000L, state.positionMs)
+        assertEquals(0L, state.positionMs)
         assertEquals(12_000L, state.durationMs)
-        assertFalse(state.playing)
+        assertTrue(state.playing)
         assertEquals(1, state.speed)
-        assertTrue(state.mineFrame!!.ended)
-        assertTrue(state.mineFrame!!.facts.solved)
+        assertEquals(0, state.mineFrame!!.facts.correct)
+        assertFalse(state.mineFrame!!.ended)
+    }
+
+    @Test
+    fun `a compare opens at move 0 and playing`() {
+        val state = ReplayPlayback(solve, fastSolve).state.value
+
+        assertEquals(0L, state.positionMs)
+        assertTrue(state.playing)
     }
 
     @Test
@@ -78,7 +88,7 @@ class ReplayPlaybackTest {
 
     @Test
     fun `with both replays each side has a frame`() {
-        val state = ReplayPlayback(solve, fastSolve).state.value
+        val state = ReplayPlayback(solve, fastSolve).finished().state.value
 
         assertEquals(12, state.mineFrame!!.facts.correct)
         assertEquals(12, state.theirsFrame!!.facts.correct)
@@ -86,7 +96,7 @@ class ReplayPlaybackTest {
 
     @Test
     fun `with only my replay their side has no frame and no lead`() {
-        val state = ReplayPlayback(solve, theirs = null, finalLead = Lead.Mine).state.value
+        val state = ReplayPlayback(solve, theirs = null, finalLead = Lead.Mine).finished().state.value
 
         assertEquals(12, state.mineFrame!!.facts.correct)
         assertNull(state.theirsFrame)
@@ -95,7 +105,7 @@ class ReplayPlaybackTest {
 
     @Test
     fun `with only their replay my side has no frame and no lead`() {
-        val state = ReplayPlayback(mine = null, fastSolve, finalLead = Lead.Theirs).state.value
+        val state = ReplayPlayback(mine = null, fastSolve, finalLead = Lead.Theirs).finished().state.value
 
         assertNull(state.mineFrame)
         assertEquals(12, state.theirsFrame!!.facts.correct)
@@ -172,6 +182,7 @@ class ReplayPlaybackTest {
     @Test
     fun `advance while paused changes nothing`() {
         val playback = ReplayPlayback(solve, theirs = null)
+        playback.pause()
         playback.seekTo(3_000)
         val paused = playback.state.value
 
@@ -247,10 +258,10 @@ class ReplayPlaybackTest {
         val playback = ReplayPlayback(solve, theirs = null)
         val opened = playback.state.value
 
-        playback.pause()
+        playback.play()
         playback.setSpeed(1)
         playback.setSkipIdle(true)
-        playback.seekTo(12_000)
+        playback.seekTo(0)
 
         assertSame(opened, playback.state.value)
     }
@@ -341,6 +352,7 @@ class ReplayPlaybackTest {
     @Test
     fun `seek while paused stays paused`() {
         val playback = ReplayPlayback(solve, theirs = null)
+        playback.pause()
 
         playback.seekTo(4_000)
 
@@ -934,8 +946,8 @@ class ReplayPlaybackTest {
 
     @Test
     fun `once both ended level boards go to the faster side`() {
-        assertEquals(Lead.Mine, ReplayPlayback(fastSolve, solve).state.value.lead)
-        assertEquals(Lead.Theirs, ReplayPlayback(solve, fastSolve).state.value.lead)
+        assertEquals(Lead.Mine, ReplayPlayback(fastSolve, solve).finished().state.value.lead)
+        assertEquals(Lead.Theirs, ReplayPlayback(solve, fastSolve).finished().state.value.lead)
     }
 
     @Test

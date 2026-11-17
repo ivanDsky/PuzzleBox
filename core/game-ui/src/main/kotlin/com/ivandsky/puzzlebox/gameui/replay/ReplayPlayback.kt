@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.update
 /**
  * Headless player behind every replay surface. Both sides of a compare share one clock and one
  * position. It holds no Compose, no coroutine and no clock: [advance] is the only source of time.
- * With no replay on either side the state is empty and every call leaves it alone.
+ * It opens at move 0 and playing (a replay with no moves opens paused). With no replay on either side the state is empty and every call leaves it alone.
  */
 class ReplayPlayback(
     private val mine: Timeline?,
@@ -24,7 +24,7 @@ class ReplayPlayback(
     private val ticksMs = (mine ?: theirs)?.moveTimesMs ?: LongArray(0)
     private val tickKinds = (mine ?: theirs)?.moveKindsAt ?: emptyArray()
 
-    private val _state = MutableStateFlow(stateAt(durationMs, playing = false, speed = 1, skipIdle = true, showErrors = showErrors))
+    private val _state = MutableStateFlow(stateAt(0, playing = durationMs > 0, speed = 1, skipIdle = true, showErrors = showErrors))
     val state: StateFlow<ReplayPlaybackState> = _state.asStateFlow()
 
     // The skip-idle travel in flight: from [travelFromMs] to [travelToMs] (-1 = none), [travelElapsedMs] of [travelMs] spent.
