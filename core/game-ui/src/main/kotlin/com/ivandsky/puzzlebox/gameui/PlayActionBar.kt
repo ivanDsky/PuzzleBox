@@ -34,8 +34,8 @@ private val ControlsColumnWidth = 96.dp
 /**
  * The action bar every game shares (A14, A15): Undo · Redo · Hint · Clear, each a tall
  * chunky [GameButton] sharing the row equally. Hint fills with the game's [accent]; the
- * rest stay neutral. The hint half is CORE only as far as the button and the running
- * count ([hintsUsed], the session's A3 count); what a press does is the game's.
+ * rest stay neutral, and so does Hint under [LocalHintPolish] (its cooldown ring stays [accent]).
+ * The hint half is CORE only as far as the button and the running count ([hintsUsed], the session's A3 count); what a press does is the game's.
  * [onClear] null hides Clear (Sudoku keeps its own in the keypad); Clear is never disabled,
  * the rest are always shown, disabled when they cannot act. Games pass it as
  * [AdaptivePlayScaffold]'s actions, which places it (see there). Under
@@ -59,6 +59,7 @@ internal fun PlayActionBar(
     sideColumnExtra: (@Composable (Modifier) -> Unit)? = null,
 ) {
     val vertical = LocalPlayControlsVertical.current
+    val calmHint = LocalHintPolish.current
     val buttons: @Composable (Modifier) -> Unit = { action ->
         GameButton(onUndo, PuzzleIcons.Undo, "Undo", action.testTag("play.undo"), canUndo, size = GameButtonSize.Tall)
         GameButton(onRedo, PuzzleIcons.Redo, "Redo", action.testTag("play.redo"), canRedo, size = GameButtonSize.Tall)
@@ -68,7 +69,7 @@ internal fun PlayActionBar(
             label = if (hintsUsed == 0) "Hint" else "Hint · $hintsUsed",
             modifier = action.testTag("play.hint").cooldownRing(hintRing, accent),
             enabled = hintEnabled,
-            accent = accent,
+            accent = accent.takeUnless { calmHint },
             size = GameButtonSize.Tall,
         )
         if (vertical) sideColumnExtra?.invoke(action)

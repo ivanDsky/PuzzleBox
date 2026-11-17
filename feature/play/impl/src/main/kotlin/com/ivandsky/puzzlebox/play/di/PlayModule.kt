@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.play.GameViewModel
 import com.ivandsky.puzzlebox.play.LibraryViewModel
 import com.ivandsky.puzzlebox.play.MatchLegResultViewModel
 import com.ivandsky.puzzlebox.play.MatchLegViewModel
+import com.ivandsky.puzzlebox.play.HintPolish
 import com.ivandsky.puzzlebox.play.PlayFeel
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.PlayStatsViewModel
@@ -110,6 +111,7 @@ val playModule = module {
     }
     // PlayFeel (spec A19) is read once per graph: every play board and the lessons host hand it down.
     single { PlayFeel(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.PlayFeel) == true) }
+    single { HintPolish(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.HintPolish) == true) }
     // The flag-as-parameter rule again: with it off the result never touches LinkedIn. The Post button's flag is
     // read inside the view model (the release flag), so its bindings resolve only on the same parameter.
     // The next-thing use case is resolved only when the view model first asks for it (today's solve).
