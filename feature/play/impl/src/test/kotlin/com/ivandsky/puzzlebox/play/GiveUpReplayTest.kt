@@ -32,6 +32,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchResultOutbox
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import java.time.Instant
@@ -79,7 +80,7 @@ class GiveUpReplayTest {
         ),
         writers = { SlotWriter(it, saved, lane, CoroutineScope(dispatcher)) },
         completions = FakeCompletionRepository(),
-        finishLeg = FinishLeg(outbox, FakeMatchRepository(), FakeIdentityService(me)) { Instant.EPOCH },
+        finishLeg = FinishLeg(outbox, FakeSelfMatchRepository(), FakeIdentityService(me)) { Instant.EPOCH },
         calendar = calendar,
         dispatchers = testDispatchers(dispatcher),
     )

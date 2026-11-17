@@ -2,10 +2,9 @@ package com.ivandsky.puzzlebox.domain
 
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.match.LegResult
-import com.ivandsky.puzzlebox.data.match.MatchFetch
-import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.MatchResultOutbox
-import com.ivandsky.puzzlebox.data.match.mySeat
+import com.ivandsky.puzzlebox.data.match.SelfMatchRepository
+import com.ivandsky.puzzlebox.data.match.SelfSeats
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Instant
 import kotlinx.coroutines.flow.first
@@ -13,13 +12,13 @@ import kotlinx.coroutines.flow.first
 /**
  * Turns a finished duel leg into one result waiting to post (one attempt per leg). Runs after the
  * leg's normal completion went through the first-win policy; it only enqueues, posting is the poster's job.
- * The result is written for the seat the match gives this player: the fixed self seat in a self duel, signed in
+ * The result is written for the seat this device gives the player: the fixed self seat in a self duel, signed in
  * or out, else the account. A friend duel signed out writes nothing; a leg already queued for the seat keeps its
  * first result. The time is stored as the game reported it — flooring is the outcome's job.
  */
 class FinishLeg(
     private val outbox: MatchResultOutbox,
-    private val matches: MatchRepository,
+    private val self: SelfMatchRepository,
     private val identity: IdentityService,
     private val clock: () -> Instant,
 ) {
@@ -39,10 +38,7 @@ class FinishLeg(
         return FinishResult.Queued
     }
 
-    /** A match that cannot be read now (offline, unknown) still records the leg for the account, as before self duels. */
-    private suspend fun seat(code: ShareCode): String? {
-        val uid = identity.current.value?.uid
-        val match = (matches.observe(code).first() as? MatchFetch.Found)?.match
-        return if (match == null) uid else match.mySeat(uid)
-    }
+    /** Read from the device alone: a friend leg must queue offline, not wait on a remote read. */
+    private suspend fun seat(code: ShareCode): String? =
+        if (self.holds(code)) SelfSeats.ME else identity.current.value?.uid
 }

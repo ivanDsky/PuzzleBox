@@ -106,7 +106,7 @@ class MatchLegViewModelSelfTest {
             ),
             writers = { SlotWriter(it, saved, lane, CoroutineScope(dispatcher)) },
             completions = FakeCompletionRepository(),
-            finishLeg = FinishLeg(outbox, matches, identity) { created },
+            finishLeg = FinishLeg(outbox, self, identity) { created },
             calendar = calendar,
             dispatchers = testDispatchers(dispatcher),
         )

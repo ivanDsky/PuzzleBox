@@ -27,6 +27,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchResultOutbox
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import java.time.Instant
 import java.time.LocalDate
@@ -69,7 +70,7 @@ class PlaySessionStoreLegFinishTest {
     private val completions = FakeCompletionRepository()
     private val outbox = FakeMatchResultOutbox()
     private val identity = FakeIdentityService(me)
-    private val finishLeg = FinishLeg(outbox, FakeMatchRepository(), identity) { Instant.EPOCH }
+    private val finishLeg = FinishLeg(outbox, FakeSelfMatchRepository(), identity) { Instant.EPOCH }
 
     private fun TestScope.store(dispatcher: TestDispatcher = UnconfinedTestDispatcher(testScheduler)): PlaySessionStore {
         val lane = WriteLane()
