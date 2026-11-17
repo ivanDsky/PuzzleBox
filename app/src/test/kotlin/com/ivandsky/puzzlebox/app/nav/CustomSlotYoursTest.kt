@@ -10,7 +10,6 @@ import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.rememberCustomSlot
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
 import com.ivandsky.puzzlebox.create.CreateViewModel
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.model.PublishedPuzzle
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.CreateDraft
@@ -27,6 +26,7 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.YoursSummary
+import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
@@ -65,7 +65,7 @@ class CustomSlotYoursTest {
     private val games = GameRegistry(listOf(queensPlugin))
     private val drafts = FakeDraftRepository()
     private val published = FakePublishedPuzzleRepository()
-    private val navigator = Navigator(NavigationState(CreateKey, listOf(listOf(CreateKey))))
+    private val navigator = Navigator(NavigationState(PlayKey, listOf(listOf(PlayKey))))
     private var summary = YoursSummary.None
 
     @After

@@ -9,7 +9,6 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.di.dataModule
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.gameui.DragEvent
@@ -264,8 +263,7 @@ class ProcessDeathE2ETest {
         home: List<NavKey> = listOf(HomeKey),
         play: List<NavKey> = listOf(PlayKey),
         history: List<NavKey> = listOf(HistoryRootKey),
-        create: List<NavKey> = listOf(CreateKey),
-    ) = NavigationState(tab = tab, stacks = listOf(home, play, history, create))
+    ) = NavigationState(tab = tab, stacks = listOf(home, play, history))
 
     private val playHub = stacks(tab = PlayKey)
 

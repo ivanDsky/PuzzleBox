@@ -27,18 +27,7 @@ internal class PlacementDelta(rows: List<PlacementRow>) {
 }
 
 /**
- * CustomInGames on: the Studio is full-window on Games, and the published page is pushed on
- * Games and keeps the bar.
- */
-internal val customInGamesPlacement = PlacementDelta(
-    listOf(
-        PlacementRow(EditorKey::class, Placement(Home.PushedOn(Tab.Games), Chrome.Immersive)),
-        PlacementRow(PublishedPuzzleKey::class, Placement(Home.PushedOn(Tab.Games), Chrome.Bar)),
-    ),
-)
-
-/**
- * CustomInGames and CommunityPuzzles on: Custom's list is the Community tab, so everything it opens is pushed on
+ * CommunityPuzzles on: Custom's list is the Community tab, so everything it opens is pushed on
  * Community and keeps its chrome: the Studio is full-window, the published page and a friend's puzzle keep the bar,
  * and a custom board and its result are immersive. Games keeps the daily keys.
  */

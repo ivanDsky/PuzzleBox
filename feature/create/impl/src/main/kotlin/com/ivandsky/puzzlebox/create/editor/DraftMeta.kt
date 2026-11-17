@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
  * its [title], a fresh [rollCodename] for the rename dice, [rename] within 1–[Draft.TITLE_MAX] characters (spec A25), [duplicate] through
  * [CreateDraftCopy], and [delete]. A rename is handed to [store], the Studio's one writer, so
  * it is never reordered against board edits; once [locked] (the draft is published) the title
- * is fixed and a rename is refused. Delete stores nothing itself: the Create root
+ * is fixed and a rename is refused. Delete stores nothing itself: the Custom list
  * removes the draft and offers its 5 s Undo (22).
  */
 class DraftMeta(

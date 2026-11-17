@@ -42,8 +42,8 @@ import org.robolectric.annotation.Config
 /**
  * The Games screen handed a Custom slot, on the phone: the pills read Dailies, Duels, Custom;
  * Custom shows the slot's list with the friend puzzles where the slot places them, and its
- * pill counts the ones not played yet. A request for the Friends section lands on Custom, and
- * a section request, a reselect and a return to the tab find the slot's list at its top.
+ * pill counts the ones not played yet. A section request, a reselect and a return to the tab find
+ * the slot's list at its top.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp")
@@ -98,6 +98,7 @@ class LibraryCustomTabTest {
                     duels = DUELS,
                     custom = custom,
                     request = request,
+                    onMakeOne = {},
                 )
             }
         }
@@ -172,17 +173,6 @@ class LibraryCustomTabTest {
         friends = FriendPreviewCards.filter { it.row.status != FriendStatus.New }
         composeRule.waitForIdle()
         composeRule.onNodeWithTag(PILL_COUNT, useUnmergedTree = true).assertDoesNotExist()
-    }
-
-    @Test
-    fun `a request for the Friends section opens Custom`() {
-        setContent()
-
-        request = LibraryRequest.Section(GamesTab.Friends)
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithTag("library.tab.custom").assertIsSelected()
-        composeRule.onNodeWithTag(CUSTOM_LIST).assertIsDisplayed()
     }
 
     @Test

@@ -64,6 +64,7 @@ import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.navigation.navKeySavedStateConfiguration
 import com.ivandsky.puzzlebox.play.ActivePlay
+import com.ivandsky.puzzlebox.play.CustomSlot
 import com.ivandsky.puzzlebox.play.FakeController
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.SlotOpening
@@ -614,7 +615,7 @@ class CustomResultViewModelTest {
                 NavDisplay(
                     backStack = navigator.state.currentStack,
                     onBack = { navigator.pop() },
-                    entryProvider = entryProvider { playEntry(navigator, PlayLayout.SinglePane, onOpenRanks = { _, _ -> }) },
+                    entryProvider = entryProvider { playEntry(navigator, PlayLayout.SinglePane, onOpenRanks = { _, _ -> }, custom = CustomSlot { _, _, _ -> }, onMakeOne = {}) },
                 )
             }
         }

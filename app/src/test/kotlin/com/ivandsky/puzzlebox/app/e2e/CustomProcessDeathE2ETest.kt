@@ -5,11 +5,10 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithTag
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.di.dataModule
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.game.GameRegistry
-import com.ivandsky.puzzlebox.home.api.HomeKey
+import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -35,16 +34,16 @@ import com.ivandsky.puzzlebox.games.queens.QueensVariants
 import java.time.Instant
 
 /**
- * Ticket 17 over the real shell and a file-backed Room drafts store: a Queens draft painted
- * three times and undone once keeps its board and both undo and redo across a tab switch, a
- * rotation, back and reopen, and an app stop followed by process death. The reopened
- * draft then undoes exactly its two remaining paints.
+ * Ticket 17 over the real shell and a file-backed Room drafts store: a Queens draft opened from
+ * Games' Custom pill, painted three times and undone once, keeps its board and both undo and
+ * redo across a rotation, back and reopen, and an app stop followed by process death. The
+ * reopened draft then undoes exactly its two remaining paints.
  */
 @RunWith(RobolectricTestRunner::class)
 // DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 // A real phone's height: Robolectric's default 470 dp leaves the Studio's board slot no room for a grid.
 @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
-class CreateProcessDeathE2ETest {
+class CustomProcessDeathE2ETest {
 
     /** Every "process" Room was opened in; each relaunch opens the same database file anew. */
     private val processes = mutableListOf<KoinApplication>()
@@ -72,9 +71,10 @@ class CreateProcessDeathE2ETest {
     )
 
     @Test
-    fun `a painted draft keeps its board and undo history across tab switch, rotation, back and process death`() =
+    fun `a painted draft keeps its board and undo history across rotation, back and process death`() =
         shellRobot(graph = roomGraph()) {
-            tapTab(CreateKey)
+            tapTab(PlayKey)
+            tap(CUSTOM_PILL)
             tap("create.empty.game.queens")
             awaitTag(cell(0))
             val blank = regionOf(cell(0))
@@ -90,11 +90,6 @@ class CreateProcessDeathE2ETest {
             assertNotEquals("cell 1 is painted", blank, board[1])
             assertEquals("cell 2's paint is undone", blank, board[2])
             assertKept(board, "on paint")
-
-            tapTab(HomeKey)
-            tapTab(CreateKey)
-            awaitTag(cell(0))
-            assertKept(board, "after a tab switch")
 
             restoreState()
             awaitTag(cell(0))
@@ -162,9 +157,10 @@ class CreateProcessDeathE2ETest {
         rule.onNodeWithTag(REDO).assertIsEnabled()
     }
 
-    /** Opens the one draft from the Create root. */
+    /** Opens the one draft from Games' Custom pill. */
     private fun ShellRobot.reopen() {
-        tapTab(CreateKey)
+        tapTab(PlayKey)
+        tap(CUSTOM_PILL)
         tap(ROW)
         awaitTag(cell(0))
     }
@@ -195,6 +191,7 @@ class CreateProcessDeathE2ETest {
         /** One solution on a 6×6 board. */
         const val UNIQUE = "BBBBAA BBBBCA EBBDCA EEDDDD EEFFDF EEFFFF"
         const val ROW = "create.draft.row"
+        const val CUSTOM_PILL = "library.tab.custom"
         const val UNDO = "create.tool.undo"
         const val REDO = "create.tool.redo"
         const val TIMEOUT_MS = 5_000L

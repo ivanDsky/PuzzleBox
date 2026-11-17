@@ -215,8 +215,10 @@ class LibraryRequestTest {
                 onOpenCode = {},
                 onOpenRanks = { _, _ -> },
                 duels = duels,
+                custom = CustomSlot { _, _, _ -> },
                 request = request,
                 onRequestTaken = { taken++ },
+                onMakeOne = {},
             )
         }
     }

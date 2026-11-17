@@ -8,10 +8,8 @@ import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
-import com.ivandsky.puzzlebox.create.CreateRoute
 import com.ivandsky.puzzlebox.create.CreateViewModel
 import com.ivandsky.puzzlebox.create.TestSolvePlaySlot
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
 import com.ivandsky.puzzlebox.create.editor.EditorRoute
@@ -21,25 +19,10 @@ import com.ivandsky.puzzlebox.navigation.Navigator
 import org.koin.androidx.viewmodel.ext.android.getViewModel
 
 /**
- * The Create tab's root: opening a draft (a new one included) pushes its [EditorKey] once, and
- * opening a published puzzle its [PublishedPuzzleKey].
- */
-fun EntryProviderScope<NavKey>.createEntry(navigator: Navigator) {
-    entry<CreateKey> {
-        val viewModel = rememberCreateViewModel()
-        CreateRoute(
-            viewModel = viewModel,
-            onOpen = { draftId -> navigator.pushOnce(EditorKey(draftId)) },
-            onOpenPublished = { code -> navigator.pushOnce(PublishedPuzzleKey(code)) },
-        )
-    }
-}
-
-/**
- * The Studio for one draft; back pops to the Create root. Duplicate opens the copy in the
- * Studio's place; so does Import from text, which first leaves a notice on the Create root's
- * view model for the new Studio's toast, so back goes to the Create root, not the draft
- * imported from; Delete pops to the Create root, which deletes the draft and offers Undo.
+ * The Studio for one draft; back pops to the Games root (the Custom list). Duplicate opens the copy in the
+ * Studio's place; so does Import from text, which first leaves a notice on the Custom list's
+ * view model for the new Studio's toast, so back goes to the Games root, not the draft
+ * imported from; Delete pops to the Games root, whose Custom list deletes the draft and offers Undo.
  * [testSolvePlay] is the regular play screen a test solve can open on; without one it stays board-only.
  */
 fun EntryProviderScope<NavKey>.editorEntry(navigator: Navigator, layout: PlayLayout, testSolvePlay: TestSolvePlaySlot? = null) {
@@ -66,7 +49,7 @@ fun EntryProviderScope<NavKey>.editorEntry(navigator: Navigator, layout: PlayLay
     }
 }
 
-/** A published puzzle's page in the play policy's [layout]; back pops to the Create root, Duplicate opens the copy in its place. */
+/** A published puzzle's page in the play policy's [layout]; back pops to the Games root (the Custom list), Duplicate opens the copy in its place. */
 fun EntryProviderScope<NavKey>.publishedPuzzleEntry(navigator: Navigator, layout: PlayLayout) {
     entry<PublishedPuzzleKey> { key ->
         PublishedPuzzleRoute(
@@ -85,7 +68,7 @@ fun EntryProviderScope<NavKey>.publishedPuzzleEntry(navigator: Navigator, layout
 @Composable
 internal fun rememberCreateViewModel(): CreateViewModel {
     val activity = checkNotNull(LocalActivity.current as? ComponentActivity) {
-        "The Create entries run in a ComponentActivity"
+        "The Create feature entries run in a ComponentActivity"
     }
     return remember(activity) { activity.getViewModel() }
 }

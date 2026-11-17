@@ -16,7 +16,7 @@ import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import java.time.Instant
 
 /**
- * One Published-tab row: [row]'s game tile, its title, "Author 1:42" (nothing for a row restored from a legacy doc, whose
+ * One published row: [row]'s game tile, its title, "Author 1:42" (nothing for a row restored from a legacy doc, whose
  * author time is unknown) and its age as of [now].
  */
 internal fun publishedRowOf(row: PublishedPuzzle, plays: GamePlayRegistry, now: Instant) =
@@ -35,17 +35,7 @@ internal fun publishedRowOf(row: PublishedPuzzle, plays: GamePlayRegistry, now: 
         solves = row.solvesCount,
     )
 
-/** One filter chip per game among [stored], with its draft count. */
-internal fun filtersOf(
-    stored: List<Draft>,
-    games: GameRegistry,
-    plays: GamePlayRegistry,
-): List<CreateUiState.GameFilter> =
-    stored.groupingBy { it.gameId }.eachCount().map { (id, count) ->
-        CreateUiState.GameFilter(id, games.displayName(id), plays.brandOf(id), count)
-    }
-
-/** One Drafts-tab row: [draft]'s tile, "Game · size", its age as of [now] and its chip. */
+/** One draft row: [draft]'s tile, "Game · size", its age as of [now] and its chip. */
 internal fun rowOf(
     draft: Draft,
     settled: Map<DraftStamp, Verdict?>,
@@ -69,7 +59,7 @@ internal fun rowOf(
 }
 
 /**
- * The draft [rows] as list items, for the Create tab's Drafts list and the Custom list alike: a tap reports the row's
+ * The draft [rows] as list items of the Custom list: a tap reports the row's
  * id to [onOpen], its ⋮ or long press to [onActions]. Keys carry a `draft:` prefix, so they stay unique in a list
  * that also holds published and friends' rows.
  */

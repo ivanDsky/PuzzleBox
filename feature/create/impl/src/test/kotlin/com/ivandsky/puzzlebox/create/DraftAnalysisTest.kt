@@ -24,7 +24,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * The Create root's draft analysis: one verdict per (id, updatedAt), settled on
+ * The Custom list's draft analysis: one verdict per (id, updatedAt), settled on
  * [DispatcherProvider.default], dropped with its draft, null for a game this build cannot open.
  */
 class DraftAnalysisTest {

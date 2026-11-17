@@ -38,7 +38,7 @@ import org.koin.core.component.inject
  * The single activity (singleTask): a tapped share link starts it or, when it is already
  * running, arrives as a new intent; either way the link waits in [pendingLink] until the app
  * has put it on the back stack. A plain-text share takes the same two doors:
- * its text goes to the [SharedTextStore] and [pendingShare] has the app show the Create root,
+ * its text goes to the [SharedTextStore] and [pendingShare] has the app show Custom,
  * which imports it. A recreated activity restores its back stack and never re-reads the
  * intent that started it, so the friend's card is pushed and the text imported once.
  */
@@ -63,7 +63,7 @@ class MainActivity : ComponentActivity(), KoinComponent {
 
     private var pendingLink by mutableStateOf<String?>(null)
 
-    // A share is waiting in the store and the navigator has yet to select Create for it.
+    // A share is waiting in the store and the navigator has yet to open Custom for it.
     private var pendingShare by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -146,7 +146,7 @@ class MainActivity : ComponentActivity(), KoinComponent {
     }
 
     /**
-     * Puts the text [intent] shares in the [SharedTextStore]; the Create root takes it once it
+     * Puts the text [intent] shares in the [SharedTextStore]; the Custom body takes it once it
      * is resumed. True when text was put.
      */
     private fun handOffSharedText(intent: Intent): Boolean {

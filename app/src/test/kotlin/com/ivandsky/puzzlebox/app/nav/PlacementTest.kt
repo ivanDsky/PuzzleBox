@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.app.nav
 
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.PlacementSamples
+import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
 import com.ivandsky.puzzlebox.compete.api.DuelRevealKey
@@ -85,13 +86,14 @@ class PlacementTest {
     }
 
     @Test
-    fun `the immersive set is exactly today's seven plus the replay and its compare`() {
+    fun `the immersive set is exactly today's seven, the replay and its compare, and the Studio`() {
         val immersive = placementRows.filter { it.placement.chrome == Chrome.Immersive }.map { it.key }.toSet()
 
         assertEquals(
             setOf(
                 GameKey::class, CustomGameKey::class, ResultKey::class, CustomResultKey::class,
                 MatchLegKey::class, MatchLegResultKey::class, DuelRevealKey::class, ReplayKey::class, ReplayCompareKey::class,
+                EditorKey::class,
             ),
             immersive,
         )
@@ -108,7 +110,7 @@ class PlacementTest {
         val tabs = roots.map { it.first }
 
         assertEquals("two tab roots share a tab: $tabs", tabs.distinct(), tabs)
-        // Community is a tab only in the CustomInGames + CommunityPuzzles set, so it is not in topLevelDestinations.
+        // Community is a tab only in the CommunityPuzzles set, so it is not in topLevelDestinations.
         assertEquals(topLevelDestinations.map { it.tab }.toSet() + Tab.Community, tabs.toSet())
         assertEquals(
             "a tab root's key differs from its destination's",
@@ -118,19 +120,12 @@ class PlacementTest {
     }
 
     @Test
-    fun `every registered key resolves under the three flag states, and only the Custom keys move`() {
+    fun `every registered key resolves under the base set and the Community set, and only the Custom keys move`() {
         val keys = PlacementSamples.everyRow()
         assertEquals("a registered key has no sample to resolve", registeredKeyClasses(), keys.map { it::class }.toSet())
         val base = keys.associate { it::class to placements.getValue(it::class) }
 
         assertEquals(base, keys.associate { it::class to placementOf(it, PlacementDelta.None) })
-        assertEquals(
-            base + mapOf(
-                EditorKey::class to Placement(Home.PushedOn(Tab.Games), Chrome.Immersive),
-                PublishedPuzzleKey::class to Placement(Home.PushedOn(Tab.Games), Chrome.Bar),
-            ),
-            keys.associate { it::class to placementOf(it, customInGamesPlacement) },
-        )
         assertEquals(
             base + mapOf(
                 EditorKey::class to Placement(Home.PushedOn(Tab.Community), Chrome.Immersive),
@@ -141,6 +136,17 @@ class PlacementTest {
             ),
             keys.associate { it::class to placementOf(it, communityPlacement) },
         )
+    }
+
+    @Test
+    fun `the Studio and the published page live on Games in the base table`() {
+        assertEquals(Placement(Home.PushedOn(Tab.Games), Chrome.Immersive), placementOf(EditorKey("d1"), PlacementDelta.None))
+        assertEquals(Placement(Home.PushedOn(Tab.Games), Chrome.Bar), placementOf(PublishedPuzzleKey("K7Q2MX"), PlacementDelta.None))
+    }
+
+    @Test
+    fun `the legacy Create key resolves as retired`() {
+        assertEquals(Placement(Home.Retired, Chrome.Bar), placementOf(CreateKey, PlacementDelta.None))
     }
 
     @Test

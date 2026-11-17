@@ -16,10 +16,8 @@ import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
 import com.ivandsky.puzzlebox.create.CreateViewModel
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.editor.EditorViewModel
-import com.ivandsky.puzzlebox.create.navigation.createEntry
 import com.ivandsky.puzzlebox.create.navigation.editorEntry
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -44,7 +42,6 @@ import com.ivandsky.puzzlebox.games.strandsui.editor.StrandsEditorUi
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
-import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
@@ -85,7 +82,7 @@ class NewPuzzleSheetStrandsGateTest {
     val rule = createAndroidComposeRule<ComponentActivity>()
 
     private val drafts = FakeDraftRepository()
-    private val navigator = Navigator(NavigationState(CreateKey, listOf(listOf(CreateKey))))
+    private val navigator = customRootNavigator()
 
     @After
     fun tearDown() {
@@ -188,7 +185,7 @@ class NewPuzzleSheetStrandsGateTest {
             )
         }
         val provider = entryProvider<NavKey> {
-            createEntry(navigator)
+            customRootEntry(navigator)
             editorEntry(navigator, PlayLayout.SinglePane)
         }
         rule.setContent {
@@ -224,7 +221,7 @@ class NewPuzzleSheetStrandsGateTest {
         val ROW_WORDS = listOf("ABCDEF", "GHIJKL", "MNOPQR", "STUVWX", "YZABCD", "EFGHIJ", "KLMNOP")
         const val LAST_WORD = "QRSTUV"
         const val WAIT_MS = 10_000L
-        const val NEW = "create.new"
+        const val NEW = "custom.new"
         const val GAME = "create.new.game."
         const val SIZE = "create.new.size."
         const val PILL = "create.editor.pill"

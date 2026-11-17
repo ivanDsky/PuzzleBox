@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.app.nav
 
 import androidx.navigation3.runtime.NavKey
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
@@ -57,7 +56,7 @@ class OpenOwnerTest {
         val before = stacks(PlayKey, play = listOf(PlayKey, GameKey("zip")))
         val navigator = Navigator(before)
 
-        navigator.openOwner(HistoryRootKey, TabSet.FourTabs)
+        navigator.openOwner(HistoryRootKey, TabSet.ThreeTabs)
         navigator.pop()
 
         assertEquals(before, navigator.state)
@@ -66,12 +65,12 @@ class OpenOwnerTest {
     @Test
     fun `a pushed key is a plain push on the current tab`() {
         listOf<NavKey>(GameKey("zip"), HistoryKey("zip")).forEach { key ->
-            val before = stacks(CreateKey)
+            val before = stacks(HomeKey)
 
             val after = before.opening(key)
 
-            assertEquals("tab for $key", CreateKey, after.tab)
-            assertEquals("stack for $key", listOf(CreateKey, key), after.currentStack)
+            assertEquals("tab for $key", HomeKey, after.tab)
+            assertEquals("stack for $key", listOf(HomeKey, key), after.currentStack)
         }
     }
 
@@ -102,9 +101,9 @@ class OpenOwnerTest {
 
     @Test
     fun `with the layer open a pushed key closes it and lands on the tab under it`() {
-        val before = stacks(CreateKey).copy(layer = listOf(ProfileKey, SettingsKey))
+        val before = stacks(HomeKey).copy(layer = listOf(ProfileKey, SettingsKey))
 
-        assertEquals(stacks(CreateKey, create = listOf(CreateKey, GameKey("zip"))), before.opening(GameKey("zip")))
+        assertEquals(stacks(HomeKey, home = listOf(HomeKey, GameKey("zip"))), before.opening(GameKey("zip")))
     }
 
     @Test
@@ -116,7 +115,7 @@ class OpenOwnerTest {
         )
         val navigator = Navigator(before)
 
-        navigator.openOnOwnerTab(HistoryKey("zip"), TabSet.FourTabs)
+        navigator.openOnOwnerTab(HistoryKey("zip"), TabSet.ThreeTabs)
 
         assertEquals(HistoryRootKey, navigator.state.tab)
         assertEquals(listOf<NavKey>(HistoryRootKey, HistoryKey("zip")), navigator.state.currentStack)
@@ -132,21 +131,20 @@ class OpenOwnerTest {
     fun `a double tap on a pushed-on key switches once`() {
         val navigator = Navigator(stacks(PlayKey))
 
-        navigator.openOnOwnerTab(HistoryKey("zip"), TabSet.FourTabs)
+        navigator.openOnOwnerTab(HistoryKey("zip"), TabSet.ThreeTabs)
         val once = navigator.state
-        navigator.openOnOwnerTab(HistoryKey("zip"), TabSet.FourTabs)
+        navigator.openOnOwnerTab(HistoryKey("zip"), TabSet.ThreeTabs)
 
         assertEquals(once, navigator.state)
     }
 
     private fun NavigationState.opening(key: NavKey): NavigationState =
-        Navigator(this).apply { openOwner(key, TabSet.FourTabs) }.state
+        Navigator(this).apply { openOwner(key, TabSet.ThreeTabs) }.state
 
     private fun stacks(
         tab: NavKey,
         home: List<NavKey> = listOf(HomeKey),
         play: List<NavKey> = listOf(PlayKey),
         history: List<NavKey> = listOf(HistoryRootKey),
-        create: List<NavKey> = listOf(CreateKey),
-    ) = NavigationState(tab = tab, stacks = listOf(home, play, history, create))
+    ) = NavigationState(tab = tab, stacks = listOf(home, play, history))
 }

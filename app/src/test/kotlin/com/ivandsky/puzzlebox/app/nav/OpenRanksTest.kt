@@ -29,7 +29,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34], application = DrainTestApplication::class)
 class OpenRanksTest {
 
-    private val tabSet = TabSet.FourTabs
+    private val tabSet = TabSet.ThreeTabs
 
     /** Games with a game page and a Result on its stack: where the game page's and Result's rank links are tapped. */
     private fun onResult() = Navigator(puzzleBoxNavigationState()).also {

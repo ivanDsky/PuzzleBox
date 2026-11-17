@@ -7,7 +7,6 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.gameui.DragEvent
 import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.games.zip.Cell
@@ -106,9 +105,8 @@ class ResultIsolationE2ETest {
         tab: NavKey,
         home: List<NavKey> = listOf(HomeKey),
         play: List<NavKey> = listOf(PlayKey),
-        create: List<NavKey> = listOf(CreateKey),
         history: List<NavKey> = listOf(HistoryRootKey),
-    ) = NavigationState(tab = tab, stacks = listOf(home, play, history, create))
+    ) = NavigationState(tab = tab, stacks = listOf(home, play, history))
 
     private val todaySlot = PlaySlot.Daily(ZipDefinition.id, E2E_TODAY)
 

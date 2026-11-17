@@ -40,9 +40,9 @@ import com.ivandsky.puzzlebox.model.GameId
 private val GameRowMinHeight = 84.dp
 private const val RuleMaxLines = 2
 
-/** The first cloud restore's state (A34): the whole screen's, and each tab's own empty card while it runs. */
+/** The first cloud restore's state (A34): the whole Custom list's, while it runs. */
 @Composable
-internal fun CreateRestoring(modifier: Modifier = Modifier) {
+private fun CreateRestoring(modifier: Modifier = Modifier) {
     EmptyState(
         title = "Bringing back your puzzles…",
         message = "Your drafts and published puzzles will show up here in a moment.",
@@ -51,7 +51,7 @@ internal fun CreateRestoring(modifier: Modifier = Modifier) {
 }
 
 /**
- * The first-time Create root (spec A3; 01 handoff "Empty (first time)", option C): with no
+ * The first-time Custom list (spec A3; 01 handoff "Empty (first time)", option C): with no
  * drafts at all it lists [games] inline, each with its glyph tile, one-line rule and default
  * size, so one tap on a game starts a draft of it at that size through [onStart]. Under the
  * games, "Import from text" ([onImport]) opens the Import sheet; null leaves it out. While
@@ -201,7 +201,7 @@ private fun CreateEmptyStatePreview() {
     }
 }
 
-/** The first-time Create root while the first cloud restore runs (A34). */
+/** The first-time Custom list while the first cloud restore runs (A34). */
 @PuzzleBoxPreviews
 @Composable
 private fun CreateRestoringPreview() {

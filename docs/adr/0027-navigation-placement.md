@@ -12,9 +12,8 @@ ADR-0011 fixed how navigation moves (one immutable `NavigationState`, one stack 
 content lives*. This ADR adds that. The reducer, its verbs and its invariants stay as ADR-0011 has them. The tab set
 was fixed here at four (shipped in 0.24.0; the NavV2 flag was removed); Profile stops being a tab.
 *(Amended 2026-11-13: History's slot became Ranks, §2; the hub's release flag that gated it is deleted.)*
-*(Amended 2026-11-16, nav rethink N9, N10: the rules below are the set that applies with the CustomInGames flag on.
-The tab set is Today · Games · Ranks and making puzzles moves into Games › Custom. §12 says what applies while the
-flag is off.)*
+*(Amended 2026-11-16, nav rethink N9, N10; 2026-11-17: the CustomInGames flag shipped on and is deleted.)* The tab set
+is Today · Games · Ranks and making puzzles lives in Games › Custom; the flag-off set is gone.
 
 ## Decision
 1. **One owner.** Each content type has one owner screen. Every other screen shows at most one summary row for it, and
@@ -131,12 +130,13 @@ flag is off.)*
     No mode enums. One parameter never switches two things. The app passes the values. Cleanup deletes the null or
     default branch.
 
-    The CustomInGames entries, so code and this text agree:
+    The Custom entries, so code and this text agree:
     - `CustomSlot(content: @Composable (LazyListState, friendsEmpty: Boolean, friends: LazyListScope.() -> Unit) -> Unit)`,
-      nullable like `DuelsSlot`; `null` keeps the old Friends pill;
+      required wherever Games or Community takes it; the Games Custom pill hides itself under a Community tab;
     - game page `onMakeOne: ((GameId) -> Unit)?`; Result `onMakeOneLikeThis: ((GameId, VariantId?) -> Unit)?`; `null`
       hides the button;
-    - `TabSetSource`, which reads the flag, is the only place the tab list and placement delta are chosen.
+    - `TabSetSource`, which reads the CommunityPuzzles flag, is the only place the tab list and placement delta are
+      chosen.
 11. **Where does new content go?**
 
     | You add | It goes |
@@ -155,14 +155,12 @@ flag is off.)*
     rule (§3), not a table column. This ADR never copies the table. A Konsist rule (P9, ADR-0009 conventions)
     fails when a production `NavKey` has no row, and its failure text links this ADR.
 
-    *(Amended 2026-11-16, nav rethink N9, A2.)* **Delta placement.** While a flag is in flight, its placement is a small
-    delta over the one base table: one override row per key the flag moves, never a second full table. With
-    CustomInGames on, the delta moves the Studio (`EditorKey`) to pushed on Games with `Immersive` chrome, moves the
-    published page (`PublishedPuzzleKey`) to pushed on Games with `Bar` chrome, and drops the Create root from the tab
-    list. The lookup takes the active delta from `TabSetSource` (§10). While the flag is off the base table applies
-    unchanged: the bar keeps its four items, the old Friends pill stays, and the Custom and immersive-Studio rules
-    above wait for the flip. A test checks that every production key resolves under both flag states. Cleanup deletes
-    the delta and folds its rows into the base table.
+    *(Amended 2026-11-16, nav rethink N9, A2; 2026-11-17, cleanup 29.)* **Delta placement.** While a flag is in flight,
+    its placement is a small delta over the one base table: one override row per key the flag moves, never a second full
+    table. The CustomInGames delta (Studio pushed on Games with `Immersive` chrome, published page pushed on Games with
+    `Bar` chrome, no Create root in the tab list) is folded into the base table and deleted. The delta that remains is
+    CommunityPuzzles'. The lookup takes the active delta from `TabSetSource` (§10). A test checks that every production
+    key resolves under both tab sets. Cleanup deletes the delta and folds its rows into the base table.
 
 ## Rejected
 - **A per-key table in this ADR.** It would drift from the code on the first new key. The table is data in
@@ -186,7 +184,11 @@ flag is off.)*
 - *(Amended 2026-11-16, nav rethink N7.)* Profile and Settings live in the layer above the tabs, so Back from Profile
   always returns to the screen under the layer and a tab never comes back showing Profile. A bundle saved before the
   layer existed restores with it closed.
-- *(Amended 2026-11-16, nav rethink N9, N10.)* With the flag on, the rail drops to three items and Games gets heavier.
-  The Studio's placement moves from pushed on Create (Bar) to pushed on Games (Immersive). Saved navigation that still
-  holds the Create stack reconciles the way ADR-0011 §4 describes for a dropped tab stack.
+- *(Amended 2026-11-16, nav rethink N9, N10.)* The rail drops to three items and Games gets heavier. The Studio's
+  placement moves from pushed on Create (Bar) to pushed on Games (Immersive). Saved navigation that still holds the
+  Create stack reconciles the way ADR-0011 §4 describes for a dropped tab stack.
+- *(Amended 2026-11-17, nav rethink cleanup 29.)* The CustomInGames flag shipped in 0.34.2 and is deleted with the Create
+  tab and the Games Friends pill. `CreateKey` is the one key kept for legacy: it stays registered under its serial name
+  `com.ivandsky.puzzlebox.app.nav.Create`, so an old four-tab bundle still decodes (a bundle whose decode fails resets
+  every stack), and its `Placement.kt` row has the home `Retired`, which no tab owns. Restore drops its stack.
 - *(Done for the hub flag: the flag-off branches and tab set are deleted. `DuelsSlot`-style nullable slots for other features stay.)*

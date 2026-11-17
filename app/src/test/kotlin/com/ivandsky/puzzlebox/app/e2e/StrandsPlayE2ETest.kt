@@ -19,7 +19,6 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.play.script
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 
 import com.ivandsky.puzzlebox.game.FetchResult
@@ -236,7 +235,7 @@ class StrandsPlayE2ETest {
 
     private val playHub = NavigationState(
         tab = PlayKey,
-        stacks = listOf<List<NavKey>>(listOf(HomeKey), listOf(PlayKey), listOf(HistoryRootKey), listOf(CreateKey)),
+        stacks = listOf<List<NavKey>>(listOf(HomeKey), listOf(PlayKey), listOf(HistoryRootKey)),
     )
 
     private companion object {

@@ -21,7 +21,6 @@ import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
 import com.ivandsky.puzzlebox.create.FakeEditorController
 import com.ivandsky.puzzlebox.create.FakeGameEditorUi
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.navigation.editorEntry
 import com.ivandsky.puzzlebox.data.model.Draft
@@ -107,7 +106,7 @@ class TestSolveSessionTest {
     private val play = SandboxPlayUi(editor.gameId)
     private val drafts = FakeDraftRepository()
     private val completions = FakeCompletionRepository()
-    private val navigator = Navigator(NavigationState(CreateKey, listOf(listOf(CreateKey, EditorKey(DRAFT_ID)))))
+    private val navigator = Navigator(NavigationState(StudioRootKey, listOf(listOf(StudioRootKey, EditorKey(DRAFT_ID)))))
     private lateinit var vm: EditorViewModel
 
     private val opened = editor.draft(AidDraft(marks = 2, aid = 7))

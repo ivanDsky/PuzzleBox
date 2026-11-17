@@ -48,7 +48,7 @@ import org.junit.Test
 /**
  * The Studio's autosave wired into [EditorViewModel] (spec A5; 16 handoff): an edit is stored
  * once the 300 ms window ends, app stop and leaving the Studio store it at once, and Duplicate
- * and Delete store it first, so the copy and the Create root's Undo both have it; after
+ * and Delete store it first, so the copy and the Custom list's Undo both have it; after
  * Delete no late save brings the draft back.
  */
 class EditorAutosaveTest {

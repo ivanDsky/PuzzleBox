@@ -107,6 +107,8 @@ private fun PreviewScreen(state: LibraryUiState, layout: PlayLayout) {
                 calendar = CalendarActions(),
                 onOpenRanks = { _, _ -> },
                 onEnterCode = {},
+                custom = CustomSlot { _, _, _ -> },
+                onMakeOne = {},
             )
         }
     }

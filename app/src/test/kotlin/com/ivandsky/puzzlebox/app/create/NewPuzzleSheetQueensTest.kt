@@ -14,8 +14,6 @@ import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
 import com.ivandsky.puzzlebox.create.CreateViewModel
-import com.ivandsky.puzzlebox.create.api.CreateKey
-import com.ivandsky.puzzlebox.create.navigation.createEntry
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.CreateDraft
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
@@ -27,8 +25,8 @@ import com.ivandsky.puzzlebox.games.queens.queensPlugin
 import com.ivandsky.puzzlebox.games.queensui.editor.QueensEditorUi
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
-import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
@@ -62,7 +60,7 @@ class NewPuzzleSheetQueensTest {
 
     private val queens = QueensDefinition.id
     private val drafts = FakeDraftRepository()
-    private val navigator = Navigator(NavigationState(CreateKey, listOf(listOf(CreateKey))))
+    private val navigator = customRootNavigator()
 
     @Before
     fun setUp() {
@@ -95,7 +93,7 @@ class NewPuzzleSheetQueensTest {
         }
         rule.setContent {
             PuzzleBoxTheme {
-                entryProvider<NavKey> { createEntry(navigator) }(CreateKey).Content()
+                entryProvider<NavKey> { customRootEntry(navigator) }(PlayKey).Content()
             }
         }
     }
@@ -126,7 +124,7 @@ class NewPuzzleSheetQueensTest {
 
     private companion object {
         val NOW: Instant = Instant.parse("2026-11-06T10:00:00Z")
-        const val NEW = "create.new"
+        const val NEW = "custom.new"
         const val GAME = "create.new.game."
         const val SIZE = "create.new.size."
     }

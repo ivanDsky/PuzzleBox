@@ -5,8 +5,12 @@ import kotlinx.coroutines.flow.flowOf
 import com.ivandsky.puzzlebox.profile.settings.VisibilitySlot
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
+import com.ivandsky.puzzlebox.app.nav.Home
 import com.ivandsky.puzzlebox.app.nav.TabSet
+import com.ivandsky.puzzlebox.app.nav.placementRows
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxEntryProvider
+import com.ivandsky.puzzlebox.app.nav.testCustomSlot
+import com.ivandsky.puzzlebox.app.nav.testMakeOne
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.gameui.PlayLayout
@@ -37,20 +41,25 @@ class NavRoutesTest {
     /** A key a future surface might push before its entry is wired. */
     private data object Unregistered : NavKey
 
-    private fun provider(): (NavKey) -> NavEntry<NavKey> =
-        puzzleBoxEntryProvider(
-            navigator = Navigator(puzzleBoxNavigationState()),
-            tabSet = TabSet.FourTabs,
+    private fun provider(): (NavKey) -> NavEntry<NavKey> {
+        val navigator = Navigator(puzzleBoxNavigationState())
+        return puzzleBoxEntryProvider(
+            navigator = navigator,
+            tabSet = TabSet.ThreeTabs,
             homeLayout = HomeLayout.SinglePane,
             playLayout = PlayLayout.SinglePane,
             historyLayout = HistoryLayout.SinglePane,
+            custom = testCustomSlot(),
+            makeOne = testMakeOne(navigator),
             visibility = VisibilitySlot(flowOf(OwnTier.Unset)) {},
             tuneDefaults = testTuneDefaults(),
         )
+    }
 
     @Test
     fun `every primary-flow key resolves to a registered entry`() {
-        val keys = PlacementSamples.everyRow()
+        // A retired key (the four-tab app's Create) decodes from an old bundle but has no screen.
+        val keys = placementRows.filter { it.placement.home != Home.Retired }.map { PlacementSamples.of(it.key) }
 
         keys.forEach { key ->
             val entry = provider().invoke(key)

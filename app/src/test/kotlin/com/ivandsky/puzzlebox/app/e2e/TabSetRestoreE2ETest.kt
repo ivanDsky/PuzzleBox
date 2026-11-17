@@ -11,7 +11,6 @@ import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.nav.CatalogKey
 import com.ivandsky.puzzlebox.app.nav.NAVIGATION_STATE_KEY
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavKeys
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
@@ -30,7 +29,7 @@ import org.robolectric.annotation.Config
 /**
  * A saved navigation state restores against the fresh state of the tab set the app launched
  * with, through the reducer's unchanged `reconciledWith`: a v1 (Home, Play, Create,
- * Profile) bundle, and a four-tab bundle into the three tabs CustomInGames leaves. Each row
+ * Profile) bundle, and a four-tab bundle into the three tabs the app has now. Each row
  * asserts the restored state, the selected tab of the set on screen and its route.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -46,7 +45,7 @@ class TabSetRestoreE2ETest {
             assertState(
                 NavigationState(
                     tab = HomeKey,
-                    stacks = listOf(V1_HOME, V1_PLAY, listOf(HistoryRootKey), V1_CREATE),
+                    stacks = listOf(V1_HOME, V1_PLAY, listOf(HistoryRootKey)),
                 ),
             )
             assertRoute(RANKS)
@@ -61,7 +60,7 @@ class TabSetRestoreE2ETest {
             assertState(
                 NavigationState(
                     tab = PlayKey,
-                    stacks = listOf(V1_HOME, V1_PLAY, listOf(HistoryRootKey), V1_CREATE),
+                    stacks = listOf(V1_HOME, V1_PLAY, listOf(HistoryRootKey)),
                 ),
             )
             assertRoute(RANKS)
@@ -69,8 +68,8 @@ class TabSetRestoreE2ETest {
         }
 
     @Test
-    fun `with CustomInGames on a four-tab bundle open in the Studio on Create restores to Today with three tabs`() =
-        shellRobot(graph = shellGraph(ReleaseFlag.CustomInGames)) {
+    fun `a four-tab bundle open in the Studio on Create restores to Today with three tabs`() =
+        shellRobot {
             val fourTabs = NavigationState(
                 tab = CreateKey,
                 stacks = listOf(V1_HOME, V1_PLAY, listOf(HistoryRootKey), listOf(CreateKey, EditorKey("d1"))),
@@ -84,8 +83,8 @@ class TabSetRestoreE2ETest {
         }
 
     @Test
-    fun `with CustomInGames on the Studio opens full-window on Games and back returns to Games`() =
-        shellRobot(graph = shellGraph(ReleaseFlag.CustomInGames)) {
+    fun `the Studio opens full-window on Games and back returns to Games`() =
+        shellRobot {
             tapTab(PlayKey)
             push(EditorKey("d1"))
 

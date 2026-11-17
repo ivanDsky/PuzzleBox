@@ -8,7 +8,6 @@ import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.nav.CatalogKey
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavKeys
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
@@ -185,10 +184,10 @@ class TabNavigationE2ETest {
     @Test
     fun `SC14 the tab and every stack survive a restore, saved under 100 KB`() {
         val worst = stacks(
-            tab = CreateKey,
+            tab = HistoryRootKey,
             home = listOf(HomeKey, HistoryKey(), GameKey(QUEENS)),
             play = listOf(PlayKey, GameKey(ZIP)),
-            create = listOf(CreateKey, ProfileKey, CatalogKey),
+            history = listOf(HistoryRootKey, ProfileKey, CatalogKey),
         )
         shellRobot(worst) {
             // Visit every tab so each stack's top composes and both games are live.
@@ -197,7 +196,7 @@ class TabNavigationE2ETest {
             assertRoute(GAME)
             switchTab(PlayKey)
             assertRoute(GAME)
-            switchTab(CreateKey)
+            switchTab(HistoryRootKey)
             assertRoute(CATALOG)
 
             val bytes = savedStateBytes()
@@ -240,8 +239,7 @@ class TabNavigationE2ETest {
         home: List<NavKey> = listOf(HomeKey),
         play: List<NavKey> = listOf(PlayKey),
         history: List<NavKey> = listOf(HistoryRootKey),
-        create: List<NavKey> = listOf(CreateKey),
-    ) = NavigationState(tab = tab, stacks = listOf(home, play, history, create))
+    ) = NavigationState(tab = tab, stacks = listOf(home, play, history))
 
     private companion object {
         const val HOME = "route.home"
@@ -249,7 +247,6 @@ class TabNavigationE2ETest {
         const val HUB = "route.library"
         const val GAME = "route.game"
         const val RESULT = "route.result"
-        const val CREATE = "route.create"
         const val PROFILE = "route.profile"
         const val CATALOG = "route.catalog"
         const val ZIP = "zip"

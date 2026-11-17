@@ -28,7 +28,7 @@ import org.koin.core.parameter.parametersOf
  * The Community tab's root (nav-rethink M10-1): what Games › Custom showed, as a tab of its own. A [codeDraft] opens
  * the code sheet with that text in the field and is handed back through [onCodeDraftTaken]; the sheet's code opens
  * through [onOpen], and a code that names a duel through [onOpenDuel] (null: duels are off, the sheet never tries a
- * code as one). Without a [custom] slot there is nothing to show.
+ * code as one).
  *
  * On the phone it is three tabs under the head ([CommunityTabs]: New today, Friends, Yours) and a row opens a page of
  * its own through [onOpen]. [PlayLayout.TwoPane] is Games' two-pane ([CommunityPanes]): the same three tabs at Games'
@@ -39,7 +39,7 @@ import org.koin.core.parameter.parametersOf
 @Composable
 internal fun CommunityRoute(
     layout: PlayLayout,
-    custom: CustomSlot?,
+    custom: CustomSlot,
     onOpen: (ShareCode) -> Unit,
     onPlay: (CustomGameKey) -> Unit,
     modifier: Modifier = Modifier,
@@ -47,7 +47,6 @@ internal fun CommunityRoute(
     onCodeDraftTaken: () -> Unit = {},
     onOpenDuel: ((DuelKey) -> Unit)? = null,
 ) {
-    if (custom == null) return
     val viewModel: LibraryViewModel = koinViewModel(parameters = { parametersOf(false) })
     val friends by viewModel.friends.collectAsStateWithLifecycle()
     val removedFriend by viewModel.removedFriend.collectAsStateWithLifecycle()

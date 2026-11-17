@@ -16,7 +16,6 @@ import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
 import com.ivandsky.puzzlebox.create.FakeGameEditor
 import com.ivandsky.puzzlebox.create.FakeGameEditorUi
 import com.ivandsky.puzzlebox.create.TestDraft
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.navigation.editorEntry
 import com.ivandsky.puzzlebox.data.identity.AuthError
@@ -92,7 +91,7 @@ class PublishSignInTest {
     private val shared = FakeSharedPuzzleRepository().apply { signedInUid = AUTHOR.uid }
     private val identity = FakeIdentityService(initial = null, signInResult = AuthResult.Ok(AUTHOR))
     private val idTokens = FakeGoogleIdTokenProvider(GoogleIdToken.Available(TOKEN))
-    private val navigator = Navigator(NavigationState(CreateKey, listOf(listOf(CreateKey, EditorKey(DRAFT_ID)))))
+    private val navigator = Navigator(NavigationState(StudioRootKey, listOf(listOf(StudioRootKey, EditorKey(DRAFT_ID)))))
     private lateinit var vm: EditorViewModel
 
     @After

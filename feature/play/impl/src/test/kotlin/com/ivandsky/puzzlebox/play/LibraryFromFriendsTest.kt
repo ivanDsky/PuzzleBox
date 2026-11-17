@@ -155,7 +155,7 @@ class LibraryFromFriendsTest {
     private fun setContent() {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                LibraryRoute(layout = PlayLayout.SinglePane, onPlay = { _, _ -> }, onOpenCode = { opened.add(it) }, onOpenRanks = { _, _ -> })
+                LibraryRoute(layout = PlayLayout.SinglePane, onPlay = { _, _ -> }, onOpenCode = { opened.add(it) }, onOpenRanks = { _, _ -> }, custom = CustomSlot { _, _, _ -> }, onMakeOne = {})
             }
         }
     }

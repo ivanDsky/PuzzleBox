@@ -10,7 +10,7 @@ import com.ivandsky.puzzlebox.navigation.Navigator
  * - A key whose home is `TabRoot(tab)` switches to that tab at its root ([Navigator.switchTo]); nothing
  *   is pushed, and one back returns to the screen the link was tapped on. The owner key is found by
  *   [TopLevelDestination.tab], because the placement table names tabs, not the stacks that exist.
- * - Every other key (`PushedOn`, `Shell`, `DebugOnly`) is a plain push on the current tab.
+ * - Every other key (`PushedOn`, `Shell`, `DebugOnly`, `Retired`) is a plain push on the current tab.
  *
  * A door out of the Profile layer closes the layer on the way: the verb does that in the
  * reducer, so the owner's screen is never left under it.

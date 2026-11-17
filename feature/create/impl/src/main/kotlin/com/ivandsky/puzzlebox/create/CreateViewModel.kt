@@ -42,28 +42,26 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
- * The Create root: lists the stored drafts and starts new ones. The New puzzle sheet and the
+ * The Custom list's state: lists the stored drafts and starts new ones. The New puzzle sheet and the
  * empty state offer every game with an editor UI ([GameEditorRegistry.ids], registration
  * order) whose plugin carries the editor, each at exactly its editor's variants (spec A1, A5)
  * with the middle one as its default size, under its [GamePlayRegistry] brand.
  *
- * Each row's verdict chip (spec A7 on the root) is `analyze(draft, Budget.within(1_500…))` on
+ * Each row's verdict chip (spec A7) is `analyze(draft, Budget.within(1_500…))` on
  * [DispatcherProvider.default], cached by (id, updatedAt): a draft is analysed again only after
  * an edit. While FinishForMe is on a chip's level is the game's scored one, as in the Studio (90).
- * The search and game filter apply only past [SEARCH_THRESHOLD] drafts.
  *
  * A row's actions (01 handoff "Draft actions sheet"): [duplicate] stores a copy without the
  * test solve; [delete] removes the draft at once and offers [undoDelete] for [DRAFT_UNDO_WINDOW_MS],
  * which stores the very same draft again, so it returns to its place in the list.
  *
- * The [CreateUiState.Tab.Published] tab lists [published]'s rows, newest first; a draft kept
- * under a published code is that puzzle's board, so it leaves the Drafts tab, its counts, its
- * search and its verdict chips. Each time that tab shows, [syncSolves] refreshes the rows' solve
- * counts in the background; the list never waits for it, and the cached counts show meanwhile.
+ * A draft kept under a published code is that puzzle's board, so it leaves the drafts, their count and their
+ * verdict chips; [published]'s rows list newest first. [syncSolveCounts] refreshes the rows' solve counts in the
+ * background; the list never waits for it, and the cached counts show meanwhile.
  *
  * [importText] owns the Import from text sheet. An imported draft is sent on [created], like a new one. A Studio's
  * import hands its draft to the next Studio through [importedNotice]. Text another app shared
- * ([SharedTextStore]) goes through that same sheet while the root is resumed
+ * ([SharedTextStore]) goes through that same sheet while the list is resumed
  * ([importSharedText]).
  *
  * [CreateUiState.restoring] is true while the cloud's first restore on this device runs (A34):
@@ -101,10 +99,6 @@ class CreateViewModel(
         )
     }
 
-    private val query = MutableStateFlow("")
-    private val filter = MutableStateFlow<GameId?>(null)
-    private val tab = MutableStateFlow(CreateUiState.Tab.Drafts)
-
     private val analysis = DraftAnalysis(viewModelScope, games, dispatchers, nanoTime) {
         if (releaseFlags?.isEnabled(ReleaseFlag.FinishForMe) == true) GradingMode.Scored else GradingMode.Legacy
     }
@@ -121,31 +115,13 @@ class CreateViewModel(
         combine(
             listed(),
             analysis.verdicts,
-            combine(query, filter, tab.onEach(::syncWhenPublished), ::View),
             deleted,
             restoring,
-        ) { listed, settled, view, removed, restoring ->
-            stateOf(listed, settled, view, removed, editorGames, clock(), games, editors, plays).copy(restoring = restoring)
+        ) { listed, settled, removed, restoring ->
+            stateOf(listed, settled, removed, editorGames, clock(), games, editors, plays).copy(restoring = restoring)
         }.stateIn(
             viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CreateUiState(games = editorGames),
         )
-
-    fun onQuery(text: String) {
-        query.value = text
-    }
-
-    /** Shows [shown]'s list; a switch starts it unsearched and unfiltered. */
-    fun onTab(shown: CreateUiState.Tab) {
-        if (tab.value == shown) return
-        tab.value = shown
-        query.value = ""
-        filter.value = null
-    }
-
-    /** Shows only [game]'s drafts; null shows every game. */
-    fun onFilter(game: GameId?) {
-        filter.value = game
-    }
 
     private val createdIds = Channel<String>(Channel.BUFFERED)
 
@@ -165,7 +141,7 @@ class CreateViewModel(
      * [SharedTextStore] is taken once, then [importText] opens the sheet and submits it, so a
      * good one is sent on [created] and an error stays on the open sheet. A text that arrives
      * during a check stays in the store until that check ends, so two shares import one after
-     * the other. Runs until cancelled; the Create root runs it while it is resumed, so nothing
+     * the other. Runs until cancelled; the Custom list runs it while it is resumed, so nothing
      * is taken while another screen covers it or a transition is still settling.
      */
     suspend fun importSharedText() {
@@ -237,11 +213,6 @@ class CreateViewModel(
     /** Clears the notice for [draftId] only, so a newer import's notice is never lost. */
     fun consumeImportedNotice(draftId: String) {
         importedDraft.compareAndSet(draftId, null)
-    }
-
-    /** The Published tab showing (on a switch or a return to Create) asks for fresh counts. */
-    private fun syncWhenPublished(shown: CreateUiState.Tab) {
-        if (shown == CreateUiState.Tab.Published) syncSolveCounts()
     }
 
     /** Asks for the published puzzles' fresh solve counts, one sync at a time; the Custom list asks when it shows. */

@@ -30,7 +30,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
@@ -56,14 +55,11 @@ class TopLevelNavBarTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun `tabs are today, games, history, create in that order`() {
-        assertEquals(listOf("Today", "Games", "Ranks", "Create"), topLevelDestinations.map { it.label })
-        assertEquals(
-            listOf("nav.tab.home", "nav.tab.play", "nav.tab.ranks", "nav.tab.create"),
-            topLevelDestinations.map { it.tag },
-        )
-        assertEquals(listOf(HomeKey, PlayKey, HistoryRootKey, CreateKey), topLevelDestinations.map { it.key })
-        assertEquals(listOf(Tab.Today, Tab.Games, Tab.History, Tab.Create), topLevelDestinations.map { it.tab })
+    fun `tabs are today, games, ranks in that order`() {
+        assertEquals(listOf("Today", "Games", "Ranks"), topLevelDestinations.map { it.label })
+        assertEquals(listOf("nav.tab.home", "nav.tab.play", "nav.tab.ranks"), topLevelDestinations.map { it.tag })
+        assertEquals(listOf(HomeKey, PlayKey, HistoryRootKey), topLevelDestinations.map { it.key })
+        assertEquals(listOf(Tab.Today, Tab.Games, Tab.History), topLevelDestinations.map { it.tab })
     }
 
     @Test
@@ -82,42 +78,22 @@ class TopLevelNavBarTest {
     private fun ImageVector.pathData() = root.mapNotNull { (it as? VectorPath)?.pathData }
 
     @Test
-    fun `bar shows four tabs, no profile, and highlights exactly the selected one`() {
+    fun `bar shows three tabs, no profile, no create, and highlights exactly the selected one`() {
         assertHighlight { selected, onSelect -> TopLevelNavBar(selected = selected, onSelect = onSelect) }
         assertOnlyTabs(topLevelDestinations)
+        assertNoCreateTab()
     }
 
     @Test
-    fun `rail shows four tabs, no profile, and highlights exactly the selected one`() {
+    fun `rail shows three tabs, no profile, no create, and highlights exactly the selected one`() {
         assertHighlight { selected, onSelect ->
             TopLevelNavRail(selected = selected, onSelect = onSelect, bottomActions = RAIL_SLOT)
         }
         assertOnlyTabs(topLevelDestinations)
-    }
-
-    @Test
-    fun `with CustomInGames on the bar shows today, games, ranks and no create`() {
-        assertHighlight(customInGamesDestinations) { selected, onSelect ->
-            TopLevelNavBar(selected = selected, onSelect = onSelect, destinations = customInGamesDestinations)
-        }
-        assertNoCreateTab()
-    }
-
-    @Test
-    fun `with CustomInGames on the rail shows today, games, ranks and no create`() {
-        assertHighlight(customInGamesDestinations) { selected, onSelect ->
-            TopLevelNavRail(
-                selected = selected,
-                onSelect = onSelect,
-                destinations = customInGamesDestinations,
-                bottomActions = RAIL_SLOT,
-            )
-        }
         assertNoCreateTab()
     }
 
     private fun assertNoCreateTab() {
-        assertOnlyTabs(customInGamesDestinations)
         listOf("nav.tab.home", "nav.tab.play", "nav.tab.ranks").forEach { composeRule.onAllNodesWithTag(it).assertCountEquals(1) }
         composeRule.onAllNodesWithTag("nav.tab.create").assertCountEquals(0)
     }

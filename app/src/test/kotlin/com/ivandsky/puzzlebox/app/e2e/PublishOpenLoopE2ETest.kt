@@ -4,8 +4,6 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTextInput
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.model.TestSolve
@@ -41,8 +39,7 @@ import org.robolectric.annotation.Config
  * The sharing loop over the real shell: a signed-in author publishes a ready Queens draft from
  * the Studio and reads its code; a friend enters that code in Play, opens the card, plays the
  * puzzle to the win and lands on its result, whose Done returns to the card, now reading Solved.
- * With CustomInGames on the author reaches the draft through Games › Custom and leaves the
- * full-window Studio with Back.
+ * The author reaches the draft through Games › Custom and leaves the full-window Studio with Back.
  */
 @RunWith(RobolectricTestRunner::class)
 // DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -55,8 +52,7 @@ class PublishOpenLoopE2ETest {
     private val published = FakePublishedPuzzleRepository()
     private val received = FakeReceivedPuzzleRepository()
 
-    private fun graph(vararg flags: ReleaseFlag) = shellGraph(
-        *flags,
+    private fun graph() = shellGraph(
         overrides = module {
             single<DraftRepository> { drafts }
             single<SharedPuzzleRepository> { shared }
@@ -66,20 +62,9 @@ class PublishOpenLoopE2ETest {
     )
 
     @Test
-    fun `a published draft opens by its code and its solve lands on its result, then the card reads solved`() =
+    fun `a draft published from Games' Custom opens by its code and its solve lands on its result, then the card reads solved`() =
         publishOpenLoop(
             graph(),
-            openDraft = {
-                tapTab(CreateKey)
-                tap("create.draft.row")
-            },
-            toGames = { tapTab(PlayKey) },
-        )
-
-    @Test
-    fun `with CustomInGames on a draft published from Games' Custom opens by its code and its solve lands on its result`() =
-        publishOpenLoop(
-            graph(ReleaseFlag.CustomInGames),
             openDraft = {
                 tapTab(PlayKey)
                 tap("library.tab.custom")

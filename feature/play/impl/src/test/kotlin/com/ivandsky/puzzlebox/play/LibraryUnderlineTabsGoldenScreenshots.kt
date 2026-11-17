@@ -34,7 +34,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Games (nav-rethink 125), phone and tablet, light and dark: the underline strip with the Duels need-you badge over
- * each of Dailies, Friends and Duels, and over Custom with a Custom slot. Goldens in `snapshots/underline-tabs/`.
+ * each of Dailies, Duels and Custom. Goldens in `snapshots/underline-tabs/`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -67,16 +67,13 @@ abstract class LibraryUnderlineTabsGoldenScreenshots(private val layout: PlayLay
     @Test fun `dailies light`() = capture("underline-dailies", GamesTab.Dailies, dark = false)
     @Test fun `dailies dark`() = capture("underline-dailies", GamesTab.Dailies, dark = true)
 
-    @Test fun `friends light`() = capture("underline-friends", GamesTab.Friends, dark = false)
-    @Test fun `friends dark`() = capture("underline-friends", GamesTab.Friends, dark = true)
-
     @Test fun `duels light`() = capture("underline-duels", GamesTab.Duels, dark = false)
     @Test fun `duels dark`() = capture("underline-duels", GamesTab.Duels, dark = true)
 
-    @Test fun `custom light`() = capture("underline-custom", GamesTab.Custom, dark = false, custom = CUSTOM)
-    @Test fun `custom dark`() = capture("underline-custom", GamesTab.Custom, dark = true, custom = CUSTOM)
+    @Test fun `custom light`() = capture("underline-custom", GamesTab.Custom, dark = false)
+    @Test fun `custom dark`() = capture("underline-custom", GamesTab.Custom, dark = true)
 
-    private fun capture(name: String, tab: GamesTab, dark: Boolean, custom: CustomSlot? = null) {
+    private fun capture(name: String, tab: GamesTab, dark: Boolean) {
         rule.showGolden(dark) {
             LibraryScreen(
                 state = STATE,
@@ -90,10 +87,11 @@ abstract class LibraryUnderlineTabsGoldenScreenshots(private val layout: PlayLay
                 onOpenLesson = {},
                 calendar = CalendarActions(),
                 onOpenRanks = { _, _ -> },
-                friends = if (custom == null) FriendPreviewCards else listOf(FriendPreviewCards[0], FriendPreviewCards[3]),
+                friends = listOf(FriendPreviewCards[0], FriendPreviewCards[3]),
                 onEnterCode = {},
                 duels = DUELS,
-                custom = custom,
+                custom = CUSTOM,
+                onMakeOne = {},
             )
         }
         rule.mainClock.advanceTimeBy(SETTLE_MS)

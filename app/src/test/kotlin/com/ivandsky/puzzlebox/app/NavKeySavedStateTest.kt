@@ -41,7 +41,7 @@ class NavKeySavedStateTest {
      * Every key in the placement table. A live root (a key of [topLevelDestinations]) sits at index 0 of its own stack, because a
      * root is only allowed there; every other key goes on the stack of the destination whose
      * [TopLevelDestination.tab] is the key's home tab, or on stack 0 when the key has no tab
-     * (Shell, DebugOnly).
+     * (Shell, DebugOnly, the legacy Create key).
      */
     private val everyKey: NavigationState = run {
         val roots = topLevelDestinations.map { it.key }
@@ -59,7 +59,7 @@ class NavKeySavedStateTest {
     private fun homeTab(key: NavKey): Tab? = when (val home = placementOf(key, PlacementDelta.None).home) {
         is Home.TabRoot -> home.tab
         is Home.PushedOn -> home.tab
-        Home.Shell, Home.DebugOnly -> null
+        Home.Shell, Home.DebugOnly, Home.Retired -> null
     }
 
     /**

@@ -10,9 +10,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.LocalSaveableStateRegistry
 import androidx.compose.runtime.saveable.SaveableStateRegistry
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.navigation3.runtime.NavBackStack
@@ -84,7 +86,7 @@ class PerTabShellTest {
                 PuzzleBoxApplication.appModules + module {
                     // Home prefetches today's puzzles on resume: every game's fetch is scripted.
                     single<DailyRepository> { freshDailyForAllGames() }
-                    // These pin the four-tab bar (the flag-off set): CustomInGames is off explicitly, whatever the release default.
+                    // No release flag on: the base three tabs, whatever the release default.
                     single<ReleaseFlags> { FakeReleaseFlags() }
                     single<CompletionRepository> { FakeCompletionRepository() }
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
@@ -170,7 +172,7 @@ class PerTabShellTest {
         restoration.setContent { Shell() }
         composeRule.runOnIdle {
             navigator.push(HistoryKey())
-            navigator.selectTab(CreateKey)
+            navigator.selectTab(PlayKey)
             navigator.push(CatalogKey)
         }
         val before = state()
@@ -178,7 +180,7 @@ class PerTabShellTest {
         restoration.emulateSavedInstanceStateRestore()
 
         assertEquals(before, state())
-        composeRule.onNodeWithTag(CREATE_TAB).assertIsSelected()
+        composeRule.onNodeWithTag(PLAY_TAB).assertIsSelected()
     }
 
     @Test
@@ -189,7 +191,7 @@ class PerTabShellTest {
             puzzleBoxNavKeys,
         )
 
-        restoreShellWith(legacy) { navigator.selectTab(CreateKey) }
+        restoreShellWith(legacy) { navigator.selectTab(PlayKey) }
 
         assertEquals(puzzleBoxNavigationState(), state())
         composeRule.onNodeWithTag(HOME_TAB).assertIsSelected()
@@ -197,28 +199,68 @@ class PerTabShellTest {
 
     @Test
     fun `a restored state missing a tab gains that tab's root`() {
-        val withoutPlay = NavigationState(
-            tab = CreateKey,
-            stacks = listOf(listOf(HomeKey), listOf(CreateKey, CatalogKey)),
+        val withoutRanks = NavigationState(
+            tab = PlayKey,
+            stacks = listOf(listOf(HomeKey), listOf(PlayKey, CatalogKey)),
         )
-        val saved = savedState {
-            putSavedState(
-                NAVIGATION_STATE_KEY,
-                encodeToSavedState(NavigationState.serializer(), withoutPlay, puzzleBoxNavKeys),
-            )
-        }
 
-        restoreShellWith(saved)
+        restoreShellWith(savedNavigation(withoutRanks))
 
         assertEquals(
             NavigationState(
-                tab = CreateKey,
-                stacks = listOf(listOf(HomeKey), listOf(PlayKey), listOf(HistoryRootKey), listOf(CreateKey, CatalogKey)),
+                tab = PlayKey,
+                stacks = listOf(listOf(HomeKey), listOf(PlayKey, CatalogKey), listOf(HistoryRootKey)),
             ),
             state(),
         )
-        composeRule.onNodeWithTag(CREATE_TAB).assertIsSelected()
+        composeRule.onNodeWithTag(PLAY_TAB).assertIsSelected()
         composeRule.onNodeWithTag(CATALOG_LINK).assertDoesNotExist()
+    }
+
+    @Test
+    fun `a legacy four-tab state with a Create stack restores into three tabs and drops that stack`() {
+        val legacy = NavigationState(
+            tab = PlayKey,
+            stacks = listOf(
+                listOf(HomeKey),
+                listOf(PlayKey, CatalogKey),
+                listOf(HistoryRootKey),
+                listOf(CreateKey, CatalogKey),
+            ),
+        )
+
+        restoreShellWith(savedNavigation(legacy))
+
+        assertEquals(
+            NavigationState(
+                tab = PlayKey,
+                stacks = listOf(listOf(HomeKey), listOf(PlayKey, CatalogKey), listOf(HistoryRootKey)),
+            ),
+            state(),
+        )
+        composeRule.onNodeWithTag(PLAY_TAB).assertIsSelected()
+        composeRule.onAllNodesWithTag(CREATE_TAB).assertCountEquals(0)
+    }
+
+    @Test
+    fun `a legacy state saved on the Create stack restores to Today and drops its stack`() {
+        val legacy = NavigationState(
+            tab = CreateKey,
+            stacks = listOf(listOf(HomeKey), listOf(PlayKey), listOf(HistoryRootKey), listOf(CreateKey, CatalogKey)),
+        )
+
+        restoreShellWith(savedNavigation(legacy))
+
+        assertEquals(puzzleBoxNavigationState(), state())
+        composeRule.onNodeWithTag(HOME_TAB).assertIsSelected()
+        composeRule.onAllNodesWithTag(CREATE_TAB).assertCountEquals(0)
+    }
+
+    private fun savedNavigation(saved: NavigationState): Bundle = savedState {
+        putSavedState(
+            NAVIGATION_STATE_KEY,
+            encodeToSavedState(NavigationState.serializer(), saved, puzzleBoxNavKeys),
+        )
     }
 
     /**
@@ -257,6 +299,7 @@ class PerTabShellTest {
     private companion object {
         const val HOME_TAB = "nav.tab.home"
         const val RANKS_TAB = "nav.tab.ranks"
+        const val PLAY_TAB = "nav.tab.play"
         const val CREATE_TAB = "nav.tab.create"
         const val CATALOG_LINK = "settings.catalog"
     }

@@ -55,7 +55,7 @@ val appModule = module {
     } onClose { it?.cancel() }
     // Home or the shell flips it; the splash policy reads it.
     single { FirstScreenReady() }
-    // The tab set and its placement delta; the only reader of the CustomInGames flag (ADR-0027 §10).
+    // The tab set and its placement delta; the only reader of the CommunityPuzzles flag (ADR-0027 §10).
     single { TabSetSource(get()) }
     // TabletCrossfade, read once here; the nav shell takes the Boolean (ADR-0022).
     single { TabletCrossfadeSource(get()) }

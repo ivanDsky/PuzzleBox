@@ -23,12 +23,6 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     FlatStrands(label = "Flat Strands board", releaseDefault = false),
 
     /**
-     * Custom inside Games and a full-screen Studio: Create stops being a tab, Games gets a Custom pill, and the Studio
-     * hides the bar (nav-rethink N9, N10). Read only in a ViewModel, a DI module or the app-graph `TabSetSource` (ADR-0027 §10).
-     */
-    CustomInGames(label = "Custom inside Games, full-screen Studio", releaseDefault = true),
-
-    /**
      * The readable board look (nav-rethink B3): shared board tokens and geometry for all five games. Read only by the app's
      * root theme, which hands the theme one Boolean (spec A2).
      */

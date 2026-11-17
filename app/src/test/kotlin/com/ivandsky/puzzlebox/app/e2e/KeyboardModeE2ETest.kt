@@ -8,6 +8,7 @@ import android.view.WindowManager
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.v2.AndroidComposeTestRule as v2AndroidComposeTestRule
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -15,19 +16,9 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.MainActivity
-import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
-import com.ivandsky.puzzlebox.game.GameRegistry
-import com.ivandsky.puzzlebox.game.editor.DraftState
-import com.ivandsky.puzzlebox.game.editor.EditorDraft
-import com.ivandsky.puzzlebox.games.queens.QueensVariants
-import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
-import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
-import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import java.time.Duration
-import java.time.Instant
-import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -42,8 +33,8 @@ import org.robolectric.annotation.Config
 /**
  * Device check R3: the keyboard adjusts the app's window by resize, never by pan (a pan slid the
  * Studio's top bar under the status bar, and below API 30 left no IME inset to scroll by). The
- * manifest declares it on [MainActivity], so the system never re-picks pan, and the Create
- * root's search field, the main window's other text field, still filters under it.
+ * manifest declares it on [MainActivity], so the system never re-picks pan, and the import
+ * sheet's text field under Games' Custom pill, the main window's other text field, still takes input under it.
  */
 @RunWith(RobolectricTestRunner::class)
 // DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -66,42 +57,16 @@ class KeyboardModeE2ETest {
     }
 
     @Test
-    fun `the Create search field filters drafts in the resizing window`() {
+    fun `the Custom import sheet's text field takes input in the resizing window`() {
         graph.start()
-        seedDrafts()
         launching {
             assertEquals(RESIZE, rule.activity.window.attributes.softInputMode and ADJUST)
-            tap("nav.tab.create")
-            awaitIdling { count(ROW) > 1 }
-            tap(SEARCH)
-            rule.onNodeWithTag(SEARCH).performTextInput("Castle 3")
-            awaitIdling { count(ROW) == 1 }
-        }
-    }
-
-    /** More drafts than the search threshold (8), so the search field shows. */
-    private fun seedDrafts() {
-        val editor = checkNotNull(graph.koin.get<GameRegistry>()[GameId("queens")]?.editor)
-        val board = EditorDraft(QueensEditor, DraftState(QueensDraft(SIZE, List(SIZE * SIZE) { 0 })))
-        runBlocking {
-            repeat(DRAFTS) { index ->
-                drafts.upsert(
-                    Draft(
-                        id = "castle-$index",
-                        gameId = GameId("queens"),
-                        variant = QueensVariants.variant(SIZE).id,
-                        draftFormatVersion = editor.draftFormatVersion,
-                        blob = board.encode(),
-                        title = "Castle $index",
-                        updatedAt = Instant.parse("2026-01-01T00:00:00Z").plusSeconds(index.toLong()),
-                        testSolve = null,
-                        reservedCode = null,
-                        imported = false,
-                        authorName = "",
-                        note = "",
-                    ),
-                )
-            }
+            tap("nav.tab.play")
+            tap(CUSTOM_PILL)
+            tap(IMPORT)
+            tap(TEXT)
+            rule.onNodeWithTag(TEXT).performTextInput("puzzlebox queens v1")
+            rule.onNodeWithTag(TEXT).assertTextContains("puzzlebox queens v1", substring = true)
         }
     }
 
@@ -144,10 +109,9 @@ class KeyboardModeE2ETest {
         // platform has no non-deprecated constant for reading that mode back from the window.
         @Suppress("DEPRECATION")
         const val RESIZE = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
-        const val ROW = "create.draft.row"
-        const val SEARCH = "create.search"
-        const val DRAFTS = 9
-        const val SIZE = 5
+        const val CUSTOM_PILL = "library.tab.custom"
+        const val IMPORT = "create.empty.import"
+        const val TEXT = "create.import.text"
         const val TIMEOUT_MS = 10_000L
         const val IDLE_STEP_MS = 50L
     }

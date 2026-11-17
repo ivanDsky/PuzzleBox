@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.app.e2e
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isEnabled
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.model.TestSolve
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
@@ -11,6 +10,7 @@ import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
+import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import kotlinx.coroutines.runBlocking
 import org.koin.dsl.module
@@ -42,7 +42,8 @@ internal class TestSolveWorld(vararg flags: ReleaseFlag) {
     /** Keeps [board] as an untested draft titled [title], opens it in the Studio and taps Test solve once it is offered. */
     fun startTestSolve(robot: ShellRobot, board: EditorDraft<*>, title: String) = with(robot) {
         runBlocking { drafts.upsert(readyDraft(board, title).copy(testSolve = null)) }
-        tapTab(CreateKey)
+        tapTab(PlayKey)
+        tap("library.tab.custom")
         tap("create.draft.row")
         testSolveAgain(this)
     }

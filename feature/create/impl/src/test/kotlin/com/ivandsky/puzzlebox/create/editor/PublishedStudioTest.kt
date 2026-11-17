@@ -27,7 +27,6 @@ import com.ivandsky.puzzlebox.create.FakeEditorController
 import com.ivandsky.puzzlebox.create.FakeGameEditor
 import com.ivandsky.puzzlebox.create.FakeGameEditorUi
 import com.ivandsky.puzzlebox.create.TestDraft
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.navigation.editorEntry
 import com.ivandsky.puzzlebox.data.identity.Identity
@@ -108,7 +107,7 @@ class PublishedStudioTest {
     private val shared = FakeSharedPuzzleRepository().apply { signedInUid = AUTHOR.uid }
     private val published = FakePublishedPuzzleRepository()
     private val identity = FakeIdentityService(initial = AUTHOR)
-    private val navigator = Navigator(NavigationState(CreateKey, listOf(listOf(CreateKey, EditorKey(DRAFT_ID)))))
+    private val navigator = Navigator(NavigationState(StudioRootKey, listOf(listOf(StudioRootKey, EditorKey(DRAFT_ID)))))
     private lateinit var vm: EditorViewModel
 
     @After
@@ -225,7 +224,7 @@ class PublishedStudioTest {
 
         composeRule.onNodeWithTag(BACK).performClick()
 
-        awaitTrue { navigator.state.currentStack.last() == CreateKey }
+        awaitTrue { navigator.state.currentStack.last() == StudioRootKey }
     }
 
     @Test
@@ -307,7 +306,7 @@ class PublishedStudioTest {
                 },
             )
         }
-        // Create's root is another entry's screen; landing there is the navigator's top.
+        // The Studio's root is another entry's screen; landing there is the navigator's top.
         val entries = entryProvider<NavKey>(fallback = { unknown -> NavEntry(unknown) {} }) {
             editorEntry(navigator, PlayLayout.SinglePane)
         }

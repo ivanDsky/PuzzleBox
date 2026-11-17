@@ -40,7 +40,7 @@ import org.koin.compose.koinInject
  * scenes' scrims ([LocalNavMotion]). On the tablet form a push of a game whose card is on
  * screen lifts out of that card ([NavLift]), and its pop shrinks back into it. System back is
  * [Navigator.pop]: it pops the layer while that is open, else the current tab, returns a
- * Games/History/Create root to Today, and at the
+ * Games/History root to Today, and at the
  * Home root returns false so the back press falls through and the app exits.
  *
  * Play lifetime: whenever the stacks change the shell hands every key they
@@ -52,8 +52,8 @@ import org.koin.compose.koinInject
  * [codeDraft] and [onCodeDraftTaken] reach the Play library: a draft opens its code sheet.
  * [libraryRequests] is the one-shot Games request: Games reads its pending value and takes it.
  * [duels], when given, adds the Duels tab and
- * lets Enter code open a duel. [custom], when given, fills the Games Custom pill, and [makeOne] backs the
- * Make-one doors on the game page and the Result; both are null until Custom lives in Games. The shell draws the
+ * lets Enter code open a duel. [custom] fills the Games Custom pill (or the Community tab), and [makeOne] backs the
+ * Make-one door on the game page. The shell draws the
  * avatar ([ShellAvatar]) over [identityService]'s signed-in player: in Today's header on the
  * phone, at the rail's bottom on the tablet. Settings is reached through Profile's gear.
  * [tabletCrossfade] is the app graph's TabletCrossfade flag: on the tablet, tab switches and in-tab page changes
@@ -71,8 +71,8 @@ internal fun PuzzleBoxNavShell(
     codeDraft: () -> String? = { null },
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
-    custom: CustomSlot? = null,
-    makeOne: MakeOne? = null,
+    custom: CustomSlot,
+    makeOne: MakeOne,
     libraryRequests: LibraryRequests = rememberLibraryRequests(),
     tabletCrossfade: Boolean = rememberTabletCrossfade(),
     store: PlaySessionStore = koinInject(),

@@ -123,7 +123,7 @@ val dataModule = module {
     single<FinalBoardStore> { RoomFinalBoardStore(get()) }
     // Process-wide so the 15-minute update-check throttle survives screen changes.
     single<AppReleaseRepository> { NetworkAppReleaseRepository(get()) }
-    // Shared-text hand-off: app puts, the Create root takes it exactly once. In memory
+    // Shared-text hand-off: app puts, the Custom body takes it exactly once. In memory
     // only — the shared text is transient, never persisted, never in a NavKey.
     single<SharedTextStore> { InMemorySharedTextStore() }
     // The LinkedIn budget is one instance for the process, so every day shares the same per-minute window.

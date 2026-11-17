@@ -17,10 +17,8 @@ import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
 import com.ivandsky.puzzlebox.create.CreateViewModel
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.editor.EditorViewModel
-import com.ivandsky.puzzlebox.create.navigation.createEntry
 import com.ivandsky.puzzlebox.create.navigation.editorEntry
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.CreateDraft
@@ -41,7 +39,6 @@ import com.ivandsky.puzzlebox.games.zipui.editor.ZipEditorUi
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
-import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
@@ -82,7 +79,7 @@ class NewPuzzleSheetZipGateTest {
 
     private val zip = ZipDefinition.id
     private val drafts = FakeDraftRepository()
-    private val navigator = Navigator(NavigationState(CreateKey, listOf(listOf(CreateKey))))
+    private val navigator = customRootNavigator()
 
     @After
     fun tearDown() {
@@ -181,7 +178,7 @@ class NewPuzzleSheetZipGateTest {
             PuzzleBoxTheme {
                 val entries = remember {
                     entryProvider<NavKey> {
-                        createEntry(navigator)
+                        customRootEntry(navigator)
                         editorEntry(navigator, PlayLayout.SinglePane)
                     }
                 }
@@ -193,7 +190,7 @@ class NewPuzzleSheetZipGateTest {
     private companion object {
         val NOW: Instant = Instant.parse("2026-11-06T10:00:00Z")
         const val WAIT_MS = 10_000L
-        const val NEW = "create.new"
+        const val NEW = "custom.new"
         const val GAME = "create.new.game."
         const val SIZE = "create.new.size."
         const val PILL = "create.editor.pill"

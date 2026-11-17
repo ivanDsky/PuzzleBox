@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.app.nav
 
 import androidx.navigation3.runtime.NavKey
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.navigation.NavigationState
@@ -34,5 +33,5 @@ class OpenProfileTest {
     private fun stacks(
         tab: NavKey,
         home: List<NavKey> = listOf(HomeKey),
-    ) = NavigationState(tab = tab, stacks = listOf(home, listOf(PlayKey), listOf(HistoryRootKey), listOf(CreateKey)))
+    ) = NavigationState(tab = tab, stacks = listOf(home, listOf(PlayKey), listOf(HistoryRootKey)))
 }

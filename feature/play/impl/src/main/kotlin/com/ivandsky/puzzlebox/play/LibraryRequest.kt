@@ -12,8 +12,7 @@ import androidx.compose.runtime.setValue
  */
 sealed interface LibraryRequest {
     /**
-     * Show [tab], closing any open page. Friends and Custom name the same place: whichever of
-     * the two the pills have is the one shown ([shownWith]).
+     * Show [tab], closing any open page. A [tab] the pills do not have shows as Dailies ([shownWith]).
      */
     data class Section(val tab: GamesTab) : LibraryRequest
 

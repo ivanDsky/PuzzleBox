@@ -41,7 +41,6 @@ import com.ivandsky.puzzlebox.app.nav.applyFriendLink
 import com.ivandsky.puzzlebox.app.nav.applySharedText
 import com.ivandsky.puzzlebox.app.nav.chromeMotion
 import com.ivandsky.puzzlebox.app.nav.chromePadding
-import com.ivandsky.puzzlebox.app.nav.hasCreateTab
 import com.ivandsky.puzzlebox.app.nav.isImmersive
 import com.ivandsky.puzzlebox.app.nav.playTabBadged
 import com.ivandsky.puzzlebox.app.nav.rememberLibraryRequests
@@ -73,9 +72,8 @@ import org.koin.compose.koinInject
  * [navigator]'s selected tab, so it always names the tab that owns the screen on top, or the
  * tab under the Profile layer while that is open.
  * The Play tab carries a dot while any of today's games is in progress.
- * Once the tab set has no Create tab, Custom lives in Games: the shell then hands Games its Custom
- * pill's body ([rememberCustomSlot]) and the Make-one doors their action ([MakeOne]); with a Create
- * tab it hands neither, so the pill and the doors do not show.
+ * Custom lives in Games: the shell hands Games its Custom pill's body ([rememberCustomSlot]) and the Make-one doors
+ * their action ([MakeOne]); with a Community tab the same slot fills that tab's list instead.
  * Play is immersive: while the screen on top is immersive ([isImmersive]: a
  * board or a result, a duel's leg board or result, or a duel's reveal) neither bar nor rail
  * shows, and back is the way out.
@@ -96,7 +94,7 @@ import org.koin.compose.koinInject
  * [onLinkApplied]. A link whose code doesn't parse opens Play's code sheet holding its text.
  * A duel link (`/m/`) opens the duel screen.
  * A [pendingShare] (shared text waiting in the store, which `MainActivity` filled) shows the
- * screen that lists drafts (Create's root, or Games' Custom once Custom lives in Games) the same
+ * screen that lists drafts (Games' Custom, or the Community tab) the same
  * way, then [onShareApplied]; that screen imports the text.
  */
 @Composable
@@ -150,10 +148,8 @@ fun PuzzleBoxApp(
         todaySet().map { entries -> entries.any { it.status is TodayStatus.InProgress } }
     }.collectAsStateWithLifecycle(initialValue = false)
     val duels = rememberDuelsSlot(navigator, playLayout)
-    // The tab set is fixed for the process, so each branch is taken for good.
-    val customInGames = !tabSet.hasCreateTab
-    val custom = if (customInGames) rememberCustomSlot(navigator) else null
-    val makeOne = if (customInGames) rememberMakeOne(navigator) else null
+    val custom = rememberCustomSlot(navigator)
+    val makeOne = rememberMakeOne(navigator)
     val badged = playTabBadged(anyInProgress, duelsNeedYou = duels.needYou())
     // A tap on the selected tab at its root is a reducer no-op, so the shell spots it here
     // and tells the roots; the tap still goes through selectTab. With the Profile layer open

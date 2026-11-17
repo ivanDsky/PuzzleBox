@@ -17,7 +17,6 @@ import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
 import com.ivandsky.puzzlebox.create.FakeGameEditor
 import com.ivandsky.puzzlebox.create.FakeGameEditorUi
 import com.ivandsky.puzzlebox.create.TestDraft
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.navigation.editorEntry
 import com.ivandsky.puzzlebox.data.model.Draft
@@ -64,7 +63,7 @@ import org.robolectric.shadows.ShadowLooper
  * The Studio's overflow Import from text (M5-07) over the real view model, the real
  * `ImportDraftFromText` and a [FakeDraftRepository]: the item opens the one Import sheet and
  * is always offered. A good import replaces the Studio on the back stack with the new draft, so Back lands
- * on the Create root; the draft being edited is untouched. A bad one keeps the stack. Only an
+ * on the Studio's root; the draft being edited is untouched. A bad one keeps the stack. Only an
  * imported draft's Studio carries the Imported chip.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -75,7 +74,7 @@ class StudioImportTest {
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     private val drafts = FakeDraftRepository()
-    private val navigator = Navigator(NavigationState(CreateKey, listOf(listOf(CreateKey, EditorKey(SOURCE_ID)))))
+    private val navigator = Navigator(NavigationState(StudioRootKey, listOf(listOf(StudioRootKey, EditorKey(SOURCE_ID)))))
 
     @After
     fun tearDown() {
@@ -102,7 +101,7 @@ class StudioImportTest {
 
         awaitTrue { navigator.state.currentStack.last() != EditorKey(SOURCE_ID) }
         val created = navigator.state.currentStack.last() as EditorKey
-        assertEquals(listOf(CreateKey, created), navigator.state.currentStack)
+        assertEquals(listOf(StudioRootKey, created), navigator.state.currentStack)
         assertTrue("the new draft is stored imported", drafts.rows.getValue(created.draftId).imported)
         assertEquals("the source row is as it was", source, drafts.rows.getValue(SOURCE_ID))
         awaitTag(IMPORTED)
@@ -110,14 +109,14 @@ class StudioImportTest {
     }
 
     @Test
-    fun `Back from the imported Studio lands on the Create root, not the old draft`() {
+    fun `Back from the imported Studio lands on the root, not the old draft`() {
         open()
         importText(NOTATION)
         awaitTag(IMPORTED)
 
         composeRule.onNodeWithTag(BACK).performClick()
 
-        awaitTrue { navigator.state.currentStack == listOf(CreateKey) }
+        awaitTrue { navigator.state.currentStack == listOf(StudioRootKey) }
     }
 
     @Test

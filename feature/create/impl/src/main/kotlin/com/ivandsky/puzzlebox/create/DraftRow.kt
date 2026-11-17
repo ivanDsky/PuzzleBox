@@ -36,7 +36,7 @@ import com.ivandsky.puzzlebox.model.GameId
 private val DraftRowMinHeight = 72.dp
 
 /**
- * One draft on the Create root (01 handoff, "Draft row"): the game's glyph tile, the title,
+ * One draft in the Custom list (01 handoff, "Draft row"): the game's glyph tile, the title,
  * "{Game} · {size}" and " · imported" for an imported draft, "edited 2 h ago", the background
  * verdict chip once the row has one, and the ⋮ button. Tapping the row opens the draft's Studio
  * through [onOpen]; ⋮ or a long press asks for its actions sheet through [onActions].

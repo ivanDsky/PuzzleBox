@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
 /**
  * The Games tabs (nav-rethink 125): the [header] over the shared underline strip over its swipeable pager, one page
  * per tab of [gamesTabs]. The tabs are tagged `library.tab.*`, Duels' red need-you badge trails its label, and
- * Friends and Custom carry their counts. [tab] is the host's saved tab: a
+ * Custom carries its count. [tab] is the host's saved tab: a
  * request for another moves the pager, and each page the pager settles on is reported through [onTab].
  *
  * Every tab owns its scroll ([scrolls]), so a swipe away
@@ -41,21 +41,19 @@ internal fun UnderlineTabbedList(
     duels: DuelsSlot,
     tab: GamesTab,
     onTab: (GamesTab) -> Unit,
-    friendsTab: @Composable () -> Unit,
-    friendCount: Int,
-    customTab: (@Composable () -> Unit)?,
+    customTab: @Composable () -> Unit,
     customCount: Int,
     duelPrefill: DuelPrefill?,
     onDuelPrefillTaken: () -> Unit,
     community: Boolean,
 ) {
     val scope = rememberCoroutineScope()
-    val tabs = gamesTabs(customTab != null, community)
-    val shown = tabs.indexOf(tab.shownWith(customTab != null, community)).coerceAtLeast(0)
+    val tabs = gamesTabs(community)
+    val shown = tabs.indexOf(tab.shownWith(community)).coerceAtLeast(0)
     val needYou = duels.needYou()
-    val strip = tabs.map { it.underlineTab(friendCount, needYou, customCount) }
+    val strip = tabs.map { it.underlineTab(needYou, customCount) }
     val bodyRoom = if (phone) 0.dp else OutlineRoom
-    // The tablet's list has no side padding; Friends and Custom's rows pad their own sides, so they step out of it.
+    // The tablet's list has no side padding; Custom's rows pad their own sides, so they step out of it.
     val sides = if (phone) Modifier else Modifier.widenBy(Spacing.lg)
     Column(modifier.testTag("library.list"), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         header()
@@ -81,15 +79,10 @@ internal fun UnderlineTabbedList(
                     if (phone && state.offline) OfflinePill()
                     DailyRows(state, phone, onRow)
                 }
-                GamesTab.Friends -> Column(
-                    Modifier.fillMaxSize().verticalScroll(scrolls.friends).padding(horizontal = bodyRoom).padding(bottom = if (phone) Spacing.xl else 0.dp),
-                ) {
-                    Box(sides) { friendsTab() }
-                }
                 GamesTab.Duels -> Box(
                     Modifier.fillMaxSize().padding(horizontal = if (phone) Spacing.lg else OutlineRoom),
                 ) { duels.content(scrolls.duels, duelPrefill, onDuelPrefillTaken) }
-                GamesTab.Custom -> Box(Modifier.fillMaxSize().padding(horizontal = bodyRoom).then(sides)) { customTab?.invoke() }
+                GamesTab.Custom -> Box(Modifier.fillMaxSize().padding(horizontal = bodyRoom).then(sides)) { customTab() }
             }
         }
     }
@@ -98,23 +91,20 @@ internal fun UnderlineTabbedList(
 /** The scroll state of every Games tab, hoisted so a page push and back (or a swipe away and back) keeps each one. */
 internal class GamesScrolls(
     val dailies: ScrollState,
-    val friends: ScrollState,
     val duels: LazyListState,
     val custom: LazyListState,
 ) {
     /** Glides [tab]'s own list back to its first item. */
     suspend fun toTop(tab: GamesTab) = when (tab) {
         GamesTab.Dailies -> dailies.animateScrollTo(0)
-        GamesTab.Friends -> friends.animateScrollTo(0)
         GamesTab.Duels -> duels.animateScrollToItem(0)
         GamesTab.Custom -> custom.animateScrollToItem(0)
     }
 }
 
-/** The strip's tab for this Games tab: Friends and Custom carry their counts, Duels' badge trails its label. */
-private fun GamesTab.underlineTab(friendCount: Int, duelsNeedYou: Int, customCount: Int): UnderlineTab = when (this) {
+/** The strip's tab for this Games tab: Custom carries its count, Duels' badge trails its label. */
+private fun GamesTab.underlineTab(duelsNeedYou: Int, customCount: Int): UnderlineTab = when (this) {
     GamesTab.Dailies -> UnderlineTab("Dailies", "library.tab.dailies")
-    GamesTab.Friends -> UnderlineTab("Friends", "library.tab.friends", count = friendCount)
     GamesTab.Duels -> UnderlineTab(
         "Duels",
         "library.tab.duels",

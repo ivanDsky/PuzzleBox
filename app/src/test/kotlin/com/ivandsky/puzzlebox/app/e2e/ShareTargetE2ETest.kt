@@ -10,7 +10,6 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.v2.AndroidComposeTestRule as v2AndroidComposeTestRule
-import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
@@ -18,7 +17,6 @@ import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.platform.app.InstrumentationRegistry
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.MainActivity
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.data.repository.SharedTextStore
@@ -30,7 +28,6 @@ import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedTextStore
 import java.time.Duration
 import java.time.Instant
@@ -52,7 +49,7 @@ import org.robolectric.annotation.Config
  * A plain-text share over the real activity: the manifest
  * routes `ACTION_SEND text/plain` to [MainActivity]; a cold start and a warm new intent (from
  * the Play tab) both end on the Studio of an imported draft with the verdict the same board
- * pasted would show (Unique), back returns to the Create root, and recreating the activity
+ * pasted would show (Unique), back returns to Games' Custom, and recreating the activity
  * afterwards creates no second draft. A task relaunched from Recents does not re-apply its
  * share.
  */
@@ -86,7 +83,7 @@ class ShareTargetE2ETest {
     }
 
     @Test
-    fun `a cold start from a share ends on the Studio of an imported draft`() {
+    fun `a cold start from a share ends on the imported draft's Studio and back is Games' Custom`() {
         startGraph()
         launching(send(UNIQUE)) {
             awaitVerdict()
@@ -96,12 +93,14 @@ class ShareTargetE2ETest {
             assertNull("the text was taken", store.pending.value)
 
             back()
-            assertRoute(CREATE)
+            assertRoute(LIBRARY)
+            awaitTag(CUSTOM_LIST)
+            rule.onNodeWithTag("nav.tab.play").assertIsSelected()
         }
     }
 
     @Test
-    fun `a share while the app runs on Play opens the Studio and back returns to Create`() {
+    fun `a share while the app runs on Games opens the Studio and back returns to Custom`() {
         startGraph()
         // Relaunched from Recents, the share that first started the task is not re-applied.
         launching(fromRecents(send(UNIQUE))) {
@@ -115,19 +114,18 @@ class ShareTargetE2ETest {
             assertEquals(1, drafts.rows.size)
 
             back()
-            assertRoute(CREATE)
-            rule.onNodeWithTag("nav.tab.create").assertIsSelected()
+            assertRoute(LIBRARY)
+            awaitTag(CUSTOM_LIST)
+            rule.onNodeWithTag("nav.tab.play").assertIsSelected()
         }
     }
 
     @Test
-    fun `a share from Play while Create holds a Studio opens the shared draft, not the old one`() {
+    fun `a share while a Studio is open opens the shared draft, not the old one, then back is Custom`() {
         startGraph()
         seedBlankDraft()
         launching(fromRecents(send(UNIQUE))) {
             openSeededStudio()
-            tap("nav.tab.play")
-            assertRoute(LIBRARY)
 
             deliver(send(UNIQUE))
             awaitVerdict()
@@ -136,25 +134,9 @@ class ShareTargetE2ETest {
             assertNull(store.pending.value)
 
             back()
-            assertRoute(CREATE)
-            rule.onNodeWithTag("nav.tab.create").assertIsSelected()
-        }
-    }
-
-    @Test
-    fun `a share while Create shows a Studio opens the shared draft, then back is the Create root`() {
-        startGraph()
-        seedBlankDraft()
-        launching(fromRecents(send(UNIQUE))) {
-            openSeededStudio()
-
-            deliver(send(UNIQUE))
-            awaitVerdict()
-            assertRoute(EDITOR)
-            assertEquals(2, drafts.rows.size)
-
-            back()
-            assertRoute(CREATE)
+            assertRoute(LIBRARY)
+            awaitTag(CUSTOM_LIST)
+            rule.onNodeWithTag("nav.tab.play").assertIsSelected()
         }
     }
 
@@ -186,10 +168,11 @@ class ShareTargetE2ETest {
         }
     }
 
-    /** Create's root, then the seeded draft's row opens its Studio. */
+    /** Games' Custom, then the seeded draft's row opens its Studio. */
     private fun openSeededStudio() {
-        tap("nav.tab.create")
-        assertRoute(CREATE)
+        tap("nav.tab.play")
+        tap("library.tab.custom")
+        assertRoute(LIBRARY)
         tap("create.draft.row")
         awaitTag("create.editor.board")
         assertRoute(EDITOR)
@@ -220,26 +203,8 @@ class ShareTargetE2ETest {
     }
 
     @Test
-    fun `with Custom in Games a cold start from a share ends on the imported draft's Studio and back is Games' Custom`() {
-        startGraph(ReleaseFlag.CustomInGames)
-        launching(send(UNIQUE)) {
-            awaitVerdict()
-            assertRoute(EDITOR)
-            assertEquals("one imported draft", 1, drafts.rows.size)
-            assertTrue("flagged imported", drafts.rows.values.single().imported)
-            assertNull("the text was taken", store.pending.value)
-
-            back()
-            assertRoute(LIBRARY)
-            awaitTag(CUSTOM_LIST)
-            rule.onNodeWithTag("nav.tab.play").assertIsSelected()
-            assertEquals(0, rule.onAllNodesWithTag("nav.tab.create").fetchSemanticsNodes().size)
-        }
-    }
-
-    @Test
-    fun `with Custom in Games a share while the app runs on Ranks opens the Studio on Games and back is Custom, then Ranks, then Today`() {
-        startGraph(ReleaseFlag.CustomInGames)
+    fun `a share while the app runs on Ranks opens the Studio on Games and back is Custom, then Ranks, then Today`() {
+        startGraph()
         launching(fromRecents(send(UNIQUE))) {
             assertRoute(HOME)
             tap("nav.tab.ranks")
@@ -264,14 +229,13 @@ class ShareTargetE2ETest {
         }
     }
 
-    private fun startGraph(vararg flags: ReleaseFlag) {
+    private fun startGraph() {
         graph = E2eKoinGraph(
             E2E_TODAY,
             overrides = module {
                 single<DraftRepository> { drafts }
                 single<SharedTextStore> { store }
             },
-            releaseFlags = FakeReleaseFlags(*flags),
         )
         graph.start()
     }
@@ -347,7 +311,6 @@ class ShareTargetE2ETest {
     private companion object {
         const val HOME = "route.home"
         const val LIBRARY = "route.library"
-        const val CREATE = "route.create"
         const val RANKS = "route.ranks"
         const val EDITOR = "route.editor"
         const val CUSTOM_LIST = "custom.list"

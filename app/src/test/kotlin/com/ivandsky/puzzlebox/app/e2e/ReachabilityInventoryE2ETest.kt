@@ -4,7 +4,6 @@ import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.nav.Chrome as PlacementChrome
 import com.ivandsky.puzzlebox.app.nav.PlacementDelta
 import com.ivandsky.puzzlebox.app.nav.placementOf
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.model.PlaySlot
@@ -31,7 +30,7 @@ import org.robolectric.annotation.Config
  * checks the shell actions its placement's chrome needs: the avatar and the gear show exactly
  * once on every screen the rail shows, and on a bar only on Today's root.
  *
- * Per width: the daily and Create run on the default graph, and the friend run on a
+ * Per width: the daily and Custom run on the default graph, and the friend run on a
  * [FriendWorld] with only the Zip editor on.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -42,7 +41,7 @@ class ReachabilityInventoryE2ETest {
 
     @Test
     @Config(qualifiers = PHONE)
-    fun `a phone reaches every daily, Create and shell screen`() = dailyAndCreateRun(Width.Phone)
+    fun `a phone reaches every daily, Custom and shell screen`() = dailyAndCustomRun(Width.Phone)
 
     @Test
     @Config(qualifiers = PHONE)
@@ -51,14 +50,14 @@ class ReachabilityInventoryE2ETest {
 
     @Test
     @Config(qualifiers = RAIL)
-    fun `a rail window reaches every daily, Create and shell screen`() = dailyAndCreateRun(Width.Rail)
+    fun `a rail window reaches every daily, Custom and shell screen`() = dailyAndCustomRun(Width.Rail)
 
     @Test
     @Config(qualifiers = RAIL)
     fun `a rail window reaches a published puzzle and a friend's card, board and result`() =
         friendRun(Width.Rail)
 
-    private fun dailyAndCreateRun(width: Width) = shellRobot {
+    private fun dailyAndCustomRun(width: Width) = shellRobot {
         reached(HOME, width)
 
         tapTab(HistoryRootKey)
@@ -91,8 +90,9 @@ class ReachabilityInventoryE2ETest {
         back()
         assertRoute(LIBRARY)
 
-        tapTab(CreateKey)
-        reached(CREATE, width)
+        if (shows("library.page.back")) tap("library.page.back") // a phone shows the game page alone
+        tap("library.tab.custom")
+        reached(LIBRARY, width)
         tap("create.empty.game.queens")
         awaitTag("create.editor.board")
         reached(EDITOR, width)
@@ -104,8 +104,7 @@ class ReachabilityInventoryE2ETest {
             shellRobot(graph = world.graph) {
                 val code = world.publishAsAuthor(this, ZipCorridor.board, TITLE)
                 back()
-                assertRoute(CREATE)
-                tap("create.tab.published")
+                assertRoute(LIBRARY)
                 tap("create.published.row")
                 reached(PUBLISHED, width)
                 world.signInFriend()
@@ -156,7 +155,6 @@ class ReachabilityInventoryE2ETest {
         const val LIBRARY = "route.library"
         const val GAME = "route.game"
         const val RESULT = "route.result"
-        const val CREATE = "route.create"
         const val EDITOR = "route.editor"
         const val PUBLISHED = "route.publishedPuzzle"
         const val SETTINGS = "route.settings"
