@@ -51,9 +51,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowLooper
 
 /**
- * M12-3: the app's [com.ivandsky.puzzlebox.play.CustomSlot] hands Community a Yours seam, the Custom list with no
- * friends and no community: New puzzle, Continue and Published by you, or the first-time empty state when there is
- * nothing; and a summary with the drafts-plus-published count and the first published puzzle's code.
+ * M12-3: the app's [com.ivandsky.puzzlebox.play.CustomSlot] hands Community a Yours seam, the Custom list: New puzzle,
+ * Continue and Published by you, or the first-time empty state when there is nothing; and a summary with the drafts-plus-published count and the first published puzzle's code.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w360dp-h640dp", application = DrainTestApplication::class)

@@ -13,15 +13,13 @@ import com.ivandsky.puzzlebox.play.api.PlayKey
 internal fun customRootNavigator() = Navigator(NavigationState(PlayKey, listOf(listOf(PlayKey))))
 
 /**
- * The Games root hosting only the Custom list ([CustomBody], with no friends rows so New puzzle always shows): a started
+ * The Games root hosting only the Custom list ([CustomBody]): a started
  * draft opens its Studio on [navigator]'s stack, the same push Games' Custom pill makes.
  */
 internal fun EntryProviderScope<NavKey>.customRootEntry(navigator: Navigator) {
     entry<PlayKey> {
         CustomBody(
             listState = rememberLazyListState(),
-            friendsEmpty = false,
-            friends = {},
             onOpenDraft = { draftId -> navigator.pushOnce(EditorKey(draftId)) },
             onOpenPublished = {},
         )

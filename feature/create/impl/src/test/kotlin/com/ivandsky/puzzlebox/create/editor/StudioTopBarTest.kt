@@ -199,7 +199,7 @@ class StudioTopBarTest {
         }
         val entries = entryProvider<NavKey> {
             entry<StudioRootKey> {
-                CustomBody(listState = rememberLazyListState(), friendsEmpty = true, friends = {}, onOpenDraft = {}, onOpenPublished = {})
+                CustomBody(listState = rememberLazyListState(), onOpenDraft = {}, onOpenPublished = {})
             }
             editorEntry(navigator, PlayLayout.SinglePane)
         }

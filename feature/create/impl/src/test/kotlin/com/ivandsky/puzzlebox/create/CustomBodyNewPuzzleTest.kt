@@ -128,8 +128,6 @@ class CustomBodyNewPuzzleTest {
             PuzzleBoxTheme {
                 CustomBody(
                     listState = rememberLazyListState(),
-                    friendsEmpty = true,
-                    friends = {},
                     onOpenDraft = { openedDrafts += it },
                     onOpenPublished = {},
                 )

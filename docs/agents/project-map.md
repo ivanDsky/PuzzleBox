@@ -275,8 +275,8 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `:core:game`): play contracts (ADR-0007) `GamePlayUi` (`createController(PlayEnvironment)`,
   `Screen`), `GamePlayController` (+ `PlayClock`/`PlayHints`/`PlayUndo`), `GamePlayRegistry`
   (GameId → `GamePlayUi`; a duplicate id throws), `PlayBoardStatus` + `PlayBoardFallback`,
-  `PlayCopy`, `BoardGrid` + `EdgeOverlay`, `DragTrace`, `GridGeometry`, `HintButton`,
-  `TimerBar` + `formatClock`, `PastYouAvatar` (the opponent's initial with the history mark, for Past you), `PlayScaffold`, `PanePolicy` (the one two-pane decision from window size in dp), `PlayChrome`, `PlaySolveFrame` (the one solve hand-off: the solve moment B rests the board 1.7 s, `SolveRestState` + `SolveRestTapLayer`, then hands off), `ResultHeroScreen` (daily result; `ResultMoments.kt`, `ResultMomentCard`), `ResultScreen` (friend result),
+  `PlayCopy`, `BoardGrid` + `EdgeOverlay`, `DragTrace`, `GridGeometry`,
+  `TimerBar`, `PastYouAvatar` (the opponent's initial with the history mark, for Past you), `AdaptivePlayScaffold`, `PanePolicy` (the one two-pane decision from window size in dp), `PlayChrome`, `PlaySolveFrame` (the one solve hand-off: the solve moment B rests the board 1.7 s, `SolveRestState` + `SolveRestTapLayer`, then hands off), `ResultHeroScreen` (daily result; `ResultMoments.kt`, `ResultMomentCard`), `ResultScreen` (friend result),
   `CompletionRecordEmitter`, `board/SelfRowJump` (a request the hero card sends the day board to scroll to the viewer's row). `editor/`: `GameEditorUi` (per-game `sizeLabel`,
   `createController`, `Board`), `GameEditorController` (draft `StateFlow`, `adopt`, overlay
   hooks), `GameEditorRegistry` (GameId → `GameEditorUi`), `EditorOverlay` (witness display).

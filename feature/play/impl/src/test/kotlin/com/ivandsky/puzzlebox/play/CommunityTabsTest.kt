@@ -82,7 +82,7 @@ class CommunityTabsTest {
             }
         },
         yoursSummary = { YoursSummary(count = ROWS, firstPublishedCode = null) },
-    ) { _, _, _ -> error("the phone lays out tabs, never the one list") }
+    )
 
     private val content: @androidx.compose.runtime.Composable () -> Unit = {
         PuzzleBoxTheme {

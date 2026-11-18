@@ -82,8 +82,6 @@ class CustomBodyRestoringTest {
             PuzzleBoxTheme {
                 CustomBody(
                     listState = rememberLazyListState(),
-                    friendsEmpty = true,
-                    friends = {},
                     onOpenDraft = {},
                     onOpenPublished = {},
                 )

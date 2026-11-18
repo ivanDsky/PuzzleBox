@@ -66,7 +66,7 @@ internal fun previewYoursSlot(count: Int, published: String? = null) = CustomSlo
         }
     },
     yoursSummary = { YoursSummary(count, published) },
-) { _, _, _ -> }
+)
 
 @Composable
 private fun Tabs(state: CommunityState, friends: List<FriendCardModel>, yours: Int) {

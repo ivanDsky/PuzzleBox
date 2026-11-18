@@ -10,7 +10,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 
 /** An empty Custom body, for a test that builds the route table and never opens the Custom list. */
-internal fun testCustomSlot() = CustomSlot(content = { _, _, _ -> })
+internal fun testCustomSlot() = CustomSlot()
 
 /** A [MakeOne] over an empty registry and a fake drafts store, for a test that builds the route table and never taps Make one. */
 internal fun testMakeOne(navigator: Navigator): MakeOne {

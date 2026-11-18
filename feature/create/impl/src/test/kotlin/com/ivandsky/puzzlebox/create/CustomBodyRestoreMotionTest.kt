@@ -44,9 +44,6 @@ class CustomBodyRestoreMotionTest {
                 CustomBodyContent(
                     state = state,
                     listState = rememberLazyListState(),
-                    friendsEmpty = true,
-                    friends = {},
-                    community = null,
                     onNewPuzzle = {},
                     onStart = { _, _ -> },
                     onImport = {},

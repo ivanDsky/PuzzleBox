@@ -39,25 +39,6 @@ class CustomBodyGoldenScreenshots {
             CustomBodyContent(
                 state = LISTED,
                 listState = rememberLazyListState(),
-                friendsEmpty = false,
-                friends = {
-                    item(key = "friend:head") {
-                        Text(
-                            text = "From friends",
-                            modifier = Modifier.padding(start = Spacing.lg, end = Spacing.lg, top = Spacing.lg, bottom = Spacing.sm),
-                            style = MaterialTheme.typography.titleLarge,
-                        )
-                    }
-                    item(key = "friend:one") {
-                        Text(
-                            text = "The caller's rows go here",
-                            modifier = Modifier.padding(horizontal = Spacing.lg).padding(bottom = Spacing.md),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                },
-                community = null,
                 onNewPuzzle = {},
                 onStart = { _, _ -> },
                 onImport = {},
