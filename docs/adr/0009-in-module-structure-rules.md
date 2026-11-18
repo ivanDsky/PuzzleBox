@@ -307,11 +307,15 @@ ViewModels are named `*ViewModel`, live in `:feature:<x>:impl`, and expose no pu
 - **How to fix:** keep the `Mutable*` private and expose a read-only type; rename or move the class.
 
 ## P4
-Use cases in `:core:domain` start with a verb and have one public `operator fun invoke`.
+Use cases in `:core:domain` and in feature `domain` packages start with a verb and have one public
+`operator fun invoke`.
 
-- **Scope:** production, module `:core:domain`, top-level public or default-visibility classes and
-  objects, except data classes, data objects, enum classes, sealed classes and declarations in a
-  `di` package.
+- **Scope:** production files of module `:core:domain`, and of the `domain` package and its
+  sub-packages (`<package root>.domain`, `<package root>.domain.<sub>`) of every `:feature:<x>:impl`,
+  where P14 sends a use case that only one feature uses. Subjects: top-level public or
+  default-visibility classes and objects, except data classes, data objects, enum classes, sealed
+  classes and declarations in a `di` package. P7 is not widened with it: a feature `domain` package
+  sits in an Android module and is not checked for Android references.
 - **Detection:** the name must start with one of Get, Observe, Compute, Submit, Save, Load, Delete,
   Update, Create, Sync, Validate, Record, Start, Finish, Import, List, Report, followed by an uppercase letter. The
   declaration must have exactly one public function named `invoke`, and that function must be an

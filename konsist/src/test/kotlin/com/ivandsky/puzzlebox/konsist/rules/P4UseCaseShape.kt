@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.konsist.rules
 
 import com.ivandsky.puzzlebox.konsist.core.Rule
 import com.ivandsky.puzzlebox.konsist.core.RuleResult
+import com.ivandsky.puzzlebox.konsist.core.SourceFile
 import com.ivandsky.puzzlebox.konsist.core.SourceSetKind
 import com.ivandsky.puzzlebox.konsist.core.SourceTree
 import com.ivandsky.puzzlebox.konsist.core.Violation
@@ -25,12 +26,21 @@ class P4UseCaseShape(val verbs: Set<String> = DEFAULT_VERBS) : Rule {
             .withPublicOrDefaultModifier()
             .withoutDataModifier()
             .map { it to tree.fileFor(it.containingFile) }
-            .filter { (_, file) -> file.module.path == MODULE && file.packageName.substringAfterLast('.') != "di" }
+            .filter { (_, file) -> inScope(file) && file.packageName.substringAfterLast('.') != "di" }
         val violations = subjects.groupBy({ it.second.path }, { it.first }).mapNotNull { (path, declarations) ->
             val problems = declarations.mapNotNull(::problem)
             if (problems.isEmpty()) null else Violation(path, null, problems.joinToString("; "))
         }
         return RuleResult(subjects.size, violations)
+    }
+
+    /** `:core:domain`, plus the `domain` package and its sub-packages of every `:feature:<x>:impl`. */
+    private fun inScope(file: SourceFile): Boolean {
+        val module = file.module
+        if (module.path == MODULE) return true
+        if (!FEATURE_IMPL.matches(module.path)) return false
+        val domain = "${module.packageRoot}.domain"
+        return file.packageName == domain || file.packageName.startsWith("$domain.")
     }
 
     private fun problem(declaration: KoClassAndObjectDeclaration): String? {
@@ -51,6 +61,7 @@ class P4UseCaseShape(val verbs: Set<String> = DEFAULT_VERBS) : Rule {
 
     companion object {
         private const val MODULE = ":core:domain"
+        private val FEATURE_IMPL = Regex(""":feature:[^:]+:impl""")
 
         val DEFAULT_VERBS = setOf(
             "Get", "Observe", "Compute", "Submit", "Save", "Load", "Delete",
