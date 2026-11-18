@@ -41,6 +41,10 @@ import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.RecordRevealSeen
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
+import com.ivandsky.puzzlebox.domain.lineup.CommunitySource
+import com.ivandsky.puzzlebox.domain.lineup.FriendSource
+import com.ivandsky.puzzlebox.domain.lineup.ObservePickablePuzzles
+import com.ivandsky.puzzlebox.domain.lineup.OwnSource
 import com.ivandsky.puzzlebox.domain.ReportPuzzle
 import com.ivandsky.puzzlebox.domain.ValidatePublish
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
@@ -194,6 +198,15 @@ val domainModule = module {
     factory { ImportDraftFromText(registry = get(), createDraft = get(), drafts = get(), dispatchers = get()) }
     factory { ValidatePublish() }
     factory { ListCommunityPuzzles(shared = get(), hidden = get(), identity = get(), clock = System::currentTimeMillis) }
+    single { CommunitySource(community = get(), registry = get(), clock = System::currentTimeMillis) }
+    factory {
+        ObservePickablePuzzles(
+            completions = get(),
+            community = get(),
+            friends = FriendSource(received = get(), identity = get()),
+            own = OwnSource(published = get(), identity = get()),
+        )
+    }
     factory { ReportPuzzle(shared = get(), hidden = get()) }
     factory {
         ObservePlayStats(
