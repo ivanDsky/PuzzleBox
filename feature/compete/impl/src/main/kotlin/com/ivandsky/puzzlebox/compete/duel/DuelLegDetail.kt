@@ -59,7 +59,7 @@ private fun LegDetails(row: LegRowModel, content: LegsContent, brands: GamePlayR
         LegStatusPill(row.status)
         OpponentText(row.opponent, content.model.opponent.name)
         PostingNote(row.posting)
-        if (content.model.self) Callout(done = row.action == null)
+        if (content.model.self) Callout(done = row.action == null, timeLeftShown = content.timeLeftShown)
         LegActionButton(row, onClick = { content.actions.onOpenLeg(row) }, modifier = Modifier.fillMaxWidth())
     }
 }

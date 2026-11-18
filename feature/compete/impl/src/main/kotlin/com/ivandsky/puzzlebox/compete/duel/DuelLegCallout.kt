@@ -21,15 +21,20 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 
 private val StepSize = 24.dp
 
-private val Steps = listOf(
-    "The timer counts down to past you’s time.",
+private const val COUNTDOWN_STEP = "The timer counts down to past you’s time."
+
+private val RuleSteps = listOf(
     "Hints count against you.",
     "Past you’s time stays hidden until the results.",
 )
 
-/** A self duel's note on the selected puzzle: DONE once played, else what is in it, the rules of racing past you. */
+/** The numbered rules: the countdown one only while the timer shows [timeLeftShown], the rest renumbered. */
+internal fun calloutSteps(timeLeftShown: Boolean): List<String> =
+    if (timeLeftShown) listOf(COUNTDOWN_STEP) + RuleSteps else RuleSteps
+
+/** A self duel's note on the selected puzzle: DONE once played, else what is in it, the rules of racing past you ([timeLeftShown]: the timer counts down). */
 @Composable
-internal fun Callout(done: Boolean) {
+internal fun Callout(done: Boolean, timeLeftShown: Boolean) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -50,7 +55,7 @@ internal fun Callout(done: Boolean) {
                 color = MaterialTheme.colorScheme.onSurface,
             )
         } else {
-            Steps.forEachIndexed { index, step -> CalloutStep(index + 1, step) }
+            calloutSteps(timeLeftShown).forEachIndexed { index, step -> CalloutStep(index + 1, step) }
         }
     }
 }
