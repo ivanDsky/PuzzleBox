@@ -4,7 +4,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
@@ -27,39 +26,30 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import com.airbnb.android.showkase.annotation.ShowkaseComposable
 
-// Approval sheet for the readable board tokens (nav-rethink B3): today's board beside the readable one on a
-// small grid, in the theme's light or dark look. It draws only from LocalBoardColors / LocalBoardGeometry,
-// the same two locals a game board will read, so what the user approves is what the theme will provide.
+// Approval sheet for the board tokens (nav-rethink B3): the board on a small grid, in the theme's light or dark
+// look. It draws only from LocalBoardColors / LocalBoardGeometry, the same two locals a game board reads, so what
+// the user approves is what the theme provides.
 
 private const val SheetGrid = 4
 
-/** One light-or-dark approval sheet: [BoardTokenSample] for the legacy and the readable look, side by side. */
+/** One light-or-dark approval sheet: the [BoardTokenSample] under its title. */
 @Composable
 internal fun BoardTokenSheet(dark: Boolean) {
     PuzzleBoxTheme(darkTheme = dark) {
-        Row(
+        Column(
             modifier = Modifier.background(MaterialTheme.colorScheme.background).padding(Spacing.lg),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            SheetColumn(title = "Legacy", readable = false, dark = dark)
-            SheetColumn(title = "Readable", readable = true, dark = dark)
-        }
-    }
-}
-
-@Composable
-private fun SheetColumn(title: String, readable: Boolean, dark: Boolean) {
-    PuzzleBoxTheme(darkTheme = dark, readableBoard = readable) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Text(title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
+            Text("Board", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
             BoardTokenSample()
         }
     }
 }
 
 /**
- * A 4×4 board in the ambient board look: grid lines, a wall outline when the geometry asks for it, two strong walls (one with a corner), a numbered cell
- * for the start, the next number to reach (ringed when the geometry asks for it) and the last, an empty cell
+ * A 4×4 board in the ambient board look: grid lines, the wall outline, two strong walls (one with a corner), a numbered cell
+ * for the start, the next number to reach (ringed) and the last, an empty cell
  * and a legal-cell tint sample.
  */
 @Composable
@@ -73,35 +63,30 @@ internal fun BoardTokenSample() {
         val pitch = (size.width - 2 * inset) / SheetGrid
         fun point(col: Int, row: Int) = Offset(inset + col * pitch, inset + row * pitch)
 
-        // A legal cell and an empty one: the tint is transparent in both looks, so neither changes the cell.
+        // A legal cell and an empty one: the tint is transparent, so neither changes the cell.
         drawRect(colors.legalCellTint, point(1, 1), Size(pitch, pitch))
 
-        // With a wall outline the board edge is a wall, so only the inner lines are grid lines.
-        val gridLines = if (geometry.wallOutline) 1 until SheetGrid else 0..SheetGrid
-        for (i in gridLines) {
+        // The board edge is a wall, so only the inner lines are grid lines.
+        for (i in 1 until SheetGrid) {
             drawLine(colors.boardGridLine, point(i, 0), point(i, SheetGrid), BoardTokens.boardGridLineWeight.toPx())
             drawLine(colors.boardGridLine, point(0, i), point(SheetGrid, i), BoardTokens.boardGridLineWeight.toPx())
         }
 
         val wall = Stroke(
             width = geometry.wallWeight.toPx(),
-            cap = if (geometry.roundedWallCaps) StrokeCap.Round else StrokeCap.Butt,
-            join = if (geometry.roundedWallCaps) StrokeJoin.Round else StrokeJoin.Miter,
+            cap = StrokeCap.Round,
+            join = StrokeJoin.Round,
         )
         // Walls end on the outline's centre line, so the round cap sits inside the outline's own stroke.
         drawPath(wallPath(::point, listOf(2 to 0, 2 to 2, 3 to 2)), colors.boardWall, style = wall)
         drawPath(wallPath(::point, listOf(0 to 3, 2 to 3)), colors.boardWall, style = wall)
-        if (geometry.wallOutline) {
-            drawRect(colors.boardWall, point(0, 0), Size(pitch * SheetGrid, pitch * SheetGrid), style = wall)
-        }
+        drawRect(colors.boardWall, point(0, 0), Size(pitch * SheetGrid, pitch * SheetGrid), style = wall)
 
         numberedCell(measurer, numberStyle, colors.boardInk, point(0, 0), pitch, "1")
         numberedCell(measurer, numberStyle, colors.boardInk, point(2, 1), pitch, "2")
         numberedCell(measurer, numberStyle, colors.boardInk, point(3, 3), pitch, "3")
-        if (geometry.nextNumberRing) {
-            val center = point(2, 1) + Offset(pitch / 2, pitch / 2)
-            drawCircle(colors.boardTarget, radius = pitch * 0.42f, center = center, style = Stroke(3.dp.toPx()))
-        }
+        val center = point(2, 1) + Offset(pitch / 2, pitch / 2)
+        drawCircle(colors.boardTarget, radius = pitch * 0.42f, center = center, style = Stroke(3.dp.toPx()))
     }
 }
 

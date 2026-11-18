@@ -19,7 +19,7 @@ import kotlin.math.abs
  * and wrong entries never seed a step. Mistakes and the reveal digit read the stored solution;
  * nothing is solved here.
  *
- * With `firstMove` (nav-rethink B4) a single the player sees at a glance is skipped: after the mistake check the
+ * A single the player sees at a glance is skipped: after the mistake check the
  * step is the cheapest single of the first rung (box, line, naked) that holds one on a cell that is not obvious.
  * A cell is obvious when any single on it sits in a unit with at most [OBVIOUS_EMPTY_CELLS] empty cells. When every
  * single is obvious the usual order stands, so no elimination or reveal jumps ahead of a single.
@@ -31,7 +31,7 @@ object SudokuStepper {
 
     private const val OBVIOUS_EMPTY_CELLS = 2
 
-    fun next(puzzle: SudokuPuzzle, board: SudokuBoard, lastMove: Int?, known: Map<Int, Int>, firstMove: Boolean = false): SudokuStep {
+    fun next(puzzle: SudokuPuzzle, board: SudokuBoard, lastMove: Int?, known: Map<Int, Int>): SudokuStep {
         mistake(puzzle, board, lastMove)?.let { return it }
         if (board.isFull) return SudokuStep.Solved
 
@@ -40,7 +40,7 @@ object SudokuStepper {
         for ((cell, mask) in known) candidates[cell] = candidates[cell] and mask.inv()
 
         val scan = Scan(geometry, board, candidates, lastMove)
-        if (firstMove) scan.firstNotObvious()?.let { return it }
+        scan.firstNotObvious()?.let { return it }
         scan.cheapest(scan.lastCells())?.let { return it }
         val rung = ladder.single(geometry, candidates, null, emptyList())?.technique
             ?: return SudokuEliminations.next(geometry, candidates, lastMove) { ladder.single(geometry, it, null, emptyList()) != null }

@@ -7,7 +7,6 @@ import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.DragEvent
 import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
-import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zip.ZipReplayMove
@@ -21,7 +20,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * The Hint button under the first-move rule (nav-rethink B4), through the real controller: what
+ * The Hint button through the real controller: what
  * lands on the board, what is counted and what the replay log holds. The fixture's branchy board
  * has one way on from cells 0 to 3, then a real choice between 4 and 8.
  */
@@ -34,7 +33,6 @@ class ZipFirstMoveHintTest {
         val controller = ZipPlayController(
             env = PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {}, log),
             now = { clock },
-            hintMode = HintMode.FirstMove(Dispatchers.Unconfined),
         )
         assertEquals(Adopt.Adopted, controller.adoptToday(envelope, ZipPlayFixture.ref(LocalDate.of(2026, 11, 16))))
         return controller

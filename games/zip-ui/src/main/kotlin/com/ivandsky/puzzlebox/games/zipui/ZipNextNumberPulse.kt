@@ -10,7 +10,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
-import com.ivandsky.puzzlebox.designsystem.LocalBoardGeometry
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import kotlinx.coroutines.flow.collectLatest
 
@@ -36,7 +35,7 @@ private const val PULSE_LOW_ALPHA = 0.35f
  */
 @Composable
 internal fun rememberNextNumberPulse(held: () -> Boolean, enabled: Boolean): () -> Float {
-    val runs = enabled && LocalBoardGeometry.current.nextNumberRing
+    val runs = enabled
     val isHeld by rememberUpdatedState(held)
     val alpha = remember { Animatable(1f) }
     LaunchedEffect(alpha, runs) {

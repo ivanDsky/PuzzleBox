@@ -212,7 +212,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
 - `core/designsystem/` (`:core:designsystem`) — `PuzzleBoxTheme` composition root, token
   vocabulary (`ColorTokens` light/dark, `Type` Baloo 2, `Shape`, `Spacing`, `MotionTokens` +
   named motion patterns), `BoardTokens`/`BoardColors` (board palette + wall/grid weights,
-  contrast-tuned per light/dark), the interactive `PuzzleBoard` reference board, components
+  contrast-tuned per light/dark; the readable look is the only one), `BoardGeometry` (wall weight; `LocalBoardGeometry`), the interactive `PuzzleBoard` reference board, components
   (buttons, chips, dialogs, top bars, states) carrying `@ShowkaseComposable` metadata,
   `ShowkaseTokens` color/typography registrations; the browser runtime is debug-only
   (`ShowkaseBrowserModule` `@ShowkaseRoot` in `src/debug`; the browser screen lives in

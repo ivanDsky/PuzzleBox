@@ -16,10 +16,9 @@ object QueensSessionStep {
     /** Budget polls allowed, each after 1024 column candidates; only guarantees the call never hangs. */
     const val POLL_LIMIT = 20_000
 
-    /** [firstMove] is the live press's B4 option; a replay asks without it. */
-    fun next(session: QueensSession, solution: Set<Cell>?, firstMove: Boolean = false): QueensStep =
+    fun next(session: QueensSession, solution: Set<Cell>?): QueensStep =
         QueensStepper.next(
-            session.puzzle, session.board, session.autoCross, session.history.done.lastOrNull()?.let(::cellOf), solution, firstMove,
+            session.puzzle, session.board, session.autoCross, session.history.done.lastOrNull()?.let(::cellOf), solution,
         )
 
     /**

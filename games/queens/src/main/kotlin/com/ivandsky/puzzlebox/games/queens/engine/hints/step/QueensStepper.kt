@@ -18,9 +18,9 @@ import kotlin.math.max
  * solution comes from the caller (null when it could not be computed), so nothing here
  * searches. Without a solution only rule breaks are mistakes and nothing is revealed.
  *
- * With `firstMove` a press points at a real choice while one exists (B4): the cheapest proof off the
- * ladder's [QueensLadder.obvious] rungs that tells more than those rungs give by themselves, and only
- * then an obvious one. Every other answer is the same.
+ * A press points at a real choice while one exists: the cheapest proof off the ladder's
+ * [QueensLadder.obvious] rungs that tells more than those rungs give by themselves, and only
+ * then an obvious one.
  */
 object QueensStepper {
 
@@ -30,8 +30,7 @@ object QueensStepper {
         autoCross: Boolean,
         lastMove: Cell?,
         solution: Set<Cell>?,
-        firstMove: Boolean = false,
-    ): QueensStep = next(puzzle, board, autoCross, lastMove, solution, QueensLadder.Stepwise, firstMove)
+    ): QueensStep = next(puzzle, board, autoCross, lastMove, solution, QueensLadder.Stepwise)
 
     internal fun next(
         puzzle: QueensPuzzle,
@@ -40,7 +39,6 @@ object QueensStepper {
         lastMove: Cell?,
         solution: Set<Cell>?,
         ladder: QueensLadder,
-        firstMove: Boolean = false,
     ): QueensStep {
         val queens = board.queens.mapTo(HashSet(board.queens.size * 2)) { it.idx }
         // A manual mark may sit hidden under a queen; only visible crosses are entries.
@@ -53,15 +51,11 @@ object QueensStepper {
         // Auto-cross off stands the queens bare, so D0 lists the crosses the player still owes.
         val seeded = if (autoCross) QueensCandidates.start(puzzle, queens) else QueensCandidates(puzzle.size, queens, emptySet())
         val candidates = seeded.exclude(crosses)
-        if (firstMove) {
-            val (obvious, others) = ladder.rungs.partition { it in ladder.obvious }
-            // What the player knows: a cell a queen attacks is ruled out, crossed or not, so no other rung proves it again.
-            val known = if (autoCross) candidates else QueensCandidates.start(puzzle, queens).exclude(crosses)
-            deduction(puzzle, known, others, lastMove, glance(puzzle, known, obvious))?.let { return it }
-            deduction(puzzle, candidates, obvious, lastMove)?.let { return it }
-        } else {
-            deduction(puzzle, candidates, ladder.rungs, lastMove)?.let { return it }
-        }
+        val (obvious, others) = ladder.rungs.partition { it in ladder.obvious }
+        // What the player knows: a cell a queen attacks is ruled out, crossed or not, so no other rung proves it again.
+        val known = if (autoCross) candidates else QueensCandidates.start(puzzle, queens).exclude(crosses)
+        deduction(puzzle, known, others, lastMove, glance(puzzle, known, obvious))?.let { return it }
+        deduction(puzzle, candidates, obvious, lastMove)?.let { return it }
         if (onSolution == null) return QueensStep.Unavailable
         // Unreachable: entries are all correct here and the board is unsolved, so an open off-solution cell remains.
         return reveal(puzzle, candidates, lastMove, onSolution) ?: QueensStep.Unavailable

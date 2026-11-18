@@ -26,8 +26,7 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * The readable Strands board (nav-rethink B3), light and dark: [StrandsBoardReadablePreview] at a
  * phone's cell pitch (60 dp, six letters across 360 dp). Letters in ink, a found word, the found
- * spangram, a hinted word and three selected letters in their rings. The legacy look is pinned by
- * [StrandsGoldenCompactTest]; these are the renders to hold against the approved token sheets.
+ * spangram, a hinted word and three selected letters in their rings. These are the renders to hold against the approved token sheets.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

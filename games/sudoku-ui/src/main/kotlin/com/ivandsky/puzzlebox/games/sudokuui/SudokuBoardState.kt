@@ -91,7 +91,7 @@ class SudokuBoardState(
     internal val stepHints: StepHints<SudokuStep, SudokuSpotlightMapper.Key>? =
         (hintMode as? HintMode.Stepwise)?.let { mode ->
             scope?.let {
-                val game = SudokuStepGame(session = { session }, firstMove = mode.firstMove, plainCaptions = plainCaptions)
+                val game = SudokuStepGame(session = { session }, plainCaptions = plainCaptions)
                 StepHints(mode, it, game, used = { session.hintsUsed }, onCount = { countHint() })
             }
         }

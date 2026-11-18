@@ -44,7 +44,7 @@ class ZipHints(private val solver: ZipSolver = ZipSolver()) {
     }
 
     /**
-     * The hint under the first-move rule (nav-rethink B4, [ZipFirstMovePicker]): the same trim as
+     * The hint under the first-move rule ([ZipFirstMovePicker]): the same trim as
      * [hint] for a dead trace, otherwise the first real choice with the known cells before it as
      * the step's lead. A stored solution is the board's only one (A16 fetch gate, generator), so
      * each of its steps is already proven and nothing is searched; a board without one asks the solver.

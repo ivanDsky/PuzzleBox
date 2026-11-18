@@ -53,7 +53,7 @@ internal fun SudokuForcedLayer(
     }
     if (!visible) return
     val size = draft.size
-    val frame = gridStrokes(size, LocalBoardGeometry.current).box
+    val frame = gridStrokes(LocalBoardGeometry.current).box
     val faint = MaterialTheme.colorScheme.onSurface.copy(alpha = FORCED_ALPHA)
     Column(modifier.padding(frame)) {
         for (row in 0 until size) {

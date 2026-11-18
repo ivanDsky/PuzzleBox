@@ -31,8 +31,8 @@ class StrandsFirstMovePickerTest {
 
     private fun row(text: String, r: Int) = StrandsWord(text, text.indices.map { Coord(r, it) })
 
-    private fun target(puzzle: StrandsPuzzle, firstMove: Boolean, vararg found: String): String {
-        val hint = StrandsHints.hintFor(StrandsState(puzzle, found.toList(), earned), firstMove) as StrandsHint.Reveal
+    private fun target(puzzle: StrandsPuzzle, vararg found: String): String {
+        val hint = StrandsHints.hintFor(StrandsState(puzzle, found.toList(), earned)) as StrandsHint.Reveal
         assertEquals(HintStage.Outlined, hint.hint.stage)
         return hint.hint.word
     }
@@ -73,29 +73,26 @@ class StrandsFirstMovePickerTest {
     )
 
     @Test
-    fun `first move targets the word with the fewest routes, legacy the shortest`() {
-        assertEquals("CHAIRS", target(twoRoutes, firstMove = true))
-        assertEquals("BOOK", target(twoRoutes, firstMove = false))
+    fun `first move targets the word with the fewest routes`() {
+        assertEquals("CHAIRS", target(twoRoutes))
     }
 
     @Test
     fun `equal routes - first move targets the word with the fewest free letters around it`() {
         // LAMB touches two free rows, FROG only one: the board edge hems FROG in.
-        assertEquals("FROG", target(rowsBoard, firstMove = true))
-        assertEquals("LAMB", target(rowsBoard, firstMove = false))
+        assertEquals("FROG", target(rowsBoard))
     }
 
     @Test
     fun `first move skips a word the found words and the edge already outline`() {
         // With LAMB found, FROG's four letters are a closed pocket: outlining it would say nothing new.
-        assertEquals("HENS", target(rowsBoard, firstMove = true, "LAMB"))
-        assertEquals("FROG", target(rowsBoard, firstMove = false, "LAMB"))
+        assertEquals("HENS", target(rowsBoard, "LAMB"))
     }
 
     @Test
     fun `first move still targets an outlined word when no other theme word is left, the spangram last`() {
-        assertEquals("FROG", target(rowsBoard, firstMove = true, "LAMB", "HENS"))
-        assertEquals("DUCK", target(rowsBoard, firstMove = true, "LAMB", "HENS", "FROG"))
+        assertEquals("FROG", target(rowsBoard, "LAMB", "HENS"))
+        assertEquals("DUCK", target(rowsBoard, "LAMB", "HENS", "FROG"))
     }
 
     @Test
@@ -103,7 +100,7 @@ class StrandsFirstMovePickerTest {
         val outlined = StrandsState(twoRoutes, nonTheme = earned, hintsUsed = 1, activeHint = ActiveHint("BOOK", HintStage.Outlined))
         assertEquals(
             StrandsHint.Reveal(ActiveHint("BOOK", HintStage.OrderRevealed)),
-            StrandsHints.hintFor(outlined, firstMove = true),
+            StrandsHints.hintFor(outlined),
         )
     }
 
@@ -113,7 +110,7 @@ class StrandsFirstMovePickerTest {
         val order = mutableListOf<String>()
         var state = StrandsState(puzzle, nonTheme = earned)
         repeat(puzzle.totalWords) {
-            val word = (StrandsHints.hintFor(state, firstMove = true) as StrandsHint.Reveal).hint.word
+            val word = (StrandsHints.hintFor(state) as StrandsHint.Reveal).hint.word
             order += word
             state = state.copy(found = state.found + word)
         }

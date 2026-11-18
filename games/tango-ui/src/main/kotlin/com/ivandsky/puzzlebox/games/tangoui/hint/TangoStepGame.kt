@@ -18,13 +18,11 @@ import com.ivandsky.puzzlebox.games.tango.engine.step.TangoStepper
  * Tango stores no solution, so the compute block searches it once per puzzle (A19) with a poll-counting budget, never
  * wall-clock, so the answer is repeatable; no unique solution or a spent budget is null, and the stepper then accuses
  * only rule breaks and never reveals. Main-confined except the compute block, which only reads the snapshot and the
- * memo. [solve] is a seam for tests. [firstMove] is the mode's pick order (nav-rethink B4), fixed for the play.
- * [plainCaptions] picks the plain callout set (HintPolish), fixed for the play too.
+ * memo. [solve] is a seam for tests. [plainCaptions] picks the plain callout set (HintPolish), fixed for the play too.
  */
 internal class TangoStepGame(
     private val session: () -> TangoSession,
     solve: (TangoPuzzle) -> List<TangoCell>? = { TangoBoundedSolution.of(it) },
-    private val firstMove: Boolean = false,
     private val plainCaptions: Boolean = false,
 ) : StepHints.Game<TangoStep, TangoSpotlightMapper.Key> {
 
@@ -35,7 +33,7 @@ internal class TangoStepGame(
         val puzzle = current.puzzle
         val grid = current.grid()
         val lastMove = (current.history.done.lastOrNull() as? TangoPlace)?.idx
-        return { TangoStepper.next(puzzle, grid, lastMove, solutionOf(puzzle), firstMove) }
+        return { TangoStepper.next(puzzle, grid, lastMove, solutionOf(puzzle)) }
     }
 
     override fun keyOf(step: TangoStep): TangoSpotlightMapper.Key? = TangoSpotlightMapper.keyOf(step)

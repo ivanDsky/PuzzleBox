@@ -117,13 +117,11 @@ internal object ZipBoardSpec {
 internal fun Modifier.zipBoardOutline(n: Int): Modifier {
     val board = LocalBoardColors.current
     val geometry = LocalBoardGeometry.current
-    val color = if (geometry.wallOutline) board.boardWall else board.boardGridLine
-    val weight = if (geometry.wallOutline) geometry.wallWeight else BoardTokens.boardGridLineWeight
-    return (if (geometry.wallOutline) clipToBounds() else this).drawBehind {
-        val stroke = weight.toPx()
+    return clipToBounds().drawBehind {
+        val stroke = geometry.wallWeight.toPx()
         val half = stroke / 2f
         drawRoundRect(
-            color = color,
+            color = board.boardWall,
             topLeft = Offset(half, half),
             size = Size(size.width - stroke, size.height - stroke),
             cornerRadius = CornerRadius(size.minDimension / n * ZipBoardSpec.boardOutlineRadiusFraction),

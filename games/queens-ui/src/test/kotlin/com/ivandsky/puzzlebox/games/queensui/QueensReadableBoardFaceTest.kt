@@ -19,9 +19,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * B3, ticket 44: under the readable board theme the face draws region borders and the outline in the wall token at
- * the geometry's wall weight, and thin cell lines that stay lighter than the borders. The legacy theme keeps its
- * 1.5 dp edges. The 4×4 fixture's regions are its rows, so every horizontal cell line is a region border and every
+ * The face draws region borders and the outline in the wall token at
+ * the geometry's wall weight, and thin cell lines that stay lighter than the borders. The 4×4 fixture's regions are its rows, so every horizontal cell line is a region border and every
  * vertical one a plain cell line.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -40,10 +39,10 @@ class QueensReadableBoardFaceTest {
         operator fun get(x: Int, y: Int): Int = pixels[y * width + x]
     }
 
-    private fun face(readable: Boolean): Face {
+    private fun face(): Face {
         var wall = Color.Unspecified
         composeRule.setContent {
-            PuzzleBoxTheme(darkTheme = false, readableBoard = readable) {
+            PuzzleBoxTheme(darkTheme = false) {
                 wall = LocalBoardColors.current.boardWall
                 QueensBoardFace(model, Modifier.size(320.dp))
             }
@@ -59,7 +58,7 @@ class QueensReadableBoardFaceTest {
 
     @Test
     fun `a region border is the wall token at the wall weight`() {
-        val face = face(readable = true)
+        val face = face()
         // 1 dp off the border between rows 0 and 1, mid-cell: inside the 3 dp region wall on either side.
         assertEquals(face.wall.toArgb(), face[face.cell / 2, face.cell + face.px(1f)])
         assertEquals(face.wall.toArgb(), face[face.cell / 2, face.cell - face.px(1f)])
@@ -67,7 +66,7 @@ class QueensReadableBoardFaceTest {
 
     @Test
     fun `a region border is thinner than the board outline`() {
-        val face = face(readable = true)
+        val face = face()
         // 2 dp below the border between rows 0 and 1: the 3 dp region wall ends 1.5 dp off it, so this is row 1's bare fill.
         val fill = QueensRegionPalette.fill(model.regions[model.n], dark = false).toArgb()
         assertEquals(fill, face[face.cell / 2, face.cell + face.px(2f)])
@@ -75,14 +74,14 @@ class QueensReadableBoardFaceTest {
 
     @Test
     fun `the board outline is the wall token at the wall weight`() {
-        val face = face(readable = true)
+        val face = face()
         // 3 dp in from the left edge, mid-cell: inside a 4.5 dp outline, outside a 1.5 dp one.
         assertEquals(face.wall.toArgb(), face[face.px(3f), face.cell / 2])
     }
 
     @Test
     fun `a cell line inside a region is thin and lighter than the wall`() {
-        val face = face(readable = true)
+        val face = face()
         val fill = QueensRegionPalette.fill(model.regions[0], dark = false).toArgb()
         // The line between columns 0 and 1 of row 0, mid-height: tinted, but neither the wall nor the bare fill.
         val line = face[face.cell, face.cell / 2]
@@ -90,12 +89,5 @@ class QueensReadableBoardFaceTest {
         assertEquals("the cell line is as strong as a wall", false, line == face.wall.toArgb())
         // 1.5 dp off that line the fill is bare: the wall weight is for region borders only.
         assertEquals(fill, face[face.cell + face.px(1.5f), face.cell / 2])
-    }
-
-    @Test
-    fun `the legacy theme keeps its thin region border`() {
-        val face = face(readable = false)
-        val fill = QueensRegionPalette.fill(model.regions[0], dark = false).toArgb()
-        assertEquals(fill, face[face.cell / 2, face.cell - face.px(1.5f)])
     }
 }

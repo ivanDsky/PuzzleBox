@@ -47,10 +47,6 @@ object TangoBoardSpec {
     const val moonPunchOffsetFraction: Float = 0.28f
     const val moonPunchDiameterFraction: Float = 0.80f
 
-    /** Given-disabled wash (locked-cell signal, user QA 2026-11-02): muted background
-     *  on preplaced cells; violation tint draws above it when they co-occur. */
-    val givenTintAlpha: Float = 0.5f
-
     /**
      * `=`/`×` mark font size, fraction of pitch. Sizes picked by eye (user QA round 4: 0.44 read
      * oversized on the tablet), not a dp floor: the ink is a small part of the em, so no font the

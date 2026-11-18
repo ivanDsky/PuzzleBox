@@ -26,18 +26,6 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     ResultHeroPolish(label = "Result hero polish", releaseDefault = false),
 
     /**
-     * The readable board look (nav-rethink B3): shared board tokens and geometry for all five games. Read only by the app's
-     * root theme, which hands the theme one Boolean (spec A2).
-     */
-    BoardTokens(label = "Readable board look", releaseDefault = true),
-
-    /**
-     * Hints give a real first move (nav-rethink B4): a hint never points at what the player already knows. Read only in a
-     * game UI module's DI, which picks the [HintMode][com.ivandsky.puzzlebox.gameui.hint.HintMode] at registration (spec A2).
-     */
-    HintFirstMove(label = "Hints give a real first move", releaseDefault = true),
-
-    /**
      * Hint polish (backlog #1172, #1174): the Hint button reads as a peer of Undo, and hint captions explain the step in a plain
      * sentence before any technique name. Read only in feature/play's DI or a game UI module's DI (ADR-0022 §3).
      */

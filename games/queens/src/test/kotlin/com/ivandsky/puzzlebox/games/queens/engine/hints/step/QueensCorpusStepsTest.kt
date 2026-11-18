@@ -99,7 +99,7 @@ class QueensCorpusStepsTest {
             assertTrue("[$label] ${problems.size} problem(s)", problems.isEmpty())
             assertEquals("[$label] boards not all solved", boards, solved)
             assertTrue("[$label] long+reveal presses ${pct(longPresses, presses)} > 2%", longPresses <= MAX_SHARE * presses)
-            assertTrue("[$label] long+reveal steps ${pct(longSteps, steps)} > 2%", longSteps <= MAX_SHARE * steps)
+            assertTrue("[$label] long+reveal steps ${pct(longSteps, steps)} > 3%", longSteps <= MAX_STEP_SHARE * steps)
             assertTrue("[$label] long+reveal cells ${pct(longCells, cells)} > 2%", longCells <= MAX_SHARE * cells)
         }
 
@@ -205,6 +205,13 @@ class QueensCorpusStepsTest {
         /** The app's guard: a board that takes more presses than this fails. */
         const val MAX_PRESSES = 500
         const val MAX_SHARE = 0.02
+
+        /**
+         * The share of long+reveal steps. The first-move rule skips the many cheap obvious steps, so the same long steps
+         * are a larger share of fewer steps: measured 2.59% (386/14881, auto-cross on, all 806 boards; 1.08% off).
+         * Presses (1.31%) and cells (0.86%) stay under MAX_SHARE.
+         */
+        const val MAX_STEP_SHARE = 0.03
     }
 }
 

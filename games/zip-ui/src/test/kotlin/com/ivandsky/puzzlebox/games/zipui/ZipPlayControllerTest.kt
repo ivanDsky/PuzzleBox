@@ -327,11 +327,11 @@ class ZipPlayControllerTest {
         c.hint()
 
         assertEquals(1, c.session?.hintsUsed)
-        // Empty trace: the smallest help is the start cell itself — auto-placed (ticket
-        // 28), no arrow because a lone cell has no segment direction.
-        assertEquals(listOf(ZipPlayFixture.solution[0]), c.session?.path)
-        assertEquals(ZipPlayFixture.solution[0].idx, c.hintCell)
-        assertNull(c.hintArrow)
+        // Empty trace: the start cell has one way on, so the first real choice is the cell
+        // after it. The start is placed as a plain move, the hint places the next cell.
+        assertEquals(ZipPlayFixture.solution.take(2), c.session?.path)
+        assertEquals(ZipPlayFixture.solution[1].idx, c.hintCell)
+        assertEquals(HintArrow(headIdx = ZipPlayFixture.solution[1].idx, tailIdx = ZipPlayFixture.solution[0].idx), c.hintArrow)
     }
 
     @Test
@@ -359,8 +359,10 @@ class ZipPlayControllerTest {
     @Test
     fun `an accepted move clears the hint highlight and the arrow`() {
         val c = readyController()
-        c.hint() // auto-places the start
-        c.onDragEvent(DragEvent.Extend(GridCell(0, 1))) // solution[1], accepted
+        c.hint() // auto-places the start and solution[1]
+        assertEquals(1, c.hintCell)
+        assertEquals(HintArrow(headIdx = 1, tailIdx = 0), c.hintArrow)
+        c.onDragEvent(DragEvent.Extend(GridCell(0, 2))) // solution[2], accepted
 
         assertNull(c.hintCell)
         assertNull(c.hintArrow)
@@ -382,10 +384,10 @@ class ZipPlayControllerTest {
     fun `hint telemetry records each press's origin and placement`() {
         var clockMs = 0L
         val c = readyController(now = { Instant.ofEpochMilli(clockMs) })
-        c.hint() // places the start (empty trace, no arrow)
+        c.hint() // empty trace: places the start as a plain move, then the hinted cell
         assertEquals(1, c.session?.hintsUsed)
         assertEquals(
-            listOf(HintEvent(atMs = 0L, fromIdx = null, placedIdx = ZipPlayFixture.solution[0].idx)),
+            listOf(HintEvent(atMs = 0L, fromIdx = null, placedIdx = ZipPlayFixture.solution[1].idx)),
             c.hintHistory,
         )
 
@@ -394,7 +396,7 @@ class ZipPlayControllerTest {
         assertEquals(2, c.session?.hintsUsed)
         assertEquals(
             listOf(
-                HintEvent(atMs = 5_000L, fromIdx = 0, placedIdx = ZipPlayFixture.solution[1].idx),
+                HintEvent(atMs = 5_000L, fromIdx = 1, placedIdx = ZipPlayFixture.solution[2].idx),
             ),
             c.hintHistory.drop(1),
         )

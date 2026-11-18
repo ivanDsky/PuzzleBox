@@ -52,12 +52,6 @@ class OutlinedStrandsTokensTest {
         assertEquals(Color(0xFFFF77A0), DarkBoardTokens.strandsHintRing)
     }
 
-    @Test
-    fun `the readable instances carry the outlined roles unchanged`() {
-        assertEquals(LightBoardTokens.strandsThemeTint, ReadableLightBoardTokens.strandsThemeTint)
-        assertEquals(DarkBoardTokens.strandsFlatHintRing, ReadableDarkBoardTokens.strandsFlatHintRing)
-    }
-
     private fun contrast(foreground: Color, background: Color): Float {
         val fg = foreground.luminance() + 0.05f
         val bg = background.luminance() + 0.05f

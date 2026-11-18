@@ -15,8 +15,8 @@ import kotlin.math.max
  * solution comes from the caller (null when the solver ran out of budget or the board is not
  * unique): without it only rule breaks are mistakes and nothing is revealed.
  *
- * With `firstMove` (nav-rethink B4) the cheapest rung is no longer always first: a step the player
- * sees at a glance waits while a later rung forces a cell they cannot see that way.
+ * The cheapest rung is not always first: a step the player sees at a glance waits while a later
+ * rung forces a cell they cannot see that way.
  */
 object TangoStepper {
 
@@ -40,33 +40,28 @@ object TangoStepper {
         TangoLegacyStepRules.lineOptions,
     )
 
-    /** Catalog order D0..D8, cheapest first: the only place the stepping order lives. */
-    private val rungs: List<TangoStepRule> = glance + worked
-
     /**
-     * [firstMove] off steps in catalog order. On, the first [worked] rung that forces a cell no
-     * [glance] rung forces wins, and a glance step is returned only when no such cell exists.
-     * Mistakes, the solved check and the reveal are the same either way.
+     * The first [worked] rung that forces a cell no [glance] rung forces wins, and a glance step is
+     * returned only when no such cell exists. Then a mistake, the solved check and the reveal.
      */
-    fun next(puzzle: TangoPuzzle, grid: List<TangoCell?>, lastMove: Int?, solution: List<TangoCell>?, firstMove: Boolean = false): TangoStep {
+    fun next(puzzle: TangoPuzzle, grid: List<TangoCell?>, lastMove: Int?, solution: List<TangoCell>?): TangoStep {
         require(grid.size == puzzle.cellCount) { "grid holds ${grid.size} cells, puzzle ${puzzle.cellCount}" }
         require(solution == null || solution.size == puzzle.cellCount) { "solution size ${solution?.size}" }
         mistake(puzzle, grid, lastMove, solution)?.let { return it }
         if (grid.none { it == null } && TangoRules.isComplete(TangoState(puzzle, grid))) return TangoStep.Solved
         // With a solution every wrong entry was returned above, so the rungs read only givens and
         // correct entries (A5); without one, entries off the solution cannot be told apart.
-        deduction(puzzle, grid, lastMove, firstMove)?.let { return it }
+        deduction(puzzle, grid, lastMove)?.let { return it }
         if (solution == null) return TangoStep.Unavailable
         return TangoReveal.pick(puzzle, grid, lastMove, solution) ?: TangoStep.Unavailable
     }
 
     /** The deduction to show: within a rung the one nearest [lastMove], then fewest evidence cells, then lowest index. */
-    private fun deduction(puzzle: TangoPuzzle, grid: List<TangoCell?>, lastMove: Int?, firstMove: Boolean): TangoStep.Deduction? {
+    private fun deduction(puzzle: TangoPuzzle, grid: List<TangoCell?>, lastMove: Int?): TangoStep.Deduction? {
         val nearest = compareBy<TangoStep.Deduction>({ chebyshev(puzzle.n, it.idx, lastMove) }, { it.evidence.size }, { it.idx })
-        if (!firstMove) return rungs.firstNotNullOfOrNull { it.forced(puzzle, grid).minWithOrNull(nearest) }
         val glanced = glance.map { it.forced(puzzle, grid) }
         val seen = glanced.flatMapTo(HashSet()) { steps -> steps.map { it.idx } }
-        // With nothing seen at a glance this is the catalog order over the worked rungs, as with firstMove off.
+        // With nothing seen at a glance this is the catalog order over the worked rungs.
         return worked.firstNotNullOfOrNull { rung -> rung.forced(puzzle, grid).filter { it.idx !in seen }.minWithOrNull(nearest) }
             ?: glanced.firstNotNullOfOrNull { it.minWithOrNull(nearest) }
     }

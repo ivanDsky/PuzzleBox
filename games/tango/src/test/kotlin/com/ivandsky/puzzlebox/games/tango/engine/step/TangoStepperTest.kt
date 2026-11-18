@@ -97,40 +97,40 @@ class TangoStepperTest {
         toMutableList().apply { cells.forEach { (idx, v) -> this[idx] = v } }
 
     @Test
-    fun `each catalog example position steps with its own rung`() {
+    fun `each catalog example position steps soundly, a worked rung example with its own rung`() {
+        val glanceRules = mapOf(
+            TangoStepRung.SIGN to TangoLegacyStepRules.sign,
+            TangoStepRung.PAIR to TangoLegacyStepRules.pair,
+            TangoStepRung.SANDWICH to TangoLegacyStepRules.sandwich,
+        )
         for (ex in catalog.filter { it.rung != null }) {
             val step = TangoStepper.next(ex.puzzle, ex.position, null, ex.solution) as TangoStep.Deduction
 
-            assertEquals(ex.rung, step.rung)
             assertEquals(ex.solution[step.idx], step.value)
+            val glance = glanceRules[ex.rung]
+            // A glance example waits behind a worked rung that forces a cell nobody sees at a glance; its own rule still fires.
+            if (glance != null) assertTrue("${ex.rung} example", glance.forced(ex.puzzle, ex.position).isNotEmpty())
+            else assertEquals(ex.rung, step.rung)
         }
     }
 
     @Test
-    fun `a sign step comes before line options and line options comes back once the sign is gone`() {
-        val withSign = d8.position.with(4 to MOON)
-        assertTrue(TangoLegacyStepRules.lineOptions.forced(d8.puzzle, withSign).isNotEmpty())
-
-        assertEquals(TangoStepRung.SIGN, (TangoStepper.next(d8.puzzle, withSign, 4, d8.solution) as TangoStep.Deduction).rung)
-        assertEquals(TangoStepRung.LINE_OPTIONS, (TangoStepper.next(d8.puzzle, d8.position, 4, d8.solution) as TangoStep.Deduction).rung)
-    }
-
-    @Test
     fun `a gap between equal cells is a sandwich and a cell beyond them is a pair`() {
-        assertEquals(TangoStepRung.SANDWICH, (TangoStepper.next(board(), grid(0 to SUN, 2 to SUN), null, null) as TangoStep.Deduction).rung)
-        assertEquals(TangoStepRung.PAIR, (TangoStepper.next(board(), grid(0 to SUN, 1 to SUN), null, null) as TangoStep.Deduction).rung)
+        assertEquals(listOf(1), TangoLegacyStepRules.sandwich.forced(board(), grid(0 to SUN, 2 to SUN)).map { it.idx })
+        assertEquals(listOf(2), TangoLegacyStepRules.pair.forced(board(), grid(0 to SUN, 1 to SUN)).map { it.idx })
+        assertEquals(emptyList<TangoStep.Deduction>(), TangoLegacyStepRules.pair.forced(board(), grid(0 to SUN, 2 to SUN)))
     }
 
     @Test
     fun `of two equal rung steps the one nearer the last move wins and without one the lowest cell`() {
         val puzzle = board(
-            TangoMarker(0, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME),
+            TangoMarker(0, TangoEdgeSide.RIGHT, TangoMarkerKind.OPPOSITE),
             TangoMarker(34, TangoEdgeSide.RIGHT, TangoMarkerKind.OPPOSITE),
         )
         val g = grid(0 to SUN, 35 to MOON)
 
         assertEquals(TangoStep.Deduction(TangoStepRung.SIGN, 34, SUN, setOf(34, 35), null, null, null), TangoStepper.next(puzzle, g, 35, null))
-        assertEquals(TangoStep.Deduction(TangoStepRung.SIGN, 1, SUN, setOf(0, 1), null, null, null), TangoStepper.next(puzzle, g, 0, null))
+        assertEquals(TangoStep.Deduction(TangoStepRung.SIGN, 1, MOON, setOf(0, 1), null, null, null), TangoStepper.next(puzzle, g, 0, null))
         assertEquals(1, (TangoStepper.next(puzzle, g, null, null) as TangoStep.Deduction).idx)
     }
 

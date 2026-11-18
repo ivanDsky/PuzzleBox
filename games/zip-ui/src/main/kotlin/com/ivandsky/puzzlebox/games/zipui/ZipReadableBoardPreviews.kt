@@ -38,7 +38,7 @@ internal fun zipReadablePreviewModel() = zipPreviewModel(
 /** The readable board on the theme's surface, light or [dark]; the golden renders this too. */
 @Composable
 internal fun ZipReadableBoardSample(dark: Boolean) {
-    PuzzleBoxTheme(darkTheme = dark, readableBoard = true) {
+    PuzzleBoxTheme(darkTheme = dark) {
         Surface {
             ZipBoard(zipReadablePreviewModel(), Modifier.padding(24.dp))
         }

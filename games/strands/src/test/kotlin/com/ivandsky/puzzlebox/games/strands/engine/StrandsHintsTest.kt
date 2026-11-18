@@ -14,7 +14,7 @@ class StrandsHintsTest {
 
     private fun word(text: String) = StrandsWord(text, text.indices.map { Coord(0, it) })
 
-    /** Theme words in feed order: LONGER, CAT, DOG (CAT and DOG tie on length); spangram ZZ. */
+    /** Theme words in feed order: LONGER, CAT, DOG; spangram ZZ. */
     private val puzzle = StrandsPuzzle(
         rows = 1,
         cols = 6,
@@ -62,19 +62,6 @@ class StrandsHintsTest {
         listOf(0 to 0, 1 to 1, 2 to 2, 3 to 0, 4 to 1, 8 to 2).forEach { (n, thirds) ->
             assertEquals(thirds, StrandsHints.meterThirds(state(nonTheme = n, hintsUsed = 9)))
         }
-    }
-
-    @Test
-    fun `targets the shortest unfound theme word, feed order on ties, spangram last`() {
-        val order = mutableListOf<String>()
-        var s = state(nonTheme = 30)
-        repeat(4) {
-            val hint = StrandsHints.hintFor(s) as StrandsHint.Reveal
-            assertEquals(HintStage.Outlined, hint.hint.stage)
-            order += hint.hint.word
-            s = s.copy(found = s.found + hint.hint.word)
-        }
-        assertEquals(listOf("CAT", "DOG", "LONGER", "ZZ"), order)
     }
 
     @Test

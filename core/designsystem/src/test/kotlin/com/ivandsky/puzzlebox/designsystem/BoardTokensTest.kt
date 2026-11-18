@@ -196,10 +196,10 @@ class BoardTokensTest {
         }
     }
 
-    // Readable instances (nav-rethink B3): the same floors as the legacy set, in both themes.
+    // The board look (nav-rethink B3): walls are the full board ink, the target ring and the grid line clear their floors, no legal-cell tint.
     @Test
-    fun `readable instances clear the wall, ring and gridline floors on boardSurface in both themes`() {
-        for (tokens in listOf(ReadableDarkBoardTokens, ReadableLightBoardTokens)) {
+    fun `wall, ring and gridline clear their floors on boardSurface in both themes`() {
+        for (tokens in listOf(DarkBoardTokens, LightBoardTokens)) {
             assertTrue(contrast(tokens.boardWall, tokens.boardSurface) >= 3f)
             assertTrue(contrast(tokens.boardTarget, tokens.boardSurface) >= 3f)
             assertTrue(contrast(tokens.boardGridLine, tokens.boardSurface) >= 2f)
@@ -208,23 +208,9 @@ class BoardTokensTest {
     }
 
     @Test
-    fun `readable gridline is quieter than the legacy gridline and the wall stays strong ink`() {
-        val pairs = listOf(
-            DarkBoardTokens to ReadableDarkBoardTokens,
-            LightBoardTokens to ReadableLightBoardTokens,
-        )
-        for ((legacy, readable) in pairs) {
-            assertTrue(contrast(readable.boardGridLine, readable.boardSurface) < contrast(legacy.boardGridLine, legacy.boardSurface))
-            assertEquals(readable.boardInk, readable.boardWall)
-            assertTrue(contrast(readable.boardWall, readable.boardSurface) > contrast(legacy.boardWall, legacy.boardSurface))
-        }
-    }
-
-    @Test
-    fun `readable instances keep the surface and carry no legal-cell tint`() {
-        assertEquals(DarkBoardTokens.boardSurface, ReadableDarkBoardTokens.boardSurface)
-        assertEquals(LightBoardTokens.boardSurface, ReadableLightBoardTokens.boardSurface)
-        for (tokens in listOf(DarkBoardTokens, LightBoardTokens, ReadableDarkBoardTokens, ReadableLightBoardTokens)) {
+    fun `the wall is the strong ink and the legal-cell tint is none`() {
+        for (tokens in listOf(DarkBoardTokens, LightBoardTokens)) {
+            assertEquals(tokens.boardInk, tokens.boardWall)
             assertEquals(Color.Transparent, tokens.legalCellTint)
         }
     }

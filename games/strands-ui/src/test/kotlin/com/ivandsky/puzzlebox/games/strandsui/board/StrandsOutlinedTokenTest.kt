@@ -175,7 +175,7 @@ class StrandsOutlinedTokenTest {
         listOf("TAKE", "RAKE", "CART").forEach { play(StrandsUiFixtures.nonTheme.getValue(it)) }
         controller.pressHint()
         rule.waitForIdle()
-        val p = Probe(cell(2, 0))
+        val p = Probe(cell(3, 0))
         assertColor(p.bare, p.map[p.cx, p.edgeTop + 2], "a hinted letter's own edge is bare, the ring is outside it")
         val ring = (0 until 120).map { p.map[p.cx - 60 + it, p.cy - 93] }
         assertTrue("the ring has dashes", ring.any { it.near(light.strandsFlatHintRing) })

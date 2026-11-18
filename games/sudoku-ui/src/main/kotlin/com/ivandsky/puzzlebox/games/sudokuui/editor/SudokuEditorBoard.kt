@@ -146,7 +146,7 @@ private fun editorBoardModel(
  */
 @Composable
 private fun SudokuEditorMarks(size: Int, outlined: Set<Int>, hatched: Set<Int>, modifier: Modifier = Modifier) {
-    val frame = gridStrokes(size, LocalBoardGeometry.current).box
+    val frame = gridStrokes(LocalBoardGeometry.current).box
     val outline = MaterialTheme.colorScheme.onTertiaryContainer
     val stripe = LocalBoardColors.current.editorSplitHatch.copy(alpha = HATCH_ALPHA)
     Column(modifier.padding(frame)) {

@@ -11,7 +11,6 @@ import com.ivandsky.puzzlebox.game.Move
 import com.ivandsky.puzzlebox.game.MoveVerdict
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.SessionBlob
-import com.ivandsky.puzzlebox.game.replay.ReplayFirstMove
 import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
 import com.ivandsky.puzzlebox.games.queens.codec.QueensSessionCodec
 import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint
@@ -184,15 +183,6 @@ val queensPlugin: GamePlugin<QueensState, QueensSession, QueensRendererModel> =
  * `single { ... }` from overwriting Queens' definition while `getAll` still collects it.
  */
 val queensModule: Module = module {
-    single(qualifier = qualifier(QueensDefinition.id.value)) {
-        queensPluginFor(getOrNull<ReplayFirstMove>(qualifier(QueensDefinition.id.value)))
-    }
+    single(qualifier = qualifier(QueensDefinition.id.value)) { queensPlugin }
     single { LinkedInQueensDailySource(get()) } bind DailySource::class
 }
-
-/**
- * The plugin the graph registers: [queensPlugin] itself, or with a [QueensReplay] that asks [replayOption] when a
- * UI module bound one under this game's id, so a replay marks the hint the play UI would give (nav-rethink 47b).
- */
-internal fun queensPluginFor(replayOption: ReplayFirstMove?): GamePlugin<QueensState, QueensSession, QueensRendererModel> =
-    replayOption?.let { queensPlugin.withReplay(QueensReplay(it)) } ?: queensPlugin

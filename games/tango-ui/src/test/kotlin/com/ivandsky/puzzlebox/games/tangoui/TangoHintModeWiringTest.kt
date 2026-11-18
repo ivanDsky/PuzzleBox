@@ -11,9 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.koin.core.qualifier.qualifier
 import org.koin.dsl.koinApplication
@@ -25,7 +23,7 @@ class TangoHintModeWiringTest {
     // Single Koin case: tangoUiModule is a top-level val and Koin caches its singleton
     // across containers, so a second container in this JVM would see the first one's instance.
     @Test
-    fun `the Koin module resolves the play UI with Stepwise on the provider's default dispatcher and the first-move flag read per board`() {
+    fun `the Koin module resolves the play UI with Stepwise on the provider's default dispatcher`() {
         val dispatchers = object : DispatcherProvider {
             override val main: CoroutineDispatcher = StandardTestDispatcher(name = "main")
             override val io: CoroutineDispatcher = StandardTestDispatcher(name = "io")
@@ -45,14 +43,8 @@ class TangoHintModeWiringTest {
         }.koin
         val ui = koin.get<GamePlayUi>(qualifier(TangoDefinition.id.value))
 
-        val flagOff = ui.createController(env()) as TangoPlayController
-        flags.enabled.value = setOf(ReleaseFlag.HintFirstMove)
-        val flagOn = ui.createController(env()) as TangoPlayController
+        val controller = ui.createController(env()) as TangoPlayController
 
-        assertSame(dispatchers.default, flagOff.hintMode.compute)
-        assertSame(dispatchers.default, flagOn.hintMode.compute)
-        // The flag is read when a board opens: the next board takes it, the open one keeps its order.
-        assertFalse(flagOff.hintMode.firstMove)
-        assertTrue(flagOn.hintMode.firstMove)
+        assertSame(dispatchers.default, controller.hintMode.compute)
     }
 }

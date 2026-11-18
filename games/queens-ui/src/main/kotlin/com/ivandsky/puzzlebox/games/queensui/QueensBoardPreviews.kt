@@ -158,11 +158,11 @@ private fun walledPuzzle() = com.ivandsky.puzzlebox.games.queens.QueensPuzzle(
 @PuzzleBoxPreviews
 @Composable
 internal fun QueensBoardReadablePreview() {
-    // B3: the readable board theme. Region borders and the outline are walls; two queens and their crosses in ink.
+    // Region borders and the outline are walls; two queens and their crosses in ink.
     val session = listOf(0, 29).fold(QueensSession(ref = null, puzzle = walledPuzzle()).withCrossToggled(Cell(56), previewT0)) { acc, cell ->
         acc.withQueenPlaced(Cell(cell), previewT0)
     }
-    PuzzleBoxTheme(readableBoard = true) {
+    PuzzleBoxTheme() {
         QueensPlayBoard(previewBoardState(session), Modifier.fillMaxWidth())
     }
 }

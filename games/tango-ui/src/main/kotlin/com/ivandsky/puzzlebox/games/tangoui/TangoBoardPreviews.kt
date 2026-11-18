@@ -15,13 +15,13 @@ import com.ivandsky.puzzlebox.games.tango.TangoEdgeSide
 import com.ivandsky.puzzlebox.games.tango.TangoMarkerKind
 import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
 
-// The Tango board under the readable board tokens (nav-rethink B3), in light and dark: the render to hold against
-// the approved token sheets. TangoReadableBoardGoldenTest pins the same composable.
+// The Tango board in light and dark: the render to hold against the approved token sheets.
+// TangoReadableBoardGoldenTest pins the same composable.
 
-/** A mid-play board in the readable look: givens, the player's own entries, all four signs and two broken lines. */
+/** A mid-play board givens, the player's own entries, all four signs and two broken lines. */
 @Composable
 internal fun TangoReadableBoardSample(dark: Boolean) {
-    PuzzleBoxTheme(darkTheme = dark, readableBoard = true) {
+    PuzzleBoxTheme(darkTheme = dark) {
         TangoBoardRenderer().Content(
             previewBoard(),
             Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(Spacing.md),

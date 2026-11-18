@@ -80,8 +80,10 @@ class StrandsReplayBoardMotionTest {
 
     @Test
     fun `playing, a non-theme word is drawn in letter by letter, then set aside with no jump`() {
-        rig.show(bare(), animate = true, referenceTrace = artsPath)
+        // The reference is live's set-aside word: lifting a trace drops the selection ring, so the held path is compared with that, not the selected trace.
+        rig.show(bare(), animate = true, referenceTrace = emptyList())
         val untraced = rig.board()
+        rig.setReferenceAside(artsPath)
         val whole = rig.reference()
 
         rig.update(nonThemeStep)

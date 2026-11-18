@@ -13,15 +13,13 @@ import com.ivandsky.puzzlebox.games.zip.engine.ZipValidation
  * One press of Hint, as moves on the log (A3, F2 §10, ticket 28). A provably dead trace is trimmed
  * free, to the longest prefix that still solves. Then the one counted hint places one cell.
  *
- * With [firstMove] off that cell is the next one, the start cell on an empty board. With it on
- * (nav-rethink B4) the cell is the first real choice: the cells before it, which have one way on,
+ * That cell is the first real choice: the cells before it, which have one way on,
  * are placed first as plain moves, so the hint stays one count and one hinted cell in the replay
  * (ADR-0025). The record is trim, plain moves, Hint, the hinted cell, all at one stamp.
  */
 internal class ZipHintFlow(
     private val rules: ZipRules,
     private val log: ZipMoveLog,
-    private val firstMove: Boolean,
 ) {
 
     /**
@@ -68,8 +66,7 @@ internal class ZipHintFlow(
         return Outcome(next, kept, step?.cell?.idx, placed, arrow)
     }
 
-    private fun resolve(state: ZipState): ZipHint =
-        if (firstMove) rules.firstMoveHint(state) else rules.hint(state) as ZipHint
+    private fun resolve(state: ZipState): ZipHint = rules.firstMoveHint(state)
 
     private fun legal(session: ZipSession, cell: Cell): Boolean =
         rules.validateMove(ZipMove.Extend(cell), ZipState(session.puzzle, session.path)) is ZipValidation.Valid

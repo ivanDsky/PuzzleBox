@@ -12,9 +12,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The Tango board under the readable board tokens (nav-rethink B3), light and dark: an ink wall for the frame, the
- * quiet grid line, givens with no wash or outline, signs in ink. [TangoBoardGoldenTest] renders the legacy look
- * beside it. Rendered with `-Proborazzi.record=true` into `snapshots/` (untracked review captures).
+ * The Tango board sample, light and dark: an ink wall for the frame, the
+ * quiet grid line, givens with no wash or outline, signs in ink. [TangoBoardGoldenTest] pins the full
+ * renderer beside it. Rendered with `-Proborazzi.record=true` into `snapshots/` (untracked review captures).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

@@ -81,12 +81,12 @@ class StrandsPlayE2ETest {
 
             pressHint()
             assertEquals("the press spends one hint", 1, rule.runOnIdle { strands().session?.state?.hintsUsed })
-            // Stage 1 outlines the shortest unfound theme word.
-            assertCells(HUSK, CellState.HintOutlined)
+            // Stage 1 outlines the first-move pick: the theme word with the fewest routes left, BRANCH.
+            assertCells(BRANCH, CellState.HintOutlined)
 
             listOf(ALTS, AVER, BACH).forEach { tapWord(it) }
             pressHint()
-            HUSK.forEachIndexed { index, at -> assertCell(at, CellState.HintOrderRevealed(index)) }
+            BRANCH.forEachIndexed { index, at -> assertCell(at, CellState.HintOrderRevealed(index)) }
 
             // Both stages are on the board: the pill explains instead of spending.
             pressHint()
@@ -109,7 +109,7 @@ class StrandsPlayE2ETest {
             assertEquals("found words, non-theme words and hints survive the kill", killed.state, resumed.state)
             assertEquals("same elapsed time (±1 s)", killed.elapsedMs.toDouble(), resumed.elapsedMs.toDouble(), 1_000.0)
             assertCells(ACORN, CellState.FoundTheme)
-            HUSK.forEachIndexed { index, at -> assertCell(at, CellState.HintOrderRevealed(index)) }
+            BRANCH.forEachIndexed { index, at -> assertCell(at, CellState.HintOrderRevealed(index)) }
 
             listOf(BRANCH, HUSK, LEAVES, MOSS, PINECONE, TWIG).forEach { drag(it) }
             assertTrue("no record before the last word", runBlocking { strandsRecords() }.isEmpty())

@@ -48,9 +48,9 @@ class SudokuSpotlightGeometryTest {
     private fun lighting(cell: Int) =
         Spotlight(SIZE, SIZE, mapOf(cell to SpotlightRole.TARGET), callout = null, SudokuSpotlightGlyphs(mapOf(cell to "4")), playId = 1)
 
-    private fun show(spotlight: Spotlight, readableBoard: Boolean = false) {
+    private fun show(spotlight: Spotlight) {
         composeRule.setContent {
-            PuzzleBoxTheme(darkTheme = false, readableBoard = readableBoard) {
+            PuzzleBoxTheme(darkTheme = false) {
                 SudokuGrid(sudokuBoardModel(mini, null), onSelect = {}, Modifier.size(360.dp), spotlight = spotlight)
             }
         }
@@ -82,19 +82,8 @@ class SudokuSpotlightGeometryTest {
     }
 
     @Test
-    fun `the overlay covers the cells exactly, inside the frame padding`() {
+    fun `the cells and the overlay sit inside the heavier wall`() {
         show(lighting(LIT))
-
-        val cells = Rect(bounds("sudoku.cell.0").topLeft, bounds("sudoku.cell.${SIZE * SIZE - 1}").bottomRight)
-        assertRect(cells, bounds(SPOTLIGHT_TAG))
-
-        val frame = with(composeRule.density) { gridStrokes(SIZE, BoardGeometry.Legacy).box.toPx() }
-        assertRect(bounds("sudoku.grid").deflate(frame), bounds(SPOTLIGHT_TAG))
-    }
-
-    @Test
-    fun `on the readable board the cells and the overlay sit inside the heavier wall`() {
-        show(lighting(LIT), readableBoard = true)
 
         val cells = Rect(bounds("sudoku.cell.0").topLeft, bounds("sudoku.cell.${SIZE * SIZE - 1}").bottomRight)
         val wall = with(composeRule.density) { BoardGeometry.Readable.wallWeight.toPx() }

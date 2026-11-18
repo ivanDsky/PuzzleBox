@@ -10,21 +10,18 @@ import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.TutorialStep
-import com.ivandsky.puzzlebox.gameui.hint.HintMode
-import com.ivandsky.puzzlebox.gameui.hint.HintModeSource
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.games.strands.StrandsDefinition
 import com.ivandsky.puzzlebox.model.GameId
 
 /**
  * Strands' one play registration (ADR-0001): its controller, its board and its play screen.
- * [hintMode] is asked once per controller, so a flag change applies to the next game opened.
  */
-class StrandsPlayUi(private val hintMode: HintModeSource = HintModeSource { HintMode.Legacy }) : GamePlayUi {
+class StrandsPlayUi : GamePlayUi {
     override val gameId: GameId get() = StrandsDefinition.id
 
     override fun createController(env: PlayEnvironment): GamePlayController =
-        StrandsPlayController(env, hintMode = hintMode.current())
+        StrandsPlayController(env)
 
     override val brand: GameBrand get() = StrandsBrand
 

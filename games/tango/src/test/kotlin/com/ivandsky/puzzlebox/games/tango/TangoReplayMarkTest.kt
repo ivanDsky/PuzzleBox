@@ -87,10 +87,11 @@ class TangoReplayMarkTest {
     // ------------------------------------------------------------------ hint targets (F9)
 
     @Test
-    fun `a hint on a board with a proof targets the proven cell`() {
+    fun `a hint on a board with a proof targets the cell a player cannot see at a glance`() {
         val timeline = timeline(at(1_000, Hint))
 
-        assertEquals(setOf(2), timeline.at(1_000).hinted)
+        // Cell 2 is a moon by a pair at a glance; the first-move rule skips it for the cell only a worked rung proves.
+        assertEquals(setOf(34), timeline.at(1_000).hinted)
         assertEquals(emptySet<Int>(), timeline.at(999).hinted)
     }
 

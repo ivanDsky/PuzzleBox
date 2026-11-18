@@ -18,7 +18,6 @@ import com.ivandsky.puzzlebox.gameui.PlayFeedback
 import com.ivandsky.puzzlebox.gameui.PlayHints
 import com.ivandsky.puzzlebox.gameui.PlayUndo
 import com.ivandsky.puzzlebox.gameui.Restored
-import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
 import com.ivandsky.puzzlebox.games.zip.ZipReplayMove
@@ -49,8 +48,6 @@ class ZipPlayController(
     private val now: () -> Instant = Instant::now,
     /** Ticket 06: the refusal/trim messages the shared caption slot shows. */
     val feedback: ZipFeedback = ZipFeedback(env.scope),
-    /** Legacy gives the next cell; FirstMove gives the first real choice (nav-rethink B4). Set once, by the UI module. */
-    internal val hintMode: HintMode = HintMode.Legacy,
 ) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback by feedback {
 
     var session by mutableStateOf<ZipSession?>(null)
@@ -76,7 +73,7 @@ class ZipPlayController(
 
     private val log = ZipMoveLog(env.moveLog, now)
 
-    private val hints = ZipHintFlow(rules, log, firstMove = hintMode is HintMode.FirstMove)
+    private val hints = ZipHintFlow(rules, log)
 
     //region input (F2 §7: candidate moves in, authoritative validation here)
 
@@ -152,8 +149,7 @@ class ZipPlayController(
 
     /**
      * Hint (A3, F2 §10, ticket 28): a provably dead trace is trimmed FREE, then the ONE counted
-     * hint AUTO-PLACES a cell ([ZipHintFlow]: the next cell, or under [HintMode.FirstMove] the
-     * first real choice) and an arrow marks the new head until the next input or ~2s
+     * hint AUTO-PLACES a cell ([ZipHintFlow]: the first real choice) and an arrow marks the new head until the next input or ~2s
      * ([clearHintArrow] — the screen fades it). The highlight survives until the next accepted move.
      */
     fun hint() {
