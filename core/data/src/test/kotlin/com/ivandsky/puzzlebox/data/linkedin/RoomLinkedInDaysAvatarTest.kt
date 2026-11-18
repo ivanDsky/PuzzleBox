@@ -3,6 +3,8 @@ package com.ivandsky.puzzlebox.data.linkedin
 import androidx.room.Room
 import com.ivandsky.puzzlebox.testing.room.RoomQueryThread
 import app.cash.turbine.test
+import com.ivandsky.puzzlebox.database.linkedin.FetchLogDao
+import com.ivandsky.puzzlebox.database.linkedin.FetchLogEntity
 import com.ivandsky.puzzlebox.database.linkedin.LinkedInDatabase
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInAccountSource
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInBoard
@@ -24,10 +26,14 @@ import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import kotlin.io.path.createTempDirectory
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -216,8 +222,8 @@ class RoomLinkedInDaysAvatarTest {
 
         val sync = async { newDays(avatars = slow).sync(zip, ago(3)) }
         onTheWire.await()
-        advanceUntilIdle()
-
+        // The board is stored on Room's own thread, so the wait runs on the real clock, not the test's.
+        withContext(Dispatchers.Default) { withTimeout(10_000) { sync.await() } }
         assertTrue("a day is not held back by its photos", sync.isCompleted)
         sync.cancel()
         arrive.complete(Unit)
@@ -257,6 +263,39 @@ class RoomLinkedInDaysAvatarTest {
             while (data.owner?.photoPath == null) data = awaitItem()
             assertEquals(LinkedInOwner("me", avatars.pathOf("me", avatars.present.first())), data.owner)
             assertEquals(listOf("a"), data.ghosts.map { it.memberRef })
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `a sync cancelled right after its board is stored still brings the photos, and the observed rows show them`() = runTest {
+        scriptPhotos("a", "b")
+        respond(ago(3), LinkedInRead.Ok(LinkedInBoard(listOf(row("a", url("a")), row("b", url("b"))))))
+        val logging = CompletableDeferred<Unit>()
+        val held = object : FetchLogDao by db.fetchLogDao() {
+            override suspend fun put(entry: FetchLogEntity) {
+                if (entry.item == LinkedInItem.Board.name) {
+                    logging.complete(Unit)
+                    awaitCancellation()
+                }
+                db.fetchLogDao().put(entry)
+            }
+        }
+        val sync = LinkedInDaySync(
+            link, source, FakeCompletionRepository(), daily, LinkedInDayWindow(FakeGameCalendar(today)), TestGames.registry(listOf(zip)),
+            held, LinkedInGhostWriter(db, FakeOwnerScope()), LinkedInCallBudget({ now }, limit = 100), avatars,
+            LinkedInStoreLock(), testPostLog(), LinkedInSyncState(),
+        ) { now }
+
+        val running = async { sync.sync(zip, ago(3), "me") }
+        logging.await()
+        running.cancel()
+        advanceUntilIdle()
+
+        newDays().observe(zip, ago(3)).test {
+            var data = awaitItem()
+            while (data.ghosts.size < 2 || data.ghosts.any { it.photoPath == null }) data = awaitItem()
+            assertEquals(setOf(avatars.pathOf("a", avatars.present.first()), avatars.pathOf("b", avatars.present.first())), data.ghosts.map { it.photoPath }.toSet())
             cancelAndIgnoreRemainingEvents()
         }
     }
