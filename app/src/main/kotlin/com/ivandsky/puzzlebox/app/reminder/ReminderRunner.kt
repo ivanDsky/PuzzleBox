@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.app.reminder
 
+import android.util.Log
 import com.ivandsky.puzzlebox.data.reminder.NotificationAccess
 import com.ivandsky.puzzlebox.data.reminder.ReminderAlarm
 import com.ivandsky.puzzlebox.data.reminder.ReminderNotifier
@@ -43,7 +44,7 @@ class ReminderRunner(
     /** Reconciles on every change of the stored choice, for the life of [scope]. */
     fun start() {
         if (!enabled) return
-        scope.launch { repository.settings.collect { reconcile(it) } }
+        scope.launch { guarded { repository.settings.collect { settings -> guarded { reconcile(settings) } } } }
     }
 
     /** One reconcile, then [done]; [done] runs at once when disabled. */
@@ -51,7 +52,7 @@ class ReminderRunner(
         if (!enabled) return done()
         scope.launch {
             try {
-                reconcile(repository.settings.first())
+                guarded { reconcile(repository.settings.first()) }
             } finally {
                 done()
             }
@@ -68,7 +69,7 @@ class ReminderRunner(
                 // Tomorrow's alarm is armed even when the post was cancelled, the read hung or the post threw.
                 withContext(NonCancellable) {
                     try {
-                        reconcile(repository.settings.first())
+                        guarded { reconcile(repository.settings.first()) }
                     } finally {
                         done()
                     }
@@ -82,6 +83,20 @@ class ReminderRunner(
             alarm.schedule(computeNext(now(), zone(), settings.time))
         } else {
             alarm.cancel()
+        }
+    }
+
+    /**
+     * Re-arming runs from a receiver or the foreground, where nothing above [scope] handles an exception and an unhandled one
+     * ends the process: a failed settings read or alarm call is logged, and the next entry point tries again.
+     */
+    private suspend fun guarded(block: suspend () -> Unit) {
+        try {
+            block()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "reminder not re-armed: ${e.message}")
         }
     }
 
@@ -101,5 +116,6 @@ class ReminderRunner(
     private companion object {
         /** The receiver has about 10 seconds; the rest is for posting and arming tomorrow. */
         const val READ_LIMIT_MS = 8_000L
+        const val TAG = "ReminderRunner"
     }
 }

@@ -16,7 +16,11 @@ import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZoneOffset
+import com.ivandsky.puzzlebox.app.DrainTestApplication
+import com.ivandsky.puzzlebox.data.reminder.ReminderAlarm
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
@@ -31,7 +35,12 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34], application = DrainTestApplication::class)
 class ReminderRunnerTest {
 
     private val nowInstant = Instant.parse("2026-03-10T12:00:00Z")
@@ -47,12 +56,13 @@ class ReminderRunnerTest {
     private var zone: ZoneId = ZoneOffset.UTC
     private var read: suspend () -> List<TodayEntry> = { open }
     private var postNotifier: ReminderNotifier = notifier
+    private var armAlarm: ReminderAlarm = alarm
 
     private fun TestScope.runner(enabled: Boolean = true, scope: CoroutineScope = this) = ReminderRunner(
         enabled = enabled,
         repository = repository,
         access = access,
-        alarm = alarm,
+        alarm = armAlarm,
         notifier = postNotifier,
         todaySet = { read() },
         computeNext = ComputeNextReminder(),
@@ -244,4 +254,72 @@ class ReminderRunnerTest {
     }
 
     private fun tomorrowAt(hour: Int) = Instant.parse("2026-03-11T%02d:00:00Z".format(hour))
+
+    /** The system refuses the first arming (a security exception, say), then works. */
+    private fun refusesTheFirstArming() {
+        armAlarm = object : ReminderAlarm {
+            private var refused = false
+
+            override fun schedule(at: Instant) {
+                if (!refused) {
+                    refused = true
+                    throw SecurityException("alarm refused")
+                }
+                alarm.schedule(at)
+            }
+
+            override fun cancel() = alarm.cancel()
+        }
+    }
+
+    /** A scope like the app's: a supervisor with no handler of its own, so [escaped] holds what would kill the process. */
+    private fun TestScope.appLikeScope(escaped: MutableList<Throwable>, job: Job = SupervisorJob()) =
+        CoroutineScope(StandardTestDispatcher(testScheduler) + job + CoroutineExceptionHandler { _, e -> escaped += e })
+
+    @Test
+    fun `an arming that throws during fire escapes nowhere and the receiver still finishes`() = runTest {
+        refusesTheFirstArming()
+        val escaped = mutableListOf<Throwable>()
+        var done = false
+
+        runner(scope = appLikeScope(escaped)).fire { done = true }
+        advanceUntilIdle()
+
+        assertTrue(escaped.isEmpty())
+        assertTrue(done)
+        assertEquals(1, notifier.shown.size)
+    }
+
+    @Test
+    fun `an arming that throws during refresh escapes nowhere and the receiver still finishes`() = runTest {
+        refusesTheFirstArming()
+        val escaped = mutableListOf<Throwable>()
+        var done = false
+
+        runner(scope = appLikeScope(escaped)).refresh { done = true }
+        advanceUntilIdle()
+
+        assertTrue(escaped.isEmpty())
+        assertTrue(done)
+    }
+
+    @Test
+    fun `an arming that throws in start escapes nowhere and the next change is still followed`() = runTest {
+        refusesTheFirstArming()
+        val escaped = mutableListOf<Throwable>()
+        val collecting = Job()
+        runner(scope = appLikeScope(escaped, SupervisorJob(collecting))).start()
+        try {
+            advanceUntilIdle()
+            assertTrue(escaped.isEmpty())
+
+            repository.setTime(LocalTime.of(8, 0))
+            advanceUntilIdle()
+
+            assertTrue(escaped.isEmpty())
+            assertEquals(tomorrowAt(8), alarm.scheduled)
+        } finally {
+            collecting.cancel()
+        }
+    }
 }
