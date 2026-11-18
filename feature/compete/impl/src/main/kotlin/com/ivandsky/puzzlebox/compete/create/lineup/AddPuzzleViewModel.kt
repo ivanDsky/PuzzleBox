@@ -20,14 +20,16 @@ private const val STOP_TIMEOUT_MS = 5_000L
 
 /**
  * The add sheet's exact-puzzle search: the text and chips the player set, the pickable puzzles they narrow, and which of
- * those the lineup already holds ([setAdded]). The list is read once while the sheet is on screen, however the query changes.
+ * those the lineup already holds ([setAdded]). The list is read once while the sheet is on screen, however the query changes;
+ * the daily archive comes a page at a time as [loadMore] asks.
  */
-internal class AddPuzzleViewModel(observe: (Flow<PickerQuery>) -> Flow<PickerResult>) : ViewModel() {
+internal class AddPuzzleViewModel(observe: (Flow<PickerQuery>, Flow<Int>) -> Flow<PickerResult>) : ViewModel() {
 
     private val query = MutableStateFlow(NO_QUERY)
     private val added = MutableStateFlow<Set<LegRef>>(emptySet())
+    private val archivePages = MutableStateFlow(1)
 
-    val state: StateFlow<AddPuzzleState> = combine(query, observe(query), added) { asked, result, held ->
+    val state: StateFlow<AddPuzzleState> = combine(query, observe(query, archivePages), added) { asked, result, held ->
         AddPuzzleState(asked, result.rows.map { PickerEntry(it, it.entry.ref in held) }, result.offline, loaded = true)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), AddPuzzleState())
 
@@ -41,9 +43,13 @@ internal class AddPuzzleViewModel(observe: (Flow<PickerQuery>) -> Flow<PickerRes
         added.value = refs
     }
 
+    /** The list ran out while the player scrolled: read one more page of the daily archive. */
+    fun loadMore() = archivePages.update { it + 1 }
+
     /** The next opening of the sheet starts clean. */
     fun reset() {
         query.value = NO_QUERY
+        archivePages.value = 1
     }
 }
 

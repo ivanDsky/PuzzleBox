@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -14,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -27,6 +29,8 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.lineup.ExactPuzzle
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import org.koin.compose.koinInject
 
 private val RESULTS_MAX_HEIGHT = 420.dp
@@ -74,7 +78,12 @@ internal fun ExactPuzzleSearch(
                 Text(emptyLine(state.query), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.testTag("duel.lineup.empty"))
             } else {
                 Text(resultsLine(state.query, state.rows.size), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.testTag("duel.lineup.count"))
-                LazyColumn(Modifier.heightIn(max = RESULTS_MAX_HEIGHT), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                val listState = rememberLazyListState()
+                // Only once the player has scrolled, so a list that fits never pulls pages the player did not ask for.
+                LaunchedEffect(listState, viewModel) {
+                    snapshotFlow { listState.canScrollBackward && !listState.canScrollForward }.distinctUntilChanged().filter { it }.collect { viewModel.loadMore() }
+                }
+                LazyColumn(Modifier.heightIn(max = RESULTS_MAX_HEIGHT), state = listState, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     items(state.rows, key = { it.puzzle.entry.ref.wire }) { entry ->
                         PickerRow(entry, registry.brandOf(entry.puzzle.entry.gameId), onAdd = { onAdd(entry.puzzle.entry) })
                     }

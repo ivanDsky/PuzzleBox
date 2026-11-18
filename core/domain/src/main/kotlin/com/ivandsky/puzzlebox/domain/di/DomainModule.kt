@@ -42,6 +42,7 @@ import com.ivandsky.puzzlebox.domain.RecordRevealSeen
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
 import com.ivandsky.puzzlebox.domain.lineup.CommunitySource
+import com.ivandsky.puzzlebox.domain.lineup.DailyArchiveSource
 import com.ivandsky.puzzlebox.domain.lineup.FriendSource
 import com.ivandsky.puzzlebox.domain.lineup.ObservePickablePuzzles
 import com.ivandsky.puzzlebox.domain.lineup.OwnSource
@@ -219,6 +220,7 @@ val domainModule = module {
             community = get(),
             friends = FriendSource(received = get(), identity = get(), clock = System::currentTimeMillis),
             own = OwnSource(published = get(), identity = get()),
+            archive = DailyArchiveSource(daily = get(), registry = get()),
         )
     }
     factory { ReportPuzzle(shared = get(), hidden = get()) }

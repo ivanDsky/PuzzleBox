@@ -25,7 +25,7 @@ internal val OLD_CROWN = pickable(QUEENS, "R6S7T8", "Old crown", "Di", PuzzleSou
 internal val MY_GRID = pickable(QUEENS, "V9W2X3", "My grid", null, PuzzleSource.Mine, played = true)
 
 /** The pickable list without the domain's own filtering: [rows] kept when text, chips and games agree, in the order given. */
-internal fun pickerOf(rows: List<PickablePuzzle>, offline: Boolean = false): (Flow<PickerQuery>) -> Flow<PickerResult> = { queries ->
+internal fun pickerOf(rows: List<PickablePuzzle>, offline: Boolean = false): (Flow<PickerQuery>, Flow<Int>) -> Flow<PickerResult> = { queries, _ ->
     queries.map { q ->
         PickerResult(
             rows.filter { row ->
