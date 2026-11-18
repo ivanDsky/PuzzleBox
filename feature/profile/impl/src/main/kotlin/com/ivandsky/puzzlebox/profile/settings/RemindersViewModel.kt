@@ -16,11 +16,11 @@ import kotlinx.coroutines.launch
 
 /**
  * The Settings Reminders block. [enabled] is the Reminders release flag, read in DI (ADR-0022 §3); off, [uiState] is
- * null and neither [repository] nor [access] is ever touched. The switch turns on only with notifications allowed:
+ * null and neither [repository] nor [access] is ever read. The switch turns on only with notifications allowed:
  * otherwise it asks for the permission first, and a refusal leaves it off with the blocked line.
  */
 internal class RemindersViewModel(
-    enabled: Boolean,
+    private val enabled: Boolean,
     private val repository: ReminderRepository,
     private val access: NotificationAccess,
 ) : ViewModel() {
@@ -70,6 +70,7 @@ internal class RemindersViewModel(
 
     /** The player may have come back from system settings; an allowed state clears the blocked line. */
     fun onResume() {
+        if (!enabled) return
         val allowed = access.isAllowed()
         local.update { it.copy(allowed = allowed, blocked = it.blocked && !allowed) }
     }

@@ -45,6 +45,8 @@ class RemindersViewModelTest {
         backgroundScope.launch { vm.uiState.collect {} }
         advanceUntilIdle()
 
+        vm.onResume()
+
         assertNull(vm.uiState.value)
     }
 
