@@ -270,7 +270,7 @@ class FirestoreLeaderboardRepositoryTest {
     }
 
     @Test
-    fun `re-submitting the same (uid, puzzleRef) dedups — first write stands (A4-A5)`() = runTest {
+    fun `re-submitting the same (uid, puzzleRef) dedups - first write stands (A4-A5)`() = runTest {
         val store = FakeStore()
         val repository = FirestoreLeaderboardRepository(store, currentUid = { "u1" })
         repository.submit(entry(timeMs = 95_000))
