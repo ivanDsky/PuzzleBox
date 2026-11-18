@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.profile.di
 
+import android.content.Context
 import android.webkit.CookieManager
 import android.webkit.WebSettings
 import com.ivandsky.puzzlebox.app.screens.ProfileViewModel
@@ -15,6 +16,9 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
 import com.ivandsky.puzzlebox.profile.linkedin.LinkedInLoginViewModel
 import com.ivandsky.puzzlebox.profile.linkedin.WebViewLinkedInSession
 import com.ivandsky.puzzlebox.profile.settings.SettingsViewModel
+import com.ivandsky.puzzlebox.profile.whatsnew.AssetWhatsNewSource
+import com.ivandsky.puzzlebox.profile.whatsnew.WhatsNewSource
+import com.ivandsky.puzzlebox.profile.whatsnew.WhatsNewViewModel
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -52,6 +56,8 @@ val profileModule: Module = module {
             whatsNew = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.WhatsNew) == true,
         )
     }
+    single<WhatsNewSource> { AssetWhatsNewSource(get<Context>()) }
+    viewModel { WhatsNewViewModel(source = get()) }
     viewModel { LinkedInLoginViewModel(createLink = get(), cookies = get()) }
     // Both providers are lambdas, so resolving this neither starts the web view provider nor reads a cookie.
     single<LinkedInSessionCookies> { WebViewLinkedInSession({ CookieManager.getInstance() }, { WebSettings.getDefaultUserAgent(get()) }, get()) }
