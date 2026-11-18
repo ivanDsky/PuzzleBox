@@ -29,8 +29,10 @@ import com.ivandsky.puzzlebox.compete.create.DuelGame
 import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.lineup.AnyGame
+import com.ivandsky.puzzlebox.domain.lineup.ExactPuzzle
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import kotlinx.coroutines.delay
+import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 
 private const val FLASH_MS = 600L
@@ -53,12 +55,15 @@ internal fun LineupPanel(
     modifier: Modifier = Modifier,
 ) {
     val registry = koinInject<GamePlayRegistry>()
+    // Held here, not in the sheet, so a rotation that rebuilds the sheet keeps the search and only a close clears it.
+    val search = koinViewModel<AddPuzzleViewModel>()
     val draft = editor.draft
     val edit by rememberUpdatedState(onEdit)
     val heights = remember { IntArray(Match.MAX_LEGS) }
     val gap = with(LocalDensity.current) { ROW_GAP.toPx() }
     var drag by remember { mutableStateOf<ActiveDrag?>(null) }
     val landed = drag?.let { it.dropped && (draft != it.base || it.reorder.target == it.reorder.lifted) } == true
+    LaunchedEffect(editor.target == null) { if (editor.target == null) search.reset() }
     LaunchedEffect(editor.flashed, draft) {
         if (editor.flashed != null) {
             delay(FLASH_MS)
@@ -123,6 +128,9 @@ internal fun LineupPanel(
             games = games,
             onPickGame = { game -> edit { it.pick(AnyGame(game)) } },
             onDismiss = { edit { it.dismiss() } },
+            exactPuzzles = {
+                ExactPuzzleSearch(games, draft.entries.filterIsInstance<ExactPuzzle>().mapTo(HashSet()) { it.ref }, onAdd = { puzzle -> edit { it.pick(puzzle) } }, viewModel = search)
+            },
         )
     }
 }

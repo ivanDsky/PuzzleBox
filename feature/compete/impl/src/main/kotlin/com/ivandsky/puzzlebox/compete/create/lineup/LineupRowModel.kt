@@ -1,9 +1,9 @@
 package com.ivandsky.puzzlebox.compete.create.lineup
 
-import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.domain.lineup.AnyGame
 import com.ivandsky.puzzlebox.domain.lineup.ExactPuzzle
 import com.ivandsky.puzzlebox.domain.lineup.LineupEntry
+import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
 
 /** What a lineup row says. */
 internal data class LineupRowModel(val title: String, val subtitle: String)
@@ -16,6 +16,7 @@ internal fun LineupEntry.rowModel(gameName: String, includeFriends: Boolean): Li
     )
     is ExactPuzzle -> LineupRowModel(
         title = title,
-        subtitle = listOfNotNull(gameName, author?.let { "by $it" }, (ref as? LegRef.Custom)?.code?.value).joinToString(" · "),
+        // A friend's label already names the friend, so the author is not said twice.
+        subtitle = listOfNotNull(gameName, author?.takeIf { source != PuzzleSource.Friend }?.let { "by $it" }, sourceLabel()).joinToString(" · "),
     )
 }
