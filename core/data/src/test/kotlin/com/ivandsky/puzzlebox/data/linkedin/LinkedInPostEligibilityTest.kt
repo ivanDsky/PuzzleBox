@@ -143,4 +143,15 @@ class LinkedInPostEligibilityTest {
 
         assertEquals(true, verdict.unsure)
     }
+
+    @Test
+    fun `a result LinkedIn is known to hold makes today's postable solve Already on LinkedIn, and a paused link or a missing replay still wins`() = runTest {
+        val held = postable.copy(onLinkedIn = true)
+
+        assertEquals(Verdict.Blocked(LinkedInPostState.AlreadyOnLinkedIn), decide(held))
+        assertEquals(Verdict.Blocked(LinkedInPostState.Paused), decide(held.copy(link = LinkState.Paused("me", Kind.Challenge))))
+        assertEquals(hidden, decide(held, encoded = null))
+        assertEquals(Verdict.Blocked(LinkedInPostState.NotToday), decide(held.copy(delta = 1)))
+        assertEquals(hidden, decide(held.copy(posting = false)))
+    }
 }

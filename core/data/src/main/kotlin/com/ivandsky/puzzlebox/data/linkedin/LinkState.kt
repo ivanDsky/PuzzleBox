@@ -14,3 +14,11 @@ sealed interface LinkState {
      */
     data class Paused(val profileId: String, val kind: LinkedInRead.Rejected.Kind) : LinkState
 }
+
+/** The linked profile, null while not linked; a paused link still names its profile. */
+internal val LinkState.profileId: String?
+    get() = when (this) {
+        LinkState.NotConnected -> null
+        is LinkState.Connected -> profileId
+        is LinkState.Paused -> profileId
+    }

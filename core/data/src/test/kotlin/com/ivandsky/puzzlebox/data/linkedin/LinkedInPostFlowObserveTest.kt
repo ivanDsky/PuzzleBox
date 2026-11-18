@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInOwnResult
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead.Rejected.Kind
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSendResult
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import kotlinx.coroutines.CompletableDeferred
@@ -235,5 +236,29 @@ class LinkedInPostFlowObserveTest {
         rig.link.setPosting(null)
 
         assertEquals(LinkedInPostState.Hidden, rig.shown())
+    }
+
+    @Test
+    fun `a day whose own LinkedIn result the phone already read says Already on LinkedIn at once and a tap sends nothing`() = runTest {
+        val rig = rig()
+        rig.postable()
+        rig.completions.onCompleted(LinkedInPostRig.SOLVE.copy(time = 70_000L, isRecord = false, source = CompletionSource.LinkedIn), null)
+
+        val first = rig.shown()
+        val answer = rig.submit()
+
+        assertEquals(LinkedInPostState.AlreadyOnLinkedIn, first)
+        assertEquals(LinkedInPostState.AlreadyOnLinkedIn, answer)
+        assertEquals(emptyList<String>(), rig.source.calls + rig.poster.calls)
+    }
+
+    @Test
+    fun `a LinkedIn result of another day does not say Already on LinkedIn`() = runTest {
+        val rig = rig()
+        rig.postable()
+        val otherDay = TestGames.Ref(rig.game, PuzzleKey.Daily(rig.today.minusDays(1), 711))
+        rig.completions.onCompleted(LinkedInPostRig.SOLVE.copy(puzzleRef = otherDay, isRecord = false, source = CompletionSource.LinkedIn), null)
+
+        assertEquals(LinkedInPostState.Ready, rig.shown())
     }
 }
