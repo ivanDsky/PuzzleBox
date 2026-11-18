@@ -106,7 +106,7 @@ class ObserveGameStatsTest {
             listOf(
                 solve(alpha, daysAgo = 0, time = 30_000L),
                 solve(alpha, daysAgo = 1, time = 60_000L, hints = 2),
-                // A gap at day 2, then an older three-day run.
+                // Day 2 is covered by a freeze and counts, joining the older three-day run.
                 solve(alpha, daysAgo = 3, time = 90_000L),
                 solve(alpha, daysAgo = 4, time = 20_000L, hints = 1),
                 solve(alpha, daysAgo = 5, time = 50_000L),
@@ -115,15 +115,15 @@ class ObserveGameStatsTest {
 
         assertEquals(
             GameStats(
-                currentStreak = 5,
-                bestStreak = 5,
+                currentStreak = 6,
+                bestStreak = 6,
                 solved = 5,
                 hintFree = 3,
                 averageTimeMs = 50_000L,
                 playingSince = today.minusDays(5),
                 best = BestScore(timeMs = 20_000L, hints = 1),
                 rankOrder = RankOrder.TimeThenHints,
-                // The missed day 2 spends one of the two starting freezes; the 3-day run before it is not carried.
+                // The missed day 2 spends one of the two starting freezes and counts; the older run earns no step toward the next.
                 freezes = StreakFreezes(
                     held = 1,
                     frozenDays = setOf(today.minusDays(2)),
@@ -388,7 +388,7 @@ class ObserveGameStatsTest {
 
         stats().test {
             val held = awaitItem()
-            assertEquals(3, held.currentStreak)
+            assertEquals(4, held.currentStreak)
             assertEquals(setOf(today.minusDays(2)), held.freezes?.frozenDays)
             assertEquals(1, held.freezes?.held)
 
@@ -419,7 +419,7 @@ class ObserveGameStatsTest {
         stats().test {
             val archived = awaitItem()
             assertEquals(4, archived.solved)
-            assertEquals(3, archived.currentStreak)
+            assertEquals(4, archived.currentStreak)
             assertEquals(setOf(today.minusDays(2)), archived.freezes?.frozenDays)
 
             completions.onCompleted(imported(alpha, daysAgo = 2, time = 20_000L).copy(isRecord = false))

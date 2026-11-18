@@ -11,7 +11,8 @@ import java.time.temporal.ChronoUnit
  *
  * The streak is the run of solved days anchored at today's puzzle day ([GetPuzzleDay]), or at
  * yesterday while today has no solve yet, so it stays alive until the day is actually missed.
- * Held freezes cover missed days ([replay]).
+ * Held freezes cover missed days ([replay]); a covered day counts as a streak day, but only
+ * solved days earn freezes.
  */
 class ComputeStreak(private val puzzleDay: GetPuzzleDay) {
 
@@ -41,8 +42,8 @@ class ComputeStreak(private val puzzleDay: GetPuzzleDay) {
         val frozenDays = mutableSetOf<LocalDate>()
         var lastSolve: StreakFreezes.Moment? = null
 
-        // A gap longer than the freezes held leaves no frozen day behind: live, the player saw
-        // them spent one by one and the streak break anyway.
+        // A gap longer than the freezes held leaves no frozen day behind and counts nothing: live,
+        // the player saw them spent one by one and the streak break anyway.
         fun miss(after: LocalDate, before: LocalDate): List<LocalDate> {
             val gap = ChronoUnit.DAYS.between(after, before) - 1
             if (gap <= 0) return emptyList()
@@ -56,6 +57,8 @@ class ComputeStreak(private val puzzleDay: GetPuzzleDay) {
             held -= gap.toInt()
             step = maxOf(0, step - gap.toInt())
             run = 0
+            current += gap.toInt()
+            best = maxOf(best, current)
             return (1..gap).map(after::plusDays).also { frozenDays += it }
         }
 

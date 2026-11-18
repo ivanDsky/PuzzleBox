@@ -84,7 +84,7 @@ class StreakLedgerTest {
     @Test
     fun `missed day 8 is frozen, holds the count and steps the ladder back`() {
         val row = goldenRow(solvedThrough = 7, today = 9)
-        assertEquals(Row(streak = 7, held = 2, step = 0, run = 0, daysToNext = 7, frozen = setOf(8), best = 7), row)
+        assertEquals(Row(streak = 8, held = 2, step = 0, run = 0, daysToNext = 7, frozen = setOf(8), best = 8), row)
     }
 
     @Test
@@ -94,56 +94,56 @@ class StreakLedgerTest {
 
     @Test
     fun `days 9 to 15 earn step 0 again`() {
-        assertEquals(Row(streak = 14, held = 3, step = 1, run = 0, daysToNext = 14, frozen = setOf(8), best = 14), goldenRow(15))
+        assertEquals(Row(streak = 15, held = 3, step = 1, run = 0, daysToNext = 14, frozen = setOf(8), best = 15), goldenRow(15))
         assertEquals(Moment(day(15), spent = emptyList(), earned = true), goldenMoment(15))
     }
 
     @Test
     fun `days 16 to 29 complete step 1 after fourteen in a row`() {
-        assertEquals(Row(streak = 27, held = 3, step = 1, run = 13, daysToNext = 1, frozen = setOf(8), best = 27), goldenRow(28))
-        assertEquals(Row(streak = 28, held = 4, step = 2, run = 0, daysToNext = 28, frozen = setOf(8), best = 28), goldenRow(29))
+        assertEquals(Row(streak = 28, held = 3, step = 1, run = 13, daysToNext = 1, frozen = setOf(8), best = 28), goldenRow(28))
+        assertEquals(Row(streak = 29, held = 4, step = 2, run = 0, daysToNext = 28, frozen = setOf(8), best = 29), goldenRow(29))
     }
 
     @Test
     fun `days 30 to 57 complete step 2 and reach the cap`() {
-        assertEquals(Row(streak = 56, held = 5, step = 3, run = 0, daysToNext = null, frozen = setOf(8), best = 56), goldenRow(57))
+        assertEquals(Row(streak = 57, held = 5, step = 3, run = 0, daysToNext = null, frozen = setOf(8), best = 57), goldenRow(57))
         assertEquals(Moment(day(57), spent = emptyList(), earned = true), goldenMoment(57))
     }
 
     @Test
     fun `days 58 to 85 advance the step at the cap and bank nothing`() {
-        assertEquals(Row(streak = 84, held = 5, step = 4, run = 0, daysToNext = null, frozen = setOf(8), best = 84), goldenRow(85))
+        assertEquals(Row(streak = 85, held = 5, step = 4, run = 0, daysToNext = null, frozen = setOf(8), best = 85), goldenRow(85))
         assertEquals(Moment(day(85), spent = emptyList(), earned = false), goldenMoment(85))
     }
 
     @Test
     fun `missed days 86 and 87 spend two freezes and two steps`() {
         val row = goldenRow(solvedThrough = 85, today = 88)
-        assertEquals(Row(streak = 84, held = 3, step = 2, run = 0, daysToNext = 28, frozen = setOf(8, 86, 87), best = 84), row)
+        assertEquals(Row(streak = 87, held = 3, step = 2, run = 0, daysToNext = 28, frozen = setOf(8, 86, 87), best = 87), row)
         assertEquals(Moment(day(88), spent = listOf(day(86), day(87)), earned = false), goldenMoment(88))
     }
 
     @Test
     fun `days 88 to 115 complete step 2 again`() {
-        assertEquals(Row(streak = 112, held = 4, step = 3, run = 0, daysToNext = 28, frozen = setOf(8, 86, 87), best = 112), goldenRow(115))
+        assertEquals(Row(streak = 115, held = 4, step = 3, run = 0, daysToNext = 28, frozen = setOf(8, 86, 87), best = 115), goldenRow(115))
     }
 
     @Test
     fun `missed days 116 to 119 spend every freeze and floor the step at 0`() {
         val row = goldenRow(solvedThrough = 115, today = 120)
         val frozen = setOf(8, 86, 87, 116, 117, 118, 119)
-        assertEquals(Row(streak = 112, held = 0, step = 0, run = 0, daysToNext = 7, frozen = frozen, best = 112), row)
+        assertEquals(Row(streak = 119, held = 0, step = 0, run = 0, daysToNext = 7, frozen = frozen, best = 119), row)
     }
 
     @Test
     fun `missed day 120 breaks the streak and unfreezes the gap`() {
         val row = goldenRow(solvedThrough = 115, today = 121)
-        assertEquals(Row(streak = 0, held = 0, step = 0, run = 0, daysToNext = 7, frozen = setOf(8, 86, 87), best = 112), row)
+        assertEquals(Row(streak = 0, held = 0, step = 0, run = 0, daysToNext = 7, frozen = setOf(8, 86, 87), best = 115), row)
     }
 
     @Test
     fun `day 121 starts a new streak with no freezes`() {
-        assertEquals(Row(streak = 1, held = 0, step = 0, run = 1, daysToNext = 6, frozen = setOf(8, 86, 87), best = 112), goldenRow(121))
+        assertEquals(Row(streak = 1, held = 0, step = 0, run = 1, daysToNext = 6, frozen = setOf(8, 86, 87), best = 115), goldenRow(121))
         assertEquals(Moment(day(121), spent = emptyList(), earned = false), goldenMoment(121))
     }
 
@@ -162,8 +162,8 @@ class StreakLedgerTest {
     fun `invoke current and best read the freeze-aware ledger`() {
         val streak = streakOn(day(9))
         val solved = (1..7).map(::day)
-        assertEquals(7, streak(solved).current)
-        assertEquals(7, streak(solved).best)
+        assertEquals(8, streak(solved).current)
+        assertEquals(8, streak(solved).best)
     }
 
     @Test
@@ -171,7 +171,7 @@ class StreakLedgerTest {
         val ledger = streakOn(day(4))(listOf(day(1), day(4)))
         val moment = Moment(day(4), spent = listOf(day(2), day(3)), earned = false)
         val freezes = StreakFreezes(held = 0, frozenDays = setOf(day(2), day(3)), daysToNext = 6, lastSolve = moment)
-        assertEquals(StreakLedger(current = 2, best = 2, freezes = freezes), ledger)
+        assertEquals(StreakLedger(current = 4, best = 4, freezes = freezes), ledger)
     }
 
     @Test
@@ -214,7 +214,7 @@ class StreakLedgerTest {
         val open = StreakFreezes(held = 2, frozenDays = emptySet(), daysToNext = 5, lastSolve = moment)
         val spent = StreakFreezes(held = 1, frozenDays = setOf(day(3)), daysToNext = 7, lastSolve = moment)
         assertEquals(StreakLedger(current = 2, best = 2, freezes = open), lastSecondOfDay3)
-        assertEquals(StreakLedger(current = 2, best = 2, freezes = spent), firstSecondOfDay4)
+        assertEquals(StreakLedger(current = 3, best = 3, freezes = spent), firstSecondOfDay4)
     }
 
     @Test
@@ -242,8 +242,8 @@ class StreakLedgerTest {
 
     @Test
     fun `a sparse 10,000-day history replays in one sweep`() {
-        // Every 1,000 days: eight solved, one missed, seven solved. Each block ends 15 long on a
-        // freshly earned freeze, then breaks in the gap to the next.
+        // Every 1,000 days: eight solved, one missed, seven solved. Each block ends 16 long on a
+        // freshly earned freeze, then breaks in the gap to the next, its frozen day counted.
         val solved = (1..10_000 step 1_000).flatMap { first -> (first..first + 7) + (first + 9..first + 15) }.map(::day)
         val today = day(10_000)
 
@@ -252,7 +252,7 @@ class StreakLedgerTest {
         val frozen = (9..10_000 step 1_000).mapTo(mutableSetOf(), ::day)
         val moment = Moment(day(9_016), spent = emptyList(), earned = true)
         val freezes = StreakFreezes(held = 0, frozenDays = frozen, daysToNext = 7, lastSolve = moment)
-        assertEquals(ComputeStreak.Replay(StreakLedger(current = 0, best = 15, freezes = freezes), step = 0, run = 0), replay)
+        assertEquals(ComputeStreak.Replay(StreakLedger(current = 0, best = 16, freezes = freezes), step = 0, run = 0), replay)
         assertEquals(dayByDayWalk(solved.toSet(), today), replay)
     }
 
@@ -283,6 +283,7 @@ class StreakLedgerTest {
     private fun dayByDayWalk(solved: Set<LocalDate>, today: LocalDate): ComputeStreak.Replay {
         var current = 0
         var best = 0
+        var bestSolid = 0
         var held = 0
         var step = 0
         var run = 0
@@ -297,6 +298,7 @@ class StreakLedgerTest {
                     current++
                     run++
                     best = maxOf(best, current)
+                    bestSolid = best
                     val stepDone = run == ladder(step)
                     val earned = stepDone && held < 5
                     if (stepDone) {
@@ -310,6 +312,8 @@ class StreakLedgerTest {
                 day == today -> Unit
                 held > 0 -> {
                     held--
+                    current++
+                    best = maxOf(best, current)
                     step = maxOf(0, step - 1)
                     run = 0
                     spent += day
@@ -317,6 +321,7 @@ class StreakLedgerTest {
                 }
                 else -> {
                     current = 0
+                    best = bestSolid
                     step = 0
                     run = 0
                     frozen -= spent.toSet()
