@@ -185,4 +185,86 @@ class TimeSpreadTest {
         assertEquals(3_600_000L, result.bins.first().fromMs)
         assertEquals(3_780_000L, result.bins.last().toMs)
     }
+
+    private fun tailSpread(earlier: List<BestScore>, current: BestScore) = timeSpread(earlier, current, RankOrder.TimeThenHints, slowTail = true)
+
+    /** The ticket's screenshot: 134 solves, 9 slow ones between 1:00 and 2:20, the rest under 0:45. */
+    private val outlierEarlier = List(124) { score(5 + it * 39 / 123) } + listOf(60, 70, 80, 90, 100, 110, 120, 130, 140).map { score(it) }
+
+    @Test
+    fun `slow solves share one open last bar and the usual range gets fine bars`() {
+        val result = tailSpread(outlierEarlier, score(20))
+        assertEquals(134, result.solves)
+        assertEquals(134, result.bins.sumOf { it.count })
+        val last = result.bins.last()
+        assertTrue(last.open)
+        assertEquals(9, last.count)
+        assertEquals(45_000L, last.fromMs)
+        assertEquals(5_000L, last.toMs - last.fromMs)
+        assertEquals(5_000L, result.bins.first().fromMs)
+        assertEquals(9, result.bins.size)
+        assertTrue(result.bins.dropLast(1).none { it.open })
+        result.bins.zipWithNext { a, b -> assertEquals(a.toMs, b.fromMs) }
+    }
+
+    @Test
+    fun `the slow tail never changes the rank, beaten or average`() {
+        val flat = timeSpread(outlierEarlier, score(20), RankOrder.TimeThenHints)
+        val tail = tailSpread(outlierEarlier, score(20))
+        assertEquals(flat.rank, tail.rank)
+        assertEquals(flat.beaten, tail.beaten)
+        assertEquals(flat.averageEarlierMs, tail.averageEarlierMs)
+        assertEquals(flat.solves, tail.solves)
+    }
+
+    @Test
+    fun `with the flag off the bins are today's`() {
+        val off = timeSpread(outlierEarlier, score(20), RankOrder.TimeThenHints)
+        assertTrue(off.bins.none { it.open })
+        assertEquals(timeSpread(outlierEarlier, score(20), RankOrder.TimeThenHints, slowTail = false), off)
+        assertEquals(15_000L, off.bins.first().toMs - off.bins.first().fromMs)
+    }
+
+    @Test
+    fun `today in the slow tail sits on the last bar`() {
+        val result = tailSpread(outlierEarlier, score(150))
+        assertEquals(result.bins.lastIndex, result.youBin)
+        assertEquals(10, result.bins.last().count)
+        assertEquals(134, result.rank)
+    }
+
+    @Test
+    fun `today in the usual range keeps its own bar`() {
+        val result = tailSpread(outlierEarlier, score(12))
+        assertEquals(1, result.youBin)
+        assertEquals(10_000L, result.bins[result.youBin].fromMs)
+    }
+
+    @Test
+    fun `no slow outliers means no open bar and today's bins`() {
+        val earlier = List(40) { score(10 + it * 30 / 39) }
+        val tail = tailSpread(earlier, score(25))
+        assertEquals(timeSpread(earlier, score(25), RankOrder.TimeThenHints), tail)
+        assertTrue(tail.bins.none { it.open })
+    }
+
+    @Test
+    fun `under ten solves means no open bar and today's bins`() {
+        val earlier = listOf(10, 12, 14, 15, 18, 20, 22, 25).map { score(it) } + score(300)
+        assertEquals(9, earlier.size)
+        val tail = tailSpread(earlier, score(16))
+        assertEquals(10, tail.solves)
+        val fewer = tailSpread(earlier.drop(1), score(16))
+        assertTrue(fewer.bins.none { it.open })
+        assertEquals(timeSpread(earlier.drop(1), score(16), RankOrder.TimeThenHints), fewer)
+    }
+
+    @Test
+    fun `each scope is binned on its own solves`() {
+        val weekday = List(11) { score(20 + it) } + score(400)
+        val result = tailSpread(weekday, score(22))
+        assertEquals(13, result.solves)
+        assertTrue(result.bins.last().open)
+        assertTrue(result.bins.last().fromMs < 60_000L)
+    }
 }

@@ -93,6 +93,7 @@ val domainModule = module {
             history = get(),
             computeStreak = get(),
             puzzleDay = get(),
+            slowTail = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.ResultHeroPolish) == true,
         )
     }
     factory { LoadPastDay(daily = get(), registry = get()) }

@@ -32,7 +32,7 @@ internal data class HeroBar(val count: Int, val height: Float, val range: String
 
 /**
  * One scope's chart and words. [bars] are contiguous time ranges (empty ones keep their slot);
- * [edges] are the round times between them, one more than [bars]; [youBin] holds this solve.
+ * [edges] are the round times between them, one more than [bars] (as many when the last bar is the open slow tail); [youBin] holds this solve.
  * [description] reads the chart aloud.
  */
 internal data class HeroScopeView(
@@ -208,8 +208,8 @@ private fun spread(facts: ResultHeroFacts, insights: ResultInsights, locale: Loc
                 heroRankNote(facts.rankOrder, spread),
                 heroWeekdayNote(insights.spread, insights.weekday.spread, weekday, insights.weekday.fastest),
             ),
-            bars = spread.bins.map { HeroBar(it.count, it.height, heroBinRange(it.fromMs, it.toMs)) },
-            edges = spread.bins.map { formatDuration(it.fromMs) } + formatDuration(spread.bins.last().toMs),
+            bars = spread.bins.map { HeroBar(it.count, it.height, if (it.open) heroOpenBinRange(it.fromMs) else heroBinRange(it.fromMs, it.toMs)) },
+            edges = spread.bins.map { formatDuration(it.fromMs) } + listOfNotNull(spread.bins.last().takeUnless { it.open }?.let { formatDuration(it.toMs) }),
             youBin = spread.youBin,
             description = heroChartDescription(heading.text, spread.bins.size, facts.timeMs),
         )
