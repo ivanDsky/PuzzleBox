@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInDays
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInLink
+import com.ivandsky.puzzlebox.data.reminder.ReminderRepository
 import com.ivandsky.puzzlebox.testing.cloud.FakeOwnerScope
 import com.ivandsky.puzzlebox.testing.game.FakeDailySource
 import com.ivandsky.puzzlebox.testing.game.TestGames
@@ -91,6 +92,7 @@ class DataModuleGraphTest : KoinTest {
             assertNotNull(koin.get<LinkedInAccountSource>())
             assertNotNull(koin.get<PuzzleBoxPreferencesDataSource>())
             assertNotNull(koin.get<LinkedInLinkDataSource>())
+            assertNotNull(koin.get<ReminderRepository>())
         } finally {
             koinApp.close()
         }

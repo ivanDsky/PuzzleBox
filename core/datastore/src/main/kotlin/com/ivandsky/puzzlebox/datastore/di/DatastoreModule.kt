@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.Preferences
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.datastore.LinkedInLinkDataSource
 import com.ivandsky.puzzlebox.datastore.PuzzleBoxPreferencesDataSource
+import com.ivandsky.puzzlebox.datastore.ReminderPrefsDataSource
 import com.ivandsky.puzzlebox.datastore.puzzleBoxPreferencesMigrations
 import com.ivandsky.puzzlebox.datastore.SyncStateDataSource
 import kotlinx.coroutines.CoroutineScope
@@ -21,6 +22,7 @@ import org.koin.dsl.onClose
 private val PreferencesScope = named("datastore.preferences.scope")
 private val LinkedInScope = named("datastore.linkedin_link.scope")
 private val SyncStateScope = named("datastore.cloud_sync_state.scope")
+private val ReminderScope = named("datastore.reminders.scope")
 
 /**
  * The DataStore owns its file for the whole process, so its scope lives as long as the
@@ -49,4 +51,8 @@ val datastoreModule = module {
     single(SyncStateScope) { CoroutineScope(get<DispatcherProvider>().io + SupervisorJob()) } onClose { it?.cancel() }
     single(named("cloud_sync_state")) { store(get(SyncStateScope), "cloud_sync_state.preferences_pb") }
     single { SyncStateDataSource(get(named("cloud_sync_state"))) }
+    // The reminder choice is per device and rides no sync, so it gets a file of its own; nothing creates it before the first write.
+    single(ReminderScope) { CoroutineScope(get<DispatcherProvider>().io + SupervisorJob()) } onClose { it?.cancel() }
+    single(named("reminders")) { store(get(ReminderScope), "reminders.preferences_pb") }
+    single { ReminderPrefsDataSource(get(named("reminders"))) }
 }
