@@ -6,7 +6,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-// Under a play tuning the keys hold the touch floor and the grid gives way first, and Clear has
+// In the play screen the keys hold the touch floor and the grid gives way first, and Clear has
 // left the keypad (the Corner pad sizes its strip and full-width digits). Panes are SudokuSizingTest's: 336x386 small phone, 388x661 tall phone, 552x1000 tablet.
 class SudokuSizingFloorTest {
 

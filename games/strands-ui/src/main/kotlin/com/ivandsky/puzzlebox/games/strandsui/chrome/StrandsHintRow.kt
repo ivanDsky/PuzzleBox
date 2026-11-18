@@ -14,11 +14,10 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.games.strandsui.HintUi
 
 /**
- * NYT's row under the grid: the found counter on the left, the Hint pill on the right, as wide
- * as the board. A solved board has no hint to give, so [hint] is null and the counter stands
- * alone, centred where NYT puts "View Results"; the row keeps the pill's height so the board
- * above it doesn't grow on the solve. [placement] moves the pieces under a play tuning (see
- * [HintRowPlacement]); the default is NYT's layout.
+ * The row under the grid: the found counter and the Hint pill, as wide as the board. A solved
+ * board has no hint to give, so [hint] is null and the counter stands alone, centred where NYT
+ * puts "View Results"; the row keeps the pill's height so the board above it doesn't grow on the
+ * solve. [placement] says where the pieces sit (see [HintRowPlacement]).
  */
 @Composable
 internal fun StrandsHintRow(
@@ -28,18 +27,10 @@ internal fun StrandsHintRow(
     onHint: () -> Unit,
     reduceMotion: Boolean,
     modifier: Modifier = Modifier,
-    placement: HintRowPlacement = HintRowPlacement.Legacy,
+    placement: HintRowPlacement,
 ) {
     val tagged = modifier.heightIn(min = HintHeight).testTag("strands.hint_row")
     when (placement) {
-        HintRowPlacement.Legacy -> Row(
-            modifier = tagged,
-            horizontalArrangement = if (hint == null) Arrangement.Center else Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            FoundCounter(found = found, total = total, modifier = Modifier.weight(1f, fill = false))
-            if (hint != null) StrandsHintControl(hint = hint, onHint = onHint, reduceMotion = reduceMotion)
-        }
         HintRowPlacement.Slots -> Row(
             modifier = tagged,
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),

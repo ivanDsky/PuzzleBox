@@ -35,7 +35,7 @@ import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.gameui.MoveHapticsEffect
 import com.ivandsky.puzzlebox.gameui.PlayActionBar
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
-import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
+import com.ivandsky.puzzlebox.gameui.PhoneBoardCap
 import com.ivandsky.puzzlebox.gameui.PlayBoardPane
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayChrome
@@ -174,7 +174,7 @@ private fun BoxScope.BoardArea(
 /**
  * Zip's one board, chrome-free ([GamePlayUi.Board]): the daily pane and the tutorial host
  * both draw it, so a lesson's trace input is the daily one. Capped at [paneCap] in a
- * two-pane toolbar pane, [PlayBoardMaxWidth] otherwise. Draws nothing until [controller]
+ * two-pane toolbar pane, [PhoneBoardCap] otherwise. Draws nothing until [controller]
  * holds a session.
  */
 @Composable
@@ -209,7 +209,7 @@ private fun ZipBoard(controller: ZipPlayController, paneCap: Dp?, modifier: Modi
         held = { finger.value != null },
         enabled = !reducedMotion && model.cells.any { it.isNextTarget },
     )
-    val cap = paneCap ?: PlayBoardMaxWidth
+    val cap = paneCap ?: PhoneBoardCap
     Box(modifier) {
         DragTraceBoard(
             rows = model.n,
@@ -224,7 +224,7 @@ private fun ZipBoard(controller: ZipPlayController, paneCap: Dp?, modifier: Modi
             },
             onPointer = { finger.value = it },
             wallWeight = LocalBoardGeometry.current.wallWeight,
-            // A4: capped at PlayBoardMaxWidth (a two-pane board fills its pane, A15) and
+            // A4: capped at PhoneBoardCap (a two-pane board fills its pane, A15) and
             // centered by the pane; BoardGrid's aspectRatio keeps the grid exact under
             // these loose constraints. The outline rides the same modifier (U1 §4 — Zip's
             // outline is gridline-weight).

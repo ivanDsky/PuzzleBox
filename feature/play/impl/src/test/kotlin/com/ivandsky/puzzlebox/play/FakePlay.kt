@@ -24,7 +24,6 @@ import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
-import com.ivandsky.puzzlebox.gameui.LocalPlayTuning
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayClock
@@ -93,8 +92,6 @@ class FakePlayUi(override val gameId: GameId) : GamePlayUi {
     ) {
         val fake = controller as FakeController
         Column {
-            // What the route's PlayTuningHost provided: tests read it from this tag.
-            if (LocalPlayTuning.current != null) Text("tuned", Modifier.testTag("fake.tuned"))
             if (status is PlayBoardStatus.Ready) {
                 // The real games' chrome clock: leaving the composition folds the window.
                 PlayClockEffects(fake)

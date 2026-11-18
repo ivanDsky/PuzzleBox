@@ -32,11 +32,10 @@ import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
 /**
- * Goldens of [AdaptivePlayScaffold] under [PlayTuning.Starting] (nav-rethink B5, B6), light and
- * dark: the control row directly under the board at the board's width on a phone, a portrait
- * tablet and a landscape tablet, the phone's caption under the row, and the landscape side
- * column. A plain square stands for the board. Recorded with `-Proborazzi.record=true`,
- * verified with `-Proborazzi.verify=true`.
+ * Goldens of [AdaptivePlayScaffold] (nav-rethink B5, B6), light and dark: the control row directly
+ * under the board at the board's width on a phone and a portrait tablet, the phone's caption under
+ * the row, and the landscape tablet's controls in a column beside the board. A plain square stands
+ * for the board. Recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -60,48 +59,36 @@ class PlayScaffoldTunedGoldenTest {
         override fun requestHint() = Unit
     }
 
-    private val sideColumn = PlayTuning.Starting.copy(landscapeControls = LandscapeControls.SideColumn)
-
     @Test
     @Config(qualifiers = PHONE)
     fun `phone, row under the board, caption under the row`() =
-        capture(PlayLayout.SinglePane, PlayTuning.Starting, dark = false, "PlayScaffoldTuned_phone.png")
+        capture(PlayLayout.SinglePane, dark = false, "PlayScaffoldTuned_phone.png")
 
     @Test
     @Config(qualifiers = PHONE)
-    fun `phone, dark`() = capture(PlayLayout.SinglePane, PlayTuning.Starting, dark = true, "PlayScaffoldTuned_phone_dark.png")
+    fun `phone, dark`() = capture(PlayLayout.SinglePane, dark = true, "PlayScaffoldTuned_phone_dark.png")
 
     @Test
     @Config(qualifiers = TABLET_PORTRAIT)
     fun `portrait tablet, capped board with the row under it`() =
-        capture(PlayLayout.SinglePane, PlayTuning.Starting, dark = false, "PlayScaffoldTuned_tabletPortrait.png")
+        capture(PlayLayout.SinglePane, dark = false, "PlayScaffoldShipped_tabletPortrait.png")
 
     @Test
     @Config(qualifiers = TABLET_PORTRAIT)
     fun `portrait tablet, dark`() =
-        capture(PlayLayout.SinglePane, PlayTuning.Starting, dark = true, "PlayScaffoldTuned_tabletPortrait_dark.png")
-
-    @Test
-    @Config(qualifiers = TABLET_LANDSCAPE)
-    fun `landscape tablet, row under the board, no toolbar above it`() =
-        capture(PlayLayout.TwoPane, PlayTuning.Starting, dark = false, "PlayScaffoldTuned_tabletLandscape.png")
-
-    @Test
-    @Config(qualifiers = TABLET_LANDSCAPE)
-    fun `landscape tablet, dark`() =
-        capture(PlayLayout.TwoPane, PlayTuning.Starting, dark = true, "PlayScaffoldTuned_tabletLandscape_dark.png")
+        capture(PlayLayout.SinglePane, dark = true, "PlayScaffoldShipped_tabletPortrait_dark.png")
 
     @Test
     @Config(qualifiers = TABLET_LANDSCAPE)
     fun `landscape tablet, controls in a column beside the board`() =
-        capture(PlayLayout.TwoPane, sideColumn, dark = false, "PlayScaffoldTuned_tabletLandscape_sideColumn.png")
+        capture(PlayLayout.TwoPane, dark = false, "PlayScaffoldShipped_tabletLandscape.png")
 
     @Test
     @Config(qualifiers = TABLET_LANDSCAPE)
-    fun `landscape tablet side column, dark`() =
-        capture(PlayLayout.TwoPane, sideColumn, dark = true, "PlayScaffoldTuned_tabletLandscape_sideColumn_dark.png")
+    fun `landscape tablet, dark`() =
+        capture(PlayLayout.TwoPane, dark = true, "PlayScaffoldShipped_tabletLandscape_dark.png")
 
-    private fun capture(layout: PlayLayout, tuning: PlayTuning, dark: Boolean, file: String) {
+    private fun capture(layout: PlayLayout, dark: Boolean, file: String) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
         composeRule.setContent {
@@ -109,18 +96,17 @@ class PlayScaffoldTunedGoldenTest {
                 uiMode = (uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or
                     if (dark) Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO
             }
-            CompositionLocalProvider(LocalConfiguration provides config, LocalPlayTuning provides tuning) {
+            CompositionLocalProvider(LocalConfiguration provides config) {
                 PuzzleBoxTheme(darkTheme = dark) {
                     Surface(Modifier.fillMaxSize()) {
                         AdaptivePlayScaffold(
                             layout = layout,
                             board = { paneCap ->
-                                val cap = paneCap ?: PlayBoardMaxWidth
-                                PlayBoardPane(Modifier.padding(horizontal = Spacing.lg)) {
+                                                                PlayBoardPane(Modifier.padding(horizontal = Spacing.lg)) {
                                     Box(
                                         Modifier
-                                            .widthIn(max = cap)
-                                            .heightIn(max = cap)
+                                            .widthIn(max = paneCap)
+                                            .heightIn(max = paneCap)
                                             .aspectRatio(1f)
                                             .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.medium),
                                     )

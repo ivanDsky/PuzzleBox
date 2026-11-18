@@ -46,7 +46,7 @@ import com.ivandsky.puzzlebox.games.sudokuui.SudokuGrid
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuKeypadActions
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuSizing
 import com.ivandsky.puzzlebox.games.sudokuui.gridStrokes
-import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
+import com.ivandsky.puzzlebox.gameui.PhoneBoardCap
 
 /**
  * The editor's board: the play [SudokuGrid] over the [controller]'s draft, every placed digit
@@ -78,13 +78,13 @@ internal fun SudokuEditorBoard(
     val unpaired = remember(board, symmetry) { symmetry.unpaired(board) }
     val hatched = remember(board, selected) { wouldClash(board, geometry, selected) }
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
-        val roomy = SudokuSizing.layout(maxWidth, maxHeight, board.size, boardMax = PlayBoardMaxWidth)
+        val roomy = SudokuSizing.layout(maxWidth, maxHeight, board.size, boardMax = PhoneBoardCap)
         // A cramped pane budgets no action row; the tools row takes a minimum-height one.
         val layout = if (roomy.actions == SudokuKeypadActions.Row) {
             roomy
         } else {
             val reserved = SudokuSizing.keyMin + roomy.keyGap
-            SudokuSizing.layout(maxWidth, (maxHeight - reserved).coerceAtLeast(0.dp), board.size, boardMax = PlayBoardMaxWidth)
+            SudokuSizing.layout(maxWidth, (maxHeight - reserved).coerceAtLeast(0.dp), board.size, boardMax = PhoneBoardCap)
         }
         val toolHeight = if (layout.actions == SudokuKeypadActions.Row) layout.actionKey else SudokuSizing.keyMin
         Column(

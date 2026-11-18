@@ -26,7 +26,7 @@ import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
 /**
- * Goldens of the loading board inside the play layout ([AdaptivePlayScaffold], no tuning, as the games draw it), on a
+ * Goldens of the loading board inside the play layout ([AdaptivePlayScaffold], as the games draw it), on a
  * phone and a landscape tablet, light and dark: a quiet board-shaped square with its label and no spinner, capped like
  * a board, the tablet's side panel beside it. Today's label on the phone, the plain one on the tablet. Recorded with
  * `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`.

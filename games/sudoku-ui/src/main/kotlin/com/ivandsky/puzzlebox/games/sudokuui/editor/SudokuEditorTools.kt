@@ -32,7 +32,7 @@ import com.ivandsky.puzzlebox.games.sudokuui.SudokuKeypadActions
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuKeypadModel
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuLayout
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuSizing
-import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
+import com.ivandsky.puzzlebox.gameui.PhoneBoardCap
 
 /**
  * The tools row under the grid, [height] tall: Erase, Clear, the Symmetry toggle and the
@@ -51,7 +51,7 @@ internal fun SudokuEditorTools(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier.fillMaxWidth().widthIn(max = PlayBoardMaxWidth),
+        modifier.fillMaxWidth().widthIn(max = PhoneBoardCap),
         horizontalArrangement = Arrangement.spacedBy(SudokuSizing.keyGap),
     ) {
         val tool = Modifier.weight(1f).height(height)
@@ -133,7 +133,7 @@ internal fun SudokuEditorKeypad(
         onErase = {},
         onClear = {},
         onToggleNotes = {},
-        modifier = modifier.widthIn(max = PlayBoardMaxWidth).testTag("sudoku.editor.keypad"),
+        modifier = modifier.widthIn(max = PhoneBoardCap).testTag("sudoku.editor.keypad"),
         keyHeight = layout.key,
         actionHeight = layout.actionKey,
         actions = SudokuKeypadActions.Row,

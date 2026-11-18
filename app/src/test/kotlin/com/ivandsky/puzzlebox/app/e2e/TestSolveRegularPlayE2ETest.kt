@@ -72,7 +72,7 @@ class TestSolveRegularPlayE2ETest(name: String) {
             QueensCastle to ACTIONS + listOf("play.clear", "queens.board_area"),
             ZipCorridor to ACTIONS + listOf("play.clear", "play.board_area"),
             TangoSunMoon to ACTIONS + listOf("play.clear", "play.board_area"),
-            MiniSudokuCorner to ACTIONS + listOf("sudoku.clear", "sudoku.keypad", "sudoku.board_area"),
+            MiniSudokuCorner to ACTIONS + listOf("play.clear", "sudoku.keypad", "sudoku.board_area"),
             StrandsWoods to listOf("strands.theme_card", "strands.hint", "strands.board_area"),
         )
 

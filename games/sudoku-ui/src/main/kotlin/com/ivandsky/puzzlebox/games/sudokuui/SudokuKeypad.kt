@@ -24,7 +24,7 @@ import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
  *   Key height is too short for icon over label, so these tiles are icon-only.
  * - [SudokuKeypadActions.NotesColumn] (TwoPane, whose side pane holds Erase and Clear): the
  *   notes toggle alone as an icon-only pencil key the digits' height in the fourth column.
- * - [SudokuKeypadActions.Corner] (under a play tuning, whose control row holds Clear): the
+ * - [SudokuKeypadActions.Corner] (the play screen, whose control row holds Clear): the
  *   digits take the full width under a strip with the small Notes toggle at its right corner
  *   and, unless [showErase] is false (Erase is in the side column), Erase filling the rest.
  * Notes fills with the game's accent while on (A14).

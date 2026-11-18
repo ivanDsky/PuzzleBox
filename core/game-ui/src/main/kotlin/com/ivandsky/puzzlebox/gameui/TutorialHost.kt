@@ -78,7 +78,7 @@ fun TutorialHost(
     Box(modifier.fillMaxSize().testTag("tutorial.host"), contentAlignment = Alignment.TopCenter) {
         Column(
             Modifier
-                .widthIn(max = PlayBoardMaxWidth)
+                .widthIn(max = PhoneBoardCap)
                 .fillMaxSize()
                 .padding(horizontal = Spacing.lg, vertical = Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),

@@ -20,7 +20,7 @@ import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.MoveHapticsEffect
 import com.ivandsky.puzzlebox.gameui.PlayActionBar
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
-import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
+import com.ivandsky.puzzlebox.gameui.PhoneBoardCap
 import com.ivandsky.puzzlebox.gameui.PlayBoardPane
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayChrome
@@ -157,7 +157,7 @@ private fun BoxScope.TangoBoardArea(
 /**
  * Tango's one board, chrome-free ([GamePlayUi.Board]): the daily pane and the tutorial
  * host both draw it, so a lesson's taps are the daily ones. Capped at [paneCap] in a
- * two-pane toolbar pane, [PlayBoardMaxWidth] otherwise. Draws nothing until [controller]
+ * two-pane toolbar pane, [PhoneBoardCap] otherwise. Draws nothing until [controller]
  * holds a session.
  */
 @Composable
@@ -185,7 +185,7 @@ private fun TangoBoard(controller: TangoPlayController, paneCap: Dp?, modifier: 
             guideGhosts = true,
         )
     }
-    val cap = paneCap ?: PlayBoardMaxWidth
+    val cap = paneCap ?: PhoneBoardCap
     renderer.Content(
         model = model,
         modifier = modifier

@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.games.queensui
 
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
+import com.ivandsky.puzzlebox.gameui.PhoneBoardCap
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -69,12 +69,12 @@ class QueensSizingTest {
         )
         assertEquals(379.dp, lesson(379, 600)) // phone: the host's padded pane, edge to edge
         assertEquals(520.dp, lesson(520, 900)) // tablet: the host's 552dp column less its padding
-        assertEquals(PlayBoardMaxWidth, lesson(1000, 1200))
+        assertEquals(PhoneBoardCap, lesson(1000, 1200))
     }
 
     @Test
     fun `every daily size keeps the 64dp cell cap`() {
-        assertEquals(PlayBoardMaxWidth, queensBoardMaxSideFor(4))
+        assertEquals(PhoneBoardCap, queensBoardMaxSideFor(4))
         for (n in 5..12) assertEquals("n=$n", QueensBoardDefaults.cellMaxSize * n, queensBoardMaxSideFor(n))
         val side = queensBoardSideFor(
             paneWidth = 1000.dp, paneHeight = 1200.dp,

@@ -2,7 +2,7 @@ package com.ivandsky.puzzlebox.games.sudokuui
 
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
+import com.ivandsky.puzzlebox.gameui.PhoneBoardCap
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -65,12 +65,12 @@ class SudokuSizingTest {
             SudokuLayout(cell = 61.dp, board = 549.dp, key = 76.dp, actionKey = 57.dp, keyGap = 8.dp, keyRows = 3, actions = SudokuKeypadActions.Row),
             nine,
         )
-        assertEquals(178.67f, SudokuSizing.digitKeyWidth(minOf(tabletPane.first, PlayBoardMaxWidth), nine.keyRows, nine.actions).value, 0.01f)
+        assertEquals(178.67f, SudokuSizing.digitKeyWidth(minOf(tabletPane.first, PhoneBoardCap), nine.keyRows, nine.actions).value, 0.01f)
         assertBalanced(nine)
         assertFits(nine, tabletPane)
 
         val six = layout(tabletPane, 6)
-        assertEquals(PlayBoardMaxWidth, six.board)
+        assertEquals(PhoneBoardCap, six.board)
         assertEquals(SudokuKeypadActions.Row, six.actions)
         assertBalanced(six)
         assertFits(six, tabletPane)
@@ -119,7 +119,7 @@ class SudokuSizingTest {
         val pane = (1848.dp * 0.7f - 24.dp) to (900.dp - 24.dp)
         for (size in listOf(6, 9)) {
             val lifted = SudokuSizing.layout(pane.first, pane.second, size, inlineNotes = true, boardMax = 900.dp)
-            assertTrue("size=$size $lifted", lifted.board > PlayBoardMaxWidth)
+            assertTrue("size=$size $lifted", lifted.board > PhoneBoardCap)
             assertBalanced(lifted)
             assertFits(lifted, pane)
         }
@@ -133,7 +133,7 @@ class SudokuSizingTest {
             val pane = w.dp to h.dp
             val layout = layout(pane, size, inline)
             val case = "size=$size inline=$inline ${w}x$h $layout"
-            assertTrue(case, layout.board <= PlayBoardMaxWidth)
+            assertTrue(case, layout.board <= PhoneBoardCap)
             assertEquals(case, layout.cell * size, layout.board)
             assertEquals(case, floor(layout.cell.value), layout.cell.value, 0f)
             assertTrue(case, layout.key >= layout.cell && layout.key <= layout.cell * 1.25f)

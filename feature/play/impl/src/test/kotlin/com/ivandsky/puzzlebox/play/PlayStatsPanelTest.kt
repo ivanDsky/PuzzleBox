@@ -169,12 +169,12 @@ class PlayStatsPanelTest {
     /** The [part] inside the row tagged [row], whatever else on the card shares its tag. */
     private fun inRow(row: String, part: String) = hasTestTag(part) and hasAnyAncestor(hasTestTag(row))
 
-    private fun show(vm: PlayStatsViewModel, elapsedMs: Long? = 83_000L, inlineMarks: Boolean = false, showTimer: Boolean = true) {
+    private fun show(vm: PlayStatsViewModel, inlineMarks: Boolean = false) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 Column {
                     val state by vm.state.collectAsStateWithLifecycle()
-                    PlayStatsPanel(state = state, elapsedMs = { elapsedMs }, signIn = BoardSignIn.Idle, onSignIn = {}, showTimer = showTimer, boardStyle = DailyBoardStyle.defaults(inlineMarks = inlineMarks))
+                    PlayStatsPanel(state = state, signIn = BoardSignIn.Idle, onSignIn = {}, boardStyle = DailyBoardStyle.defaults(inlineMarks = inlineMarks))
                 }
             }
         }
@@ -190,7 +190,7 @@ class PlayStatsPanelTest {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 Column {
-                    PlayStatsPanel(state = state, elapsedMs = { null }, signIn = signIn, onSignIn = onSignIn)
+                    PlayStatsPanel(state = state, signIn = signIn, onSignIn = onSignIn)
                 }
             }
         }
@@ -292,18 +292,9 @@ class PlayStatsPanelTest {
     }
 
     @Test
-    fun `the panel shows the live timer and today's progress`() {
+    fun `the panel shows today's progress and no timer`() {
         show(viewModel())
 
-        composeRule.onNodeWithTag("play.stats.timer").assertTextEquals("1:23")
-        composeRule.onNodeWithTag("play.stats.progress").assertTextContains("1/2", substring = true)
-    }
-
-    @Test
-    fun `told to hide the timer, the panel draws progress but no timer`() {
-        show(viewModel(), showTimer = false)
-
-        composeRule.onNodeWithTag("play.stats.timer").assertDoesNotExist()
         composeRule.onNodeWithTag("play.stats.progress").assertTextContains("1/2", substring = true)
     }
 
@@ -593,7 +584,7 @@ class PlayStatsPanelTest {
                     val state by vm.state.collectAsStateWithLifecycle()
                     val signIn by vm.signIn.collectAsStateWithLifecycle()
                     val context = LocalContext.current
-                    PlayStatsPanel(state = state, elapsedMs = { null }, signIn = signIn, onSignIn = { vm.signIn(context) })
+                    PlayStatsPanel(state = state, signIn = signIn, onSignIn = { vm.signIn(context) })
                 }
             }
         }
@@ -614,7 +605,7 @@ class PlayStatsPanelTest {
                     val state by vm.state.collectAsStateWithLifecycle()
                     val signIn by vm.signIn.collectAsStateWithLifecycle()
                     val context = LocalContext.current
-                    PlayStatsPanel(state = state, elapsedMs = { null }, signIn = signIn, onSignIn = { vm.signIn(context) })
+                    PlayStatsPanel(state = state, signIn = signIn, onSignIn = { vm.signIn(context) })
                 }
             }
         }

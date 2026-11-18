@@ -59,6 +59,7 @@ internal fun StrandsChromeInPlayPreview() = ChromePane {
         onHint = {},
         reduceMotion = true,
         modifier = Modifier.width(PreviewBoardWidth),
+        placement = HintRowPlacement.Slots,
     )
 }
 
@@ -72,9 +73,10 @@ internal fun StrandsHintRowPreview() = ChromePane {
         onHint = {},
         reduceMotion = true,
         modifier = Modifier.width(PreviewBoardWidth),
+        placement = HintRowPlacement.Slots,
     )
     // Solved: no hint left to give.
-    StrandsHintRow(found = 4, total = 4, hint = null, onHint = {}, reduceMotion = true, Modifier.width(PreviewBoardWidth))
+    StrandsHintRow(found = 4, total = 4, hint = null, onHint = {}, reduceMotion = true, Modifier.width(PreviewBoardWidth), HintRowPlacement.Slots)
 }
 
 @PuzzleBoxPreviews

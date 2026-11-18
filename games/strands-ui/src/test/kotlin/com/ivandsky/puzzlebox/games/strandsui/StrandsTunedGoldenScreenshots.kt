@@ -15,11 +15,9 @@ import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.gameui.Adopt
-import com.ivandsky.puzzlebox.gameui.LocalPlayTuning
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
-import com.ivandsky.puzzlebox.gameui.PlayTuning
 import java.io.File
 import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
@@ -33,10 +31,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Goldens of the Strands play screen under [PlayTuning.Starting] (nav-rethink B5), light and
- * dark: a phone, a portrait tablet and a landscape tablet, over the real NYT day. The found
- * counter and Hint sit under the board in the shared control row's slots. Null-tuning goldens
- * stay in StrandsGoldenScreenshots, untouched. Recorded with `-Proborazzi.record=true`,
+ * Goldens of the Strands play screen (nav-rethink B5), light and dark: a phone, a portrait tablet
+ * and a landscape tablet, over the real NYT day. The found counter and Hint sit under the board
+ * in the shared control row's slots, or in a column beside it on the landscape tablet. Recorded with `-Proborazzi.record=true`,
  * verified with `-Proborazzi.verify=true`; files in `games/strands-ui/snapshots/`.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -47,12 +44,12 @@ class StrandsTunedGoldenPhoneTest : StrandsTunedGoldenScenes("tuned-phone", Play
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w800dp-h1280dp-mdpi")
-class StrandsTunedGoldenTabletPortraitTest : StrandsTunedGoldenScenes("tuned-tablet-portrait", PlayLayout.SinglePane)
+class StrandsTunedGoldenTabletPortraitTest : StrandsTunedGoldenScenes("shipped-tablet-portrait", PlayLayout.SinglePane)
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w1280dp-h800dp-land-mdpi")
-class StrandsTunedGoldenTabletLandscapeTest : StrandsTunedGoldenScenes("tuned-tablet-landscape", PlayLayout.TwoPane)
+class StrandsTunedGoldenTabletLandscapeTest : StrandsTunedGoldenScenes("shipped-tablet-landscape", PlayLayout.TwoPane)
 
 abstract class StrandsTunedGoldenScenes(
     private val label: String,
@@ -75,7 +72,7 @@ abstract class StrandsTunedGoldenScenes(
                 uiMode = (uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or
                     if (dark) Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO
             }
-            CompositionLocalProvider(LocalConfiguration provides config, LocalPlayTuning provides PlayTuning.Starting) {
+            CompositionLocalProvider(LocalConfiguration provides config) {
                 PuzzleBoxTheme(darkTheme = dark) {
                     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                         StrandsPlayScreen(

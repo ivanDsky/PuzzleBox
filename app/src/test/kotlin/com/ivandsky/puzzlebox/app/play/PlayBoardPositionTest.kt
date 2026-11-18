@@ -48,8 +48,6 @@ import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayLayout
-import com.ivandsky.puzzlebox.gameui.PlayTuning
-import com.ivandsky.puzzlebox.gameui.PlayTuningSource
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.queens.queensPlugin
@@ -88,7 +86,6 @@ import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -107,7 +104,7 @@ import org.robolectric.annotation.GraphicsMode
  * Every real game is opened on the same Play stack in turn, at one window size, and its
  * board is read once ready — a phone (one pane) and a tablet (two panes). The shared board
  * pane centres each board vertically in its pane. On the tablet every game's route
- * hands it the live stats panel, whose timer replaces the top bar's.
+ * hands it the live stats panel; the timer stays in the top bar.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -126,9 +123,6 @@ class PlayBoardPositionTest {
     private val navigator = Navigator(
         NavigationState(tab = PlayKey, stacks = listOf(listOf(PlayKey, GameKey(games.first().value)))),
     )
-
-    /** What the bound [PlayTuningSource] holds: null (today's layout) unless a test sets a tuning. */
-    private val tuning = MutableStateFlow<PlayTuning?>(null)
 
     private var koin: KoinApplication? = null
 
@@ -164,7 +158,6 @@ class PlayBoardPositionTest {
                         ObservePlayStats(get(), get(), ObserveLeaderboard(FakeIdentityService(), FakeLeaderboardRepository(), get(), get()))
                     }
                     single { SubmitStatusTracker() }
-                    single<PlayTuningSource> { object : PlayTuningSource { override val tuning = this@PlayBoardPositionTest.tuning } }
                     single<IdentityService> { FakeIdentityService() }
                     single<GoogleIdTokenProvider> { CancelledGoogleIdTokenProvider }
                 },
@@ -194,18 +187,7 @@ class PlayBoardPositionTest {
 
     @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w1280dp-h800dp")
     @Test
-    fun `every game on a tablet times itself in the stats panel, not the top bar`() {
-        eachGame(DpSize(1280.dp, 800.dp), PlayLayout.TwoPane) { game ->
-            boardCentreOffset(game)
-            assertEquals("${game.value} panel timers", 1, count("play.stats.timer"))
-            assertEquals("${game.value} top bar timers", 0, count("play.timer"))
-        }
-    }
-
-    @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w1280dp-h800dp")
-    @Test
-    fun `every game on a tablet with a tuning times itself in the top bar, not the stats panel`() {
-        tuning.value = PlayTuning.Starting
+    fun `every game on a tablet times itself in the top bar, not the stats panel`() {
         eachGame(DpSize(1280.dp, 800.dp), PlayLayout.TwoPane) { game ->
             boardCentreOffset(game)
             assertEquals("${game.value} panel timers", 0, count("play.stats.timer"))
@@ -215,8 +197,7 @@ class PlayBoardPositionTest {
 
     @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w360dp-h800dp")
     @Test
-    fun `every game on a phone with a tuning times itself in the top bar`() {
-        tuning.value = PlayTuning.Starting
+    fun `every game on a phone times itself in the top bar`() {
         eachGame(DpSize(360.dp, 800.dp), PlayLayout.SinglePane) { game ->
             boardCentreOffset(game)
             assertEquals("${game.value} top bar timers", 1, count("play.timer"))

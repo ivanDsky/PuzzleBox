@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.gameui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -23,16 +22,13 @@ internal val PlayBoardInset = Spacing.lg
 /**
  * The board pane every game draws its board in: [content] centred in it, with an equal
  * [PlayBoardInset] above and below; callers add only their own sideways gutter through
- * [modifier]. With no [PlayTuning] it takes the full pane, so a board shorter than its pane
- * floats at its vertical middle, between the top chrome and the bottom controls. Under a
- * tuning it is only as tall as its board (and never shorter than the scaffold's slot), so
+ * [modifier]. It is only as tall as its board (and never shorter than the scaffold's slot), so
  * the scaffold can put the controls directly under it.
  */
 @Composable
 fun PlayBoardPane(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
-    val size = if (LocalPlayTuning.current == null) Modifier.fillMaxSize() else Modifier.fillMaxWidth()
     Box(
-        modifier.then(size).padding(vertical = PlayBoardInset),
+        modifier.fillMaxWidth().padding(vertical = PlayBoardInset),
         contentAlignment = Alignment.Center,
         content = content,
     )

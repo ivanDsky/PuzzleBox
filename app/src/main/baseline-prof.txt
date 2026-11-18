@@ -29366,7 +29366,7 @@ PLcom/ivandsky/puzzlebox/gameui/PlayOverflowItem;-><init>(Ljava/lang/String;Ljav
 Lcom/ivandsky/puzzlebox/gameui/PlayScaffoldKt;
 SPLcom/ivandsky/puzzlebox/gameui/PlayScaffoldKt;-><clinit>()V
 SPLcom/ivandsky/puzzlebox/gameui/PlayScaffoldKt;->AdaptivePlayScaffold(Lcom/ivandsky/puzzlebox/gameui/PlayLayout;Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function4;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
-SPLcom/ivandsky/puzzlebox/gameui/PlayScaffoldKt;->getPlayBoardMaxWidth()F
+SPLcom/ivandsky/puzzlebox/gameui/BoardCapsKt;->getPhoneBoardCap()F
 Lcom/ivandsky/puzzlebox/gameui/PlayScaffoldKt$WhenMappings;
 SPLcom/ivandsky/puzzlebox/gameui/PlayScaffoldKt$WhenMappings;-><clinit>()V
 Lcom/ivandsky/puzzlebox/gameui/PlaySolveFrameKt;

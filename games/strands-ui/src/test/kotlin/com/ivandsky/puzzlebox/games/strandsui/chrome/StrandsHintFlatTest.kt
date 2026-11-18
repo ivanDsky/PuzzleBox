@@ -27,7 +27,7 @@ class StrandsHintFlatTest {
         rule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 CompositionLocalProvider(LocalFlatSurfaces provides flat, LocalFlatStrands provides strands) {
-                    StrandsHintRow(found = 1, total = 6, hint = hint, onHint = {}, reduceMotion = true)
+                    StrandsHintRow(found = 1, total = 6, hint = hint, onHint = {}, reduceMotion = true, placement = HintRowPlacement.Slots)
                 }
             }
         }
