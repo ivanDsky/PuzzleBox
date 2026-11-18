@@ -6,6 +6,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -18,26 +20,40 @@ class RanksLandingTest {
     private fun scope() = CoroutineScope(UnconfinedTestDispatcher() + Job())
 
     @Test
-    fun `the default is Friends`() = runTest {
+    fun `the default with no friends is Global`() = runTest {
         val scope = scope()
 
-        val landing = RanksLanding(FakeUserPreferencesRepository(), scope)
+        val landing = RanksLanding(FakeUserPreferencesRepository(), flowOf(false), scope)
+
+        assertEquals(RankScope.Global, landing.scope.value)
+        scope.cancel()
+    }
+
+    @Test
+    fun `the default with a friend is Friends`() = runTest {
+        val scope = scope()
+
+        val landing = RanksLanding(FakeUserPreferencesRepository(), flowOf(true), scope)
 
         assertEquals(RankScope.Friends, landing.scope.value)
         scope.cancel()
     }
 
     @Test
-    fun `it follows a change of the setting`() = runTest {
+    fun `it follows a change of the setting and of the friends`() = runTest {
         val scope = scope()
         val preferences = FakeUserPreferencesRepository(ranksFriendsDefault = true)
-        val landing = RanksLanding(preferences, scope)
+        val friends = MutableStateFlow(true)
+        val landing = RanksLanding(preferences, friends, scope)
 
         preferences.setRanksFriendsDefault(false)
         assertEquals(RankScope.Global, landing.scope.value)
 
         preferences.setRanksFriendsDefault(true)
         assertEquals(RankScope.Friends, landing.scope.value)
+
+        friends.value = false
+        assertEquals(RankScope.Global, landing.scope.value)
         scope.cancel()
     }
 }

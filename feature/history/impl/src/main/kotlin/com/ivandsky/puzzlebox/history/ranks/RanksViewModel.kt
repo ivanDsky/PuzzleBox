@@ -82,11 +82,11 @@ internal class RanksViewModel(
 ) : ViewModel() {
 
     private val saver = RanksSelectionSaver(savedState)
-    private val landing = RanksLanding(preferences, viewModelScope)
+    private val landing = RanksLanding(preferences, observeFriendUids().map { it.isNotEmpty() }, viewModelScope)
     private val _selection = MutableStateFlow(saver.restore(opening, rankBoards(registry)))
     val selection: StateFlow<RanksSelection> = _selection.asStateFlow()
 
-    /** False until a fresh hub has its stored default scope; a restored selection has nothing to wait for. */
+    /** False until a fresh hub has its landing scope; a restored selection has nothing to wait for. */
     private val landed = MutableStateFlow(saver.hasSaved)
 
     init {
@@ -94,7 +94,7 @@ internal class RanksViewModel(
             viewModelScope.launch {
                 val initial = _selection.value
                 val stored = landing.stored.first()
-                // A scope picked meanwhile wins over the stored default.
+                // A scope picked meanwhile wins over the landing scope.
                 _selection.update { if (it == initial) it.setScope(stored) else it }
                 landed.value = true
             }
