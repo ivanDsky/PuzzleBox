@@ -120,7 +120,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `RuleCheck`, `CensusTest`), `rules/` one `<ID><Name>.kt` + test per rule, resources
   `allowlists/<ID>.txt` and `fixtures/<ID>/` (incl. `add-a-game`). Rules (no S3, ADR-0009):
   S0 no `@Suppress`, S1 one top-level type per file, S2 file length, S4 composable previews,
-  S5 no colour literals, S6 no infinite animation, S7 no system night flag outside theme resolution, S8 one word per concept and US spelling in visible copy, S9 haptics only through `LocalHapticFeedback`; P1 package root, P2 dispatchers location,
+  S5 no colour literals, S6 no infinite animation, S7 no system night flag outside theme resolution, S8 one word per concept and US spelling in visible copy, S9 haptics only through `LocalHapticFeedback`, S10 sheets only through `AppModalBottomSheet`; P1 package root, P2 dispatchers location,
   P3 ViewModel shape, P4 use-case shape, P5 naming, P6 Koin module location, P7 Android-free
   pure modules, P8 NavKey payload, P9 every NavKey has a placement row (ADR-0027; `P9NavKeyPlacement`, fixtures under `fixtures/P9/`),
   P10 LinkedIn account path GET-only (ADR-0028; `LinkedInPostApi.kt` exempt from the non-GET check), P11 app Robolectric tests run under `DrainTestApplication` (#850), P12 the LinkedIn post API has two POSTs, `updateGameState` and the voyager save, and nothing hand-builds a write (ADR-0032).
@@ -666,7 +666,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   can leave it out; it holds no cookie or token column.
 - **Module graph guard** — `checkModuleGraph` (ADR-0008, see Layout) fails the build on a
   forbidden edge; `feature:create:impl` reaches games only through the registries.
-- **Structure rules** — `:konsist` S0–S9 / P1–P12 (see Layout); allowlists only shrink.
+- **Structure rules** — `:konsist` S0–S10 / P1–P12 (see Layout); allowlists only shrink.
 - **Roborazzi** — plugin `puzzlebox.android.roborazzi` (app, designsystem, home, play, create,
   compete, zip-ui, tango-ui, queens-ui, strands-ui, sudoku-ui) owns the switch (ADR-0033): by
   default the screenshot classes (names containing `Golden` or `Screenshot`) do not run in any
