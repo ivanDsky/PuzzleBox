@@ -8,7 +8,6 @@ import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
 import com.ivandsky.puzzlebox.data.repository.CommunityFilter
 import com.ivandsky.puzzlebox.data.repository.CommunityListResult
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
-import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
@@ -24,11 +23,13 @@ import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import java.time.Instant
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -46,21 +47,24 @@ class ObservePickablePuzzlesTest {
     private val received = FakeReceivedPuzzleRepository()
     private val published = FakePublishedPuzzleRepository()
     private val completions = FakeCompletionRepository()
+    private val hiddenPuzzles = FakeHiddenPuzzles()
     private var listCalls = 0
     private var failList = false
+    private var gate: CompletableDeferred<Unit>? = null
 
     private val counting = object : SharedPuzzleRepository by shared {
         override suspend fun listPublic(filter: CommunityFilter): CommunityListResult {
             listCalls++
+            gate?.await()
             if (failList) error("boom")
             return shared.listPublic(filter)
         }
     }
 
-    private val communitySource = CommunitySource(ListCommunityPuzzles(counting, FakeHiddenPuzzles(), identity) { now }, registry) { now }
+    private val communitySource = CommunitySource(counting, hiddenPuzzles, identity, registry) { now }
 
     private fun observe() = ObservePickablePuzzles(
-        completions, communitySource, FriendSource(received, identity), OwnSource(published, identity),
+        completions, communitySource, FriendSource(received, identity) { now }, OwnSource(published, identity),
     )
 
     private fun query(
@@ -103,7 +107,14 @@ class ObservePickablePuzzlesTest {
         ),
     )
 
-    private suspend fun result(q: PickerQuery = query()) = observe().invoke(flowOf(q)).first()
+    /** The list once the community read has settled. */
+    private suspend fun TestScope.result(q: PickerQuery = query()): PickerResult {
+        var latest: PickerResult? = null
+        val job = launch(UnconfinedTestDispatcher(testScheduler)) { observe().invoke(flowOf(q)).collect { latest = it } }
+        advanceUntilIdle()
+        job.cancel()
+        return checkNotNull(latest)
+    }
 
     @Test
     fun `a query finds a community, a friend's and an own puzzle by title or author`() = runTest {
@@ -170,6 +181,59 @@ class ObservePickablePuzzlesTest {
 
         assertEquals(emptyList<PickablePuzzle>(), latest?.rows)
         assertEquals(registry.all.size, listCalls)
+    }
+
+    @Test
+    fun `a three day old community puzzle is listed but not new`() = runTest {
+        shared.clock = { now - 3 * 24 * hour }
+        community("K7Q2MX", alpha, title = "Old", hoursAgo = 72)
+
+        val row = result().rows.single()
+
+        assertFalse(row.isNew)
+    }
+
+    @Test
+    fun `a hidden or own community puzzle is left out`() = runTest {
+        community("K7Q2MX", alpha, title = "Hidden")
+        community("V2W3X4", alpha, title = "Kept")
+        hiddenPuzzles.add(code("K7Q2MX"))
+
+        assertEquals(listOf("Kept"), result().rows.map { it.entry.title })
+    }
+
+    @Test
+    fun `friends' and own rows show while the community read is still pending`() = runTest {
+        friend("M3N4P5", alpha, title = "Friend")
+        own("R6S7T8", alpha, title = "Own")
+        community("K7Q2MX", alpha, title = "Community")
+        gate = CompletableDeferred()
+        var latest: PickerResult? = null
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { observe().invoke(flowOf(query())).collect { latest = it } }
+        testScheduler.runCurrent()
+
+        assertEquals(listOf("Friend", "Own"), latest?.rows?.map { it.entry.title })
+
+        gate?.complete(Unit)
+        testScheduler.runCurrent()
+
+        assertEquals(3, latest?.rows?.size)
+    }
+
+    @Test
+    fun `a friend's puzzle that is also public shows once, as the friend's`() = runTest {
+        community("K7Q2MX", alpha, title = "Same")
+        friend("K7Q2MX", alpha, title = "Same")
+
+        assertEquals(listOf(PuzzleSource.Friend), result().rows.map { it.entry.source })
+    }
+
+    @Test
+    fun `a friend's puzzle opened long ago is not new even unsolved`() = runTest {
+        friend("M3N4P5", alpha, title = "Old", openedHoursAgo = 72)
+        friend("R6S7T8", alpha, title = "Fresh", openedHoursAgo = 1)
+
+        assertEquals(listOf("Fresh"), result(query(fresh = setOf(Freshness.New))).rows.map { it.entry.title })
     }
 
     @Test

@@ -198,12 +198,12 @@ val domainModule = module {
     factory { ImportDraftFromText(registry = get(), createDraft = get(), drafts = get(), dispatchers = get()) }
     factory { ValidatePublish() }
     factory { ListCommunityPuzzles(shared = get(), hidden = get(), identity = get(), clock = System::currentTimeMillis) }
-    single { CommunitySource(community = get(), registry = get(), clock = System::currentTimeMillis) }
+    single { CommunitySource(shared = get(), hidden = get(), identity = get(), registry = get(), clock = System::currentTimeMillis) }
     factory {
         ObservePickablePuzzles(
             completions = get(),
             community = get(),
-            friends = FriendSource(received = get(), identity = get()),
+            friends = FriendSource(received = get(), identity = get(), clock = System::currentTimeMillis),
             own = OwnSource(published = get(), identity = get()),
         )
     }

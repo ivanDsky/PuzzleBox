@@ -20,7 +20,9 @@ class ObservePickablePuzzles internal constructor(
     operator fun invoke(query: Flow<PickerQuery>): Flow<PickerResult> {
         val played = completions.observeRecords().map { records -> records.mapTo(HashSet()) { PuzzleRefKeys.encode(it.puzzleRef) } }
         return combine(query, community.observe(played), friends.observe(played), own.observe(played)) { q, c, f, o ->
-            val rows = (c.rows + f.rows + o.rows).sortedByDescending { it.atMs }.map { it.puzzle }.filter { it.passes(q) }
+            // A friend's puzzle that is also public is one puzzle: the friend's row wins.
+            val rows = (f.rows + c.rows + o.rows).distinctBy { it.puzzle.entry.ref }
+                .sortedByDescending { it.atMs }.map { it.puzzle }.filter { it.passes(q) }
             PickerResult(rows, offline = c.offline)
         }
     }
