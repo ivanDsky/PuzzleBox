@@ -80,12 +80,13 @@ internal const val PLAIN_LOADING = PublishedPlainBoardLoadingTag
  * The author's page over fake stores for one [game]: its Studio board is a tagged stand-in that draws whatever
  * verdict it is given ([STUDIO_BOARD]); its plain board is a [GivensBoard] of its own shape ([PLAIN_CONTENT]), built
  * only from the puzzle the editor's export hands it. [withReplayBoard] false is a game that draws no such board; the
- * puzzle is called [title].
+ * puzzle is called [title]. [gameSlots] false is a game with no publish fields of its own under the actions.
  */
 internal class PublishedPlainWorld(
     val game: PlainGame,
     private val withReplayBoard: Boolean = true,
     private val title: String = TITLE,
+    private val gameSlots: Boolean = true,
 ) {
     val editor = PlainEditor(game.id)
     val drafts = FakeDraftRepository()
@@ -116,7 +117,7 @@ internal class PublishedPlainWorld(
                     viewModel { (key: PublishedPuzzleKey) ->
                         PublishedPuzzleViewModel(
                             key, published, gatedDrafts, GameRegistry(listOf(pluginOf(editor))),
-                            GameEditorRegistry(listOf(StudioWithVerdict(FakeGameEditorUi(game.id, gameSlots = true)))),
+                            GameEditorRegistry(listOf(StudioWithVerdict(FakeGameEditorUi(game.id, gameSlots = gameSlots)))),
                             GamePlayRegistry(listOf(PlayWithGivens())),
                             CreateDraftCopy(drafts, newId = { "copy" }, clock = { NOW }),
                             DefaultDispatcherProvider(), UpdatePublishState(shared, published),

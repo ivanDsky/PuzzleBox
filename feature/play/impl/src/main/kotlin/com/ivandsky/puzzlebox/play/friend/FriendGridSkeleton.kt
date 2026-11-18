@@ -58,13 +58,15 @@ internal fun FriendGridSkeleton(paneHeight: Dp, modifier: Modifier = Modifier) {
             }
         },
         right = {
-            Block(Modifier.fillMaxWidth().height(HEAD_HEIGHT), MaterialTheme.shapes.medium)
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Block(Modifier.fillMaxWidth().height(HEAD_HEIGHT).testTag("friend.card.grid.skeleton.head"), MaterialTheme.shapes.medium)
+            Column(Modifier.testTag("friend.card.grid.skeleton.title"), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Bar(Modifier.fillMaxWidth(TITLE_FRACTION), MaterialTheme.typography.headlineMedium)
                 Bar(Modifier.width(120.dp), MaterialTheme.typography.bodyLarge)
             }
-            Block(Modifier.fillMaxWidth().height(PrimaryButtonMinHeight), MaterialTheme.shapes.large)
-            Block(Modifier.fillMaxWidth().height(RANKS_HEIGHT), MaterialTheme.shapes.medium)
+            NoteSkeleton(Modifier.testTag("friend.card.grid.skeleton.note"))
+            Block(Modifier.fillMaxWidth().height(PrimaryButtonMinHeight).testTag("friend.card.grid.skeleton.action"), MaterialTheme.shapes.large)
+            Bar(Modifier.padding(top = Spacing.sm).width(CAPTION_WIDTH).align(Alignment.CenterHorizontally), MaterialTheme.typography.bodyMedium)
+            RanksSkeleton(Modifier.testTag("friend.card.grid.skeleton.ranks"))
         },
     )
 }
@@ -82,6 +84,33 @@ private fun Block(modifier: Modifier, shape: Shape) {
     Box(modifier.skeleton(MaterialTheme.colorScheme.surfaceContainerHigh, shape).clearAndSetSemantics {})
 }
 
+/** The note's card: one bodyLarge line between the card's padding, as the loaded note is; a puzzle may have none, but the skeleton cannot know. */
+@Composable
+private fun NoteSkeleton(modifier: Modifier) {
+    Box(modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainerLow, MaterialTheme.shapes.small).padding(Spacing.md)) {
+        Bar(Modifier.fillMaxWidth(NOTE_FRACTION), MaterialTheme.typography.bodyLarge)
+    }
+}
+
+/** The ranks card: its label over [RANK_ROWS] two-line rows with a [BoardLine]'s padding; no author line, so the rows stand for the author and the first ranks. */
+@Composable
+private fun RanksSkeleton(modifier: Modifier) {
+    Column(
+        modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainerLow, MaterialTheme.shapes.medium).padding(Spacing.md),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
+        Bar(Modifier.width(48.dp), MaterialTheme.typography.labelSmall)
+        repeat(RANK_ROWS) {
+            Column(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)) {
+                Bar(Modifier.width(120.dp), MaterialTheme.typography.bodyLarge)
+                Bar(Modifier.width(72.dp), MaterialTheme.typography.labelMedium)
+            }
+        }
+    }
+}
+
 private val HEAD_HEIGHT = 48.dp
-private val RANKS_HEIGHT = 160.dp
 private const val TITLE_FRACTION = 0.7f
+private const val NOTE_FRACTION = 0.8f
+private const val RANK_ROWS = 3
+private val CAPTION_WIDTH = 160.dp

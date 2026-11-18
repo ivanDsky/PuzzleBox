@@ -174,6 +174,33 @@ class PublishedPageGridTest {
         assertEquals(0, count(GRID))
     }
 
+    @Test
+    fun `a pane 880 dp wide, the skeleton's right column blocks sit where the loaded pieces land`() = assertRightColumnInPlace(880.dp)
+
+    @Test
+    fun `a pane 1200 dp wide, the skeleton's right column blocks sit where the loaded pieces land`() = assertRightColumnInPlace(1200.dp)
+
+    /**
+     * Each block of the skeleton's right column starts and ends where the loaded page's piece does, within 8 dp, and the
+     * columns span the same top and bottom, so nothing moves vertically when the page arrives.
+     */
+    private fun assertRightColumnInPlace(pane: Dp) {
+        val world = PublishedPlainWorld(PlainGame.QUEENS, gameSlots = false).apply { gate = CompletableDeferred() }
+        showWorld(world, pane, await = false)
+        val skeleton = RIGHT_PIECES.mapValues { (piece, _) -> bounds("$GRID.skeleton.$piece") }
+        world.gate?.complete(Unit)
+        awaitTag(PLAIN_CONTENT)
+        rule.waitForIdle()
+
+        val tolerance = with(rule.density) { 8.dp.toPx() }
+        val off = RIGHT_PIECES.flatMap { (piece, loadedTag) ->
+            val drawn = skeleton.getValue(piece)
+            val landed = bounds(loadedTag)
+            listOf("$piece top" to drawn.top - landed.top, "$piece bottom" to drawn.bottom - landed.bottom)
+        }.filter { (_, delta) -> kotlin.math.abs(delta) > tolerance }
+        assertTrue("skeleton off the loaded page (dp): ${off.map { (what, delta) -> "$what ${delta / rule.density.density}" }}", off.isEmpty())
+    }
+
     private fun assertSkeletonInPlace(pane: Dp) {
         val world = PublishedPlainWorld(PlainGame.QUEENS).apply { gate = CompletableDeferred() }
         showWorld(world, pane, await = false)
@@ -227,6 +254,13 @@ class PublishedPageGridTest {
 
     private companion object {
         const val GRID = "create.publishedPage.grid"
+        /** Skeleton piece to the loaded page's tag: the column and its blocks. */
+        val RIGHT_PIECES = linkedMapOf(
+            "right" to "$GRID.right",
+            "ticket" to "create.published.ticket",
+            "duplicate" to "create.publishedPage.duplicate",
+            "unpublish" to "create.publishedPage.unpublish",
+        )
         const val TIMEOUT_MS = 5_000L
         const val FRAME_MS = 16L
     }

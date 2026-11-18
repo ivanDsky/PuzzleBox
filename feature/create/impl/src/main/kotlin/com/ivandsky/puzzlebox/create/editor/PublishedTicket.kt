@@ -203,7 +203,7 @@ private fun Perforation() {
     }
 }
 
-private val NotchRadius = 8.dp
+internal val NotchRadius = 8.dp
 private val DashStroke = 1.dp
 private val DashOn = 6.dp
 private val DashOff = 4.dp
