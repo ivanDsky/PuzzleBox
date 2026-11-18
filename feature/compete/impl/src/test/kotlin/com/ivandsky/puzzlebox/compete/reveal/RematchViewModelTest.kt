@@ -266,13 +266,13 @@ class RematchViewModelTest {
     }
 
     @Test
-    fun aRefusedSelfLineupRematchIsTheGenericInviteNote() = runTest {
+    fun aRefusedSelfLineupRematchIsThePastYouNote() = runTest {
         completions.setRecords(listOf(record(alpha, 1)) + (1..4).map { record(beta, it + 10) })
         val vm = selfViewModel(selfDuelOf(listOf(alpha, beta, alpha)))
 
         vm.send()
 
-        assertEquals(RematchState(note = "Couldn't send the invite. Try again."), vm.state.value)
+        assertEquals(RematchState(note = "Couldn't start the rematch. Try again."), vm.state.value)
         assertTrue(selfMatches.observeAll().first().isEmpty())
     }
 
@@ -292,8 +292,23 @@ class RematchViewModelTest {
 
         vm.send()
 
-        assertEquals(RematchState(note = "Couldn't send the invite. Try again."), vm.state.value)
+        assertEquals(RematchState(note = "Couldn't start the rematch. Try again."), vm.state.value)
         assertEquals(listOf<Throwable>(room), reported)
+    }
+
+    @Test
+    fun aFriendRematchThatThrowsKeepsTheInviteNote() = runTest {
+        val broken = object : MatchRepository by server {
+            override suspend fun create(draft: MatchDraft): CreateResult = throw IllegalStateException("server down")
+        }
+        val vm = RematchViewModel(
+            played, CreateMatch(broken, local, draw, identity, Random(CODE_SEED), ValidateExactPuzzles(FakeSharedPuzzleRepository())), selfDuel,
+            FailureLog { _, _, _ -> },
+        )
+
+        vm.send()
+
+        assertEquals(RematchState(note = "Couldn't send the invite. Try again."), vm.state.value)
     }
 
     private companion object {

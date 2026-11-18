@@ -58,7 +58,7 @@ internal class RematchViewModel(
             }
             when (outcome) {
                 is CreateOutcome.Created -> createdDuels.send(outcome)
-                else -> working.update { RematchState(note = refusalNote(outcome)) }
+                else -> working.update { RematchState(note = refusalNote(outcome, match.isSelf)) }
             }
         }
     }
@@ -69,14 +69,17 @@ internal class RematchViewModel(
     }
 }
 
-private fun refusalNote(outcome: CreateOutcome): String? = when (outcome) {
+private fun refusalNote(outcome: CreateOutcome, self: Boolean): String? = when (outcome) {
     is CreateOutcome.Created -> null
     CreateOutcome.Offline -> "You're offline. Check the connection and try again."
     CreateOutcome.DailyCapReached -> "You've reached today's limit on new duels. Try again tomorrow."
     CreateOutcome.SignedOut -> "Sign in to send a rematch."
     CreateOutcome.NoPuzzles -> "There are no puzzles left to draw. Try again later."
-    is CreateOutcome.Failed -> outcome.message ?: "Couldn't send the invite. Try again."
-    is CreateOutcome.EntryUndrawable, is CreateOutcome.EntryUnavailable -> "Couldn't send the invite. Try again."
+    is CreateOutcome.Failed -> outcome.message ?: failureNote(self)
+    is CreateOutcome.EntryUndrawable, is CreateOutcome.EntryUnavailable -> failureNote(self)
 }
+
+/** A Past you duel has no invite, so its failure never says one. */
+private fun failureNote(self: Boolean) = if (self) "Couldn't start the rematch. Try again." else "Couldn't send the invite. Try again."
 
 private const val TAG = "RematchViewModel"
