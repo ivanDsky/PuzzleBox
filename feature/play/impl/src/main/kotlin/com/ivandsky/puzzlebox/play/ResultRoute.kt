@@ -130,6 +130,7 @@ private fun ColumnScope.HeroPage(
 ) {
     val insights by viewModel.heroInsights.collectAsStateWithLifecycle()
     val rank by viewModel.heroRank.collectAsStateWithLifecycle()
+    val signInNote by viewModel.signInNote.collectAsStateWithLifecycle()
     val linkedInPost by viewModel.linkedInPost.collectAsStateWithLifecycle()
     val postTimeMs by viewModel.linkedInPostTimeMs.collectAsStateWithLifecycle()
     val chip = if (state.practice || viewModel.playAgain) {
@@ -160,6 +161,7 @@ private fun ColumnScope.HeroPage(
             signInLine = viewModel.heroSignInLine,
         ),
         onSignIn = { viewModel.signIn(context) },
+        signInNote = signInNote,
         modifier = Modifier.weight(1f),
         brand = viewModel.brand,
         onRetryWrite = viewModel::retryRecordWrite.takeIf { state.writeFailed },
