@@ -6,8 +6,6 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.spotlight.PLACE_IT
 import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightRole
@@ -25,7 +23,6 @@ import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -40,9 +37,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Pins "Place it" on a Tango hint (PlaceIt, #1419): the callout's action puts the explained mark on the board as the
+ * Pins "Place it" on a Tango hint (#1419): the callout's action puts the explained mark on the board as the
  * player's own move, through the one placement entry (undo, the log, the win and the count behave as for a tap).
- * Flag off, a mistake and the pill's taps on the rendered board are covered too.
+ * A mistake and the pill's taps on the rendered board are covered too.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -55,11 +52,10 @@ class TangoPlaceItTest {
     private val won = mutableListOf<CompletionRecord>()
     private val log = MoveLog.fresh(TangoDefinition.id)
 
-    private fun loaded(placeIt: Boolean = true) = TangoPlayController(
+    private fun loaded() = TangoPlayController(
         env = PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), onSessionChanged = {}, onWon = { won += it }, log),
         now = { Instant.parse("2026-10-31T00:00:00Z") },
         hintMode = HintMode.Stepwise(Dispatchers.Unconfined),
-        placeIt = placeIt,
     ).also {
         assertEquals(Adopt.Adopted, it.adoptToday(TangoPlayFixture.envelope(), TangoPlayFixture.ref(DAY)))
     }
@@ -73,10 +69,6 @@ class TangoPlaceItTest {
 
     private fun recorded(): List<StampedMove> =
         checkNotNull(log.snapshot()?.let(ReplayCodec::decode)?.getOrNull()) { "no readable log" }.moves
-
-    private fun flags(vararg on: ReleaseFlag) = object : ReleaseFlags {
-        override val enabled = MutableStateFlow(on.toSet())
-    }
 
     @Test
     fun `place it puts the explained value on the explained cell as the player's own move and counts nothing`() {
@@ -119,17 +111,7 @@ class TangoPlaceItTest {
     }
 
     @Test
-    fun `flag off, a deduction's callout has no action`() {
-        val s = loaded(placeIt = false)
-
-        s.requestHint()
-
-        assertNotNull(s.spotlight!!.callout)
-        assertNull(s.spotlight!!.callout!!.action)
-    }
-
-    @Test
-    fun `a mistake's callout has no action even with the flag on`() {
+    fun `a mistake's callout has no action`() {
         val s = loaded().apply { onPlacement(TangoPlacement(WRONG_IDX, TangoCell.SUN)) }
 
         s.requestHint()
@@ -152,13 +134,6 @@ class TangoPlaceItTest {
         assertEquals(lastValue, s.grid()[lastIdx])
         assertTrue(s.isComplete)
         assertEquals(1, won.size)
-    }
-
-    @Test
-    fun `the module reads PlaceIt from the flags, off without them`() {
-        assertFalse(tangoPlaceIt(null))
-        assertFalse(tangoPlaceIt(flags(ReleaseFlag.HintPolish)))
-        assertTrue(tangoPlaceIt(flags(ReleaseFlag.PlaceIt)))
     }
 
     private fun setBoard(s: TangoPlayController) = composeRule.setContent {

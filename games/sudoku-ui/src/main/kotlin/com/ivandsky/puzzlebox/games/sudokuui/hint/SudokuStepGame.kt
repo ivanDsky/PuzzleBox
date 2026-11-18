@@ -14,13 +14,13 @@ import com.ivandsky.puzzlebox.games.sudoku.engine.hints.step.SudokuStepper
  * It also owns `known` (A7): the engine ignores notes, so a shown elimination leaves nothing it can read, and it would
  * come back on every press. The struck masks of the elimination on screen are remembered on the next input and fed
  * back to the stepper; memory only, never persisted (A21). Main-confined; the compute block only reads copies.
- * [plainCaptions] picks the plain callout set (HintPolish). [placeIt] (PlaceIt), when set, puts "Place it" in a single's or
+ * [plainCaptions] picks the plain callout set (HintPolish). [placeIt] puts "Place it" in a single's or
  * reveal's callout; it is the board's own placement, so a press only wraps it.
  */
 internal class SudokuStepGame(
     private val session: () -> SudokuSession,
     private val plainCaptions: Boolean = false,
-    private val placeIt: ((idx: Int, digit: Int) -> Unit)? = null,
+    private val placeIt: (idx: Int, digit: Int) -> Unit,
 ) : StepHints.Game<SudokuStep, SudokuSpotlightMapper.Key> {
 
     /** Cell to struck digit mask. Replaced, never mutated, so a captured reference is a snapshot. */
@@ -45,7 +45,7 @@ internal class SudokuStepGame(
         val current = session()
         shown = step
         val spotlight = SudokuSpotlightMapper.map(step, current.puzzle, current.board, playId, plainCaptions)
-        return placeIt?.let { spotlight.withPlaceIt(step, it) } ?: spotlight
+        return spotlight.withPlaceIt(step, placeIt)
     }
 
     /** A re-press of the same step is no input, so only the next real input accepts a shown elimination. */

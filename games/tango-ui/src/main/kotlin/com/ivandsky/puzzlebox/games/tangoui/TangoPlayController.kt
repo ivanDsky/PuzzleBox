@@ -62,7 +62,6 @@ class TangoPlayController(
     internal val hintMode: HintMode.Stepwise,
     solve: (TangoPuzzle) -> List<TangoCell>? = { TangoBoundedSolution.of(it) },
     plainCaptions: Boolean = false,
-    placeIt: Boolean = false,
 ) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback, PlayGuide {
 
     var session by mutableStateOf<TangoSession?>(null)
@@ -84,7 +83,7 @@ class TangoPlayController(
     // Reset per play, never rebuilt, so the solution memo survives (A1, A9, A10).
     private val stepHints = tangoStepHints(
         hintMode, env.scope, { session }, count = ::countHint, solve = solve, plainCaptions = plainCaptions,
-        placeIt = if (placeIt) { idx, value -> onPlacement(TangoPlacement(idx, value)) } else null,
+        placeIt = { idx, value -> onPlacement(TangoPlacement(idx, value)) },
     )
 
     /** The Stepwise hint on screen; null after any input. */

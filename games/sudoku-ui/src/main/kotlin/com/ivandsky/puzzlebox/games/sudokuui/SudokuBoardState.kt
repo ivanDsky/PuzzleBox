@@ -42,7 +42,7 @@ import kotlinx.coroutines.CoroutineScope
  * a press shows a [spotlight] and never places (A1), a culprit is only marked and a second press
  * re-shows it for free (A4), and every input above clears the Spotlight in the same call (A10).
  * [hint] then stays null, so the legacy wash, rings and caption never draw (A15).
- * [placeIt] (PlaceIt) puts "Place it" in a single's or reveal's callout; it places the explained digit as the player's own move.
+ * A single's or reveal's callout carries "Place it"; it places the explained digit as the player's own move.
  */
 class SudokuBoardState(
     initialSession: SudokuSession,
@@ -57,7 +57,6 @@ class SudokuBoardState(
     hintMode: HintMode = HintMode.Legacy,
     scope: CoroutineScope? = null,
     plainCaptions: Boolean = false,
-    placeIt: Boolean = false,
     // Read when the model is built, so a toggle repaints the board without rebuilding the state.
     private val peerHighlight: () -> Boolean = { true },
     private val sameDigitHighlight: () -> Boolean = { true },
@@ -96,7 +95,7 @@ class SudokuBoardState(
                 val game = SudokuStepGame(
                     session = { session },
                     plainCaptions = plainCaptions,
-                    placeIt = if (placeIt) ::placeExplained else null,
+                    placeIt = ::placeExplained,
                 )
                 StepHints(mode, it, game, used = { session.hintsUsed }, onCount = { countHint() })
             }

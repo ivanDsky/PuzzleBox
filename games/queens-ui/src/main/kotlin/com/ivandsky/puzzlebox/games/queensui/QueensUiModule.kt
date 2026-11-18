@@ -20,13 +20,10 @@ val queensUiModule: Module = module {
     single<GamePlayUi>(qualifier = qualifier(QueensDefinition.id.value)) {
         val flags = getOrNull<ReleaseFlags>()
         val compute = get<DispatcherProvider>().default
-        QueensPlayUi(get<QueensSettings>(), { HintMode.Stepwise(compute) }, { queensPlainCaptions(flags) }, { queensPlaceIt(flags) })
+        QueensPlayUi(get<QueensSettings>(), { HintMode.Stepwise(compute) }, { queensPlainCaptions(flags) }, offersPlaceIt = true)
     }
     single<GameEditorUi>(qualifier = qualifier("${QueensDefinition.id.value}.editor")) { QueensEditorUi }
 }
 
 /** Whether Queens' hint callouts use the plain sentence set (HintPolish); the one place Queens reads that flag. */
 internal fun queensPlainCaptions(flags: ReleaseFlags?): Boolean = flags?.isEnabled(ReleaseFlag.HintPolish) == true
-
-/** Whether a Queens hint callout offers "Place it" (PlaceIt); the one place Queens reads that flag. */
-internal fun queensPlaceIt(flags: ReleaseFlags?): Boolean = flags?.isEnabled(ReleaseFlag.PlaceIt) == true

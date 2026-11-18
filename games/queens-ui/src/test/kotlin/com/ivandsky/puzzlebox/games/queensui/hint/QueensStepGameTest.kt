@@ -54,9 +54,9 @@ class QueensStepGameTest {
         var session = QueensSession(ref = null, puzzle = puzzle)
         var solves = 0
         val game = if (solve == null) {
-            QueensStepGame(session = { session })
+            QueensStepGame(session = { session }, placeIt = QueensPlaceIt({}, {}))
         } else {
-            QueensStepGame(session = { session }, solve = { solves++; solve(it) })
+            QueensStepGame(session = { session }, placeIt = QueensPlaceIt({}, {}), solve = { solves++; solve(it) })
         }
 
         fun next(): QueensStep = game.capture()()

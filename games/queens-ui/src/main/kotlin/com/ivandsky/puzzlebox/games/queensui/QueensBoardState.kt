@@ -71,8 +71,8 @@ class QueensBoardState(
     mode: HintMode.Stepwise,
     scope: CoroutineScope,
     plainCaptions: Boolean = false,
-    /** Read once per board (PlaceIt): a hint that names a placement shows "Place it". */
-    placeIt: Boolean = false,
+    /** Whether a hint callout carries "Place it"; a guided lesson never does (A8). */
+    offersPlaceIt: Boolean = false,
     /** Every player input, whether or not it changes the board (see [PlayEnvironment.onInput]). */
     private val onInput: () -> Unit = {},
 ) {
@@ -104,7 +104,7 @@ class QueensBoardState(
         StepHints(
             mode,
             scope,
-            QueensStepGame({ session }, plainCaptions, if (placeIt) QueensPlaceIt(::placeHintQueen, ::crossHintCells) else null),
+            QueensStepGame({ session }, QueensPlaceIt(::placeHintQueen, ::crossHintCells).takeIf { offersPlaceIt }, plainCaptions),
             { session.hintsUsed },
             { commit(QueensReplayMove.Hint) },
         )

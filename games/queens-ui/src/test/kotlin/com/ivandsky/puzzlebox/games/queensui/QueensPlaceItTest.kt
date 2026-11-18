@@ -11,8 +11,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.spotlight.PLACE_IT
 import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightAction
@@ -37,10 +35,7 @@ import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
@@ -53,7 +48,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The "Place it" of a Queens hint callout (PlaceIt): a hint that names a last queen, a cross-out or a no-simple-step square
+ * The "Place it" of a Queens hint callout: a hint that names a last queen, a cross-out or a no-simple-step square
  * is applied through the board's own input, as the player's moves. Runs a real [QueensBoardState] on the 8×8 fixture
  * (unique solution, so the stepper judges against it) with a real move log.
  *
@@ -70,7 +65,6 @@ class QueensPlaceItTest {
 
     /** One board as a release builds it: [queens] already stand, the log records every move, the session is saved on every change. */
     private class Play(
-        placeIt: Boolean = true,
         autoCross: Boolean = true,
         queens: List<Int> = emptyList(),
         puzzle: QueensPuzzle = QueensPlayFixtures.puzzle(),
@@ -88,7 +82,7 @@ class QueensPlaceItTest {
             onSessionChanged = { saved += it },
             mode = QueensPlayFixtures.hintMode,
             scope = CoroutineScope(Dispatchers.Unconfined),
-            placeIt = placeIt,
+            offersPlaceIt = true,
         )
         val session: QueensSession get() = board.session
 
@@ -262,7 +256,7 @@ class QueensPlaceItTest {
         assertEquals(listOf(QueensReplayMove.Cross(Cell(15))), play.moves())
     }
 
-    // No action (A3, flag off)
+    // No action (A3)
 
     @Test
     fun `a mistake step shows no action`() {
@@ -277,45 +271,8 @@ class QueensPlaceItTest {
     }
 
     @Test
-    fun `with the flag off the callout has no action on any kind of step`() {
-        for (queens in listOf(emptyList(), THREE_QUEENS)) {
-            val play = Play(placeIt = false, queens = queens)
-
-            play.board.requestHint()
-
-            assertNotNull(play.board.spotlight?.callout)
-            assertNull(play.board.spotlight?.callout?.action)
-        }
-    }
-
-    @Test
-    fun `the flag off leaves the spotlight exactly the mapper's`() {
-        val play = Play(placeIt = false, queens = THREE_QUEENS)
-        val game = QueensStepGame(session = { play.session })
-        val step = game.capture()()
-
-        play.board.requestHint()
-
-        assertEquals(game.spotlight(step, playId = 1).copy(playId = 1), play.board.spotlight!!.copy(playId = 1))
-    }
-
-    // The flag and the route to the board (ADR-0022 §3, A8)
-
-    private fun flags(vararg on: ReleaseFlag) = object : ReleaseFlags {
-        override val enabled: StateFlow<Set<ReleaseFlag>> = MutableStateFlow(on.toSet())
-    }
-
-    @Test
-    fun `the module reads PlaceIt alone, and a missing flag service is off`() {
-        assertTrue(queensPlaceIt(flags(ReleaseFlag.PlaceIt)))
-        assertFalse(queensPlaceIt(flags(ReleaseFlag.HintPolish)))
-        assertFalse(queensPlaceIt(flags()))
-        assertFalse(queensPlaceIt(null))
-    }
-
-    @Test
-    fun `the play UI hands the flag to its boards but not to a guided lesson`() {
-        val ui = QueensPlayUi(InMemoryQueensSettings(), { QueensPlayFixtures.hintMode }, placeIt = { true })
+    fun `the play UI hands Place it to its boards but not to a guided lesson`() {
+        val ui = QueensPlayUi(InMemoryQueensSettings(), { QueensPlayFixtures.hintMode }, offersPlaceIt = true)
         fun actionOn(controller: GamePlayController): SpotlightAction? {
             val queens = controller as QueensPlayController
             assertEquals(Adopt.Adopted, queens.adoptToday(QueensPlayFixtures.envelope(), QueensPlayFixtures.ref()))
