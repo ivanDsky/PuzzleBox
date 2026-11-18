@@ -26,6 +26,9 @@ import com.ivandsky.puzzlebox.game.replay.ReplayFacts
 private val MinSideHeaderHeight = 40.dp
 private val DiscSize = 28.dp
 
+/** Air between the stats line and the board's top edge. */
+internal val SideHeaderGap = Spacing.sm
+
 /** Room for the name and the stats line together: a larger system font grows it, so the board below never overlaps. */
 @Composable
 internal fun sideHeaderHeight(): Dp {
