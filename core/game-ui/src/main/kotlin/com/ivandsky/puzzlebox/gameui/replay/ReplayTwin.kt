@@ -27,7 +27,7 @@ internal fun ReplayTwin(
         boardCount = 2,
         modifier = modifier,
         controlsHeight = CompareTransportHeight,
-        boardHeaderHeight = SideHeaderHeight,
+        boardHeaderHeight = sideHeaderHeight(),
         controls = { ReplayCompareTransport(state, playback, mine, theirs, names) },
         board = { index, size ->
             val isMine = index == 0
@@ -40,6 +40,7 @@ internal fun ReplayTwin(
                     tint = if (isMine) colors.primary else colors.tertiary,
                     onTint = if (isMine) colors.onPrimary else colors.onTertiary,
                     pastYouName = names.mine.takeIf { !isMine && names.theirsPast },
+                    reserveStatsLine = true,
                 )
                 ReplayBoardSlot(frame, board, options, size)
             }
