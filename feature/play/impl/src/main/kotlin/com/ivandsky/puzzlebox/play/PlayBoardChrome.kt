@@ -34,6 +34,7 @@ import com.ivandsky.puzzlebox.gameui.selfTimerLabel
  *
  * [sidePanel] builds the two-pane side panel; it is called only while the board plays.
  * A [targetMs] (a self-duel leg's past you's time) makes the bar's timer count toward it as time left, then over by.
+ * While [rules] is set the rules sheet shows over the live board ([RulesSheetHost]).
  *
  * Under it a solve rests on the board before [onSolved] ([LocalSolveRestOnBoard]), for every board it draws.
  */
@@ -56,6 +57,9 @@ internal fun PlayBoardChrome(
     sidePanel: (@Composable () -> (@Composable ColumnScope.() -> Unit)?)?,
     modifier: Modifier,
     targetMs: Long? = null,
+    rules: RulesSheetCopy? = null,
+    onDismissRules: () -> Unit = {},
+    onReplayTutorial: () -> Unit = {},
 ) {
     CompositionLocalProvider(LocalSolveRestOnBoard provides true) {
         PlayFeelHost {
@@ -113,6 +117,7 @@ internal fun PlayBoardChrome(
                         )
                     }
                 }
+                RulesSheetHost(ui, controller, rules, playing, onDismissRules, onReplayTutorial)
             }
         }
     }

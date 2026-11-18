@@ -132,7 +132,8 @@ class FakeController(
     /** Banked clock time (in the session bytes) and the open running window, if any. */
     var bankedMs = 0L
         private set
-    private var windowMs: Long? = null
+    // Snapshot state like the real games' running window, so a reopening recomposes what keys on it.
+    private var windowMs: Long? by mutableStateOf(null)
     private var windows = 0
 
     /** How many background folds actually banked time. */

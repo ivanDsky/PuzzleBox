@@ -24,11 +24,12 @@ import kotlinx.coroutines.flow.stateIn
  * composition is gone, so the play chrome's clock effect has folded the clock; it reopens when the board
  * returns. The lessons run in a sandbox: nothing they do reaches the slot or the records.
  */
-class GameViewModel(
+class GameViewModel internal constructor(
     key: GameKey,
     store: PlaySessionStore,
     calendar: GameCalendar,
     prefs: UserPreferencesRepository,
+    howToPlayRules: HowToPlayRules,
 ) : ViewModel() {
 
     /** The slot's live play; null when the key's game is unplayable in this build. */
@@ -45,15 +46,24 @@ class GameViewModel(
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), false)
     } ?: MutableStateFlow(false).asStateFlow()
 
-    private val gate = TutorialGateHolder(play, prefs, viewModelScope)
+    private val gate = TutorialGateHolder(play, prefs, viewModelScope, howToPlayRules)
 
     internal val tutorial: StateFlow<TutorialGate> = gate.gate
 
-    /** How to play: the game's tutorial opens over the live play. */
+    /** The rules sheet's copy while it shows (RulesSheet on, a game with rules), else null. */
+    internal val rules: StateFlow<RulesSheetCopy?> = gate.rules
+
+    /** How to play: the rules sheet (RulesSheet on) or the game's tutorial opens over the live play. */
     fun howToPlay() = gate.howToPlay()
 
     /** The tutorial ended (finished or skipped): the game is marked seen and the board shows. */
     fun closeTutorial() = gate.close()
+
+    /** The rules sheet closed: the board plays on. */
+    fun dismissRules() = gate.dismissRules()
+
+    /** Replay the tutorial from the rules sheet. */
+    fun replayTutorial() = gate.replayTutorial()
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L

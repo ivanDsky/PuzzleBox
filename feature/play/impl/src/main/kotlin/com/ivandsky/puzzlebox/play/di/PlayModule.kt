@@ -17,6 +17,7 @@ import com.ivandsky.puzzlebox.play.LibraryViewModel
 import com.ivandsky.puzzlebox.play.MatchLegResultViewModel
 import com.ivandsky.puzzlebox.play.MatchLegViewModel
 import com.ivandsky.puzzlebox.play.HintPolish
+import com.ivandsky.puzzlebox.play.HowToPlayRules
 import com.ivandsky.puzzlebox.play.PlayFeel
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.PlayStatsViewModel
@@ -96,8 +97,8 @@ val playModule = module {
             identity = get(),
         )
     }
-    viewModel { (key: GameKey) -> GameViewModel(key, get(), get(), get()) }
-    viewModel { (key: CustomGameKey) -> CustomGameViewModel(key, get(), get(), get()) }
+    viewModel { (key: GameKey) -> GameViewModel(key, get(), get(), get(), get()) }
+    viewModel { (key: CustomGameKey) -> CustomGameViewModel(key, get(), get(), get(), get()) }
     // Same flag-as-parameter rule as the library: a graph without LinkedIn bindings builds the rank row with it off.
     // The app always binds ObserveFriendDay.Binding.
     viewModel { params ->
@@ -123,6 +124,8 @@ val playModule = module {
     single { RandomPickMemory() }
     // The preset game is the one optional parameter: no parameter is Any game.
     viewModel { params -> RandomPuzzleViewModel(params.getOrNull<GameId>(), get(), get(), get()) }
+    // RulesSheet (rules-sheet 04): How to play opens the rules sheet over the live play while it is on.
+    single { HowToPlayRules(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.RulesSheet) == true) }
     // The flag-as-parameter rule again: with it off the result never touches LinkedIn. The Post button's flag is
     // read inside the view model (the release flag), so its bindings resolve only on the same parameter.
     // The next-thing use case is resolved only when the view model first asks for it (today's solve).

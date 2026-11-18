@@ -18,12 +18,13 @@ internal class CustomGameViewModel(
     store: PlaySessionStore,
     prefs: UserPreferencesRepository,
     feel: PlayFeel,
+    howToPlayRules: HowToPlayRules,
 ) : ViewModel() {
 
     /** The slot's live play; null when the key's game is unplayable in this build. */
     val play: ActivePlay? = store.open(key)
 
-    private val gate = if (feel.enabled) TutorialGateHolder(play, prefs, viewModelScope) else null
+    private val gate = if (feel.enabled) TutorialGateHolder(play, prefs, viewModelScope, howToPlayRules) else null
 
     val tutorial: StateFlow<TutorialGate> = gate?.gate ?: MutableStateFlow(TutorialGate.Closed)
 
@@ -32,5 +33,16 @@ internal class CustomGameViewModel(
 
     fun closeTutorial() {
         gate?.close()
+    }
+
+    /** The rules sheet's copy while it shows; always null with PlayFeel off. */
+    val rules: StateFlow<RulesSheetCopy?> = gate?.rules ?: MutableStateFlow(null)
+
+    fun dismissRules() {
+        gate?.dismissRules()
+    }
+
+    fun replayTutorial() {
+        gate?.replayTutorial()
     }
 }
