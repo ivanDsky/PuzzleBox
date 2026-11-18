@@ -25,10 +25,10 @@ internal object StrandsBoardSpec {
     const val TokenCornerFraction: Float = 0.30f
     const val TokenLipFraction: Float = 0.08f
 
-    val ConnectorWidth: Dp = 12.dp
+    val ConnectorWidth: Dp = 10.dp
 
     /** The spangram's non-colour cue (A32): a heavier line than a theme word's. */
-    val SpangramConnectorWidth: Dp = 18.dp
+    val SpangramConnectorWidth: Dp = 15.dp
 
     /** The hint's dashed ring, drawn just outside the token like NYT's CSS outline. */
     val HintRingWidth: Dp = 3.dp

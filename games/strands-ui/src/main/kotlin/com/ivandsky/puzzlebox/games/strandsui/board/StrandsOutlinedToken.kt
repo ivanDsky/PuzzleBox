@@ -37,14 +37,15 @@ internal fun DrawScope.drawOutlinedToken(
     tokenColor(base, TraceOverlaySpec.fill(colors), traced, frame, join)?.let { drawTokenSquare(it, half) }
     val idle = spec === IdleSpec
     val idleWidth = StrandsOutlinedSpec.IdleStroke.toPx()
+    val idleOutline = colors.strandsFlatOutline.withAlpha(StrandsOutlinedSpec.IdleOutlineAlpha)
     when {
         traced && idle -> drawInsetOutline(
-            lerp(colors.strandsFlatOutline, colors.strandsFlatSelection, join.lit),
+            lerp(idleOutline, colors.strandsFlatSelection, join.lit),
             half,
             idleWidth + (selectionWidth - idleWidth) * join.lit,
         )
         traced -> drawInsetOutline(colors.strandsFlatSelection.withAlpha(join.lit), half, selectionWidth)
-        idle -> drawInsetOutline(colors.strandsFlatOutline, half, idleWidth)
+        idle -> drawInsetOutline(idleOutline, half, idleWidth)
         frame.lit < 1f -> drawInsetOutline(colors.strandsFlatSelection.withAlpha(1f - frame.lit), half, selectionWidth)
     }
 }

@@ -6,6 +6,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.captureToImage
@@ -93,7 +94,7 @@ class StrandsOutlinedTokenTest {
     fun `outlined on, an idle letter is a thin outlined square at 78 percent and has no fill`() {
         show(flat = true)
         val p = Probe(cell(0, 0))
-        assertColor(light.strandsFlatOutline, p.map[p.cx, p.edgeTop + 2], "the outline on the token's top edge")
+        assertColor(light.strandsFlatOutline.copy(alpha = StrandsOutlinedSpec.IdleOutlineAlpha).compositeOver(p.bare), p.map[p.cx, p.edgeTop + 2], "the softened outline on the token's top edge")
         assertColor(p.bare, p.map[p.cx, p.cy - (p.pitch * 0.33f).toInt()], "inside the token, above the letter")
         assertColor(p.bare, p.map[p.cx, p.edgeTop - 3], "just outside the 78 percent token")
     }
@@ -128,7 +129,7 @@ class StrandsOutlinedTokenTest {
     }
 
     @Test
-    fun `outlined on, a found word's squares join through a 34 unit tint connector`() {
+    fun `outlined on, a found word's squares join through a 29 unit tint connector`() {
         show(flat = true)
         play(StrandsUiFixtures.row(0))
         val image = board()
@@ -137,13 +138,13 @@ class StrandsOutlinedTokenTest {
         val seam = pitch
         val mid = pitch / 2
         assertColor(light.strandsThemeTint, map[seam, mid], "the join, on the centre line")
-        assertColor(light.strandsThemeTint, map[seam, mid - (pitch * 0.15f).toInt()], "the join, inside half of 34 units")
+        assertColor(light.strandsThemeTint, map[seam, mid - (pitch * 0.12f).toInt()], "the join, inside half of 29 units")
         assertColor(map[seam, mid + (pitch * 0.30f).toInt()], map[seam, mid - (pitch * 0.30f).toInt()], "beyond the connector both sides are bare")
         assertTrue(!map[seam, mid - (pitch * 0.25f).toInt()].near(light.strandsThemeTint))
     }
 
     @Test
-    fun `outlined on, the spangram is gold with a black inset ring and a 48 unit connector`() {
+    fun `outlined on, the spangram is gold with a black inset ring and a 41 unit connector`() {
         show(flat = true)
         play(StrandsUiFixtures.row(1))
         val p = Probe(cell(1, 0))
@@ -153,7 +154,7 @@ class StrandsOutlinedTokenTest {
         val map = image.toPixelMap()
         val pitch = image.width / 4
         val row = pitch + pitch / 2
-        assertColor(LightBoardTokens.strandsSpangramConnector, map[pitch, row - (pitch * 0.20f).toInt()], "the wide connector, inside half of 48 units")
+        assertColor(LightBoardTokens.strandsSpangramConnector, map[pitch, row - (pitch * 0.18f).toInt()], "the wide connector, inside half of 41 units")
         assertTrue(!map[pitch, row - (pitch * 0.30f).toInt()].near(LightBoardTokens.strandsSpangramConnector))
     }
 
