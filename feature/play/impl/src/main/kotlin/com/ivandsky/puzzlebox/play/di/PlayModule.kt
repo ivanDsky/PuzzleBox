@@ -34,6 +34,9 @@ import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
 import com.ivandsky.puzzlebox.play.api.ReplayCompareKey
 import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
+import com.ivandsky.puzzlebox.play.random.RandomPickMemory
+import com.ivandsky.puzzlebox.play.random.RandomPuzzleEntry
+import com.ivandsky.puzzlebox.play.random.RandomPuzzleViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import org.koin.core.module.dsl.viewModel
@@ -115,6 +118,11 @@ val playModule = module {
     single { HintPolish(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.HintPolish) == true) }
     // ZipDotPulse (backlog #1151) too: the Zip board's next number pulses its own dot while it is on.
     single { ZipDotPulse(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.ZipDotPulse) == true) }
+    // RandomPuzzle (epic #1153): screens read the holder, never the flag; the memory forgets the last pick with the process.
+    single { RandomPuzzleEntry(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.RandomPuzzle) == true) }
+    single { RandomPickMemory() }
+    // The preset game is the one optional parameter: no parameter is Any game.
+    viewModel { params -> RandomPuzzleViewModel(params.getOrNull<GameId>(), get(), get(), get()) }
     // The flag-as-parameter rule again: with it off the result never touches LinkedIn. The Post button's flag is
     // read inside the view model (the release flag), so its bindings resolve only on the same parameter.
     // The next-thing use case is resolved only when the view model first asks for it (today's solve).
