@@ -11,14 +11,18 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.compete.create.DuelGame
@@ -26,16 +30,22 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.gameui.PanePolicy
 import com.ivandsky.puzzlebox.model.GameId
 import org.koin.compose.koinInject
 
 private val TILE_MIN_HEIGHT = 56.dp
 private const val TILES_PER_ROW = 2
+private val TWO_PANE_MAX_WIDTH = 960.dp
+private const val TILES_PANE_WEIGHT = 2f
+private const val SEARCH_PANE_WEIGHT = 3f
 
 /**
- * "Add puzzle N" or, from a row, "Change puzzle N": one tile per game for an "Any" puzzle of it, and below them
- * [exactPuzzles], the slot for picking one exact puzzle. One column, as on a phone. A tile calls [onPickGame]; the
- * sheet closes through [onDismiss] (a swipe, the scrim) or when the caller drops it.
+ * "Add puzzle N" or, from a row, "Change puzzle N": one tile per game for an "Any" puzzle of it, and [exactPuzzles], the
+ * slot for picking one exact puzzle. One column on a phone, with the chips [exactPuzzles] draws between its field and its
+ * results. Where the app splits panes (the single rule in [PanePolicy]) the sheet widens and splits: the tiles and the
+ * [filters] on the left, the exact-puzzle search on the right, told through `filtersInline = false` not to draw the chips
+ * again. A tile calls [onPickGame]; the sheet closes through [onDismiss] (a swipe, the scrim) or when the caller drops it.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -46,9 +56,17 @@ internal fun AddPuzzleSheet(
     onPickGame: (GameId) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
-    exactPuzzles: @Composable () -> Unit = {},
+    filters: @Composable () -> Unit = {},
+    exactPuzzles: @Composable (filtersInline: Boolean) -> Unit = {},
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier.testTag("duel.lineup.sheet")) {
+    val window = LocalWindowInfo.current.containerSize
+    val twoPane = with(LocalDensity.current) { PanePolicy.isTwoPane(window.width.toDp(), window.height.toDp()) }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        modifier = modifier.testTag("duel.lineup.sheet"),
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = twoPane),
+        sheetMaxWidth = if (twoPane) TWO_PANE_MAX_WIDTH else BottomSheetDefaults.SheetMaxWidth,
+    ) {
         Column(
             modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -58,15 +76,33 @@ internal fun AddPuzzleSheet(
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            Text("Any puzzle of a game", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                maxItemsInEachRow = TILES_PER_ROW,
-            ) {
-                games.forEach { game -> GameTile(game, onClick = { onPickGame(game.id) }, modifier = Modifier.weight(1f)) }
+            if (twoPane) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+                    Column(Modifier.weight(TILES_PANE_WEIGHT), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                        GameTiles(games, onPickGame)
+                        filters()
+                    }
+                    Column(Modifier.weight(SEARCH_PANE_WEIGHT)) { exactPuzzles(false) }
+                }
+            } else {
+                GameTiles(games, onPickGame)
+                exactPuzzles(true)
             }
-            exactPuzzles()
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun GameTiles(games: List<DuelGame>, onPickGame: (GameId) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        Text("Any puzzle of a game", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            maxItemsInEachRow = TILES_PER_ROW,
+        ) {
+            games.forEach { game -> GameTile(game, onClick = { onPickGame(game.id) }, modifier = Modifier.weight(1f)) }
         }
     }
 }

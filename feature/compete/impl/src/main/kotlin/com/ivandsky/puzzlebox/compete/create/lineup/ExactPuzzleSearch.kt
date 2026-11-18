@@ -41,10 +41,18 @@ import org.koin.compose.koinInject
 
 private val RESULTS_MAX_HEIGHT = 420.dp
 
+/** The chips that narrow [ExactPuzzleSearch], for a caller that draws them apart from it (`filtersInline = false`). */
+@Composable
+internal fun ExactPuzzleFilters(games: List<DuelGame>, viewModel: AddPuzzleViewModel, modifier: Modifier = Modifier) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    PickerFilters(state.query, games, viewModel, modifier)
+}
+
 /**
- * "Or one exact puzzle": a field that searches name, author and code, chips that narrow it, and the puzzles that pass, newest
- * first. [added] is what the lineup already holds; Add calls [onAdd] with the puzzle. The query lives in [viewModel], so the
- * field, the rows and the chips all survive a rotation; the panel clears it when the sheet closes.
+ * "Or one exact puzzle": a field that searches name, author and code, chips that narrow it (unless [filtersInline] is false,
+ * and [ExactPuzzleFilters] draws them elsewhere), and the puzzles that pass, newest first. [added] is what the lineup already
+ * holds; Add calls [onAdd] with the puzzle. The query lives in [viewModel], so the field, the rows and the chips all survive a
+ * rotation; the panel clears it when the sheet closes.
  */
 @Composable
 internal fun ExactPuzzleSearch(
@@ -53,6 +61,7 @@ internal fun ExactPuzzleSearch(
     onAdd: (ExactPuzzle) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: AddPuzzleViewModel,
+    filtersInline: Boolean = true,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val registry = koinInject<GamePlayRegistry>()
@@ -79,7 +88,7 @@ internal fun ExactPuzzleSearch(
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { viewModel.lookUp() }),
         )
-        PickerFilters(state.query, games, viewModel)
+        if (filtersInline) PickerFilters(state.query, games, viewModel)
         if (state.offline && state.lookup != OFFLINE_NOTE) {
             Text(OFFLINE_NOTE, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("duel.lineup.offline"))
         }

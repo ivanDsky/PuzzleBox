@@ -131,8 +131,9 @@ internal fun LineupPanel(
             games = games,
             onPickGame = { game -> edit { it.pick(AnyGame(game)) } },
             onDismiss = { edit { it.dismiss() } },
-            exactPuzzles = {
-                ExactPuzzleSearch(games, draft.entries.filterIsInstance<ExactPuzzle>().mapTo(HashSet()) { it.ref }, onAdd = { puzzle -> edit { it.pick(puzzle) } }, viewModel = search)
+            filters = { ExactPuzzleFilters(games, search) },
+            exactPuzzles = { filtersInline ->
+                ExactPuzzleSearch(games, draft.entries.filterIsInstance<ExactPuzzle>().mapTo(HashSet()) { it.ref }, onAdd = { puzzle -> edit { it.pick(puzzle) } }, viewModel = search, filtersInline = filtersInline)
             },
         )
     }
