@@ -49,6 +49,7 @@ import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInPost
 import com.ivandsky.puzzlebox.domain.linkedin.SubmitLinkedInResult
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
+import com.ivandsky.puzzlebox.domain.linkedin.UpdateLinkedInPosting
 import com.ivandsky.puzzlebox.domain.nextthing.ObserveResultNextThing
 import com.ivandsky.puzzlebox.domain.ranks.GetPlayerActions
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
@@ -172,6 +173,7 @@ class DiGraphTest : KoinTest {
         try {
             PuzzleBoxApplication.prepareCloudSync(koinApp.koin)
             assertNotNull(koinApp.koin.get<ObserveLinkedInAccount>())
+            assertNotNull(koinApp.koin.get<UpdateLinkedInPosting>())
             assertNotNull(koinApp.koin.get<ProfileViewModel> { parametersOf(true) })
         } finally {
             stopKoin()
