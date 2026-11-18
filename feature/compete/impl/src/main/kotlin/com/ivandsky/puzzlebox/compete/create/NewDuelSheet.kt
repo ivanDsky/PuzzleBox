@@ -248,6 +248,7 @@ internal fun Notice(notice: DuelNotice) {
         DuelNotice.Busy -> "Duels are busy today. Try again later."
         DuelNotice.NoPuzzles -> "There are no puzzles to draw for these games. Pick more games."
         is DuelNotice.EntryUndrawable -> "No unplayed ${notice.game} puzzle left for you both. Change puzzle ${notice.position}."
+        is DuelNotice.EntryUnavailable -> "Puzzle ${notice.position} is no longer available. Change or remove it."
         is DuelNotice.Failed -> notice.message ?: "Couldn't create the duel. Please try again."
     }
     Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("duel.notice"))

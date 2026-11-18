@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.CreateResult
 import com.ivandsky.puzzlebox.data.match.MatchDraft
 import com.ivandsky.puzzlebox.data.match.MatchRepository
+import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
 import com.ivandsky.puzzlebox.domain.ComputeMatchLegs
 import com.ivandsky.puzzlebox.domain.ComputeSolvedPool
 import com.ivandsky.puzzlebox.domain.CreateMatch
@@ -22,7 +23,9 @@ import com.ivandsky.puzzlebox.domain.lineup.AnyGame
 import com.ivandsky.puzzlebox.domain.lineup.ExactPuzzle
 import com.ivandsky.puzzlebox.domain.lineup.LineupEntry
 import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
+import com.ivandsky.puzzlebox.domain.lineup.ValidateExactPuzzles
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
@@ -36,6 +39,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Instant
 import java.time.LocalDate
@@ -84,8 +88,10 @@ class NewDuelLineupTest {
     private val repo = RecordingMatchRepository(server)
     private val local = FakeMatchLocalRepository()
     private val history = ObserveGameHistory(registry, daily, completions)
+    private val shared = FakeSharedPuzzleRepository().apply { signedInUid = "bo" }
     private val createMatch = CreateMatch(
         repo, local, ComputeMatchLegs(registry, daily, calendar, history, received, Random(DRAW_SEED)), identity, Random(CODE_SEED),
+        ValidateExactPuzzles(shared),
     )
     private val idTokens = object : GoogleIdTokenProvider {
         override suspend fun idToken(activityContext: Context): GoogleIdToken = GoogleIdToken.Available("t")
@@ -347,6 +353,37 @@ class NewDuelLineupTest {
         vm.create()
         assertEquals(2, server.matches.getValue(vm.created.first().code).legs.size)
     }
+
+    @Test
+    fun `an exact puzzle taken down says which puzzle, marks its row, and writes nothing`() = runTest {
+        val gone = requireNotNull(ShareCode.parse("K7Q2MX"))
+        shared.publish(sharedDoc(requireNotNull(ShareCode.parse("B8C3DF"))))
+        shared.publish(sharedDoc(gone))
+        shared.unpublish(gone)
+        val vm = started()
+        vm.chooseCustom()
+        vm.editLineup { it.remove(2) }
+        vm.editLineup { it.openChange(0) }
+        vm.editLineup { it.pick(exact("B8C3DF")) }
+        vm.editLineup { it.openChange(1) }
+        vm.editLineup { it.pick(exact("K7Q2MX")) }
+
+        vm.create()
+
+        assertEquals(DuelNotice.EntryUnavailable(2), vm.state.value.notice)
+        assertEquals(1, vm.state.value.lineup!!.marked)
+        assertTrue(server.matches.isEmpty())
+        assertTrue(repo.drafts.isEmpty())
+    }
+
+    private fun exact(code: String) =
+        ExactPuzzle(LegRef.Custom(alpha, requireNotNull(ShareCode.parse(code))), "bo", "T", "Bo", PuzzleSource.Friend)
+
+    private fun sharedDoc(code: ShareCode) = SharedPuzzleDoc(
+        code = code, formatVersion = SharedPuzzleDoc.FORMAT_VERSION, gameId = "alpha", variant = "alpha/v", shareCodecVersion = 1,
+        payload = byteArrayOf(1), title = "T", authorName = "Bo", note = "", authorUid = "bo", authorTimeMs = 1_000L, authorHints = 0,
+        createdAtMs = 0L, unpublished = false,
+    )
 
     @Test
     fun `moving a row reorders the footer and what Create sends, and nothing else about the rows`() = runTest {

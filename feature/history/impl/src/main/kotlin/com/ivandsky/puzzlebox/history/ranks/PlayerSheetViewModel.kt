@@ -118,6 +118,6 @@ internal class PlayerSheetViewModel(
         CreateOutcome.DailyCapReached -> Challenge.Failed("Daily duel limit reached")
         CreateOutcome.NoPuzzles -> Challenge.Failed("No puzzle to duel right now")
         is CreateOutcome.Failed -> Challenge.Failed("Couldn't send the challenge")
-        is CreateOutcome.EntryUndrawable -> Challenge.Failed("Couldn't send the challenge")
+        is CreateOutcome.EntryUndrawable, is CreateOutcome.EntryUnavailable -> Challenge.Failed("Couldn't send the challenge")
     }
 }

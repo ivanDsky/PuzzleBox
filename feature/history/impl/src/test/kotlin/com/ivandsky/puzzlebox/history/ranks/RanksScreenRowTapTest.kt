@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.ComputeMatchLegs
 import com.ivandsky.puzzlebox.domain.CreateMatch
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
+import com.ivandsky.puzzlebox.domain.lineup.ValidateExactPuzzles
 import com.ivandsky.puzzlebox.domain.ranks.GetPlayerActions
 import com.ivandsky.puzzlebox.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.game.RankOrder
@@ -31,6 +32,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeVisibilityRepository
 import java.time.LocalDate
 import kotlin.random.Random
@@ -136,6 +138,7 @@ class RanksScreenRowTapTest {
             ComputeMatchLegs(registry, daily, FakeGameCalendar(today), ObserveGameHistory(registry, daily, completions), FakeReceivedPuzzleRepository(), Random(0)),
             FakeIdentityService(Identity(uid = "u1", displayName = "Ann", photoUrl = null)),
             Random(0),
+            ValidateExactPuzzles(FakeSharedPuzzleRepository()),
         )
         return PlayerSheetViewModel(GetPlayerActions(FakeVisibilityRepository(), completions), createMatch, registry, GamePlayRegistry(emptyList()))
     }

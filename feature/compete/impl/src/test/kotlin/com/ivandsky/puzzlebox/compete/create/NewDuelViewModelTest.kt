@@ -20,6 +20,7 @@ import com.ivandsky.puzzlebox.domain.DuelSettings
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
+import com.ivandsky.puzzlebox.domain.lineup.ValidateExactPuzzles
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
@@ -37,6 +38,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Instant
 import java.time.LocalDate
@@ -86,6 +88,7 @@ class NewDuelViewModelTest {
     private val history = ObserveGameHistory(registry, daily, completions)
     private val createMatch = CreateMatch(
         server, local, ComputeMatchLegs(registry, daily, calendar, history, received, Random(DRAW_SEED)), identity, Random(CODE_SEED),
+        ValidateExactPuzzles(FakeSharedPuzzleRepository()),
     )
     private var token: GoogleIdToken = GoogleIdToken.Available("t")
     private val idTokens = object : GoogleIdTokenProvider {
@@ -304,6 +307,7 @@ class NewDuelViewModelTest {
         val held = CreateMatch(
             GatedMatchRepository(server, gate), local,
             ComputeMatchLegs(registry, daily, calendar, history, received, Random(DRAW_SEED)), identity, Random(CODE_SEED),
+            ValidateExactPuzzles(FakeSharedPuzzleRepository()),
         )
         val vm = started(held)
         vm.setCount(7)
@@ -330,6 +334,7 @@ class NewDuelViewModelTest {
         val held = CreateMatch(
             GatedMatchRepository(server, gate), local,
             ComputeMatchLegs(registry, daily, calendar, history, received, Random(DRAW_SEED)), identity, Random(CODE_SEED),
+            ValidateExactPuzzles(FakeSharedPuzzleRepository()),
         )
         val vm = started(held)
         server.online = false
@@ -399,6 +404,7 @@ class NewDuelViewModelTest {
         val denied = CreateMatch(
             DeniedCodeReadMatchRepository(server), local,
             ComputeMatchLegs(registry, daily, calendar, history, received, Random(DRAW_SEED)), identity, Random(CODE_SEED),
+            ValidateExactPuzzles(FakeSharedPuzzleRepository()),
         )
         val vm = started(denied)
 
@@ -474,7 +480,7 @@ class NewDuelViewModelTest {
     fun aFriendWhoCannotBeInvitedShowsTheSheetsOwnFailureAndKeepsTheChallenge() = runTest {
         val refusing = CreateMatch(
             NoInvitesMatchRepository(server), local, ComputeMatchLegs(registry, daily, calendar, history, received, Random(DRAW_SEED)), identity,
-            Random(CODE_SEED),
+            Random(CODE_SEED), ValidateExactPuzzles(FakeSharedPuzzleRepository()),
         )
         val vm = started(refusing)
         vm.prefill(SAM_IN_BETA)

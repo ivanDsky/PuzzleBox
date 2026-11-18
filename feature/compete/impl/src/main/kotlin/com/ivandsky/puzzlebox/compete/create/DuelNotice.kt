@@ -8,5 +8,7 @@ internal sealed interface DuelNotice {
     data object NoPuzzles : DuelNotice
     /** The lineup's puzzle at [position] (from 1) is an "Any" of [game] with nothing left to draw. */
     data class EntryUndrawable(val position: Int, val game: String) : DuelNotice
+    /** The lineup's exact puzzle at [position] (from 1) was taken down or can't be read. */
+    data class EntryUnavailable(val position: Int) : DuelNotice
     data class Failed(val message: String?) : DuelNotice
 }
