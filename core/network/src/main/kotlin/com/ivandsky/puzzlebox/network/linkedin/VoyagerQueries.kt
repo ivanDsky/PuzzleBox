@@ -17,7 +17,9 @@ internal object VoyagerQueries {
 
     /**
      * Today's game with the member's stored record of it: the read a voyager save starts from (ADR-0032 §11).
-     * The same persisted query the Mini Sudoku feed fetches its puzzle with.
+     * The same persisted query the Mini Sudoku feed fetches its puzzle with: keep this id in step with
+     * `LinkedInMiniSudokuDailySource.QUERY_ID` in `:games:sudoku`, a separate bounded context that holds its own copy, so a
+     * rotation of the id updates both.
      */
     const val TODAYS_GAME_RECORD = "voyagerIdentityDashGames.22685dd4999129d6bed79f33e65dcbc5"
 

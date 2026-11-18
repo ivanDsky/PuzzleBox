@@ -17,7 +17,7 @@ import retrofit2.Retrofit
 fun linkedInResultPoster(
     baseUrl: String,
     session: LinkedInSessionCookies,
-    clock: () -> Instant = Instant::now,
+    clock: () -> Instant,
     zone: () -> ZoneId = ZoneId::systemDefault,
 ): LinkedInResultPoster {
     val client = linkedInSessionClient().newBuilder()

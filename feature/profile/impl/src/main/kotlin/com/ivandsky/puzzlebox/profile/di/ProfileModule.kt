@@ -30,7 +30,6 @@ val profileModule: Module = module {
             observeGameStats = get(),
             link = if (linkedIn) get() else null,
             observeAccount = if (linkedIn) get() else null,
-            releaseFlags = if (linkedIn) get() else null,
             updatePosting = if (linkedIn) get() else null,
             cloudSync = get(),
             oversizedDrafts = get(),

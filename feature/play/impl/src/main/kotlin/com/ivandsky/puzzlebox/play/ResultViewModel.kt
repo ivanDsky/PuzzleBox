@@ -225,7 +225,7 @@ class ResultViewModel internal constructor(
     /** Result hero polish: the signed-out hero carries the sign-in invitation under the time. */
     val heroSignInLine: Boolean = releaseFlags?.isEnabled(ReleaseFlag.ResultHeroPolish) == true
 
-    private val post = ResultPostButton(viewModelScope, releaseFlags, observePost, submitPost, slot.gameId, slot.day)
+    private val post = ResultPostButton(viewModelScope, observePost, submitPost, slot.gameId, slot.day)
 
     /** The Post to LinkedIn button, null for no button; see [ResultPostButton]. */
     val linkedInPost: StateFlow<LinkedInPostRowState?> get() = post.state

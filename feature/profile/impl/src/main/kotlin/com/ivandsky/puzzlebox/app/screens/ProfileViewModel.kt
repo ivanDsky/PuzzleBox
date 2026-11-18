@@ -5,8 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.cloud.CloudResult
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
@@ -70,7 +68,6 @@ class ProfileViewModel(
     observeGameStats: ObserveGameStats,
     private val link: LinkedInLink? = null,
     observeAccount: ObserveLinkedInAccount? = null,
-    private val releaseFlags: ReleaseFlags? = null,
     private val updatePosting: UpdateLinkedInPosting? = null,
     private val cloudSync: CloudSync,
     private val oversizedDrafts: OversizedDrafts,
@@ -98,11 +95,7 @@ class ProfileViewModel(
         if (link == null || observeAccount == null) {
             flowOf(null)
         } else {
-            // The one place `LinkedInPush` is read for Profile: off, the row is exactly the one without a posting switch.
-            val flags = releaseFlags?.enabled ?: flowOf(emptySet())
-            combine(link.state, observeAccount(), flags) { state, summary, on ->
-                state.toRow(summary, postingOffered = ReleaseFlag.LinkedInPush in on)
-            }
+            combine(link.state, observeAccount()) { state, summary -> state.toRow(summary) }
         }
 
     private val erase = MutableStateFlow(Deletion())
@@ -160,13 +153,9 @@ class ProfileViewModel(
         viewModelScope.launch { link.resume() }
     }
 
-    /**
-     * The posting switch. Ignored while `LinkedInPush` is off, so a stale callback cannot turn posting on behind a hidden
-     * switch. True arrives only after the row's warning was accepted.
-     */
+    /** The posting switch. True arrives only after the row's warning was accepted. */
     fun onSetLinkedInPosting(on: Boolean) {
         val update = updatePosting ?: return
-        if (releaseFlags?.isEnabled(ReleaseFlag.LinkedInPush) != true) return
         viewModelScope.launch { update(on) }
     }
 
@@ -249,14 +238,13 @@ private fun CloudSyncState.toSync(erase: Deletion, oversizedDrafts: Int): Profil
     return ProfileUiState.GoogleSync(status, erase.running, erase.message, oversizedDrafts)
 }
 
-private fun LinkState.toRow(summary: LinkedInAccountView, postingOffered: Boolean): LinkedInRowState = when (this) {
+private fun LinkState.toRow(summary: LinkedInAccountView): LinkedInRowState = when (this) {
     LinkState.NotConnected -> LinkedInRowState.NotConnected
-    is LinkState.Connected -> LinkedInRowState.Connected(summary, postingOffered)
+    is LinkState.Connected -> LinkedInRowState.Connected(summary)
     is LinkState.Paused -> LinkedInRowState.Paused(
         summary = summary,
         reason = kind.reason(),
         needsReconnect = kind == LinkedInRead.Rejected.Kind.SessionExpired,
-        postingOffered = postingOffered,
     )
 }
 

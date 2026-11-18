@@ -121,20 +121,14 @@ class LinkedInPostingSwitchTest {
     }
 
     @Test
-    fun `a connected row shows the switch only when posting is offered`() {
-        setRow(LinkedInRowState.Connected(summary, postingOffered = false))
-        composeRule.onNodeWithTag("profile.linkedin.posting").assertDoesNotExist()
-    }
-
-    @Test
-    fun `a connected row with posting offered shows the switch`() {
-        setRow(LinkedInRowState.Connected(summary, postingOffered = true))
+    fun `a connected row shows the switch`() {
+        setRow(LinkedInRowState.Connected(summary))
         composeRule.onNodeWithTag("profile.linkedin.posting").assertExists()
     }
 
     @Test
-    fun `a paused row with posting offered still shows the switch and lets it turn off`() {
-        setRow(LinkedInRowState.Paused(summary.copy(posting = true), "paused", needsReconnect = false, postingOffered = true))
+    fun `a paused row still shows the switch and lets it turn off`() {
+        setRow(LinkedInRowState.Paused(summary.copy(posting = true), "paused", needsReconnect = false))
 
         composeRule.onNodeWithTag("profile.linkedin.posting").performClick()
 

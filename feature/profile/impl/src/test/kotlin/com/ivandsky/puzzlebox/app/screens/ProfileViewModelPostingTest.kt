@@ -3,8 +3,6 @@ package com.ivandsky.puzzlebox.app.screens
 import android.content.Context
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.linkedin.LinkState
 import com.ivandsky.puzzlebox.domain.ComputeStreak
@@ -20,7 +18,6 @@ import com.ivandsky.puzzlebox.profile.accounts.LinkedInRowState
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.cloud.FakeOversizedDrafts
 import com.ivandsky.puzzlebox.testing.cloud.FakeSavedBoardsCloud
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInAccount
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInLink
@@ -42,7 +39,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
-/** The Profile ViewModel's posting switch: gated by `LinkedInPush` at this entry, backed by the link's own flow. */
+/** The Profile ViewModel's posting switch: backed by the link's own flow. */
 class ProfileViewModelPostingTest {
 
     private val dispatcher = StandardTestDispatcher()
@@ -57,7 +54,7 @@ class ProfileViewModelPostingTest {
             GoogleIdToken.Unavailable(GoogleIdToken.Unavailable.Reason.OTHER)
     }
 
-    private fun TestScope.viewModel(link: FakeLinkedInLink, flags: ReleaseFlags): ProfileViewModel {
+    private fun TestScope.viewModel(link: FakeLinkedInLink): ProfileViewModel {
         val completions = FakeCompletionRepository()
         val vm = ProfileViewModel(
             identityService = FakeIdentityService(initial = Identity("u1", "Ann", null)),
@@ -69,7 +66,6 @@ class ProfileViewModelPostingTest {
             ),
             link = link,
             observeAccount = ObserveLinkedInAccount(FakeLinkedInAccount(), link, completions, GetPuzzleDay(registry, clock), registry),
-            releaseFlags = flags,
             updatePosting = UpdateLinkedInPosting(link, clock = { 5_000L }),
             cloudSync = FakeCloudSync(),
             oversizedDrafts = FakeOversizedDrafts(),
@@ -82,27 +78,17 @@ class ProfileViewModelPostingTest {
 
     private fun ProfileViewModel.connected() = uiState.value.linkedIn as LinkedInRowState.Connected
 
-    private val on = FakeReleaseFlags(ReleaseFlag.LinkedInPush)
-
     @Test
-    fun `with the flag off the row offers no posting switch`() = runTest(dispatcher) {
-        val vm = viewModel(FakeLinkedInLink(LinkState.Connected("me")), FakeReleaseFlags())
+    fun `connected the switch is offered and off by default`() = runTest(dispatcher) {
+        val vm = viewModel(FakeLinkedInLink(LinkState.Connected("me")))
 
-        assertFalse(vm.connected().postingOffered)
-    }
-
-    @Test
-    fun `with the flag on and connected the switch is offered and off by default`() = runTest(dispatcher) {
-        val vm = viewModel(FakeLinkedInLink(LinkState.Connected("me")), on)
-
-        assertTrue(vm.connected().postingOffered)
         assertFalse(vm.connected().summary.posting)
     }
 
     @Test
     fun `turning it on and off follows the link`() = runTest(dispatcher) {
         val link = FakeLinkedInLink(LinkState.Connected("me"))
-        val vm = viewModel(link, on)
+        val vm = viewModel(link)
 
         vm.onSetLinkedInPosting(true)
         advanceUntilIdle()
@@ -115,33 +101,21 @@ class ProfileViewModelPostingTest {
     }
 
     @Test
-    fun `with the flag off a stray callback turns nothing on`() = runTest(dispatcher) {
-        val link = FakeLinkedInLink(LinkState.Connected("me"))
-        val vm = viewModel(link, FakeReleaseFlags())
-
-        vm.onSetLinkedInPosting(true)
-        advanceUntilIdle()
-
-        assertEquals(emptyList<Long?>(), link.postingChanges)
-    }
-
-    @Test
     fun `a paused link still offers the switch and lets it change`() = runTest(dispatcher) {
         val link = FakeLinkedInLink(LinkState.Paused("me", Kind.Challenge))
-        val vm = viewModel(link, on)
+        val vm = viewModel(link)
 
         vm.onSetLinkedInPosting(true)
         advanceUntilIdle()
 
         val row = vm.uiState.value.linkedIn as LinkedInRowState.Paused
-        assertTrue(row.postingOffered)
         assertTrue(row.summary.posting)
     }
 
     @Test
     fun `disconnect turns posting off and a reconnect starts off`() = runTest(dispatcher) {
         val link = FakeLinkedInLink(LinkState.Connected("me"))
-        val vm = viewModel(link, on)
+        val vm = viewModel(link)
         vm.onSetLinkedInPosting(true)
         advanceUntilIdle()
 

@@ -68,18 +68,13 @@ internal fun ProfileLinkedInNotConnectedPreview() = SlimProfile(SignedIn, Linked
 
 @PuzzleBoxPreviews
 @Composable
-internal fun ProfileLinkedInConnectedPreview() =
+internal fun ProfileLinkedInPostingOffPreview() =
     SlimProfile(SignedIn, LinkedInRowState.Connected(KnownSummary))
 
 @PuzzleBoxPreviews
 @Composable
-internal fun ProfileLinkedInPostingOffPreview() =
-    SlimProfile(SignedIn, LinkedInRowState.Connected(KnownSummary, postingOffered = true))
-
-@PuzzleBoxPreviews
-@Composable
 internal fun ProfileLinkedInPostingOnPreview() =
-    SlimProfile(SignedIn, LinkedInRowState.Connected(KnownSummary.copy(posting = true), postingOffered = true))
+    SlimProfile(SignedIn, LinkedInRowState.Connected(KnownSummary.copy(posting = true)))
 
 @PuzzleBoxPreviews
 @Composable
@@ -89,7 +84,6 @@ internal fun ProfileLinkedInPostingPausedPreview() = SlimProfile(
         KnownSummary.copy(posting = true),
         "LinkedIn is asking us to slow down, so reading is paused.",
         needsReconnect = false,
-        postingOffered = true,
     ),
 )
 

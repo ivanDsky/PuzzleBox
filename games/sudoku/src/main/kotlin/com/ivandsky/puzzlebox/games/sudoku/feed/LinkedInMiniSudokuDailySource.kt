@@ -91,7 +91,10 @@ class LinkedInMiniSudokuDailySource(
     }
 
     companion object {
-        /** LinkedIn's persisted "today's game" query, verified live for gameTypeId 7 (research 01). */
+        /**
+         * LinkedIn's persisted "today's game" query, verified live for gameTypeId 7 (research 01). `:core:network` holds its own copy
+         * as `VoyagerQueries.TODAYS_GAME_RECORD` (a separate bounded context, so no shared constant): a rotation of the id updates both.
+         */
         const val QUERY_ID: String = "voyagerIdentityDashGames.22685dd4999129d6bed79f33e65dcbc5"
 
         val REQUEST: FeedRequest = FeedRequest(

@@ -12,7 +12,6 @@ import com.ivandsky.puzzlebox.app.play.MiniSudokuPlayFixture
 import com.ivandsky.puzzlebox.app.play.QueensPlayFixture
 import com.ivandsky.puzzlebox.app.play.TangoPlayFixture
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInLink
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -156,9 +155,8 @@ class LinkedInPostRowE2ETest {
         return StoredSolve(record, checkNotNull(replay) { "$game: the solve stored no replay" })
     }
 
-    /** The shell with posting released and every LinkedIn edge a fake, so nothing here can reach LinkedIn. */
+    /** The shell with every LinkedIn edge a fake, so nothing here can reach LinkedIn. */
     private fun linkedGraph(): E2eKoinGraph = shellGraph(
-        ReleaseFlag.LinkedInPush,
         overrides = module {
             single<LinkedInSessionCookies> { FakeLinkedInSessionCookies(sentinelSession) }
             single<LinkedInAccountSource> { FakeLinkedInAccountSource() }
