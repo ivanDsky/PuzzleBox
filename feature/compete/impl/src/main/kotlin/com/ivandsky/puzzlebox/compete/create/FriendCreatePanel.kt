@@ -19,9 +19,18 @@ import com.ivandsky.puzzlebox.compete.create.lineup.LineupPanel
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
-/** The panel for a duel against a friend: the Quick, Daily and Customize presets, the footer and Create duel. */
+/** The panel for a duel against a friend: the choices, then the footer and Create duel. */
 @Composable
 internal fun FriendCreatePanel(state: NewDuelState, actions: NewDuelActions) {
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        FriendChoices(state, actions)
+        FriendCreateFooter(state, actions)
+    }
+}
+
+/** The invitee line and the Quick, Daily and Customize presets. */
+@Composable
+internal fun FriendChoices(state: NewDuelState, actions: NewDuelActions) {
     var customizing by rememberSaveable { mutableStateOf(false) }
     val draft = state.draft
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
@@ -59,6 +68,13 @@ internal fun FriendCreatePanel(state: NewDuelState, actions: NewDuelActions) {
             tag = "duel.preset.custom",
             trailing = { Chevron(expanded = customizing) },
         ) { CustomizeBody(customizing && !draft.showsRows(state.lineup, state.games)) { DuelCustomizePanel(state, actions, Modifier.padding(top = Spacing.sm)) } }
+    }
+}
+
+/** The notice, the summary line and Create duel. */
+@Composable
+internal fun FriendCreateFooter(state: NewDuelState, actions: NewDuelActions) {
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         state.notice?.let { Notice(it) }
         Text(
             text = state.summary,

@@ -127,15 +127,7 @@ private fun CreatePanel(state: NewDuelState, actions: NewDuelActions) {
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         Text("New duel", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
-        Text(
-            text = if (state.opponent == Opponent.PastYou) {
-                "Race your first solve of each puzzle. It stays on this device."
-            } else {
-                "Same puzzles for you both, played in your own time. Opponent times stay sealed until you finish."
-            },
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        NewDuelIntro(state.opponent)
         if (state.selfOffered) PlayAgainstRow(state.opponent, state.selfName, actions.onOpponent)
         when (state.opponent) {
             Opponent.Friend -> FriendCreatePanel(state, actions)

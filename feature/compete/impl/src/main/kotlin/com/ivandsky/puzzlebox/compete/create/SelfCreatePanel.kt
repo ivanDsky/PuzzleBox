@@ -28,12 +28,18 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 private val INFO_MARK = 20.dp
 private val INFO_STROKE = 1.5.dp
 
-/**
- * The panel for a duel against Past you: Quick or Customize (no Daily, no deadline), the footer or, when the chosen
- * games have no solved puzzle, the reason Create is off, and Create duel.
- */
+/** The panel for a duel against Past you: the choices, then the footer and Create duel. */
 @Composable
 internal fun SelfCreatePanel(state: NewDuelState, actions: NewDuelActions) {
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        SelfChoices(state, actions)
+        SelfCreateFooter(state, actions)
+    }
+}
+
+/** Quick or Customize (no Daily, no deadline). */
+@Composable
+internal fun SelfChoices(state: NewDuelState, actions: NewDuelActions) {
     var customizing by rememberSaveable { mutableStateOf(false) }
     val self = state.self
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
@@ -56,6 +62,14 @@ internal fun SelfCreatePanel(state: NewDuelState, actions: NewDuelActions) {
         ) {
             CustomizeBody(customizing) { SelfLineupPanel(state, actions, Modifier.padding(top = Spacing.sm)) }
         }
+    }
+}
+
+/** The notice, the summary line or, when the chosen games have no solved puzzle, the reason Create is off, and Create duel. */
+@Composable
+internal fun SelfCreateFooter(state: NewDuelState, actions: NewDuelActions) {
+    val self = state.self
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         state.notice?.let { Notice(it) }
         if (self.empty) {
             NoSolvedReason("You haven't solved any puzzles yet.")
