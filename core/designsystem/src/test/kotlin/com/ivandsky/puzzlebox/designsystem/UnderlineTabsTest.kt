@@ -176,7 +176,7 @@ class UnderlineTabsTest {
     }
 
     @Test
-    fun `four tabs with counts at 320dp and font scale 1·3 keep every count inside its tab`() {
+    fun `four tabs with counts at 320dp and font scale 1 point 3 keep every count inside its tab`() {
         val four = listOf(
             UnderlineTab("Dailies", "t.d"),
             UnderlineTab("Friends", "t.f", count = 12),
@@ -216,7 +216,7 @@ class UnderlineTabsTest {
     }
 
     @Test
-    fun `New today 8 is shown in full at 320dp and font scale 1·3 with three tabs`() {
+    fun `New today 8 is shown in full at 320dp and font scale 1 point 3 with three tabs`() {
         val community = listOf(
             UnderlineTab("New today", "t.new", count = 8),
             UnderlineTab("Friends", "t.friends", count = 5),

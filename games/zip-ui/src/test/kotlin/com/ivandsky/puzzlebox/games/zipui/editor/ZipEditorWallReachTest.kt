@@ -95,12 +95,12 @@ class ZipEditorWallReachTest {
     }
 
     @Test
-    fun `on a 5x5 board a tap 0·3 along a side toggles that side's wall`() {
+    fun `on a 5x5 board a tap 0 point 3 along a side toggles that side's wall`() {
         aTapAlongAnySideTogglesItsWall(5)
     }
 
     @Test
-    fun `on an 8x8 board a tap 0·3 along a side toggles that side's wall`() {
+    fun `on an 8x8 board a tap 0 point 3 along a side toggles that side's wall`() {
         aTapAlongAnySideTogglesItsWall(8)
     }
 
