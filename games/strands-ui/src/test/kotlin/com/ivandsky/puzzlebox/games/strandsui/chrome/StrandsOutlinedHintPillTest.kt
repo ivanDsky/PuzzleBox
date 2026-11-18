@@ -15,8 +15,10 @@ import com.ivandsky.puzzlebox.designsystem.LightBoardTokens
 import com.ivandsky.puzzlebox.designsystem.LocalFlatStrands
 import com.ivandsky.puzzlebox.designsystem.LocalFlatSurfaces
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.gameui.LocalHintPolish
 import com.ivandsky.puzzlebox.games.strandsui.HintUi
+import com.ivandsky.puzzlebox.games.strandsui.StrandsBrand
 import kotlin.math.abs
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -41,9 +43,9 @@ class StrandsOutlinedHintPillTest {
 
     private val light = LightBoardTokens
 
-    private fun show(hint: HintUi, strands: Boolean = true, calm: Boolean = false) = rule.setContent {
+    private fun show(hint: HintUi, strands: Boolean = true, polish: Boolean = false) = rule.setContent {
         PuzzleBoxTheme(darkTheme = false) {
-            CompositionLocalProvider(LocalFlatSurfaces provides true, LocalFlatStrands provides strands, LocalHintPolish provides calm) {
+            CompositionLocalProvider(LocalFlatSurfaces provides true, LocalFlatStrands provides strands, LocalHintPolish provides polish) {
                 StrandsHintControl(hint = hint, onHint = {}, reduceMotion = true)
             }
         }
@@ -85,41 +87,60 @@ class StrandsOutlinedHintPillTest {
         assertTrue(!map[30, map.height / 2].near(Color.Transparent))
     }
 
+    // HintPolish (#1172) calms Undo-peer Hints in the other games; Strands' Hint keeps its own face, flag on or off.
+
     @Test
-    fun `HintPolish on, a banked hint leaves the pill neutral, the badge and lit dots still show`() {
-        show(HintUi(count = 1, meterThirds = 3), calm = true)
+    fun `HintPolish on, a banked hint keeps the tint and a thick selection border`() {
+        show(HintUi(count = 1, meterThirds = 3), polish = true)
         val map = rule.onNodeWithTag("strands.hint").captureToImage().toPixelMap()
         val mid = map.height / 2
-        assertTrue("border ${map[2, mid]}", map[2, mid].near(light.strandsFlatOutline))
-        assertTrue("face ${map[30, mid]}", map[30, mid].near(map[0, 0]))
+        assertTrue("border ${map[4, mid]}", map[4, mid].near(light.strandsFlatSelection))
+        assertTrue("face ${map[30, mid]}", map[30, mid].near(light.strandsThemeTint))
         rule.onNodeWithTag("strands.hint_badge", useUnmergedTree = true).assertExists()
         rule.onAllNodesWithTag("strands.hint_dot.on", useUnmergedTree = true).assertCountEquals(3)
     }
 
-    private fun sharedButtonFaceIsNeutral(hint: HintUi, dark: Boolean) {
+    @Test
+    fun `HintPolish on, no hint banked, the pill stays transparent with the thin outline`() {
+        show(HintUi(count = 0, meterThirds = 2), polish = true)
+        val map = rule.onNodeWithTag("strands.hint").captureToImage().toPixelMap()
+        val mid = map.height / 2
+        assertTrue("border ${map[2, mid]}", map[2, mid].near(light.strandsFlatOutline))
+        assertTrue("face ${map[30, mid]}", map[30, mid].near(map[0, 0]))
+    }
+
+    private fun sharedButtonFace(hint: HintUi, dark: Boolean): Triple<Color, Color, Color> {
         var neutral = Color.Unspecified
+        var accent = Color.Unspecified
         rule.setContent {
             PuzzleBoxTheme(darkTheme = dark) {
                 neutral = MaterialTheme.colorScheme.surfaceContainerHigh
+                accent = StrandsBrand.accent.colors().accent
                 CompositionLocalProvider(LocalFlatSurfaces provides true, LocalHintPolish provides true) {
                     StrandsHintControl(hint = hint, onHint = {}, reduceMotion = true)
                 }
             }
         }
         val map = rule.onNodeWithTag("strands.hint").captureToImage().toPixelMap()
-        val face = map[map.width / 2, 16]
-        assertTrue("dark=$dark face $face vs $neutral", face.near(neutral))
+        return Triple(map[map.width / 2, 16], neutral, accent)
     }
 
     @Test
-    fun `HintPolish on, light, the shared button is the neutral well with a hint banked`() =
-        sharedButtonFaceIsNeutral(HintUi(count = 1, meterThirds = 3), dark = false)
+    fun `HintPolish on, light, the shared button keeps the accent fill with a hint banked`() {
+        val (face, neutral, accent) = sharedButtonFace(HintUi(count = 1, meterThirds = 3), dark = false)
+        assertTrue("face $face is not neutral $neutral", !face.near(neutral))
+        assertTrue("face $face vs $accent", face.near(accent))
+    }
 
     @Test
-    fun `HintPolish on, dark, the shared button is the neutral well with a hint banked`() =
-        sharedButtonFaceIsNeutral(HintUi(count = 1, meterThirds = 3), dark = true)
+    fun `HintPolish on, dark, the shared button keeps the accent fill with a hint banked`() {
+        val (face, _, accent) = sharedButtonFace(HintUi(count = 1, meterThirds = 3), dark = true)
+        assertTrue("face $face vs $accent", face.near(accent))
+    }
 
     @Test
-    fun `HintPolish on, dark, the shared button is the neutral well with none banked`() =
-        sharedButtonFaceIsNeutral(HintUi(count = 0, meterThirds = 1), dark = true)
+    fun `HintPolish on, dark, the shared button is the neutral well with none banked`() {
+        val (face, neutral, _) = sharedButtonFace(HintUi(count = 0, meterThirds = 1), dark = true)
+        assertTrue("face $face vs $neutral", face.near(neutral))
+    }
 }
