@@ -28,7 +28,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.designsystem.LocalOnFill
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -71,12 +70,12 @@ internal const val SKELETON_ALPHA = 0.16f
  */
 @Composable
 internal fun libraryCardColors(brand: GameBrand): GameCardColors {
-    val onFill = LocalOnFill.current
+    val accent = brand.accent.colors()
     return GameCardColors(
-        fill = brand.accent.colors().accent,
-        fg = onFill,
-        fg2 = onFill.copy(alpha = SECONDARY_ALPHA),
-        motif = onFill,
+        fill = accent.accent,
+        fg = accent.onAccent,
+        fg2 = accent.onAccent.copy(alpha = SECONDARY_ALPHA),
+        motif = accent.onAccent,
         motifAlpha = MOTIF_ALPHA,
     )
 }
