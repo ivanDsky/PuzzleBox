@@ -81,6 +81,11 @@ object MotionTokens {
     const val TabletTabCrossfade = 160
     const val TabletPageCrossfade = 200
 
+    // A tab change under the finger: the page follows only this share of the finger's travel, fading out, and is gone
+    // at half way; half of the share is on show before then, so the visible travel is a twelfth of the width, and the
+    // next page starts that far to the side it comes from. A tap makes the same picture on the NavTransition clock.
+    const val TabFollowShare = 1f / 6f
+
     // Material 3 emphasized curves: decelerate on the way in, accelerate on the way out.
     val EasingStandard = CubicBezierEasing(0.2f, 0f, 0f, 1f)
     val EasingEmphasizedDecelerate = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)

@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
+import com.ivandsky.puzzlebox.designsystem.LocalTabFadingIn
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 
 // The push travels a twelfth of the width: enough to read as forward, not a full slide.
@@ -36,7 +37,8 @@ internal val LocalEnterSettled = staticCompositionLocalOf { false }
 
 /**
  * A block's entrance (06-a §Motion): a fade staggered by its [index], capped so a long
- * list never waits; [reduced] motion is one short fade. Previews and a whole-pane crossfade ([LocalEnterSettled]) show it settled.
+ * list never waits; [reduced] motion is one short fade. Previews, a whole-pane crossfade ([LocalEnterSettled]) and a tab
+ * that is fading in ([LocalTabFadingIn]) show it settled.
  *
  * The fade is a graphicsLayer alpha, which composites into an offscreen buffer cut to the
  * layer's bounds, so anything the content paints outside its own bounds is clipped until
@@ -51,7 +53,7 @@ internal fun EnterFade(
     bleed: Dp = 0.dp,
     content: @Composable BoxScope.() -> Unit,
 ) {
-    val settled = LocalInspectionMode.current || LocalEnterSettled.current
+    val settled = LocalInspectionMode.current || LocalEnterSettled.current || LocalTabFadingIn.current
     val alpha = remember { Animatable(if (settled) 1f else 0f) }
     LaunchedEffect(alpha) {
         val spec = if (reduced) {

@@ -28,7 +28,8 @@ import kotlinx.coroutines.launch
  *
  * Every tab owns its scroll ([scrolls]), so a swipe away
  * and back finds it where it was, and a tap on the current tab glides that tab to its top. On the tablet the pager is
- * [OutlineRoom] wider on each side so the selected row's outline is not cut at the pane's edge.
+ * [OutlineRoom] wider on each side so the selected row's outline is not cut at the pane's edge, and clips the shifted
+ * page at the column's gutters rather than at the list's edge.
  */
 @Composable
 internal fun UnderlineTabbedList(
@@ -56,6 +57,7 @@ internal fun UnderlineTabbedList(
             tabs = strip,
             onReselect = { index -> scope.launch { scrolls.toTop(tabs[index]) } },
             modifier = Modifier.weight(1f).fillMaxWidth().widenBy(bodyRoom),
+            clipBleed = if (phone) 0.dp else Spacing.xl - OutlineRoom,
             initialPage = shown,
             selectedPage = shown,
             onPageSettled = { onTab(tabs[it]) },

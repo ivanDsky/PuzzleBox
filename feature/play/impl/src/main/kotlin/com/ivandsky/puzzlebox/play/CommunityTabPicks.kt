@@ -45,9 +45,6 @@ internal class CommunityTabPicks(
     /** [tab]'s pick: the one saved for it, else its default (null: the pane is empty). */
     fun pickOf(tab: CommunityTab): CommunityPick? = saved[tab]?.let(CommunityPick::parse) ?: default.value(tab)
 
-    /** The current tab's pick, the one the right pane shows. */
-    val current: CommunityPick? get() = pickOf(tab)
-
     /** Forgets [tab]'s pick, which returns it to its default. */
     fun clear(tab: CommunityTab) {
         saved.remove(tab)

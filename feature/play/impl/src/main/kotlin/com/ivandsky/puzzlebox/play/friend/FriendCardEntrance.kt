@@ -14,6 +14,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import com.ivandsky.puzzlebox.designsystem.LocalTabFadingIn
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.model.ShareCode
 import kotlinx.coroutines.delay
@@ -25,12 +26,14 @@ internal class CardEntrance(val animates: Boolean)
 /**
  * The entrance for [code]'s card: it animates the first time the card is shown, and never again
  * for that code while its saved state lives, so recomposing, coming back from the board or a
- * restored instance state show the card settled.
+ * restored instance state show the card settled, and so does a card that composes while its tab is fading in
+ * ([LocalTabFadingIn]): the tab's own fade is its entrance.
  */
 @Composable
 internal fun rememberCardEntrance(code: ShareCode): CardEntrance {
     var played by rememberSaveable(code.value) { mutableStateOf(false) }
-    val entrance = remember(code.value) { CardEntrance(animates = !played) }
+    val fadingIn = LocalTabFadingIn.current
+    val entrance = remember(code.value) { CardEntrance(animates = !played && !fadingIn) }
     LaunchedEffect(code.value) { played = true }
     return entrance
 }
