@@ -1,16 +1,11 @@
 package com.ivandsky.puzzlebox.domain
 
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
-import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.MatchLeg
-import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.game.GameRegistry
-import com.ivandsky.puzzlebox.model.GameId
-import java.time.LocalDate
 import kotlin.random.Random
-import kotlinx.coroutines.flow.first
 
 /**
  * Picks the puzzles of a new duel from what the device already holds; never touches the
@@ -29,43 +24,16 @@ class ComputeMatchLegs(
     private val random: Random,
 ) {
 
+    internal val pools = DrawPools(registry, daily, calendar, history, received, random)
+
     suspend operator fun invoke(request: DrawRequest): List<MatchLeg> {
         if (request.count <= 0) return emptyList()
-        val pasted = pasted(request).take(request.count)
+        val pasted = pools.pasted(request.pastedCodes, request.me).take(request.count)
         val games = request.games.filter { registry[it] != null }
-        val sources = dailyPools(games, request.todayOnly) + listOfNotNull(friendPool(request, games.toSet(), pasted))
-        return pasted + rotate(sources.shuffled(random), request.count - pasted.size)
-    }
-
-    private suspend fun pasted(request: DrawRequest): List<MatchLeg> =
-        request.pastedCodes.distinct().mapNotNull { received.get(it)?.takeIf { row -> row.playableBy(request.me) } }
-            .map { it.leg() }
-
-    private suspend fun dailyPools(games: List<GameId>, todayOnly: Boolean): List<List<MatchLeg>> {
-        if (games.isEmpty()) return emptyList()
-        val solved = history().first().filter { it.record != null }.map { it.gameId to it.day }.toSet()
-        return games.map { game ->
-            val (done, open) = days(game, todayOnly)
-                .mapNotNull { day -> daily.puzzleNumber(game, day)?.let { LegRef.Daily(game, day, it) } }
-                .partition { (it.gameId to it.day) in solved }
-            open.ifEmpty { done }.map { MatchLeg(it, authorUid = null) }
-        }
-    }
-
-    private fun days(game: GameId, todayOnly: Boolean): List<LocalDate> {
-        val today = listOfNotNull(calendar.today(game))
-        if (todayOnly) return today
-        val range = daily.archiveRange(game) ?: return today
-        return generateSequence(range.start) { it.plusDays(1) }.takeWhile { it <= range.endInclusive }.toList()
-    }
-
-    private suspend fun friendPool(request: DrawRequest, games: Set<GameId>, pasted: List<MatchLeg>): List<MatchLeg>? {
-        if (!request.includeFriends) return null
         val taken = pasted.map { it.ref }.toSet()
-        return received.observeAll().first()
-            .filter { it.playableBy(request.me) && it.gameId in games }
-            .map { it.leg() }
-            .filter { it.ref !in taken }
+        val friends = if (request.includeFriends) pools.friendPool(games.toSet(), request.me, taken) else null
+        val sources = pools.dailyPools(games, request.todayOnly) + listOfNotNull(friends)
+        return pasted + rotate(sources.shuffled(random), request.count - pasted.size)
     }
 
     /** One random pick per source per turn until [room] is filled or every source is dry. */
@@ -82,8 +50,4 @@ class ComputeMatchLegs(
         }
         return picks
     }
-
-    private fun ReceivedPuzzle.playableBy(me: String): Boolean = authorUid != me && !unpublished
-
-    private fun ReceivedPuzzle.leg(): MatchLeg = MatchLeg(LegRef.Custom(gameId, code), authorUid = authorUid)
 }
