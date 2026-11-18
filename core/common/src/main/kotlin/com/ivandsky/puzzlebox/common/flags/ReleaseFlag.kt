@@ -30,10 +30,4 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
      * which binds it once and provides it to the games as LocalPlayFeel (spec A2).
      */
     PlayFeel(label = "Same feel in every game", releaseDefault = false),
-
-    /**
-     * Duel yourself (Past you): play a puzzle against your own earlier solve. Read only in a ViewModel or a DI module
-     * (ADR-0022 §3).
-     */
-    VirtualDuel(label = "Duel yourself (Past you)", releaseDefault = true),
 }

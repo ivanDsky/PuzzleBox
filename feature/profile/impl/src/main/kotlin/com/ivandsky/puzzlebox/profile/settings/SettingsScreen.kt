@@ -31,7 +31,7 @@ import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.profile.AppearanceRow
 
 /**
- * Settings, a pushed tool screen: a compact top bar with Back, then Appearance, Haptics (the Vibration switch), Games, Play (only with [SettingsUiState.duelPlay]), Visibility and Ranks (only with [SettingsUiState.visibility]), About (the version name), and — in debug builds only — a "Debug build only" block set off by a divider (shown when [debugSections] or [onOpenCatalog] is given): the [debugSections] slot (the app's flags and game tools), then the Component catalog row, each only when given.
+ * Settings, a pushed tool screen: a compact top bar with Back, then Appearance, Haptics (the Vibration switch), Games, Play, Visibility and Ranks (only with [SettingsUiState.visibility]), About (the version name), and — in debug builds only — a "Debug build only" block set off by a divider (shown when [debugSections] or [onOpenCatalog] is given): the [debugSections] slot (the app's flags and game tools), then the Component catalog row, each only when given.
  */
 @Composable
 internal fun SettingsScreen(
@@ -80,9 +80,7 @@ internal fun SettingsScreen(
                 onSudokuPeerHighlight = onSetSudokuPeerHighlight,
                 onSudokuSameDigitHighlight = onSetSudokuSameDigitHighlight,
             )
-            if (state.duelPlay) {
-                PlaySection(timeLeft = state.showSelfDuelTimeLeft, onSetTimeLeft = onSetShowSelfDuelTimeLeft)
-            }
+            PlaySection(timeLeft = state.showSelfDuelTimeLeft, onSetTimeLeft = onSetShowSelfDuelTimeLeft)
             state.visibility?.let {
                 VisibilitySection(own = it, onSelect = onSelectVisibility, onSignIn = onSignIn, signIn = SignInPrompt(state.signingIn, state.signInMessage).takeIf { !state.signedIn })
                 RanksScopeSection(friends = state.ranksFriendsDefault, onSelect = onSetRanksFriendsDefault)

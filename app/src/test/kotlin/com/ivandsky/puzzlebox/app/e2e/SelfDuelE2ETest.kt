@@ -4,7 +4,6 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithText
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.match.MatchResultPoster
 import com.ivandsky.puzzlebox.data.match.ResultPostState
 import com.ivandsky.puzzlebox.data.match.SelfMatchRepository
@@ -43,7 +42,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class SelfDuelE2ETest {
 
-    private val graph = shellGraph(ReleaseFlag.VirtualDuel)
+    private val graph = shellGraph()
 
     @Test
     fun aSignedOutPlayerDuelsPastYouFromTheSheetToAFinishedRow() = shellRobot(onPlay, graph = graph) {

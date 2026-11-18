@@ -24,7 +24,7 @@ import org.koin.dsl.module
  */
 val competeModule: Module = module {
     viewModel {
-        DuelsTabViewModel(observeMyDuels = get(), updateSeat = get(), identity = get(), releaseFlags = get(), clock = { Instant.now() })
+        DuelsTabViewModel(observeMyDuels = get(), updateSeat = get(), identity = get(), clock = { Instant.now() })
     }
     viewModel {
         NewDuelViewModel(
@@ -35,7 +35,6 @@ val competeModule: Module = module {
             calendar = get(),
             daily = get(),
             registry = get(),
-            flags = get(),
             createSelfDuel = get(),
             computeSolvedPool = get(),
             clock = { Instant.now() },

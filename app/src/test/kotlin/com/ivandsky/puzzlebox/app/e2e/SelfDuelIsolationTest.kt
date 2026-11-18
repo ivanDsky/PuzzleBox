@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.app.e2e
 
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.di.MatchRemote
 import com.ivandsky.puzzlebox.data.di.dataModule
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
@@ -53,7 +52,6 @@ import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.delay
@@ -110,7 +108,6 @@ class SelfDuelIsolationTest {
             }
             single<CompletionRepository> { get<Koin>(named(ROOM)).get() }
         },
-        releaseFlags = FakeReleaseFlags(ReleaseFlag.VirtualDuel),
     )
 
     @Test
