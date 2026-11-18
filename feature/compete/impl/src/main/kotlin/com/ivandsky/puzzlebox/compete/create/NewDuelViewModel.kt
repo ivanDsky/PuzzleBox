@@ -220,27 +220,7 @@ internal class NewDuelViewModel(
             val outcome = createMatch(start.draft.toSettings(lineup?.entries), invitedUid = start.challenge?.friendUid) { legs ->
                 if (lineup != null) working.update { if (it.generation == start.generation) it.copy(lineup = it.lineup.pin(legs)) else it }
             }
-            working.update { work ->
-                if (work.generation != start.generation) return@update work
-                when (outcome) {
-                    is CreateOutcome.Created -> work
-                    CreateOutcome.SignedOut -> work.copy(creating = false, signInRequired = true)
-                    CreateOutcome.Offline -> work.copy(creating = false, notice = DuelNotice.Offline)
-                    CreateOutcome.DailyCapReached -> work.copy(creating = false, notice = DuelNotice.Busy)
-                    CreateOutcome.NoPuzzles -> work.copy(creating = false, notice = DuelNotice.NoPuzzles)
-                    is CreateOutcome.Failed -> work.copy(creating = false, notice = DuelNotice.Failed(outcome.message))
-                    is CreateOutcome.EntryUnavailable -> work.copy(
-                        creating = false,
-                        notice = DuelNotice.EntryUnavailable(outcome.position),
-                        lineup = work.lineup.refused(outcome.position),
-                    )
-                    is CreateOutcome.EntryUndrawable -> work.copy(
-                        creating = false,
-                        notice = DuelNotice.EntryUndrawable(outcome.position, registry.displayName(outcome.gameId)),
-                        lineup = work.lineup.refused(outcome.position),
-                    )
-                }
-            }
+            working.update { work -> if (work.generation == start.generation) work.after(outcome, registry::displayName) else work }
             // The server write is done whatever the sheet did meanwhile, so its code must still reach the creator.
             if (outcome is CreateOutcome.Created) {
                 val lineup = releaseFlags?.isEnabled(ReleaseFlag.DuelLineup) == true
