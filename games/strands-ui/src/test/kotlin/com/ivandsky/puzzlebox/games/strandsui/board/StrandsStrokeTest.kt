@@ -1,5 +1,10 @@
 package com.ivandsky.puzzlebox.games.strandsui.board
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.luminance
+import com.ivandsky.puzzlebox.designsystem.DarkBoardTokens
+import com.ivandsky.puzzlebox.designsystem.LightBoardTokens
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.games.strands.render.LinkKind
@@ -49,5 +54,24 @@ class StrandsStrokeTest {
         assertTrue(StrandsBoardSpec.TouchFloor >= StrandsBoardSpec.StrokePitch)
         val floor = px(StrandsBoardSpec.TouchFloor.value)
         assertEquals(px(2f), with(density) { strandsStroke(2.dp, floor) }, 1e-4f)
+    }
+
+    @Test
+    fun `the solved path is about 15 percent thinner than the 12 and 18 dp it was`() {
+        assertEquals(10f, StrandsBoardSpec.ConnectorWidth.value, 0f)
+        assertEquals(15f, StrandsBoardSpec.SpangramConnectorWidth.value, 0f)
+        assertEquals(0.29f, StrandsOutlinedSpec.ThemeConnector, 0f)
+        assertEquals(0.41f, StrandsOutlinedSpec.SpangramConnector, 0f)
+    }
+
+    @Test
+    fun `an idle outline is softer than the outline token but stays visible, light and dark`() {
+        fun contrast(a: Color, b: Color) = (maxOf(a.luminance(), b.luminance()) + 0.05f) / (minOf(a.luminance(), b.luminance()) + 0.05f)
+        for (tokens in listOf(LightBoardTokens, DarkBoardTokens)) {
+            val drawn = tokens.strandsFlatOutline.copy(alpha = StrandsOutlinedSpec.IdleOutlineAlpha).compositeOver(tokens.boardSurface)
+            val shown = contrast(drawn, tokens.boardSurface)
+            assertTrue("softer than the token: $shown", shown < contrast(tokens.strandsFlatOutline, tokens.boardSurface))
+            assertTrue("still visible: $shown", shown >= 1.5f)
+        }
     }
 }
