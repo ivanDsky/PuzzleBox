@@ -14,6 +14,12 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     LinkedInPush(label = "Post results to LinkedIn", releaseDefault = true),
 
     /**
+     * Place it on teaching hints (backlog #1173): a Tango, Queens or Mini Sudoku hint callout offers a Place it action that
+     * applies the explained step. Read only in a game UI module's DI (ADR-0022 §3).
+     */
+    PlaceIt(label = "Place it on teaching hints", releaseDefault = false),
+
+    /**
      * Result hero polish (backlog #1162, #1170, #1171): previous and best as two labelled columns, a signed-out sign-in line
      * under the time, and the day's total on the full-set moment. Read only in a ViewModel or a DI module (ADR-0022 §3).
      */
