@@ -21,6 +21,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PillShape
+import com.ivandsky.puzzlebox.designsystem.PrimaryButtonMinHeight
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.skeleton
 import com.ivandsky.puzzlebox.gameui.hidden.HiddenBoardLoading
@@ -62,7 +63,7 @@ internal fun FriendGridSkeleton(paneHeight: Dp, modifier: Modifier = Modifier) {
                 Bar(Modifier.fillMaxWidth(TITLE_FRACTION), MaterialTheme.typography.headlineMedium)
                 Bar(Modifier.width(120.dp), MaterialTheme.typography.bodyLarge)
             }
-            Block(Modifier.fillMaxWidth().height(ACTION_HEIGHT), MaterialTheme.shapes.large)
+            Block(Modifier.fillMaxWidth().height(PrimaryButtonMinHeight), MaterialTheme.shapes.large)
             Block(Modifier.fillMaxWidth().height(RANKS_HEIGHT), MaterialTheme.shapes.medium)
         },
     )
@@ -82,6 +83,5 @@ private fun Block(modifier: Modifier, shape: Shape) {
 }
 
 private val HEAD_HEIGHT = 48.dp
-private val ACTION_HEIGHT = 56.dp
 private val RANKS_HEIGHT = 160.dp
 private const val TITLE_FRACTION = 0.7f

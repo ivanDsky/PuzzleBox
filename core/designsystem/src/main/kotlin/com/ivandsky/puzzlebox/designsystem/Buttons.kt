@@ -44,8 +44,8 @@ import kotlin.math.roundToInt
 // button is lifted to the 48 dp accessibility minimum.
 internal val ButtonMinHeight: Dp = 48.dp
 
-// Primary is the taller pill (identity §2.4): 52 dp with the bold 16/20 label.
-internal val PrimaryButtonMinHeight: Dp = 52.dp
+// Primary is the taller pill (identity §2.4): 52 dp with the bold 16/20 label. Public: loading skeletons stand in for it at this height.
+val PrimaryButtonMinHeight: Dp = 52.dp
 
 /**
  * The one filled action on a screen: a 52 dp pill in the primary fill, or in the error fill
