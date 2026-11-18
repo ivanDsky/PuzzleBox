@@ -100,6 +100,12 @@ internal object ZipBoardSpec {
     /** The ring round the next number to reach: its radius as a fraction of the pitch, and its stroke. */
     const val nextNumberRingRadiusFraction = 0.42f
     val nextNumberRingWeight = 3.dp
+
+    /** ZipDotPulse's halo: ripples out of the target's circle, each [haloGrowth] wider at its end and fading from [haloAlpha]; the stroke is [haloWeightFactor] x the ring's. */
+    const val haloWaves = 2
+    const val haloGrowth = 0.55f
+    const val haloAlpha = 0.55f
+    const val haloWeightFactor = 1.6f
 }
 
 /**

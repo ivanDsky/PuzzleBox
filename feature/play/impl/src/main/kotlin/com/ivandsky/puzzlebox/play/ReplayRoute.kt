@@ -24,12 +24,14 @@ internal fun ReplayRoute(key: ReplayKey, onBack: () -> Unit, modifier: Modifier 
     val state by viewModel.state.collectAsStateWithLifecycle()
     val showErrors by viewModel.showErrors.collectAsStateWithLifecycle()
     val board = viewModel.board
-    Box(modifier.fillMaxSize().testTag("route.replay")) {
-        when (val shown = state) {
-            ReplayState.Loading -> Unit
-            is ReplayState.Ready ->
-                if (board != null) ReplayPage(shown.timeline, board, viewModel.context, onBack, showErrors, viewModel::setShowErrors) else ReplayEmptyPage(viewModel.context, onBack)
-            ReplayState.None -> ReplayEmptyPage(viewModel.context, onBack)
+    ZipDotPulseHost {
+        Box(modifier.fillMaxSize().testTag("route.replay")) {
+            when (val shown = state) {
+                ReplayState.Loading -> Unit
+                is ReplayState.Ready ->
+                    if (board != null) ReplayPage(shown.timeline, board, viewModel.context, onBack, showErrors, viewModel::setShowErrors) else ReplayEmptyPage(viewModel.context, onBack)
+                ReplayState.None -> ReplayEmptyPage(viewModel.context, onBack)
+            }
         }
     }
 }
