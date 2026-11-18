@@ -45,6 +45,12 @@ user, the PR is a place to read the change, not a test gate.
    running `:app`'s goldens in record mode on the `ui` shard. The Showkase browser golden test and its 14
    PNGs are deleted (56 touches in a week for a debug tool). A timing experiment on the 4-vCPU runner put the old single
    job at about 20 minutes worst case, with the CPU saturated (more test forks gained nothing).
+   *Amendment 2026-11-18 (#1325):* that warm-up class did not hold for a run that skips it or
+   runs it late (`--tests`, or any order where it is not first): the first `ImageDecoder` call in
+   a JVM runs a native one-time init that aborts the JVM on a Coil `Dispatchers` worker, and a
+   ghost avatar on the Ranks hub made it `LinkedInGhostIsolationE2ETest`'s first decode (8 of 20
+   runs aborted under CPU load). `DrainTestApplication.onCreate` now decodes one PNG on the SDK
+   main thread, so no test depends on order (0 of 20 aborted).
 3. **The merge gate is local.** Before an agent merges a slice PR, the full suite
    (`./gradlew assembleDebug test`) must be green on the PR branch rebased onto fresh
    `origin/main`, and the `review-change` fast tier must be clean. A rebase that pulls in new

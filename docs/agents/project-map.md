@@ -674,7 +674,9 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   nothing compares pixels; in that mode the test task is never up to date or cached. A UI ticket
   renders the modules it changed and looks at the screens it touched. `:app`'s
   `NativeGraphicsWarmUpTest` runs first and warms the Robolectric native runtime, which the
-  goldens used to do (without a warm-up the `:app` test JVM aborts). Renders land in each
+  goldens used to do (without a warm-up the `:app` test JVM aborts); `DrainTestApplication` also
+  decodes one PNG on the SDK main thread before the first test, so a filtered or reordered run
+  cannot abort at its first Coil decode either (#1325). Renders land in each
   module's gitignored `snapshots/` directory (`app/snapshots/` holds the Studio authoring shots;
   `games/strands-ui/snapshots/` has the real 2026-11-06 NYT day through the production source);
   zip-ui's `VariantMatrixScreenshotTest` writes to `.scratch` instead.
