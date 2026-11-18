@@ -53,12 +53,13 @@ internal sealed interface StoreWrite {
 
 /**
  * One list read of `puzzles`, in the order a composite index holds its fields: every [equalTo],
- * then [anyOf], then `createdAt` at or after [createdSince], newest first, at most [limit] docs.
+ * then [anyOf], then `createdAt` at or after [createdSince] when there is one, newest first, at most
+ * [limit] docs.
  */
 internal data class CommunityQuery(
     val equalTo: List<Pair<String, Any>>,
     val anyOf: Pair<String, List<String>>?,
-    val createdSince: Timestamp,
+    val createdSince: Timestamp?,
     val limit: Int,
 )
 
@@ -143,8 +144,8 @@ internal class FirestoreSharedPuzzleStore : SharedPuzzleStore {
         var puzzles: Query = firestore.collection(PUZZLES)
         query.equalTo.forEach { (field, value) -> puzzles = puzzles.whereEqualTo(field, value) }
         query.anyOf?.let { (field, values) -> puzzles = puzzles.whereIn(field, values) }
+        query.createdSince?.let { puzzles = puzzles.whereGreaterThanOrEqualTo(SharedPuzzleDocCodec.FIELD_CREATED_AT, it) }
         return puzzles
-            .whereGreaterThanOrEqualTo(SharedPuzzleDocCodec.FIELD_CREATED_AT, query.createdSince)
             .orderBy(SharedPuzzleDocCodec.FIELD_CREATED_AT, Query.Direction.DESCENDING)
             .limit(query.limit.toLong())
             .get(Source.SERVER).await()

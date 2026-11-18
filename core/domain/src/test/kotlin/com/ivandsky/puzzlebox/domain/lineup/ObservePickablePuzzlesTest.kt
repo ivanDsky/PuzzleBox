@@ -53,12 +53,14 @@ class ObservePickablePuzzlesTest {
     private val dailyRepo = FakeDailyRepository()
     private val hiddenPuzzles = FakeHiddenPuzzles()
     private var listCalls = 0
+    private val filters = mutableListOf<CommunityFilter>()
     private var failList = false
     private var gate: CompletableDeferred<Unit>? = null
 
     private val counting = object : SharedPuzzleRepository by shared {
         override suspend fun listPublic(filter: CommunityFilter): CommunityListResult {
             listCalls++
+            filters += filter
             gate?.await()
             if (failList) error("boom")
             return shared.listPublic(filter)
@@ -217,12 +219,19 @@ class ObservePickablePuzzlesTest {
 
     @Test
     fun `a three day old community puzzle is listed but not new`() = runTest {
-        shared.clock = { now - 3 * 24 * hour }
         community("K7Q2MX", alpha, title = "Old", hoursAgo = 72)
 
         val row = result().rows.single()
 
         assertFalse(row.isNew)
+    }
+
+    @Test
+    fun `the community read of every game asks for no window`() = runTest {
+        result()
+
+        assertEquals(registry.all.map { CommunityFilter(gameId = it.definition.id.value, windowMs = null) }.toSet(), filters.toSet())
+        assertEquals(registry.all.size, filters.size)
     }
 
     @Test

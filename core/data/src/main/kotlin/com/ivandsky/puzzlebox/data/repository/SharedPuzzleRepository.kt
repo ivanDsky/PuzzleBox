@@ -20,8 +20,9 @@ interface SharedPuzzleRepository {
     suspend fun fetch(code: ShareCode): SharedFetchResult
 
     /**
-     * The public, still-published puzzles created in the last [COMMUNITY_WINDOW_MS] by the device
-     * clock that match [filter]: newest first, at most [COMMUNITY_LIST_LIMIT], no paging. Asked of
+     * The public, still-published puzzles that match [filter], created in the last
+     * [CommunityFilter.windowMs] by the device clock or of any age when that is null: newest first,
+     * at most [COMMUNITY_LIST_LIMIT], no paging. Asked of
      * the server, never a cache. A doc this version cannot read is left out.
      */
     suspend fun listPublic(filter: CommunityFilter): CommunityListResult
