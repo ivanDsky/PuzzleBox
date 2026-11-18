@@ -88,4 +88,28 @@ class StrandsDraftAnalyzerTest {
     fun `a spent budget is Undetermined`() {
         assertEquals(Verdict.Undetermined, analyze(draft()) { true })
     }
+
+    @Test
+    fun `a word that can be traced two ways over its cells is a multi-trace word`() {
+        // A 2x2 block holding A B / B A: ABAB runs A(0) B(1) A(7) B(6) or A(0) B(6) A(7) B(1).
+        val letters = "ABxxxx" + "BAxxxx" + "x".repeat(36)
+        val paths = listOf(StrandsDraftPath(listOf(0, 1, 7, 6), "ABAB"))
+        assertEquals(listOf(0), StrandsDraftAnalyzer.multiTraceWords(StrandsDraft(letters, "c", paths, 0)))
+    }
+
+    @Test
+    fun `a word with one trace over its cells is not a multi-trace word`() {
+        val letters = "ABCDEF" + "x".repeat(42)
+        val paths = listOf(StrandsDraftPath(listOf(0, 1, 2, 3), "ABCD"))
+        assertEquals(emptyList<Int>(), StrandsDraftAnalyzer.multiTraceWords(StrandsDraft(letters, "c", paths, 0)))
+    }
+
+    @Test
+    fun `multi-trace words are named by path and the tiling verdict is unchanged`() {
+        val letters = "ABxyzx" + "BAxxxx" + "x".repeat(36)
+        val paths = listOf(StrandsDraftPath(listOf(0, 1, 7, 6), "ABAB"), StrandsDraftPath(listOf(2, 3, 4), "xyz"))
+        val multi = StrandsDraft(letters, "c", paths, 0)
+        assertEquals(listOf(0), StrandsDraftAnalyzer.multiTraceWords(multi))
+        assertEquals(analyze(multi.copy(spangram = 1)), analyze(multi))
+    }
 }

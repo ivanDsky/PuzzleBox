@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.IncompleteReason
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
+import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.engine.tiling.StrandsTilingOutcome
 import com.ivandsky.puzzlebox.games.strands.engine.tiling.StrandsTilingSearch
 
@@ -48,6 +49,42 @@ object StrandsDraftAnalyzer {
                 Verdict.Multiple(Solution(a), Solution(b), a.indices.filter { a[it] != b[it] }.toSet())
             }
         }
+    }
+
+    /**
+     * The indices of the paths whose word can be traced in more than one order over the path's own
+     * cells (8-neighbour steps, no cell twice). A warning only: it never changes the [analyze]
+     * verdict, which is about which cells each word takes, not the order inside them. Unnamed
+     * paths and words that don't spell their cells' letters are skipped.
+     */
+    fun multiTraceWords(draft: StrandsDraft): List<Int> =
+        draft.paths.indices.filter { path ->
+            val cells = draft.paths[path].cells
+            val word = draft.paths[path].word?.uppercase()
+            word != null && word.length == cells.size && cells.all { it in draft.letters.indices } &&
+                traces(draft.letters.uppercase(), cells.toSet(), word) > 1
+        }
+
+    /** How many orders trace [word] over [cells], counting no further than 2. */
+    private fun traces(letters: String, cells: Set<Int>, word: String): Int {
+        fun coord(cell: Int) = Coord(cell / StrandsDraft.COLS, cell % StrandsDraft.COLS)
+        var found = 0
+        fun extend(last: Int, used: Set<Int>) {
+            if (used.size == word.length) {
+                found++
+                return
+            }
+            for (next in cells) {
+                if (found >= 2) return
+                if (next in used || letters[next] != word[used.size] || !coord(last).isAdjacentTo(coord(next))) continue
+                extend(next, used + next)
+            }
+        }
+        for (start in cells) {
+            if (found >= 2) break
+            if (letters[start] == word[0]) extend(start, setOf(start))
+        }
+        return found
     }
 
     private fun incomplete(draft: StrandsDraft): IncompleteReason? {

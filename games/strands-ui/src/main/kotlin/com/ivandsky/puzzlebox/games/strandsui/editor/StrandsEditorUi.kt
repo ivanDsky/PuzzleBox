@@ -16,10 +16,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.style.TextOverflow
+import com.ivandsky.puzzlebox.designsystem.LocalWarning
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import com.ivandsky.puzzlebox.game.VariantId
@@ -129,7 +131,10 @@ private fun StrandsToolHint(controller: StrandsEditorController, modifier: Modif
 }
 
 /** One fix-list row: the copy and the path its Select picks, when it is about one. */
-private data class StrandsFixRow(val id: String, val text: String, val path: Int?)
+private data class StrandsFixRow(val id: String, val text: String, val path: Int?, val warning: Boolean = false)
+
+/** Row id and tag of a word that can be traced several ways: a warning, not a block. */
+private const val MULTI_TRACE_ROW = "multi-trace"
 
 private fun strandsFixRows(draft: StrandsDraft, verdict: Verdict, blocks: List<PublishBlock>): List<StrandsFixRow> =
     buildList {
@@ -143,6 +148,9 @@ private fun strandsFixRows(draft: StrandsDraft, verdict: Verdict, blocks: List<P
             val path = block.subject.takeIf { it in draft.paths.indices }
             val word = path?.let { draft.paths[it].word } ?: "Word ${block.subject + 1}"
             StrandsEditorCopy.fix(block.id, block.count, word)?.let { add(StrandsFixRow(block.id, it, path)) }
+        }
+        StrandsDraftAnalyzer.multiTraceWords(draft).forEach { path ->
+            add(StrandsFixRow(MULTI_TRACE_ROW, StrandsEditorCopy.multiTrace(checkNotNull(draft.paths[path].word)), path, warning = true))
         }
     }
 
@@ -168,7 +176,12 @@ private fun StrandsFixList(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(row.text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                Text(
+                    row.text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (row.warning) LocalWarning.current else Color.Unspecified,
+                    modifier = Modifier.weight(1f),
+                )
                 row.path?.let { path ->
                     TextButton(
                         onClick = {

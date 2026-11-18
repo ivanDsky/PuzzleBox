@@ -118,6 +118,9 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String, privat
     @Test fun `publish fields over the cap light`() = publishFields("publish-fields-over", OVER_CAP, dark = false)
     @Test fun `publish fields over the cap dark`() = publishFields("publish-fields-over", OVER_CAP, dark = true)
 
+    @Test fun `multi-trace warning light`() = multiTrace(dark = false)
+    @Test fun `multi-trace warning dark`() = multiTrace(dark = true)
+
     @Test fun `unique light`() = unique(dark = false)
     @Test fun `unique dark`() = unique(dark = true)
 
@@ -241,6 +244,16 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String, privat
             StrandsPublishFields(controller, enabled = true, modifier = Modifier.width(if (device == "tablet") SidePaneWidth else PhoneWidth))
         }
         rule.onNodeWithTag(GOLDEN).captureRoboImage(out(name, dark))
+    }
+
+    /** A word that reads the same both ways round, so its cells can be traced two ways: the fix list's amber warning row. */
+    private fun multiTrace(dark: Boolean) {
+        val draft = board(listOf("ABCCBA") + WORDS.drop(1), startRow = 0).copy(spangram = SPANGRAM)
+        val verdict = StrandsDraftAnalyzer.analyze(draft, Budget.Unlimited)
+        show(dark, draft, verdict, content = { controller ->
+            StrandsEditorUi.Issues(controller, verdict, emptyList(), {}, Modifier.width(PhoneWidth))
+        })
+        rule.onNodeWithTag(GOLDEN).captureRoboImage(out("multi-trace", dark))
     }
 
     private fun unique(dark: Boolean) {
