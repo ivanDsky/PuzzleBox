@@ -7,12 +7,15 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -80,6 +83,17 @@ class FinishToolStripTest {
         Difficulty.Level.entries.forEach { level ->
             val chip = composeRule.onNodeWithTag(chip(level))
             if (level == Difficulty.Level.Hard) chip.assertIsSelected() else chip.assertIsNotSelected()
+        }
+    }
+
+    @Test
+    fun `each level's chip shows that level's mark`() {
+        setStrip(slot())
+        composeRule.onNodeWithTag(FINISH).performClick()
+
+        Difficulty.Level.entries.forEach { level ->
+            val mark = hasTestTag("difficulty.${level.name.lowercase()}") and hasAnyAncestor(hasTestTag(chip(level)))
+            composeRule.onNode(mark, useUnmergedTree = true).assertIsDisplayed()
         }
     }
 

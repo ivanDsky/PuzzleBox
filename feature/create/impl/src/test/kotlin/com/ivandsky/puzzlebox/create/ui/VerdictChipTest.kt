@@ -1,7 +1,9 @@
 package com.ivandsky.puzzlebox.create.ui
 
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.Difficulty
@@ -40,6 +42,22 @@ class VerdictChipTest {
 
         composeRule.onNodeWithText("Unique · Medium").assertExists()
         assertEquals(VerdictTone.Ok, graded.tone())
+    }
+
+    @Test
+    fun `a graded Unique shows its level's mark before the label`() {
+        val graded = Verdict.Unique(Solution(listOf(1, 7, 8, 14)), Difficulty(MediumRung))
+        composeRule.setContent { PuzzleBoxTheme { VerdictChip(graded) } }
+
+        composeRule.onNodeWithTag("difficulty.medium", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun `a needs-guessing Unique shows no level mark, whatever its ladder says`() {
+        val guessing = Verdict.Unique(Solution(listOf(1, 7, 8, 14)), Difficulty(MediumRung), needsGuessing = true)
+        composeRule.setContent { PuzzleBoxTheme { VerdictChip(guessing) } }
+
+        Difficulty.Level.entries.forEach { composeRule.onNodeWithTag("difficulty.${it.name.lowercase()}", useUnmergedTree = true).assertDoesNotExist() }
     }
 
     private object MediumRung : LadderRung {

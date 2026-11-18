@@ -33,6 +33,7 @@ import com.ivandsky.puzzlebox.game.editor.IncompleteReason
 import com.ivandsky.puzzlebox.game.editor.LadderRung
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
+import com.ivandsky.puzzlebox.gameui.DifficultyIcon
 
 private val ChipHeight = 24.dp
 private val ChipIconSize = 14.dp
@@ -61,6 +62,9 @@ fun VerdictChip(verdict: Verdict, modifier: Modifier = Modifier) {
     ) { shown -> ChipFace(shown) }
 }
 
+/** A Unique's level when it has one to show: a needs-guessing Unique has none, whatever its ladder says. */
+internal fun Verdict.Unique.gradeLevel(): Difficulty.Level? = if (needsGuessing) null else difficulty?.level
+
 @Composable
 private fun ChipFace(verdict: Verdict) {
     val (container, content) = verdict.tone().colors(neutralContent = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -75,7 +79,10 @@ private fun ChipFace(verdict: Verdict) {
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (verdict is Verdict.Unique) {
+            val level = (verdict as? Verdict.Unique)?.gradeLevel()
+            if (level != null) {
+                DifficultyIcon(level, Modifier.size(ChipIconSize))
+            } else if (verdict is Verdict.Unique) {
                 val glyph = if (verdict.needsGuessing) PuzzleIcons.Hint else PuzzleIcons.Check
                 Icon(glyph, contentDescription = null, modifier = Modifier.size(ChipIconSize))
             }
