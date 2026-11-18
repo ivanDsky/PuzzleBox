@@ -32,8 +32,8 @@ class WhatsNewE2ETest {
 
         tap("settings.whatsNew")
         assertRoute(WHATS_NEW)
-        awaitTag("whatsNew.release.0.36.2")
-        assertTrue("the bundled releases are listed", shows("whatsNew.release.0.36.2"))
+        awaitTag("whatsNew.release.0.37.0")
+        assertTrue("the bundled releases are listed", shows("whatsNew.release.0.37.0"))
 
         tap("whatsNew.back")
         assertRoute(SETTINGS)

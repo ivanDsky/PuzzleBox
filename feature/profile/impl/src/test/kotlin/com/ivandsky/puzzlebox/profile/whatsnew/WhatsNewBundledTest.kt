@@ -12,9 +12,9 @@ class WhatsNewBundledTest {
     private val releases = WhatsNewParser.parse(File("src/main/assets/whats_new.txt").readText())
 
     @Test
-    fun `the bundled file holds twelve releases, newest is 0_36_2`() {
-        assertEquals(12, releases.size)
-        assertEquals("0.36.2", releases.first().version)
+    fun `the bundled file holds thirteen releases, newest is 0_37_0`() {
+        assertEquals(13, releases.size)
+        assertEquals("0.37.0", releases.first().version)
     }
 
     @Test

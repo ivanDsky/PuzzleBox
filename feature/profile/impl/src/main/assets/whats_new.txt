@@ -2,6 +2,26 @@
 # A release adds its entry at the top in the same commit as its version bump.
 # "## <version> <date>" starts a release; "- " starts a note; "#" lines are comments.
 
+## 0.37.0 2026-11-18
+- There is a new What's new page: open it from Settings, under About.
+- Every game now ticks when you place, buzzes when a move is refused and confirms a solve, lessons included. Settings, Haptics, Vibration still turns it all off.
+- The first hint you use tells you once that hints are counted on your result.
+- A friend's or custom puzzle opens How to play first when you have not seen that game's lesson.
+- How to play opens a short rules sheet for the game, with replaying the lesson as a second choice.
+- A Tango, Queens or Mini Sudoku hint can place the step it explains with a Place it button.
+- Share on a daily result now carries a strip of your solve and a link that opens that day.
+- Daily reminders: switch them on in Settings, pick a time, and get one notification a day that says today's puzzles are open.
+- Random: the Random chip on each game's calendar opens one puzzle from past days or from New today, narrowed by difficulty.
+- Duels are built puzzle by puzzle: Customize lists each puzzle in order, you can drag to reorder, and the add sheet finds puzzles by past day, name, author, code or link, and its filters open from a filter button beside the search. Past you picks from the puzzles you solved.
+- A duel's puzzles show as rows, and a rematch keeps the same games in the same order.
+- Difficulty now has its own bars beside the level word on Community, Random, the friend puzzle card, the Studio and the duel lineup.
+- Days a streak freeze covers now count as streak days.
+- Lists no longer kick a bottom sheet when you fling to their end, and a list stretches at its edge without a delay after a page swipe.
+- Zip's solve shine follows the rounded board, and dark text on the lime, cyan and orange discs and cards reads better.
+- LinkedIn photos load more reliably, and your signed-in photo shows on every avatar of yours.
+- A duel you create while New duel closes still hands over its invite code, and a Create in flight no longer shows its notice on another opponent's pane.
+- Result shows Already on LinkedIn when that day's LinkedIn result is known.
+
 ## 0.36.2 2026-11-18
 - Results show your previous and best times side by side, and a sign-in line under your time when you are signed out.
 - The full-set result shows the day's total; the times chart gathers slow solves in a last "N+" bar.

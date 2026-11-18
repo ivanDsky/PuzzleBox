@@ -17,7 +17,7 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
      * Place it on teaching hints (backlog #1173): a Tango, Queens or Mini Sudoku hint callout offers a Place it action that
      * applies the explained step. Read only in a game UI module's DI (ADR-0022 §3).
      */
-    PlaceIt(label = "Place it on teaching hints", releaseDefault = false),
+    PlaceIt(label = "Place it on teaching hints", releaseDefault = true),
 
     /**
      * Result hero polish (backlog #1162, #1170, #1171): previous and best as two labelled columns, a signed-out sign-in line
@@ -29,7 +29,7 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
      * Rules sheet (backlog #1187): How to play on a play board opens a short rules sheet for the game, with replaying the
      * tutorial as a secondary action. Read only in feature/play's DI (ADR-0022 §3).
      */
-    RulesSheet(label = "Rules sheet behind How to play", releaseDefault = false),
+    RulesSheet(label = "Rules sheet behind How to play", releaseDefault = true),
 
     /**
      * Hint polish (backlog #1172, #1174): the Hint button reads as a peer of Undo, and hint captions explain the step in a plain
@@ -41,26 +41,26 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
      * Duel lineup (epic #1226): Customize builds a duel puzzle by puzzle, each entry any puzzle of a game or one exact
      * puzzle. Read only in a ViewModel or a DI module (ADR-0022 §3).
      */
-    DuelLineup(label = "Duel lineup built puzzle by puzzle", releaseDefault = false),
+    DuelLineup(label = "Duel lineup built puzzle by puzzle", releaseDefault = true),
 
     /**
      * Random puzzle (epic #1153): a Random action opens one puzzle picked from the daily archive's past days or from
      * Community's New today, narrowed by game and difficulty. Read only in a ViewModel or a DI module (ADR-0022 §3).
      */
-    RandomPuzzle(label = "Random puzzle from the archive or Community", releaseDefault = false),
+    RandomPuzzle(label = "Random puzzle from the archive or Community", releaseDefault = true),
 
     /**
      * Same feel in every game (spec A19): one Boolean that every play board hands its games. Read only in feature/play's DI,
      * which binds it once and provides it to the games as LocalPlayFeel (spec A2).
      */
-    PlayFeel(label = "Same feel in every game", releaseDefault = false),
+    PlayFeel(label = "Same feel in every game", releaseDefault = true),
 
     /**
      * Daily reminder notifications (backlog #1169): Settings gets a Reminders section whose switch and time row arm one local
      * notification a day that says today's puzzles are open. Read only in the app's reminder DI and the profile DI
      * (ADR-0022 §3).
      */
-    Reminders(label = "Daily reminder notifications", releaseDefault = false),
+    Reminders(label = "Daily reminder notifications", releaseDefault = true),
 
     /**
      * Ranks shows when LinkedIn was last read (backlog #1357): a muted line under a game's Friends day board with when its
@@ -73,7 +73,7 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
      * Result share (epic #1188): the daily result's Share text gains a solve strip and a link to that day. Read only in
      * a ViewModel or a DI module (ADR-0022 §3).
      */
-    ShareResult(label = "Result share with link and solve strip", releaseDefault = false),
+    ShareResult(label = "Result share with link and solve strip", releaseDefault = true),
 
     /**
      * Zip's next number pulses itself (backlog #1151): the number's own dot breathes in place of the separate ring that
@@ -85,5 +85,5 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
      * What's new screen (epic #1363): Settings' About gets a What's new row that opens the page of what each release brought.
      * Read only in feature/profile's DI, which hands Settings one Boolean (ADR-0022 §3).
      */
-    WhatsNew(label = "What's new screen", releaseDefault = false),
+    WhatsNew(label = "What's new screen", releaseDefault = true),
 }
