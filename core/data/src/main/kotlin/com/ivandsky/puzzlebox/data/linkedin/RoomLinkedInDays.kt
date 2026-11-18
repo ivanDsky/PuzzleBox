@@ -139,6 +139,7 @@ internal class RoomLinkedInDays(
             own = ownState(import, fetches),
             ghosts = board.ghosts,
             boardFetchedAtMs = board.readAtMs,
+            boardComplete = board.complete,
             owner = board.owner,
         )
     }

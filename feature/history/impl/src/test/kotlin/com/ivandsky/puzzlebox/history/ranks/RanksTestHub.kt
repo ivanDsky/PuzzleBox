@@ -38,7 +38,10 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Clock
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import java.time.Duration
 import java.time.Instant
+import java.time.ZoneId
 import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlinx.coroutines.CompletableDeferred
@@ -77,10 +80,23 @@ internal class RanksTestHub(
         matches.signedInUid = me.uid
     }
 
-    private val clock = Clock.fixed(Instant.parse("${today}T12:00:00Z"), ZoneOffset.UTC)
+    /** The instant the hub's clock reads: noon of [today] until a test moves it with [advanceClock]. */
+    var now: Instant = Instant.parse("${today}T12:00:00Z")
+        private set
+
+    fun advanceClock(by: Duration) {
+        now += by
+    }
+
+    private val clock = object : Clock() {
+        override fun getZone() = ZoneOffset.UTC
+        override fun withZone(zone: ZoneId?) = this
+        override fun instant(): Instant = now
+    }
 
     fun viewModel(
         linkedIn: Boolean = false,
+        releaseFlags: ReleaseFlags? = null,
         savedState: SavedStateHandle = SavedStateHandle(),
         opening: RanksSelection = RanksSelection(),
     ): RanksViewModel {
@@ -106,6 +122,7 @@ internal class RanksTestHub(
             daily = daily,
             clock = clock,
             linkedIn = ObserveLinkedInDayView(ObserveLinkedInDay(linkedInDays, registry), SyncLinkedInDay(linkedInDays, 500), FakeLinkedInLink(), linkedInDays).takeIf { linkedIn },
+            releaseFlags = releaseFlags,
             savedState = savedState,
             opening = opening,
         )

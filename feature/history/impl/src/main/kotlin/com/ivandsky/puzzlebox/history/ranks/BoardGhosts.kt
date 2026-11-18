@@ -2,7 +2,9 @@ package com.ivandsky.puzzlebox.history.ranks
 
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
+import com.ivandsky.puzzlebox.domain.linkedin.LinkedInBoardRead
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInBoardView
+import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayStatus
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.ranks.BoardLoad
@@ -45,6 +47,13 @@ internal class BoardGhosts(private val linkedIn: ObserveLinkedInDayView?) {
             val friends = (plain as? RankWindowBoards.Boards)?.boards?.firstOrNull { it.board == board } as? BoardLoad.Loaded
             return day.toGhostInput(friends?.page?.unplacedConnections(day, viewerUid).orEmpty())
         }
+
+        /**
+         * When [game]'s one day had its LinkedIn board last read, null while the link is not connected (the board is a
+         * relic then) or no board was read.
+         */
+        fun boardRead(game: GameId): LinkedInBoardRead? =
+            days.entries.firstOrNull { it.key.gameId == game.value }?.value?.takeIf { it.status != LinkedInDayStatus.NotConnected }?.boardRead
 
         /** Every counted connection's cached photo, by the uid its row is ranked under. */
         fun photos(): Map<String, String?> = days.values

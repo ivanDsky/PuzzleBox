@@ -98,6 +98,15 @@ class ObserveLinkedInDayView(
     /** [observed] for every day of [game] from [from] to [to], both included, as one observation. */
     fun observedRange(game: GameId, from: LocalDate, to: LocalDate): Flow<Map<LocalDate, LinkedInDayView>> = observe.range(game, from, to)
 
+    /**
+     * The user pulled to refresh [target]'s day: one sync now, with no debounce (a pull is deliberate, not scrubbing). It is
+     * the same sync every other caller makes, so the read windows, the call budget and the pause latch hold: a day read
+     * inside its window sends nothing. Returns when the sync ends; cancelling the caller cancels it.
+     */
+    suspend fun refresh(target: Target) {
+        days.sync(target.game, target.day)
+    }
+
     /** The user asked again (Retry): the same day, one more sync. Does nothing unless a collector is on a day. */
     fun retry() {
         again.update { it + 1 }

@@ -31,7 +31,8 @@ private const val OVERALL_CAPTION = "Points from every game's Ranks. Higher is b
  * Every board of the hub as the slice its slot draws, in the hub's swipe order. All are projections of the hub's shared
  * window boards (the [window]'s boards as a scope ranks them, [scopedBoards], and Overall over the same), so scrubbing
  * to a neighbouring board reads nothing. Every slice of one list answers the same scope: in Friends each game and
- * Overall rank friends among themselves, with the LinkedIn connections ([ghosts]) counted on every one.
+ * Overall rank friends among themselves, with the LinkedIn connections ([ghosts]) counted on every one. With [freshness]
+ * a game's Friends Day board also says when its LinkedIn part was last read, and the boards are drawn again each minute to keep it current.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class RanksBoardSlices(
@@ -44,6 +45,7 @@ internal class RanksBoardSlices(
     private val calendar: GameCalendar,
     private val registry: GameRegistry,
     private val ghosts: BoardGhosts,
+    private val freshness: RanksFreshness? = null,
 ) {
     private val games = boards.filterIsInstance<RanksBoard.Game>().map { it.id }
 
@@ -54,8 +56,14 @@ internal class RanksBoardSlices(
     fun observe(kind: RanksSelection.Window, day: LocalDate?, scope: RankScope): Flow<List<RanksBoardSlice>> = window.flatMapLatest { window ->
         // Null until this window's boards answer in this scope: neither the last window's nor the other scope's show as these.
         val answered = ghosts.counted(scope, scopedBoards(scope).map { it?.takeIf { (of, _) -> of == window }?.second }, viewer)
+        // The line is only on a Friends Day board, so only there is a minute worth redrawing for.
+        val updates = if (freshness != null && scope == RankScope.Friends && kind == RanksSelection.Window.Day) {
+            combine(rollover, freshness.minutes) { _, _ -> }
+        } else {
+            rollover
+        }
         fun drawn(inScope: Flow<BoardGhosts.Counted?>) =
-            combine(inScope, observeOverall(inScope.mapNotNull { it?.counted }), viewer, history, rollover) { inWindow, overall, me, rows, _ ->
+            combine(inScope, observeOverall(inScope.mapNotNull { it?.counted }), viewer, history, updates) { inWindow, overall, me, rows, _ ->
                 slicesOf(kind, day, scope, inWindow, overall, me, rows)
             }
         if (scope == RankScope.Global) {
@@ -90,7 +98,7 @@ internal class RanksBoardSlices(
                     val slice = game(board.id, kind, day, if (oneDay) inWindow?.plain else inWindow?.counted, me, rows)
                     when {
                         !friends -> slice
-                        oneDay -> slice.inFriends(inWindow, board.id, me?.uid)
+                        oneDay -> slice.inFriends(inWindow, board.id, me?.uid).copy(freshness = inWindow?.boardRead(board.id)?.let { freshness?.line(it) })
                         else -> slice.inFriendsCounted(photos)
                     }
                 }

@@ -24,6 +24,7 @@ val historyModule = module {
         RanksViewModel(
             get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
             linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
+            releaseFlags = getOrNull(),
             savedState = get(),
             opening = opening,
         )

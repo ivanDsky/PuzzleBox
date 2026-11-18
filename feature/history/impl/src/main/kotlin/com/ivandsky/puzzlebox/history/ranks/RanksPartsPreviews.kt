@@ -89,6 +89,12 @@ private fun RanksBoardNotePreview() {
 
 @PuzzleBoxPreviews
 @Composable
+private fun RanksBoardFreshnessPreview() {
+    RanksPreviewHost { Box(Modifier.padding(Spacing.lg)) { RanksBoardNote("LinkedIn updated 5 min ago", tag = FRESHNESS_TAG) } }
+}
+
+@PuzzleBoxPreviews
+@Composable
 private fun RanksFriendsHintPreview() {
     RanksPreviewHost { Box(Modifier.padding(Spacing.lg)) { RanksFriendsHint() } }
 }
