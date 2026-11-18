@@ -12,8 +12,6 @@ import androidx.compose.ui.test.performClick
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.FakeDraftCompleter
 import com.ivandsky.puzzlebox.create.FakeEditorController
 import com.ivandsky.puzzlebox.create.FakeGameEditor
@@ -33,7 +31,6 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
@@ -59,7 +56,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowLooper
 
 /**
- * Finish for me in the Studio route (E1, A2): the tool shows only with FinishForMe on and an editor
+ * Finish for me in the Studio route (E1): the tool shows only for an editor
  * with a completer, starts disabled, enables with the board, asks for a level, completes the board
  * as one undoable step and says the failure message when the completer gives up.
  */
@@ -81,16 +78,8 @@ class FinishStudioTest {
     }
 
     @Test
-    fun `the tool is absent with the flag off`() {
-        open(flags = FakeReleaseFlags())
-
-        composeRule.onNodeWithTag(UNDO).assertIsNotEnabled()
-        composeRule.onAllNodes(hasTestTag(FINISH)).assertCountEquals(0)
-    }
-
-    @Test
     fun `the tool is absent for a game without a completer`() {
-        open(flags = FakeReleaseFlags(ReleaseFlag.FinishForMe), game = FakeGameEditor())
+        open(game = FakeGameEditor())
 
         composeRule.onNodeWithTag(UNDO).assertIsNotEnabled()
         composeRule.onAllNodes(hasTestTag(FINISH)).assertCountEquals(0)
@@ -148,7 +137,6 @@ class FinishStudioTest {
 
     private fun open(
         marks: Int = 2,
-        flags: ReleaseFlags = FakeReleaseFlags(ReleaseFlag.FinishForMe),
         game: FakeGameEditor = editor,
     ) {
         runBlocking { drafts.upsert(storedRow(game.draft(marks).encode())) }
@@ -169,7 +157,6 @@ class FinishStudioTest {
                             idTokens = noGoogleAccount,
                             updatePublishState = signedOutUnpublishing(),
                             preferences = FakeUserPreferencesRepository(),
-                            releaseFlags = flags,
                             finishRandom = Random(SEED),
                         )
                     }

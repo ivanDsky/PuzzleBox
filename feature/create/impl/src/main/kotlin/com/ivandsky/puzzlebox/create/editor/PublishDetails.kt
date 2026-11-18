@@ -53,7 +53,7 @@ import com.ivandsky.puzzlebox.game.editor.PublishBlock
  * end of its "Publish details" row, after the [history] (Undo and Redo, reachable here while the
  * tools are away); the row tells it to be `compact` when too narrow for its full form. The Public or Link only picker
  * ([onVisibility], from [Details.visibility][PublishSession.Details.visibility]) comes before the game's own [fields], which close
- * the form; with a [level] (FinishForMe, a proposal, Public), the level picker ([onLevel]) follows it, off once the visibility is frozen.
+ * the form; with a [level] (a proposal, Public), the level picker ([onLevel]) follows it, off once the visibility is frozen.
  *
  * Motion: the note row **Expands** in with a **Fade** (EnterDuration on the emphasized
  * decelerate curve); under reduced motion it only fades.

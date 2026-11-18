@@ -1,8 +1,6 @@
 package com.ivandsky.puzzlebox.create.editor
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.FakeGameEditor
 import com.ivandsky.puzzlebox.create.FakeGameEditorUi
 import com.ivandsky.puzzlebox.create.FakeScoredGrader
@@ -14,7 +12,6 @@ import com.ivandsky.puzzlebox.game.editor.Difficulty.Level
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
@@ -54,14 +51,13 @@ class EditorLevelTest {
         override val default: CoroutineDispatcher = mainRule.testDispatcher
     }
 
-    private suspend fun TestScope.open(flags: ReleaseFlags = FakeReleaseFlags(ReleaseFlag.FinishForMe)): EditorViewModel {
+    private suspend fun TestScope.open(): EditorViewModel {
         if (drafts.rows[DRAFT_ID] == null) drafts.upsert(row(game.draft(2).encode()))
         val vm = EditorViewModel(
             EditorKey(DRAFT_ID), drafts, GameRegistry(listOf(FinishViewModelTest.withEditor(game))), GameEditorRegistry(listOf(ui)), GamePlayRegistry(emptyList()),
             CreateDraftCopy(drafts, newId = { "copy-1" }, clock = { NOW }), lanes, backgroundScope, clock = { NOW },
             createShared = signedOutPublishing(drafts), publishedPuzzles = FakePublishedPuzzleRepository(), identity = nobodySignedIn(),
             idTokens = noGoogleAccount, updatePublishState = signedOutUnpublishing(), preferences = FakeUserPreferencesRepository(),
-            releaseFlags = flags,
         )
         runCurrent()
         settled()
@@ -130,19 +126,6 @@ class EditorLevelTest {
         assertEquals(Level.Hard, choice.proposed)
         assertTrue(choice.changed)
         assertEquals("the board's save keeps the pick", Level.Medium, drafts.rows.getValue(DRAFT_ID).difficultyChoice)
-    }
-
-    @Test
-    fun `with the flag off no control is offered and the stored pick is left alone`() = runTest(mainRule.testDispatcher) {
-        drafts.upsert(row(game.draft(2).encode()).copy(difficultyChoice = Level.Hard))
-        val vm = open(flags = FakeReleaseFlags())
-
-        assertFalse(vm.publish.state.value.details.levelOffered)
-        vm.publish.pickLevel(Level.Expert, vm.verdict())
-        advanceTimeBy(WINDOW_MS)
-        runCurrent()
-
-        assertEquals(Level.Hard, drafts.rows.getValue(DRAFT_ID).difficultyChoice)
     }
 
     private companion object {

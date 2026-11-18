@@ -4,8 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.ShippedReleaseFlags
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.importtext.ImportTextState
 import com.ivandsky.puzzlebox.create.published.UnpublishSession
@@ -69,7 +67,6 @@ class EditorViewModel(
     updatePublishState: UpdatePublishState,
     private val preferences: UserPreferencesRepository,
     private val validatePublish: ValidatePublish = ValidatePublish(),
-    releaseFlags: ReleaseFlags? = null,
     finishRandom: Random = Random.Default,
     finishLevel: FinishLevelChoice = FinishLevelChoice(),
 ) : ViewModel() {
@@ -124,7 +121,6 @@ class EditorViewModel(
         reserved = { code -> lastStored = lastStored?.copy(reservedCode = code)?.also(autosave::offer) },
         storeDetails = { authorName, note -> lastStored?.let { write(it.copy(authorName = authorName, note = note)) } },
         storeLevel = { level -> lastStored?.let { write(it.copy(difficultyChoice = level)) } },
-        flags = releaseFlags ?: ShippedReleaseFlags,
     )
 
     /** The published draft's share ticket; null until a publish lands. */
@@ -137,9 +133,8 @@ class EditorViewModel(
     /** The Size picker's resize and its "Start a blank board?" confirm. */
     internal val resizes = ResizeSession(board = { board }, locked = { published }, apply = history::resize)
 
-    /** Finish for me (E1): offered only while FinishForMe is on; a completion lands as one step of [history]. */
+    /** Finish for me (E1): offered where the game has a completer; a completion lands as one step of [history]. */
     internal val finish: EditorViewModelFinish = EditorViewModelFinish(
-        flags = releaseFlags,
         scope = viewModelScope,
         dispatchers = dispatchers,
         random = finishRandom,

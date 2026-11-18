@@ -1,13 +1,10 @@
 package com.ivandsky.puzzlebox.create.editor
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.FakeDraftCompleter
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import kotlin.random.Random
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -32,7 +29,7 @@ class FinishGateTest {
     private var locked = false
     private var verdict: Verdict = Verdict.Unique(Solution(listOf(2)))
 
-    private fun TestScope.finish(flags: ReleaseFlags?): EditorViewModelFinish {
+    private fun TestScope.finish(): EditorViewModelFinish {
         val dispatcher: CoroutineDispatcher = StandardTestDispatcher(testScheduler)
         val lanes = object : DispatcherProvider {
             override val main: CoroutineDispatcher = Dispatchers.Main
@@ -40,7 +37,6 @@ class FinishGateTest {
             override val default: CoroutineDispatcher = dispatcher
         }
         return EditorViewModelFinish(
-            flags = flags,
             scope = CoroutineScope(dispatcher + Job()),
             dispatchers = lanes,
             random = Random(1),
@@ -54,8 +50,8 @@ class FinishGateTest {
     }
 
     @Test
-    fun `with the flag on and an editable settled board a press lands a completion`() = runTest {
-        val finish = finish(FakeReleaseFlags(ReleaseFlag.FinishForMe))
+    fun `with an editable settled board a press lands a completion`() = runTest {
+        val finish = finish()
 
         finish.press()
         runCurrent()
@@ -65,7 +61,7 @@ class FinishGateTest {
 
     @Test
     fun `a published draft takes no Finish`() = runTest {
-        val finish = finish(FakeReleaseFlags(ReleaseFlag.FinishForMe))
+        val finish = finish()
         locked = true
 
         finish.press()
@@ -77,7 +73,7 @@ class FinishGateTest {
 
     @Test
     fun `a press while the verdict is Checking or None does nothing`() = runTest {
-        val finish = finish(FakeReleaseFlags(ReleaseFlag.FinishForMe))
+        val finish = finish()
 
         verdict = Verdict.Checking
         finish.press()
@@ -88,21 +84,5 @@ class FinishGateTest {
 
         assertTrue(landed.isEmpty())
         assertTrue(editor.completed.isEmpty())
-    }
-
-    @Test
-    fun `the flag off offers nothing and presses nothing`() = runTest {
-        val finish = finish(FakeReleaseFlags())
-
-        finish.press()
-        runCurrent()
-
-        assertFalse(finish.offered.value)
-        assertTrue(landed.isEmpty())
-    }
-
-    @Test
-    fun `no flag source offers nothing`() = runTest {
-        assertFalse(finish(flags = null).offered.value)
     }
 }

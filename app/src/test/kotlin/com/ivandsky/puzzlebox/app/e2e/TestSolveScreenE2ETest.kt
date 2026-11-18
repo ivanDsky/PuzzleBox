@@ -25,7 +25,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * How the test solve's play screen (ticket 98) is drawn, over the real shell with FinishForMe on. A draft name too
+ * How the test solve's play screen (ticket 98) is drawn, over the real shell. A draft name too
  * long for the bar is cut with an ellipsis and "Test solve" stays whole after it. With BoardErgonomics on too, the
  * play tuning reaches the screen as it reaches a daily: the board keeps to the tuning's cap and the controls sit
  * where the tuning puts them.
@@ -38,7 +38,7 @@ class TestSolveScreenE2ETest {
     @Test
     fun `a draft name of the longest length is cut with an ellipsis and Test solve stays whole before the timer`() {
         check(LONG_NAME.length == Draft.TITLE_MAX)
-        val world = TestSolveWorld(ReleaseFlag.FinishForMe)
+        val world = TestSolveWorld()
         shellRobot(graph = world.graph) {
             world.startTestSolve(this, QueensCastle.board, LONG_NAME)
             awaitTag("play.sandbox")
@@ -70,7 +70,7 @@ class TestSolveScreenE2ETest {
     @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w1280dp-h800dp-land")
     @Test
     fun `with BoardErgonomics on the board keeps to the tuning's cap and the controls stack beside it`() {
-        val world = TestSolveWorld(ReleaseFlag.FinishForMe, ReleaseFlag.BoardErgonomics)
+        val world = TestSolveWorld(ReleaseFlag.BoardErgonomics)
         shellRobot(graph = world.graph) {
             world.startTestSolve(this, QueensCastle.board, "Castle")
             awaitTag("play.sandbox")

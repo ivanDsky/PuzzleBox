@@ -3,9 +3,6 @@ package com.ivandsky.puzzlebox.create
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.create.importtext.ImportTextState
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
 import com.ivandsky.puzzlebox.data.cloud.restoring
@@ -49,7 +46,7 @@ import kotlinx.coroutines.launch
  *
  * Each row's verdict chip (spec A7) is `analyze(draft, Budget.within(1_500…))` on
  * [DispatcherProvider.default], cached by (id, updatedAt): a draft is analysed again only after
- * an edit. While FinishForMe is on a chip's level is the game's scored one, as in the Studio (90).
+ * an edit. A chip's level is the game's scored one, as in the Studio (90).
  *
  * A row's actions (01 handoff "Draft actions sheet"): [duplicate] stores a copy without the
  * test solve; [delete] removes the draft at once and offers [undoDelete] for [DRAFT_UNDO_WINDOW_MS],
@@ -81,7 +78,6 @@ class CreateViewModel(
     private val clock: () -> Instant,
     private val nanoTime: () -> Long = System::nanoTime,
     cloudSync: CloudSync,
-    releaseFlags: ReleaseFlags? = null,
 ) : ViewModel() {
 
     private val editorGames: List<CreateUiState.NewGame> = editors.ids.mapNotNull { id ->
@@ -100,7 +96,7 @@ class CreateViewModel(
     }
 
     private val analysis = DraftAnalysis(viewModelScope, games, dispatchers, nanoTime) {
-        if (releaseFlags?.isEnabled(ReleaseFlag.FinishForMe) == true) GradingMode.Scored else GradingMode.Legacy
+        GradingMode.Scored
     }
 
     /** The last deleted draft while its Undo is offered. */

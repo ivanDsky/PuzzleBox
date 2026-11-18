@@ -1,39 +1,28 @@
 package com.ivandsky.puzzlebox.create.editor
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.GradingMode
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import kotlin.random.Random
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
- * The Studio view model's Finish for me (E1), and the only reader of `FinishForMe` (A2): [offered] says
- * whether the tool is on the strip at all, [enabled] whether a press would start a completion, and [press]
+ * The Studio view model's Finish for me (E1): [enabled] says whether a press would start a completion, and [press]
  * runs one through [FinishRun] unless the draft is [locked] (published), nothing is open or the rule says no;
  * while one runs a press cancels it. [boardChanged] is told of every board the Studio adopts, and [land]
  * receives a completion as one step. A game without a completer ([EditorDraft.canFinish]) never offers it.
- * The same flag puts Test solve on the regular play screen ([regularTestSolve]).
  *
  * A press aims for a level (90): the one handed in, which becomes the session's [choice], or that choice.
- * While the tool is offered the Studio grades by score ([grading]), and once the [settled] verdict of a
+ * The Studio grades by score ([grading]), and once the [settled] verdict of a
  * landed completion is in, a level other than the one asked for raises [FinishNotice.Missed]. A completion
  * that changed the author's pieces ([EditorDraft.finishChanged]) raises [FinishNotice.Recoloured] as it
  * lands. A give-up raises the notice that fits its cause ([gaveUpNotice]). All of them wait in [notices].
  */
 internal class EditorViewModelFinish(
-    flags: ReleaseFlags?,
     scope: CoroutineScope,
     dispatchers: DispatcherProvider,
     random: Random,
@@ -62,20 +51,8 @@ internal class EditorViewModelFinish(
     /** The level the picker opens on: the author's last choice this session. */
     val level: StateFlow<Difficulty.Level> = choice.level
 
-    /** The tool is on the strip: FinishForMe is on, live. */
-    val offered: StateFlow<Boolean> = when (flags) {
-        null -> MutableStateFlow(false)
-        else -> flags.enabled
-            .map { ReleaseFlag.FinishForMe in it }
-            .distinctUntilChanged()
-            .stateIn(scope, SharingStarted.Eagerly, initialValue = flags.isEnabled(ReleaseFlag.FinishForMe))
-    }
-
-    /** Test solve opens on the game's regular play screen (ticket 98): the same flag, so the same value. */
-    val regularTestSolve: StateFlow<Boolean> get() = offered
-
-    /** How the Studio's verdict is graded: by score while the tool is offered, the legacy label otherwise. */
-    val grading: GradingMode get() = if (offered.value) GradingMode.Scored else GradingMode.Legacy
+    /** How the Studio's verdict is graded: by the game's score. */
+    val grading: GradingMode get() = GradingMode.Scored
 
     init {
         scope.launch { settled.collect(::compare) }
@@ -87,7 +64,7 @@ internal class EditorViewModelFinish(
 
     /** Finish aiming for [target], which becomes the session's choice; while a completion runs, cancels it instead. */
     fun press(target: Difficulty.Level = choice.level.value) {
-        if (!offered.value || locked()) return
+        if (locked()) return
         val draft = board() ?: return
         if (!draft.canFinish) return
         if (!run.busy.value) {

@@ -1,8 +1,6 @@
 package com.ivandsky.puzzlebox.create.editor
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.FakeDraftCompleter
 import com.ivandsky.puzzlebox.create.FakeEditorController
 import com.ivandsky.puzzlebox.create.FakeGameEditor
@@ -20,7 +18,6 @@ import com.ivandsky.puzzlebox.game.editor.IncompleteReason
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
@@ -43,7 +40,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * Finish for me wired into [EditorViewModel] (E1, A2): only the view model reads `FinishForMe`; the
+ * Finish for me wired into [EditorViewModel] (E1): the
  * tool is disabled until Ready and a settled verdict; a completion goes through the normal change
  * path (the controller adopts it, the verdict re-checks, autosave stores it) as one undoable step.
  */
@@ -66,7 +63,6 @@ class FinishViewModelTest {
 
     private suspend fun TestScope.open(
         marks: Int = 2,
-        flags: ReleaseFlags? = FakeReleaseFlags(ReleaseFlag.FinishForMe),
         game: FakeGameEditor = editor,
         choice: FinishLevelChoice = FinishLevelChoice(),
     ): EditorViewModel {
@@ -76,7 +72,7 @@ class FinishViewModelTest {
             CreateDraftCopy(drafts, newId = { "copy-1" }, clock = { NOW }), lanes, backgroundScope, clock = { NOW },
             createShared = signedOutPublishing(drafts), publishedPuzzles = FakePublishedPuzzleRepository(), identity = nobodySignedIn(),
             idTokens = noGoogleAccount, updatePublishState = signedOutUnpublishing(), preferences = FakeUserPreferencesRepository(),
-            releaseFlags = flags, finishRandom = Random(SEED), finishLevel = choice,
+            finishRandom = Random(SEED), finishLevel = choice,
         )
         runCurrent()
         return vm
@@ -92,33 +88,6 @@ class FinishViewModelTest {
         finish.enabled(controller.draft.value, (state.value as EditorUiState.Ready).verdict)
 
     private fun added(count: Int): List<Int> = Random(SEED).let { random -> List(count) { random.nextInt(1, 10) } }
-
-    @Test
-    fun `the tool is offered only while FinishForMe is on`() = runTest(mainRule.testDispatcher) {
-        assertTrue(open(flags = FakeReleaseFlags(ReleaseFlag.FinishForMe)).finish.offered.value)
-    }
-
-    @Test
-    fun `it is not offered with the flag off or without a flag source`() = runTest(mainRule.testDispatcher) {
-        assertFalse(open(flags = FakeReleaseFlags()).finish.offered.value)
-    }
-
-    @Test
-    fun `it is not offered without a flag source`() = runTest(mainRule.testDispatcher) {
-        assertFalse(open(flags = null).finish.offered.value)
-    }
-
-    @Test
-    fun `a press with the flag off completes nothing`() = runTest(mainRule.testDispatcher) {
-        val vm = open(flags = FakeReleaseFlags())
-        settled()
-
-        vm.finish.press()
-        runCurrent()
-
-        assertTrue(editor.completed.isEmpty())
-        assertTrue(controller.adopted.isEmpty())
-    }
 
     @Test
     fun `it starts disabled on a blank board and while the first check runs`() = runTest(mainRule.testDispatcher) {
@@ -377,24 +346,13 @@ class FinishViewModelTest {
     }
 
     @Test
-    fun `with FinishForMe on the Studio's verdict carries the scored level`() = runTest(mainRule.testDispatcher) {
+    fun `the Studio's verdict carries the scored level`() = runTest(mainRule.testDispatcher) {
         val scored = FakeScoredGrader().apply { levelOf = { Difficulty.Level.Expert } }
         val vm = open(marks = 2, game = scored)
         settled()
 
         val verdict = (vm.state.value as EditorUiState.Ready).verdict as Verdict.Unique
         assertEquals(Difficulty(Difficulty.Level.Expert, score = 2, hardestRung = null), verdict.difficulty)
-    }
-
-    @Test
-    fun `with FinishForMe off the Studio's verdict keeps its legacy label`() = runTest(mainRule.testDispatcher) {
-        val scored = FakeScoredGrader().apply { levelOf = { Difficulty.Level.Expert } }
-        val vm = open(marks = 2, flags = FakeReleaseFlags(), game = scored)
-        settled()
-
-        val verdict = (vm.state.value as EditorUiState.Ready).verdict as Verdict.Unique
-        assertNull(verdict.difficulty)
-        assertTrue(scored.graded.isEmpty())
     }
 
     internal companion object {

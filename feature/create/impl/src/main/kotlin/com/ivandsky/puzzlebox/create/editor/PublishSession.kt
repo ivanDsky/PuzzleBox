@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.create.editor
 import android.content.Context
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.AuthError
 import com.ivandsky.puzzlebox.data.identity.AuthResult
 import com.ivandsky.puzzlebox.data.identity.Identity
@@ -61,7 +60,6 @@ class PublishSession(
     private val reserved: (code: String) -> Unit,
     private val storeDetails: (authorName: String, note: String) -> Unit,
     private val storeLevel: (Level?) -> Unit,
-    flags: ReleaseFlags,
     private val validateDetails: ValidatePublishDetails = ValidatePublishDetails(),
 ) {
 
@@ -95,7 +93,7 @@ class PublishSession(
     /**
      * The author name and note as typed; [blocks] are what keeps them from publishing. [visibility] is the Public or Link
      * only choice. [level] is the author's own pick over the proposal, null to follow it; [levelOffered] when the level
-     * can be changed here (FinishForMe on, Public chosen).
+     * can be changed here (Public chosen).
      */
     data class Details(
         val authorName: String = "",
@@ -132,7 +130,7 @@ class PublishSession(
     /** The Public or Link only choice of this open publish. */
     private val visibility = PublishVisibility()
 
-    private val levels = PublishLevel(flags, visibility)
+    private val levels = PublishLevel(visibility)
 
     private val mutableState = MutableStateFlow(
         State(
