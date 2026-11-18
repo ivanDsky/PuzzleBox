@@ -21,6 +21,12 @@ object SpotlightTokens {
     val CalloutTextSize: TextUnit = 14.sp
     val CalloutLineHeight: TextUnit = 18.sp
 
+    /** The action pill's touch height; the bubble's vertical padding folds into it. */
+    val ActionMinHeight: Dp = 48.dp
+
+    /** Least width the callout text keeps beside its pill; narrower and the pill drops under the text. */
+    val ActionMinTextWidth: Dp = 120.dp
+
     const val FADE_MS = 120
     const val EXCLUDED_START_SCALE = 0.85f
     const val EXCLUDED_STAGGER_MS = 20
@@ -39,4 +45,5 @@ object SpotlightTokens {
     fun culpritBadgeBar(scheme: ColorScheme): Color = scheme.onError
     fun calloutBubble(scheme: ColorScheme): Color = scheme.inverseSurface
     fun calloutText(scheme: ColorScheme): Color = scheme.inverseOnSurface
+    fun calloutAction(scheme: ColorScheme): Color = scheme.inversePrimary
 }
