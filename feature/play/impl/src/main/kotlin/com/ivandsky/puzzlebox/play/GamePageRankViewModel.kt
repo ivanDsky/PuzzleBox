@@ -19,6 +19,7 @@ import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import com.ivandsky.puzzlebox.gameui.board.GhostRowModel
 import com.ivandsky.puzzlebox.gameui.board.rankWithLinkedIn
 import com.ivandsky.puzzlebox.gameui.board.toDailyBoardState
+import com.ivandsky.puzzlebox.gameui.board.withOwnPhoto
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
 import com.ivandsky.puzzlebox.play.board.BoardSignInHolder
@@ -138,7 +139,9 @@ internal class GamePageRankViewModel(
             val drawn = board.toDailyBoardState()
             // Without LinkedIn, or a day that is not a board to wait for, nothing is read late.
             val ready = drawn != DailyBoardState.Loading && (drawn !is DailyBoardState.Ranked || input != null)
-            val state = stateOf(shown, drawn, input ?: LinkedInBoardInput())
+            // A leaderboard row has no photo: the player's own joins the signed-in account's, over a LinkedIn picture.
+            val photo = (board as? TodayLeaderboard.SignedIn)?.identity?.photoUrl
+            val state = stateOf(shown, drawn, input ?: LinkedInBoardInput()).let { it.copy(board = it.board.withOwnPhoto(photo)) }
             HeldDay.Arrived(if (friends == null) state else state.copy(amongFriends = true, standing = friends.standingOn(board)), ready)
         }
         if (linkedIn == null || !held.isDrawn()) return days.map { it.state }.onStart { emit(loading) }

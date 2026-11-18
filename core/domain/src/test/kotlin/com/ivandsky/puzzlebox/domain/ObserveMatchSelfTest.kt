@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -157,6 +158,20 @@ class ObserveMatchSelfTest {
             val signedIn = view()
 
             assertEquals(signedOut, signedIn)
+        }
+    }
+
+    @Test
+    fun theSelfSeatWearsTheSignedInAccountsPhotoAndSignedOutHasNone() = runTest {
+        aSelfDuelIsSaved()
+        identity.currentIdentity = account.copy(photoUrl = "https://example.com/ann.png")
+
+        observe().test {
+            val signedIn = view()
+            assertEquals("https://example.com/ann.png", signedIn.match.challenger.photoUrl)
+            assertNull(signedIn.match.opponent?.photoUrl)
+            identity.currentIdentity = null
+            assertNull(view().match.challenger.photoUrl)
         }
     }
 }

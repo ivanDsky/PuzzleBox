@@ -219,6 +219,22 @@ class GamePageRankViewModelTest {
     }
 
     @Test
+    fun `the players own row, in the list and pinned, shows the signed-in photo and the others none`() {
+        identity.currentIdentity = Identity("me", "Me", "https://example.com/me.png")
+        standings = listOf("me", "B")
+        viewModel.state.launchIn(screen)
+        settle()
+
+        val rows = (viewModel.state.value.board as DailyBoardState.Ranked).rows
+        assertEquals(listOf("https://example.com/me.png", null), rows.map { it.photo })
+
+        standings = listOf("A", "B", "C", "D", "E", "F", "me")
+        viewModel.show(picked = yesterday, cardDay = yesterday)
+        settle()
+        assertEquals("https://example.com/me.png", (viewModel.state.value.board as DailyBoardState.Ranked).pinned?.photo)
+    }
+
+    @Test
     fun `a board past the top five pins the players own row under them`() {
         standings = listOf("A", "B", "C", "D", "E", "F", "me")
         viewModel.state.launchIn(screen)

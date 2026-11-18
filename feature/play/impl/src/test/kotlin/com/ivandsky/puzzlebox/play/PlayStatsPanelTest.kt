@@ -437,6 +437,17 @@ class PlayStatsPanelTest {
         (vm.state.value.times as PlayTimes.Board).rows.filterIsInstance<DailyBoardLine.Real>().single { it.row.isSelf }
 
     @Test
+    fun `the player's own row carries the signed-in photo, replacing the LinkedIn one`() {
+        cachedConnections(own = importedTime(15), owner = LinkedInOwner(" player  7 ", "/cache/owner.jpg"))
+        val vm = viewModel(identity = me.copy(photoUrl = "https://example.com/me.png"), linkedIn = true)
+        show(vm)
+
+        assertEquals("https://example.com/me.png", youRow(vm).row.photo)
+        val others = (vm.state.value.times as PlayTimes.Board).rows.filterIsInstance<DailyBoardLine.Real>().filter { !it.row.isSelf }
+        assertTrue(others.all { it.row.photo == null })
+    }
+
+    @Test
     fun `with no row of this profile the row named like the owner is the you row at the LinkedIn time with the photo`() {
         cachedConnections(own = importedTime(15), owner = LinkedInOwner(" player  7 ", "/cache/owner.jpg"))
         val vm = viewModel(identity = tablet, linkedIn = true)

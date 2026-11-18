@@ -118,7 +118,7 @@ internal fun duelLegsModel(
         else -> DuelFooter.Playing
     }
     val me = when {
-        match.isSelf -> Player(view.me, myName ?: SELF_NAME, null)
+        match.isSelf -> Player(view.me, myName ?: SELF_NAME, match.challenger.photoUrl)
         match.challenger.uid == view.me -> match.challenger
         else -> match.opponent ?: Player(view.me, SELF_NAME, null)
     }

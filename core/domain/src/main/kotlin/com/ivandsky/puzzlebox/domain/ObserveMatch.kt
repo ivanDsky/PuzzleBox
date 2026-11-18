@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.MatchResultOutbox
 import com.ivandsky.puzzlebox.data.match.OutboxResult
+import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.match.ResultPostState
 import com.ivandsky.puzzlebox.data.match.ResultRead
 import com.ivandsky.puzzlebox.data.match.mySeat
@@ -31,6 +32,7 @@ import kotlinx.coroutines.flow.transformLatest
  * The read model of one duel, for every match screen: the server match, my outbox rows, this device's cached row and
  * the signed-in identity, as one [MatchState]. "Me" is the seat the match gives the viewer ([mySeat]): the fixed self
  * seat in a self duel, signed in or out, else the account; a viewer without a seat gets the match document alone.
+ * The viewer's seat shows the account's current photo, not the one the match stored.
  *
  * The only caller of the sealed result read: an opponent's leg is read
  * once its progress names it and my own result for it is Posted, or the match has closed (a leg one player never
@@ -51,7 +53,7 @@ class ObserveMatch(
 ) {
 
     operator fun invoke(code: ShareCode): Flow<MatchState> =
-        identity.current.map { it?.uid }.distinctUntilChanged().flatMapLatest { uid ->
+        identity.current.map { it?.uid to it?.photoUrl }.distinctUntilChanged().flatMapLatest { (uid, photo) ->
             val revealed = HashMap<Int, LegResult>()
             repo.observe(code).transformLatest { fetch ->
                 when (fetch) {
@@ -62,11 +64,18 @@ class ObserveMatch(
                     is MatchFetch.Found -> when (val me = fetch.match.mySeat(uid)) {
                         // The match document alone: the rules let anyone `get` it, and it holds no results.
                         null -> emit(MatchState.SignedOut(fetch.match))
-                        else -> emitAll(observeAs(code, fetch.match, me, revealed))
+                        else -> emitAll(observeAs(code, fetch.match.withPhotoOf(me, photo), me, revealed))
                     }
                 }
             }
         }
+
+    /** The seat [me] wearing the signed-in account's [photo]: the photo stored in the match is from when the seat was taken, and a self duel stores none. */
+    private fun Match.withPhotoOf(me: String, photo: String?): Match {
+        if (photo == null) return this
+        fun Player.wearing() = if (uid == me) copy(photoUrl = photo) else this
+        return copy(challenger = challenger.wearing(), opponent = opponent?.wearing())
+    }
 
     private fun observeAs(code: ShareCode, match: Match, me: String, revealed: MutableMap<Int, LegResult>): Flow<MatchState> =
         combine(outbox.observe(code), local.observeAll()) { rows, locals ->
