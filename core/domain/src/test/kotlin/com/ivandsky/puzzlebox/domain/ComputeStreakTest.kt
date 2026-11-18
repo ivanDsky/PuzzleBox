@@ -39,8 +39,8 @@ class ComputeStreakTest {
     }
 
     @Test
-    fun `last solve two days ago is held by a freeze`() {
-        assertEquals(2, streak(listOf(today.minusDays(2), today.minusDays(3))).current)
+    fun `last solve two days ago is held by a freeze that counts as a day`() {
+        assertEquals(3, streak(listOf(today.minusDays(2), today.minusDays(3))).current)
     }
 
     @Test
@@ -52,9 +52,9 @@ class ComputeStreakTest {
     @Test
     fun `opened but unsolved days are ignored`() {
         // The caller passes only solved days; an opened-unsolved yesterday is a missed day a freeze
-        // covers, and it adds nothing to the count.
+        // covers, and the covered day counts.
         val solved = listOf(today, today.minusDays(2))
-        assertEquals(2, streak(solved).current)
+        assertEquals(3, streak(solved).current)
     }
 
     @Test
@@ -76,6 +76,37 @@ class ComputeStreakTest {
     @Test
     fun `the best streak ignores order and duplicates`() {
         assertEquals(3, streak(listOf(today, today.minusDays(2), yesterday, today, yesterday)).best)
+    }
+
+    @Test
+    fun `a day covered by a freeze counts toward the streak and the best`() {
+        // Solve 3 days, miss 1 covered by a freeze, solve the next day: 5, not 4.
+        val solved = listOf(4L, 3L, 2L, 0L).map(today::minusDays)
+        assertEquals(5, streak(solved).current)
+        assertEquals(5, streak(solved).best)
+    }
+
+    @Test
+    fun `a gap longer than the freezes held counts nothing and breaks to the next solve`() {
+        // Three missed days outrun the two starting freezes: no covered day is counted.
+        val solved = listOf(5L, 4L, 0L).map(today::minusDays)
+        assertEquals(1, streak(solved).current)
+        assertEquals(2, streak(solved).best)
+    }
+
+    @Test
+    fun `today with no solve yet is never a covered day`() {
+        assertEquals(2, streak(listOf(yesterday, today.minusDays(2))).current)
+    }
+
+    @Test
+    fun `only solved days earn a freeze, covered days do not advance the ladder`() {
+        // Solved 1-3, covered 4, solved 5-7 is a 7-day streak but only 3 solved in a row: no freeze earned.
+        val solved = listOf(6L, 5L, 4L, 2L, 1L, 0L).map(today::minusDays)
+        val ledger = streak(solved)
+        assertEquals(7, ledger.current)
+        assertEquals(1, ledger.freezes.held)
+        assertEquals(4, ledger.freezes.daysToNext)
     }
 
     @Test

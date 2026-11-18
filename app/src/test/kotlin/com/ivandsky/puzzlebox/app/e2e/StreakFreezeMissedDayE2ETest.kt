@@ -44,7 +44,7 @@ class StreakFreezeMissedDayE2ETest {
             openTodaysQueens()
             solveTodaysQueens()
 
-            awaitText(RESULT_STREAK, "3 day streak")
+            awaitText(RESULT_STREAK, "4 day streak")
             awaitText(RESULT_MOMENT, "Streak freeze used for Tue · 1 left")
             assertEquals("one freeze left on Result", 1, freezeCounts("1 freeze"))
             assertEquals("yesterday frozen on Result", 1, resultFrozenDays())
@@ -52,8 +52,8 @@ class StreakFreezeMissedDayE2ETest {
             back()
             tapTab(HomeKey)
 
-            awaitText(HOME_PANE_STREAK, "3")
-            awaitTextIn(HOME_PANE_TAG, "Best 3")
+            awaitText(HOME_PANE_STREAK, "4")
+            awaitTextIn(HOME_PANE_TAG, "Best 4")
             assertEquals("one freeze held in Home", 1, freezeCounts("1 freeze", HOME_PANE_TAG))
             assertEquals("yesterday frozen in the Home week", 1, frozenDays(HOME_PANE_WEEK))
         }

@@ -276,7 +276,7 @@ class ObserveResultInsightsTest {
         val result = insights(alpha, 0, now, counted = true).first()!!
 
         val yesterday = today.minusDays(1)
-        assertEquals(2, result.streak)
+        assertEquals(3, result.streak)
         val freezes = result.freezes!!
         assertEquals(setOf(yesterday), freezes.frozenDays)
         assertEquals(StreakFreezes.Moment(today, spent = listOf(yesterday), earned = false), result.moment)

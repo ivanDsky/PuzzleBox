@@ -50,7 +50,7 @@ class StreakFreezeBaselineE2ETest {
     @Test
     fun r2_oneMissedDay_streakHolds_oneFreezeSpent_thursdayFrozen() =
         homePane(lastSolved = TODAY.minusDays(2)) {
-            awaitPane(streak = "40", best = "Best 40", freezes = "3 freezes")
+            awaitPane(streak = "41", best = "Best 41", freezes = "3 freezes")
             assertEquals("Thursday frozen", 1, frozenDays(HOME_PANE_WEEK))
         }
 
@@ -58,7 +58,7 @@ class StreakFreezeBaselineE2ETest {
     @Config(qualifiers = "w411dp-h891dp-420dpi")
     fun r2_phoneCard_oneMissedDay_streakHolds_oneFreezeSpent_thursdayFrozen() =
         shellRobot(tabAt(HomeKey), graph = graphWith(history(TODAY.minusDays(41), TODAY.minusDays(2))), darkTheme = true) {
-            awaitTextIn(HOME_CARD, "40 days in a row · Best 40")
+            awaitTextIn(HOME_CARD, "41 days in a row · Best 41")
             assertEquals("3 freezes beside the line", 1, freezeCounts("3 freezes", HOME_CARD))
             assertEquals("Thursday frozen", 1, frozenDays(HOME_CARD_WEEK))
         }
@@ -66,7 +66,7 @@ class StreakFreezeBaselineE2ETest {
     @Test
     fun r3_twoMissedDays_streakHolds_twoFreezesSpent_wednesdayAndThursdayFrozen() =
         homePane(lastSolved = TODAY.minusDays(3)) {
-            awaitPane(streak = "40", best = "Best 40", freezes = "2 freezes")
+            awaitPane(streak = "42", best = "Best 42", freezes = "2 freezes")
             assertEquals("Wednesday and Thursday frozen", 2, frozenDays(HOME_PANE_WEEK))
         }
 
@@ -85,7 +85,7 @@ class StreakFreezeBaselineE2ETest {
         shellRobot(tabAt(PlayKey), graph = graphWith(history(TODAY.minusDays(41), TODAY.minusDays(2))), darkTheme = true) {
             solveTodaysQueens()
 
-            awaitText(RESULT_STREAK, "41 day streak")
+            awaitText(RESULT_STREAK, "42 day streak")
             awaitText(RESULT_MOMENT, "Streak freeze used for Thu · 3 left")
             awaitText(RESULT_SUB, "13 more days to earn a freeze")
             assertEquals("3 freezes on Result", 1, resultFreezeCounts("3 freezes"))
@@ -93,7 +93,7 @@ class StreakFreezeBaselineE2ETest {
 
             back()
             tapTab(HomeKey)
-            awaitPane(streak = "41", best = "Best 41", freezes = "3 freezes")
+            awaitPane(streak = "42", best = "Best 42", freezes = "3 freezes")
             assertEquals("Thursday frozen on Home", 1, frozenDays(HOME_PANE_WEEK))
         }
 
