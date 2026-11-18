@@ -41,7 +41,7 @@ class AddPuzzleViewModelTest {
 
     @Test
     fun `nothing is loaded before the first list, then every puzzle shows`() = watching {
-        val vm = AddPuzzleViewModel(pickerOf(rows))
+        val vm = AddPuzzleViewModel(pickerOf(rows), NO_LOOKUP)
         assertFalse(vm.state.value.loaded)
 
         watch(vm)
@@ -52,7 +52,7 @@ class AddPuzzleViewModelTest {
 
     @Test
     fun `text, New and a game narrow to the one puzzle, and the chips stay while the text changes`() = watching {
-        val vm = AddPuzzleViewModel(pickerOf(rows))
+        val vm = AddPuzzleViewModel(pickerOf(rows), NO_LOOKUP)
         watch(vm)
 
         vm.setText("crown")
@@ -68,7 +68,7 @@ class AddPuzzleViewModelTest {
 
     @Test
     fun `a chip toggles off on the second tap and several chips of a group widen the list`() = watching {
-        val vm = AddPuzzleViewModel(pickerOf(rows))
+        val vm = AddPuzzleViewModel(pickerOf(rows), NO_LOOKUP)
         watch(vm)
 
         vm.toggle(PuzzleSource.Mine)
@@ -82,7 +82,7 @@ class AddPuzzleViewModelTest {
 
     @Test
     fun `a puzzle the lineup holds is marked Added, and unmarked when it leaves`() = watching {
-        val vm = AddPuzzleViewModel(pickerOf(rows))
+        val vm = AddPuzzleViewModel(pickerOf(rows), NO_LOOKUP)
         watch(vm)
 
         vm.setAdded(setOf(CROWN_JEWELS.entry.ref))
@@ -94,7 +94,7 @@ class AddPuzzleViewModelTest {
 
     @Test
     fun `reset clears text and chips`() = watching {
-        val vm = AddPuzzleViewModel(pickerOf(rows))
+        val vm = AddPuzzleViewModel(pickerOf(rows), NO_LOOKUP)
         watch(vm)
         vm.setText("crown")
         vm.toggle(QUEENS)
@@ -109,7 +109,7 @@ class AddPuzzleViewModelTest {
     fun `loadMore asks for the next archive page only while the list says one is left, and reset starts over at one`() = watching {
         val asked = mutableListOf<Int>()
         var more = true
-        val vm = AddPuzzleViewModel { _, pages -> pages.map { n -> asked += n; PickerResult(rows, offline = false, moreDays = more) } }
+        val vm = AddPuzzleViewModel({ _, pages -> pages.map { n -> asked += n; PickerResult(rows, offline = false, moreDays = more) } }, NO_LOOKUP)
         watch(vm)
 
         vm.loadMore()
@@ -124,7 +124,7 @@ class AddPuzzleViewModelTest {
 
     @Test
     fun `the offline flag of the list reaches the state`() = watching {
-        val vm = AddPuzzleViewModel(pickerOf(rows, offline = true))
+        val vm = AddPuzzleViewModel(pickerOf(rows, offline = true), NO_LOOKUP)
 
         watch(vm)
 

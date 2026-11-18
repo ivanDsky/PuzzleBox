@@ -23,6 +23,7 @@ import com.ivandsky.puzzlebox.domain.LoadLegPuzzle
 import com.ivandsky.puzzlebox.domain.LoadLegReplay
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadPlayerReplay
+import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.domain.LoadSolveReplay
 import com.ivandsky.puzzlebox.domain.ObserveArchiveMonth
 import com.ivandsky.puzzlebox.domain.ObserveArchiveProgress
@@ -44,6 +45,7 @@ import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
 import com.ivandsky.puzzlebox.domain.lineup.CommunitySource
 import com.ivandsky.puzzlebox.domain.lineup.DailyArchiveSource
 import com.ivandsky.puzzlebox.domain.lineup.FriendSource
+import com.ivandsky.puzzlebox.domain.lineup.LoadPuzzleByCode
 import com.ivandsky.puzzlebox.domain.lineup.ObserveLegTitles
 import com.ivandsky.puzzlebox.domain.lineup.ObservePickablePuzzles
 import com.ivandsky.puzzlebox.domain.lineup.OwnSource
@@ -197,6 +199,7 @@ val domainModule = module {
         )
     }
     factory { ValidateExactPuzzles(shared = get()) }
+    factory { LoadPuzzleByCode(load = get<LoadSharedPuzzle>()::invoke, dispatchers = get()) }
     factory { CreateMatch(repo = get(), local = get(), draw = get(), identity = get(), random = Random.Default, validateExact = get()) }
     factory { ComputeSolvedPool(registry = get(), completions = get(), received = get()) }
     factory {
