@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.app
 
 import com.ivandsky.puzzlebox.app.debug.flags.DebugReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.DeclaredFlags
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import org.junit.Assert.assertEquals
@@ -41,6 +42,21 @@ class DebugReleaseFlagsBindingTest {
         }
     }
 
+    /** The Release flags section lists the app's declared flags; today that is the central enum, in its own order. */
+    @Test
+    fun `debug graph declares the central flags in their enum order`() {
+        val koin = startKoin {
+            androidContext(RuntimeEnvironment.getApplication())
+            modules(PuzzleBoxApplication.appModules)
+        }.koin
+        try {
+            assertEquals(ReleaseFlag.entries, koin.get<DeclaredFlags>().all)
+            assertEquals(ReleaseFlag.entries, koin.get<DebugReleaseFlags>().declared)
+        } finally {
+            stopKoin()
+        }
+    }
+
     @Test
     fun `a stored override named for a deleted flag is ignored`() {
         val context = RuntimeEnvironment.getApplication()
@@ -48,7 +64,7 @@ class DebugReleaseFlagsBindingTest {
             .edit().putBoolean("ZipEditor", false).putBoolean("TangoEditor", false).putBoolean("SudokuEditor", false)
             .putBoolean("StrandsEditor", false).putBoolean("BoardErgonomics", false).commit()
 
-        val flags = DebugReleaseFlags(context)
+        val flags = DebugReleaseFlags(context, ReleaseFlag.entries)
 
         assertEquals(emptyMap<ReleaseFlag, Boolean>(), flags.overrides.value)
         assertEquals(ReleaseFlag.entries.filter { it.releaseDefault }.toSet(), flags.enabled.value)
@@ -65,7 +81,7 @@ class DebugReleaseFlagsBindingTest {
         val flag = ReleaseFlag.entries.first()
         val context = RuntimeEnvironment.getApplication()
         val prefs = context.getSharedPreferences("release_flags", android.content.Context.MODE_PRIVATE)
-        val flags = DebugReleaseFlags(context)
+        val flags = DebugReleaseFlags(context, ReleaseFlag.entries)
 
         flags.setOverride(flag, !flag.releaseDefault)
 
@@ -89,7 +105,7 @@ class DebugReleaseFlagsBindingTest {
         context.getSharedPreferences("release_flags", android.content.Context.MODE_PRIVATE)
             .edit().putBoolean(flag.name, !flag.releaseDefault).commit()
 
-        val flags = DebugReleaseFlags(context)
+        val flags = DebugReleaseFlags(context, ReleaseFlag.entries)
 
         assertEquals(mapOf(flag to !flag.releaseDefault), flags.overrides.value)
         val defaults = ReleaseFlag.entries.filter { it.releaseDefault }.toSet()

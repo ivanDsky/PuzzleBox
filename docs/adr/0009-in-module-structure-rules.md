@@ -1,6 +1,6 @@
 # ADR-0009 — In-module structure rules (`:konsist`)
 
-Date: 2026-11-04 · Status: accepted · Source: structure-rules run (S0 S1 S2 S4 S5 P1–P7); P8 from the navigation-ux run (spec A5); P9 from the nav-ia run (ADR-0027); P10 from the LinkedIn account run (ADR-0028); S6 from the sudoku run (spec A12); S7 from the Queens app-theme fix; S8 from the consistency polish run (spec S1); S9 from the Vibration switch (P3-07); S10 from the sheet fling fix (#1510, #1535); S11 from the flaky-test quarantine (ADR-0023 amendment 2026-11-18); P11 from the ci-warnings run (#850); P12 and the P10 narrowing from the LinkedIn result post run (ADR-0032); P13 from the LinkedInPush flag that a rebase brought back with no reader (#1337, #1339); P14 and the P4 widening from the code-quality review (item 7, single-feature use cases leave `:core:domain`)
+Date: 2026-11-04 · Status: accepted · Source: structure-rules run (S0 S1 S2 S4 S5 P1–P7); P8 from the navigation-ux run (spec A5); P9 from the nav-ia run (ADR-0027); P10 from the LinkedIn account run (ADR-0028); S6 from the sudoku run (spec A12); S7 from the Queens app-theme fix; S8 from the consistency polish run (spec S1); S9 from the Vibration switch (P3-07); S10 from the sheet fling fix (#1510, #1535); S11 from the flaky-test quarantine (ADR-0023 amendment 2026-11-18); P11 from the ci-warnings run (#850); P12 and the P10 narrowing from the LinkedIn result post run (ADR-0032); P13 from the LinkedInPush flag that a rebase brought back with no reader (#1337, #1339); P14 and the P4 widening from the code-quality review (item 7, single-feature use cases leave `:core:domain`); P15 from the owner-flags move (ADR-0022 amendment 2026-11-18)
 
 ## Context
 ADR-0008 guards the edges between modules. It says nothing about what is inside a module:
@@ -74,7 +74,7 @@ returns these findings:
   fixtures are protected files: a worker does not edit them to make a test pass.
 
 Entries on record at the time of writing: S1 64, S2 6, S4 25, S5 4, P1 6, P2 1, P5 4, P6 1, P14 107.
-S0, S6, S7, S8, S9, S10, S11, P3, P4, P7, P8, P9, P10, P11, P12 and P13 have none.
+S0, S6, S7, S8, S9, S10, S11, P3, P4, P7, P8, P9, P10, P11, P12, P13 and P15 have none.
 
 ### Payload cross-reference
 The `design-architecture` payload (`references/rules-architecture.md`) states four of these as
@@ -86,7 +86,7 @@ prose rules; the tests are their mechanical form and add no stricter bar:
 - Rule 20, one public top-level type per file (private helpers, extensions, typealiases and
   previews excepted): S1.
 
-The other rules (S0, S4, S5, S6, S7, S8, S9, S10, S11, P1, P4–P13, P14) have no payload twin. Dependency direction between
+The other rules (S0, S4, S5, S6, S7, S8, S9, S10, S11, P1, P4–P14, P15) have no payload twin. Dependency direction between
 modules stays in ADR-0008.
 
 ### Adding a rule
@@ -548,6 +548,40 @@ and its Koin definition lives in that feature's module.
   kept, `com.ivandsky.puzzlebox.play.domain.random`), move its Koin definition from `domainModule` to the
   feature's Koin module, and delete its allowlist entry. P4 judges it there. When a second feature needs
   a feature's use case, move it back to `:core:domain`.
+
+## P15
+Every release flag enum reaches `DeclaredFlags`, owners are unique, and the central enum takes no new entry while
+its frozen set only shrinks (ADR-0022 amendment 2026-11-18).
+
+- **Scope:** production files. Subjects: the flag enums (as in P13: the central `ReleaseFlag` and every
+  enum whose supertypes include `ReleaseFlagKey` or `ReleaseFlag`) and every production `flagSet(` call.
+  A `fun … flagSet` declaration, a comment, a string and test source sets are not calls. No allowlist:
+  the real tree is clean.
+- **Detection:** three checks, one violation per file joining their hints.
+  - A flag enum is registered by a well-formed call in `main` sources, in a package whose last segment
+    is `di`, of the enum's own module or `:app`, whose reference is the enum's simple name, its qualified
+    name or a dotted tail of it (`SampleFlags.Flag`). Otherwise the enum's file fails. `:app` may register
+    another module's enum on purpose: a module with no Koin, such as `core:game-ui` for its `GameUiFlag`
+    (F5), is registered there.
+  - A well-formed call is `flagSet("<owner>", <Enum>.entries)`, named arguments allowed, with a plain
+    string literal owner. Any other `flagSet(` call fails, since its owner cannot be checked. Two
+    well-formed production calls with one owner both fail.
+  - The central `ReleaseFlag` holds only the five entries it froze with (ResultHeroPolish, HintPolish,
+    RanksFreshness, ZipDotPulse, SheetScreens), kept as `FROZEN` in the rule. Any other entry fails. The
+    set only shrinks, like an allowlist: a `FROZEN` name the enum no longer has is stale and fails too.
+- **Why:** a flag enum that is never registered reads as off in every build, even with
+  `releaseDefault = true`, and shows no switch in the debug panel. Koin keeps the last of two sets with
+  one owner and drops the other silently, so `DeclaredFlags` cannot catch it. The central enum was edited
+  by 13.8% of a day's commits and each edit invalidated 19 modules; new flags go to their owner.
+- **Accepted misses:** the match is by name, with no type resolution, so two flag enums with one simple
+  name share a bare registration. A call through an import alias or a function reference is not seen.
+  Whether the registering Koin module is loaded by the app is not checked. One owner registered once in
+  `src/debug` and once in `src/release` is reported though only one compiles. A tree with no central enum
+  runs no freeze check; F7 deletes `FROZEN` with the enum.
+- **How to fix:** add `flagSet("<owner>", <Owner>Flag.entries)` to the owner module's Koin module in its
+  `di` package (`:app` registers for a module with no Koin), give a repeated owner its own name, move
+  a new central entry to its owner's `<Owner>Flag` enum, and delete a removed or moved entry's name from
+  `FROZEN` in the same PR.
 
 ## Consequences
 - A structure regression fails `./gradlew :konsist:test` with the rule, the file, a fix hint and

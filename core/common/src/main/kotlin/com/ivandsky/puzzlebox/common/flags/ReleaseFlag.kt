@@ -1,15 +1,15 @@
 package com.ivandsky.puzzlebox.common.flags
 
 /**
- * Release flags (ADR-0022): each keeps one unfinished trunk feature dark, so its slices merge
- * to main while release builds never reach it. A feature's first ticket adds its entry with
- * [releaseDefault] `false`; its flip PR sets `true` (with the version bump); its cleanup
- * ticket deletes the entry and the gate. No entry means no feature in flight.
+ * The central release flags (ADR-0022), frozen: new flags go in their owner's `<Owner>Flag` (ADR-0022 amendment
+ * 2026-11-18), and konsist P15 fails on a new entry here. Each entry keeps one unfinished trunk feature dark; its flip
+ * PR sets [releaseDefault] `true` (with the version bump) here in place. Its cleanup ticket, or the slice that moves it
+ * to its owner, deletes the entry and its name in P15's `FROZEN` in the same PR.
  *
- * @property label what the flag turns on, shown in the debug Catalog's Release flags tab.
+ * @property label what the flag turns on, shown in the debug Settings' Release flags section.
  * @property releaseDefault the value every release build uses; debug builds start from it too.
  */
-enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
+enum class ReleaseFlag(override val label: String, override val releaseDefault: Boolean) : ReleaseFlagKey {
     /**
      * Result hero polish (backlog #1162, #1170, #1171): previous and best as two labelled columns, a signed-out sign-in line
      * under the time, and the day's total on the full-set moment. Read only in a ViewModel or a DI module (ADR-0022 §3).
@@ -40,4 +40,8 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
      * Duels pane on the tablet, and its Add puzzle step is a page of it. Read only in a ViewModel or a DI module (ADR-0022 §3).
      */
     SheetScreens(label = "New duel as a screen", releaseDefault = false),
+    ;
+
+    /** The entry's own name: the stored override's key in `release_flags`. Never change it. */
+    override val key: String get() = name
 }

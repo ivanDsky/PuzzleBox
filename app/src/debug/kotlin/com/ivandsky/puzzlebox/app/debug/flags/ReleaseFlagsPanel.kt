@@ -14,13 +14,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import org.koin.compose.koinInject
 
 /**
- * Settings' Release flags section (ADR-0022): one switch per [ReleaseFlag]. A switch
- * forces the flag in this debug build and every collecting screen updates live; Reset drops
+ * Settings' Release flags section (ADR-0022): one switch per declared flag, in [DebugReleaseFlags.declared]'s
+ * order. A switch forces the flag in this debug build and every collecting screen updates live; Reset drops
  * the override back to the flag's release default. Debug only: release compiles none of this.
  */
 @Composable
@@ -33,19 +33,19 @@ internal fun ReleaseFlagsPanel(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        if (ReleaseFlag.entries.isEmpty()) {
+        if (flags.declared.isEmpty()) {
             Text(
                 "No release flags in flight.",
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                "A trunk feature's first ticket adds its flag to ReleaseFlag (ADR-0022).",
+                "A trunk feature's first ticket adds its flag to its module's flag enum (ADR-0022).",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        ReleaseFlag.entries.forEach { flag ->
+        flags.declared.forEach { flag ->
             FlagRow(
                 flag = flag,
                 override = overrides[flag],
@@ -56,9 +56,9 @@ internal fun ReleaseFlagsPanel(
 }
 
 @Composable
-private fun FlagRow(flag: ReleaseFlag, override: Boolean?, onSet: (Boolean?) -> Unit) {
+private fun FlagRow(flag: ReleaseFlagKey, override: Boolean?, onSet: (Boolean?) -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().testTag("debug.flag.${flag.name}"),
+        modifier = Modifier.fillMaxWidth().testTag("debug.flag.${flag.key}"),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
@@ -66,7 +66,7 @@ private fun FlagRow(flag: ReleaseFlag, override: Boolean?, onSet: (Boolean?) -> 
             Text(flag.label, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
             val release = if (flag.releaseDefault) "on" else "off"
             Text(
-                if (override == null) "${flag.name} · release: $release" else "${flag.name} · release: $release · forced",
+                if (override == null) "${flag.key} · release: $release" else "${flag.key} · release: $release · forced",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

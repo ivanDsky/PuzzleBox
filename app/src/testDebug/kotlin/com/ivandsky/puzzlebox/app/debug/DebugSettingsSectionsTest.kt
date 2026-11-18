@@ -45,7 +45,7 @@ class DebugSettingsSectionsTest {
     @Test
     fun `release flags render inline from the override store`() {
         composeRule.setContent {
-            PuzzleBoxTheme { ReleaseFlagsPanel(flags = DebugReleaseFlags(LocalContext.current)) }
+            PuzzleBoxTheme { ReleaseFlagsPanel(flags = DebugReleaseFlags(LocalContext.current, ReleaseFlag.entries)) }
         }
 
         ReleaseFlag.entries.forEach {
@@ -57,7 +57,7 @@ class DebugSettingsSectionsTest {
     @Test
     fun `every release flag row shows its name and release default`() {
         assertTrue("no release flag: move this test to a test-only flag", ReleaseFlag.entries.isNotEmpty())
-        val flags = DebugReleaseFlags(RuntimeEnvironment.getApplication())
+        val flags = DebugReleaseFlags(RuntimeEnvironment.getApplication(), ReleaseFlag.entries)
         val forced = ReleaseFlag.entries.first()
         flags.setOverride(forced, !forced.releaseDefault)
         composeRule.setContent { PuzzleBoxTheme { ReleaseFlagsPanel(flags = flags) } }
