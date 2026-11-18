@@ -148,4 +148,22 @@ class SpotlightLayoutTest {
         assertEquals(CalloutSide.OVER, stripPlacement.side)
         assertEquals(0f, stripPlacement.top)
     }
+
+    @Test
+    fun `a callout a text line taller for its action pill still lands off every lit cell of a 6x6 step`() {
+        // A 312 px board has 52 px rows. Today's callout is 34 px of bubble and 6 of pointer: one row. With the pill the
+        // bubble is 48 px tall: 58 px with the pointer, two rows. Rows 0-1 and 4-5 are free either way.
+        val size = Size(312f, 312f)
+        val roles = mapOf(
+            12 to SpotlightRole.EVIDENCE, 13 to SpotlightRole.EVIDENCE, 14 to SpotlightRole.EVIDENCE,
+            15 to SpotlightRole.TARGET, 19 to SpotlightRole.EXCLUDED, 20 to SpotlightRole.EXCLUDED,
+        )
+        val step = spotlight(6, 6, roles, anchor = setOf(12, 13, 14, 15))
+
+        for (height in listOf(40f, 58f)) {
+            val (placement, rect) = step.callout(size, height)
+            step.assertCoversNoLitCell(size, rect)
+            assertTrue("$height tall: $placement", placement.side != CalloutSide.OVER)
+        }
+    }
 }

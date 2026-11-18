@@ -19,12 +19,14 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Constraints
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import kotlin.math.max
 
 /** Test tag of the callout bubble's body. */
 internal const val SpotlightCalloutTag = "SpotlightCallout"
@@ -39,7 +41,7 @@ internal fun SpotlightCalloutBubble(callout: SpotlightCallout, spotlight: Spotli
     val fill = SpotlightTokens.calloutBubble(MaterialTheme.colorScheme)
     Layout(
         content = {
-            CalloutBody(callout.text, fill)
+            CalloutBody(callout.text, callout.action, fill)
             CalloutPointer(fill)
         },
     ) { measurables, constraints ->
@@ -93,7 +95,7 @@ private fun GraphicsLayerScope.applyCalloutScale(progress: Float, pivot: Offset,
 
 /** The bubble body; the deduction name (the text up to its first colon) is bold, as in the handoff's copy. */
 @Composable
-private fun CalloutBody(text: String, fill: Color) {
+private fun CalloutBody(text: String, action: SpotlightAction?, fill: Color) {
     val colon = text.indexOf(':')
     val styled = buildAnnotatedString {
         if (colon > 0) {
@@ -107,17 +109,57 @@ private fun CalloutBody(text: String, fill: Color) {
         Modifier
             .testTag(SpotlightCalloutTag)
             .background(fill, RoundedCornerShape(SpotlightTokens.CalloutRadius))
-            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            .padding(horizontal = Spacing.md)
+            // With an action the text's own padding and the pill's 48 dp height set the bubble: padding is not added twice.
+            .then(if (action == null) Modifier.padding(vertical = Spacing.sm) else Modifier),
     ) {
-        Text(
-            text = styled,
-            color = SpotlightTokens.calloutText(MaterialTheme.colorScheme),
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontSize = SpotlightTokens.CalloutTextSize,
-                lineHeight = SpotlightTokens.CalloutLineHeight,
-                fontWeight = FontWeight.SemiBold,
-            ),
-        )
+        if (action == null) CalloutText(styled) else CalloutTextWithAction(styled, action)
+    }
+}
+
+@Composable
+private fun CalloutText(styled: AnnotatedString, modifier: Modifier = Modifier) {
+    Text(
+        text = styled,
+        modifier = modifier,
+        color = SpotlightTokens.calloutText(MaterialTheme.colorScheme),
+        style = MaterialTheme.typography.bodyMedium.copy(
+            fontSize = SpotlightTokens.CalloutTextSize,
+            lineHeight = SpotlightTokens.CalloutLineHeight,
+            fontWeight = FontWeight.SemiBold,
+        ),
+    )
+}
+
+/**
+ * The text with [action]'s pill at the trailing edge, both centred on the row; the text wraps beside the pill. When the
+ * text would keep less than ActionMinTextWidth (a large font on a narrow board) the pill drops under it, still trailing.
+ */
+@Composable
+private fun CalloutTextWithAction(styled: AnnotatedString, action: SpotlightAction) {
+    Layout(
+        content = {
+            CalloutText(styled, Modifier.padding(vertical = Spacing.sm))
+            SpotlightActionPill(action)
+        },
+    ) { measurables, constraints ->
+        val width = constraints.maxWidth
+        val gap = Spacing.sm.roundToPx()
+        val pill = measurables[1].measure(Constraints(maxWidth = width))
+        val inline = width - pill.width - gap >= SpotlightTokens.ActionMinTextWidth.roundToPx()
+        val text = measurables[0].measure(Constraints(maxWidth = if (inline) width - pill.width - gap else width))
+        if (inline) {
+            val height = max(text.height, pill.height)
+            layout(width, height) {
+                text.place(0, (height - text.height) / 2)
+                pill.place(width - pill.width, (height - pill.height) / 2)
+            }
+        } else {
+            layout(width, text.height + pill.height) {
+                text.place(0, 0)
+                pill.place(width - pill.width, text.height)
+            }
+        }
     }
 }
 

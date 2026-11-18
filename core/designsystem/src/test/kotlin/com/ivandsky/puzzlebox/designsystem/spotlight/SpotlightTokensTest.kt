@@ -94,6 +94,15 @@ class SpotlightTokensTest {
         assertTrue(SpotlightTokens.CALLOUT_START_SCALE < 1f)
     }
 
+    @Test
+    fun `the action reads against the bubble in both schemes`() {
+        for ((name, _, scheme) in themes) {
+            val ratio = contrast(SpotlightTokens.calloutAction(scheme), SpotlightTokens.calloutBubble(scheme))
+            println("$name action vs bubble: $ratio")
+            assertTrue("$name action vs bubble $ratio", ratio >= 4.5f)
+        }
+    }
+
     private fun contrast(foreground: Color, background: Color): Float {
         val fg = foreground.luminance() + 0.05f
         val bg = background.luminance() + 0.05f
