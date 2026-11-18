@@ -9,7 +9,6 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.compete.create.lineup.LineupDraft
 import com.ivandsky.puzzlebox.compete.create.lineup.LineupEditor
-import com.ivandsky.puzzlebox.compete.create.lineup.lineupSummary
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
@@ -147,13 +146,9 @@ internal class NewDuelViewModel(
 
     /** Applies [edit] to the lineup; it is a Customize edit, so it leaves Quick and Daily, and it clears a refusal. */
     fun editLineup(edit: (LineupEditor) -> LineupEditor) = working.update {
-        val next = edit(it.lineup)
-        if (next == it.lineup) {
-            it
-        } else {
-            val cleared = if (it.notice is DuelNotice.EntryUndrawable) it.withoutNotice() else it
-            cleared.copy(lineup = next, draft = it.draft.customized())
-        }
+        val cleared = if (it.notice is DuelNotice.EntryUndrawable) it.withoutNotice() else it
+        val next = edit(cleared.lineup)
+        if (next == cleared.lineup) it else cleared.copy(lineup = next, draft = it.draft.customized())
     }
 
     /**

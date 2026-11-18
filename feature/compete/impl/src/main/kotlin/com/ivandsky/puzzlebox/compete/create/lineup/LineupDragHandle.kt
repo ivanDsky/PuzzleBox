@@ -18,8 +18,8 @@ private val HANDLE_SIZE = 48.dp
 private val DOT_RADIUS = 2.dp
 private val DOT_PITCH = 7.dp
 
-/** What a row's handle reports while it is dragged: the finger went down and moved, by [onDelta] pixels vertically, and let go. */
-internal class RowDrag(val onStart: () -> Unit, val onDelta: (Float) -> Unit, val onEnd: () -> Unit)
+/** What a row's handle reports while it is dragged: the finger went down and moved, by [onDelta] pixels vertically, and let go or was taken over (a cancel, which drops nothing). */
+internal class RowDrag(val onStart: () -> Unit, val onDelta: (Float) -> Unit, val onEnd: () -> Unit, val onCancel: () -> Unit)
 
 /** The grip of a row, a 48 dp target: pressing it and moving lifts the row, with no long press, since the grip does nothing else. */
 @Composable
@@ -37,7 +37,7 @@ internal fun LineupDragHandle(drag: RowDrag, modifier: Modifier = Modifier) {
                         current.onDelta(amount.y)
                     },
                     onDragEnd = { current.onEnd() },
-                    onDragCancel = { current.onEnd() },
+                    onDragCancel = { current.onCancel() },
                 )
             },
         contentAlignment = Alignment.Center,

@@ -293,6 +293,27 @@ class NewDuelLineupTest {
     }
 
     @Test
+    fun `opening a row or the add sheet, then dismissing it, clears a refusal with its notice`() = runTest {
+        val edits = listOf<List<(LineupEditor) -> LineupEditor>>(
+            listOf({ it.openChange(0) }),
+            listOf({ it.openAdd() }),
+            listOf({ it.openChange(0) }, { it.dismiss() }),
+        )
+        for (sequence in edits) {
+            val vm = started()
+            vm.chooseCustom()
+            vm.pick(gamma, row = 1)
+            vm.create()
+            assertEquals(1, vm.state.value.lineup!!.marked)
+
+            sequence.forEach { vm.editLineup(it) }
+
+            assertNull(vm.state.value.notice)
+            assertNull(vm.state.value.lineup!!.marked)
+        }
+    }
+
+    @Test
     fun `a challenge opens with one Any row of its game`() = runTest {
         val vm = started()
 

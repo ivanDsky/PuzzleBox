@@ -97,6 +97,7 @@ internal fun LineupPanel(
                                 if (from != to) edit { it.moved(from, to) }
                             }?.copy(dropped = true) ?: drag
                         },
+                        onCancel = { drag = null },
                     ),
                     onClick = { edit { it.openChange(index) } },
                     onRemove = { edit { it.remove(index) } },
