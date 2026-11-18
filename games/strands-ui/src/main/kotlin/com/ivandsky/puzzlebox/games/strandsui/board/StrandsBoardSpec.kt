@@ -66,6 +66,14 @@ internal object StrandsBoardSpec {
      */
     const val TargetHalf: Float = 0.4f
 
+    /**
+     * Half the width of a side letter's target across the finger's line: a heading inside the
+     * side cone has already picked the letter, so a finger drifting up to this far toward a used
+     * neighbour, or off the line in a fast swipe, still joins it. Under half a pitch: a finger
+     * 0.5 off the line passes under the letter and joins nothing.
+     */
+    const val SideAcrossHalf: Float = 0.47f
+
     /** Half the side of the square about the letter before the tail the finger steps into to back up onto it; earlier letters are a wall and join nothing. Smaller than [TargetHalf]: a corner cut past the previous letter must not back up. */
     const val BackHalf: Float = 0.30f
 
