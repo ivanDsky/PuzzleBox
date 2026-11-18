@@ -1,6 +1,6 @@
 # ADR-0009 — In-module structure rules (`:konsist`)
 
-Date: 2026-11-04 · Status: accepted · Source: structure-rules run (S0 S1 S2 S4 S5 P1–P7); P8 from the navigation-ux run (spec A5); P9 from the nav-ia run (ADR-0027); P10 from the LinkedIn account run (ADR-0028); S6 from the sudoku run (spec A12); S7 from the Queens app-theme fix; S8 from the consistency polish run (spec S1); S9 from the Vibration switch (P3-07); P11 from the ci-warnings run (#850); P12 and the P10 narrowing from the LinkedIn result post run (ADR-0032)
+Date: 2026-11-04 · Status: accepted · Source: structure-rules run (S0 S1 S2 S4 S5 P1–P7); P8 from the navigation-ux run (spec A5); P9 from the nav-ia run (ADR-0027); P10 from the LinkedIn account run (ADR-0028); S6 from the sudoku run (spec A12); S7 from the Queens app-theme fix; S8 from the consistency polish run (spec S1); S9 from the Vibration switch (P3-07); S10 from the sheet fling fix (#1510, #1535); P11 from the ci-warnings run (#850); P12 and the P10 narrowing from the LinkedIn result post run (ADR-0032)
 
 ## Context
 ADR-0008 guards the edges between modules. It says nothing about what is inside a module:
@@ -74,7 +74,7 @@ returns these findings:
   fixtures are protected files: a worker does not edit them to make a test pass.
 
 Entries on record at the time of writing: S1 64, S2 6, S4 25, S5 4, P1 6, P2 1, P5 4, P6 1.
-S0, S6, S7, S8, S9, P3, P4, P7, P8, P9, P10, P11 and P12 have none.
+S0, S6, S7, S8, S9, S10, P3, P4, P7, P8, P9, P10, P11 and P12 have none.
 
 ### Payload cross-reference
 The `design-architecture` payload (`references/rules-architecture.md`) states four of these as
@@ -239,6 +239,15 @@ Every haptic goes through `LocalHapticFeedback`, the one choke point the Vibrati
 - **Accepted misses:** a View reached under another name, a `Vibrator` or `VibrationEffect` used directly, and a call
   whose number comes from a named constant are not seen.
 - **How to fix:** take `LocalHapticFeedback.current` and call `performHapticFeedback(HapticFeedbackType.…)`.
+
+## S10
+Every bottom sheet goes through `AppModalBottomSheet`, which swallows the fling velocity a scrolling body leaves over.
+
+- **Scope:** production files of every module except `:core:designsystem`, where the wrapper lives.
+- **Detection:** in the file's code (comments and string contents removed), a `ModalBottomSheet(` call, bare or
+  qualified. `AppModalBottomSheet(` is not matched. The violation is the file.
+- **Accepted misses:** a call through an import alias.
+- **How to fix:** call `AppModalBottomSheet` from `core:designsystem`.
 
 ## P1
 Every production file's package is under its module's package root.
