@@ -68,7 +68,7 @@ class RandomNewTodaySheetTest {
     private val newToday = mutableStateOf(communityGames)
     private val opened = mutableListOf<RandomPick>()
 
-    private fun mountSheet(preset: GameId? = null) {
+    private fun mountSheet(preset: GameId = gamma) {
         val daily = FakeDailyRepository()
         val registry = TestGames.registry(listOf(ALPHA, BETA))
         val random = Random(1)

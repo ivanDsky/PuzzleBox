@@ -41,8 +41,9 @@ private val ChipPadding = 14.dp
 private val RandomIcon = 18.dp
 
 /**
- * The calendar's jump row: "#1" / years / "Today" ([nav]'s jumps for [month]), then, with a non-null [onRandom],
- * a Random chip (`library.page.random`) in [accent]'s container so it reads as an action beside the neutral jumps.
+ * The calendar's jump row: "#1" / years / "Today" ([nav]'s jumps for [month]) left-aligned and wrapping, and, with a
+ * non-null [onRandom], a Random chip (`library.page.random`) in [accent]'s container at the row's right edge, level with the
+ * first line, so it reads as an action apart from the neutral jumps.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -55,20 +56,25 @@ internal fun ArchiveMonthJumps(
     onToday: () -> Unit,
     onRandom: (() -> Unit)?,
 ) {
-    FlowRow(
-        modifier = Modifier.fillMaxWidth().padding(top = ChipGap, bottom = Spacing.sm),
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = ChipGap, bottom = Spacing.sm).testTag("library.calendar.jumps"),
         horizontalArrangement = Arrangement.spacedBy(ChipGap),
-        verticalArrangement = Arrangement.spacedBy(ChipGap),
     ) {
-        val jumps = nav.jumps(month)
-        jumps.forEachIndexed { index, jump ->
-            val name = when (index) {
-                0 -> "first"
-                jumps.lastIndex -> "today"
-                else -> jump.label
-            }
-            JumpChip(jump, "library.calendar.jump.$name", reduced) {
-                if (index == jumps.lastIndex) onToday() else onMonth(jump.month)
+        FlowRow(
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(ChipGap),
+            verticalArrangement = Arrangement.spacedBy(ChipGap),
+        ) {
+            val jumps = nav.jumps(month)
+            jumps.forEachIndexed { index, jump ->
+                val name = when (index) {
+                    0 -> "first"
+                    jumps.lastIndex -> "today"
+                    else -> jump.label
+                }
+                JumpChip(jump, "library.calendar.jump.$name", reduced) {
+                    if (index == jumps.lastIndex) onToday() else onMonth(jump.month)
+                }
             }
         }
         onRandom?.let { RandomChip(accent, reduced, it) }

@@ -75,10 +75,10 @@ class RandomPuzzleSheetScrollTest {
             LoadRandomDay(daily, FakeCompletionRepository(), LoadPastDay(daily, registry), registry, random),
             LoadRandomShared(ListCommunityPuzzles(FakeSharedPuzzleRepository(), FakeHiddenPuzzles(), FakeIdentityService(Identity("me", "Me", null))) { 0L }, random),
         )
-        val viewModel = RandomPuzzleViewModel(null, load, RandomPickMemory(), testDispatchers())
+        val viewModel = RandomPuzzleViewModel(alpha, load, RandomPickMemory(), testDispatchers())
         rule.setContent {
             PuzzleBoxTheme {
-                RandomPuzzleSheet(null, games, games, PlayLayout.SinglePane, onOpen = {}, onDismiss = {}, viewModel = viewModel)
+                RandomPuzzleSheet(alpha, games, games, PlayLayout.SinglePane, onOpen = {}, onDismiss = {}, viewModel = viewModel)
             }
         }
         rule.waitForIdle()

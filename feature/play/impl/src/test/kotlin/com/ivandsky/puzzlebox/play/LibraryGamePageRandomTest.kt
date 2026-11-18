@@ -39,7 +39,6 @@ import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -50,8 +49,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The game page's Random chip, the last of the calendar's jump row: only for a game with an archive and only with a
- * handler, handing back this page's game, with the title row left as it was.
+ * The game page's Random chip, at the right edge of the calendar's jump row with the jumps left-aligned: only for a game
+ * with an archive and only with a handler, handing back this page's game, with the title row left as it was.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -126,6 +125,15 @@ class LibraryGamePageRandomTest {
 
     private fun chip() = composeRule.onNode(hasTestTag("library.page.random") and hasAnyAncestor(hasTestTag("library.calendar")))
 
+    private fun assertRightOfRowAndJumpsLeft() {
+        val row = composeRule.onNodeWithTag("library.calendar.jumps").getBoundsInRoot()
+        val chip = chip().getBoundsInRoot()
+        val first = composeRule.onNodeWithTag("library.calendar.jump.first").getBoundsInRoot()
+        assertEquals("chip right edge ${chip.right} vs row ${row.right}", row.right.value, chip.right.value, 0.5f)
+        assertEquals("first jump left edge ${first.left} vs row ${row.left}", row.left.value, first.left.value, 0.5f)
+        assertEquals("chip is level with the first line", first.top.value, chip.top.value, 0.5f)
+    }
+
     private fun SemanticsNodeInteraction.assertInside(screen: Dp) {
         assertIsDisplayed()
         val right = getBoundsInRoot().right
@@ -133,16 +141,14 @@ class LibraryGamePageRandomTest {
     }
 
     @Test
-    fun `the phone calendar ends its jump row with Random, reporting this page's game`() {
+    fun `the phone calendar puts Random at the jump row's right edge, reporting this page's game`() {
         val random = mutableListOf<GameId>()
         show(PlayLayout.SinglePane) { random += it }
 
         chip().performScrollTo().assertInside(360.dp)
         chip().assertHeightIsEqualTo(36.dp)
         chip().assertTextContains("Random")
-        val today = composeRule.onNodeWithTag("library.calendar.jump.today").getBoundsInRoot()
-        val bounds = chip().getBoundsInRoot()
-        assertTrue("Random follows Today", bounds.left >= today.right || bounds.top >= today.bottom)
+        assertRightOfRowAndJumpsLeft()
         chip().performClick()
 
         composeRule.runOnIdle { assertEquals(listOf(zip), random) }
@@ -187,11 +193,12 @@ class LibraryGamePageRandomTest {
 
     @Test
     @Config(sdk = [34], qualifiers = "w1280dp-h800dp")
-    fun `the tablet calendar has Random inside the pane, reporting its game`() {
+    fun `the tablet calendar has Random at the jump row's right edge inside the pane, reporting its game`() {
         val random = mutableListOf<GameId>()
         show(PlayLayout.TwoPane, width = 800.dp) { random += it }
 
         chip().assertInside(800.dp)
+        assertRightOfRowAndJumpsLeft()
         chip().performClick()
 
         composeRule.runOnIdle { assertEquals(listOf(zip), random) }

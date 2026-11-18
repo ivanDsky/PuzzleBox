@@ -46,6 +46,7 @@ import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.community.ALPHA
 import com.ivandsky.puzzlebox.play.community.CommunityFixture
 import com.ivandsky.puzzlebox.play.community.HOUR
@@ -87,9 +88,10 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The library route's Random chip in a game page's calendar: opens the sheet with that game's chip chosen (Past puzzles,
- * Not solved yet on) and the pick plays that game's past day. One chip is pinned per test so no seed picks the game.
- * A game with no archive, and a graph without the holder or with it off, has no chip on its page.
+ * The library route's Random, which lives only in a game page's calendar: the chip opens the sheet with that game's chip
+ * chosen (Past puzzles, Not solved yet on) and the pick plays that game's past day, or opens a New today puzzle's code.
+ * One chip is pinned per test so no seed picks the game. A game with no archive, and a graph without the holder or with it
+ * off, has no chip on its page; the Games tab header has no Random in any of them.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -104,6 +106,7 @@ class LibraryRandomPageRouteTest {
     private val bare = GameId("bare")
     private val today = LocalDate.parse("2026-11-04")
     private val played = mutableListOf<Pair<GameId, LocalDate?>>()
+    private val opened = mutableListOf<ShareCode>()
     private var koin: KoinApplication? = null
 
     private fun start(holder: RandomPuzzleEntry?) {
@@ -171,18 +174,22 @@ class LibraryRandomPageRouteTest {
         koin?.close()
     }
 
-    private fun openPage(game: GameId) {
+    private fun mount() {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 LibraryRoute(
                     layout = PlayLayout.SinglePane,
                     onPlay = { g, day -> played += g to day },
-                    onOpenCode = {},
+                    onOpenCode = { opened += it },
                     onOpenRanks = { _, _ -> },
                     onMakeOne = {},
                 )
             }
         }
+    }
+
+    private fun openPage(game: GameId) {
+        mount()
         awaitTag("library.row.${game.value}")
         tap("library.row.${game.value}")
         awaitTag("library.page.${game.value}")
@@ -216,6 +223,31 @@ class LibraryRandomPageRouteTest {
 
     @Test
     fun `Random on the alpha page presets alpha and plays a past alpha day`() = pickFromPage(alpha)
+
+    @Test
+    fun `a New today pick from the alpha page opens that puzzle's code and plays nothing`() {
+        start(RandomPuzzleEntry(true))
+        openPage(alpha)
+
+        pageRandom().performScrollTo().performClick()
+        awaitTag("random.sheet")
+        tap("random.source.community")
+        tap("random.pick")
+        composeRule.waitUntil(TIMEOUT_MS) { opened.isNotEmpty() }
+
+        assertEquals("AAA111", opened.single().value)
+        assertTrue(played.isEmpty())
+    }
+
+    @Test
+    fun `the Games tab header has no Random with the flag on`() {
+        start(RandomPuzzleEntry(true))
+        mount()
+        awaitTag("library.enterCode")
+
+        assertEquals(0, count("library.random"))
+        assertEquals(0, count("random.sheet"))
+    }
 
     @Test
     fun `a game with no archive has no Random on its page`() {

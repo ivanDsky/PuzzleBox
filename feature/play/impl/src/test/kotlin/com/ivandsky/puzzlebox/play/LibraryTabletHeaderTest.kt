@@ -24,12 +24,12 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The Dailies header in the tablet's list pane, 400 dp wide after the screen's 24 dp start padding: the title stays one
- * line and the subtitle at most two beside Random and Enter code, and both buttons end inside the pane.
+ * line and the subtitle at most two beside Enter code, which ends inside the pane; there is no Random.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w1280dp-h800dp")
-class LibraryRandomTabletHeaderTest {
+class LibraryTabletHeaderTest {
 
     @get:Rule
     val composeRule = createComposeRule()
@@ -70,20 +70,19 @@ class LibraryRandomTabletHeaderTest {
     }
 
     @Test
-    fun `both buttons are touch size and end inside the list pane`() {
+    fun `Enter code is touch size and ends inside the list pane, with no Random`() {
         mount()
 
-        listOf("library.random", "library.enterCode").forEach { tag ->
-            val node = composeRule.onNodeWithTag(tag)
-            node.assertIsDisplayed()
-            node.assertHeightIsAtLeast(48.dp)
-            val right = node.getBoundsInRoot().right
-            assertTrue("$tag ends at $right", right <= 424.dp)
-        }
+        val node = composeRule.onNodeWithTag("library.enterCode")
+        node.assertIsDisplayed()
+        node.assertHeightIsAtLeast(48.dp)
+        val right = node.getBoundsInRoot().right
+        assertTrue("library.enterCode ends at $right", right <= 424.dp)
+        composeRule.onNodeWithTag("library.random").assertDoesNotExist()
     }
 
     @Test
-    fun `the title is one line and the subtitle at most two beside the buttons`() {
+    fun `the title is one line and the subtitle at most two beside the button`() {
         mount()
 
         val title = composeRule.onAllNodesWithText("Games")[0]
