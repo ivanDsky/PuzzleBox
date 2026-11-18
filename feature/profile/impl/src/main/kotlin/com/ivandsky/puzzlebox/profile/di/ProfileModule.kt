@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
 import com.ivandsky.puzzlebox.profile.linkedin.LinkedInLoginViewModel
 import com.ivandsky.puzzlebox.profile.linkedin.WebViewLinkedInSession
+import com.ivandsky.puzzlebox.profile.settings.RemindersViewModel
 import com.ivandsky.puzzlebox.profile.settings.SettingsViewModel
 import com.ivandsky.puzzlebox.profile.whatsnew.AssetWhatsNewSource
 import com.ivandsky.puzzlebox.profile.whatsnew.WhatsNewSource
@@ -54,6 +55,14 @@ val profileModule: Module = module {
             idTokenProvider = get(),
             visibility = params.getOrNull(),
             whatsNew = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.WhatsNew) == true,
+        )
+    }
+    // The Reminders flag is read here (ADR-0022 §3); off, the block draws nothing and the view model reads nothing.
+    viewModel {
+        RemindersViewModel(
+            enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.Reminders) == true,
+            repository = get(),
+            access = get(),
         )
     }
     single<WhatsNewSource> { AssetWhatsNewSource(get<Context>()) }
