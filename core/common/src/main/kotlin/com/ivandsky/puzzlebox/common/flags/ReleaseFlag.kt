@@ -20,12 +20,6 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     ResultHeroPolish(label = "Result hero polish", releaseDefault = true),
 
     /**
-     * Rules sheet (backlog #1187): How to play on a play board opens a short rules sheet for the game, with replaying the
-     * tutorial as a secondary action. Read only in feature/play's DI (ADR-0022 §3).
-     */
-    RulesSheet(label = "Rules sheet behind How to play", releaseDefault = true),
-
-    /**
      * Hint polish (backlog #1172, #1174): the Hint button reads as a peer of Undo, and hint captions explain the step in a plain
      * sentence before any technique name. Read only in feature/play's DI or a game UI module's DI (ADR-0022 §3).
      */

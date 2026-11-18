@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
  * One board's tutorial gate (spec A11), owned by the entry's ViewModel and run on its [scope]: a [play]
  * whose game has lessons that [prefs] has not marked seen opens them in place of the board once that read
  * lands (the board never waits for it, so a first play may show one frame first). [howToPlay] reopens
- * them over the live play, or, with [howToPlayRules] on for a game that has rules copy, opens the rules sheet there instead and
+ * them over the live play, or, for a game that has rules copy, opens the rules sheet there instead and
  * offers the tutorial from it; [close] marks the game seen. The open gate lives here, so a rotation keeps its step.
  */
 internal class TutorialGateHolder(
@@ -43,7 +43,7 @@ internal class TutorialGateHolder(
     }
 
     /**
-     * With [howToPlayRules] on for a game that has rules copy, opens the rules sheet over the live play; otherwise (and for
+     * For a game that has rules copy, opens the rules sheet over the live play; otherwise (and for
      * a game with no rules) the tutorial opens as before. A no-op without lessons or while the sheet or the tutorial is already open.
      */
     fun howToPlay() {
@@ -59,7 +59,7 @@ internal class TutorialGateHolder(
         _rules.value = null
     }
 
-    /** Replay the tutorial: the sheet closes and the tutorial opens over the live play, as How to play does without it. */
+    /** Replay the tutorial: the sheet closes and the tutorial opens over the live play, as How to play does for a game without rules copy. */
     fun replayTutorial() {
         val lessons = play?.ui?.tutorial ?: return
         if (_rules.value == null) return
