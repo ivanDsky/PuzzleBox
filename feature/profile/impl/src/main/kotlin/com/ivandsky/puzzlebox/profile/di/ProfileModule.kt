@@ -57,10 +57,8 @@ val profileModule: Module = module {
             whatsNew = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.WhatsNew) == true,
         )
     }
-    // The Reminders flag is read here (ADR-0022 §3); off, the block draws nothing and the view model reads nothing.
     viewModel {
         RemindersViewModel(
-            enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.Reminders) == true,
             repository = get(),
             access = get(),
         )

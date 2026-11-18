@@ -5,9 +5,6 @@ import com.ivandsky.puzzlebox.app.reminder.AndroidReminderAlarm
 import com.ivandsky.puzzlebox.app.reminder.AndroidReminderNotifier
 import com.ivandsky.puzzlebox.app.reminder.ReminderAppHooks
 import com.ivandsky.puzzlebox.app.reminder.ReminderRunner
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.reminder.NotificationAccess
 import com.ivandsky.puzzlebox.data.reminder.ReminderAlarm
 import com.ivandsky.puzzlebox.data.reminder.ReminderNotifier
@@ -29,12 +26,11 @@ val reminderModule = module {
     single<ReminderAlarm> { AndroidReminderAlarm(androidContext()) }
     single {
         ReminderRunner(
-            enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.Reminders) == true,
             repository = get(),
             access = get(),
             alarm = get(),
             notifier = get(),
-            // Resolved on the first fire, so a flag-off graph never builds today's set for it.
+            // Resolved on the first fire, so the app start never builds today's set for it.
             todaySet = { get<ObserveTodaySet>()().first() },
             computeNext = ComputeNextReminder(),
             computeMessage = ComputeReminderMessage(),

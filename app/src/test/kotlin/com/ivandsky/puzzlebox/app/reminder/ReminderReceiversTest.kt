@@ -45,7 +45,6 @@ class ReminderReceiversTest {
     @Before
     fun startGraph() {
         val runner = ReminderRunner(
-            enabled = true,
             repository = FakeReminderRepository(ReminderSettings(enabled = true)),
             access = FakeNotificationAccess(true),
             alarm = alarm,

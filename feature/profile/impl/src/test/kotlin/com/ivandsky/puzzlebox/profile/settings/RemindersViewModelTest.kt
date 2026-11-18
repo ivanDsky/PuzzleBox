@@ -1,13 +1,10 @@
 package com.ivandsky.puzzlebox.profile.settings
 
-import com.ivandsky.puzzlebox.data.reminder.NotificationAccess
-import com.ivandsky.puzzlebox.data.reminder.ReminderRepository
 import com.ivandsky.puzzlebox.model.ReminderSettings
 import com.ivandsky.puzzlebox.testing.repository.FakeNotificationAccess
 import com.ivandsky.puzzlebox.testing.repository.FakeReminderRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.LocalTime
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -15,12 +12,11 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
-/** Reminders ViewModel: the flag, the switch, and the notification permission. */
+/** Reminders ViewModel: the switch and the notification permission. */
 class RemindersViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
@@ -33,21 +29,10 @@ class RemindersViewModelTest {
 
     private fun TestScope.viewModel(stored: ReminderSettings = ReminderSettings()): RemindersViewModel {
         repository = FakeReminderRepository(stored)
-        val vm = RemindersViewModel(enabled = true, repository = repository, access = access)
+        val vm = RemindersViewModel(repository = repository, access = access)
         backgroundScope.launch { vm.uiState.collect {} }
         advanceUntilIdle()
         return vm
-    }
-
-    @Test
-    fun `with the flag off there is no state and nothing is read`() = runTest(dispatcher) {
-        val vm = RemindersViewModel(enabled = false, repository = ExplodingReminderRepository, access = ExplodingNotificationAccess)
-        backgroundScope.launch { vm.uiState.collect {} }
-        advanceUntilIdle()
-
-        vm.onResume()
-
-        assertNull(vm.uiState.value)
     }
 
     @Test
@@ -70,8 +55,8 @@ class RemindersViewModelTest {
         advanceUntilIdle()
 
         assertFalse(repository.current.enabled)
-        assertTrue(vm.uiState.value!!.askPermission)
-        assertFalse(vm.uiState.value!!.on)
+        assertTrue(vm.uiState.value.askPermission)
+        assertFalse(vm.uiState.value.on)
     }
 
     @Test
@@ -84,7 +69,7 @@ class RemindersViewModelTest {
         vm.onPermissionAsked()
         advanceUntilIdle()
 
-        assertFalse(vm.uiState.value!!.askPermission)
+        assertFalse(vm.uiState.value.askPermission)
     }
 
     @Test
@@ -117,7 +102,7 @@ class RemindersViewModelTest {
     @Test
     fun `a withdrawn permission reads as off with the blocked line`() = runTest(dispatcher) {
         val vm = viewModel(ReminderSettings(enabled = true))
-        assertTrue(vm.uiState.value!!.on)
+        assertTrue(vm.uiState.value.on)
 
         access.allowed = false
         vm.onResume()
@@ -134,14 +119,14 @@ class RemindersViewModelTest {
         vm.onSetEnabled(true)
         vm.onPermissionResult(granted = false)
         advanceUntilIdle()
-        assertTrue(vm.uiState.value!!.blocked)
+        assertTrue(vm.uiState.value.blocked)
 
         access.allowed = true
         vm.onResume()
         advanceUntilIdle()
 
-        assertFalse(vm.uiState.value!!.blocked)
-        assertFalse("one tap turns it on, the switch does not flip by itself", vm.uiState.value!!.on)
+        assertFalse(vm.uiState.value.blocked)
+        assertFalse("one tap turns it on, the switch does not flip by itself", vm.uiState.value.on)
     }
 
     @Test
@@ -152,8 +137,8 @@ class RemindersViewModelTest {
         advanceUntilIdle()
 
         assertFalse(repository.current.enabled)
-        assertFalse(vm.uiState.value!!.on)
-        assertFalse(vm.uiState.value!!.blocked)
+        assertFalse(vm.uiState.value.on)
+        assertFalse(vm.uiState.value.blocked)
     }
 
     @Test
@@ -164,16 +149,6 @@ class RemindersViewModelTest {
         advanceUntilIdle()
 
         assertEquals(LocalTime.of(8, 30), repository.current.time)
-        assertEquals(LocalTime.of(8, 30), vm.uiState.value!!.time)
-    }
-
-    private object ExplodingReminderRepository : ReminderRepository {
-        override val settings: Flow<ReminderSettings> get() = error("repository read with the flag off")
-        override suspend fun setEnabled(enabled: Boolean) = error("repository written with the flag off")
-        override suspend fun setTime(time: LocalTime) = error("repository written with the flag off")
-    }
-
-    private object ExplodingNotificationAccess : NotificationAccess {
-        override fun isAllowed(): Boolean = error("access read with the flag off")
+        assertEquals(LocalTime.of(8, 30), vm.uiState.value.time)
     }
 }

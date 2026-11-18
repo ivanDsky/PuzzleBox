@@ -15,35 +15,29 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * The Settings Reminders block. [enabled] is the Reminders release flag, read in DI (ADR-0022 §3); off, [uiState] is
- * null and neither [repository] nor [access] is ever read. The switch turns on only with notifications allowed:
+ * The Settings Reminders block. The switch turns on only with notifications allowed:
  * otherwise it asks for the permission first, and a refusal leaves it off with the blocked line.
  */
 internal class RemindersViewModel(
-    private val enabled: Boolean,
     private val repository: ReminderRepository,
     private val access: NotificationAccess,
 ) : ViewModel() {
 
-    private val local = MutableStateFlow(Local(allowed = enabled && access.isAllowed()))
+    private val local = MutableStateFlow(Local(allowed = access.isAllowed()))
 
-    val uiState: StateFlow<RemindersState?> = if (!enabled) {
-        MutableStateFlow(null)
-    } else {
-        combine(repository.settings, local) { stored, local ->
-            RemindersState(
-                on = stored.enabled && local.allowed,
-                time = stored.time,
-                // A stored "on" that the system no longer lets through reads as off with the reason beside it.
-                blocked = local.blocked || (stored.enabled && !local.allowed),
-                askPermission = local.askPermission,
-            )
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = RemindersState(on = false, time = ReminderSettings().time, blocked = false, askPermission = false),
+    val uiState: StateFlow<RemindersState> = combine(repository.settings, local) { stored, local ->
+        RemindersState(
+            on = stored.enabled && local.allowed,
+            time = stored.time,
+            // A stored "on" that the system no longer lets through reads as off with the reason beside it.
+            blocked = local.blocked || (stored.enabled && !local.allowed),
+            askPermission = local.askPermission,
         )
-    }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = RemindersState(on = false, time = ReminderSettings().time, blocked = false, askPermission = false),
+    )
 
     fun onSetEnabled(on: Boolean) {
         if (!on) {
@@ -70,7 +64,6 @@ internal class RemindersViewModel(
 
     /** The player may have come back from system settings; an allowed state clears the blocked line. */
     fun onResume() {
-        if (!enabled) return
         val allowed = access.isAllowed()
         local.update { it.copy(allowed = allowed, blocked = it.blocked && !allowed) }
     }

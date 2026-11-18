@@ -12,8 +12,7 @@ import org.koin.core.parameter.parametersOf
 
 /**
  * Settings' DI-bound entry point. [onOpenCatalog] and [debugSections] are shown only in debuggable builds
- * (debug tools). [visibility] adds the Visibility section. The Reminders block resolves its own view model and
- * draws nothing while the Reminders flag is off.
+ * (debug tools). [visibility] adds the Visibility section. The Reminders block resolves its own view model.
  */
 @Composable
 internal fun SettingsRoute(

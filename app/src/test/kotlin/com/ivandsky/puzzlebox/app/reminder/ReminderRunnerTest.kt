@@ -58,8 +58,7 @@ class ReminderRunnerTest {
     private var postNotifier: ReminderNotifier = notifier
     private var armAlarm: ReminderAlarm = alarm
 
-    private fun TestScope.runner(enabled: Boolean = true, scope: CoroutineScope = this) = ReminderRunner(
-        enabled = enabled,
+    private fun TestScope.runner(scope: CoroutineScope = this) = ReminderRunner(
         repository = repository,
         access = access,
         alarm = armAlarm,
@@ -71,22 +70,6 @@ class ReminderRunnerTest {
         zone = { zone },
         scope = scope,
     )
-
-    @Test
-    fun `a disabled runner touches no seam and still finishes the receiver`() = runTest {
-        val runner = runner(enabled = false)
-        var done = 0
-
-        runner.start()
-        runner.refresh { done++ }
-        runner.fire { done++ }
-        advanceUntilIdle()
-
-        assertEquals(2, done)
-        assertNull(alarm.scheduled)
-        assertEquals(0, alarm.cancelCount)
-        assertTrue(notifier.shown.isEmpty())
-    }
 
     @Test
     fun `on and allowed arms the next instant`() = runTest {

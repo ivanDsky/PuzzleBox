@@ -24,11 +24,9 @@ import kotlinx.coroutines.withTimeoutOrNull
  * while the choice is off or notifications are not allowed. [start] follows the stored choice, [refresh] reconciles once
  * (the app came to the foreground, the device booted, the app was updated) and [fire] is the alarm's wake-up: post if
  * today's puzzles are still open, then arm the next one whatever happened. [now] and [zone] are read on every compute so a
- * moved clock or time zone is never stale. [enabled] is the Reminders flag read once in DI: off, every entry point
- * returns at once, so the boot receiver costs a flag-off install nothing.
+ * moved clock or time zone is never stale.
  */
 class ReminderRunner(
-    val enabled: Boolean,
     private val repository: ReminderRepository,
     private val access: NotificationAccess,
     private val alarm: ReminderAlarm,
@@ -43,13 +41,11 @@ class ReminderRunner(
 
     /** Reconciles on every change of the stored choice, for the life of [scope]. */
     fun start() {
-        if (!enabled) return
         scope.launch { guarded { repository.settings.collect { settings -> guarded { reconcile(settings) } } } }
     }
 
-    /** One reconcile, then [done]; [done] runs at once when disabled. */
+    /** One reconcile, then [done]. */
     fun refresh(done: () -> Unit = {}) {
-        if (!enabled) return done()
         scope.launch {
             try {
                 guarded { reconcile(repository.settings.first()) }
@@ -61,7 +57,6 @@ class ReminderRunner(
 
     /** The alarm fired: post when the choice is on and allowed and today's puzzles are open, then arm tomorrow; then [done]. */
     fun fire(done: () -> Unit = {}) {
-        if (!enabled) return done()
         scope.launch {
             try {
                 post()
