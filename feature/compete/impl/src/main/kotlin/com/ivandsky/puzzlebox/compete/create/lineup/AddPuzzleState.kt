@@ -13,6 +13,7 @@ internal data class AddPuzzleState(
     val offline: Boolean = false,
     val moreDays: Boolean = false,
     val lookup: String? = null,
+    val canRetry: Boolean = false,
     val loaded: Boolean = false,
 )
 

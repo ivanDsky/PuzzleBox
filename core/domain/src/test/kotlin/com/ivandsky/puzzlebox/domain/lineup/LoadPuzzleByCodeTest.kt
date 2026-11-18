@@ -78,12 +78,22 @@ class LoadPuzzleByCodeTest {
             OpenOutcome.Offline to CodeLookup.Offline,
             OpenOutcome.NeedsUpdate(9) to CodeLookup.CannotOpen,
             OpenOutcome.UnknownGame("gamma") to CodeLookup.CannotOpen,
-            OpenOutcome.FailedCheck to CodeLookup.CannotOpen,
+            OpenOutcome.FailedCheck to CodeLookup.CheckFailed,
         )
 
         for ((given, answer) in expected) {
             outcome = given
             assertEquals(given.toString(), answer, lookup("k7qx2m"))
+        }
+    }
+
+    @Test
+    fun `only a link or a dashed code is announced, never a bare six letters that may be a word`() {
+        assertEquals(code, LoadPuzzleByCode.announcedIn("k7q-x2m"))
+        assertEquals(code, LoadPuzzleByCode.announcedIn(" K7Q-X2M "))
+        assertEquals(code, LoadPuzzleByCode.announcedIn(code.link))
+        for (text in listOf("dragon", "K7QX2M", "K7Q X2M", "ice-cap!", "dra-gon-x", "", "k7q-x2")) {
+            assertNull(text, LoadPuzzleByCode.announcedIn(text))
         }
     }
 }

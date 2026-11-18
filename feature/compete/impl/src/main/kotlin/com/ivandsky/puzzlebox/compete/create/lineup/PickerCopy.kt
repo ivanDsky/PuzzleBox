@@ -22,6 +22,7 @@ internal fun lookupLine(code: ShareCode, outcome: CodeLookup?): String? = when (
     CodeLookup.NotFound -> "No puzzle has the code ${code.display}. Check it with the person who shared it."
     CodeLookup.NoLongerAvailable -> "The person who shared ${code.display} took that puzzle down."
     CodeLookup.CannotOpen -> "${code.display} can't be opened in this version of the app. Update PuzzleBox to try it."
+    CodeLookup.CheckFailed -> "This puzzle can't be opened (${code.display})."
     CodeLookup.Offline -> OFFLINE_NOTE
     is CodeLookup.Found, CodeLookup.Invalid -> null
 }

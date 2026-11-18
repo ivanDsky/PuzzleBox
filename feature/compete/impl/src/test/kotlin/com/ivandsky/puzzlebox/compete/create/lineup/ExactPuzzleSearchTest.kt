@@ -24,6 +24,7 @@ import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.text.AnnotatedString
@@ -228,15 +229,48 @@ class ExactPuzzleSearchTest {
     }
 
     @Test
-    fun `a code nobody shared shows its lookup line, not Nothing matches`() {
+    fun `a code nobody shared, sent with the keyboard's Search, shows its lookup line, not Nothing matches`() {
         show(listOf(CROWN_JEWELS), lookup = { CodeLookup.NotFound })
         openSheet()
 
         rule.onNodeWithTag("duel.lineup.search").performTextInput("k7qx2m")
+        rule.onNodeWithTag("duel.lineup.search").performImeAction()
         rule.waitForIdle()
 
         rule.onNodeWithTag("duel.lineup.lookup").assertTextEquals("No puzzle has the code K7Q-X2M. Check it with the person who shared it.")
         rule.onNodeWithTag("duel.lineup.empty").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a typed word that reads as a code says Nothing matches and asks nobody`() {
+        val asked = mutableListOf<String>()
+        show(listOf(CROWN_JEWELS), lookup = { asked += it; CodeLookup.NotFound })
+        openSheet()
+
+        rule.onNodeWithTag("duel.lineup.search").performTextInput("dragon")
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("duel.lineup.empty").assertTextEquals("Nothing matches \"dragon\". Try a code, or clear the filters.")
+        rule.onNodeWithTag("duel.lineup.lookup").assertDoesNotExist()
+        assertEquals(emptyList<String>(), asked)
+    }
+
+    @Test
+    fun `an offline lookup offers Retry, which asks again and shows the puzzle`() {
+        var online = false
+        show(listOf(CROWN_JEWELS), lookup = { if (online) CodeLookup.Found(OLD_CROWN) else CodeLookup.Offline })
+        openSheet()
+        rule.onNodeWithTag("duel.lineup.search").performTextInput("k7qx2m")
+        rule.onNodeWithTag("duel.lineup.search").performImeAction()
+        rule.waitForIdle()
+        rule.onNodeWithTag("duel.lineup.lookup").assertTextEquals("You're offline. Code lookup needs a connection.")
+
+        online = true
+        rule.onNodeWithTag("duel.lineup.lookup.retry").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("duel.lineup.pick.${OLD_CROWN.entry.ref.wire}").assertExists()
+        rule.onNodeWithTag("duel.lineup.lookup.retry").assertDoesNotExist()
     }
 
     @Test

@@ -24,13 +24,23 @@ class LoadPuzzleByCode(
             OpenOutcome.NotFound -> CodeLookup.NotFound
             OpenOutcome.NoLongerAvailable -> CodeLookup.NoLongerAvailable
             OpenOutcome.Offline -> CodeLookup.Offline
-            is OpenOutcome.NeedsUpdate, is OpenOutcome.UnknownGame, OpenOutcome.FailedCheck -> CodeLookup.CannotOpen
+            is OpenOutcome.NeedsUpdate, is OpenOutcome.UnknownGame -> CodeLookup.CannotOpen
+            OpenOutcome.FailedCheck -> CodeLookup.CheckFailed
         }
     }
 
     companion object {
         /** The code in [text]: a code in any case, with or without the dash, or a puzzle link; null for anything else. */
         fun codeIn(text: String): ShareCode? = ShareCode.parse(text) ?: ShareCode.fromLink(text.trim())
+
+        /**
+         * The code a typed [text] announces on its own: a puzzle link or the dashed share form. A bare six letters is as likely a
+         * word ("dragon") as a code, so it is looked up only when the player pastes it or asks to search.
+         */
+        fun announcedIn(text: String): ShareCode? =
+            ShareCode.fromLink(text.trim()) ?: text.trim().takeIf { DASHED.matches(it) }?.let(ShareCode::parse)
+
+        private val DASHED = Regex("[A-Za-z0-9]{3}-[A-Za-z0-9]{3}")
     }
 }
 
