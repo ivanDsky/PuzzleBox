@@ -68,6 +68,7 @@ internal fun CustomResultRoute(
         )
         CustomResultScreen(
             state = state,
+            modifier = if (state.heroPolish) Modifier.weight(1f) else Modifier,
             onDone = onDone,
             onShare = { context.shareText(shareTextOf(state, key.puzzleId)) },
             onPlayAgain = {
@@ -87,6 +88,7 @@ internal fun CustomResultRoute(
  * standing; the Hints tile, then the puzzle's board with its author pinned. A friend's puzzle
  * never moves a streak, so there is no Streak tile, and the primary step is always Done. The replay section ([replayUi]
  * is the game's play UI, null for a game this build does not ship) follows the card and draws nothing until the state is Ready.
+ * With Result hero polish on ([CustomResultState.heroPolish]) it is the daily's hero page instead: [CustomResultHeroScreen].
  */
 @Composable
 internal fun CustomResultScreen(
@@ -99,6 +101,10 @@ internal fun CustomResultScreen(
     replayUi: GamePlayUi? = null,
     onOpenReplay: () -> Unit = {},
 ) {
+    if (state.heroPolish) {
+        CustomResultHeroScreen(state, onDone, onShare, onPlayAgain, onSignIn, modifier, replayUi, onOpenReplay)
+        return
+    }
     ResultScreen(
         timeMs = state.timeMs,
         hintsUsed = state.hintsUsed,
@@ -119,7 +125,7 @@ internal fun CustomResultScreen(
             CustomBoard(
                 board = state.board,
                 author = state.puzzle?.authorPin(),
-                yours = yoursOf(state),
+                yours = state.yours(),
                 postState = state.puzzle?.postState,
                 rankOrder = state.rankOrder,
                 signIn = state.signIn,
@@ -129,12 +135,6 @@ internal fun CustomResultScreen(
         },
         below = replayUi?.let { ui -> { ReplaySection(state.replay, ui, onOpen = onOpenReplay) } },
     )
-}
-
-/** This device's best on the puzzle: this solve until a play again names the record that stands. */
-private fun yoursOf(state: CustomResultState): BestScore = when (val standing = state.standing) {
-    is CustomStanding.PlayAgain -> standing.record
-    CustomStanding.Record, null -> BestScore(state.timeMs, state.hintsUsed)
 }
 
 /** "I solved “Crown the castle” in 1:58. Can you beat it? <link>"; the code alone if it never parses. */

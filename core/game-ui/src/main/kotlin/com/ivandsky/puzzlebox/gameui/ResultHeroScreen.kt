@@ -64,6 +64,8 @@ private const val SIDE_WEIGHT = 1f
  * [actions] is the hero's action row (the daily result passes [ResultHeroActions]); null draws none.
  * [chip] replaces the Today chip. A non-null [onRetryWrite] shows a failed-record-write notice above
  * the cards that retries through it. [onSignIn] is the rank row's sign-in, and the hero's sign-in line, when the player is signed out.
+ * [side], when given, is the side card's body in place of the streak, spread and rank, and makes the page two-pane on a wide screen
+ * (a community puzzle's ranks list); below 760 dp it sits under the hero like the side card does.
  * [board], when given, is a block drawn below the cards (the duel leg result's card).
  * [replay], when given, is drawn last, below every other block in both layouts, so the actions stay on the first screen.
  * It spans the content width and is told the gap between the hero and side columns on two columns (null on one), so
@@ -79,10 +81,11 @@ fun ResultHeroScreen(
     actions: (@Composable () -> Unit)? = null,
     chip: ResultHeroChip? = null,
     board: (@Composable () -> Unit)? = null,
+    side: (@Composable () -> Unit)? = null,
     replay: (@Composable (columnGap: Dp?) -> Unit)? = null,
 ) {
     val model = remember(facts, chip) { resultHeroModel(facts, chip = chip) }
-    val hasSide = model.streak != null || model.spread != null || model.rank != null
+    val hasSide = side != null || model.streak != null || model.spread != null || model.rank != null
     BoxWithConstraints(modifier.fillMaxSize()) {
         val compact = maxHeight < CompactHeight
         val pagePadding = if (compact) Spacing.lg else Spacing.xxl
@@ -129,6 +132,7 @@ fun ResultHeroScreen(
                             ResultSideCard(
                                 model, brand, onSignIn, Modifier.then(sideMin), wide,
                                 contentModifier = Modifier.reportContentHeight { sideHeight.intValue = it },
+                                content = side,
                             )
                         }
                     }
@@ -137,7 +141,7 @@ fun ResultHeroScreen(
                         ResultHeroCard(model, brand, Modifier, wide, actions, onSignIn = onSignIn)
                         ResultMomentCard(model.moments, brand, gap = gap)
                     }
-                    ResultSideCard(model, brand, onSignIn, Modifier, wide)
+                    ResultSideCard(model, brand, onSignIn, Modifier, wide, content = side)
                 }
                 board?.invoke()
                 if (replay != null) Box { replay(if (twoColumns) gap else null) }

@@ -45,7 +45,8 @@ private val RankMinHeight = 56.dp
  * no card at all (a practice puzzle). [onSignIn] is the rank row's Sign in button for a
  * signed-out player; the route supplies the real action, and without one the row has no button.
  * The chart opens on [initialScope], else on the model's default scope. [contentModifier] is applied to the
- * content column inside the card, before its padding, so the screen can measure the content's own height.
+ * content column inside the card, before its padding, so the screen can measure the content's own height. A non-null
+ * [content] is the card's whole body in place of the streak, spread and rank (a community puzzle's ranks list).
  *
  * The streak, week and heading come in on the blocks beat (the streak counts up as it does, the freeze moment follows);
  * the chart's bars grow on their own stagger, and the rank row rises in last.
@@ -59,14 +60,19 @@ internal fun ResultSideCard(
     wide: Boolean = false,
     initialScope: SpreadScope? = null,
     contentModifier: Modifier = Modifier,
+    content: (@Composable () -> Unit)? = null,
 ) {
     val streak = model.streak
     val spread = model.spread
     val rank = model.rank
-    if (streak == null && spread == null && rank == null) return
+    if (content == null && streak == null && spread == null && rank == null) return
     val palette = brand.accent.colors()
     OutlinedCard(modifier = modifier.fillMaxWidth().testTag("result.side.card"), shape = MaterialTheme.shapes.large) {
         Column(contentModifier.padding(if (wide) Spacing.xl else Spacing.lg)) {
+            if (content != null) {
+                content()
+                return@Column
+            }
             if (streak != null) {
                 StreakBlock(streak, palette.accent)
                 if (spread != null) {

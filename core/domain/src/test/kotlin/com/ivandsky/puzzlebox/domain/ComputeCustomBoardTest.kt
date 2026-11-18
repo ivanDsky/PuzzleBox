@@ -66,4 +66,14 @@ class ComputeCustomBoardTest {
     fun `no board while signed in reads Unavailable`() {
         assertEquals(CustomBoardView.Unavailable(author), compute(null, myUid = "uid-1", author = author, limit = 5))
     }
+
+    @Test
+    fun `the count is every ranked player, the author excluded, however few rows are shown`() {
+        val entries = players(7) + entry(author.uid, 55_000L)
+
+        val view = compute(entries, myUid = "uid-3", author = author, limit = 5) as CustomBoardView.Ranked
+
+        assertEquals(5, view.top.size)
+        assertEquals(7, view.count)
+    }
 }

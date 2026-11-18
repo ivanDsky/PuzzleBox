@@ -17,6 +17,7 @@ class ComputeCustomBoard {
             top = ranked.take(limit),
             mine = ranked.drop(limit).firstOrNull { it.isMe },
             author = author,
+            count = ranked.size,
         )
     }
 }

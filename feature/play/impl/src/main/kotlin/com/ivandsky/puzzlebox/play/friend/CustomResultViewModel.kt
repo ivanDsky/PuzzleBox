@@ -3,6 +3,9 @@ package com.ivandsky.puzzlebox.play.friend
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
@@ -17,6 +20,7 @@ import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
+import com.ivandsky.puzzlebox.gameui.SamePuzzleSolves
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.gameui.replay.ReplaySectionState
 import com.ivandsky.puzzlebox.model.GameId
@@ -24,6 +28,7 @@ import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.ActivePlay
+import com.ivandsky.puzzlebox.play.ResultSamePuzzle
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.api.CustomResultKey
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
@@ -60,6 +65,10 @@ internal data class CustomResultState(
     val signIn: BoardSignIn = BoardSignIn.Idle,
     /** Ready once this solve is stored with a replay; Hidden while its write is pending or failed, or when there is none. */
     val replay: ReplaySectionState = ReplaySectionState.Hidden,
+    /** Result hero polish is on: the page is the daily's hero and two-pane layout; off, it is the old narrow card. */
+    val heroPolish: Boolean = false,
+    /** This device's earlier solves of the puzzle, for the hero's compare; [SamePuzzleSolves.Unread] until read. */
+    val samePuzzle: SamePuzzleSolves = SamePuzzleSolves.Unread,
 ) {
     /** The author took the puzzle down: it still plays here, but its board takes no new entries. */
     val boardClosed: Boolean get() = puzzle?.unpublished == true
@@ -86,7 +95,7 @@ internal sealed interface CustomStanding {
  *
  * The puzzle's board comes from [FriendPuzzleBoard], so signing in from the page ([signIn])
  * fills it in place. The read reaches past the shown top rows, so this user's own row below
- * them is found.
+ * them is found. With Result hero polish on, the earlier solves come through [ResultSamePuzzle], as the daily's do. The flag is read once here.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class CustomResultViewModel(
@@ -99,9 +108,12 @@ internal class CustomResultViewModel(
     private val store: PlaySessionStore,
     private val board: FriendPuzzleBoard,
     private val loadReplay: LoadSolveReplay,
+    releaseFlags: ReleaseFlags? = null,
 ) : ViewModel() {
 
     private val slot = PlaySlot.Custom(GameId(key.gameId), key.puzzleId)
+
+    private val heroPolish = releaseFlags?.isEnabled(ReleaseFlag.ResultHeroPolish) == true
 
     private val gameName = games.displayName(slot.gameId)
 
@@ -111,6 +123,7 @@ internal class CustomResultViewModel(
         title = gameName,
         brand = plays.brandOf(slot.gameId),
         rankOrder = games[slot.gameId]?.score?.rankOrder ?: RankOrder.TimeThenHints,
+        heroPolish = heroPolish,
     )
 
     private val solved = ActivePlay.Solve(key.timeMs, key.hintsUsed)
@@ -131,6 +144,13 @@ internal class CustomResultViewModel(
 
     private val records = completions.observeCustom(slot.gameId, key.puzzleId)
 
+    /** The earlier solves of this puzzle as two columns, only with the hero on; the old card never reads them. */
+    private val samePuzzle: Flow<SamePuzzleSolves> = when {
+        !heroPolish -> flowOf(SamePuzzleSolves.Unread)
+        puzzleRef == null -> flowOf(SamePuzzleSolves.None)
+        else -> ResultSamePuzzle(completions, solved, live.takeIf { liveHoldsSolve }, solve.rankOrder).of(puzzleRef).map { it.copy(columns = true) }
+    }
+
     val state: StateFlow<CustomResultState> = combine(puzzle, records, board(), board.signInStatus, replayOf(records)) { puzzle, records, board, signIn, replay ->
         solve.copy(
             title = puzzle?.let {
@@ -143,7 +163,8 @@ internal class CustomResultViewModel(
             signIn = signIn,
             replay = replay,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), solve)
+    }.combine(samePuzzle) { state, same -> state.copy(samePuzzle = same) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), solve)
 
     /**
      * Play again: resets the finished live play, if it is still held, before its board
