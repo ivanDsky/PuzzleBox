@@ -4,6 +4,8 @@ import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.compete.api.DuelRevealKey
+import com.ivandsky.puzzlebox.compete.api.NewDuelKey
+import com.ivandsky.puzzlebox.compete.create.screen.NewDuelRoute
 import com.ivandsky.puzzlebox.compete.duel.DuelRoute
 import com.ivandsky.puzzlebox.compete.reveal.RevealRoute
 import com.ivandsky.puzzlebox.gameui.PlayLayout
@@ -17,4 +19,5 @@ import com.ivandsky.puzzlebox.navigation.Navigator
 fun EntryProviderScope<NavKey>.competeEntry(navigator: Navigator, layout: PlayLayout) {
     entry<DuelKey> { key -> DuelRoute(key.code, navigator, layout) }
     entry<DuelRevealKey> { key -> RevealRoute(key.code, navigator, layout) }
+    entry<NewDuelKey> { key -> NewDuelRoute(key, navigator) }
 }

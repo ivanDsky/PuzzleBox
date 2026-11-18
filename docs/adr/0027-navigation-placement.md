@@ -72,6 +72,10 @@ lives in Community › Yours; no other tab set remains, so §10 and §12 describ
 
    Autosave and the tablet side pane stay as they are.
 
+   *(Amended 2026-11-18, nested-sheets 01.)* New duel (`NewDuelKey`) is Immersive and pushed on Games, behind
+   `ReleaseFlag.SheetScreens`, on the phone only. Its bar has Back and the screen keeps no tab bar. With the flag off,
+   or in the tablet's pane, New duel stays a sheet.
+
    The avatar is the shell's rule, not a chrome type. There is one avatar on a 48dp target (36dp on the rail, 28dp in
    Today's header), and Profile is its
    only target. On the tablet it sits at the rail's bottom on every non-immersive screen, Profile and Settings

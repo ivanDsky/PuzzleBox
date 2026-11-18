@@ -12,6 +12,7 @@ import com.ivandsky.puzzlebox.app.nav.TopLevelDestination
 import com.ivandsky.puzzlebox.app.nav.placementOf
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavKeys
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
+import com.ivandsky.puzzlebox.compete.api.NewDuelKey
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.navigation.NavigationState
@@ -45,7 +46,7 @@ class NavKeySavedStateTest {
     private val everyKey: NavigationState = run {
         val roots = topLevelDestinations.map { it.key }
         // A per-game History key keeps the nullable payload covered.
-        val pushed = PlacementSamples.everyRow().filter { it !in roots } + HistoryKey("zip")
+        val pushed = PlacementSamples.everyRow().filter { it !in roots } + HistoryKey("zip") + NewDuelKey("sam", "Sam", "zip")
         val stackOf = { key: NavKey ->
             topLevelDestinations.indexOfFirst { it.tab == homeTab(key) }.coerceAtLeast(0)
         }

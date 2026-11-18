@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
 import com.ivandsky.puzzlebox.compete.api.DuelRevealKey
+import com.ivandsky.puzzlebox.compete.api.NewDuelKey
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.CustomResultKey
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
@@ -85,14 +86,14 @@ class PlacementTest {
     }
 
     @Test
-    fun `the immersive set is exactly today's seven plus the replay, its compare and the Studio`() {
+    fun `the immersive set is exactly today's seven plus the replay, its compare, the Studio and New duel`() {
         val immersive = placementRows.filter { it.placement.chrome == Chrome.Immersive }.map { it.key }.toSet()
 
         assertEquals(
             setOf(
                 GameKey::class, CustomGameKey::class, ResultKey::class, CustomResultKey::class,
                 MatchLegKey::class, MatchLegResultKey::class, DuelRevealKey::class, ReplayKey::class, ReplayCompareKey::class,
-                EditorKey::class,
+                EditorKey::class, NewDuelKey::class,
             ),
             immersive,
         )

@@ -2,6 +2,9 @@ package com.ivandsky.puzzlebox.compete.tab
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.domain.DuelRow
 import com.ivandsky.puzzlebox.domain.ObserveMyDuels
@@ -68,6 +71,7 @@ internal class DuelsTabViewModel(
     private val updateSeat: UpdateMatchSeat,
     identity: IdentityService,
     clock: () -> Instant,
+    releaseFlags: ReleaseFlags? = null,
 ) : ViewModel() {
 
     private val calls = MutableStateFlow(RowCalls())
@@ -76,6 +80,9 @@ internal class DuelsTabViewModel(
 
     /** One-shot: the duel screen to open for this code, after an accept or when sign-in is needed first. */
     val openDuel: Flow<ShareCode> = opens.receiveAsFlow()
+
+    /** New duel opens as a screen, not a sheet, on the phone ([ReleaseFlag.SheetScreens]); false with no flags bound. */
+    val newDuelAsScreen: Boolean = releaseFlags?.isEnabled(ReleaseFlag.SheetScreens) == true
 
     val state: StateFlow<DuelsTabState> = combine(
         observeMyDuels().onEach { pin(it.rows) },
