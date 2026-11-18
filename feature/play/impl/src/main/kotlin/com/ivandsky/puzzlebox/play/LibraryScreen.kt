@@ -172,6 +172,7 @@ internal fun LibraryScreen(
 /** The header's buttons, Random then Enter code, each shown only with its callback; Random's game is null, the Games tab. */
 @Composable
 private fun LibraryHeaderActions(onRandom: (() -> Unit)?, onEnterCode: (() -> Unit)?) {
+    if (onRandom == null && onEnterCode == null) return
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         onRandom?.let { SecondaryButton(text = "Random", onClick = it, modifier = Modifier.testTag("library.random")) }
         onEnterCode?.let { SecondaryButton(text = "Enter code", onClick = it, modifier = Modifier.testTag("library.enterCode")) }

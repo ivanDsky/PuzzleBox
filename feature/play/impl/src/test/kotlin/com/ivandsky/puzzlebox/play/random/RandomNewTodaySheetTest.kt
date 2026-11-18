@@ -65,9 +65,10 @@ class RandomNewTodaySheetTest {
     private fun gameOf(id: GameId) = RandomGame(id, id.value.replaceFirstChar(Char::uppercase), GameBrand.Neutral)
     private val communityGames = listOf(ALPHA, BETA).map(::gameOf)
     private val past = mutableStateOf(communityGames + gameOf(gamma))
+    private val newToday = mutableStateOf(communityGames)
     private val opened = mutableListOf<RandomPick>()
 
-    private fun mountSheet() {
+    private fun mountSheet(preset: GameId? = null) {
         val daily = FakeDailyRepository()
         val registry = TestGames.registry(listOf(ALPHA, BETA))
         val random = Random(1)
@@ -76,10 +77,10 @@ class RandomNewTodaySheetTest {
             LoadRandomDay(daily, FakeCompletionRepository(), LoadPastDay(daily, registry), registry, random),
             LoadRandomShared(ListCommunityPuzzles(fixture.shared, fixture.hidden, identity) { NOW }, random),
         )
-        val viewModel = RandomPuzzleViewModel(null, load, RandomPickMemory(), testDispatchers())
+        val viewModel = RandomPuzzleViewModel(preset, load, RandomPickMemory(), testDispatchers())
         composeRule.setContent {
             PuzzleBoxTheme {
-                RandomPuzzleSheet(null, past.value, communityGames, PlayLayout.SinglePane, onOpen = { opened += it }, onDismiss = {}, viewModel = viewModel)
+                RandomPuzzleSheet(preset, past.value, newToday.value, PlayLayout.SinglePane, onOpen = { opened += it }, onDismiss = {}, viewModel = viewModel)
             }
         }
     }
@@ -146,6 +147,33 @@ class RandomNewTodaySheetTest {
 
         node("random.game.gamma").assertDoesNotExist()
         node("random.game.any").assertIsSelected()
+    }
+
+    @Test
+    fun `a restored game stays chosen while the lists are still empty and is selected once they arrive`() {
+        past.value = emptyList()
+        newToday.value = emptyList()
+        mountSheet(preset = BETA)
+
+        past.value = communityGames + gameOf(gamma)
+        newToday.value = communityGames
+        composeRule.waitForIdle()
+
+        node("random.game.beta").assertIsSelected()
+    }
+
+    @Test
+    fun `a preset game the first list lacks stays chosen until its own list arrives`() {
+        past.value = emptyList()
+        newToday.value = emptyList()
+        mountSheet(preset = gamma)
+
+        newToday.value = communityGames
+        composeRule.waitForIdle()
+        past.value = communityGames + gameOf(gamma)
+        composeRule.waitForIdle()
+
+        node("random.game.gamma").assertIsSelected()
     }
 
     @Test
