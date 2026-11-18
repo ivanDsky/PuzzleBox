@@ -31,6 +31,7 @@ import com.ivandsky.puzzlebox.games.strands.engine.StrandsRules
 import com.ivandsky.puzzlebox.games.strands.engine.StrandsVerdict
 import com.ivandsky.puzzlebox.games.strands.render.StrandsRendererModel
 import com.ivandsky.puzzlebox.games.strands.strandsPlugin
+import com.ivandsky.puzzlebox.games.strands.withKeptPaths
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.Instant
 
@@ -156,12 +157,12 @@ class StrandsPlayController(
         val repeatsFound = verdict == StrandsVerdict.AlreadyFound &&
             path.map(current.state.puzzle::letterAt).joinToString("") in current.state.found
         traceEnd = TraceEndKind.of(verdict)?.let { TraceEnd(path, it, verdictSeq, pulse = repeatsFound) }
+        val next = moveLog.submit(current, path)
         when (verdict) {
-            is StrandsVerdict.ThemeWord -> lastFound = FoundEvent(verdict.word.cells, spangram = false, seq = ++foundSeq)
-            is StrandsVerdict.Spangram -> lastFound = FoundEvent(verdict.word.cells, spangram = true, seq = ++foundSeq)
+            is StrandsVerdict.ThemeWord -> lastFound = FoundEvent(next.state.pathOf(verdict.word), spangram = false, seq = ++foundSeq)
+            is StrandsVerdict.Spangram -> lastFound = FoundEvent(next.state.pathOf(verdict.word), spangram = true, seq = ++foundSeq)
             else -> Unit
         }
-        val next = moveLog.submit(current, path)
         if (next !== current) commit(next)
     }
 
@@ -206,7 +207,7 @@ class StrandsPlayController(
     override fun adoptRestored(bytes: ByteArray): Restored? =
         when (val restored = StrandsSessionCodec.deserialize(bytes)) {
             is DecodeResult.Ok -> {
-                val s = restored.value
+                val s = restored.value.withKeptPaths(moveLog.submitted(restored.value.state.puzzle))
                 resetTransient()
                 session = s
                 // The running window is process-local: a restored game in progress reopens it now.

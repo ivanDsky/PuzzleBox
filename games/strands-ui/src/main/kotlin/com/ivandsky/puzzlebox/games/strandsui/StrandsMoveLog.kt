@@ -1,10 +1,12 @@
 package com.ivandsky.puzzlebox.games.strandsui
 
 import com.ivandsky.puzzlebox.game.playTimeMs
+import com.ivandsky.puzzlebox.game.replay.ReplayCodec
 import com.ivandsky.puzzlebox.game.replay.MoveLog
 import com.ivandsky.puzzlebox.games.strands.ActiveHint
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.StrandsReplay
+import com.ivandsky.puzzlebox.games.strands.StrandsPuzzle
 import com.ivandsky.puzzlebox.games.strands.StrandsReplayMove
 import com.ivandsky.puzzlebox.games.strands.StrandsSession
 import java.time.Instant
@@ -33,6 +35,12 @@ internal class StrandsMoveLog(
             else -> puzzle.themeWords.indexOfFirst { it.text == hint.word }
         }
         return record(session, StrandsReplayMove.Hint(index, hint.stage))
+    }
+
+    /** The paths of the submits this play has logged, oldest first; empty for a log that is off or void. */
+    fun submitted(puzzle: StrandsPuzzle): List<List<Coord>> {
+        val moves = log.snapshot()?.let(ReplayCodec::decode)?.getOrNull()?.moves.orEmpty()
+        return moves.mapNotNull { (StrandsReplayMove.of(it.move, puzzle) as? StrandsReplayMove.Submit)?.path }
     }
 
     private fun record(session: StrandsSession, move: StrandsReplayMove): StrandsSession {
