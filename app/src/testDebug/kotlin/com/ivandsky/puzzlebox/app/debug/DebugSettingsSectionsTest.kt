@@ -11,6 +11,8 @@ import com.ivandsky.puzzlebox.app.debug.flags.ReleaseFlagsPanel
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -24,6 +26,12 @@ class DebugSettingsSectionsTest {
 
     @get:Rule
     val composeRule = createComposeRule()
+
+    @Before
+    fun clearOverrides() {
+        RuntimeEnvironment.getApplication().getSharedPreferences("release_flags", android.content.Context.MODE_PRIVATE)
+            .edit().clear().commit()
+    }
 
     @Test
     fun `the debug games row opens the unlisted 9x9`() {
@@ -48,9 +56,10 @@ class DebugSettingsSectionsTest {
     /** Characterization: every flag gets a row that names it and its release default; a forced one says so. */
     @Test
     fun `every release flag row shows its name and release default`() {
+        assertTrue("no release flag: move this test to a test-only flag", ReleaseFlag.entries.isNotEmpty())
         val flags = DebugReleaseFlags(RuntimeEnvironment.getApplication())
-        val forced = ReleaseFlag.entries.firstOrNull()
-        forced?.let { flags.setOverride(it, !it.releaseDefault) }
+        val forced = ReleaseFlag.entries.first()
+        flags.setOverride(forced, !forced.releaseDefault)
         composeRule.setContent { PuzzleBoxTheme { ReleaseFlagsPanel(flags = flags) } }
 
         ReleaseFlag.entries.forEach {

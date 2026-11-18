@@ -6,7 +6,8 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
-import org.junit.Assume.assumeTrue
+import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.android.ext.koin.androidContext
@@ -20,6 +21,12 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = DrainTestApplication::class)
 class DebugReleaseFlagsBindingTest {
+
+    @Before
+    fun clearOverrides() {
+        RuntimeEnvironment.getApplication().getSharedPreferences("release_flags", android.content.Context.MODE_PRIVATE)
+            .edit().clear().commit()
+    }
 
     @Test
     fun `debug graph binds the overridable flags the Catalog tab edits`() {
@@ -47,10 +54,14 @@ class DebugReleaseFlagsBindingTest {
         assertEquals(ReleaseFlag.entries.filter { it.releaseDefault }.toSet(), flags.enabled.value)
     }
 
-    /** Characterization: the override store's format is file `release_flags`, key = the entry's name, a Boolean. */
+    /**
+     * Characterization: the override store's format is file `release_flags`, key = the enum entry's own `name`, a
+     * Boolean. The key is compared with `name`, never with a key the production code derives, so a change that stores
+     * under anything else fails here. Renaming an entry loses its saved debug override; that is accepted (debug only).
+     */
     @Test
     fun `an override is stored under the flag's name in release_flags and reset removes it`() {
-        assumeTrue("no release flag in flight", ReleaseFlag.entries.isNotEmpty())
+        assertTrue(NO_FLAG, ReleaseFlag.entries.isNotEmpty())
         val flag = ReleaseFlag.entries.first()
         val context = RuntimeEnvironment.getApplication()
         val prefs = context.getSharedPreferences("release_flags", android.content.Context.MODE_PRIVATE)
@@ -66,10 +77,13 @@ class DebugReleaseFlagsBindingTest {
         assertEquals(emptyMap<String, Any?>(), prefs.all)
     }
 
-    /** Characterization: an override saved by an earlier launch, under the entry's name, still forces the flag. */
+    /**
+     * Characterization: an override saved by an earlier launch under the enum entry's own `name` still forces the
+     * flag. Renaming an entry loses its saved debug override; that is accepted (debug only).
+     */
     @Test
     fun `a Boolean stored under a flag's name before launch is that flag's override`() {
-        assumeTrue("no release flag in flight", ReleaseFlag.entries.isNotEmpty())
+        assertTrue(NO_FLAG, ReleaseFlag.entries.isNotEmpty())
         val flag = ReleaseFlag.entries.first()
         val context = RuntimeEnvironment.getApplication()
         context.getSharedPreferences("release_flags", android.content.Context.MODE_PRIVATE)
@@ -81,5 +95,9 @@ class DebugReleaseFlagsBindingTest {
         val defaults = ReleaseFlag.entries.filter { it.releaseDefault }.toSet()
         val expected = if (flag.releaseDefault) defaults - flag else defaults + flag
         assertEquals(expected, flags.enabled.value)
+    }
+
+    private companion object {
+        const val NO_FLAG = "no release flag: move this test to a test-only flag"
     }
 }
