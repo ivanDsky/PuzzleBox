@@ -1,0 +1,79 @@
+# Player notes for the What's new page, newest first.
+# A release adds its entry at the top in the same commit as its version bump.
+# "## <version> <date>" starts a release; "- " starts a note; "#" lines are comments.
+
+## 0.36.2 2026-11-18
+- Results show your previous and best times side by side, and a sign-in line under your time when you are signed out.
+- The full-set result shows the day's total; the times chart gathers slow solves in a last "N+" bar.
+- Community puzzle results use the same layout as the daily result.
+- Zip's next number holds your trace colour with a soft halo, also in replays and compares.
+- Zip's line follows your finger from where it ends.
+- Strands: a drag turn beside letters you already used now joins the free letter; the solved path is thinner.
+- On tablets, the Games list has a gap under the tabs, the Recent day pane lists each game as a row, and Duels and Community picks fade in place.
+- Loading placeholders shimmer while data arrives.
+- Ranks opens on Global until you have a friend.
+- Result says why Sign in did not finish.
+
+## 0.36.1 2026-11-18
+- A small clean-up with nothing new to see.
+
+## 0.36.0 2026-11-18
+- Duel yourself, called Past you, is now available to everyone.
+- Strands looks flat like the other games, keeps its own Hint look, a found word keeps its traced path, and the solved path is thinner.
+- The Strands editor warns when a word can be traced more than one way.
+- Result shows a sign-in line under your time when you are signed out.
+- Zip editor and replay header fixes.
+- A new lime app icon; the dev build has its own icon.
+
+## 0.35.0 2026-11-18
+- Post to LinkedIn (experimental): post your solve to your LinkedIn account. It is off until you switch it on in Profile, a warning about the risks comes first, and it posts only when you tap.
+
+## 0.34.3 2026-11-17
+- On tablets, switching tabs, changing pages and the Games side pane fade in place.
+- On tablets, Duels shows the selected duel laid out like a friend's puzzle page.
+- Friend lists are more compact.
+- The puzzle page shows the level it was published at.
+- The game's logo stamp lands on the board during the solve.
+- Tango and Queens show a LinkedIn Post row; Mini Sudoku can post to LinkedIn too.
+- The Posted row shows the LinkedIn time, and Watch replay opens the solve that row shows.
+- The tabs are Today, Games, Community and Ranks.
+
+## 0.34.2 2026-11-17
+- Custom puzzles live inside Games, under a Custom pill, and the Studio opens full screen.
+- Community puzzles: publish yours, see new ones from today, and report a puzzle.
+- Games and Community share a tab strip you can swipe between.
+- Result shows the solve moment, a celebration and what to do next.
+
+## 0.34.1 2026-11-17
+- Duel results show long names in full or as a nickname; time cells show just the time.
+- On tablets, the LinkedIn status and Watch replay share one line across both result columns.
+- The phone Compare board is centred on both pages; Compare opens for a duel puzzle you never played on this device.
+- Quick flicks on Ranks keep moving through the boards.
+
+## 0.34.0 2026-11-17
+- Buttons and cards are flat, and everything you can tap shows a light tint and a slight shrink when pressed.
+- The Zip line is one flat stroke.
+- Boards read better in all five games, and the first-move hint never points at something you already know.
+- Undo, Redo, Hint and Clear sit right under the board. Tablet boards are capped in size; landscape controls move to the side.
+- Sudoku has a corner Notes switch.
+- The Studio has a Finish tool for Queens, Zip, Tango and Sudoku that completes a partly made puzzle into one with a single answer.
+
+## 0.33.0 2026-11-16
+- Tap a summary on Today, Ranks or Games to open the screen it shows: week days, streak, recent rows and day detail open Ranks.
+- The Tune label opens the Tune sheet, which has a Defaults section.
+- Game pills are easier to tap.
+- Profile opens as a full-screen layer above the tabs.
+- In Zip, a fast drag fills the cells you cross.
+
+## 0.32.0 2026-11-14
+- Ranks replaces History: see each game's boards for Day, Week and Month, plus an Overall board, and swipe between games.
+- Choose what others see of you: your board, your duels, your replays, or hidden.
+- Challenge a friend or watch a replay from their row.
+- Ranks is reachable from each game page, from Result and from Today.
+
+## 0.31.0 2026-11-14
+- Import a puzzle from text. Share text from another app to PuzzleBox to open it in the importer.
+- The Result screen is reworked: Share and Play again are icon buttons beside the main button; Play again shows your streak, a chart and that day's rank, marked as your counted solve.
+
+## 0.30.0 2026-11-14
+- Cloud sync is on for every build: your history, puzzles and saved boards follow your signed-in account to every device.
