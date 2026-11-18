@@ -40,3 +40,6 @@ internal fun DuelWorking.afterSelf(outcome: CreateOutcome?, gameName: (GameId) -
     )
     else -> copy(creating = false, notice = DuelNotice.Failed(null))
 }
+
+/** The state after a Create whose opponent is no longer on show: creating off, and none of its refusal, which belongs to the pane it started on; [CreateOutcome.Created] leaves it as it is. */
+internal fun DuelWorking.afterAway(outcome: CreateOutcome?): DuelWorking = if (outcome is CreateOutcome.Created) this else copy(creating = false)

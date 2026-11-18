@@ -237,7 +237,7 @@ internal class NewDuelViewModel(
             val outcome = createMatch(start.draft.toSettings(lineup?.entries), invitedUid = start.challenge?.friendUid) { legs ->
                 if (lineup != null) working.update { if (it.generation == start.generation) it.copy(lineup = it.lineup.pin(legs)) else it }
             }
-            working.update { work -> if (work.generation == start.generation) work.after(outcome, registry::displayName) else work }
+            working.update { work -> settled(work, start, outcome) { it.after(outcome, registry::displayName) } }
             // The server write is done whatever the sheet did meanwhile, so its code must still reach the creator.
             if (outcome is CreateOutcome.Created) {
                 val lineup = releaseFlags?.isEnabled(ReleaseFlag.DuelLineup) == true
@@ -252,10 +252,17 @@ internal class NewDuelViewModel(
         viewModelScope.launch {
             val lineup = start.selfLineup.entries.takeIf { lineupEnabled() && start.form.preset == DuelPreset.Custom }
             val outcome = selfStep.create(start.form, solved.value, lineup)
-            working.update { work -> if (work.generation == start.generation) work.afterSelf(outcome, registry::displayName) else work }
+            working.update { work -> settled(work, start, outcome) { it.afterSelf(outcome, registry::displayName) } }
             // The duel is stored whatever the sheet did meanwhile, so its code must still reach the creator.
             if (outcome is CreateOutcome.Created) openedCodes.send(outcome.code)
         }
+    }
+
+    /** [onShow] for a Create's outcome on the pane it started on; dropped after a [reset], and after a switch to the other pane, whose notice and rows it must not touch. */
+    private fun settled(work: DuelWorking, start: DuelWorking, outcome: CreateOutcome?, onShow: (DuelWorking) -> DuelWorking) = when {
+        work.generation != start.generation -> work
+        selfActive(work) != selfActive(start) -> work.afterAway(outcome)
+        else -> onShow(work)
     }
 
     /**
