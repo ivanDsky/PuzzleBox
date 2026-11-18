@@ -3,10 +3,12 @@ package com.ivandsky.puzzlebox.compete.create.lineup
 import com.ivandsky.puzzlebox.compete.create.QUEENS
 import com.ivandsky.puzzlebox.compete.create.TANGO
 import com.ivandsky.puzzlebox.domain.lineup.Freshness
+import com.ivandsky.puzzlebox.domain.lineup.PickerResult
 import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -101,6 +103,23 @@ class AddPuzzleViewModelTest {
 
         assertEquals(NO_QUERY, vm.state.value.query)
         assertEquals(4, vm.state.value.rows.size)
+    }
+
+    @Test
+    fun `loadMore asks for the next archive page only while the list says one is left, and reset starts over at one`() = watching {
+        val asked = mutableListOf<Int>()
+        var more = true
+        val vm = AddPuzzleViewModel { _, pages -> pages.map { n -> asked += n; PickerResult(rows, offline = false, moreDays = more) } }
+        watch(vm)
+
+        vm.loadMore()
+        more = false
+        vm.loadMore()
+        vm.loadMore()
+        assertEquals(listOf(1, 2, 3), asked)
+        vm.reset()
+
+        assertEquals(listOf(1, 2, 3, 1), asked)
     }
 
     @Test

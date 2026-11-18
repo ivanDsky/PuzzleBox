@@ -25,7 +25,7 @@ class ObservePickablePuzzles internal constructor(
             // A friend's puzzle that is also public is one puzzle: the friend's row wins.
             val rows = (f.rows + c.rows + o.rows + a.rows).distinctBy { it.puzzle.entry.ref }
                 .sortedByDescending { it.atMs }.map { it.puzzle }.filter { it.passes(q) }
-            PickerResult(rows, offline = c.offline)
+            PickerResult(rows, offline = c.offline, moreDays = a.moreDays)
         }
     }
 }

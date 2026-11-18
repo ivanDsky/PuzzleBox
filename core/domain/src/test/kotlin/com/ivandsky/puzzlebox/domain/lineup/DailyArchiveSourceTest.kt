@@ -62,7 +62,8 @@ class DailyArchiveSourceTest {
         assertEquals(15, last.rows.size)
         assertEquals(today.minusDays(44), last.rows.last().ref.day)
         assertTrue(source.page(source.start(), 100).rows.none { it.ref.gameId == beta })
-        assertNull(source.page(checkNotNull(source.page(source.start(), 45).next), 30).next)
+        assertNull(last.next)
+        assertNull(source.page(source.start(), 45).next)
     }
 
     @Test
@@ -93,6 +94,39 @@ class DailyArchiveSourceTest {
         assertEquals(PuzzleSource.PastDay, shown[1].entry.source)
         assertEquals("Nov 8, 2026", shown[1].meta)
         assertEquals(listOf(false, false, false), shown.drop(2).take(3).map { it.isNew })
+    }
+
+    @Test
+    fun `asking for fewer pages than were read starts the read over, so a sheet opened again sees page one then page two`() = runTest {
+        val pages = MutableStateFlow(1)
+        val sizes = mutableListOf<Int>()
+        var latest: SourceRows? = null
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            source.observe(flowOf(emptySet()), pages).collect { latest = it; sizes += it.rows.size }
+        }
+
+        pages.value = 2
+        pages.value = 1
+        pages.value = 2
+
+        assertEquals(listOf(30, 60, 30, 60), sizes)
+        assertEquals(today.minusDays(59), (checkNotNull(latest).rows.last().puzzle.entry.ref as LegRef.Daily).day)
+        assertEquals(120, numberCalls)
+    }
+
+    @Test
+    fun `the source says when no page is left, exactly at the archive's last day`() = runTest {
+        fake.setArchiveRange(alpha, today.minusDays(59)..today)
+        val pages = MutableStateFlow(1)
+        val more = mutableListOf<Boolean>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            source.observe(flowOf(emptySet()), pages).collect { more += it.moreDays }
+        }
+
+        pages.value = 2
+        pages.value = 3
+
+        assertEquals(listOf(true, false, false), more)
     }
 
     @Test

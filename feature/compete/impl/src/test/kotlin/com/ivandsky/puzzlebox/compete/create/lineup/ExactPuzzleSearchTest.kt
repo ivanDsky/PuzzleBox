@@ -180,7 +180,7 @@ class ExactPuzzleSearchTest {
             PickablePuzzle(ExactPuzzle(ref, null, "Queens #${100 - i}", null, PuzzleSource.PastDay), isNew = false, played = false, meta = "Nov 9, 2026", code = null)
         }
         val asked = mutableListOf<Int>()
-        show(days, observe = { _, pages -> pages.map { n -> asked += n; PickerResult(days.take(PAGE * n), offline = false) } })
+        show(days, observe = { _, pages -> pages.map { n -> asked += n; PickerResult(days.take(PAGE * n), offline = false, moreDays = PAGE * n < days.size) } })
         openSheet()
         assertEquals(listOf(1), asked)
 

@@ -30,7 +30,7 @@ internal class AddPuzzleViewModel(observe: (Flow<PickerQuery>, Flow<Int>) -> Flo
     private val archivePages = MutableStateFlow(1)
 
     val state: StateFlow<AddPuzzleState> = combine(query, observe(query, archivePages), added) { asked, result, held ->
-        AddPuzzleState(asked, result.rows.map { PickerEntry(it, it.entry.ref in held) }, result.offline, loaded = true)
+        AddPuzzleState(asked, result.rows.map { PickerEntry(it, it.entry.ref in held) }, result.offline, result.moreDays, loaded = true)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), AddPuzzleState())
 
     fun setText(text: String) = query.update { it.copy(text = text) }
@@ -43,8 +43,10 @@ internal class AddPuzzleViewModel(observe: (Flow<PickerQuery>, Flow<Int>) -> Flo
         added.value = refs
     }
 
-    /** The list ran out while the player scrolled: read one more page of the daily archive. */
-    fun loadMore() = archivePages.update { it + 1 }
+    /** The list ran out while the player scrolled: read one more page of the daily archive, if it has one. */
+    fun loadMore() {
+        if (state.value.moreDays) archivePages.update { it + 1 }
+    }
 
     /** The next opening of the sheet starts clean. */
     fun reset() {

@@ -36,31 +36,41 @@ internal class DailyArchiveSource(
         registry.all.map { it.definition.id }.mapNotNull { id -> daily.archiveRange(id)?.let { id to it.endInclusive } }.toMap(),
     )
 
-    /** The next [size] numbered days after [from], newest first, the games merged by day. */
+    /** The next [size] numbered days after [from], newest first, the games merged by day; [Page.next] is null once no game has a day left. */
     fun page(from: Cursor, size: Int): Page {
         val next = from.next.toMutableMap()
+        val firsts = next.keys.associateWith { daily.archiveRange(it)?.start }
+        // A game is done once its next day falls before its first one.
+        fun prune() = next.entries.removeAll { (game, day) -> firsts[game]?.let { day < it } != false }
         val rows = ArrayList<Day>(size)
-        while (rows.size < size) {
-            val (game, day) = next.entries.maxByOrNull { it.value }?.toPair() ?: break
-            val first = daily.archiveRange(game)?.start
-            if (first == null || day < first) {
-                next.remove(game)
-                continue
-            }
+        prune()
+        while (rows.size < size && next.isNotEmpty()) {
+            val (game, day) = next.entries.maxBy { it.value }.toPair()
             next[game] = day.minusDays(1)
-            val number = daily.puzzleNumber(game, day) ?: continue
-            rows += Day(LegRef.Daily(game, day, number), "${registry.displayName(game)} #$number")
+            daily.puzzleNumber(game, day)?.let { number ->
+                rows += Day(LegRef.Daily(game, day, number), "${registry.displayName(game)} #$number")
+            }
+            prune()
         }
         return Page(rows, Cursor(next).takeIf { next.isNotEmpty() })
     }
 
-    /** The rows of the first [pages] pages as that count grows; the pages already read are kept. */
+    /**
+     * The rows of the first [pages] pages, read as that count grows. The count is authoritative: when it drops below what
+     * was read (a sheet opened again) the read starts over from the newest day. [SourceRows.moreDays] says whether a
+     * further page exists.
+     */
     fun observe(played: Flow<Set<String>>, pages: Flow<Int>): Flow<SourceRows> {
         val read = flow {
             var cursor: Cursor? = start()
             var rows = emptyList<Day>()
             var count = 0
             pages.collect { wanted ->
+                if (wanted < count) {
+                    cursor = start()
+                    rows = emptyList()
+                    count = 0
+                }
                 while (count < wanted) {
                     val from = cursor ?: break
                     val page = page(from, ARCHIVE_PAGE_SIZE)
@@ -68,12 +78,11 @@ internal class DailyArchiveSource(
                     cursor = page.next
                     count++
                 }
-                emit(rows)
+                emit(rows to (cursor != null))
             }
         }
-        return combine(played, read) { solved, days -> SourceRows(days.map { it.row(solved) }) }
+        return combine(played, read) { solved, (days, more) -> SourceRows(days.map { it.row(solved) }, moreDays = more) }
     }
-
     private fun Day.row(solved: Set<String>) = SourceRows.Dated(
         atMs = ref.day.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
         puzzle = PickablePuzzle(
