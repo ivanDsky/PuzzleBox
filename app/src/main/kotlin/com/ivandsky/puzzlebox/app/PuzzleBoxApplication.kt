@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.app
 import android.app.Application
 import com.ivandsky.puzzlebox.app.di.appModule
 import com.ivandsky.puzzlebox.app.di.buildTypeReleaseFlagsModule
+import com.ivandsky.puzzlebox.app.di.reminderModule
 import com.ivandsky.puzzlebox.app.leaderboard.CustomBoardSubmitter
 import com.ivandsky.puzzlebox.app.leaderboard.DailyReplayPublisher
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
@@ -79,6 +80,6 @@ class PuzzleBoxApplication : Application() {
         }
 
         val appModules =
-            listOf(commonModule, dataModule, cloudSyncModule, firebaseBackendModule, domainModule, homeModule, historyModule, playModule, createModule, authModule(R.string.default_web_client_id), profileModule, competeModule, zipModule, zipUiModule, queensModule, queensUiModule, tangoModule, tangoUiModule, strandsModule, strandsUiModule, miniSudokuModule, miniSudokuUiModule, appModule, buildTypeReleaseFlagsModule) + buildTypeGameModules
+            listOf(commonModule, dataModule, cloudSyncModule, firebaseBackendModule, domainModule, homeModule, historyModule, playModule, createModule, authModule(R.string.default_web_client_id), profileModule, competeModule, zipModule, zipUiModule, queensModule, queensUiModule, tangoModule, tangoUiModule, strandsModule, strandsUiModule, miniSudokuModule, miniSudokuUiModule, appModule, reminderModule, buildTypeReleaseFlagsModule) + buildTypeGameModules
     }
 }
