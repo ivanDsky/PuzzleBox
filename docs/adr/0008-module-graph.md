@@ -33,14 +33,14 @@ the build instead of a review.
    **A use case with a single feature consumer lives in that feature's `impl`**, in the package
    `com.ivandsky.puzzlebox.<feature>.domain` (sub-packages kept), and is registered in that
    feature's Koin module; `domainModule` loses each registration that moves. A use case moves to
-   `core:domain` when a second feature (or `:app`, or another `core:*` module) needs it, and moves
+   `core:domain` when a second feature, or any module outside `:feature:*`, needs it, and moves
    back out when only one feature remains. Consumers are counted as
    [ADR-0009 P14](0009-in-module-structure-rules.md#p14) counts them: another `core:domain` use
-   case that calls one (a composite) hands its own consumers on to it, and the tests of a foreign
-   feature count too. So `ComputeStreak` and `ObserveLeaderboard` stay: composites such as
-   `ObserveGameStats` and `ObserveResultRank` that call them serve several features, and other
-   features' tests use them. A helper moves along with its only caller. P14 reports every file
-   with exactly one feature consumer, and
+   case that calls one (a composite) hands its own consumers on to it, and the tests of other
+   modules (not `:core:domain` or `:app`) count too. So `ComputeStreak` and `ObserveLeaderboard`
+   stay: composites such as `ObserveGameStats` and `ObserveResultRank` that call them serve
+   several features, and other features' tests use them. A helper moves along with its only
+   caller. P14 reports every file with exactly one feature consumer, and
    [ADR-0009 P4](0009-in-module-structure-rules.md#p4) judges the use-case shape in the
    `<feature>.domain` packages as well as in `core:domain`. P7 is not extended: feature `impl`
    modules are Android libraries, so a `domain` package inside one is not checked for Android
