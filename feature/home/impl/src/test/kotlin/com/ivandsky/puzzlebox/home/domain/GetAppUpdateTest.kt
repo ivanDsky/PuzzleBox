@@ -1,6 +1,7 @@
-package com.ivandsky.puzzlebox.domain
+package com.ivandsky.puzzlebox.home.domain
 
 import com.ivandsky.puzzlebox.data.update.AppRelease
+import com.ivandsky.puzzlebox.domain.AppBuild
 import com.ivandsky.puzzlebox.testing.repository.FakeAppReleaseRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals

@@ -79,7 +79,7 @@ import org.robolectric.annotation.Config
  * games yet" forever watching an unfed legacy table; after the Zip fix it still dropped
  * every non-Zip record. Only a Zip-id test plugin is registered here; records of a game
  * the registry does not list never surface (ADR-0015). The graph is the production one: domainModule's
- * use cases and homeModule's ViewModel over fakes (no game UI registered: neutral
+ * use cases and homeModule's own use cases and ViewModel over fakes (no game UI registered: neutral
  * brands). Copy is never pinned: tags, enabled state and callbacks.
  */
 @RunWith(RobolectricTestRunner::class)

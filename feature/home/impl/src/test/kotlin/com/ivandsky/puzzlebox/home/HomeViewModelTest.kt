@@ -9,7 +9,7 @@ import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.MatchDraft
 import com.ivandsky.puzzlebox.data.match.MatchLeg
 import com.ivandsky.puzzlebox.data.match.Player
-import com.ivandsky.puzzlebox.domain.ObserveLatestSolvedToday
+import com.ivandsky.puzzlebox.home.domain.ObserveLatestSolvedToday
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
@@ -26,7 +26,7 @@ import com.ivandsky.puzzlebox.domain.AppBuild
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.domain.GameStats
-import com.ivandsky.puzzlebox.domain.GetAppUpdate
+import com.ivandsky.puzzlebox.home.domain.GetAppUpdate
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats

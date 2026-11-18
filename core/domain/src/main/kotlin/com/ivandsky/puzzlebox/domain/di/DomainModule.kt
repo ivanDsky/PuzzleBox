@@ -4,7 +4,6 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
-import com.ivandsky.puzzlebox.domain.GetAppUpdate
 import com.ivandsky.puzzlebox.domain.ComputeMatchLegs
 import com.ivandsky.puzzlebox.domain.ImportDraftFromText
 import com.ivandsky.puzzlebox.domain.ComputeStreak
@@ -30,7 +29,6 @@ import com.ivandsky.puzzlebox.domain.ObserveArchiveProgress
 import com.ivandsky.puzzlebox.domain.ObserveDuel
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
-import com.ivandsky.puzzlebox.domain.ObserveLatestSolvedToday
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObserveLegTarget
 import com.ivandsky.puzzlebox.domain.ObserveMatch
@@ -124,7 +122,6 @@ val domainModule = module {
     factory { LoadRandomShared(list = get(), random = Random.Default) }
     factory { LoadRandomPuzzle(day = get(), shared = get()) }
     factory { ObserveArchiveProgress(daily = get(), calendar = get(), observeGameHistory = get()) }
-    factory { GetAppUpdate(releases = get(), build = get()) }
     single { SyncTodayPuzzles(registry = get(), daily = get(), calendar = get()) }
     factory {
         ObserveTodaySet(
@@ -141,7 +138,6 @@ val domainModule = module {
         ObserveRankWindow(identity = get(), leaderboard = get(), finalBoards = get(), registry = get(), calendar = get())
     }
     factory { ObserveWindowRefresh(network = get()) }
-    factory { ObserveLatestSolvedToday(completions = get(), calendar = get(), registry = get()) }
     // The app decides whether there is a Friends/Global setting to follow; with none the rank is Global.
     factory { ObserveResultRank(leaderboard = get(), registry = get(), friendDay = get<ObserveFriendDay.Binding>().reader) }
     factory {
