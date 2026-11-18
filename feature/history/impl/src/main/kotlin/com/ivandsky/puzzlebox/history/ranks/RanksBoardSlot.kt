@@ -63,6 +63,8 @@ internal fun RanksBoardSlot(
         if (morph == null) {
             if (slice.friendsAlone) RanksFriendsHint(UnderBoard)
             MorphCell(slice.note) { note -> note?.let { RanksBoardNote(it, UnderBoard) } }
+            // The minute's change of wording is the same line, so only its arrival and removal frost.
+            MorphCell(slice.freshness, identity = { it != null }) { line -> line?.let { RanksBoardNote(it, UnderBoard, FRESHNESS_TAG) } }
         } else {
             if (morph.from.friendsAlone || morph.to.friendsAlone) {
                 val height = Modifier.sharedHeight(morph.from.friendsAlone, morph.to.friendsAlone, morph.progress)
@@ -74,9 +76,17 @@ internal fun RanksBoardSlot(
                 val height = Modifier.sharedHeight(morph.from.note != null, morph.to.note != null, morph.progress)
                 ScrubCell(morph.from.note, morph.to.note, morph.progress, height) { note -> note?.let { RanksBoardNote(it, UnderBoard) } }
             }
+            if (morph.from.freshness != null || morph.to.freshness != null) {
+                val height = Modifier.sharedHeight(morph.from.freshness != null, morph.to.freshness != null, morph.progress)
+                ScrubCell(morph.from.freshness, morph.to.freshness, morph.progress, height) { line ->
+                    line?.let { RanksBoardNote(it, UnderBoard, FRESHNESS_TAG) }
+                }
+            }
         }
     }
 }
+
+internal const val FRESHNESS_TAG = "ranks.board.freshness"
 
 // A part under the board that only one of the two boards has takes that board's share of its height, gap included,
 // so what is under it moves with the way and nothing jumps when the morph starts or lands.

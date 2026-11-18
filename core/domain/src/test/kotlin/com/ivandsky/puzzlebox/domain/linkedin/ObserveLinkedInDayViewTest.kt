@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.test.TestScope
@@ -285,6 +286,33 @@ class ObserveLinkedInDayViewTest {
         assertEquals(listOf(game to dayA), days.syncCalls)
         after(1)
         assertEquals(listOf(game to dayA, game to dayA), days.syncCalls)
+    }
+
+    @Test
+    fun refreshSyncsTheGivenDayAtOnceWithoutWaitingOutTheDebounce() = runTest(main.testDispatcher) {
+        val holder = holder()
+
+        holder.refresh(Target(game, dayB))
+
+        assertEquals(listOf(game to dayB), days.syncCalls)
+    }
+
+    @Test
+    fun refreshReturnsOnlyWhenTheSyncEnds() = runTest(main.testDispatcher) {
+        val gate = CompletableDeferred<Unit>()
+        days.syncGate = gate
+        var returned = false
+        backgroundScope.launch {
+            holder().refresh(Target(game, dayA))
+            returned = true
+        }
+        runCurrent()
+        assertEquals(false, returned)
+
+        gate.complete(Unit)
+        runCurrent()
+
+        assertEquals(true, returned)
     }
 
     @Test

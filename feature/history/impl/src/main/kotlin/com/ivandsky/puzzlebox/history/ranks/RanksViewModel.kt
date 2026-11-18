@@ -5,6 +5,9 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
@@ -77,6 +80,7 @@ internal class RanksViewModel(
     private val daily: DailyRepository,
     private val clock: Clock = Clock.systemUTC(),
     linkedIn: ObserveLinkedInDayView? = null,
+    releaseFlags: ReleaseFlags? = null,
     savedState: SavedStateHandle = SavedStateHandle(),
     opening: RanksSelection = RanksSelection(),
 ) : ViewModel() {
@@ -116,10 +120,29 @@ internal class RanksViewModel(
     private val reads = RanksWindowReads(observeRankWindow, observeWindowRefresh, window, games, viewModelScope)
     private val scopedBoards = RanksScopedBoards(reads.boards, observeFriendUids, viewer, viewModelScope)
 
-    /** The pull-to-refresh indicator, and the pull itself. */
-    val refreshing: StateFlow<Boolean> = reads.refreshing
+    // The LinkedIn part of the hub (the line, the pull's sync) exists only with RanksFreshness on and LinkedIn in the graph.
+    private val freshLinkedIn = linkedIn.takeIf { releaseFlags?.isEnabled(ReleaseFlag.RanksFreshness) == true }
+    private val freshness = freshLinkedIn?.let { RanksFreshness(clock) }
+    private val pullSync = freshLinkedIn?.let { RanksPullSync(it, viewModelScope, ::shownLinkedInDay) }
 
-    fun refresh() = reads.pull()
+    /** The pull-to-refresh indicator: a pull's own brief one, held while the pull's LinkedIn sync runs when there is one. */
+    val refreshing: StateFlow<Boolean> = pullSync?.let { sync ->
+        combine(reads.refreshing, sync.syncing) { pulling, syncing -> pulling || syncing }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), false)
+    } ?: reads.refreshing
+
+    fun refresh() {
+        reads.pull()
+        pullSync?.pull()
+    }
+
+    /** The game day whose LinkedIn part the board shows: a game's Day board in Friends; no other board has one. */
+    private suspend fun shownLinkedInDay(): ObserveLinkedInDayView.Target? {
+        val picked = selection.value
+        val board = picked.board as? RanksBoard.Game ?: return null
+        if (picked.window != RanksSelection.Window.Day || picked.scope != RankScope.Friends) return null
+        return ObserveLinkedInDayView.Target(board.id, picked.day ?: today().first())
+    }
 
     private val nudge: Flow<Boolean> = preferences.tutorialSeen(SWIPE_NUDGE).map { !it }
 
@@ -168,7 +191,7 @@ internal class RanksViewModel(
 
     private val local = combine(calendarState, stats, yourSolve, nudge, playThisDay, ::Local)
 
-    private val slices = RanksBoardSlices(boards, window, scopedBoards::of, observeOverall, viewer, history, calendar, registry, BoardGhosts(linkedIn))
+    private val slices = RanksBoardSlices(boards, window, scopedBoards::of, observeOverall, viewer, history, calendar, registry, BoardGhosts(linkedIn), freshness)
 
     /**
      * Every board as its slot draws it in the picked scope, with that scope: the one a swipe scrubs to is already

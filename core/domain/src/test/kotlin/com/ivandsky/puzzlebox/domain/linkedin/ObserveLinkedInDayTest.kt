@@ -46,7 +46,8 @@ class ObserveLinkedInDayTest {
         ghosts: List<LinkedInGhost> = emptyList(),
         boardFetchedAtMs: Long? = fetchedAtMs,
         owner: LinkedInOwner? = null,
-    ) = LinkedInDayData(link, delta, boardInWindow, inFlight, lastSync, own, ghosts, boardFetchedAtMs, owner)
+        boardComplete: Boolean = false,
+    ) = LinkedInDayData(link, delta, boardInWindow, inFlight, lastSync, own, ghosts, boardFetchedAtMs, owner, boardComplete)
 
     private fun ghost(i: Int, timeMs: Long?, hintFree: Boolean = true) =
         LinkedInGhost("member-$i", "Member $i", timeMs, hintFree, flawless = false)
@@ -91,6 +92,7 @@ class ObserveLinkedInDayTest {
             LinkedInDayView(
                 LinkedInDayStatus.NotConnected,
                 LinkedInBoardView.Shown(listOf(ghost(1, 50_000))),
+                boardRead = LinkedInBoardRead(fetchedAtMs, complete = false),
             ),
             view,
         )
@@ -102,6 +104,17 @@ class ObserveLinkedInDayTest {
             LinkedInDayView(LinkedInDayStatus.NotConnected, LinkedInBoardView.Hidden),
             viewOf(data(link = LinkState.NotConnected, boardFetchedAtMs = null)),
         )
+    }
+
+    @Test
+    fun `the read time of the board comes with the view, and whether it was the day's last`() = observing {
+        assertEquals(LinkedInBoardRead(fetchedAtMs, complete = false), viewOf(data()).boardRead)
+        assertEquals(LinkedInBoardRead(fetchedAtMs + 1, complete = true), viewOf(data(boardFetchedAtMs = fetchedAtMs + 1, boardComplete = true)).boardRead)
+    }
+
+    @Test
+    fun `no board read means no read time`() = observing {
+        assertEquals(null, viewOf(data(boardFetchedAtMs = null)).boardRead)
     }
 
     @Test

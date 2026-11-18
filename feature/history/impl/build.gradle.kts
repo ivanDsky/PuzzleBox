@@ -14,6 +14,8 @@ dependencies {
     // A play-again day opens play's play-again key (api edge only).
     implementation(projects.feature.play.api)
     implementation(projects.core.data)
+    // The hub's freshness line is behind a release flag (ADR-0022).
+    implementation(projects.core.common)
     // The hub's board asks a signed-out player to sign in, in place.
     implementation(projects.core.auth)
     // The hub resolves per-game names against the app's GameRegistry.

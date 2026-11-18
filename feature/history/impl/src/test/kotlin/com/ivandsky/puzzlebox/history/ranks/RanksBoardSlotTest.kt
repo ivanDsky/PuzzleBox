@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -79,5 +80,28 @@ class RanksBoardSlotTest {
 
         assertEquals(noteRest, noteLeaving)
         assertEquals(hintRest, hintLeaving)
+    }
+
+    private val fresh = noted.copy(freshness = "LinkedIn updated 5 min ago")
+
+    @Test
+    fun `the freshness line shows its text under the board, and nothing without one`() {
+        slice = fresh
+        show()
+        composeRule.onNodeWithTag("ranks.board.freshness").assertTextEquals("LinkedIn updated 5 min ago")
+
+        slice = noted
+        composeRule.onNodeWithTag("ranks.board.freshness").assertDoesNotExist()
+    }
+
+    @Test
+    fun `the freshness line lands and leaves where it rests`() {
+        show()
+
+        val (restIn, landed) = restAndMorph("ranks.board.freshness", fresh, from = noted, to = fresh, at = 1f)
+        val (restOut, leaving) = restAndMorph("ranks.board.freshness", fresh, from = fresh, to = noted, at = 0f)
+
+        assertEquals(restIn, landed)
+        assertEquals(restOut, leaving)
     }
 }

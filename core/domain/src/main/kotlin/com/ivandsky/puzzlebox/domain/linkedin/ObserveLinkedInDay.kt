@@ -31,7 +31,7 @@ class ObserveLinkedInDay(private val days: LinkedInDays, private val registry: G
 }
 
 private fun LinkedInDayData.toView(game: GameId, registry: GameRegistry): LinkedInDayView =
-    LinkedInDayView(status(), board(registry.rankOrderOf(game).comparator), owner)
+    LinkedInDayView(status(), board(registry.rankOrderOf(game).comparator), owner, boardFetchedAtMs?.let { LinkedInBoardRead(it, boardComplete) })
 
 private fun LinkedInDayData.status(): LinkedInDayStatus = when (val linked = link) {
     LinkState.NotConnected -> LinkedInDayStatus.NotConnected

@@ -182,6 +182,8 @@ class RoomLinkedInDaysObserveTest {
                 synced.ghosts.toSet(),
             )
             assertEquals(now, synced.boardFetchedAtMs)
+            // Read two days after its day: the day's last read.
+            assertEquals(true, synced.boardComplete)
 
             // The board was read and is the player's own record: a disconnect keeps it, saved by the same read.
             link.disconnect()
@@ -189,6 +191,22 @@ class RoomLinkedInDaysObserveTest {
             assertEquals(synced.ghosts.toSet(), disconnected.ghosts.toSet())
             assertEquals(now, disconnected.boardFetchedAtMs)
             assertEquals(true, disconnected.boardInWindow)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `a board read on its own day is not complete`() = runTest {
+        val day = today
+        respondOwn(day)
+        respondBoard(day, LinkedInBoard(listOf(LinkedInBoard.Row("friend", "friend", 60, hintFree = true, flawless = false))))
+
+        days.observe(zip, day).test {
+            assertEquals(false, awaitItem().boardComplete)
+
+            assertEquals(LinkedInSync.Done, days.sync(zip, day))
+            val synced = awaitWhere { it.boardFetchedAtMs != null }
+            assertEquals(false, synced.boardComplete)
             cancelAndIgnoreRemainingEvents()
         }
     }
