@@ -1,14 +1,5 @@
 package com.ivandsky.puzzlebox.play
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -19,8 +10,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
 import androidx.compose.ui.Modifier
+import com.ivandsky.puzzlebox.designsystem.HoldCrossfade
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
-import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import java.time.YearMonth
 
 /**
@@ -43,17 +34,8 @@ internal data class LibraryPaneFrame(val row: LibraryRowModel, val page: Archive
 private const val ReadyTimeoutMillis = 400L
 
 /**
- * The old page's alpha at the end of its exit: a hair under 1 because AnimatedContent drops a page the moment its exit
- * has nothing left to animate, and a 1 -> 1 fade has none, so a true hold would vanish on the first frame.
- */
-private const val HoldAlpha = 0.98f
-
-/**
- * The two-pane right pane: picking another game fades the old page out and the new
- * one in over [MotionTokens.TabletPageCrossfade], in place: no slide, no rise, no scale, and the pane keeps its size.
- * The old page stays opaque under the fading new one, and the page's own staggered block entrance is off so nothing
- * waves behind the fade.
- * Reduced motion uses the app's [MotionTokens.ReducedFadeDuration] fade. Picking the shown game changes nothing: the
+ * The two-pane right pane: picking another game [HoldCrossfade]s the page, and the page's own staggered block
+ * entrance is off so nothing waves behind the fade. Picking the shown game changes nothing: the
  * pane only refreshes.
  */
 @Composable
@@ -62,7 +44,6 @@ internal fun LibraryPane(
     modifier: Modifier = Modifier,
     content: @Composable (LibraryPaneFrame) -> Unit,
 ) {
-    val reduced = rememberReducedMotion()
     // The page swaps to another game only once its data is here: otherwise the new page fades in empty and its calendar
     // and day card fill in under the fade, which reads as a jump. The same game's updates show at once.
     var shown by remember { mutableStateOf(frame) }
@@ -74,22 +55,7 @@ internal fun LibraryPane(
     }
     val target = if (game == shown.row.card.game || frame.ready || timedOut) frame else shown
     SideEffect { shown = target }
-    AnimatedContent(
-        targetState = target,
-        modifier = modifier.fillMaxSize(),
-        transitionSpec = {
-            val millis = if (reduced) MotionTokens.ReducedFadeDuration else MotionTokens.TabletPageCrossfade
-            val fade = tween<Float>(millis, easing = MotionTokens.EasingStandard)
-            // The old page holds fully opaque under the new one fading in: two see-through pages would dip to the
-            // background halfway (a blink). The new page draws on top.
-            (fadeIn(fade) togetherWith fadeOut(tween(millis), targetAlpha = HoldAlpha)).apply { targetContentZIndex = 1f }.using(null)
-        },
-        contentKey = { it.row.card.game },
-        label = "library-pane",
-    ) { page ->
-        // Opaque, so a page with see-through areas never shows the one under it.
-        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-            CompositionLocalProvider(LocalEnterSettled provides true) { content(page) }
-        }
+    HoldCrossfade(target, modifier, contentKey = { it.row.card.game }, label = "library-pane") { page ->
+        CompositionLocalProvider(LocalEnterSettled provides true) { content(page) }
     }
 }

@@ -10,12 +10,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.EmptyState
+import com.ivandsky.puzzlebox.designsystem.HoldCrossfade
 import com.ivandsky.puzzlebox.designsystem.LocalTabFadeLink
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.TabFadeLink
@@ -55,11 +55,15 @@ internal fun CommunityPanes(
         // The right pane fades with the tabs on the list's own progress, and shows each tab's pick as it fades in.
         TabFadePane(link, Modifier.weight(1f).fillMaxHeight()) { index ->
             val tab = CommunityTab.entries[index.coerceIn(CommunityTab.entries.indices)]
-            val pick = picks.pickOf(tab)
-            if (pick == null) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { empty(tab) }
-            } else {
-                key(tab, pick) { detail(pick) { picks.clear(tab) } }
+            // Another pick in the tab crossfades in place; its page starts settled, the fade is its entrance.
+            HoldCrossfade(picks.pickOf(tab), label = "community-pane") { pick ->
+                CompositionLocalProvider(LocalEnterSettled provides true) {
+                    if (pick == null) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { empty(tab) }
+                    } else {
+                        detail(pick) { picks.clear(tab) }
+                    }
+                }
             }
         }
     }
