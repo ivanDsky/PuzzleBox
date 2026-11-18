@@ -37,9 +37,9 @@ internal fun SelfCreatePanel(state: NewDuelState, actions: NewDuelActions) {
     }
 }
 
-/** Quick or Customize (no Daily, no deadline). */
+/** Quick or Customize (no Daily, no deadline). [sheetPicker] false: the lineup shows no add sheet, the screen shows the picker. */
 @Composable
-internal fun SelfChoices(state: NewDuelState, actions: NewDuelActions) {
+internal fun SelfChoices(state: NewDuelState, actions: NewDuelActions, sheetPicker: Boolean = true) {
     var customizing by rememberSaveable { mutableStateOf(false) }
     val self = state.self
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
@@ -60,7 +60,7 @@ internal fun SelfChoices(state: NewDuelState, actions: NewDuelActions) {
             tag = "duel.preset.custom",
             trailing = { Chevron(expanded = customizing) },
         ) {
-            CustomizeBody(customizing) { SelfLineupPanel(state, actions, Modifier.padding(top = Spacing.sm)) }
+            CustomizeBody(customizing) { SelfLineupPanel(state, actions, Modifier.padding(top = Spacing.sm), sheetPicker) }
         }
     }
 }
@@ -93,10 +93,10 @@ internal fun SelfCreateFooter(state: NewDuelState, actions: NewDuelActions) {
 
 /** Customize is the ordered lineup of "Any" rows over what the player has solved, and the friends' puzzles switch. */
 @Composable
-private fun SelfLineupPanel(state: NewDuelState, actions: NewDuelActions, modifier: Modifier = Modifier) {
+private fun SelfLineupPanel(state: NewDuelState, actions: NewDuelActions, modifier: Modifier = Modifier, sheetPicker: Boolean = true) {
     val self = state.self
     Column(modifier.fillMaxWidth().testTag("duel.customize"), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        LineupPanel(state.lineup, state.games, self.form.includeFriends, actions.onEditLineup, audience = LineupAudience.PastYou(self.counts?.byGame))
+        LineupPanel(state.lineup, state.games, self.form.includeFriends, actions.onEditLineup, audience = LineupAudience.PastYou(self.counts?.byGame), sheetPicker = sheetPicker)
         FriendsRow(self.form.includeFriends, actions.onFriends, hint = "Adds friend puzzles you've solved")
     }
 }

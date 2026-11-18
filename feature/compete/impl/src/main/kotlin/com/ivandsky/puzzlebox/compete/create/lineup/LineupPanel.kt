@@ -46,6 +46,7 @@ private val DASH = floatArrayOf(16f, 12f)
  * the limit says so instead. Every change goes through [onEdit] as the edit to apply to the [editor]; the add sheet shows
  * while the editor has a target. A [fixed] panel is the Daily duel's: its rows can be reordered and removed, but not changed, and nothing can be added.
  * The [audience] says whose puzzles an "Any" row draws from and which exact-puzzle search the sheet holds: a friend duel's, or, for Past you, what the player has solved, which the sheet counts and searches on the device.
+ * With [sheetPicker] false the panel draws no sheet and holds no search: the screen that hosts it shows the picker as a page of its own.
  */
 @Composable
 internal fun LineupPanel(
@@ -56,10 +57,15 @@ internal fun LineupPanel(
     modifier: Modifier = Modifier,
     fixed: Boolean = false,
     audience: LineupAudience = LineupAudience.Friend,
+    sheetPicker: Boolean = true,
 ) {
     val registry = koinInject<GamePlayRegistry>()
     // Both searches live in this owner; the qualifier keeps Past you's from sharing the friend's text and rows.
-    val search = if (audience is LineupAudience.PastYou) koinViewModel<AddPuzzleViewModel>(qualifier = PAST_YOU_PICKER) else koinViewModel<AddPuzzleViewModel>()
+    val search = when {
+        !sheetPicker -> null
+        audience is LineupAudience.PastYou -> koinViewModel<AddPuzzleViewModel>(qualifier = PAST_YOU_PICKER)
+        else -> koinViewModel<AddPuzzleViewModel>()
+    }
     val pastYou = audience as? LineupAudience.PastYou
     val draft = editor.draft
     val edit by rememberUpdatedState(onEdit)
@@ -67,7 +73,7 @@ internal fun LineupPanel(
     val gap = with(LocalDensity.current) { ROW_GAP.toPx() }
     var drag by remember { mutableStateOf<ActiveDrag?>(null) }
     val landed = drag?.let { it.dropped && (draft != it.base || it.reorder.target == it.reorder.lifted) } == true
-    LaunchedEffect(editor.target == null) { if (editor.target == null) search.reset() }
+    LaunchedEffect(editor.target == null) { if (editor.target == null) search?.reset() }
     LaunchedEffect(editor.flashed, draft) {
         if (editor.flashed != null) {
             delay(FLASH_MS)
@@ -131,18 +137,20 @@ internal fun LineupPanel(
             }
         }
     }
-    editor.target?.let { row ->
-        AddPuzzleSheet(
-            position = row + 1,
-            changing = editor.changing,
-            games = games,
-            onPickGame = { game -> edit { it.pick(AnyGame(game)) } },
-            onDismiss = { edit { it.dismiss() } },
-            solved = pastYou?.solved,
-            exactPuzzles = {
-                ExactPuzzleSearch(games, draft.entries.filterIsInstance<ExactPuzzle>().mapTo(HashSet()) { it.ref }, onAdd = { puzzle -> edit { it.pick(puzzle) } }, viewModel = search)
-            },
-        )
+    if (search != null) {
+        editor.target?.let { row ->
+            AddPuzzleSheet(
+                position = row + 1,
+                changing = editor.changing,
+                games = games,
+                onPickGame = { game -> edit { it.pick(AnyGame(game)) } },
+                onDismiss = { edit { it.dismiss() } },
+                solved = pastYou?.solved,
+                exactPuzzles = {
+                    ExactPuzzleSearch(games, draft.entries.filterIsInstance<ExactPuzzle>().mapTo(HashSet()) { it.ref }, onAdd = { puzzle -> edit { it.pick(puzzle) } }, viewModel = search)
+                },
+            )
+        }
     }
 }
 

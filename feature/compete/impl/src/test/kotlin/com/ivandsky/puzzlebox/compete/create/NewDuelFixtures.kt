@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.compete.create.lineup.LineupDraft
 import com.ivandsky.puzzlebox.compete.create.lineup.LineupEditor
+import com.ivandsky.puzzlebox.compete.create.lineup.NO_LOOKUP
 import com.ivandsky.puzzlebox.domain.lineup.AnyGame
 import com.ivandsky.puzzlebox.compete.create.lineup.AddPuzzleViewModel
 import com.ivandsky.puzzlebox.compete.create.lineup.PAST_YOU_PICKER
@@ -108,9 +109,10 @@ internal fun newDuelBrands(): GamePlayRegistry = GamePlayRegistry(
     ),
 )
 
-/** The brands and Past you's add-puzzle view model, which Customize's lineup panel resolves from Koin. */
+/** The brands and both add-puzzle view models, a friend's (over nothing) and Past you's, which the New duel screen resolves from Koin. */
 internal fun newDuelModule() = module {
     single { newDuelBrands() }
+    viewModel { AddPuzzleViewModel(pickerOf(emptyList()), NO_LOOKUP) }
     viewModel(PAST_YOU_PICKER) { AddPuzzleViewModel(pickerOf(SOLVED_ROWS), lookup = null, pastYou = true) }
 }
 

@@ -1,26 +1,19 @@
 package com.ivandsky.puzzlebox.compete.create.lineup
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
@@ -28,20 +21,14 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.compete.create.DuelGame
 import com.ivandsky.puzzlebox.designsystem.AppModalBottomSheet
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.gameui.GameGlyph
-import com.ivandsky.puzzlebox.gameui.GameGlyphSize
-import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PanePolicy
 import com.ivandsky.puzzlebox.model.GameId
-import org.koin.compose.koinInject
 
-private val TILE_MIN_HEIGHT = 56.dp
 private const val TILES_PER_ROW = 2
 private const val TILES_PER_ROW_TWO_PANE = 1
 private val TWO_PANE_MAX_WIDTH = 960.dp
 private const val TILES_PANE_WEIGHT = 2f
 private const val SEARCH_PANE_WEIGHT = 3f
-private const val DISABLED_ALPHA = 0.38f
 
 /**
  * "Add puzzle N" or, from a row, "Change puzzle N": one tile per game for an "Any" puzzle of it, and [exactPuzzles], the
@@ -52,7 +39,7 @@ private const val DISABLED_ALPHA = 0.38f
  * With [solved] (Past you's sheet: how many puzzles of each game the player has solved) a tile says its count and is off
  * at zero, since nothing could be drawn; [exactPuzzles] is then the search over those solved puzzles, split off the same way.
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun AddPuzzleSheet(
     position: Int,
@@ -90,46 +77,6 @@ internal fun AddPuzzleSheet(
                 GameTiles(games, solved, TILES_PER_ROW, onPickGame)
                 exactPuzzles()
             }
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun GameTiles(games: List<DuelGame>, solved: Map<GameId, Int>?, perRow: Int, onPickGame: (GameId) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        Text("Any puzzle of a game", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-            maxItemsInEachRow = perRow,
-        ) {
-            games.forEach { game ->
-                GameTile(game, solved?.let { it[game.id] ?: 0 }, onClick = { onPickGame(game.id) }, modifier = Modifier.weight(1f))
-            }
-        }
-    }
-}
-
-@Composable
-private fun GameTile(game: DuelGame, solved: Int?, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val brand = koinInject<GamePlayRegistry>().brandOf(game.id)
-    val available = solved == null || solved > 0
-    Surface(
-        onClick = onClick,
-        modifier = modifier.heightIn(min = TILE_MIN_HEIGHT).alpha(if (available) 1f else DISABLED_ALPHA).testTag("duel.lineup.sheet.game.${game.id.value}"),
-        enabled = available,
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-    ) {
-        Row(Modifier.padding(horizontal = Spacing.md), horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
-            GameGlyph(brand, GameGlyphSize.Tile)
-            Text(
-                text = if (solved == null) game.name else "${game.name} · $solved solved",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
         }
     }
 }
