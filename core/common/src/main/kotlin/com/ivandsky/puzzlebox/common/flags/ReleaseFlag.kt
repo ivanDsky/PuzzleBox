@@ -26,6 +26,12 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     HintPolish(label = "Calm hint button and plain hint captions", releaseDefault = false),
 
     /**
+     * Duel lineup (epic #1226): Customize builds a duel puzzle by puzzle, each entry any puzzle of a game or one exact
+     * puzzle. Read only in a ViewModel or a DI module (ADR-0022 §3).
+     */
+    DuelLineup(label = "Duel lineup built puzzle by puzzle", releaseDefault = false),
+
+    /**
      * Same feel in every game (spec A19): one Boolean that every play board hands its games. Read only in feature/play's DI,
      * which binds it once and provides it to the games as LocalPlayFeel (spec A2).
      */

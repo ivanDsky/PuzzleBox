@@ -239,6 +239,7 @@ internal class NewDuelViewModel(
                     CreateOutcome.DailyCapReached -> work.copy(creating = false, notice = DuelNotice.Busy)
                     CreateOutcome.NoPuzzles -> work.copy(creating = false, notice = DuelNotice.NoPuzzles)
                     is CreateOutcome.Failed -> work.copy(creating = false, notice = DuelNotice.Failed(outcome.message))
+                    is CreateOutcome.EntryUndrawable -> work.copy(creating = false, notice = DuelNotice.Failed(null))
                 }
             }
             if (current && outcome is CreateOutcome.Created) {
