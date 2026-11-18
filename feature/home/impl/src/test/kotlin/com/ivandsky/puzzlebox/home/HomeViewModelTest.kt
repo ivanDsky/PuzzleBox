@@ -1,5 +1,8 @@
 package com.ivandsky.puzzlebox.home
 
+import android.content.Context
+import com.ivandsky.puzzlebox.auth.GoogleIdToken
+import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.match.LegRef
@@ -31,7 +34,6 @@ import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.TodayStatus
-import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.FetchError
@@ -76,12 +78,16 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import androidx.lifecycle.SavedStateHandle
+import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * Home's state. The Today tiles (A10) are today's set over every registered game — Zip
@@ -91,7 +97,11 @@ import org.junit.Test
  * game, else the next unsolved one (A13, SC11); the streak card's week is the last 7
  * puzzle days ending today (A8), over the core:testing fakes.
  */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 class HomeViewModelTest {
+
+    private val context: Context = ApplicationProvider.getApplicationContext()
 
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
@@ -103,6 +113,10 @@ class HomeViewModelTest {
     private val clock = Clock.fixed(Instant.parse("2026-11-04T12:00:00Z"), ZoneOffset.UTC)
     private val neutral = GameBrand.Neutral
     private val timeFirst = RankOrder.TimeThenHints
+
+    private fun tokens(token: GoogleIdToken) = object : GoogleIdTokenProvider {
+        override suspend fun idToken(activityContext: Context) = token
+    }
 
     private data class Deps(
         val vm: HomeViewModel,
@@ -124,6 +138,7 @@ class HomeViewModelTest {
         friendDay: ObserveFriendDay? = null,
         historyOpen: StateFlow<Boolean> = MutableStateFlow(true),
         firstScreenReady: FirstScreenReady = FirstScreenReady(),
+        idTokens: GoogleIdTokenProvider = tokens(GoogleIdToken.Unavailable(GoogleIdToken.Unavailable.Reason.CANCELLED)),
     ): Deps {
         val registry = GameRegistry(
             listOf(zip, tango).map { if (it in hintsRanked) hintsFirst(TestGames.plugin(it)) else TestGames.plugin(it) },
@@ -155,6 +170,7 @@ class HomeViewModelTest {
                 registry,
                 friendDay,
             ),
+            idTokens = idTokens,
             savedState = savedState,
             firstScreenReady = firstScreenReady,
         )
@@ -504,7 +520,16 @@ class HomeViewModelTest {
         deps.daily.addEntry(DailyEntry(zip, LocalDate.of(2026, 10, 31), 592, "zip/n5", 0L))
 
         assertEquals(
-            listOf(HistoryDay("2026-10-31", "October 31", listOf(HistoryDay.GameResult("Zip", neutral, time = null)))),
+            listOf(
+                HistoryDay(
+                    "2026-10-31",
+                    "October 31",
+                    listOf(
+                        HistoryDay.GameResult(zip, "Zip", neutral, HistoryDay.Outcome.Opened),
+                        HistoryDay.GameResult(tango, "Tango", neutral, HistoryDay.Outcome.NotPlayed),
+                    ),
+                ),
+            ),
             deps.vm.uiState.value.history,
         )
     }
@@ -522,7 +547,10 @@ class HomeViewModelTest {
                 HistoryDay(
                     "2026-11-01",
                     "November 1",
-                    listOf(HistoryDay.GameResult("Tango", neutral, formatDuration(41_000L))),
+                    listOf(
+                        HistoryDay.GameResult(zip, "Zip", neutral, HistoryDay.Outcome.NotPlayed),
+                        HistoryDay.GameResult(tango, "Tango", neutral, HistoryDay.Outcome.Solved(41_000L, hints = 0)),
+                    ),
                 ),
             ),
             deps.vm.uiState.value.history,
@@ -544,9 +572,85 @@ class HomeViewModelTest {
         assertEquals(listOf("2026-11-03", "2026-11-02", "2026-11-01"), history.map { it.isoDay })
         assertEquals(history.size, history.map { it.isoDay }.toSet().size)
         assertEquals(
-            listOf(HistoryDay.GameResult("Zip", neutral, null), HistoryDay.GameResult("Tango", neutral, formatDuration(61_000L))),
+            listOf(
+                HistoryDay.GameResult(zip, "Zip", neutral, HistoryDay.Outcome.Opened),
+                HistoryDay.GameResult(tango, "Tango", neutral, HistoryDay.Outcome.Solved(61_000L, hints = 0)),
+            ),
             history.first().games,
         )
+    }
+
+    private val yesterday = day.minusDays(1)
+
+    private fun CompletionRecord.withHints(hints: Int) = copy(hints = hints)
+
+    /** [game]'s board for [yesterday] with [me] third: two faster players ahead. */
+    private fun thirdYesterday(game: GameId) = LeaderboardRef(game.value, yesterday) to
+        listOf(entry("p1", 1), entry("p2", 2), entry("me", 60))
+
+    @Test
+    fun `a picked day lists every game, solved with hints, opened, and not played`() = runTest {
+        val deps = viewModel(savedState = SavedStateHandle(mapOf(SELECTED_DAY_KEY to yesterday.toString())))
+        deps.completions.onCompleted(record(zip, yesterday, 61_000L).withHints(2))
+        deps.daily.addEntry(DailyEntry(tango, yesterday, 592, "tango/n5", 0L))
+
+        val games = deps.vm.uiState.value.history.single { it.isoDay == yesterday.toString() }.games
+
+        assertEquals(
+            listOf(
+                HistoryDay.GameResult(zip, "Zip", neutral, HistoryDay.Outcome.Solved(61_000L, hints = 2)),
+                HistoryDay.GameResult(tango, "Tango", neutral, HistoryDay.Outcome.Opened),
+            ),
+            games,
+        )
+    }
+
+    @Test
+    fun `a signed-in player's place on the picked day is on each solved game`() = runTest {
+        val deps = viewModel(
+            identity = FakeIdentityService(initial = me),
+            boards = mapOf(thirdYesterday(zip)),
+        )
+        deps.completions.onCompleted(record(zip, yesterday, 60_000L))
+        deps.vm.selectDay(yesterday.toString())
+
+        val zipRow = deps.vm.uiState.value.history.single { it.isoDay == yesterday.toString() }.games.first { it.gameId == zip }
+
+        assertEquals(
+            HistoryDay.Outcome.Solved(60_000L, hints = 0, standing = HistoryDay.Standing(place = 3, count = 3, amongFriends = false)),
+            zipRow.outcome,
+        )
+    }
+
+    @Test
+    fun `a signed-out player has no place on the picked day`() = runTest {
+        val deps = viewModel(
+            boards = mapOf(thirdYesterday(zip)),
+        )
+        deps.completions.onCompleted(record(zip, yesterday, 60_000L))
+        deps.vm.selectDay(yesterday.toString())
+
+        val zipRow = deps.vm.uiState.value.history.single { it.isoDay == yesterday.toString() }.games.first { it.gameId == zip }
+
+        assertEquals(HistoryDay.Outcome.Solved(60_000L, hints = 0), zipRow.outcome)
+    }
+
+    @Test
+    fun `signing in from Home passes the Google token to the identity service`() = runTest {
+        val deps = viewModel(idTokens = tokens(GoogleIdToken.Available("tok")))
+
+        deps.vm.signIn(context)
+
+        assertEquals(listOf("tok"), deps.identity.signInCalls)
+    }
+
+    @Test
+    fun `a cancelled Google sign-in leaves the player signed out`() = runTest {
+        val deps = viewModel()
+
+        deps.vm.signIn(context)
+
+        assertEquals(emptyList<String>(), deps.identity.signInCalls)
     }
 
     @Test

@@ -46,10 +46,13 @@ private val V2History = listOf(
     HistoryDay(
         "2026-11-04",
         "Yesterday",
-        listOf(HistoryDay.GameResult("Zip", V2Zip, "0:42"), HistoryDay.GameResult("Tango", V2Tango, "1:18")),
+        listOf(
+            HistoryDay.GameResult(GameId("zip"), "Zip", V2Zip, HistoryDay.Outcome.Solved(42_000L, 0)),
+            HistoryDay.GameResult(GameId("tango"), "Tango", V2Tango, HistoryDay.Outcome.Solved(78_000L, 0)),
+        ),
     ),
-    HistoryDay("2026-11-03", "Mon, Nov 3", listOf(HistoryDay.GameResult("Queens", V2Queens, "2:05"))),
-    HistoryDay("2026-11-02", "Sun, Nov 2", listOf(HistoryDay.GameResult("Zip", V2Zip, null))),
+    HistoryDay("2026-11-03", "Mon, Nov 3", listOf(HistoryDay.GameResult(GameId("queens"), "Queens", V2Queens, HistoryDay.Outcome.Solved(125_000L, 0)))),
+    HistoryDay("2026-11-02", "Sun, Nov 2", listOf(HistoryDay.GameResult(GameId("zip"), "Zip", V2Zip, HistoryDay.Outcome.Opened))),
 )
 
 private val V2State = HomeUiState(

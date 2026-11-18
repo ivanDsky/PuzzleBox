@@ -52,8 +52,8 @@ import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
-private val PaneVertical = 40.dp
-private val PaneHorizontal = 48.dp
+internal val PaneVertical = 40.dp
+internal val PaneHorizontal = 48.dp
 private val FlameSize = 44.dp
 private val FlameLift = 10.dp
 private val PaneRing = 64.dp

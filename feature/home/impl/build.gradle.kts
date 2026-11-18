@@ -16,6 +16,7 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(projects.core.auth)
     implementation(projects.core.data)
     // HomeViewModel resolves per-game names against the app's GameRegistry.
     implementation(projects.core.game)

@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextAlign
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
@@ -128,7 +129,7 @@ private fun RecentRowContent(day: HistoryDay) {
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs),
             ) {
-                day.games.forEach { ResultChip(it) }
+                day.played.forEach { ResultChip(it) }
             }
         }
         Icon(
@@ -159,4 +160,5 @@ private fun ResultChip(game: HistoryDay.GameResult) {
 }
 
 /** The game's solve time, or "–" when it was opened but not solved. */
-internal val HistoryDay.GameResult.resultText: String get() = time ?: "–"
+internal val HistoryDay.GameResult.resultText: String
+    get() = (outcome as? HistoryDay.Outcome.Solved)?.let { formatDuration(it.timeMs) } ?: "–"

@@ -20,7 +20,6 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.height
 import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.home.HomeScreenTest.Companion.TODAY
 import com.ivandsky.puzzlebox.home.HomeScreenTest.Companion.state
 import com.ivandsky.puzzlebox.model.GameId
@@ -66,7 +65,7 @@ class HomeScreenRecentTest {
     fun `tapping a recent day swaps the pane to that day and away from the stats`() {
         setContent(
             HomeLayout.TwoPane,
-            history = listOf(HistoryDay("2026-11-03", "November 3", listOf(HistoryDay.GameResult("Zip", GameBrand.Neutral, "0:42")))),
+            history = listOf(HistoryDay("2026-11-03", "November 3", listOf(solvedZip()))),
         )
 
         composeRule.onNodeWithTag("home.history_row_2026-11-03").performScrollTo().performClick()
@@ -79,7 +78,7 @@ class HomeScreenRecentTest {
     fun `tapping the selected recent row again clears the pick and restores the streak pane`() {
         setContent(
             HomeLayout.TwoPane,
-            history = listOf(HistoryDay("2026-11-03", "November 3", listOf(HistoryDay.GameResult("Zip", GameBrand.Neutral, "0:42")))),
+            history = listOf(HistoryDay("2026-11-03", "November 3", listOf(solvedZip()))),
         )
         composeRule.onNodeWithTag("home.history_row_2026-11-03").performScrollTo().performClick()
         composeRule.onNodeWithTag("home.day_detail").assertExists()
@@ -103,7 +102,7 @@ class HomeScreenRecentTest {
     fun `history rows render a formatted headline per day`() {
         setContent(
             HomeLayout.TwoPane,
-            history = listOf(HistoryDay("2026-10-30", "October 30", listOf(HistoryDay.GameResult("Zip", GameBrand.Neutral, "0:42")))),
+            history = listOf(HistoryDay("2026-10-30", "October 30", listOf(solvedZip()))),
         )
 
         composeRule.onNodeWithText("October 30").assertExists()
@@ -147,7 +146,7 @@ class HomeScreenRecentTest {
 
     @Test
     fun `selecting a two-game day on two pane selects exactly that row`() {
-        val twoGames = listOf(HistoryDay.GameResult("Zip", GameBrand.Neutral, "0:42"), HistoryDay.GameResult("Tango", GameBrand.Neutral, null))
+        val twoGames = listOf(solvedZip(), openedTango())
         setContent(
             HomeLayout.TwoPane,
             history = listOf(
@@ -165,7 +164,7 @@ class HomeScreenRecentTest {
 
     @Test
     fun `phone keeps recent days beside today and the streak`() {
-        val day = HistoryDay("2026-11-03", "November 3", listOf(HistoryDay.GameResult("Zip", GameBrand.Neutral, "0:42")))
+        val day = HistoryDay("2026-11-03", "November 3", listOf(solvedZip()))
         setContent(HomeLayout.SinglePane, history = listOf(day))
 
         composeRule.onNodeWithTag("home.history_row_2026-11-03").assertExists()
@@ -175,7 +174,7 @@ class HomeScreenRecentTest {
 
     @Test
     fun `tablet shows a tapped day's detail`() {
-        val day = HistoryDay("2026-11-03", "November 3", listOf(HistoryDay.GameResult("Zip", GameBrand.Neutral, "0:42")))
+        val day = HistoryDay("2026-11-03", "November 3", listOf(solvedZip()))
         setContent(HomeLayout.TwoPane, history = listOf(day))
 
         composeRule.onNodeWithTag("home.streak_pane").assertExists()
