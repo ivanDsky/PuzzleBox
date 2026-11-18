@@ -5,9 +5,12 @@ import com.ivandsky.puzzlebox.compete.create.MINI
 import com.ivandsky.puzzlebox.compete.create.QUEENS
 import com.ivandsky.puzzlebox.compete.create.TANGO
 import com.ivandsky.puzzlebox.compete.create.ZIP
+import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.domain.lineup.AnyGame
+import com.ivandsky.puzzlebox.domain.lineup.ExactPuzzle
 import com.ivandsky.puzzlebox.model.GameId
+import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
@@ -24,6 +27,29 @@ class LineupDraftTest {
         assertEquals(draftOf(listOf(ZIP, TANGO, QUEENS)), LineupDraft.opening(GAMES))
         assertEquals(draftOf(listOf(ZIP, MINI, ZIP)), LineupDraft.opening(GAMES.filter { it.id == ZIP || it.id == MINI }))
         assertTrue(LineupDraft.opening(emptyList()).entries.isEmpty())
+    }
+
+    @Test
+    fun `today is one exact row per unsolved numbered game, in order, and only those rows are today's`() {
+        val day = LocalDate.of(2026, 11, 9)
+        val games = listOf(
+            GAMES[0].copy(todayNumber = 12, todayDay = day),
+            GAMES[1].copy(todayNumber = 3, todayDay = day, solvedToday = true),
+            GAMES[2].copy(todayNumber = null, todayDay = day),
+            GAMES[3].copy(todayNumber = 9, todayDay = day),
+        )
+
+        val today = LineupDraft.today(games)
+
+        assertEquals(
+            listOf("Zip #12", "Mini Sudoku #9"),
+            today.entries.map { (it as ExactPuzzle).title },
+        )
+        assertEquals(LegRef.Daily(ZIP, day, 12), (today.entries[0] as ExactPuzzle).ref)
+        assertTrue(today.isToday)
+        assertFalse(today.added(AnyGame(ZIP)).isToday)
+        assertFalse(LineupDraft(emptyList()).isToday)
+        assertTrue(LineupDraft.today(GAMES).entries.isEmpty())
     }
 
     @Test

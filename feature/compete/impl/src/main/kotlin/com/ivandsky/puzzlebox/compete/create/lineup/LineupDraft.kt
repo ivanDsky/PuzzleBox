@@ -1,9 +1,12 @@
 package com.ivandsky.puzzlebox.compete.create.lineup
 
 import com.ivandsky.puzzlebox.compete.create.DuelGame
+import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.domain.lineup.AnyGame
+import com.ivandsky.puzzlebox.domain.lineup.ExactPuzzle
 import com.ivandsky.puzzlebox.domain.lineup.LineupEntry
+import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
 
 /** The ordered puzzles of a duel being built: one to [Match.MAX_LEGS]. Pure; every edit returns a new draft, and one that can't apply returns this. */
 internal data class LineupDraft(val entries: List<LineupEntry>) {
@@ -27,9 +30,21 @@ internal data class LineupDraft(val entries: List<LineupEntry>) {
         return copy(entries = entries.toMutableList().apply { add(to, removeAt(from)) })
     }
 
+    /** Every row is today's puzzle of its game: the rows of the Daily duel, which neither Add nor a change may touch. */
+    val isToday: Boolean get() = entries.isNotEmpty() && entries.all { it is ExactPuzzle && it.ref is LegRef.Daily && it.source == PuzzleSource.PastDay }
+
     companion object {
         const val MIN_ENTRIES = 1
         const val OPENING_ENTRIES = 3
+
+        /** Today's puzzle of each of [available] the player hasn't solved, one row each in order; empty when none is numbered. */
+        fun today(available: List<DuelGame>): LineupDraft = LineupDraft(
+            available.filterNot { it.solvedToday }.mapNotNull { game ->
+                val day = game.todayDay ?: return@mapNotNull null
+                val number = game.todayNumber ?: return@mapNotNull null
+                ExactPuzzle(LegRef.Daily(game.id, day, number), authorUid = null, title = "${game.name} #$number", author = null, source = PuzzleSource.PastDay)
+            }.take(Match.MAX_LEGS),
+        )
 
         /** What Quick draws, as rows: three "Any", one per game in turn; empty until [available] is known. */
         fun opening(available: List<DuelGame>): LineupDraft =

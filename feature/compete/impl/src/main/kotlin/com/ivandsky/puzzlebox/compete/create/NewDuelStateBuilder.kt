@@ -23,7 +23,7 @@ internal class NewDuelStateBuilder(
             summary = when {
                 opponent == Opponent.PastYou -> self.summary
                 // The draft, not what Create sends: after a failed try that is the drawn puzzles, which have no names.
-                lineup != null && work.draft.preset == DuelPreset.Custom -> lineupSummary(
+                lineup != null && (work.draft.preset == DuelPreset.Custom || work.draft.showsRows(lineup)) -> lineupSummary(
                     lineup.draft.entries, work.draft.deadlineHours, work.draft.includeFriends, clock(), zone(), locale(),
                 ) { id -> available.firstOrNull { it.id == id }?.name ?: id.value }
                 else -> work.draft.summary(clock(), zone(), available, locale())

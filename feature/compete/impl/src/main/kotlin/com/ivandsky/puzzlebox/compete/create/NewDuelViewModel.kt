@@ -77,10 +77,12 @@ internal class NewDuelViewModel(
 
     private val games: StateFlow<List<DuelGame>> = todaySet().map { entries ->
         entries.map { entry ->
+            val today = calendar.today(entry.game)
             DuelGame(
                 id = entry.game,
                 name = entry.displayName,
-                todayNumber = calendar.today(entry.game)?.let { daily.puzzleNumber(entry.game, it) },
+                todayNumber = today?.let { daily.puzzleNumber(entry.game, it) },
+                todayDay = today,
                 solvedToday = entry.status is TodayStatus.Solved,
                 hintsFirst = registry.rankOrderOf(entry.game) == RankOrder.HintsThenTime,
             )
@@ -129,13 +131,23 @@ internal class NewDuelViewModel(
         }
     }
 
+    private fun lineupEnabled() = releaseFlags?.isEnabled(ReleaseFlag.DuelLineup) == true
+
     private fun selfActive(work: DuelWorking) = work.opponent == Opponent.PastYou && work.challenge == null
 
     /** Past you or a friend: the choice is kept apart, so each keeps its own draft while the other is shown. */
     fun chooseOpponent(opponent: Opponent) = working.update { it.withoutNotice().copy(opponent = opponent) }
 
     fun chooseQuick() = edit(friend = { DuelDraft.quick(games.value) }, self = { SelfDuelForm.quick(games.value) })
-    fun chooseDaily() = edit(friend = { DuelDraft.daily(games.value) })
+
+    /** Daily, with the lineup on, shows today's puzzles as rows; coming from Customize with such rows keeps them (A13), any other rows are replaced. */
+    fun chooseDaily() {
+        val today = if (lineupEnabled()) LineupDraft.today(games.value) else LineupDraft(emptyList())
+        edit(friend = { DuelDraft.daily(games.value) }, lineup = { rows, from ->
+            val keep = from.preset == DuelPreset.Custom && rows.draft.isToday
+            if (today.entries.isEmpty() || keep) rows.unpinned() else rows.unpinned().copy(draft = today)
+        })
+    }
     fun setCount(count: Int) = edit(friend = { it.withCount(count) }, self = { it.withCount(count) })
     fun toggle(game: DuelGame) = edit(friend = { it.toggled(game) }, self = { it.toggled(game.id) })
     fun setDeadline(hours: Int) = edit(friend = { it.withDeadline(hours) })
@@ -148,7 +160,8 @@ internal class NewDuelViewModel(
     fun editLineup(edit: (LineupEditor) -> LineupEditor) = working.update {
         val cleared = if (it.notice is DuelNotice.EntryUndrawable) it.withoutNotice() else it
         val next = edit(cleared.lineup)
-        if (next == cleared.lineup) it else cleared.copy(lineup = next, draft = it.draft.customized())
+        // Daily's rows can be reordered and removed without leaving Daily.
+        if (next == cleared.lineup) it else cleared.copy(lineup = next, draft = if (it.draft.preset == DuelPreset.Daily) it.draft else it.draft.customized())
     }
 
     /**
@@ -170,11 +183,15 @@ internal class NewDuelViewModel(
      * Applies the edit that belongs to the opponent on show; one the Past you form has no use for (Daily, deadline) is dropped.
      * A friend duel's edit also drops the puzzles a failed Create drew, since it may change what a draw gives.
      */
-    private fun edit(friend: (DuelDraft) -> DuelDraft, self: (SelfDuelForm) -> SelfDuelForm = { it }) = working.update {
+    private fun edit(
+        friend: (DuelDraft) -> DuelDraft,
+        self: (SelfDuelForm) -> SelfDuelForm = { it },
+        lineup: (LineupEditor, DuelDraft) -> LineupEditor = { rows, _ -> rows.unpinned() },
+    ) = working.update {
         if (selfActive(it)) {
             it.withoutNotice().copy(form = self(it.form))
         } else {
-            it.withoutNotice().let { cleared -> cleared.copy(draft = friend(it.draft), lineup = cleared.lineup.unpinned()) }
+            it.withoutNotice().let { cleared -> cleared.copy(draft = friend(it.draft), lineup = lineup(cleared.lineup, it.draft)) }
         }
     }
 
@@ -193,7 +210,7 @@ internal class NewDuelViewModel(
         if (selfActive(start)) return createSelf(start)
         if (start.draft.games.isEmpty()) return
         // Lineup on, Customize chosen: the lineup's puzzles in order, or the ones a failed try drew when this is a retry.
-        val lineup = start.lineup.takeIf { releaseFlags?.isEnabled(ReleaseFlag.DuelLineup) == true && start.draft.preset == DuelPreset.Custom }
+        val lineup = start.lineup.takeIf { lineupEnabled() && (start.draft.preset == DuelPreset.Custom || start.draft.showsRows(start.lineup)) }
         viewModelScope.launch {
             val outcome = createMatch(start.draft.toSettings(lineup?.entries), invitedUid = start.challenge?.friendUid) { legs ->
                 if (lineup != null) working.update { if (it.generation == start.generation) it.copy(lineup = it.lineup.pin(legs)) else it }

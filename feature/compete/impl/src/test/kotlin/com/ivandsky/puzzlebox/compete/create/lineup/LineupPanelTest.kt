@@ -32,6 +32,7 @@ import com.ivandsky.puzzlebox.compete.create.newDuelBrands
 import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.lineup.AnyGame
+import com.ivandsky.puzzlebox.domain.lineup.LineupEntry
 import java.time.Instant
 import java.time.ZoneOffset
 import java.util.Locale
@@ -95,6 +96,28 @@ class LineupPanelTest {
         rule.onNodeWithTag("duel.lineup.header").assertTextEquals("Puzzles, in order · 3 of 10")
         rule.onNodeWithTag("duel.lineup.add").assertExists()
         rule.onNodeWithTag("duel.lineup.max").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a fixed panel, the Daily duel's, shows its rows with no Add row, and the last row cannot be removed`() {
+        var editor by mutableStateOf(LineupEditor(LineupDraft(listOf(AnyGame(ZIP), AnyGame(QUEENS)))))
+        rule.setContent {
+            PuzzleBoxTheme {
+                LineupPanel(editor, GAMES, includeFriends = false, onEdit = { edit -> editor = edit(editor) }, fixed = true)
+            }
+        }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("duel.lineup.row.2", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("duel.lineup.add").assertDoesNotExist()
+        rule.onNodeWithTag("duel.lineup.max").assertDoesNotExist()
+        rule.onNodeWithTag("duel.lineup.row.1").performClick()
+        assertEquals(null, editor.target)
+
+        rule.onNodeWithTag("duel.lineup.remove.1").performClick()
+        rule.waitForIdle()
+        assertEquals(listOf<LineupEntry>(AnyGame(QUEENS)), editor.draft.entries)
+        rule.onNodeWithTag("duel.lineup.remove.1").assertIsNotEnabled()
     }
 
     @Test
