@@ -119,7 +119,7 @@ class ZipEditorWallsTest {
     }
 
     @Test
-    fun `the band reaches 0·35 of a cell from the line but not 0·42`() {
+    fun `the band reaches 0 point 35 of a cell from the line but not 0 point 42`() {
         val controller = show()
         tapRight(7, off = 0.42f)
         assertTrue(controller.shown.value.walls.isEmpty())

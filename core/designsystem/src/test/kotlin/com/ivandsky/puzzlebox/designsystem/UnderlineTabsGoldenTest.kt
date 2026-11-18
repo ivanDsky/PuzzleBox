@@ -65,16 +65,16 @@ class UnderlineTabsGoldenTest {
     fun `four tabs with counts and the Duels badge in the dark theme`() = capture("UnderlineTabs_four_badge_dark", dark = true) { FourBadgeTabsSample() }
 
     @Test
-    fun `three tabs with counts at 320dp and font scale 1·3`() = capture("UnderlineTabs_three_counts_320_font13", dark = false, widthDp = 320, fontScale = 1.3f) { ThreeCountsTabsSample() }
+    fun `three tabs with counts at 320dp and font scale 1 point 3`() = capture("UnderlineTabs_three_counts_320_font13", dark = false, widthDp = 320, fontScale = 1.3f) { ThreeCountsTabsSample() }
 
     @Test
-    fun `three tabs with counts at 320dp and font scale 1·3 in the dark theme`() = capture("UnderlineTabs_three_counts_320_font13_dark", dark = true, widthDp = 320, fontScale = 1.3f) { ThreeCountsTabsSample() }
+    fun `three tabs with counts at 320dp and font scale 1 point 3 in the dark theme`() = capture("UnderlineTabs_three_counts_320_font13_dark", dark = true, widthDp = 320, fontScale = 1.3f) { ThreeCountsTabsSample() }
 
     @Test
-    fun `four tabs with the badge at 320dp and font scale 1·3`() = capture("UnderlineTabs_four_badge_320_font13", dark = false, widthDp = 320, fontScale = 1.3f) { FourBadgeTabsSample() }
+    fun `four tabs with the badge at 320dp and font scale 1 point 3`() = capture("UnderlineTabs_four_badge_320_font13", dark = false, widthDp = 320, fontScale = 1.3f) { FourBadgeTabsSample() }
 
     @Test
-    fun `four tabs with the badge at 320dp and font scale 1·3 in the dark theme`() = capture("UnderlineTabs_four_badge_320_font13_dark", dark = true, widthDp = 320, fontScale = 1.3f) { FourBadgeTabsSample() }
+    fun `four tabs with the badge at 320dp and font scale 1 point 3 in the dark theme`() = capture("UnderlineTabs_four_badge_320_font13_dark", dark = true, widthDp = 320, fontScale = 1.3f) { FourBadgeTabsSample() }
 
     private fun capture(name: String, dark: Boolean, widthDp: Int = 360, fontScale: Float = 1f, content: @Composable () -> Unit) {
         val context = ApplicationProvider.getApplicationContext<Context>()
