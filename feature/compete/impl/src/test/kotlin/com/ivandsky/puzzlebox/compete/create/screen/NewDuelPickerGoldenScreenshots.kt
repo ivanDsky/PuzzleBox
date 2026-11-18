@@ -52,7 +52,7 @@ private const val GOLDEN_PHONE = "w411dp-h891dp-420dpi"
 private const val GOLDEN_TABLET = "w1280dp-h800dp-mdpi"
 private const val SETTLE_MS = 2_000L
 
-/** The Add puzzle page of the New duel screen, for a friend and for Past you, phone and tablet. Golden in `snapshots/new-duel-picker/`. */
+/** The Add puzzle page of the New duel screen, for a friend and for Past you: the page swap on the phone, beside the form on the tablet. Golden in `snapshots/new-duel-picker/`. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = GOLDEN_PHONE)
@@ -87,10 +87,11 @@ class NewDuelPickerGoldenScreenshots {
 
     private fun golden(name: String, state: NewDuelState, tablet: Boolean, dark: Boolean, filters: Boolean = false) {
         rule.showGolden(dark) {
-            NewDuelScreen(state, NO_ACTIONS, onBack = {}, pane = tablet) { picker ->
+            NewDuelScreen(state, NO_ACTIONS, onBack = {}, pane = tablet) { picker, onClose ->
                 PuzzlePickerPage(
                     picker = picker,
                     onPick = {},
+                    onClose = onClose,
                     viewModel = if (picker.pastYou) koinViewModel<AddPuzzleViewModel>(qualifier = PAST_YOU_PICKER) else koinViewModel<AddPuzzleViewModel>(),
                 )
             }

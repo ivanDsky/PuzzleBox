@@ -49,10 +49,11 @@ internal fun NewDuelHost(
             pastYouSearch.reset()
         }
     }
-    NewDuelScreen(state, actions, onBack = onClose, modifier = modifier, pane = pane) { picker ->
+    NewDuelScreen(state, actions, onBack = onClose, modifier = modifier, pane = pane) { picker, onClosePicker ->
         PuzzlePickerPage(
             picker = picker,
             onPick = { entry -> actions.onEditLineup { it.pick(entry) } },
+            onClose = onClosePicker,
             viewModel = if (picker.pastYou) pastYouSearch else friendSearch,
         )
     }

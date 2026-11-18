@@ -84,9 +84,10 @@ class NewDuelScreenPickerTest {
 
     @Composable
     private fun Screen(pane: Boolean = false) = PuzzleBoxTheme {
-        NewDuelScreen(state, actions, onBack = { backs++ }, pane = pane, picker = { m ->
+        NewDuelScreen(state, actions, onBack = { backs++ }, pane = pane, picker = { m, onClose ->
             PuzzlePickerPage(
                 picker = m,
+                onClose = onClose,
                 onPick = { entry -> state = state.copy(lineup = state.lineup.pick(entry)) },
                 viewModel = if (m.pastYou) koinViewModel<AddPuzzleViewModel>(qualifier = PAST_YOU_PICKER) else koinViewModel<AddPuzzleViewModel>(),
             )
@@ -274,8 +275,8 @@ class NewDuelScreenPickerTest {
     }
 
     @Test
-    @Config(qualifiers = "w1280dp-h800dp-mdpi")
-    fun `on a wide window the page stops at 640 dp and sits in the middle`() {
+    @Config(qualifiers = "w800dp-h800dp-mdpi")
+    fun `on a window under 840 dp the page stops at 640 dp and sits in the middle`() {
         show()
         openAdd()
 
