@@ -26,3 +26,9 @@ internal fun ComposeTestRule.assertTouchTargetsAtLeast48() {
     }
     assertTrue("touch targets under 48 dp: $small", small.isEmpty())
 }
+
+/** Plays a device set to the 24-hour clock; Robolectric resets the setting with each test. */
+internal fun use24HourClock() {
+    val resolver = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>().contentResolver
+    android.provider.Settings.System.putString(resolver, android.provider.Settings.System.TIME_12_24, "24")
+}
