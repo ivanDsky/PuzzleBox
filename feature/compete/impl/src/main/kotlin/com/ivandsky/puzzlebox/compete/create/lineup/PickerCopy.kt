@@ -32,11 +32,16 @@ private val PickerQuery.filtered: Boolean get() = fresh.isNotEmpty() || sources.
 private val PickerQuery.narrowed: Boolean get() = text.isNotBlank() || filtered
 
 /** The line over the results: how many match once the player narrowed them, else what the order is. */
-internal fun resultsLine(query: PickerQuery, count: Int): String = if (query.narrowed) "$count found" else "Newest first"
+internal fun resultsLine(query: PickerQuery, count: Int, pastYou: Boolean = false): String = when {
+    query.narrowed -> "$count found"
+    pastYou -> "Recently solved first"
+    else -> "Newest first"
+}
 
-/** What an empty result says, naming the text and whether chips are narrowing it. */
-internal fun emptyLine(query: PickerQuery): String {
+/** What an empty result says, naming the text and whether chips are narrowing it; Past you's says why it is only what was solved, since a code can't add to it. */
+internal fun emptyLine(query: PickerQuery, pastYou: Boolean = false): String {
+    if (!query.narrowed) return if (pastYou) "You haven't solved any puzzles yet." else "No puzzles to pick from yet."
     val text = query.text.trim()
     val what = if (text.isEmpty()) "Nothing matches these filters" else "Nothing matches \"$text\"" + if (query.filtered) " with these filters" else ""
-    return if (query.narrowed) "$what. Try a code, or clear the filters." else "No puzzles to pick from yet."
+    return if (pastYou) "$what. Past you only has puzzles you've solved." else "$what. Try a code, or clear the filters."
 }

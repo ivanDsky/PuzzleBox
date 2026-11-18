@@ -45,12 +45,12 @@ private val RESULTS_MAX_HEIGHT = 420.dp
 @Composable
 internal fun ExactPuzzleFilters(games: List<DuelGame>, viewModel: AddPuzzleViewModel, modifier: Modifier = Modifier) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    PickerFilters(state.query, games, viewModel, modifier)
+    PickerFilters(state.query, games, viewModel, modifier, pastYou = state.pastYou)
 }
 
 /**
  * "Or one exact puzzle": a field that searches name, author and code, chips that narrow it (unless [filtersInline] is false,
- * and [ExactPuzzleFilters] draws them elsewhere), and the puzzles that pass, newest first. [added] is what the lineup already
+ * and [ExactPuzzleFilters] draws them elsewhere), and the puzzles that pass, newest first (Past you's: the ones solved last first). [added] is what the lineup already
  * holds; Add calls [onAdd] with the puzzle. The query lives in [viewModel], so the field, the rows and the chips all survive a
  * rotation; the panel clears it when the sheet closes.
  */
@@ -88,7 +88,7 @@ internal fun ExactPuzzleSearch(
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { viewModel.lookUp() }),
         )
-        if (filtersInline) PickerFilters(state.query, games, viewModel)
+        if (filtersInline) PickerFilters(state.query, games, viewModel, pastYou = state.pastYou)
         if (state.offline && state.lookup != OFFLINE_NOTE) {
             Text(OFFLINE_NOTE, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("duel.lineup.offline"))
         }
@@ -102,10 +102,10 @@ internal fun ExactPuzzleSearch(
             if (state.rows.isEmpty()) {
                 // A lookup's own line says why there is nothing, better than "Nothing matches".
                 if (state.lookup == null) {
-                    Text(emptyLine(state.query), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.testTag("duel.lineup.empty"))
+                    Text(emptyLine(state.query, state.pastYou), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.testTag("duel.lineup.empty"))
                 }
             } else {
-                Text(resultsLine(state.query, state.rows.size), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.testTag("duel.lineup.count"))
+                Text(resultsLine(state.query, state.rows.size, state.pastYou), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.testTag("duel.lineup.count"))
                 val listState = rememberLazyListState()
                 // Only once the player has scrolled, so a list that fits never pulls pages the player did not ask for.
                 LaunchedEffect(listState, viewModel) {

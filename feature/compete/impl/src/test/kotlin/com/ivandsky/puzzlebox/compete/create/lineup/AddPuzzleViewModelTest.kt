@@ -3,10 +3,15 @@ package com.ivandsky.puzzlebox.compete.create.lineup
 import com.ivandsky.puzzlebox.compete.create.QUEENS
 import com.ivandsky.puzzlebox.compete.create.TANGO
 import com.ivandsky.puzzlebox.domain.lineup.Freshness
+import com.ivandsky.puzzlebox.domain.lineup.PickablePuzzle
 import com.ivandsky.puzzlebox.domain.lineup.PickerResult
 import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.TestScope
@@ -129,5 +134,76 @@ class AddPuzzleViewModelTest {
         watch(vm)
 
         assertTrue(vm.state.value.offline)
+    }
+
+    private fun pastYou(solved: Flow<List<PickablePuzzle>>) = AddPuzzleViewModel(
+        observe = { queries, _ -> solved.flatMapLatest { rows -> pickerOf(rows)(queries, flowOf(1)) } },
+        lookup = null,
+        pastYou = true,
+    )
+
+    @Test
+    fun `a Past you search lists what was solved in the order given and narrows it by text, source and game, with no lookup`() = watching {
+        val vm = pastYou(flowOf(SOLVED_ROWS))
+        watch(vm)
+
+        assertTrue(vm.state.value.pastYou)
+        assertEquals(listOf("Zip #12", "Crown Tango", "Queens #9"), titles(vm))
+
+        vm.setText("bo")
+        assertEquals(listOf("Crown Tango"), titles(vm))
+        vm.setText("K7Q2MX")
+        assertEquals(listOf("Crown Tango"), titles(vm))
+        vm.setText("")
+        vm.toggle(PuzzleSource.PastDay)
+        assertEquals(listOf("Zip #12", "Queens #9"), titles(vm))
+        vm.toggle(PuzzleSource.PastDay)
+        vm.toggle(PuzzleSource.Friend)
+        assertEquals(listOf("Crown Tango"), titles(vm))
+        vm.toggle(PuzzleSource.Friend)
+        vm.toggle(QUEENS)
+        assertEquals(listOf("Queens #9"), titles(vm))
+        assertEquals(null, vm.state.value.lookup)
+    }
+
+    @Test
+    fun `a pasted code that is not a solved row leaves only the empty list, no Looking up and no Retry`() = watching {
+        val vm = pastYou(flowOf(SOLVED_ROWS))
+        watch(vm)
+
+        vm.setText("ZZ9-QQ2")
+        vm.paste("ZZ9QQ2")
+        vm.lookUp()
+
+        assertEquals(emptyList<String>(), titles(vm))
+        assertEquals(null, vm.state.value.lookup)
+        assertFalse(vm.state.value.canRetry)
+        assertTrue(vm.state.value.loaded)
+    }
+
+    @Test
+    fun `a puzzle solved while the sheet is open shows up without reopening`() = watching {
+        val solved = MutableStateFlow(listOf(FRIEND_TANGO))
+        val vm = pastYou(solved)
+        watch(vm)
+        assertEquals(listOf("Crown Tango"), titles(vm))
+
+        solved.value = listOf(ZIP_DAILY, FRIEND_TANGO)
+
+        assertEquals(listOf("Zip #12", "Crown Tango"), titles(vm))
+    }
+
+    @Test
+    fun `the friend search is not a Past you one, and each keeps its own text`() = watching {
+        val friend = AddPuzzleViewModel(pickerOf(rows), NO_LOOKUP)
+        val past = pastYou(flowOf(SOLVED_ROWS))
+        watch(friend)
+        watch(past)
+
+        past.setText("zip")
+
+        assertFalse(friend.state.value.pastYou)
+        assertEquals("", friend.state.value.query.text)
+        assertEquals(listOf("Zip #12"), titles(past))
     }
 }

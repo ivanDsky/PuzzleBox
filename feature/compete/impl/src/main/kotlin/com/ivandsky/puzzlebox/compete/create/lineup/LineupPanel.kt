@@ -45,7 +45,7 @@ private val DASH = floatArrayOf(16f, 12f)
  * The Customize panel's puzzles: "Puzzles, in order · N of 10", one row per puzzle, then the dashed Add row, which at
  * the limit says so instead. Every change goes through [onEdit] as the edit to apply to the [editor]; the add sheet shows
  * while the editor has a target. A [fixed] panel is the Daily duel's: its rows can be reordered and removed, but not changed, and nothing can be added.
- * The [audience] says whose puzzles an "Any" row draws from: a friend duel's, or, for Past you, what the player has solved, which the sheet counts and which has no exact-puzzle search.
+ * The [audience] says whose puzzles an "Any" row draws from and which exact-puzzle search the sheet holds: a friend duel's, or, for Past you, what the player has solved, which the sheet counts and searches on the device.
  */
 @Composable
 internal fun LineupPanel(
@@ -58,8 +58,8 @@ internal fun LineupPanel(
     audience: LineupAudience = LineupAudience.Friend,
 ) {
     val registry = koinInject<GamePlayRegistry>()
-    // Past you's rows are all "Any", so it has no exact-puzzle search to hold.
-    val search = if (audience is LineupAudience.Friend) koinViewModel<AddPuzzleViewModel>() else null
+    // Both searches live in this owner; the qualifier keeps Past you's from sharing the friend's text and rows.
+    val search = if (audience is LineupAudience.PastYou) koinViewModel<AddPuzzleViewModel>(qualifier = PAST_YOU_PICKER) else koinViewModel<AddPuzzleViewModel>()
     val pastYou = audience as? LineupAudience.PastYou
     val draft = editor.draft
     val edit by rememberUpdatedState(onEdit)
@@ -67,7 +67,7 @@ internal fun LineupPanel(
     val gap = with(LocalDensity.current) { ROW_GAP.toPx() }
     var drag by remember { mutableStateOf<ActiveDrag?>(null) }
     val landed = drag?.let { it.dropped && (draft != it.base || it.reorder.target == it.reorder.lifted) } == true
-    LaunchedEffect(editor.target == null) { if (editor.target == null) search?.reset() }
+    LaunchedEffect(editor.target == null) { if (editor.target == null) search.reset() }
     LaunchedEffect(editor.flashed, draft) {
         if (editor.flashed != null) {
             delay(FLASH_MS)
@@ -118,7 +118,7 @@ internal fun LineupPanel(
             if (draft.canAdd) {
                 AddRow(
                     position = draft.size + 1,
-                    subtitle = if (pastYou != null) "Any solved puzzle of a game" else "A game, or an exact puzzle by name or code",
+                    subtitle = if (pastYou != null) "A game, or a puzzle you've solved" else "A game, or an exact puzzle by name or code",
                     onClick = { edit { it.openAdd() } },
                 )
             } else {
@@ -139,11 +139,9 @@ internal fun LineupPanel(
             onPickGame = { game -> edit { it.pick(AnyGame(game)) } },
             onDismiss = { edit { it.dismiss() } },
             solved = pastYou?.solved,
-            filters = { if (search != null) ExactPuzzleFilters(games, search) },
-            exactPuzzles = search?.let { held ->
-                @Composable { filtersInline: Boolean ->
-                    ExactPuzzleSearch(games, draft.entries.filterIsInstance<ExactPuzzle>().mapTo(HashSet()) { it.ref }, onAdd = { puzzle -> edit { it.pick(puzzle) } }, viewModel = held, filtersInline = filtersInline)
-                }
+            filters = { ExactPuzzleFilters(games, search) },
+            exactPuzzles = { filtersInline ->
+                ExactPuzzleSearch(games, draft.entries.filterIsInstance<ExactPuzzle>().mapTo(HashSet()) { it.ref }, onAdd = { puzzle -> edit { it.pick(puzzle) } }, viewModel = search, filtersInline = filtersInline)
             },
         )
     }

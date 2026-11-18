@@ -16,8 +16,9 @@ import com.ivandsky.puzzlebox.domain.lineup.PickerQuery
 import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
 
 /**
- * The three chip groups of the exact-puzzle search, each a row of chips of one shape: New and Not played; where the
- * puzzle is from; and the games. Tapping a chip toggles it; the groups combine as the [query] says.
+ * The chip groups of the exact-puzzle search, each a row of chips of one shape: New and Not played; where the
+ * puzzle is from; and the games. Tapping a chip toggles it; the groups combine as the [query] says. For [pastYou] every
+ * puzzle is one the player solved, so New, Not played, Community and Mine have nothing to tell apart: only Past days and From friends, then the games.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -26,17 +27,25 @@ internal fun PickerFilters(
     games: List<DuelGame>,
     viewModel: AddPuzzleViewModel,
     modifier: Modifier = Modifier,
+    pastYou: Boolean = false,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        ChipRow {
-            Chip("New", "new", Freshness.New in query.fresh) { viewModel.toggle(Freshness.New) }
-            Chip("Not played", "notplayed", Freshness.NotPlayed in query.fresh) { viewModel.toggle(Freshness.NotPlayed) }
-        }
-        ChipRow {
-            Chip("Community", "community", PuzzleSource.Community in query.sources) { viewModel.toggle(PuzzleSource.Community) }
-            Chip("From friends", "friends", PuzzleSource.Friend in query.sources) { viewModel.toggle(PuzzleSource.Friend) }
-            Chip("Past days", "pastdays", PuzzleSource.PastDay in query.sources) { viewModel.toggle(PuzzleSource.PastDay) }
-            Chip("Mine", "mine", PuzzleSource.Mine in query.sources) { viewModel.toggle(PuzzleSource.Mine) }
+        if (pastYou) {
+            ChipRow {
+                Chip("Past days", "pastdays", PuzzleSource.PastDay in query.sources) { viewModel.toggle(PuzzleSource.PastDay) }
+                Chip("From friends", "friends", PuzzleSource.Friend in query.sources) { viewModel.toggle(PuzzleSource.Friend) }
+            }
+        } else {
+            ChipRow {
+                Chip("New", "new", Freshness.New in query.fresh) { viewModel.toggle(Freshness.New) }
+                Chip("Not played", "notplayed", Freshness.NotPlayed in query.fresh) { viewModel.toggle(Freshness.NotPlayed) }
+            }
+            ChipRow {
+                Chip("Community", "community", PuzzleSource.Community in query.sources) { viewModel.toggle(PuzzleSource.Community) }
+                Chip("From friends", "friends", PuzzleSource.Friend in query.sources) { viewModel.toggle(PuzzleSource.Friend) }
+                Chip("Past days", "pastdays", PuzzleSource.PastDay in query.sources) { viewModel.toggle(PuzzleSource.PastDay) }
+                Chip("Mine", "mine", PuzzleSource.Mine in query.sources) { viewModel.toggle(PuzzleSource.Mine) }
+            }
         }
         ChipRow {
             games.forEach { game -> Chip(game.name, "game.${game.id.value}", game.id in query.games) { viewModel.toggle(game.id) } }
