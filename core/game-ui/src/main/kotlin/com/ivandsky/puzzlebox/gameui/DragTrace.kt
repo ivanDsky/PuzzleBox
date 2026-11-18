@@ -57,8 +57,8 @@ fun interface DragTraceHooks {
  *   cells extend, everything else is reported Refused. The drawn path is a wall: dragging
  *   onto the cell before the tail steps back one cell ([DragEvent.Retract]), the only way
  *   onto the line, and every other traced cell is refused — never cut back to, crossed or
- *   picked up. Cells take effect by the finger's catch shape, not their bare rect
- *   ([DragTraceStroke]). Releasing keeps the trace exactly as drawn; no event fires on
+ *   picked up. The line steers by where the finger is relative to its end, not by
+ *   which cell it is over ([DragTraceStroke]). Releasing keeps the trace exactly as drawn; no event fires on
  *   release.
  * - **Tap retracts.** Down+up within the touch slop on a traced cell trims the path back
  *   through it ([DragEvent.Retract]); on the first traced cell it empties the trace to
