@@ -28,6 +28,8 @@ import com.ivandsky.puzzlebox.data.match.RoomMatchResultOutbox
 import com.ivandsky.puzzlebox.data.match.RoomSelfMatchRepository
 import com.ivandsky.puzzlebox.data.match.RoutingMatchRepository
 import com.ivandsky.puzzlebox.data.match.SelfMatchRepository
+import com.ivandsky.puzzlebox.data.reminder.OfflineReminderRepository
+import com.ivandsky.puzzlebox.data.reminder.ReminderRepository
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.GameSettingsRepository
@@ -100,6 +102,8 @@ val dataModule = module {
     single<CompletionRepository> { RoomCompletionRepository(get(), get(), get(), get(), get()) }
     single<UserPreferencesRepository> { OfflineUserPreferencesRepository(get()) }
     single<GameSettingsRepository> { OfflineGameSettingsRepository(get()) }
+    // The daily-reminder choice, in its own small file beside the LinkedIn and sync-state stores.
+    single<ReminderRepository> { OfflineReminderRepository(get()) }
     // Saved in-progress plays; the slot cap is private to the Room adapter.
     single<SavedPlayRepository> { RoomSavedPlayRepository(get(), get(), get()) }
     // Editor drafts: features read and write through the port, never Room.
