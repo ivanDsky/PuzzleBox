@@ -18,6 +18,7 @@ import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
@@ -32,14 +33,14 @@ private val Tango = GameBrand(AccentSlot.Orange, GameGlyphs.Tango)
 
 private val Actions = CommunityActions(onOpen = {}, onReport = {}, onGame = {}, onDifficulty = {}, onClearFilters = {}, onRetry = {})
 
-private fun row(code: String, game: String, brand: GameBrand, title: String, level: String?, age: String) =
+private fun row(code: String, game: String, brand: GameBrand, title: String, level: Difficulty.Level?, age: String) =
     CommunityRowModel(checkNotNull(ShareCode.parse(code)), game, brand, title, author = "Maya", difficulty = level, age = age)
 
 private val Loaded = CommunityState(
     games = listOf(GameChoice(GameId("zip"), "Zip"), GameChoice(GameId("tango"), "Tango")),
     phase = CommunityPhase.Loaded(
         listOf(
-            row("P4R8NT", "Zip", Zip, "Spiral staircase", "Hard", "5 min ago"),
+            row("P4R8NT", "Zip", Zip, "Spiral staircase", Difficulty.Level.Hard, "5 min ago"),
             row("W9C3HB", "Tango", Tango, "Sun and moon", null, "2 h ago"),
         ),
     ),

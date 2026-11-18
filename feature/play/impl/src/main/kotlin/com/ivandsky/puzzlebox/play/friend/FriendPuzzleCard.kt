@@ -44,6 +44,7 @@ import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.maxContentWidth
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
+import com.ivandsky.puzzlebox.gameui.DifficultyLabel
 import com.ivandsky.puzzlebox.gameui.PlayAgainCopy
 import com.ivandsky.puzzlebox.gameui.hidden.HiddenBoardSection
 
@@ -179,7 +180,9 @@ internal fun Chips(card: FriendCard, container: Color, onContainer: Color, reduc
     FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Chip(card.gameName, container, onContainer, "friend.card.game")
         Chip(card.size, neutral, ink, "friend.card.size")
-        card.puzzle.difficulty?.let { Chip(it.name, neutral, ink, "friend.card.difficulty") }
+        card.puzzle.difficulty?.let {
+            DifficultyLabel(it, MaterialTheme.typography.labelLarge, ink, Modifier.pill(neutral).testTag("friend.card.difficulty"))
+        }
         AnimatedVisibility(
             visible = card.takenDown,
             enter = if (reduced) {
@@ -198,13 +201,11 @@ internal fun Chips(card: FriendCard, container: Color, onContainer: Color, reduc
 
 @Composable
 private fun Chip(text: String, container: Color, content: Color, tag: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelLarge,
-        color = content,
-        modifier = Modifier.background(container, PillShape).padding(horizontal = Spacing.md, vertical = Spacing.xs).testTag(tag),
-    )
+    Text(text = text, style = MaterialTheme.typography.labelLarge, color = content, modifier = Modifier.pill(container).testTag(tag))
 }
+
+private fun Modifier.pill(container: Color) =
+    background(container, PillShape).padding(horizontal = Spacing.md, vertical = Spacing.xs)
 
 @Composable
 internal fun Action(action: FriendCardAction, reduced: Boolean, onAction: () -> Unit) {

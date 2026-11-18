@@ -114,6 +114,19 @@ class RandomNewTodaySheetTest {
     }
 
     @Test
+    fun `each New today difficulty chip carries its level's mark and Any carries none`() {
+        mountSheet()
+        node("random.source.community").performClick()
+
+        listOf("Easy", "Medium", "Hard").forEach {
+            composeRule.onNode(hasTestTag("difficulty.${it.lowercase()}") and hasAnyAncestor(hasTestTag("random.difficulty.$it")), useUnmergedTree = true)
+                .assertExists()
+        }
+        composeRule.onNode(hasTestTag("difficulty.easy") and hasAnyAncestor(hasTestTag("random.difficulty.Any")), useUnmergedTree = true)
+            .assertDoesNotExist()
+    }
+
+    @Test
     fun `going back to Past puzzles brings Not solved yet and the past games back`() {
         mountSheet()
         node("random.source.community").performClick()

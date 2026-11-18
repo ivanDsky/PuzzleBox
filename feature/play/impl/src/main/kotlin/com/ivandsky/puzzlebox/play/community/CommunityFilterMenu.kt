@@ -22,6 +22,8 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AppDropdownMenu
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.game.editor.Difficulty
+import com.ivandsky.puzzlebox.gameui.DifficultyIcon
 import com.ivandsky.puzzlebox.model.GameId
 
 private val TouchTarget = 48.dp
@@ -59,9 +61,12 @@ internal fun CommunityFilterMenu(
                 pick(onDifficulty, null) { open = false }
             }
             DifficultyChoice.entries.forEach { choice ->
-                FilterItem(choice.label, checked = difficulty == choice, tag = "community.filter.difficulty.${choice.name.lowercase()}") {
-                    pick(onDifficulty, choice) { open = false }
-                }
+                FilterItem(
+                    choice.label,
+                    checked = difficulty == choice,
+                    tag = "community.filter.difficulty.${choice.name.lowercase()}",
+                    mark = choice.mark,
+                ) { pick(onDifficulty, choice) { open = false } }
             }
         }
     }
@@ -82,12 +87,13 @@ private fun GroupLabel(text: String) {
     )
 }
 
-/** One menu row: [label], a check while [checked], and the [checked] state for accessibility. */
+/** One menu row: the level [mark] when it has one, [label], a check while [checked], and the [checked] state for accessibility. */
 @Composable
-private fun FilterItem(label: String, checked: Boolean, tag: String, onClick: () -> Unit) {
+private fun FilterItem(label: String, checked: Boolean, tag: String, mark: Difficulty.Level? = null, onClick: () -> Unit) {
     DropdownMenuItem(
         text = { Text(label) },
         onClick = onClick,
+        leadingIcon = mark?.let { { DifficultyIcon(it) } },
         modifier = Modifier.testTag(tag).semantics { selected = checked },
         trailingIcon = if (checked) ({ Icon(PuzzleIcons.Check, contentDescription = "Selected") }) else null,
     )

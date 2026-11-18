@@ -12,6 +12,7 @@ import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.GOLDEN_PHONE
@@ -85,7 +86,7 @@ abstract class CommunityGoldenScreenshots(private val device: String) {
             GameChoice(GameId("queens"), "Queens"),
         )
 
-        fun row(code: String, game: String, brand: GameBrand, title: String, level: String?, age: String) =
+        fun row(code: String, game: String, brand: GameBrand, title: String, level: Difficulty.Level?, age: String) =
             CommunityRowModel(code(code), game, brand, title, author = "Maya", difficulty = level, age = age)
 
         val BASE = CommunityState(games = GAMES)
@@ -93,8 +94,8 @@ abstract class CommunityGoldenScreenshots(private val device: String) {
         val LOADED = BASE.copy(
             phase = CommunityPhase.Loaded(
                 listOf(
-                    row("K7Q2MX", "Zip", ZIP, "Spiral staircase", "Hard", "5 min ago"),
-                    row("P4R8NT", "Tango", TANGO, "Sun and moon, but only after a very long title that wraps", "Expert", "2 h ago"),
+                    row("K7Q2MX", "Zip", ZIP, "Spiral staircase", Difficulty.Level.Hard, "5 min ago"),
+                    row("P4R8NT", "Tango", TANGO, "Sun and moon, but only after a very long title that wraps", Difficulty.Level.Expert, "2 h ago"),
                     row("W9C3HB", "Queens", QUEENS, "Crown jewels", null, "13 h ago"),
                 ),
             ),
@@ -102,7 +103,7 @@ abstract class CommunityGoldenScreenshots(private val device: String) {
         val FILTERED = BASE.copy(
             game = GameId("zip"),
             difficulty = DifficultyChoice.Hard,
-            phase = CommunityPhase.Loaded(listOf(row("K7Q2MX", "Zip", ZIP, "Spiral staircase", "Hard", "5 min ago"))),
+            phase = CommunityPhase.Loaded(listOf(row("K7Q2MX", "Zip", ZIP, "Spiral staircase", Difficulty.Level.Hard, "5 min ago"))),
         )
         val EMPTY = BASE.copy(phase = CommunityPhase.Loaded(emptyList()))
         val OFFLINE = BASE.copy(phase = CommunityPhase.Offline)

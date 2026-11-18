@@ -28,8 +28,9 @@ internal class FriendSource(
                         entry = ExactPuzzle(ref, it.authorUid, it.title, it.authorName, PuzzleSource.Friend),
                         isNew = !solvedIt && it.openedAt.toEpochMilli() >= clock() - COMMUNITY_WINDOW_MS,
                         played = solvedIt,
-                        meta = metaOf(it.variant.value, it.difficulty?.name),
+                        meta = metaOf(it.variant.value),
                         code = it.code,
+                        level = it.difficulty,
                     ),
                 )
             },

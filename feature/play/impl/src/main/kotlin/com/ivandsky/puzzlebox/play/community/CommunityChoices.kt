@@ -15,4 +15,8 @@ internal enum class DifficultyChoice(val label: String, val levels: Set<Difficul
     Easy("Easy", setOf(Difficulty.Level.Easy)),
     Medium("Medium", setOf(Difficulty.Level.Medium)),
     Hard("Hard", setOf(Difficulty.Level.Hard, Difficulty.Level.Expert)),
+    ;
+
+    /** The level whose mark the item shows: the lowest it covers, so Hard wears the Hard mark. */
+    val mark: Difficulty.Level get() = levels.min()
 }

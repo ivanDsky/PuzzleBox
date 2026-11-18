@@ -48,6 +48,7 @@ private fun ReceivedPuzzle.picked() = PickablePuzzle(
     entry = ExactPuzzle(LegRef.Custom(gameId, code), authorUid, title, authorName, PuzzleSource.Friend),
     isNew = false,
     played = false,
-    meta = metaOf(variant.value, difficulty?.name),
+    meta = metaOf(variant.value),
     code = code,
+    level = difficulty,
 )

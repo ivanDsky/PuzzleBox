@@ -10,11 +10,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.gameui.DifficultyIcon
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GameFilterChip
 import com.ivandsky.puzzlebox.play.community.DifficultyChoice
 
-/** "Difficulty" over single-select chips: Any, then each [DifficultyChoice]. [difficulty] null is Any; [enabled] false greys them. */
+/** "Difficulty" over single-select chips: Any, then each [DifficultyChoice] with its level's mark. [difficulty] null is Any; [enabled] false greys them. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun RandomDifficultyChips(
@@ -42,6 +43,7 @@ internal fun RandomDifficultyChips(
                     onClick = { onDifficulty(it) },
                     modifier = Modifier.testTag("random.difficulty.${it.label}"),
                     enabled = enabled,
+                    icon = { DifficultyIcon(it.mark) },
                 )
             }
         }

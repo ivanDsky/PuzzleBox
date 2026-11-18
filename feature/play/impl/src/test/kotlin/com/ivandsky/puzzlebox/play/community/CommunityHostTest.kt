@@ -2,7 +2,11 @@ package com.ivandsky.puzzlebox.play.community
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -55,6 +59,24 @@ class CommunityHostTest {
         rule.onNodeWithTag("community.row.AAA111").performClick()
 
         assertEquals(listOf("AAA111"), opened)
+    }
+
+    @Test
+    fun `a labelled row shows its level's mark beside the word, an unlabelled row shows neither`() {
+        show(
+            CommunityFixture().also {
+                runBlocking {
+                    it.publish("AAA111", NOW - HOUR, difficulty = Level.Hard)
+                    it.publish("BBB222", NOW - 2 * HOUR)
+                }
+            },
+        )
+
+        val meta = hasAnyAncestor(hasTestTag("community.row.AAA111.meta"))
+        rule.onNode(hasTestTag("difficulty.hard") and meta, useUnmergedTree = true).assertIsDisplayed()
+        rule.onNode(hasText("Hard") and meta, useUnmergedTree = true).assertIsDisplayed()
+        rule.onAllNodes(hasTestTag("difficulty.hard"), useUnmergedTree = true).assertCountEquals(1)
+        rule.onNode(hasAnyAncestor(hasTestTag("community.row.BBB222")) and hasText("Hard"), useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test

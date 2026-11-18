@@ -159,7 +159,7 @@ abstract class CommunityPanesGoldenScreenshots(private val device: String) {
         /** The preview friends but the first, whose code is New today's first row: one code opens one puzzle. */
         val FRIENDS = FriendPreviewCards.drop(1)
 
-        fun row(code: String, game: String, brand: GameBrand, title: String, level: String?, age: String) =
+        fun row(code: String, game: String, brand: GameBrand, title: String, level: Difficulty.Level?, age: String) =
             CommunityRowModel(checkNotNull(ShareCode.parse(code)), game, brand, title, author = "Maya", difficulty = level, age = age)
 
         val BASE = CommunityState()
@@ -167,8 +167,8 @@ abstract class CommunityPanesGoldenScreenshots(private val device: String) {
         val LOADED = BASE.copy(
             phase = CommunityPhase.Loaded(
                 listOf(
-                    row("K7Q2MX", "Zip", ZIP, "Spiral staircase", "Hard", "5 min ago"),
-                    row("P4R8NT", "Tango", TANGO, "Sun and moon", "Expert", "2 h ago"),
+                    row("K7Q2MX", "Zip", ZIP, "Spiral staircase", Difficulty.Level.Hard, "5 min ago"),
+                    row("P4R8NT", "Tango", TANGO, "Sun and moon", Difficulty.Level.Expert, "2 h ago"),
                     row("W9C3HB", "Queens", QUEENS, "Crown jewels", null, "13 h ago"),
                 ),
             ),

@@ -56,8 +56,9 @@ class ObserveSolvedPuzzles internal constructor(
                         entry = ExactPuzzle(LegRef.Custom(ref.gameId, code), it.authorUid, it.title, it.authorName, PuzzleSource.Friend),
                         isNew = false,
                         played = true,
-                        meta = metaOf(it.variant.value, it.difficulty?.name),
+                        meta = metaOf(it.variant.value),
                         code = code,
+                        level = it.difficulty,
                     )
                 }
             }

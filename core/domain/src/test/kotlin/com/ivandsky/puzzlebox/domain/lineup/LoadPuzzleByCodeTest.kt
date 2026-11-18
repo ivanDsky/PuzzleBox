@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.domain.OpenOutcome
 import com.ivandsky.puzzlebox.game.VariantId
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import java.time.Instant
@@ -34,10 +35,10 @@ class LoadPuzzleByCodeTest {
         },
     )
 
-    private fun received() = ReceivedPuzzle(
+    private fun received(level: Difficulty.Level? = null) = ReceivedPuzzle(
         code = code, gameId = alpha, variant = VariantId("alpha/n8"), sharedFormatVersion = 1, puzzleBytes = byteArrayOf(1),
         title = "Rooks", authorName = "Ed", note = "", authorTimeMs = 1_000L, authorHints = 0, authorUid = "ed",
-        openedAt = Instant.EPOCH, unpublished = false, postState = PostState.Pending, postAttempts = 0, difficulty = null,
+        openedAt = Instant.EPOCH, unpublished = false, postState = PostState.Pending, postAttempts = 0, difficulty = level,
     )
 
     @Test
@@ -67,6 +68,17 @@ class LoadPuzzleByCodeTest {
 
         assertEquals(ExactPuzzle(LegRef.Custom(alpha, code), "ed", "Rooks", "Ed", PuzzleSource.Friend), found.entry)
         assertEquals(code, found.code)
+        assertEquals("n8", found.meta)
+        assertNull(found.level)
+    }
+
+    @Test
+    fun `a labelled puzzle keeps its level out of the meta line`() = runTest {
+        outcome = OpenOutcome.Opened(received(Difficulty.Level.Hard))
+
+        val found = (lookup("k7qx2m") as CodeLookup.Found).puzzle
+
+        assertEquals(Difficulty.Level.Hard, found.level)
         assertEquals("n8", found.meta)
     }
 

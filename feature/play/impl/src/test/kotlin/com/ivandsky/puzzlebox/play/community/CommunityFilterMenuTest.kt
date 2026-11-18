@@ -7,6 +7,8 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -86,6 +88,21 @@ class CommunityFilterMenuTest {
         rule.onNodeWithTag("community.filter.game.beta").assertIsDisplayed()
         rule.onNodeWithTag("community.filter.difficulty.any").assertIsSelected()
         listOf("easy", "medium", "hard").forEach { rule.onNodeWithTag("community.filter.difficulty.$it").assertIsDisplayed() }
+    }
+
+    @Test
+    fun `each difficulty item leads with its level's mark, Hard with the Hard mark, and Any has none`() {
+        show(CommunityFixture())
+
+        rule.onNodeWithTag("community.filter.menu").performClick()
+
+        listOf("easy", "medium", "hard").forEach {
+            rule.onNode(hasTestTag("difficulty.$it") and hasAnyAncestor(hasTestTag("community.filter.difficulty.$it")), useUnmergedTree = true)
+                .assertIsDisplayed()
+        }
+        rule.onNode(hasTestTag("difficulty.expert"), useUnmergedTree = true).assertDoesNotExist()
+        rule.onNode(hasAnyAncestor(hasTestTag("community.filter.difficulty.any")) and hasTestTag("difficulty.easy"), useUnmergedTree = true)
+            .assertDoesNotExist()
     }
 
     @Test
