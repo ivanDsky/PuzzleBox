@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -16,6 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ivandsky.puzzlebox.domain.random.RandomPick
+import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.TutorialHost
@@ -23,8 +26,13 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.friend.EnterCodeSheet
 import com.ivandsky.puzzlebox.play.linkedin.rememberLinkedInCard
+import com.ivandsky.puzzlebox.play.random.RandomPuzzleEntry
+import com.ivandsky.puzzlebox.play.random.RandomPuzzleSheet
+import com.ivandsky.puzzlebox.play.random.archiveGames
+import com.ivandsky.puzzlebox.play.random.communityGamesOf
 import java.time.LocalDate
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.currentKoinScope
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 
@@ -44,6 +52,8 @@ import org.koin.core.parameter.parametersOf
  * With [linkedIn] the day card shows the LinkedIn lines, and [onReconnectLinkedIn] opens its login.
  * [onMakeOne] puts "Make one" on each game page. The friend puzzles and Custom's list are the app's Community
  * tab ([CommunityRoute]); Games shows Dailies and Duels.
+ * With the RandomPuzzle holder on, the header also has Random: it opens the random sheet, and its pick plays a past day
+ * through [onPlay] or opens a New today puzzle's card through [onOpenCode], the sheet closing first.
  */
 @Composable
 internal fun LibraryRoute(
@@ -82,6 +92,10 @@ internal fun LibraryRoute(
     }
     // A closed sheet forgets the draft: the next Enter code opens empty.
     if (!enteringCode && codePrefill.isNotEmpty()) LaunchedEffect(Unit) { codePrefill = "" }
+    val scope = currentKoinScope()
+    val randomEnabled = remember(scope) { scope.getOrNull<RandomPuzzleEntry>()?.enabled == true }
+    var randomOpen by rememberSaveable { mutableStateOf(false) }
+    var randomGame by rememberSaveable { mutableStateOf<String?>(null) }
     LifecycleStartEffect(viewModel) {
         viewModel.syncToday()
         onStopOrDispose { }
@@ -103,6 +117,12 @@ internal fun LibraryRoute(
                 onBackToToday = viewModel::backToToday,
             ),
             onEnterCode = { enteringCode = true },
+            onRandom = randomEnabled.takeIf { it }?.let {
+                { game ->
+                    randomGame = game?.value
+                    randomOpen = true
+                }
+            },
             friends = friends,
             onOpenFriend = onOpenCode,
             onRemoveFriend = viewModel::removeFriend,
@@ -128,6 +148,23 @@ internal fun LibraryRoute(
                         openDuel(key)
                     }
                 },
+            )
+        }
+        if (randomOpen) {
+            val games: GameRegistry = koinInject()
+            RandomPuzzleSheet(
+                game = randomGame?.let(::GameId),
+                games = state.rows.archiveGames(),
+                communityGames = remember(games, registry) { communityGamesOf(games, registry) },
+                layout = layout,
+                onOpen = { pick ->
+                    randomOpen = false
+                    when (pick) {
+                        is RandomPick.Day -> onPlay(pick.game, pick.day)
+                        is RandomPick.Shared -> onOpenCode(pick.code)
+                    }
+                },
+                onDismiss = { randomOpen = false },
             )
         }
         val open = lesson

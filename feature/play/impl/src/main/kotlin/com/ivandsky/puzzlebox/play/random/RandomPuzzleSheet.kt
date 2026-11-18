@@ -52,6 +52,12 @@ internal fun RandomPuzzleSheet(
             viewModel.reset()
         }
     }
+    // A list that changes under the open sheet (a game's archive loads or drops out) must not leave a game chosen that has no chip.
+    LaunchedEffect(games, communityGames) {
+        val now = viewModel.state.value
+        val offered = if (now.source == RandomSource.Past) games else communityGames
+        if (now.game != null && offered.none { it.id == now.game }) viewModel.chooseGame(null)
+    }
     val pastGames by rememberUpdatedState(games)
     val newGames by rememberUpdatedState(communityGames)
     val actions = remember(viewModel) {

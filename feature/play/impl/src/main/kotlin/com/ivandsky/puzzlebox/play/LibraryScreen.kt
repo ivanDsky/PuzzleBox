@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.play
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -40,7 +41,8 @@ import java.time.YearMonth
  * The library for [state]: list and page side by side, or the phone's list → page push.
  * [page] is the selected game's calendar and [month] the one it asked for (null = today's);
  * on the phone a picked day scrolls the page up to the day card. The header's Enter code shows
- * only with an [onEnterCode]. [friends] heads the list as From friends, each card opening its
+ * only with an [onEnterCode], and Random (before it) only with an [onRandom] while the Dailies tab shows; it
+ * reports a null game, the Games tab. [friends] heads the list as From friends, each card opening its
  * puzzle through [onOpenFriend] and removing it through [onRemoveFriend]; the tabs have none, since the friend puzzles
  * live on the app's Community tab. A [duels] slot turns
  * the list into the Dailies and Duels tabs (the tab is saved here, so it survives a
@@ -65,6 +67,7 @@ internal fun LibraryScreen(
     onOpenRanks: (GameId, LocalDate?) -> Unit,
     modifier: Modifier = Modifier,
     onEnterCode: (() -> Unit)? = null,
+    onRandom: ((GameId?) -> Unit)? = null,
     friends: List<FriendCardModel> = emptyList(),
     onOpenFriend: (ShareCode) -> Unit = {},
     onRemoveFriend: (ShareCode) -> Unit = {},
@@ -76,9 +79,6 @@ internal fun LibraryScreen(
 ) {
     val listScroll = rememberScrollState()
     val duelsScroll = rememberLazyListState()
-    val enterCode: @Composable () -> Unit = {
-        onEnterCode?.let { SecondaryButton(text = "Enter code", onClick = it, modifier = Modifier.testTag("library.enterCode")) }
-    }
     val fromFriends: @Composable () -> Unit = { FromFriendsRow(friends, onOpenFriend, onRemoveFriend) }
     val onRow: (GameId) -> Unit = { game ->
         onSelect(game)
@@ -94,6 +94,9 @@ internal fun LibraryScreen(
     )
     val selected = state.rows.firstOrNull { it.card.game == state.selected } ?: state.rows.firstOrNull()
     var tab by rememberSaveable { mutableStateOf(GamesTab.Dailies) }
+    val headerAction: @Composable () -> Unit = {
+        LibraryHeaderActions(onRandom = onRandom?.takeIf { tab == GamesTab.Dailies }?.let { random -> { random(null) } }, onEnterCode = onEnterCode)
+    }
     var pageOpen by rememberSaveable { mutableStateOf(false) }
     var duelPrefill by rememberSaveable(stateSaver = DuelPrefillSaver) { mutableStateOf<DuelPrefill?>(null) }
     val showSection: suspend (GamesTab) -> Unit = { next ->
@@ -117,7 +120,7 @@ internal fun LibraryScreen(
     )
     @Composable
     fun GamesList(onRow: (GameId) -> Unit, modifier: Modifier = Modifier) = LibraryList(
-        state, layout, listScroll, onRow, modifier, headerAction = enterCode, friends = fromFriends,
+        state, layout, listScroll, onRow, modifier, headerAction = headerAction, friends = fromFriends,
         duels = duels, tab = tab, onTab = { tab = it }, duelsScroll = duelsScroll,
         duelPrefill = duelPrefill, onDuelPrefillTaken = { duelPrefill = null },
     )
@@ -163,5 +166,14 @@ internal fun LibraryScreen(
                 })
             }
         }
+    }
+}
+
+/** The header's buttons, Random then Enter code, each shown only with its callback; Random's game is null, the Games tab. */
+@Composable
+private fun LibraryHeaderActions(onRandom: (() -> Unit)?, onEnterCode: (() -> Unit)?) {
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        onRandom?.let { SecondaryButton(text = "Random", onClick = it, modifier = Modifier.testTag("library.random")) }
+        onEnterCode?.let { SecondaryButton(text = "Enter code", onClick = it, modifier = Modifier.testTag("library.enterCode")) }
     }
 }

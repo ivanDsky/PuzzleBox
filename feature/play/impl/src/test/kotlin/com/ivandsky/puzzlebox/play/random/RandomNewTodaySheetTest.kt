@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.play.random
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
@@ -63,7 +64,7 @@ class RandomNewTodaySheetTest {
     private val gamma = GameId("gamma")
     private fun gameOf(id: GameId) = RandomGame(id, id.value.replaceFirstChar(Char::uppercase), GameBrand.Neutral)
     private val communityGames = listOf(ALPHA, BETA).map(::gameOf)
-    private val pastGames = communityGames + gameOf(gamma)
+    private val past = mutableStateOf(communityGames + gameOf(gamma))
     private val opened = mutableListOf<RandomPick>()
 
     private fun mountSheet() {
@@ -78,7 +79,7 @@ class RandomNewTodaySheetTest {
         val viewModel = RandomPuzzleViewModel(null, load, RandomPickMemory(), testDispatchers())
         composeRule.setContent {
             PuzzleBoxTheme {
-                RandomPuzzleSheet(null, pastGames, communityGames, PlayLayout.SinglePane, onOpen = { opened += it }, onDismiss = {}, viewModel = viewModel)
+                RandomPuzzleSheet(null, past.value, communityGames, PlayLayout.SinglePane, onOpen = { opened += it }, onDismiss = {}, viewModel = viewModel)
             }
         }
     }
@@ -132,6 +133,19 @@ class RandomNewTodaySheetTest {
     @Test
     fun `the beta chip narrows a New today pick to the beta puzzle`() {
         assertEquals("CCC333", pickOnNewToday("random.game.beta"))
+    }
+
+    @Test
+    fun `a chosen game that drops out of the games on offer falls back to Any`() {
+        mountSheet()
+        node("random.game.gamma").performClick()
+        node("random.game.gamma").assertIsSelected()
+
+        past.value = communityGames
+        composeRule.waitForIdle()
+
+        node("random.game.gamma").assertDoesNotExist()
+        node("random.game.any").assertIsSelected()
     }
 
     @Test
