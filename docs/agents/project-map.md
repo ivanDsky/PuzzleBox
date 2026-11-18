@@ -668,21 +668,16 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   forbidden edge; `feature:create:impl` reaches games only through the registries.
 - **Structure rules** — `:konsist` S0–S9 / P1–P12 (see Layout); allowlists only shrink.
 - **Roborazzi** — plugin `puzzlebox.android.roborazzi` (app, designsystem, home, play, create,
-  compete, zip-ui, tango-ui, queens-ui, strands-ui, sudoku-ui) unifies the switch: by default the golden classes (names containing `Golden` or `Screenshot`) do
-  not run in any module; `-Proborazzi.verify=true` runs them and fails on drift,
-  `-Proborazzi.record=true` runs them and records. The merge gate (`assembleDebug test`) therefore
-  gates no golden; a UI ticket verifies the modules it changed. `:app`'s `NativeGraphicsWarmUpTest` runs first
-  and warms the Robolectric native runtime, which the goldens used to do (without a warm-up the `:app` test JVM aborts).
-  Committed goldens sit in each module's `snapshots/` directory: `app/snapshots/`
-  (the Studio authoring shots; the Showkase browser has no golden), `core/designsystem/snapshots/`
-  (`SpotlightOverlayGoldenTest` and the cooldown ring), `feature/compete/impl/snapshots/`
-  (`DuelsTabGoldenScreenshots`, `RevealGoldenScreenshots`), `feature/create/impl/snapshots/`,
-  `feature/home/impl/snapshots/`, `feature/play/impl/snapshots/`, `games/queens-ui/snapshots/`
-  (`QueensGoldenScreenshots`), `games/strands-ui/snapshots/` (`StrandsGoldenScreenshots`, the
-  real 2026-11-06 NYT day through the production source), `games/sudoku-ui/snapshots/`
-  (`SudokuGoldenScreenshots`), `games/zip-ui/snapshots/` and
-  `games/tango-ui/src/test/resources/goldens/` (`TangoBoardGoldenTest`);
-  zip-ui's `VariantMatrixScreenshotTest` writes review evidence to `.scratch`, not goldens.
+  compete, zip-ui, tango-ui, queens-ui, strands-ui, sudoku-ui) owns the switch (ADR-0033): by
+  default the screenshot classes (names containing `Golden` or `Screenshot`) do not run in any
+  module; `-Proborazzi.record=true` runs them and writes review PNGs. Nothing is committed and
+  nothing compares pixels; in that mode the test task is never up to date or cached. A UI ticket
+  renders the modules it changed and looks at the screens it touched. `:app`'s
+  `NativeGraphicsWarmUpTest` runs first and warms the Robolectric native runtime, which the
+  goldens used to do (without a warm-up the `:app` test JVM aborts). Renders land in each
+  module's gitignored `snapshots/` directory (`app/snapshots/` holds the Studio authoring shots;
+  `games/strands-ui/snapshots/` has the real 2026-11-06 NYT day through the production source);
+  zip-ui's `VariantMatrixScreenshotTest` writes to `.scratch` instead.
 
 ## Working test commands
 
@@ -700,7 +695,7 @@ release-only wiring, as `./gradlew :app:testReleaseUnitTest`. The
 same tests split in two: `testUi` (`:app`, `:feature:*`) and `testCore` (every other module). A
 narrower run: `./gradlew assembleDebug testDebugUnitTest :core:game:test :games:zip:test
 :games:queens:test :games:tango:test :games:strands:test :games:sudoku:test :core:model:test
-:core:network:test :tools:puzzle-cli:test -Proborazzi.verify=true --continue`.
+:core:network:test :tools:puzzle-cli:test --continue`. Screenshots: add `-Proborazzi.record=true`.
 
 Structure rules (ADR-0009): `./gradlew :konsist:test` — runs the 21 in-module rules (S0–S9 without S3, P1–P12; 145 tests with the
 census and the engine tests), over the whole repo's sources (not in the count above; reruns

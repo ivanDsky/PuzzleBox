@@ -39,8 +39,8 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * Golden screenshots of the Sudoku play screen (S10), light and dark, on a 360x640 phone, a
  * Pixel-class 411x891 phone, and one tablet landscape TwoPane.
- * Recorded with `-Proborazzi.record=true`, verified
- * with `-Proborazzi.verify=true`; goldens live in `games/sudoku-ui/snapshots/`.
+ * Rendered with `-Proborazzi.record=true` into `games/sudoku-ui/snapshots/` (untracked review
+ * captures).
  *
  * Every scene is built on the board state before the first composition, so the motion host
  * takes it as the baseline and plays nothing; the paused main clock then steps past any

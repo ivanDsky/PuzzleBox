@@ -34,7 +34,6 @@ import com.ivandsky.puzzlebox.games.tango.editor.TangoDraftAnalyzer
 import com.ivandsky.puzzlebox.games.tango.editor.TangoEditor
 import com.ivandsky.puzzlebox.games.tango.editor.TangoForcedCells
 import com.ivandsky.puzzlebox.games.tango.editor.TangoPublishGates
-import com.ivandsky.puzzlebox.games.tangoui.GoldenCompare
 import com.ivandsky.puzzlebox.games.tangoui.TestInlineDispatcherProvider
 import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.gameui.GridEdge
@@ -57,9 +56,8 @@ import org.robolectric.annotation.GraphicsMode
  * differ shade, None with its clashes and the witness drawn on the board. Each board is a
  * real draft whose verdict comes from [TangoDraftAnalyzer], asserted before the capture.
  *
- * Every run captures to a scratch file. `-Proborazzi.verify=true` pixel-compares it with the
- * committed image in `src/test/resources/goldens/editor/`; drift or a missing image fails.
- * `-Proborazzi.record=true` rewrites the images; without either flag the class does not run.
+ * Rendered with `-Proborazzi.record=true` into `snapshots/editor/` (untracked review captures);
+ * without the flag the class does not run.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -265,9 +263,7 @@ abstract class TangoEditorGoldenTest(private val device: String) {
         }
         rule.waitForIdle()
         val stem = stem(name, dark)
-        val scratch = File("build/roborecord/editor/$stem.png").apply { parentFile?.mkdirs() }
-        rule.onNodeWithTag(GOLDEN).captureRoboImage(scratch)
-        GoldenCompare.check(File("src/test/resources/goldens/editor/$stem.png"), scratch, stem)
+        rule.onNodeWithTag(GOLDEN).captureRoboImage(File("snapshots/editor/$stem.png").apply { parentFile?.mkdirs() })
     }
 
     private fun frame(): Modifier =

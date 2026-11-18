@@ -79,8 +79,8 @@ abstract class TangoReplayBoardGoldenBase(private val widthLabel: String, privat
         )
     }
 
-    private fun goldenPath(name: String, dark: Boolean) =
-        File("src/test/resources/goldens/replay-$name-$widthLabel-${if (dark) "dark" else "light"}.png")
+    private fun capturePath(name: String, dark: Boolean) =
+        File("snapshots/replay-$name-$widthLabel-${if (dark) "dark" else "light"}.png")
 
     // Cell 8 holds a moon, so the hint on the next board proves cell 2 is a moon: the badge sits on cell 2.
     private fun hintFrame(): ReplayFrame {
@@ -116,10 +116,7 @@ abstract class TangoReplayBoardGoldenBase(private val widthLabel: String, privat
             }
         }
         composeRule.waitForIdle()
-        val goldenName = goldenPath(name, dark).name
-        val scratch = File("build/roborecord/$goldenName").apply { parentFile?.mkdirs() }
-        composeRule.onRoot().captureRoboImage(scratch)
-        GoldenCompare.check(goldenPath(name, dark), scratch, goldenName)
+        composeRule.onRoot().captureRoboImage(capturePath(name, dark).apply { parentFile?.mkdirs() })
     }
 
     @Test fun `start light`() = capture("start", false, 0)

@@ -33,8 +33,8 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * Goldens of the Strands play screen (nav-rethink B5), light and dark: a phone, a portrait tablet
  * and a landscape tablet, over the real NYT day. The found counter and Hint sit under the board
- * in the shared control row's slots, or in a column beside it on the landscape tablet. Recorded with `-Proborazzi.record=true`,
- * verified with `-Proborazzi.verify=true`; files in `games/strands-ui/snapshots/`.
+ * in the shared control row's slots, or in a column beside it on the landscape tablet. Rendered
+ * with `-Proborazzi.record=true` into `games/strands-ui/snapshots/` (untracked review captures).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

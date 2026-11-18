@@ -28,8 +28,8 @@ import java.io.File
 
 /**
  * M10-1: the four-tab set (Today, Games, Community, Ranks) with Community selected, as the phone's bottom bar and as
- * the tablet's rail, light and dark. Recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`;
- * goldens in `snapshots/community-tab/`.
+ * the tablet's rail, light and dark. Rendered with `-Proborazzi.record=true` into
+ * `snapshots/community-tab/` (untracked review captures).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

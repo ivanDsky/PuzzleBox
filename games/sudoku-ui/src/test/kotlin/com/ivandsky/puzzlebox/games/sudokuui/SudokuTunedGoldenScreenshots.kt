@@ -39,8 +39,8 @@ import org.robolectric.annotation.GraphicsMode
  * tablet and a landscape tablet (the controls in a side column, Erase there), plain and in notes
  * mode (the italic pencil digits). The shared control row (Undo, Redo, Hint, Clear) sits under
  * the keypad; Clear is not in the keypad, whose digits have a strip above them with the corner
- * Notes toggle and Erase. Recorded with `-Proborazzi.record=true`,
- * verified with `-Proborazzi.verify=true`; files in `games/sudoku-ui/snapshots/`.
+ * Notes toggle and Erase. Rendered with `-Proborazzi.record=true` into
+ * `games/sudoku-ui/snapshots/` (untracked review captures).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

@@ -26,8 +26,8 @@ import org.robolectric.annotation.GraphicsMode
  * Golden screenshots of the Home streak card (phone, at the 360 dp floor) and the tablet
  * streak pane with 3 freezes held and one frozen day (ticket 08, A13), light and dark.
  * The freeze count shows by its spoken label, and the card's line keeps one row beside it.
- * Recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`; goldens
- * live in `feature/home/impl/snapshots/`.
+ * Rendered with `-Proborazzi.record=true` into `feature/home/impl/snapshots/` (untracked review
+ * captures).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

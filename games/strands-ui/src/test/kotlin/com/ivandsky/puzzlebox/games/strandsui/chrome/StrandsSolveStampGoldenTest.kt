@@ -29,7 +29,7 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * Golden of a Strands solve moment with the game's glyph stamped on the board (nav-rethink 139), light and dark,
  * 1000 ms after the winning word: the stamp has landed with the pop, and the frame line is lapping the board.
- * Recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`.
+ * Rendered with `-Proborazzi.record=true` (untracked review captures in `snapshots/`).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

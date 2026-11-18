@@ -25,7 +25,7 @@ import java.io.File
 /**
  * Goldens of the cooldown ring half round on a disabled [GameButton], light and dark: the ring
  * hugs the sunk face, concentric with it, and leaves the empty lip strip above it clear.
- * Recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`.
+ * Rendered with `-Proborazzi.record=true` (untracked review captures in `snapshots/`).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

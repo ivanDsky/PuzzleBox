@@ -35,7 +35,7 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * Golden of a Mini Sudoku solve moment with the game's glyph stamped on the grid (nav-rethink 139), light and dark,
  * 1000 ms after the winning move: the stamp has landed with the pop, and the frame line is lapping the grid.
- * Recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`.
+ * Rendered with `-Proborazzi.record=true` (untracked review captures in `snapshots/`).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

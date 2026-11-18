@@ -9,3 +9,6 @@ build/
 .scratch/
 PuzzleBox-*-debug.apk
 /PROFILE.local.md
+
+# Screenshot renders: review captures from -Proborazzi.record=true, never committed (ADR-0033).
+**/snapshots/

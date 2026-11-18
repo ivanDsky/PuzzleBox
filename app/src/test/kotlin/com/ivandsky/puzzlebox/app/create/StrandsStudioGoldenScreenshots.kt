@@ -63,8 +63,8 @@ import java.io.File
  * phone they sit under the board. Publish: after a passed test the Route's [ToolSlot] swaps the
  * tools for the details, headed with the Edit board chip, which close with the theme clue and
  * the word list credit. Readiness is the domain's
- * [ValidatePublish]. Recorded with `-Proborazzi.record=true`, verified with
- * `-Proborazzi.verify=true`; goldens in `snapshots/studio/`.
+ * [ValidatePublish]. Rendered with `-Proborazzi.record=true` into `snapshots/studio/` (untracked
+ * review captures).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

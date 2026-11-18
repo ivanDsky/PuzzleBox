@@ -24,7 +24,7 @@ import java.io.File
 
 /**
  * Goldens of the replay's "Errors" switch in both states, light and dark, on the page background it sits on, beside
- * the page's own padding. Recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`.
+ * the page's own padding. Rendered with `-Proborazzi.record=true` (untracked review captures in `snapshots/`).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

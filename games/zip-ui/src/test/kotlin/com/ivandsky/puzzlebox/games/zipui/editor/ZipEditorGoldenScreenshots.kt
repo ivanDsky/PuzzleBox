@@ -46,8 +46,7 @@ import java.io.File
  * each step, an empty board with its coach line, a partial path with its fix row, Unique, Multiple with diff rings, None with its
  * clash cells and witness A and B on the board. Every board is a real 5×5 draft whose verdict
  * comes from [ZipDraftAnalyzer], asserted before the capture.
- * Recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`; goldens in
- * `snapshots/editor/`.
+ * Rendered with `-Proborazzi.record=true` into `snapshots/editor/` (untracked review captures).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

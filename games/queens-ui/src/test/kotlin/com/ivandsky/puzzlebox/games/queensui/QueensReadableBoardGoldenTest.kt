@@ -26,8 +26,8 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * B3, ticket 44: the Queens board under the readable board theme, light and dark, on a compact phone. The 8×8 play
  * fixture has irregular regions, so the walls turn corners and end against the outline; two queens with their auto
- * crosses and two manual crosses show the glyph ink on several fills. Recorded with `-Proborazzi.record=true`,
- * verified with `-Proborazzi.verify=true`, in the same `snapshots/` directory as QueensGoldenScreenshots.
+ * crosses and two manual crosses show the glyph ink on several fills. Rendered with
+ * `-Proborazzi.record=true` into the same `snapshots/` directory as QueensGoldenScreenshots.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

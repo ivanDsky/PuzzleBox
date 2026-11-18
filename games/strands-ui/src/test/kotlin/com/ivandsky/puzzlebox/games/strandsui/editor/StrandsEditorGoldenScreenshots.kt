@@ -54,7 +54,7 @@ import java.io.File
  * sit in the side pane).
  * The publish fields, blank and over the clue's cap, at the phone's and the side pane's width.
  * Every verdict comes from [StrandsDraftAnalyzer] on a real draft, asserted before the capture.
- * Recorded by default, verified with `-Proborazzi.verify=true`; goldens in `snapshots/editor/`.
+ * Rendered with `-Proborazzi.record=true` into `snapshots/editor/` (untracked review captures).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

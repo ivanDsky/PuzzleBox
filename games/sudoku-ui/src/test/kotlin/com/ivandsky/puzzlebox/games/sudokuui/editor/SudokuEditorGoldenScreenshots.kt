@@ -52,8 +52,8 @@ import java.io.File
  * the hatched peers, symmetry on with the unpaired cells outlined, Forced cells on, Unique
  * graded, Unique needing guessing, Multiple with witness A on the board, and None with its
  * clashing givens. Every board's verdict comes from [SudokuDraftAnalyzer], asserted before
- * the capture. Recorded with `-Proborazzi.record=true`, verified with
- * `-Proborazzi.verify=true`; goldens in `snapshots/editor/`.
+ * the capture. Rendered with `-Proborazzi.record=true` into `snapshots/editor/` (untracked review
+ * captures).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

@@ -15,8 +15,8 @@ import org.robolectric.annotation.GraphicsMode
  * Goldens for the readable Zip board at rest (nav-rethink B3): thinner round-capped walls
  * that stop at the board edge, the outline drawn as a wall, and the ring on the next number,
  * light and dark. They are the board to hold against the approved token sheets.
- * Recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`; goldens live in
- * `games/zip-ui/snapshots/`.
+ * Rendered with `-Proborazzi.record=true` into `games/zip-ui/snapshots/` (untracked review
+ * captures).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

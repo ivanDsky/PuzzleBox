@@ -13,8 +13,8 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The Tango board under the readable board tokens (nav-rethink B3), light and dark: an ink wall for the frame, the
- * quiet grid line, givens with no wash or outline, signs in ink. [TangoBoardGoldenTest] keeps the legacy look
- * pixel-exact beside it. Runs only under `-Proborazzi.verify` or `-Proborazzi.record=true` ([GoldenCompare]).
+ * quiet grid line, givens with no wash or outline, signs in ink. [TangoBoardGoldenTest] renders the legacy look
+ * beside it. Rendered with `-Proborazzi.record=true` into `snapshots/` (untracked review captures).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -27,9 +27,7 @@ class TangoReadableBoardGoldenTest {
     private fun capture(name: String, dark: Boolean) {
         composeRule.setContent { TangoReadableBoardSample(dark) }
         composeRule.waitForIdle()
-        val scratch = File("build/roborecord/$name").apply { parentFile?.mkdirs() }
-        composeRule.onRoot().captureRoboImage(scratch)
-        GoldenCompare.check(File("src/test/resources/goldens/$name"), scratch, name)
+        composeRule.onRoot().captureRoboImage(File("snapshots/$name").apply { parentFile?.mkdirs() })
     }
 
     @Test fun `golden readable board light`() = capture("tango-readable-board-light.png", dark = false)

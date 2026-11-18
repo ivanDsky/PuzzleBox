@@ -41,8 +41,7 @@ import java.io.File
  * slot, and after Edit board, with the tools back, the details folded to their summary line and
  * the passed status over Publish; the details again at 320dp wide, light, where the header row
  * is tightest. The board is the Studio preview's placeholder square.
- * Recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`;
- * goldens in `snapshots/test-solve/`.
+ * Rendered with `-Proborazzi.record=true` into `snapshots/test-solve/` (untracked review captures).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

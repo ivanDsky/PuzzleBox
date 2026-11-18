@@ -26,7 +26,7 @@ import java.io.File
  * Goldens of Zip's board before play, on a phone, light and dark: blurred under the veil and its pill, and sharp.
  * The board is built from the puzzle as it travels, solution and all, through [ZipReplayBoard.givens]; the sharp frames show
  * that only what the puzzle gives away is drawn. The capture draws without the GPU, so the blurred frames pin the
- * picture path. Recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`.
+ * picture path. Rendered with `-Proborazzi.record=true` (untracked review captures in `snapshots/`).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

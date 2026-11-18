@@ -31,7 +31,7 @@ import java.io.File
 /**
  * Goldens of the result's action stack at the widths a hero card's content gets: 264 dp (a 360 dp phone), 315 dp
  * (a 411 dp phone) and 488 dp (a wide tablet). The primary spans the width; Share and Play again sit side by side as
- * labelled pills at every width. Recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`.
+ * labelled pills at every width. Rendered with `-Proborazzi.record=true` (untracked review captures in `snapshots/`).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
