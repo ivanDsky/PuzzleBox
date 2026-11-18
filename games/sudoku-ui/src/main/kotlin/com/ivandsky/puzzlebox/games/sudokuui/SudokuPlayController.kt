@@ -39,6 +39,8 @@ class SudokuPlayController(
     hintMode: HintMode = HintMode.Legacy,
     /** The plain hint captions (HintPolish), for every board this controller builds; Legacy mode shows no callout. */
     private val plainCaptions: Boolean = false,
+    /** "Place it" in a single's or reveal's callout (PlaceIt), for every board this controller builds. */
+    internal val placeIt: Boolean = false,
 ) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback, PlayGuide {
 
     /** The hint path every board this controller builds runs (ticket 34). The caller picks it: Classic's registration passes no source, so it stays Legacy (A24). */
@@ -140,6 +142,7 @@ class SudokuPlayController(
             hintMode = hintMode,
             scope = env.scope,
             plainCaptions = plainCaptions,
+            placeIt = placeIt,
             peerHighlight = { peerHighlight },
             sameDigitHighlight = { sameDigitHighlight },
             onInput = env.onInput,

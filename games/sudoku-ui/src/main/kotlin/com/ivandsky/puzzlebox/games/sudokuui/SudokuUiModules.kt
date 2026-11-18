@@ -16,7 +16,7 @@ import org.koin.dsl.module
 
 /**
  * Mini Sudoku's play UI, qualified by its game id like the plugin binding; its editor UI takes the `<id>.editor` qualifier beside it.
- * The plain hint captions read `HintPolish` here, once per controller, so the option never changes mid-play.
+ * The plain hint captions read `HintPolish` and "Place it" reads `PlaceIt` here, once per controller, so neither changes mid-play.
  */
 val miniSudokuUiModule: Module = module {
     single<GamePlayUi>(qualifier = qualifier(SudokuGames.MINI.id.value)) {
@@ -26,6 +26,7 @@ val miniSudokuUiModule: Module = module {
             MiniSudokuBrand,
             HintModeSource { HintMode.Stepwise(get<DispatcherProvider>().default) },
             { get<ReleaseFlags>().isEnabled(ReleaseFlag.HintPolish) },
+            { get<ReleaseFlags>().isEnabled(ReleaseFlag.PlaceIt) },
         )
     }
     single<GameEditorUi>(qualifier = qualifier("${SudokuGames.MINI.id.value}.editor")) { SudokuEditorUi(SudokuGames.MINI) }
