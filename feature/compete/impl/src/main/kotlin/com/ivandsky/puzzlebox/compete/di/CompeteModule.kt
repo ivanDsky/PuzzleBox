@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.compete.di
 
 import com.ivandsky.puzzlebox.compete.create.NewDuelViewModel
+import com.ivandsky.puzzlebox.compete.create.lineup.AddPuzzleViewModel
 import com.ivandsky.puzzlebox.compete.duel.DuelViewModel
 import com.ivandsky.puzzlebox.compete.reveal.RematchViewModel
 import com.ivandsky.puzzlebox.compete.reveal.RevealViewModel
@@ -8,6 +9,7 @@ import com.ivandsky.puzzlebox.compete.tab.DuelsTabViewModel
 import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.domain.ObserveMatch
+import com.ivandsky.puzzlebox.domain.lineup.ObservePickablePuzzles
 import java.time.Instant
 import java.time.ZoneId
 import java.util.Locale
@@ -43,6 +45,7 @@ val competeModule: Module = module {
             releaseFlags = getOrNull(),
         )
     }
+    viewModel { AddPuzzleViewModel(observe = get<ObservePickablePuzzles>()::invoke) }
     viewModel { (code: String) ->
         DuelViewModel(
             code = code,

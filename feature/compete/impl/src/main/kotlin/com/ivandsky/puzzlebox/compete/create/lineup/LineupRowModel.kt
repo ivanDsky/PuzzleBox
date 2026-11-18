@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.compete.create.lineup
 
-import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.domain.lineup.AnyGame
 import com.ivandsky.puzzlebox.domain.lineup.ExactPuzzle
 import com.ivandsky.puzzlebox.domain.lineup.LineupEntry
@@ -16,6 +15,6 @@ internal fun LineupEntry.rowModel(gameName: String, includeFriends: Boolean): Li
     )
     is ExactPuzzle -> LineupRowModel(
         title = title,
-        subtitle = listOfNotNull(gameName, author?.let { "by $it" }, (ref as? LegRef.Custom)?.code?.value).joinToString(" · "),
+        subtitle = listOfNotNull(gameName, author?.let { "by $it" }, sourceLabel()).joinToString(" · "),
     )
 }

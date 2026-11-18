@@ -29,6 +29,7 @@ import com.ivandsky.puzzlebox.compete.create.DuelGame
 import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.lineup.AnyGame
+import com.ivandsky.puzzlebox.domain.lineup.ExactPuzzle
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import kotlinx.coroutines.delay
 import org.koin.compose.koinInject
@@ -123,6 +124,9 @@ internal fun LineupPanel(
             games = games,
             onPickGame = { game -> edit { it.pick(AnyGame(game)) } },
             onDismiss = { edit { it.dismiss() } },
+            exactPuzzles = {
+                ExactPuzzleSearch(games, draft.entries.filterIsInstance<ExactPuzzle>().mapTo(HashSet()) { it.ref }, onAdd = { puzzle -> edit { it.pick(puzzle) } })
+            },
         )
     }
 }

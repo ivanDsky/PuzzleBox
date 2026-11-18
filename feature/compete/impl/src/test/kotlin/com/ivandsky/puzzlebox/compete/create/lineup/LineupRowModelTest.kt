@@ -27,17 +27,17 @@ class LineupRowModelTest {
     }
 
     @Test
-    fun `a custom exact row shows its title over game, author and code`() {
+    fun `a custom exact row shows its title over game, author and where it came from`() {
         val code = requireNotNull(ShareCode.parse("K7Q2MX"))
         val exact = ExactPuzzle(LegRef.Custom(ZIP, code), "bo", "Crown jewels", "Bo", PuzzleSource.Friend)
 
-        assertEquals(LineupRowModel("Crown jewels", "Zip · by Bo · K7Q2MX"), exact.rowModel("Zip", includeFriends = false))
+        assertEquals(LineupRowModel("Crown jewels", "Zip · by Bo · From Bo"), exact.rowModel("Zip", includeFriends = false))
     }
 
     @Test
-    fun `a past daily exact row shows its title over its game, with no code`() {
+    fun `a past daily exact row shows its title over its game and Past day`() {
         val exact = ExactPuzzle(LegRef.Daily(ZIP, LocalDate.of(2026, 11, 1), 12), null, "Zip #12", null, PuzzleSource.PastDay)
 
-        assertEquals(LineupRowModel("Zip #12", "Zip"), exact.rowModel("Zip", includeFriends = true))
+        assertEquals(LineupRowModel("Zip #12", "Zip · Past day"), exact.rowModel("Zip", includeFriends = true))
     }
 }
