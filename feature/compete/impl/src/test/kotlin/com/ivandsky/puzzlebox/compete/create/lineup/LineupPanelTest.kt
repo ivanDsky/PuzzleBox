@@ -62,7 +62,7 @@ class LineupPanelTest {
         startKoin {
             modules(module {
                 single { newDuelBrands() }
-                viewModel { AddPuzzleViewModel(pickerOf(emptyList())) }
+                viewModel { AddPuzzleViewModel(pickerOf(emptyList()), NO_LOOKUP) }
             })
         }
     }

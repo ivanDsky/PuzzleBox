@@ -1,5 +1,8 @@
 package com.ivandsky.puzzlebox.compete.create.lineup
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -21,14 +24,17 @@ import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.text.AnnotatedString
+import androidx.test.core.app.ApplicationProvider
 import com.ivandsky.puzzlebox.compete.create.GAMES
 import com.ivandsky.puzzlebox.compete.create.QUEENS
 import com.ivandsky.puzzlebox.compete.create.newDuelBrands
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.domain.lineup.CodeLookup
 import com.ivandsky.puzzlebox.domain.lineup.ExactPuzzle
 import com.ivandsky.puzzlebox.domain.lineup.PickablePuzzle
 import com.ivandsky.puzzlebox.domain.lineup.PickerQuery
@@ -67,11 +73,12 @@ class ExactPuzzleSearchTest {
         offline: Boolean = false,
         restoration: StateRestorationTester? = null,
         observe: (Flow<PickerQuery>, Flow<Int>) -> Flow<PickerResult> = pickerOf(rows, offline),
+        lookup: suspend (String) -> CodeLookup = NO_LOOKUP,
     ) {
         startKoin {
             modules(module {
                 single { newDuelBrands() }
-                viewModel { AddPuzzleViewModel(observe) }
+                viewModel { AddPuzzleViewModel(observe, lookup) }
             })
         }
         val content: @Composable () -> Unit = {
@@ -190,6 +197,80 @@ class ExactPuzzleSearchTest {
         assertEquals(listOf(1, 2), asked)
         rule.onNode(hasScrollToIndexAction()).performScrollToIndex(PAGE)
         rule.onNodeWithTag("duel.lineup.pick.${days[PAGE].entry.ref.wire}").assertExists()
+    }
+
+    @Test
+    fun `an empty field offers Paste, which fills it from the clipboard and finds the puzzle, and typing hides it`() {
+        show(listOf(CROWN_JEWELS, OLD_CROWN))
+        openSheet()
+        val clipboard = ApplicationProvider.getApplicationContext<Context>().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText("code", "r6s7t8"))
+
+        rule.onNodeWithTag("duel.lineup.search.paste").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("duel.lineup.search").assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("r6s7t8")))
+        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("1 found")
+        rule.onNodeWithTag("duel.lineup.pick.${OLD_CROWN.entry.ref.wire}").assertExists()
+        rule.onNodeWithTag("duel.lineup.search.paste").assertDoesNotExist()
+        rule.onNodeWithTag("duel.lineup.search.clear").assertExists()
+    }
+
+    @Test
+    fun `Paste with nothing on the clipboard leaves the field empty`() {
+        show(listOf(CROWN_JEWELS))
+        openSheet()
+        ApplicationProvider.getApplicationContext<Context>().let { (it.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).clearPrimaryClip() }
+
+        rule.onNodeWithTag("duel.lineup.search.paste").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("duel.lineup.search").assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("")))
+    }
+
+    @Test
+    fun `a code nobody shared, sent with the keyboard's Search, shows its lookup line, not Nothing matches`() {
+        show(listOf(CROWN_JEWELS), lookup = { CodeLookup.NotFound })
+        openSheet()
+
+        rule.onNodeWithTag("duel.lineup.search").performTextInput("k7qx2m")
+        rule.onNodeWithTag("duel.lineup.search").performImeAction()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("duel.lineup.lookup").assertTextEquals("No puzzle has the code K7Q-X2M. Check it with the person who shared it.")
+        rule.onNodeWithTag("duel.lineup.empty").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a typed word that reads as a code says Nothing matches and asks nobody`() {
+        val asked = mutableListOf<String>()
+        show(listOf(CROWN_JEWELS), lookup = { asked += it; CodeLookup.NotFound })
+        openSheet()
+
+        rule.onNodeWithTag("duel.lineup.search").performTextInput("dragon")
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("duel.lineup.empty").assertTextEquals("Nothing matches \"dragon\". Try a code, or clear the filters.")
+        rule.onNodeWithTag("duel.lineup.lookup").assertDoesNotExist()
+        assertEquals(emptyList<String>(), asked)
+    }
+
+    @Test
+    fun `an offline lookup offers Retry, which asks again and shows the puzzle`() {
+        var online = false
+        show(listOf(CROWN_JEWELS), lookup = { if (online) CodeLookup.Found(OLD_CROWN) else CodeLookup.Offline })
+        openSheet()
+        rule.onNodeWithTag("duel.lineup.search").performTextInput("k7qx2m")
+        rule.onNodeWithTag("duel.lineup.search").performImeAction()
+        rule.waitForIdle()
+        rule.onNodeWithTag("duel.lineup.lookup").assertTextEquals("You're offline. Code lookup needs a connection.")
+
+        online = true
+        rule.onNodeWithTag("duel.lineup.lookup.retry").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("duel.lineup.pick.${OLD_CROWN.entry.ref.wire}").assertExists()
+        rule.onNodeWithTag("duel.lineup.lookup.retry").assertDoesNotExist()
     }
 
     @Test

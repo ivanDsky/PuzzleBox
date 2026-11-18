@@ -3,23 +3,29 @@ package com.ivandsky.puzzlebox.compete.create.lineup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -60,7 +66,9 @@ internal fun ExactPuzzleSearch(
             modifier = Modifier.fillMaxWidth().testTag("duel.lineup.search"),
             placeholder = { Text("Name, author or code (K7Q-X2M)", maxLines = 1, overflow = TextOverflow.Ellipsis) },
             trailingIcon = {
-                if (text.isNotEmpty()) {
+                if (text.isEmpty()) {
+                    PasteCodeButton(onPaste = viewModel::paste)
+                } else {
                     IconButton(
                         onClick = { viewModel.setText("") },
                         modifier = Modifier.semantics { contentDescription = "Clear search" }.testTag("duel.lineup.search.clear"),
@@ -68,14 +76,25 @@ internal fun ExactPuzzleSearch(
                 }
             },
             singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { viewModel.lookUp() }),
         )
         PickerFilters(state.query, games, viewModel)
-        if (state.offline) {
+        if (state.offline && state.lookup != OFFLINE_NOTE) {
             Text(OFFLINE_NOTE, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("duel.lineup.offline"))
+        }
+        state.lookup?.let {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+                Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f).testTag("duel.lineup.lookup"))
+                if (state.canRetry) TextButton(onClick = viewModel::lookUp, modifier = Modifier.testTag("duel.lineup.lookup.retry")) { Text("Retry") }
+            }
         }
         if (state.loaded) {
             if (state.rows.isEmpty()) {
-                Text(emptyLine(state.query), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.testTag("duel.lineup.empty"))
+                // A lookup's own line says why there is nothing, better than "Nothing matches".
+                if (state.lookup == null) {
+                    Text(emptyLine(state.query), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.testTag("duel.lineup.empty"))
+                }
             } else {
                 Text(resultsLine(state.query, state.rows.size), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.testTag("duel.lineup.count"))
                 val listState = rememberLazyListState()
