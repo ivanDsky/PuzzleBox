@@ -27,6 +27,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
 import com.ivandsky.puzzlebox.game.replay.ReplayOutcome
 import com.ivandsky.puzzlebox.game.replay.Timeline
@@ -228,7 +229,8 @@ class ReplayCompareTest {
         assertEquals(statsSides, stats.fetchSemanticsNodes().size)
         val boards = composeRule.onAllNodesWithTag(BOARD)
         val boardTop = top(boards[0])
-        for (i in 0 until statsSides) assertTrue("stats line $i overlaps its board", bottom(stats[i]) <= boardTop + 0.5f)
+        val gap = with(composeRule.density) { Spacing.sm.toPx() }
+        for (i in 0 until statsSides) assertTrue("stats line $i has no gap above its board", bottom(stats[i]) + gap <= boardTop + 0.5f)
         if (boards.fetchSemanticsNodes().size == 2) assertEquals(boardTop, top(boards[1]), 0.5f)
         val nameNodes = composeRule.onAllNodesWithTag(ReplayTags.SIDE_NAME)
         assertEquals(2, nameNodes.fetchSemanticsNodes().size)

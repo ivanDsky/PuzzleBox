@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.gameui.replay
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -27,7 +29,7 @@ internal fun ReplayTwin(
         boardCount = 2,
         modifier = modifier,
         controlsHeight = CompareTransportHeight,
-        boardHeaderHeight = sideHeaderHeight(),
+        boardHeaderHeight = sideHeaderHeight() + SideHeaderGap,
         controls = { ReplayCompareTransport(state, playback, mine, theirs, names) },
         board = { index, size ->
             val isMine = index == 0
@@ -42,6 +44,7 @@ internal fun ReplayTwin(
                     pastYouName = names.mine.takeIf { !isMine && names.theirsPast },
                     reserveStatsLine = true,
                 )
+                Spacer(Modifier.height(SideHeaderGap))
                 ReplayBoardSlot(frame, board, options, size)
             }
         },
