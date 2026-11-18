@@ -105,8 +105,13 @@ class HintSearchTest {
 
     @Test
     fun `invalidate after compute finished but before deliver ran delivers nothing`() {
-        search.request(compute = { "stale" }, deliver = { delivered += it })
+        val gate = CountDownLatch(1)
+
+        // Gated so the body is suspended in withContext before the compute can finish: an instant compute under load can end first,
+        // and withContext then returns its result without a dispatch, delivering inside the first runCurrent().
+        search.request(compute = { gate.awaitOrFail(); "stale" }, deliver = { delivered += it })
         scheduler.runCurrent()
+        gate.countDown()
         finishCompute()
         search.invalidate()
         scheduler.runCurrent()
