@@ -59,7 +59,10 @@ internal fun RemindersSection(
             if (picking) {
                 ReminderTimeDialog(
                     initial = state.time,
-                    onSet = { picking = false; onSetTime(it) },
+                    onSet = {
+                        picking = false
+                        onSetTime(it)
+                    },
                     onDismiss = { picking = false },
                 )
             }
@@ -101,7 +104,7 @@ private fun TimeRow(time: LocalTime, onClick: () -> Unit) {
     }
 }
 
-internal fun formatReminderTime(time: LocalTime, is24Hour: Boolean): String {
+private fun formatReminderTime(time: LocalTime, is24Hour: Boolean): String {
     val pattern = DateFormat.getBestDateTimePattern(Locale.getDefault(), if (is24Hour) "Hm" else "hm")
     return DateTimeFormatter.ofPattern(pattern, Locale.getDefault()).format(time)
 }

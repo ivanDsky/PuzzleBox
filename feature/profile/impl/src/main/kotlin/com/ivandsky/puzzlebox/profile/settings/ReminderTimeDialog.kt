@@ -2,12 +2,17 @@ package com.ivandsky.puzzlebox.profile.settings
 
 import android.text.format.DateFormat
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerLayoutType
 import androidx.compose.material3.TimePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
@@ -48,10 +53,16 @@ internal fun ReminderTimeDialog(initial: LocalTime, onSet: (LocalTime) -> Unit, 
     )
 }
 
+// The dial is about 330 dp tall, more than a landscape phone or a large font leaves, so it scrolls and the buttons keep their
+// place (a weight is measured after the unweighted button row). The vertical layout is forced: the horizontal one the
+// picker picks for a short window needs more width than the dialog's 380 dp.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DialogDial(state: TimePickerState) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) { TimePicker(state) }
+private fun ColumnScope.DialogDial(state: TimePickerState) {
+    Column(
+        modifier = Modifier.weight(1f, fill = false).fillMaxWidth().verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) { TimePicker(state, layoutType = TimePickerLayoutType.Vertical) }
 }
 
 @Composable

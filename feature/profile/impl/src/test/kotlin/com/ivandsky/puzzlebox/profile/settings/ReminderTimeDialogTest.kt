@@ -2,7 +2,9 @@ package com.ivandsky.puzzlebox.profile.settings
 
 import android.app.Application
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertWidthIsAtLeast
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -11,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import java.time.LocalTime
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -74,5 +77,29 @@ class ReminderTimeDialogTest {
         listOf("settings.reminders.dialog.cancel", "settings.reminders.dialog.set").forEach { tag ->
             composeRule.onNodeWithTag(tag).assertHeightIsAtLeast(48.dp).assertWidthIsAtLeast(48.dp)
         }
+    }
+
+    @Test
+    @Config(qualifiers = "w891dp-h411dp-420dpi")
+    fun `in landscape Set is on screen and still taps`() {
+        show(LocalTime.of(19, 5))
+
+        composeRule.onNodeWithTag("settings.reminders.dialog.set").assertIsDisplayed()
+        val bottom = composeRule.onNodeWithTag("settings.reminders.dialog.set").getBoundsInRoot().bottom
+        assertTrue("Set ends at $bottom, below the 411 dp screen", bottom <= 411.dp)
+        composeRule.onNodeWithTag("settings.reminders.dialog.set").performClick()
+
+        assertEquals(listOf(LocalTime.of(19, 5)), set)
+    }
+
+    @Test
+    fun `a 24-hour device gets the 24-hour dial, without the AM and PM toggle`() {
+        use24HourClock()
+        show(LocalTime.of(19, 5))
+
+        composeRule.onNodeWithText("PM").assertDoesNotExist()
+        composeRule.onNodeWithTag("settings.reminders.dialog.set").performClick()
+
+        assertEquals(listOf(LocalTime.of(19, 5)), set)
     }
 }

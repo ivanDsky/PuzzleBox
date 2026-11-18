@@ -84,4 +84,13 @@ class RemindersTimeRowTest {
         assertTrue(picked.isEmpty())
         composeRule.onNodeWithTag("settings.reminders.dialog").assertDoesNotExist()
     }
+
+    @Test
+    fun `a 24-hour device reads the stored time as 19 colon 00`() {
+        use24HourClock()
+        show(on = true, time = LocalTime.of(19, 0))
+
+        val said = composeRule.onNodeWithTag("settings.reminders.time").fetchSemanticsNode().config[SemanticsProperties.Text].map { it.text }
+        assertEquals(listOf("Time", "19:00"), said)
+    }
 }
