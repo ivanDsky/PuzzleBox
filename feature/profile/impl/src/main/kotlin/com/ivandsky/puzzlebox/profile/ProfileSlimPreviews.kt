@@ -68,11 +68,6 @@ internal fun ProfileLinkedInNotConnectedPreview() = SlimProfile(SignedIn, Linked
 
 @PuzzleBoxPreviews
 @Composable
-internal fun ProfileLinkedInConnectedPreview() =
-    SlimProfile(SignedIn, LinkedInRowState.Connected(KnownSummary))
-
-@PuzzleBoxPreviews
-@Composable
 internal fun ProfileLinkedInPostingOffPreview() =
     SlimProfile(SignedIn, LinkedInRowState.Connected(KnownSummary))
 
