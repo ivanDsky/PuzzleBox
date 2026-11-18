@@ -78,9 +78,10 @@ class StrandsArchiveE2ETest {
     }
 
     @Test
-    fun `SC6 SC7 a past day costs one request, reopens offline from the cache, and leaves the streak alone`() =
+    fun `SC6 SC7 a past day costs one request, reopens offline from the cache, and leaves the streak alone`() {
+        // Scripted before launch: the Play page starts loading today as soon as it shows.
+        serve(TODAY, PAST)
         shellRobot(playHub, today = TODAY, graph = dataGraph()) {
-            serve(TODAY, PAST)
             // Today's board captures today; opened-not-solved, so the solved-day streak is 0.
             openGame(STRANDS)
             awaitStrands(TODAY)
@@ -109,14 +110,16 @@ class StrandsArchiveE2ETest {
             leavePast()
             assertEquals("the streak is unchanged after the reopen", before, streak())
         }
+    }
 
     @Test
-    fun `SC16 nine archive days evict the oldest Strands save and keep the Zip one`() =
+    fun `SC16 nine archive days evict the oldest Strands save and keep the Zip one`() {
+        // Today loads too: a game whose today can't load offers "Try again" on never-opened days. Scripted before
+        // launch, since the Play page starts loading today as soon as it shows.
+        serve(TODAY, *ARCHIVE.toTypedArray())
         shellRobot(playHub, today = TODAY, graph = dataGraph()) {
             val zipSlot = PlaySlot.Daily(ZipDefinition.id, TODAY)
             runBlocking { saves.save(zipSlot, byteArrayOf(1), elapsedMs = 0L) }
-            // Today loads too: a game whose today can't load offers "Try again" on never-opened days.
-            serve(TODAY, *ARCHIVE.toTypedArray())
 
             ARCHIVE.forEach { day ->
                 openPast(day)
@@ -124,7 +127,10 @@ class StrandsArchiveE2ETest {
                 // An untouched board is never written (only a committed change saves): find one word.
                 tapWord(firstThemeWord(day))
                 leavePast()
-                // Saves are ordered by their wall-clock stamp; keep each one strictly newer.
+                // The save lands off the main thread, stamped when it does: wait for it, so every stamp is strictly
+                // newer than the last and the ninth save's prune has run before the read below.
+                val slot = PlaySlot.Daily(StrandsDefinition.id, day)
+                rule.waitUntil(TIMEOUT_MS) { slot in runBlocking { saves.observeInProgress().first() }.keys }
                 Thread.sleep(SAVE_GAP_MS)
             }
             background()
@@ -138,6 +144,7 @@ class StrandsArchiveE2ETest {
             )
             foreground()
         }
+    }
 
     private val ShellRobot.saves: SavedPlayRepository get() = graph.koin.get()
 

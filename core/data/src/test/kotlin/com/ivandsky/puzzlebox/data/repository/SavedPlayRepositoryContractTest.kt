@@ -63,6 +63,17 @@ class SavedPlayRepositoryContractTest(private val adapter: String) : SavedPlayRe
     }
 
     @Test
+    fun `room adapter's ninth save still prunes the oldest after the wall clock steps back`() = runTest {
+        assumeTrue(adapter == ROOM)
+        for (day in 1..8) repository.save(slot("zip", day), byteArrayOf(day.toByte()), elapsedMs = 0L)
+        nowMs = -100L
+        repository.save(slot("zip", 9), byteArrayOf(9), elapsedMs = 0L)
+
+        assertNull(repository.load(slot("zip", 1)))
+        assertEquals((2..9).map { slot("zip", it) }.toSet(), repository.observeInProgress().first().keys)
+    }
+
+    @Test
     fun `room adapter's cap is per game, so another game's slot survives`() = runTest {
         assumeTrue(adapter == ROOM)
         repository.save(slot("tango", 1), byteArrayOf(7), elapsedMs = 0L)

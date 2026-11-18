@@ -9,8 +9,10 @@ import kotlinx.coroutines.awaitCancellation
 /**
  * In-memory [CloudSpace] that passes [com.ivandsky.puzzlebox.testing.contract.CloudSpaceContract], plus knobs for what a
  * device cannot force on demand. The signed-in uid comes from [identity]; a call for another uid (or with nobody signed
- * in) is [CloudResult.WrongAccount] and touches nothing. `updatedAtMs` is stamped from [clock], the caller's value is
- * ignored. Docs, payloads and results are copied in and out, so a caller can never mutate the stored state.
+ * in) is [CloudResult.WrongAccount] and touches nothing. `updatedAtMs` is stamped from [clock] and, like a server's
+ * timestamp, never goes back even when [clock] does (a host whose wall clock is stepped back would otherwise stamp a
+ * write older than a cursor already handed out, and a delta pull would skip it); the caller's value is ignored. Docs,
+ * payloads and results are copied in and out, so a caller can never mutate the stored state.
  *
  * Counters follow the Firestore bill: [reads] one per returned doc and at least one per query, [writes] one per doc,
  * [deletes] one per requested id (one per removed doc for `deleteAll`, whose enumeration is a query too). A call that is
@@ -34,6 +36,7 @@ class FakeCloudSpace(
     private var readCount = 0
     private var writeCount = 0
     private var deleteCount = 0
+    private var lastStamp = Long.MIN_VALUE
 
     val reads: Int get() = synchronized(lock) { readCount }
     val writes: Int get() = synchronized(lock) { writeCount }
@@ -67,7 +70,7 @@ class FakeCloudSpace(
 
     override suspend fun put(uid: String, kind: String, docs: List<CloudDoc>): CloudResult<Unit> = call(uid) {
         docs.forEach { requirePlain(it.fields) }
-        val now = clock()
+        val now = maxOf(clock(), lastStamp).also { lastStamp = it }
         val space = stored.getOrPut(uid to kind) { LinkedHashMap() }
         docs.forEach { doc ->
             written += Written(uid, kind, doc.detached())
