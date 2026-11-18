@@ -58,6 +58,9 @@ import com.ivandsky.puzzlebox.domain.linkedin.SubmitLinkedInResult
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.UpdateLinkedInPosting
 import com.ivandsky.puzzlebox.domain.nextthing.ObserveResultNextThing
+import com.ivandsky.puzzlebox.domain.random.LoadRandomDay
+import com.ivandsky.puzzlebox.domain.random.LoadRandomPuzzle
+import com.ivandsky.puzzlebox.domain.random.LoadRandomShared
 import com.ivandsky.puzzlebox.domain.ranks.GetPlayerActions
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
@@ -102,6 +105,17 @@ val domainModule = module {
     }
     factory { LoadPastDay(daily = get(), registry = get()) }
     factory { ObserveArchiveMonth(daily = get(), saved = get(), completions = get(), calendar = get()) }
+    factory {
+        LoadRandomDay(
+            daily = get(),
+            completions = get(),
+            loadPastDay = get(),
+            registry = get(),
+            random = Random.Default,
+        )
+    }
+    factory { LoadRandomShared(list = get(), random = Random.Default) }
+    factory { LoadRandomPuzzle(day = get(), shared = get()) }
     factory { ObserveArchiveProgress(daily = get(), calendar = get(), observeGameHistory = get()) }
     factory { GetAppUpdate(releases = get(), build = get()) }
     single { SyncTodayPuzzles(registry = get(), daily = get(), calendar = get()) }
