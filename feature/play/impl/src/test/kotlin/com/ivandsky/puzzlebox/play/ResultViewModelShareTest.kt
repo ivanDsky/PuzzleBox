@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.domain.ComputeCustomBoard
@@ -48,7 +47,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** Share result is read once, in the view model: off the Share text is today's header, on it ends with the slot's day link. */
+/** The view model's Share text ends with the link to the slot's day. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class ResultViewModelShareTest {
@@ -111,15 +110,10 @@ class ResultViewModelShareTest {
     }
 
     @Test
-    fun `with the flag off the share text is the plain header`() {
-        assertEquals("PuzzleBox Alpha #12 · 1:30 · no hints", viewModel(FakeReleaseFlags()).shareText(state))
-    }
-
-    @Test
-    fun `with the flag on the share text ends with the link to the result's day`() {
+    fun `the share text ends with the link to the result's day`() {
         assertEquals(
             "PuzzleBox Alpha #12 · 1:30 · no hints\nhttps://puzzlebox-f3356.web.app/p/${alpha.value}/2026-10-31",
-            viewModel(FakeReleaseFlags(ReleaseFlag.ShareResult)).shareText(state),
+            viewModel(FakeReleaseFlags()).shareText(state),
         )
     }
 }

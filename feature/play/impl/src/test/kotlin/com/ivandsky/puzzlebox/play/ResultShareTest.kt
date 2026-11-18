@@ -35,18 +35,13 @@ class ResultShareTest {
         number: Int? = 608,
     ) = ResultUiState(game = game, puzzleNumber = number, practice = practice, replay = replay)
 
-    private fun share(game: String = "zip", on: Boolean = true, onDay: LocalDate = day) =
-        ResultShare(on, PlaySlot.Daily(GameId(game), onDay))
+    private fun share(game: String = "zip", onDay: LocalDate = day) =
+        ResultShare(PlaySlot.Daily(GameId(game), onDay))
 
     private fun text(share: ResultShare, state: ResultUiState) = share.textOf(state, 183_000, 1)
 
     @Test
-    fun `flag off is today's header alone, whatever the replay holds`() {
-        assertEquals(header, text(share(on = false), state()))
-    }
-
-    @Test
-    fun `flag on with a replay shares the header, the strip and the link`() {
+    fun `a replay shares the header, the strip and the link`() {
         assertEquals("$header\n$strip\n$link", text(share(), state()))
     }
 
