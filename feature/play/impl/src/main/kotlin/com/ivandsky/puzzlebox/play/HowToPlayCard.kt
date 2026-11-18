@@ -2,28 +2,22 @@ package com.ivandsky.puzzlebox.play
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
@@ -52,19 +46,7 @@ internal fun HowToPlayCard(
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
         Eyebrow("HOW TO PLAY")
-        row.rules.forEachIndexed { index, rule ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(28.dp).background(accent.accent, CircleShape), contentAlignment = Alignment.Center) {
-                    Text(
-                        "${index + 1}",
-                        style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp, fontWeight = FontWeight.ExtraBold),
-                        color = accent.onAccent,
-                    )
-                }
-                Spacer(Modifier.width(Spacing.md))
-                Text(rule, style = MaterialTheme.typography.bodyMedium)
-            }
-        }
+        row.rules.forEachIndexed { index, rule -> NumberedRule(index + 1, rule, accent) }
         if (hasLesson) {
             FilledTonalButton(
                 onClick = onOpenLesson,
