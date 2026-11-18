@@ -89,6 +89,9 @@ internal class NewDuelViewModel(
     /** The games [created]'s invite text lists; see [inviteGames]. */
     suspend fun inviteGames(created: CreatedDuel): List<String> = created.inviteGames(legTitles)
 
+    /** The signed-in player's name for the invite text; null while signed out. */
+    fun inviter(): String? = identity.current.value?.displayName
+
     /** The code of a duel against Past you, once, after Create succeeded: the sheet opens that duel, the next opening's if it closed first. */
     val opened: Flow<ShareCode> = openedCodes.receiveAsFlow()
 

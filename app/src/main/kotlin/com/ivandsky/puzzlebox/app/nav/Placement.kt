@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.app.nav.Home.Shell
 import com.ivandsky.puzzlebox.app.nav.Home.TabRoot
 import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.compete.api.DuelRevealKey
+import com.ivandsky.puzzlebox.compete.api.NewDuelKey
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
@@ -104,6 +105,7 @@ internal val placementRows: List<PlacementRow> = listOf(
     PlacementRow(MatchLegResultKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
     PlacementRow(DuelKey::class, Placement(PushedOn(Tab.Games), Chrome.Bar)),
     PlacementRow(DuelRevealKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
+    PlacementRow(NewDuelKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
     PlacementRow(EditorKey::class, Placement(PushedOn(Tab.Community), Chrome.Immersive)),
     PlacementRow(PublishedPuzzleKey::class, Placement(PushedOn(Tab.Community), Chrome.Bar)),
     PlacementRow(CatalogKey::class, Placement(DebugOnly, Chrome.Bar)),

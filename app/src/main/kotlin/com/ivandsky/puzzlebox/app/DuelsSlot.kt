@@ -21,6 +21,7 @@ internal fun rememberDuelsSlot(navigator: Navigator, layout: PlayLayout): DuelsS
             DuelsTab(
                 onOpenDuel = navigator::pushOnce,
                 onOpenReveal = navigator::pushOnce,
+                onNewDuel = navigator::pushOnce,
                 listState = listState,
                 challenge = prefill?.let { DuelChallenge(it.friendUid, it.friendName, it.game) },
                 onChallengeTaken = onTaken,

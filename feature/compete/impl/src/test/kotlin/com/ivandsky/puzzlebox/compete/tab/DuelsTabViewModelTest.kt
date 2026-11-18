@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.compete.tab
 
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.match.ClaimResult
 import com.ivandsky.puzzlebox.data.match.LegRef
@@ -12,6 +14,7 @@ import com.ivandsky.puzzlebox.data.match.WriteResult
 import com.ivandsky.puzzlebox.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.domain.UpdateMatchSeat
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
@@ -78,11 +81,12 @@ class DuelsTabViewModelTest {
         server.signedInUid = player?.uid
     }
 
-    private fun viewModel() = DuelsTabViewModel(
+    private fun viewModel(flags: ReleaseFlags? = null) = DuelsTabViewModel(
         observeMyDuels = ObserveMyDuels(repo, FakeSelfMatchRepository(), FakeMatchResultOutbox(), local, identity) { now },
         updateSeat = UpdateMatchSeat(repo, local, identity),
         identity = identity,
         clock = { now },
+        releaseFlags = flags,
     )
 
     private fun TestScope.started(vm: DuelsTabViewModel): DuelsTabViewModel {
@@ -308,5 +312,12 @@ class DuelsTabViewModelTest {
         viewAs(null)
         val anonymous = started(viewModel())
         assertEquals("You", anonymous.state.value.selfName)
+    }
+
+    @Test
+    fun `New duel is a screen only while SheetScreens is on`() {
+        assertTrue(viewModel(FakeReleaseFlags(ReleaseFlag.SheetScreens)).newDuelAsScreen)
+        assertFalse(viewModel(FakeReleaseFlags()).newDuelAsScreen)
+        assertFalse("no flags bound reads as off", viewModel(null).newDuelAsScreen)
     }
 }

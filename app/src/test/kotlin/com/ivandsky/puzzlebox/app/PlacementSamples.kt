@@ -4,6 +4,7 @@ import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.nav.placementRows
 import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.compete.api.DuelRevealKey
+import com.ivandsky.puzzlebox.compete.api.NewDuelKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
 import com.ivandsky.puzzlebox.history.api.HistoryKey
@@ -38,6 +39,7 @@ internal object PlacementSamples {
         MatchLegResultKey("K7Q2MX", 0, 61_200, 0, false),
         DuelKey("K7Q2MX"),
         DuelRevealKey("K7Q2MX"),
+        NewDuelKey(),
         EditorKey("d1"),
         PublishedPuzzleKey("K7Q2MX"),
     ).associateBy { it::class }

@@ -43,4 +43,10 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
      * blinks round it. Read only in feature/play's DI, which hands the Zip board one Boolean (ADR-0022 §3, spec A2).
      */
     ZipDotPulse(label = "Zip next number pulses itself", releaseDefault = true),
+
+    /**
+     * Sheets that opened other sheets become screens (epic nested-sheets): New duel is a screen on the phone and fills the
+     * Duels pane on the tablet, and its Add puzzle step is a page of it. Read only in a ViewModel or a DI module (ADR-0022 §3).
+     */
+    SheetScreens(label = "New duel as a screen", releaseDefault = false),
 }

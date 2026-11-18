@@ -26,6 +26,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.compete.api.DuelRevealKey
+import com.ivandsky.puzzlebox.compete.api.NewDuelKey
 import com.ivandsky.puzzlebox.compete.create.DuelChallenge
 import com.ivandsky.puzzlebox.compete.create.DuelChallengeSaver
 import com.ivandsky.puzzlebox.compete.create.NewDuelSheet
@@ -40,8 +41,9 @@ import org.koin.androidx.compose.koinViewModel
  * The body under the Games screen's Duels pill: the challenge card, then my duels in their sections, then a one-line
  * note when there are none. It scrolls as one list on [listState], which the Games host holds so it can send the list
  * to its top; the host owns the side inset. [onOpenDuel] opens the duel screen and [onOpenReveal] the reveal of a duel
- * whose reveal is ready or already seen. A pending [challenge] opens the New duel sheet filled in, once: [onChallengeTaken]
- * runs as the sheet takes it, and closing the sheet drops it. With [inPane] (the tablet, whose right pane is [DuelsPane])
+ * whose reveal is ready or already seen. A pending [challenge] opens New duel filled in, once: [onChallengeTaken]
+ * runs as it takes the challenge, and closing the sheet drops it. [onNewDuel] opens New duel as a screen (the phone, with
+ * the flag on); without it, or in the pane, New duel is the sheet. With [inPane] (the tablet, whose right pane is [DuelsPane])
  * a row, an accepted invite and a reveal row select that duel for the pane instead of calling [onOpenDuel] and
  * [onOpenReveal], and the selected row is highlighted.
  */
@@ -54,6 +56,7 @@ fun DuelsTab(
     challenge: DuelChallenge? = null,
     onChallengeTaken: () -> Unit = {},
     inPane: Boolean = false,
+    onNewDuel: ((NewDuelKey) -> Unit)? = null,
 ) {
     val viewModel: DuelsTabViewModel = koinViewModel()
     val state = viewModel.state.collectAsStateWithLifecycle()
@@ -70,10 +73,17 @@ fun DuelsTab(
     var newDuelOpen by rememberSaveable { mutableStateOf(false) }
     // The challenge the open sheet was started with; the host's copy is gone once it has been taken.
     var sheetChallenge by rememberSaveable(stateSaver = DuelChallengeSaver) { mutableStateOf<DuelChallenge?>(null) }
-    TakeDuelChallenge(challenge, onTaken = onChallengeTaken) {
-        sheetChallenge = it
-        newDuelOpen = true
+    // A screen where there is one to push (the phone, flag on); else the sheet, over this tab.
+    val newDuelScreen = onNewDuel.takeIf { viewModel.newDuelAsScreen && !inPane }
+    val startNewDuel: (DuelChallenge?) -> Unit = { start ->
+        if (newDuelScreen != null) {
+            newDuelScreen(NewDuelKey(start?.friendUid.orEmpty(), start?.friendName.orEmpty(), start?.game?.value.orEmpty()))
+        } else {
+            sheetChallenge = start
+            newDuelOpen = true
+        }
     }
+    TakeDuelChallenge(challenge, onTaken = onChallengeTaken, open = startNewDuel)
     DuelsTabContent(
         rows = state.value.rows,
         signedIn = state.value.signedIn,
@@ -81,7 +91,7 @@ fun DuelsTab(
         inviter = state.value.inviter,
         // Read only inside each row's time-left text, so the minute tick redraws that text and nothing else.
         now = { state.value.now },
-        onNewDuel = { newDuelOpen = true },
+        onNewDuel = { startNewDuel(null) },
         onOpenDuel = open,
         onOpenReveal = openReveal,
         modifier = modifier,

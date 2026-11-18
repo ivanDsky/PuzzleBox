@@ -7,4 +7,5 @@ import kotlinx.serialization.modules.PolymorphicModuleBuilder
 fun PolymorphicModuleBuilder<NavKey>.competeNavKeys() {
     subclass(DuelKey::class, DuelKey.serializer())
     subclass(DuelRevealKey::class, DuelRevealKey.serializer())
+    subclass(NewDuelKey::class, NewDuelKey.serializer())
 }
