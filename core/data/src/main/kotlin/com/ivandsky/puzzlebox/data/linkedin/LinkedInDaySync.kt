@@ -100,7 +100,7 @@ internal class LinkedInDaySync(
             // Straight after the ghosts, not awaited: a slow or failed photo never holds them back, and no
             // cancellable call sits between the stored board and the launch. A day left right here would
             // otherwise lose its photos for good, since a logged past board is never read again.
-            avatars.downloadInBackground(kept, started)
+            avatars.downloadInBackground(kept, started, request.game, request.day)
             // A board read while its day is still running is partial; the outcome marks it for one more read.
             val outcome = if (request.delta == 0) LinkedInOutcome.BoardToday else LinkedInOutcome.Board
             log(request, LinkedInItem.Board, outcome, nowMs)

@@ -9,9 +9,14 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 
 /**
  * The avatar store over [dir], with file work and background downloads run inline so a test sees their result
- * without waiting.
+ * without waiting. The re-ask of a missing photo is due after [reaskDelayMs] of real time: an hour unless a test
+ * is about it.
  */
-internal fun testAvatars(dir: File, source: LinkedInPhotoSource = FakeLinkedInPhotoSource()): LinkedInAvatars {
+internal fun testAvatars(
+    dir: File,
+    source: LinkedInPhotoSource = FakeLinkedInPhotoSource(),
+    reaskDelayMs: Long = 3_600_000L,
+): LinkedInAvatars {
     val io = UnconfinedTestDispatcher()
-    return LinkedInAvatars(dir, source, io, CoroutineScope(io + SupervisorJob()))
+    return LinkedInAvatars(dir, source, io, CoroutineScope(io + SupervisorJob()), reaskDelayMs)
 }

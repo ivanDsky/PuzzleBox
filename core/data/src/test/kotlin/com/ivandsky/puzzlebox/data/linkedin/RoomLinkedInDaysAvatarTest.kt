@@ -29,7 +29,10 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
@@ -297,6 +300,59 @@ class RoomLinkedInDaysAvatarTest {
             while (data.ghosts.size < 2 || data.ghosts.any { it.photoPath == null }) data = awaitItem()
             assertEquals(setOf(avatars.pathOf("a", avatars.present.first()), avatars.pathOf("b", avatars.present.first())), data.ghosts.map { it.photoPath }.toSet())
             cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `a photo that fails on the first pass is asked for once more while the day is shown, and shows in the same visit`() = runTest {
+        val source = FailsFirst(url("a")).apply { respond(url("a"), byteArrayOf(1)); respond(url("b"), byteArrayOf(2)) }
+        respond(ago(3), LinkedInRead.Ok(LinkedInBoard(listOf(row("a", url("a")), row("b", url("b"))))))
+        val days = newDays(avatars = testAvatars(File(dir.parentFile, "reask_avatars"), source, reaskDelayMs = 100))
+
+        days.observe(zip, ago(3)).test {
+            awaitItem()
+            days.sync(zip, ago(3))
+            var data = awaitItem()
+            while (data.ghosts.size < 2 || data.ghosts.any { it.photoPath == null }) data = awaitItem()
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertEquals(listOf(url("a"), url("a"), url("b")), source.calls.sorted())
+    }
+
+    @Test
+    fun `a day left before the re-ask is due asks no more`() = runTest {
+        val source = FailsFirst(url("a")).apply { respond(url("a"), byteArrayOf(1)); respond(url("b"), byteArrayOf(2)) }
+        respond(ago(3), LinkedInRead.Ok(LinkedInBoard(listOf(row("a", url("a")), row("b", url("b"))))))
+        val days = newDays(avatars = testAvatars(File(dir.parentFile, "reask_avatars"), source, reaskDelayMs = 1_500))
+
+        // On a real-time dispatcher: the re-ask delay must not be skipped by the test's virtual clock.
+        val shown = CompletableDeferred<Unit>()
+        val visit = launch(Dispatchers.Default) { days.observe(zip, ago(3)).collect { shown.complete(Unit) } }
+        shown.await()
+        days.sync(zip, ago(3))
+        withContext(Dispatchers.Default) {
+            withTimeout(10_000) { while (source.calls.size < 2) delay(10) }
+            visit.cancelAndJoin()
+            delay(2_500)
+        }
+
+        assertEquals(listOf(url("a"), url("b")), source.calls.sorted())
+    }
+
+    /** A fake source whose first fetch of [failing] answers nothing, as a dead cold connection would. */
+    private class FailsFirst(private val failing: String) : LinkedInPhotoSource {
+        private val delegate = FakeLinkedInPhotoSource()
+        private var failed = false
+        val calls: List<String> get() = delegate.calls
+
+        fun respond(url: String, photo: ByteArray) = delegate.respond(url, photo)
+
+        override suspend fun fetch(url: String): ByteArray? {
+            val answer = delegate.fetch(url)
+            if (url != failing || failed) return answer
+            failed = true
+            return null
         }
     }
 

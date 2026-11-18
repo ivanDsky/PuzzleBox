@@ -2,18 +2,24 @@ package com.ivandsky.puzzlebox.data.linkedin
 
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInBoard
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInPhotoSource
+import com.ivandsky.puzzlebox.model.GameId
 import java.io.File
 import java.io.IOException
 import java.security.MessageDigest
+import java.time.LocalDate
 import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -25,15 +31,17 @@ import kotlinx.coroutines.withContext
 /**
  * The connections' profile photos, one file per member in [dir]. The directory is meant to sit in
  * `noBackupFilesDir`, so Auto Backup and device transfer never copy a photo off the phone. A photo is
- * downloaded once, after a board read, and only for a member whose file is missing: LinkedIn's photo
- * address expires, so none is kept, and a photo that could not be fetched is simply asked for again the
- * next time a board names the member. The file name is a hash of the member, so no name or id is on disk.
+ * downloaded after a board read, and only for a member whose file is missing: LinkedIn's photo
+ * address expires, so none is kept on disk, and a photo that could not be fetched is asked for once more
+ * while its day is shown ([reaskWhileShown]), then again the next time a board names the member. The file
+ * name is a hash of the member, so no name or id is on disk.
  */
 internal class LinkedInAvatars(
     private val dir: File,
     private val source: LinkedInPhotoSource,
     private val io: CoroutineDispatcher,
     private val scope: CoroutineScope,
+    private val reaskDelayMs: Long = REASK_DELAY_MS,
 ) {
     /** Bumped on every change to the directory, so [present] lists it again. */
     private val changes = MutableStateFlow(0)
@@ -49,6 +57,14 @@ internal class LinkedInAvatars(
     private var generation = 0
 
     private val permits = Semaphore(PARALLEL_DOWNLOADS)
+
+    /**
+     * The photo addresses of each day's last board read, by day, kept in memory only until that day's one
+     * [reaskWhileShown] has used them, the day leaves the screen, or [clear] runs.
+     */
+    private val held = MutableStateFlow<Map<String, Held>>(emptyMap())
+
+    private class Held(val rows: List<LinkedInBoard.Row>, val started: Int, val firstPass: CompletableDeferred<Unit>)
 
     /**
      * The photos being fetched, as the wipe count they began under and the file name. Keyed by the count
@@ -72,11 +88,44 @@ internal class LinkedInAvatars(
      * Downloads the photos of [rows] in this store's own scope and returns at once: they must not hold a
      * sync back, and leaving the day that asked for them must not cancel them, since a past board is never
      * read again and its photos would never arrive. [started] is the [generation] read before anything a
-     * wipe could have cleared was stored, so a wipe in between still drops these photos.
+     * wipe could have cleared was stored, so a wipe in between still drops these photos. The addresses are
+     * held in memory under the day for one [reaskWhileShown], and nowhere else.
      */
-    fun downloadInBackground(rows: List<LinkedInBoard.Row>, started: Int) {
-        scope.launch { download(rows, started) }
+    fun downloadInBackground(rows: List<LinkedInBoard.Row>, started: Int, game: GameId, day: LocalDate) {
+        val firstPass = CompletableDeferred<Unit>()
+        held.update { it + (dayKey(game, day) to Held(rows.filter { row -> row.pictureUrl != null }, started, firstPass)) }
+        scope.launch {
+            try {
+                download(rows, started)
+            } finally {
+                firstPass.complete(Unit)
+            }
+        }
     }
+
+    /**
+     * For as long as the caller runs, i.e. while [day] is on screen: once the first pass of a board read
+     * for [day] has settled and [reaskDelayMs] has passed, asks once more for the photos still missing,
+     * with the addresses that board read held. Nothing is asked after the caller is cancelled, and the
+     * addresses are dropped then, or after the one ask, whichever comes first. The same GET, size cap and
+     * permits as the first pass; a photo that fails again stays missing until a later board names the member.
+     */
+    suspend fun reaskWhileShown(game: GameId, day: LocalDate) {
+        val key = dayKey(game, day)
+        try {
+            while (true) {
+                val pass = held.mapNotNull { it[key] }.first()
+                pass.firstPass.await()
+                delay(reaskDelayMs)
+                download(pass.rows, pass.started)
+                held.update { if (it[key] === pass) it - key else it }
+            }
+        } finally {
+            held.update { it - key }
+        }
+    }
+
+    private fun dayKey(game: GameId, day: LocalDate) = "${game.value}/$day"
 
     /** [download] of [rows] against the wipe count as it is now. */
     suspend fun download(rows: List<LinkedInBoard.Row>) = download(rows, generation())
@@ -116,7 +165,7 @@ internal class LinkedInAvatars(
         }
     }
 
-    /** Deletes every photo. A download still on the wire finds the wipe and drops its photo. */
+    /** Deletes every photo and forgets every held address. A download still on the wire finds the wipe and drops its photo. */
     suspend fun clear() {
         withContext(io) {
             lock.withLock {
@@ -124,6 +173,7 @@ internal class LinkedInAvatars(
                 dir.deleteRecursively()
             }
         }
+        held.value = emptyMap()
         changes.update { it + 1 }
     }
 
@@ -156,5 +206,6 @@ internal class LinkedInAvatars(
         const val EXTENSION = ".jpg"
         const val TEMPORARY = ".tmp"
         const val PARALLEL_DOWNLOADS = 4
+        const val REASK_DELAY_MS = 5_000L
     }
 }

@@ -13,13 +13,17 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 /**
  * What the day view shows and the entry to its sync. The only caller of the account's own-result and
@@ -66,8 +70,16 @@ internal class RoomLinkedInDays(
 
     override fun willRead(game: GameId, day: LocalDate): Boolean = daySync.willRead(game, day)
 
-    override fun observe(game: GameId, day: LocalDate): Flow<LinkedInDayData> {
-        return perLink { linked, profileId ->
+    /** The day as the phone holds it; while it is collected the day is on screen, so its missing photos are asked for once more ([LinkedInAvatars.reaskWhileShown]). */
+    override fun observe(game: GameId, day: LocalDate): Flow<LinkedInDayData> = flow {
+        coroutineScope {
+            launch { avatars.reaskWhileShown(game, day) }
+            emitAll(observed(game, day))
+        }
+    }
+
+    private fun observed(game: GameId, day: LocalDate): Flow<LinkedInDayData> =
+        perLink { linked, profileId ->
             combine(
                 imported(game, day),
                 savedBoards.observe(game, day, profileId),
@@ -77,7 +89,6 @@ internal class RoomLinkedInDays(
             ) { import, board, fetches, inFlight, lastSync -> dayData(linked, game, day, import, board, fetches, inFlight, lastSync) }
             // Room emits again on any write to a table, so a sync of another day would repeat this one.
         }.distinctUntilChanged()
-    }
 
     /**
      * One listener per source for the whole range, where [observe] holds one per day: a game's month is five flows,
