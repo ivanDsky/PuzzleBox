@@ -202,11 +202,15 @@ internal fun rematchSettings(match: Match, lineup: Boolean = false) = DuelSettin
     lineup = if (lineup) rematchLineup(match.legs) else null,
 )
 
-/** The self duel again: same count, games and friends toggle, with a fresh draw of solved puzzles. */
-internal fun selfRematchSettings(match: Match) = SelfDuelSettings(
+/**
+ * The self duel again: same count, games and friends toggle, with a fresh draw of solved puzzles.
+ * With [lineup] (DuelLineup on) the draw also keeps the duel's game order, each puzzle an "Any" of its game.
+ */
+internal fun selfRematchSettings(match: Match, lineup: Boolean = false) = SelfDuelSettings(
     rounds = match.legs.size,
     games = match.legs.mapTo(LinkedHashSet()) { it.ref.gameId },
     includeFriends = match.includeFriends,
+    lineup = if (lineup) rematchLineup(match.legs) else null,
 )
 
 /** The summary of [match] as the [plan] and the domain's [outcome] settled it. */

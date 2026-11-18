@@ -246,6 +246,48 @@ class RematchViewModelTest {
         assertTrue("no invite goes to the server", server.matches.isEmpty())
     }
 
+    private fun selfDuelOf(games: List<GameId>) = played.copy(
+        challenger = Player(SelfSeats.ME, "You", null),
+        opponent = Player(SelfSeats.PAST, SelfSeats.PAST_NAME, null),
+        legs = games.mapIndexed { i, game -> MatchLeg(LegRef.Daily(game, today.minusDays(1), 100 + i), authorUid = null) },
+    )
+
+    private fun selfViewModel(self: Match, flags: FakeReleaseFlags) =
+        RematchViewModel(self, CreateMatch(server, local, draw, identity, Random(CODE_SEED), ValidateExactPuzzles(FakeSharedPuzzleRepository())), selfDuel, releaseFlags = flags)
+
+    @Test
+    fun withTheLineupOnASelfDuelRematchKeepsTheGameOrder() = runTest {
+        completions.setRecords((1..5).flatMap { listOf(record(alpha, it), record(beta, it + 10)) })
+        val vm = selfViewModel(selfDuelOf(listOf(beta, alpha, beta, beta, alpha)), FakeReleaseFlags(ReleaseFlag.DuelLineup))
+
+        vm.send()
+
+        val created = vm.created.first()
+        assertEquals(listOf(beta, alpha, beta, beta, alpha), selfMatches.observeAll().first().single { it.code == created.code }.legs.map { it.ref.gameId })
+        assertTrue("no invite goes to the server", server.matches.isEmpty())
+    }
+
+    @Test
+    fun withTheLineupOffASelfDuelRematchIsTheRandomDrawEvenWhenTheOrderCouldNotBeKept() = runTest {
+        completions.setRecords(listOf(record(alpha, 1)) + (1..4).map { record(beta, it + 10) })
+        val vm = selfViewModel(selfDuelOf(listOf(alpha, beta, alpha)), FakeReleaseFlags())
+
+        vm.send()
+
+        assertEquals(3, vm.created.first().legs.size)
+    }
+
+    @Test
+    fun aRefusedSelfLineupRematchIsTheGenericInviteNote() = runTest {
+        completions.setRecords(listOf(record(alpha, 1)) + (1..4).map { record(beta, it + 10) })
+        val vm = selfViewModel(selfDuelOf(listOf(alpha, beta, alpha)), FakeReleaseFlags(ReleaseFlag.DuelLineup))
+
+        vm.send()
+
+        assertEquals(RematchState(note = "Couldn't send the invite. Try again."), vm.state.value)
+        assertTrue(selfMatches.observeAll().first().isEmpty())
+    }
+
     @Test
     fun aSelfDuelRematchWithNothingToDrawIsANote() = runTest {
         val self = played.copy(challenger = Player(SelfSeats.ME, "You", null), opponent = Player(SelfSeats.PAST, SelfSeats.PAST_NAME, null))
