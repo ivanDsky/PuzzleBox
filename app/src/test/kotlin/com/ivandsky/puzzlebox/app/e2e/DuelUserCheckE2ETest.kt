@@ -99,8 +99,12 @@ class DuelUserCheckE2ETest {
         // "ends" is the same instant. The pill reads the device clock, so the expected hours come from that clock.
         friendClaims(code)
         awaitTag(LEGS_TITLE)
-        val hoursLeft = Duration.between(Instant.now(), match.deadline).toHours()
-        rule.onNodeWithTag(TIME_LEFT).assert(hasText("Closes in $hoursLeft h ", substring = true))
+        // The title and the pill render in one composition; still wait for the pill's own text rather than read it once.
+        rule.waitUntil(TIMEOUT_MS) {
+            val hoursLeft = Duration.between(Instant.now(), match.deadline).toHours()
+            rule.onAllNodes(hasTestTag(TIME_LEFT) and hasText("Closes in $hoursLeft h ", substring = true), useUnmergedTree = true)
+                .fetchSemanticsNodes().isNotEmpty()
+        }
         val ends = DateTimeFormatter.ofPattern("EEE HH:mm", Locale.getDefault()).format(match.deadline.atZone(ZoneId.systemDefault()))
         assertEquals("the deadline is a day after the create", Duration.ofHours(24), Duration.between(match.createdAt, match.deadline))
         rule.onNodeWithText("Best of ${match.legs.size} · ends $ends").assertExists()
@@ -199,5 +203,6 @@ class DuelUserCheckE2ETest {
         const val SEE_REVEAL = "duel.legs.reveal"
         const val DUELS_COUNT = "library.tab.duels.count"
         const val HIDDEN_SCORE = "Score hidden until it settles"
+        const val TIMEOUT_MS = 10_000L
     }
 }
