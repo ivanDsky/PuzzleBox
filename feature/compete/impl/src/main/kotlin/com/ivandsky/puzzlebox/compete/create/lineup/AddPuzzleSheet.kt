@@ -37,6 +37,7 @@ import org.koin.compose.koinInject
 
 private val TILE_MIN_HEIGHT = 56.dp
 private const val TILES_PER_ROW = 2
+private const val TILES_PER_ROW_TWO_PANE = 1
 private val TWO_PANE_MAX_WIDTH = 960.dp
 private const val TILES_PANE_WEIGHT = 2f
 private const val SEARCH_PANE_WEIGHT = 3f
@@ -44,10 +45,9 @@ private const val DISABLED_ALPHA = 0.38f
 
 /**
  * "Add puzzle N" or, from a row, "Change puzzle N": one tile per game for an "Any" puzzle of it, and [exactPuzzles], the
- * slot for picking one exact puzzle. One column on a phone, with the chips [exactPuzzles] draws between its field and its
- * results. Where the app splits panes (the single rule in [PanePolicy]) the sheet widens and splits: the tiles and the
- * [filters] on the left, the exact-puzzle search on the right, told through `filtersInline = false` not to draw the chips
- * again. A tile calls [onPickGame]; the sheet closes through [onDismiss] (a swipe, the scrim) or when the caller drops it.
+ * slot for picking one exact puzzle, whose chips open from a filter button beside its field. One column on a phone. Where
+ * the app splits panes (the single rule in [PanePolicy]) the sheet widens and splits: the tiles on the left, the
+ * exact-puzzle search on the right. A tile calls [onPickGame]; the sheet closes through [onDismiss] (a swipe, the scrim) or when the caller drops it.
  *
  * With [solved] (Past you's sheet: how many puzzles of each game the player has solved) a tile says its count and is off
  * at zero, since nothing could be drawn; [exactPuzzles] is then the search over those solved puzzles, split off the same way.
@@ -61,8 +61,7 @@ internal fun AddPuzzleSheet(
     onPickGame: (GameId) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
-    filters: @Composable () -> Unit,
-    exactPuzzles: @Composable (filtersInline: Boolean) -> Unit,
+    exactPuzzles: @Composable () -> Unit,
     solved: Map<GameId, Int>? = null,
 ) {
     val window = LocalWindowInfo.current.containerSize
@@ -84,15 +83,12 @@ internal fun AddPuzzleSheet(
             )
             if (twoPane) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-                    Column(Modifier.weight(TILES_PANE_WEIGHT), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                        GameTiles(games, solved, onPickGame)
-                        filters()
-                    }
-                    Column(Modifier.weight(SEARCH_PANE_WEIGHT)) { exactPuzzles(false) }
+                    Column(Modifier.weight(TILES_PANE_WEIGHT)) { GameTiles(games, solved, TILES_PER_ROW_TWO_PANE, onPickGame) }
+                    Column(Modifier.weight(SEARCH_PANE_WEIGHT)) { exactPuzzles() }
                 }
             } else {
-                GameTiles(games, solved, onPickGame)
-                exactPuzzles(true)
+                GameTiles(games, solved, TILES_PER_ROW, onPickGame)
+                exactPuzzles()
             }
         }
     }
@@ -100,13 +96,13 @@ internal fun AddPuzzleSheet(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun GameTiles(games: List<DuelGame>, solved: Map<GameId, Int>?, onPickGame: (GameId) -> Unit) {
+private fun GameTiles(games: List<DuelGame>, solved: Map<GameId, Int>?, perRow: Int, onPickGame: (GameId) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Text("Any puzzle of a game", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-            maxItemsInEachRow = TILES_PER_ROW,
+            maxItemsInEachRow = perRow,
         ) {
             games.forEach { game ->
                 GameTile(game, solved?.let { it[game.id] ?: 0 }, onClick = { onPickGame(game.id) }, modifier = Modifier.weight(1f))

@@ -1,5 +1,8 @@
 package com.ivandsky.puzzlebox.compete.create.lineup
 
+import androidx.compose.ui.test.junit4.ComposeTestRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.compete.create.QUEENS
 import com.ivandsky.puzzlebox.compete.create.TANGO
 import com.ivandsky.puzzlebox.data.match.LegRef
@@ -43,4 +46,10 @@ internal fun pickerOf(rows: List<PickablePuzzle>, offline: Boolean = false): (Fl
             offline,
         )
     }
+}
+
+/** Taps the filter button beside the search field, which opens the chips under it. */
+internal fun ComposeTestRule.openFilters() {
+    onNodeWithTag("duel.lineup.filter").performClick()
+    waitForIdle()
 }

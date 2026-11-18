@@ -153,11 +153,12 @@ class PastYouLineupLayoutTest {
         assertTrue("clipped text: $clipped", clipped.isEmpty())
     }
 
-    /** The sheet's tiles, chips, field and the first result; the results are a lazy list, so only the one in view is placed. */
+    /** The sheet's tiles, field, filter button, the chips it opens, and the first result; the results are a lazy list, so only the one in view is placed. */
     private fun assertSheetControlsAreAtLeast48dp() {
+        rule.openFilters()
         val minPx = with(rule.density) { MIN_TARGET.toPx() }
         val tags = GAMES.flatMap { listOf("duel.lineup.sheet.game.${it.id.value}", "duel.lineup.chip.game.${it.id.value}") } +
-            listOf("duel.lineup.chip.pastdays", "duel.lineup.chip.friends", "duel.lineup.search", "duel.lineup.pick.add.${SOLVED_ROWS.first().entry.ref.wire}")
+            listOf("duel.lineup.filter", "duel.lineup.filter.clear", "duel.lineup.chip.pastdays", "duel.lineup.chip.friends", "duel.lineup.search", "duel.lineup.pick.add.${SOLVED_ROWS.first().entry.ref.wire}")
         for (tag in tags) {
             val target = rule.onNodeWithTag(tag).performScrollTo().fetchSemanticsNode().touchBoundsInRoot
             assertTrue("$tag is ${target.width}x${target.height} px", target.width >= minPx - 1 && target.height >= minPx - 1)
@@ -170,6 +171,7 @@ class PastYouLineupLayoutTest {
         panel(restoration = restoration)
         openSheet()
         rule.onNodeWithTag("duel.lineup.search").performTextInput("crown")
+        rule.openFilters()
         rule.onNodeWithTag("duel.lineup.chip.game.${TANGO.value}").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("duel.lineup.count").assertTextEquals("1 found")

@@ -57,7 +57,7 @@ class AddPuzzleSheetLayoutTest {
 
     private val rows = listOf(CROWN_JEWELS, CROWN_TANGO, OLD_CROWN, MY_GRID)
 
-    private fun open(render: String) {
+    private fun open(render: String, filtersOpen: Boolean = true) {
         Settings.Global.putFloat(ApplicationProvider.getApplicationContext<Context>().contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
         startKoin { modules(module { single { newDuelBrands() }; viewModel { AddPuzzleViewModel(pickerOf(rows), NO_LOOKUP) } }) }
         rule.setContent {
@@ -69,6 +69,7 @@ class AddPuzzleSheetLayoutTest {
         }
         rule.onNodeWithTag("duel.lineup.add").performClick()
         rule.waitForIdle()
+        if (filtersOpen) rule.openFilters()
         capture(render)
     }
 
@@ -94,6 +95,8 @@ class AddPuzzleSheetLayoutTest {
         GAMES.forEach { add("duel.lineup.sheet.game.${it.id.value}"); add("duel.lineup.chip.game.${it.id.value}") }
         listOf("new", "notplayed", "community", "friends", "pastdays", "mine").forEach { add("duel.lineup.chip.$it") }
         add(search)
+        add("duel.lineup.filter")
+        add("duel.lineup.filter.clear")
         add("duel.lineup.search.paste")
         if (resultsVisible) rows.forEach { add("duel.lineup.pick.add.${it.entry.ref.wire}") }
     }
@@ -132,13 +135,13 @@ class AddPuzzleSheetLayoutTest {
 
     @Test
     @Config(qualifiers = TABLET)
-    fun `a tablet splits the sheet, tiles and chips on the left, the field and results on the right`() {
+    fun `a tablet splits the sheet, the tiles on the left, the field, its filter button, the chips and results on the right`() {
         open("add-sheet-1280x800")
 
-        val left = listOf(bounds(tile), bounds(chip), bounds(lastChip))
-        val right = listOf(bounds(search), bounds("duel.lineup.pick.add.${CROWN_JEWELS.entry.ref.wire}"))
+        val left = listOf(bounds(tile), bounds(lastTile))
+        val right = listOf(bounds(search), bounds("duel.lineup.filter"), bounds(chip), bounds(lastChip), bounds("duel.lineup.pick.add.${CROWN_JEWELS.entry.ref.wire}"))
         assertTrue("every left control ends before the right pane starts", left.maxOf { it.right } <= right.minOf { it.left })
-        assertTrue("the field starts level with the tiles' label, not under the chips", bounds(search).top < bounds(lastChip).top)
+        assertTrue("the chips open under the field", bounds(search).top < bounds(chip).top)
         assertTrue("the sheet is wider than a phone sheet", bounds("duel.lineup.sheet").width > with(rule.density) { 640.dp.toPx() })
         assertEveryControlIsAtLeast48dp()
     }
@@ -146,9 +149,9 @@ class AddPuzzleSheetLayoutTest {
     @Test
     @Config(qualifiers = TABLET)
     fun `on a tablet neither pane leaves a large empty space under the other`() {
-        open("add-sheet-1280x800")
+        open("add-sheet-1280x800-filters-closed", filtersOpen = false)
 
-        val leftBottom = bounds(lastChip).bottom
+        val leftBottom = bounds(lastTile).bottom
         val rightBottom = bounds("duel.lineup.pick.add.${MY_GRID.entry.ref.wire}").bottom
         val slack = with(rule.density) { PANE_HEIGHT_SLACK.toPx() }
         assertTrue("panes end $leftBottom and $rightBottom", abs(leftBottom - rightBottom) <= slack)
