@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.play.random
 
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -12,6 +11,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ivandsky.puzzlebox.designsystem.AppModalBottomSheet
 import com.ivandsky.puzzlebox.domain.random.RandomPick
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
@@ -79,7 +79,7 @@ internal fun RandomPuzzleSheet(
             onPick = viewModel::pick,
         )
     }
-    ModalBottomSheet(
+    AppModalBottomSheet(
         onDismissRequest = {
             viewModel.reset()
             onDismiss()

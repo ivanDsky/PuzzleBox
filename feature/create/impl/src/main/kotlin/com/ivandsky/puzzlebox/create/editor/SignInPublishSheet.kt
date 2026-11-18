@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -26,6 +25,7 @@ import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.create.editor.PublishSession.SignInFailure
 import com.ivandsky.puzzlebox.data.identity.AuthError
+import com.ivandsky.puzzlebox.designsystem.AppModalBottomSheet
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -57,7 +57,7 @@ internal fun SignInPublishSheet(
         last = null
     }
     val shown = signIn ?: last ?: return
-    ModalBottomSheet(
+    AppModalBottomSheet(
         onDismissRequest = onCancel,
         modifier = Modifier.testTag("create.signIn.sheet"),
         sheetState = sheetState,

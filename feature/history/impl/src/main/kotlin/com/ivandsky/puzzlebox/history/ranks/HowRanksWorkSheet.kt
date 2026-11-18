@@ -8,7 +8,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -17,6 +16,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
+import com.ivandsky.puzzlebox.designsystem.AppModalBottomSheet
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
@@ -37,7 +37,7 @@ private val Rules = listOf(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun HowRanksWorkSheet(onDismiss: () -> Unit, modifier: Modifier = Modifier) {
-    ModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier.testTag("ranks.how.sheet")) {
+    AppModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier.testTag("ranks.how.sheet")) {
         HowRanksWork()
     }
 }

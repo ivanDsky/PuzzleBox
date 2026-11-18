@@ -19,7 +19,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -43,6 +42,7 @@ import com.ivandsky.puzzlebox.compete.duel.rememberCompeteTime
 import com.ivandsky.puzzlebox.compete.share.DuelCreatedSheet
 import com.ivandsky.puzzlebox.compete.share.createdInviteSaver
 import com.ivandsky.puzzlebox.compete.share.createdInviteText
+import com.ivandsky.puzzlebox.designsystem.AppModalBottomSheet
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -132,7 +132,7 @@ internal fun NewDuelSheet(
     )
     val created = shared
     if (created == null) {
-        ModalBottomSheet(onDismissRequest = dismiss, modifier = modifier.testTag("duel.new.sheet"), sheetState = sheetState) {
+        AppModalBottomSheet(onDismissRequest = dismiss, modifier = modifier.testTag("duel.new.sheet"), sheetState = sheetState) {
             NewDuelContent(state, actions)
         }
     } else {

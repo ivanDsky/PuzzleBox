@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -27,6 +26,7 @@ import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.AppModalBottomSheet
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -66,7 +66,7 @@ internal fun DuelCreatedSheet(
             copied = false
         }
     }
-    ModalBottomSheet(onDismissRequest = onDone, modifier = modifier.testTag("duel.created.sheet")) {
+    AppModalBottomSheet(onDismissRequest = onDone, modifier = modifier.testTag("duel.created.sheet")) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
