@@ -103,6 +103,9 @@ The solve has no usable replay, for any cause. On the daily result and the Histo
 **Replay mark** (kind):
 The kind of one timeline tick: Normal, Undo, Hint or Mistake. A merged tap cycle takes the highest kind of its marks.
 
+**Solve strip**:
+The ten squares in the result's Share text that show where in a solve you undid, erred or took a hint.
+
 **Hint badge**:
 The corner disc on a replay board cell (Strands: a word) that a replayed hint revealed.
 
