@@ -40,7 +40,10 @@ internal fun FriendCreatePanel(state: NewDuelState, actions: NewDuelActions) {
             title = "Customize",
             subtitle = "Puzzles, games, deadline, friends' puzzles",
             selected = draft.preset == DuelPreset.Custom,
-            onClick = { customizing = !customizing },
+            onClick = {
+                if (!customizing && state.lineup != null) actions.onCustomize()
+                customizing = !customizing
+            },
             tag = "duel.preset.custom",
             trailing = { Chevron(expanded = customizing) },
         ) { CustomizeBody(customizing) { DuelCustomizePanel(state, actions, Modifier.padding(top = Spacing.sm)) } }

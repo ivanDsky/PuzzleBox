@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.data.match.CreateResult
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.LocalMatch
 import com.ivandsky.puzzlebox.data.match.MatchDraft
+import com.ivandsky.puzzlebox.data.match.MatchLeg
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.domain.lineup.AnyGame
 import com.ivandsky.puzzlebox.domain.lineup.ExactPuzzle
@@ -30,6 +31,7 @@ import kotlin.random.Random
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -113,6 +115,23 @@ class CreateMatchLineupTest {
         assertEquals(2, repo.drafts.size)
         assertEquals(repo.drafts[0].legs, repo.drafts[1].legs)
         assertEquals(created.legs, repo.drafts[1].legs)
+    }
+
+    @Test
+    fun `the drawn legs are announced before the write, and not at all when an entry is undrawable`() = runTest {
+        var heard: List<MatchLeg>? = null
+        repo.createAnswer = { CreateResult.Offline }
+
+        val offline = create()(settings(List(3) { AnyGame(alpha) }), onDrawn = { heard = it })
+
+        assertEquals(CreateOutcome.Offline, offline)
+        assertEquals(repo.drafts.single().legs, heard)
+        heard = null
+        solveAlphaExcept(open = emptySet())
+
+        create()(settings(listOf(AnyGame(alpha))), onDrawn = { heard = it })
+
+        assertNull(heard)
     }
 
     /** The real fake behind a recorder; [createAnswer] scripts the answer. */

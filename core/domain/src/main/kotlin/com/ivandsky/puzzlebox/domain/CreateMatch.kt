@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.data.match.CreateResult
 import com.ivandsky.puzzlebox.data.match.LocalRole
 import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.data.match.MatchDraft
+import com.ivandsky.puzzlebox.data.match.MatchLeg
 import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.Player
@@ -19,6 +20,8 @@ import kotlin.random.Random
  * puzzle's nor a match's, writes the match and remembers it as mine, so it lists at once. A rematch invites the
  * other player of [Match] `rematchOf` and links its code. An explicit [invitedUid] invites that player instead; the two
  * never combine. A taken code is replaced a bounded number of times.
+ * [onDrawn] hears the drawn legs before anything is written, so a caller can re-send those legs, not a redraw, when a failure
+ * makes the player try again.
  * The challenger's name is trimmed and cut to the rules' bound, a blank one becoming the anonymous player label.
  */
 class CreateMatch(
@@ -34,6 +37,7 @@ class CreateMatch(
         settings: DuelSettings,
         rematchOf: Match? = null,
         invitedUid: String? = null,
+        onDrawn: (List<MatchLeg>) -> Unit = {},
     ): CreateOutcome {
         require(rematchOf == null || invitedUid == null) { "a rematch derives its invite target; pass one or the other" }
         val me = identity.current.value ?: return CreateOutcome.SignedOut
@@ -54,6 +58,7 @@ class CreateMatch(
             }
         }
         if (legs.isEmpty()) return CreateOutcome.NoPuzzles
+        onDrawn(legs)
         val challenger = Player(me.uid, playerName(me.displayName), me.photoUrl)
         val rival = rematchOf?.opponentOf(me.uid)
         val target = rival?.uid ?: invitedUid
