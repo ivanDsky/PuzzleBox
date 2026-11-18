@@ -60,7 +60,7 @@ internal fun archiveDiscFor(compact: Boolean): Dp = if (compact) 42.dp else 46.d
  * from [days] (the month's archive days) and the legend. ‹ › and the "#1" jump call [onMonth]
  * inside [range] (#1 .. today); the "Today" jump calls [onToday]; a disc calls [onPick]. The ring
  * marks [picked], else today.
- * A non-null [onRandom] ends the jump row with a Random chip in [accent]'s container.
+ * A non-null [onRandom] puts a Random chip in [accent]'s container at the jump row's right edge.
  * [compact] is the phone's smaller disc and row. A month change fades the grid in.
  */
 @Composable

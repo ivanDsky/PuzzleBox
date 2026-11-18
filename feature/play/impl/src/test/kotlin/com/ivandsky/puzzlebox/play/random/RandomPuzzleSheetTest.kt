@@ -69,21 +69,21 @@ class RandomPuzzleSheetTest {
     private val opened = mutableListOf<RandomPick>()
     private var dismissed = 0
 
-    private fun viewModel(): RandomPuzzleViewModel {
+    private fun viewModel(preset: GameId = alpha): RandomPuzzleViewModel {
         val registry = TestGames.registry(listOf(alpha, beta))
         val random = Random(1)
         val load = LoadRandomPuzzle(
             LoadRandomDay(daily, FakeCompletionRepository(), LoadPastDay(daily, registry), registry, random),
             LoadRandomShared(ListCommunityPuzzles(FakeSharedPuzzleRepository(), FakeHiddenPuzzles(), FakeIdentityService(Identity("me", "Me", null))) { 0L }, random),
         )
-        return RandomPuzzleViewModel(null, load, RandomPickMemory(), testDispatchers())
+        return RandomPuzzleViewModel(preset, load, RandomPickMemory(), testDispatchers())
     }
 
-    private fun mountSheet(layout: PlayLayout = PlayLayout.SinglePane) {
-        val viewModel = viewModel()
+    private fun mountSheet(layout: PlayLayout = PlayLayout.SinglePane, preset: GameId = alpha) {
+        val viewModel = viewModel(preset)
         composeRule.setContent {
             PuzzleBoxTheme {
-                RandomPuzzleSheet(null, games, games, layout, onOpen = { opened += it }, onDismiss = { dismissed++ }, viewModel = viewModel)
+                RandomPuzzleSheet(preset, games, games, layout, onOpen = { opened += it }, onDismiss = { dismissed++ }, viewModel = viewModel)
             }
         }
     }
@@ -91,15 +91,16 @@ class RandomPuzzleSheetTest {
     private fun node(tag: String) = composeRule.onNodeWithTag(tag)
 
     @Test
-    fun `Not solved yet and Any are on by default`() {
-        mountSheet()
+    fun `Not solved yet is on and the preset game is chosen`() {
+        mountSheet(preset = beta)
 
         node("random.unsolved").assertIsOn()
-        node("random.game.any").assertIsSelected()
+        node("random.game.beta").assertIsSelected()
     }
 
     private fun pickWithChip(game: GameId) {
-        mountSheet()
+        // The preset is the other game, so a chip the pick ignores keeps drawing that one.
+        mountSheet(preset = if (game == alpha) beta else alpha)
 
         node("random.game.${game.value}").performClick()
         node("random.game.${game.value}").assertIsSelected()
@@ -109,7 +110,6 @@ class RandomPuzzleSheetTest {
         assertEquals(game, (opened.single() as RandomPick.Day).game)
     }
 
-    // Both games are tapped, in two tests: whichever game Any would draw first, an ignored chip fails the other one.
     @Test
     fun `the alpha chip narrows the next pick to alpha`() = pickWithChip(alpha)
 
@@ -123,7 +123,7 @@ class RandomPuzzleSheetTest {
         composeRule.setContent {
             PuzzleBoxTheme {
                 if (show.value) {
-                    RandomPuzzleSheet(null, games, games, PlayLayout.SinglePane, onOpen = { opened += it }, onDismiss = {}, viewModel = viewModel)
+                    RandomPuzzleSheet(alpha, games, games, PlayLayout.SinglePane, onOpen = { opened += it }, onDismiss = {}, viewModel = viewModel)
                 }
             }
         }

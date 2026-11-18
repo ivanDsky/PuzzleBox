@@ -6,14 +6,11 @@ import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.gameui.PlayLayout
-import com.ivandsky.puzzlebox.model.GameId
 import org.junit.After
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -24,17 +21,16 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The Dailies header at a 360 dp phone: Random and Enter code both fit at touch size, and the subtitle stays whole. */
+/** The Dailies header at a 360 dp phone: Enter code fits at touch size with no Random beside it, and the subtitle stays whole. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w360dp-h800dp")
-class LibraryRandomHeaderTest {
+class LibraryHeaderTest {
 
     @get:Rule
     val composeRule = createComposeRule()
 
     private var koin: KoinApplication? = null
-    private var randomGame: GameId? = GameId("unset")
 
     @Before
     fun startGraph() {
@@ -46,7 +42,7 @@ class LibraryRandomHeaderTest {
         koin?.close()
     }
 
-    private fun mount(onRandom: ((GameId?) -> Unit)?) {
+    private fun mount() {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 LibraryScreen(
@@ -62,7 +58,7 @@ class LibraryRandomHeaderTest {
                     calendar = CalendarActions(),
                     onOpenRanks = { _, _ -> },
                     onEnterCode = {},
-                    onRandom = onRandom,
+                    onRandom = {},
                     onMakeOne = {},
                 )
             }
@@ -70,21 +66,19 @@ class LibraryRandomHeaderTest {
     }
 
     @Test
-    fun `both header buttons are at least 48 dp tall and inside the 360 dp screen`() {
-        mount { randomGame = it }
+    fun `Enter code is at least 48 dp tall and inside the 360 dp screen`() {
+        mount()
 
-        listOf("library.random", "library.enterCode").forEach { tag ->
-            val node = composeRule.onNodeWithTag(tag)
-            node.assertIsDisplayed()
-            node.assertHeightIsAtLeast(48.dp)
-            val right = node.getBoundsInRoot().right
-            assertTrue("$tag ends at $right", right <= 360.dp)
-        }
+        val node = composeRule.onNodeWithTag("library.enterCode")
+        node.assertIsDisplayed()
+        node.assertHeightIsAtLeast(48.dp)
+        val right = node.getBoundsInRoot().right
+        assertTrue("library.enterCode ends at $right", right <= 360.dp)
     }
 
     @Test
-    fun `the whole subtitle shows in at most two lines beside the buttons`() {
-        mount { randomGame = it }
+    fun `the whole subtitle shows in at most two lines beside the button`() {
+        mount()
 
         val subtitle = composeRule.onNodeWithText("Every puzzle, back to #1")
         subtitle.assertIsDisplayed()
@@ -93,17 +87,8 @@ class LibraryRandomHeaderTest {
     }
 
     @Test
-    fun `Random reports the Games tab, a null game`() {
-        mount { randomGame = it }
-
-        composeRule.onNodeWithTag("library.random").performClick()
-
-        assertEquals(null, randomGame)
-    }
-
-    @Test
-    fun `without an onRandom the header has Enter code alone`() {
-        mount(onRandom = null)
+    fun `the header has no Random even with a Random handler`() {
+        mount()
 
         composeRule.onNodeWithTag("library.random").assertDoesNotExist()
         composeRule.onNodeWithTag("library.enterCode").assertIsDisplayed()

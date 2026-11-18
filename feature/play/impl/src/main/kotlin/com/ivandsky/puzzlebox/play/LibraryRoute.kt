@@ -52,8 +52,8 @@ import org.koin.core.parameter.parametersOf
  * With [linkedIn] the day card shows the LinkedIn lines, and [onReconnectLinkedIn] opens its login.
  * [onMakeOne] puts "Make one" on each game page. The friend puzzles and Custom's list are the app's Community
  * tab ([CommunityRoute]); Games shows Dailies and Duels.
- * With the RandomPuzzle holder on, the header also has Random: it opens the random sheet, and its pick plays a past day
- * through [onPlay] or opens a New today puzzle's card through [onOpenCode], the sheet closing first.
+ * With the RandomPuzzle holder on, each game page's calendar has Random: it opens the random sheet for that game, and its
+ * pick plays a past day through [onPlay] or opens a New today puzzle's card through [onOpenCode], the sheet closing first.
  */
 @Composable
 internal fun LibraryRoute(
@@ -94,7 +94,7 @@ internal fun LibraryRoute(
     if (!enteringCode && codePrefill.isNotEmpty()) LaunchedEffect(Unit) { codePrefill = "" }
     val scope = currentKoinScope()
     val randomEnabled = remember(scope) { scope.getOrNull<RandomPuzzleEntry>()?.enabled == true }
-    var randomOpen by rememberSaveable { mutableStateOf(false) }
+    // The game whose random sheet is open, null while it is closed.
     var randomGame by rememberSaveable { mutableStateOf<String?>(null) }
     LifecycleStartEffect(viewModel) {
         viewModel.syncToday()
@@ -117,12 +117,7 @@ internal fun LibraryRoute(
                 onBackToToday = viewModel::backToToday,
             ),
             onEnterCode = { enteringCode = true },
-            onRandom = randomEnabled.takeIf { it }?.let {
-                { game ->
-                    randomGame = game?.value
-                    randomOpen = true
-                }
-            },
+            onRandom = randomEnabled.takeIf { it }?.let { { game -> randomGame = game.value } },
             friends = friends,
             onOpenFriend = onOpenCode,
             onRemoveFriend = viewModel::removeFriend,
@@ -150,21 +145,21 @@ internal fun LibraryRoute(
                 },
             )
         }
-        if (randomOpen) {
+        randomGame?.let { randomOf ->
             val games: GameRegistry = koinInject()
             RandomPuzzleSheet(
-                game = randomGame?.let(::GameId),
+                game = GameId(randomOf),
                 games = state.rows.archiveGames(),
                 communityGames = remember(games, registry) { communityGamesOf(games, registry) },
                 layout = layout,
                 onOpen = { pick ->
-                    randomOpen = false
+                    randomGame = null
                     when (pick) {
                         is RandomPick.Day -> onPlay(pick.game, pick.day)
                         is RandomPick.Shared -> onOpenCode(pick.code)
                     }
                 },
-                onDismiss = { randomOpen = false },
+                onDismiss = { randomGame = null },
             )
         }
         val open = lesson

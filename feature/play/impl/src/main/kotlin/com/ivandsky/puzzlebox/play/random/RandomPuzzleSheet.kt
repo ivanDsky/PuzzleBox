@@ -20,7 +20,7 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * Pick a random puzzle: [game] is the preset chip (null is Any), [games] the Game chips of Past puzzles and
+ * Pick a random puzzle: [game] is the preset chip, [games] the Game chips of Past puzzles and
  * [communityGames] those of New today (see [communityGamesOf]). Switching source keeps the chosen game when the new source
  * offers it, else falls back to Any. Once a pick opened and
  * the sheet hid, [onOpen] gets it and the sheet goes back to idle; an outcome that opened nothing says why in the sheet
@@ -31,14 +31,14 @@ import org.koin.core.parameter.parametersOf
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun RandomPuzzleSheet(
-    game: GameId?,
+    game: GameId,
     games: List<RandomGame>,
     communityGames: List<RandomGame>,
     layout: PlayLayout,
     onOpen: (RandomPick) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: RandomPuzzleViewModel = koinViewModel(key = "random:${game?.value ?: "any"}", parameters = { parametersOf(game) }),
+    viewModel: RandomPuzzleViewModel = koinViewModel(key = "random:${game.value}", parameters = { parametersOf(game) }),
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()

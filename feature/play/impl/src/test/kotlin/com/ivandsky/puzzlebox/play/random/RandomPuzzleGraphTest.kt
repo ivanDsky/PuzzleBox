@@ -18,7 +18,6 @@ import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Test
 import org.koin.core.context.startKoin
@@ -53,12 +52,6 @@ class RandomPuzzleGraphTest {
         stopKoin() // tests share the JVM-global Koin context
         val vm = graph().get<RandomPuzzleViewModel> { parametersOf(GameId("zip")) }
         assertEquals(GameId("zip"), vm.state.value.game)
-    }
-
-    @Test
-    fun `no parameter is Any game`() {
-        stopKoin()
-        assertNull(graph().get<RandomPuzzleViewModel>().state.value.game)
     }
 
     @Test

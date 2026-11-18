@@ -17,12 +17,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * The random sheet's filters and its one pick at a time. [game] is the preset (null: Any game), applied once when the
+ * The random sheet's filters and its one pick at a time. [game] is the preset, applied once when the
  * screen first creates this; the screen keys it per game, so the filters stay as the player left them while it lives.
  * A pick is remembered in [memory] only once it is chosen, so a pick [reset] cancels never touches it.
  */
 internal class RandomPuzzleViewModel(
-    game: GameId?,
+    game: GameId,
     private val load: LoadRandomPuzzle,
     private val memory: RandomPickMemory,
     private val dispatchers: DispatcherProvider,

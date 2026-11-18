@@ -122,8 +122,8 @@ val playModule = module {
     // RandomPuzzle (epic #1153): screens read the holder, never the flag; the memory forgets the last pick with the process.
     single { RandomPuzzleEntry(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.RandomPuzzle) == true) }
     single { RandomPickMemory() }
-    // The preset game is the one optional parameter: no parameter is Any game.
-    viewModel { params -> RandomPuzzleViewModel(params.getOrNull<GameId>(), get(), get(), get()) }
+    // The preset game is the one parameter: the page whose Random opened the sheet.
+    viewModel { params -> RandomPuzzleViewModel(params.get<GameId>(), get(), get(), get()) }
     // RulesSheet (rules-sheet 04): How to play opens the rules sheet over the live play while it is on.
     single { HowToPlayRules(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.RulesSheet) == true) }
     // The flag-as-parameter rule again: with it off the result never touches LinkedIn. The Post button's flag is
