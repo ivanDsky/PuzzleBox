@@ -43,7 +43,8 @@ private val RankMinHeight = 56.dp
  * week, a hairline, the time spread chart, and the rank row. It draws [model] and nothing
  * else; a block whose model part is null is left out, and a model with none of them draws
  * no card at all (a practice puzzle). [onSignIn] is the rank row's Sign in button for a
- * signed-out player; the route supplies the real action, and without one the row has no button.
+ * signed-out player; the route supplies the real action, and without one the row has no button. [signInNote], when
+ * given, says under the prompt why the last try did not sign in.
  * The chart opens on [initialScope], else on the model's default scope. [contentModifier] is applied to the
  * content column inside the card, before its padding, so the screen can measure the content's own height. A non-null
  * [content] is the card's whole body in place of the streak, spread and rank (a community puzzle's ranks list).
@@ -61,6 +62,7 @@ internal fun ResultSideCard(
     initialScope: SpreadScope? = null,
     contentModifier: Modifier = Modifier,
     content: (@Composable () -> Unit)? = null,
+    signInNote: String? = null,
 ) {
     val streak = model.streak
     val spread = model.spread
@@ -86,7 +88,7 @@ internal fun ResultSideCard(
                 SpreadBlock(spread, palette, initialScope)
             }
             if (rank != null) {
-                RankRow(rank, onSignIn, Modifier.padding(top = Spacing.lg).resultBeat(ResultBeats.Blocks, 3))
+                RankRow(rank, onSignIn, signInNote, Modifier.padding(top = Spacing.lg).resultBeat(ResultBeats.Blocks, 3))
             }
         }
     }
@@ -148,7 +150,7 @@ private fun StreakBlock(streak: HeroStreak, accent: Color) {
 
 /** The rank row: a bold place and its sub line, or the sign-in prompt with its button. No chevron: nothing opens from it. */
 @Composable
-private fun RankRow(rank: HeroRank, onSignIn: (() -> Unit)?, modifier: Modifier) {
+private fun RankRow(rank: HeroRank, onSignIn: (() -> Unit)?, signInNote: String?, modifier: Modifier) {
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -184,12 +186,21 @@ private fun RankRow(rank: HeroRank, onSignIn: (() -> Unit)?, modifier: Modifier)
                 }
             }
             is HeroRank.SignIn -> {
-                Text(
-                    text = rank.text,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f).padding(vertical = Spacing.sm),
-                )
+                Column(Modifier.weight(1f).padding(vertical = Spacing.sm)) {
+                    Text(
+                        text = rank.text,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (signInNote != null) {
+                        Text(
+                            text = signInNote,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.testTag("result.side.rank.signin.note"),
+                        )
+                    }
+                }
                 if (onSignIn != null) {
                     AppTextButton(text = SIGN_IN_WITH_GOOGLE, onClick = onSignIn, modifier = Modifier.testTag("result.side.rank.signin"))
                 }

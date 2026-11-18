@@ -55,7 +55,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 
 /**
  * The result route's state holder for [key]'s slot. The slot's live play
@@ -239,10 +238,13 @@ class ResultViewModel internal constructor(
     /** The button was tapped. */
     fun postToLinkedIn() = post.tap()
 
+    private val signInRow = ResultSignIn(viewModelScope, board)
+
+    /** Why the last sign-in did not finish, in words for the rank row; null while it is idle or under way. */
+    val signInNote: StateFlow<String?> get() = signInRow.note
+
     /** The rank row's Google button: [activityContext] hosts Google's account picker, and is not kept. */
-    fun signIn(activityContext: Context) {
-        viewModelScope.launch { board.signIn(activityContext) }
-    }
+    fun signIn(activityContext: Context) = signInRow.tap(activityContext)
 
     fun retryRecordWrite() {
         live?.takeIf { it.record.value.solve == solve }?.retryRecordWrite()

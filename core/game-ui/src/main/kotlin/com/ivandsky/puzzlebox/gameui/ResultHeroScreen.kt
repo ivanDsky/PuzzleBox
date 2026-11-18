@@ -63,7 +63,8 @@ private const val SIDE_WEIGHT = 1f
  * two, so the celebration is on the first screen; the cards still line up to one height. Without moments (a duel leg) the cards are the same height.
  * [actions] is the hero's action row (the daily result passes [ResultHeroActions]); null draws none.
  * [chip] replaces the Today chip. A non-null [onRetryWrite] shows a failed-record-write notice above
- * the cards that retries through it. [onSignIn] is the rank row's sign-in, and the hero's sign-in line, when the player is signed out.
+ * the cards that retries through it. [onSignIn] is the rank row's sign-in, and the hero's sign-in line, when the player is signed out;
+ * [signInNote] says under the rank row why the last try did not sign in.
  * [side], when given, is the side card's body in place of the streak, spread and rank, and makes the page two-pane on a wide screen
  * (a community puzzle's ranks list); below 760 dp it sits under the hero like the side card does.
  * [board], when given, is a block drawn below the cards (the duel leg result's card).
@@ -77,6 +78,7 @@ fun ResultHeroScreen(
     modifier: Modifier = Modifier,
     brand: GameBrand = GameBrand.Neutral,
     onSignIn: (() -> Unit)? = null,
+    signInNote: String? = null,
     onRetryWrite: (() -> Unit)? = null,
     actions: (@Composable () -> Unit)? = null,
     chip: ResultHeroChip? = null,
@@ -130,7 +132,7 @@ fun ResultHeroScreen(
                                 gap = gap, gapBelow = true,
                             )
                             ResultSideCard(
-                                model, brand, onSignIn, Modifier.then(sideMin), wide,
+                                model, brand, onSignIn, Modifier.then(sideMin), wide, signInNote = signInNote,
                                 contentModifier = Modifier.reportContentHeight { sideHeight.intValue = it },
                                 content = side,
                             )
@@ -141,7 +143,7 @@ fun ResultHeroScreen(
                         ResultHeroCard(model, brand, Modifier, wide, actions, onSignIn = onSignIn)
                         ResultMomentCard(model.moments, brand, gap = gap)
                     }
-                    ResultSideCard(model, brand, onSignIn, Modifier, wide, content = side)
+                    ResultSideCard(model, brand, onSignIn, Modifier, wide, signInNote = signInNote, content = side)
                 }
                 board?.invoke()
                 if (replay != null) Box { replay(if (twoColumns) gap else null) }

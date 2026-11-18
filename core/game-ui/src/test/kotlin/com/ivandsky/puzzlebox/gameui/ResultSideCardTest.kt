@@ -7,6 +7,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -50,10 +51,10 @@ class ResultSideCardTest {
     private val brand = GameBrand(AccentSlot.Violet, GameGlyphs.Queens)
     private var signIns = 0
 
-    private fun setContent(model: ResultHeroModel) {
+    private fun setContent(model: ResultHeroModel, signInNote: String? = null) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                ResultSideCard(model = model, brand = brand, onSignIn = { signIns++ })
+                ResultSideCard(model = model, brand = brand, onSignIn = { signIns++ }, signInNote = signInNote)
             }
         }
     }
@@ -282,6 +283,22 @@ class ResultSideCardTest {
             .getOrNull(SemanticsActions.GetTextLayoutResult)?.action?.invoke(layouts)
         assertEquals(1, layouts.single().lineCount)
         assertFalse(layouts.single().isLineEllipsized(0))
+    }
+
+    @Test
+    fun `a sign in that did not finish says so under the prompt and the button still works`() {
+        setContent(heroSampleModel(rank = ResultRank.SignedOut), signInNote = "Couldn't sign in. Try again.")
+
+        composeRule.onNodeWithTag("result.side.rank.signin.note").assertIsDisplayed().assertTextEquals("Couldn't sign in. Try again.")
+        composeRule.onNodeWithTag("result.side.rank.signin").assertIsEnabled().performClick()
+        assertEquals(1, signIns)
+    }
+
+    @Test
+    fun `with no sign-in note the rank row has none`() {
+        setContent(heroSampleModel(rank = ResultRank.SignedOut))
+
+        composeRule.onNodeWithTag("result.side.rank.signin.note").assertDoesNotExist()
     }
 
     @Test
