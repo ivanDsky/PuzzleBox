@@ -23,11 +23,12 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Runs the Robolectric NATIVE graphics paths (draw, pixel readback, `IntBuffer` copy, PNG
- * encode) once, early in the `:app` test JVM. Without it the JVM aborted (SIGABRT,
+ * encode) once, early in the `:app` test JVM. Without a warm-up the JVM aborted (SIGABRT,
  * `JniConstants: Class not found: java/nio/IntBuffer`) at the first e2e class that reached the
  * native runtime cold; the screenshot goldens used to warm it up by accident, and the default
- * run no longer executes them (see AndroidRoborazziConventionPlugin). The package root
- * sorts before `create` and `e2e`, so Gradle runs this class first.
+ * run no longer executes them (see AndroidRoborazziConventionPlugin). Gradle does not promise
+ * this class runs first (nor at all under `--tests`), so the first Coil decode is warmed by
+ * [DrainTestApplication] too (#1325).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
