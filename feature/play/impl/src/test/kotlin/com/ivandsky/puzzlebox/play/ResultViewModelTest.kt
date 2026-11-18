@@ -185,6 +185,7 @@ class ResultViewModelTest {
         identity: Identity? = null,
         linkedIn: Boolean = false,
         flags: ReleaseFlags? = null,
+        post: Boolean = false,
     ): ResultViewModel {
         val history = ObserveGameHistory(games, daily, completions)
         val observeBoard = ObserveLeaderboard(FakeIdentityService(initial = identity), leaderboard, games, calendar)
@@ -201,8 +202,8 @@ class ResultViewModelTest {
             rank = ObserveResultRank(observeBoard, games, friendDay = null), // no Friends/Global setting
             linkedIn = if (linkedIn) ObserveLinkedInDay(linkedInDays, games) else null,
             releaseFlags = flags,
-            observePost = flags?.let { ObserveLinkedInPost(countedPosts) },
-            submitPost = flags?.let { SubmitLinkedInResult(linkedInPosts) },
+            observePost = if (post) ObserveLinkedInPost(countedPosts) else null,
+            submitPost = if (post) SubmitLinkedInResult(linkedInPosts) else null,
             board = signedOutBoard(),
             completions = completions,
             loadReplay = loadSolveReplay(games, daily, completions),
@@ -524,8 +525,6 @@ class ResultViewModelTest {
         assertEquals(ResultRank.SignedOut, vm(key.copy(day = day.minusDays(1).toString())).heroObserved().heroRank.value)
     }
 
-    private val postOn = FakeReleaseFlags(ReleaseFlag.LinkedInPush)
-
     private fun ResultViewModel.postObserved() = apply {
         screen.launch { linkedInPost.collect {} }
         dispatcher.scheduler.runCurrent()
@@ -541,7 +540,7 @@ class ResultViewModelTest {
         val posted = FakeController.TIME_MS + 8_000
         linkedInPosts.emit(alpha, day, LinkedInPostState.Posted, posted)
 
-        val vm = vm(key.copy(timeMs = FakeController.TIME_MS), flags = postOn).postObserved().postTimeObserved()
+        val vm = vm(key.copy(timeMs = FakeController.TIME_MS), post = true).postObserved().postTimeObserved()
 
         assertEquals(LinkedInPostRowState.Posted, vm.linkedInPost.value)
         assertEquals(posted, vm.linkedInPostTimeMs.value)
@@ -551,7 +550,7 @@ class ResultViewModelTest {
     fun `the first solve's Posted row names its own time`() {
         linkedInPosts.emit(alpha, day, LinkedInPostState.Posted, FakeController.TIME_MS)
 
-        val vm = vm(flags = postOn).postObserved().postTimeObserved()
+        val vm = vm(post = true).postObserved().postTimeObserved()
 
         assertEquals(FakeController.TIME_MS, vm.linkedInPostTimeMs.value)
     }
@@ -560,14 +559,14 @@ class ResultViewModelTest {
     fun `a day with no record row names no time`() {
         linkedInPosts.emit(alpha, day, LinkedInPostState.Posted)
 
-        val vm = vm(flags = postOn).postObserved().postTimeObserved()
+        val vm = vm(post = true).postObserved().postTimeObserved()
 
         assertNull(vm.linkedInPostTimeMs.value)
     }
 
     @Test
     fun `each post state shows its button state`() {
-        val vm = vm(flags = postOn).postObserved()
+        val vm = vm(post = true).postObserved()
         val expected = mapOf(
             LinkedInPostState.Ready to LinkedInPostRowState.Post,
             LinkedInPostState.Sending to LinkedInPostRowState.Posting,
@@ -590,7 +589,7 @@ class ResultViewModelTest {
     @Test
     fun `a tap on Post submits the slot's day once`() {
         linkedInPosts.emit(alpha, day, LinkedInPostState.Ready)
-        val vm = vm(flags = postOn).postObserved()
+        val vm = vm(post = true).postObserved()
 
         vm.postToLinkedIn()
         dispatcher.scheduler.runCurrent()
@@ -602,7 +601,7 @@ class ResultViewModelTest {
     fun `a second tap while the first is sending still submits once`() {
         linkedInPosts.emit(alpha, day, LinkedInPostState.Ready)
         linkedInPosts.submitGate = CompletableDeferred()
-        val vm = vm(flags = postOn).postObserved()
+        val vm = vm(post = true).postObserved()
 
         vm.postToLinkedIn()
         dispatcher.scheduler.runCurrent()
@@ -620,7 +619,7 @@ class ResultViewModelTest {
     fun `a tap on a status line submits nothing`() {
         for (state in listOf(LinkedInPostState.Sending, LinkedInPostState.Posted, LinkedInPostState.AlreadyOnLinkedIn, LinkedInPostState.Paused, LinkedInPostState.NotToday, LinkedInPostState.Tutorial, LinkedInPostState.Hidden)) {
             linkedInPosts.emit(alpha, day, state)
-            val vm = vm(flags = postOn).postObserved()
+            val vm = vm(post = true).postObserved()
             vm.postToLinkedIn()
             dispatcher.scheduler.runCurrent()
         }
@@ -632,24 +631,11 @@ class ResultViewModelTest {
     fun `Unknown and Offline taps submit again`() {
         for (state in listOf(LinkedInPostState.Unknown, LinkedInPostState.Offline)) {
             linkedInPosts.emit(alpha, day, state)
-            vm(flags = postOn).postObserved().postToLinkedIn()
+            vm(post = true).postObserved().postToLinkedIn()
             dispatcher.scheduler.runCurrent()
         }
 
         assertEquals(2, linkedInPosts.submitCalls.size)
-    }
-
-    @Test
-    fun `with the flag off the button never shows and nothing is subscribed or submitted`() {
-        linkedInPosts.emit(alpha, day, LinkedInPostState.Ready)
-        val vm = vm(flags = FakeReleaseFlags()).postObserved()
-
-        vm.postToLinkedIn()
-        dispatcher.scheduler.runCurrent()
-
-        assertNull(vm.linkedInPost.value)
-        assertEquals(0, observedDays)
-        assertTrue(linkedInPosts.submitCalls.isEmpty())
     }
 
     @Test
@@ -661,6 +647,7 @@ class ResultViewModelTest {
         dispatcher.scheduler.runCurrent()
 
         assertNull(vm.linkedInPost.value)
+        assertEquals(0, observedDays)
         assertTrue(linkedInPosts.submitCalls.isEmpty())
     }
 

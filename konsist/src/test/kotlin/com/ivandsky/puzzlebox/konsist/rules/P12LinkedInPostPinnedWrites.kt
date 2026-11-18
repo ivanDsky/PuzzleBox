@@ -6,7 +6,7 @@ import com.ivandsky.puzzlebox.konsist.core.SourceSetKind
 import com.ivandsky.puzzlebox.konsist.core.SourceTree
 import com.ivandsky.puzzlebox.konsist.core.Violation
 
-object P12LinkedInPostOnlyServerRequest : Rule {
+object P12LinkedInPostPinnedWrites : Rule {
     override val id = "P12"
 
     private const val MODULE = ":core:network"

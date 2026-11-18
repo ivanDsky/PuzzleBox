@@ -9,18 +9,18 @@ import org.junit.Test
  * once, and nothing in the package builds a write by hand.
  * Contract and allowlist rules: ADR-0009 (docs/adr/0009-in-module-structure-rules.md).
  */
-class P12LinkedInPostOnlyServerRequestTest {
+class P12LinkedInPostPinnedWritesTest {
     private val dir = "core/network/src/main/kotlin/com/ivandsky/puzzlebox/network/linkedin"
 
     @Test
     fun `P12 real tree is clean against allowlist`() {
-        RuleCheck.assertClean(P12LinkedInPostOnlyServerRequest)
+        RuleCheck.assertClean(P12LinkedInPostPinnedWrites)
     }
 
     @Test
     fun `P12 fixture yields exact violations`() {
         RuleCheck.assertFixture(
-            P12LinkedInPostOnlyServerRequest,
+            P12LinkedInPostPinnedWrites,
             "P12",
             10,
             setOf(
@@ -38,6 +38,6 @@ class P12LinkedInPostOnlyServerRequestTest {
 
     @Test
     fun `P12 add-a-game is clean`() {
-        RuleCheck.assertAddAGameClean(P12LinkedInPostOnlyServerRequest)
+        RuleCheck.assertAddAGameClean(P12LinkedInPostPinnedWrites)
     }
 }

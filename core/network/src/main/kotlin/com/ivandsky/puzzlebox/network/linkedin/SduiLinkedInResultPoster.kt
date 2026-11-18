@@ -31,7 +31,7 @@ import retrofit2.Response
 internal class SduiLinkedInResultPoster(
     private val api: LinkedInPostApi,
     private val session: LinkedInSessionCookies,
-    private val clock: () -> Instant = Instant::now,
+    private val clock: () -> Instant,
     private val zone: () -> ZoneId = ZoneId::systemDefault,
 ) : LinkedInResultPoster {
 

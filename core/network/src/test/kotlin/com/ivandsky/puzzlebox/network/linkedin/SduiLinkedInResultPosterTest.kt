@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead.Rejected.Kind
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInResultPoster
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSendResult
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
+import java.time.Instant
 import java.time.ZoneId
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.CancellationException
@@ -367,7 +368,7 @@ class SduiLinkedInResultPosterTest {
     private fun MockWebServer.poster(
         session: LinkedInAccountSession? = SESSION,
         zone: ZoneId = ZoneId.of("UTC"),
-    ): LinkedInResultPoster = linkedInResultPoster(url("/").toString(), FixedSessionCookies(session)) { zone }
+    ): LinkedInResultPoster = linkedInResultPoster(url("/").toString(), FixedSessionCookies(session), clock = Instant::now) { zone }
 
     private fun headersOf(name: String): Map<String, String> =
         Json.parseToJsonElement(LinkedInPostFixtures.text(name)).jsonObject.mapValues { it.value.jsonPrimitive.content }

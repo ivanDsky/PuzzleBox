@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead.Rejected.Kind
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInResultPoster
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSendResult
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
+import java.time.Instant
 import java.time.ZoneId
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.CancellationException
@@ -318,7 +319,7 @@ class VoyagerGameSaveTest {
     private fun MockWebServer.poster(
         session: LinkedInAccountSession? = SESSION,
         zone: ZoneId = ZoneId.of("UTC"),
-    ): LinkedInResultPoster = linkedInResultPoster(url("/").toString(), FixedSessionCookies(session)) { zone }
+    ): LinkedInResultPoster = linkedInResultPoster(url("/").toString(), FixedSessionCookies(session), clock = Instant::now) { zone }
 
     /** A voyager read: the session and the three headers of the account reads, and nothing a write adds. */
     private fun assertRead(request: RecordedRequest) {
