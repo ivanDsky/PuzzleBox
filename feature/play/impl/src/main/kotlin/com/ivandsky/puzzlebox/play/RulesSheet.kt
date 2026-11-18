@@ -8,7 +8,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -18,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
+import com.ivandsky.puzzlebox.designsystem.AppModalBottomSheet
 import com.ivandsky.puzzlebox.designsystem.AppTextButton
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
@@ -49,7 +49,7 @@ internal fun RulesSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     val hideThen = { next: () -> Unit -> scope.launch { sheetState.hide() }.invokeOnCompletion { next() } }
-    ModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier.testTag("rules.sheet"), sheetState = sheetState) {
+    AppModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier.testTag("rules.sheet"), sheetState = sheetState) {
         RulesSheetBody(copy, brand, onGotIt = { hideThen(onDismiss) }, onReplay = { hideThen(onReplayTutorial) })
     }
 }

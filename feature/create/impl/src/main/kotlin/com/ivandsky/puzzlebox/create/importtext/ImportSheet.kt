@@ -26,7 +26,6 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -37,6 +36,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.AppModalBottomSheet
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -84,7 +84,7 @@ fun ImportSheet(
             actions.onClipboard(clipboard.textOrNull(manager))
         }
     }
-    ModalBottomSheet(
+    AppModalBottomSheet(
         onDismissRequest = actions.onDismiss,
         modifier = modifier.testTag("create.import.sheet"),
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),

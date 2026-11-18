@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
+import com.ivandsky.puzzlebox.designsystem.AppModalBottomSheet
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
@@ -25,7 +25,7 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ReplayOptInSheet(onShare: () -> Unit, onKeepPrivate: () -> Unit, modifier: Modifier = Modifier) {
-    ModalBottomSheet(onDismissRequest = onKeepPrivate, modifier = modifier.testTag("ranks.optin.sheet")) {
+    AppModalBottomSheet(onDismissRequest = onKeepPrivate, modifier = modifier.testTag("ranks.optin.sheet")) {
         ReplayOptInContent(onShare, onKeepPrivate)
     }
 }
