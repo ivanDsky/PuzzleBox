@@ -12,6 +12,7 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInAccountSource
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -70,10 +71,14 @@ internal class RoomLinkedInDays(
 
     override fun willRead(game: GameId, day: LocalDate): Boolean = daySync.willRead(game, day)
 
-    /** The day as the phone holds it; while it is collected the day is on screen, so its missing photos are asked for once more ([LinkedInAvatars.reaskWhileShown]). */
+    /**
+     * The day as the phone holds it. While it is collected the day is on screen, so the photos still missing
+     * after its board read are asked for once more ([LinkedInAvatars.reaskWhileShown]); the caller is
+     * registered before anything is emitted, so a board read after this is collected is seen.
+     */
     override fun observe(game: GameId, day: LocalDate): Flow<LinkedInDayData> = flow {
         coroutineScope {
-            launch { avatars.reaskWhileShown(game, day) }
+            launch(start = CoroutineStart.UNDISPATCHED) { avatars.reaskWhileShown(game, day) }
             emitAll(observed(game, day))
         }
     }

@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -19,7 +20,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -41,7 +41,7 @@ internal class LinkedInAvatars(
     private val source: LinkedInPhotoSource,
     private val io: CoroutineDispatcher,
     private val scope: CoroutineScope,
-    private val reaskDelayMs: Long = REASK_DELAY_MS,
+    private val reaskWait: suspend () -> Unit = { delay(REASK_DELAY_MS) },
 ) {
     /** Bumped on every change to the directory, so [present] lists it again. */
     private val changes = MutableStateFlow(0)
@@ -58,13 +58,19 @@ internal class LinkedInAvatars(
 
     private val permits = Semaphore(PARALLEL_DOWNLOADS)
 
-    /**
-     * The photo addresses of each day's last board read, by day, kept in memory only until that day's one
-     * [reaskWhileShown] has used them, the day leaves the screen, or [clear] runs.
-     */
-    private val held = MutableStateFlow<Map<String, Held>>(emptyMap())
+    /** The days on screen, by [dayKey]; a day that is not on screen has no entry, so nothing is held for it. */
+    private val shown = MutableStateFlow<Map<String, Shown>>(emptyMap())
 
-    private class Held(val rows: List<LinkedInBoard.Row>, val started: Int, val firstPass: CompletableDeferred<Unit>)
+    /** A day on screen: how many callers of [reaskWhileShown] show it, and its visit's first board read. */
+    private data class Shown(val watchers: Int, val pass: Pass? = null)
+
+    /** Photo addresses of a board read, in memory only; [asked] once the visit's re-ask has been claimed. */
+    private data class Pass(
+        val rows: List<LinkedInBoard.Row>,
+        val started: Int,
+        val firstPass: CompletableDeferred<Unit>,
+        val asked: Boolean = false,
+    )
 
     /**
      * The photos being fetched, as the wipe count they began under and the file name. Keyed by the count
@@ -88,12 +94,21 @@ internal class LinkedInAvatars(
      * Downloads the photos of [rows] in this store's own scope and returns at once: they must not hold a
      * sync back, and leaving the day that asked for them must not cancel them, since a past board is never
      * read again and its photos would never arrive. [started] is the [generation] read before anything a
-     * wipe could have cleared was stored, so a wipe in between still drops these photos. The addresses are
-     * held in memory under the day for one [reaskWhileShown], and nowhere else.
+     * wipe could have cleared was stored, so a wipe in between still drops these photos. While the day is
+     * on screen ([reaskWhileShown]) and its visit holds no board read yet, the addresses are kept in memory
+     * for the visit's one re-ask; a day nobody watches keeps nothing.
      */
     fun downloadInBackground(rows: List<LinkedInBoard.Row>, started: Int, game: GameId, day: LocalDate) {
         val firstPass = CompletableDeferred<Unit>()
-        held.update { it + (dayKey(game, day) to Held(rows.filter { row -> row.pictureUrl != null }, started, firstPass)) }
+        val key = dayKey(game, day)
+        val offered = rows.filter { it.pictureUrl != null }
+        shown.update { all ->
+            val visit = all[key]
+            when {
+                visit == null || visit.pass != null -> all
+                else -> all + (key to visit.copy(pass = Pass(offered, started, firstPass)))
+            }
+        }
         scope.launch {
             try {
                 download(rows, started)
@@ -104,26 +119,49 @@ internal class LinkedInAvatars(
     }
 
     /**
-     * For as long as the caller runs, i.e. while [day] is on screen: once the first pass of a board read
-     * for [day] has settled and [reaskDelayMs] has passed, asks once more for the photos still missing,
-     * with the addresses that board read held. Nothing is asked after the caller is cancelled, and the
-     * addresses are dropped then, or after the one ask, whichever comes first. The same GET, size cap and
-     * permits as the first pass; a photo that fails again stays missing until a later board names the member.
+     * Runs for as long as the caller does, i.e. while [day] is on screen, and never returns. The first
+     * board read of that visit is asked for once more, after [reaskWait], for the photos still missing,
+     * with the addresses it held; later board reads of the same visit and further callers for the same
+     * day add no ask. Cancelling ends the visit when the last caller goes: nothing is asked after that and
+     * the addresses are dropped, as they are after the ask. The same GET, size cap and permits as the first
+     * pass; a photo that fails again stays missing until a later board names the member.
      */
-    suspend fun reaskWhileShown(game: GameId, day: LocalDate) {
+    suspend fun reaskWhileShown(game: GameId, day: LocalDate): Nothing {
         val key = dayKey(game, day)
+        shown.update { all -> all + (key to (all[key]?.let { it.copy(watchers = it.watchers + 1) } ?: Shown(1))) }
         try {
-            while (true) {
-                val pass = held.mapNotNull { it[key] }.first()
-                pass.firstPass.await()
-                delay(reaskDelayMs)
-                download(pass.rows, pass.started)
-                held.update { if (it[key] === pass) it - key else it }
-            }
+            askOnce(key)
+            awaitCancellation()
         } finally {
-            held.update { it - key }
+            shown.update { all ->
+                val visit = all[key] ?: return@update all
+                if (visit.watchers <= 1) all - key else all + (key to visit.copy(watchers = visit.watchers - 1))
+            }
         }
     }
+
+    private suspend fun askOnce(key: String) {
+        shown.first { it[key]?.pass?.asked == false }
+        var claimed: Pass? = null
+        shown.update { all ->
+            val visit = all[key]
+            val pass = visit?.pass
+            if (visit == null || pass == null || pass.asked) {
+                claimed = null
+                all
+            } else {
+                claimed = pass
+                all + (key to visit.copy(pass = pass.copy(rows = emptyList(), asked = true)))
+            }
+        }
+        val pass = claimed ?: return
+        pass.firstPass.await()
+        reaskWait()
+        download(pass.rows, pass.started)
+    }
+
+    /** The photo addresses in memory now, for a test of what is held and when it is dropped. */
+    internal fun heldAddresses(): Int = shown.value.values.sumOf { it.pass?.rows?.size ?: 0 }
 
     private fun dayKey(game: GameId, day: LocalDate) = "${game.value}/$day"
 
@@ -165,7 +203,10 @@ internal class LinkedInAvatars(
         }
     }
 
-    /** Deletes every photo and forgets every held address. A download still on the wire finds the wipe and drops its photo. */
+    /**
+     * Deletes every photo and forgets every held address. A download still on the wire finds the wipe and
+     * drops its photo.
+     */
     suspend fun clear() {
         withContext(io) {
             lock.withLock {
@@ -173,7 +214,7 @@ internal class LinkedInAvatars(
                 dir.deleteRecursively()
             }
         }
-        held.value = emptyMap()
+        shown.update { all -> all.mapValues { (_, visit) -> visit.copy(pass = null) } }
         changes.update { it + 1 }
     }
 

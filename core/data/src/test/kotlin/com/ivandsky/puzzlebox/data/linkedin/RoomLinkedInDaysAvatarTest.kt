@@ -26,11 +26,11 @@ import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import kotlin.io.path.createTempDirectory
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitCancellation
-import kotlinx.coroutines.cancelAndJoin
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -305,13 +305,21 @@ class RoomLinkedInDaysAvatarTest {
 
     @Test
     fun `a photo that fails on the first pass is asked for once more while the day is shown, and shows in the same visit`() = runTest {
-        val source = FailsFirst(url("a")).apply { respond(url("a"), byteArrayOf(1)); respond(url("b"), byteArrayOf(2)) }
+        val source = FailsFirst(url("a")).apply {
+            respond(url("a"), byteArrayOf(1))
+            respond(url("b"), byteArrayOf(2))
+        }
+        val due = CompletableDeferred<Unit>()
+        val days = newDays(avatars = reaskStore(source) { due.await() })
         respond(ago(3), LinkedInRead.Ok(LinkedInBoard(listOf(row("a", url("a")), row("b", url("b"))))))
-        val days = newDays(avatars = testAvatars(File(dir.parentFile, "reask_avatars"), source, reaskDelayMs = 100))
 
         days.observe(zip, ago(3)).test {
             awaitItem()
             days.sync(zip, ago(3))
+            advanceUntilIdle()
+            // The first pass is over: a failed, b landed, and the re-ask is not due yet.
+            assertEquals(listOf(url("a"), url("b")), source.calls.sorted())
+            due.complete(Unit)
             var data = awaitItem()
             while (data.ghosts.size < 2 || data.ghosts.any { it.photoPath == null }) data = awaitItem()
             cancelAndIgnoreRemainingEvents()
@@ -321,24 +329,72 @@ class RoomLinkedInDaysAvatarTest {
     }
 
     @Test
-    fun `a day left before the re-ask is due asks no more`() = runTest {
-        val source = FailsFirst(url("a")).apply { respond(url("a"), byteArrayOf(1)); respond(url("b"), byteArrayOf(2)) }
-        respond(ago(3), LinkedInRead.Ok(LinkedInBoard(listOf(row("a", url("a")), row("b", url("b"))))))
-        val days = newDays(avatars = testAvatars(File(dir.parentFile, "reask_avatars"), source, reaskDelayMs = 1_500))
-
-        // On a real-time dispatcher: the re-ask delay must not be skipped by the test's virtual clock.
-        val shown = CompletableDeferred<Unit>()
-        val visit = launch(Dispatchers.Default) { days.observe(zip, ago(3)).collect { shown.complete(Unit) } }
-        shown.await()
-        days.sync(zip, ago(3))
-        withContext(Dispatchers.Default) {
-            withTimeout(10_000) { while (source.calls.size < 2) delay(10) }
-            visit.cancelAndJoin()
-            delay(2_500)
+    fun `a day left before the re-ask is due asks no more and holds no address`() = runTest {
+        val source = FailsFirst(url("a")).apply {
+            respond(url("a"), byteArrayOf(1))
+            respond(url("b"), byteArrayOf(2))
         }
+        val due = CompletableDeferred<Unit>()
+        val store = reaskStore(source) { due.await() }
+        respond(ago(3), LinkedInRead.Ok(LinkedInBoard(listOf(row("a", url("a")), row("b", url("b"))))))
+
+        val days = newDays(avatars = store)
+        days.observe(zip, ago(3)).test {
+            awaitItem()
+            days.sync(zip, ago(3))
+            cancelAndIgnoreRemainingEvents()
+        }
+        due.complete(Unit)
+        advanceUntilIdle()
 
         assertEquals(listOf(url("a"), url("b")), source.calls.sorted())
+        assertEquals(0, store.heldAddresses())
     }
+
+    @Test
+    fun `a board read of a day nobody is watching holds no address`() = runTest {
+        val store = reaskStore(photos)
+        respond(ago(3), LinkedInRead.Ok(LinkedInBoard(listOf(row("a", url("a")), row("b", url("b"))))))
+
+        newDays(avatars = store).sync(zip, ago(3))
+        advanceUntilIdle()
+
+        assertEquals(listOf(url("a"), url("b")), photos.calls.sorted())
+        assertEquals(0, store.heldAddresses())
+    }
+
+    @Test
+    fun `a visit asks once, however many collectors show the day and boards are read during it`() = runTest {
+        val due = CompletableDeferred<Unit>()
+        val store = reaskStore(photos) { due.await() }
+        val rows = listOf(row("a", url("a")))
+        val started = store.generation()
+        // Not backgroundScope: advanceUntilIdle does not run work that only background tasks wait on.
+        val collectors = List(2) {
+            launch(start = CoroutineStart.UNDISPATCHED) { store.reaskWhileShown(zip, ago(3)) }
+        }
+
+        store.downloadInBackground(rows, started, zip, ago(3))
+        advanceUntilIdle()
+        assertEquals(1, photos.calls.size)
+
+        due.complete(Unit)
+        advanceUntilIdle()
+        // One ask for two collectors, and its address is dropped.
+        assertEquals(2, photos.calls.size)
+        assertEquals(0, store.heldAddresses())
+
+        // A later board read of the same visit downloads as usual and arms no further ask.
+        store.downloadInBackground(rows, started, zip, ago(3))
+        advanceUntilIdle()
+        assertEquals(3, photos.calls.size)
+        assertEquals(0, store.heldAddresses())
+        collectors.forEach { it.cancel() }
+    }
+
+    /** The avatar store with its own directory, whose re-ask waits for [reaskWait]: never, by default. */
+    private fun reaskStore(source: LinkedInPhotoSource, reaskWait: suspend () -> Unit = { awaitCancellation() }) =
+        testAvatars(File(dir.parentFile, "reask_avatars"), source, reaskWait)
 
     /** A fake source whose first fetch of [failing] answers nothing, as a dead cold connection would. */
     private class FailsFirst(private val failing: String) : LinkedInPhotoSource {
