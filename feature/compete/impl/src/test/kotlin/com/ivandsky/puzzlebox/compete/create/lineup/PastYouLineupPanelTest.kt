@@ -86,10 +86,11 @@ class PastYouLineupPanelTest {
         rule.waitForIdle()
     }
 
-    private fun pastYouState(counts: SolvedCounts, preset: DuelPreset = DuelPreset.Custom, rows: List<LineupEntry> = editor.draft.entries): NewDuelState {
+    private fun pastYouState(counts: SolvedCounts?, preset: DuelPreset = DuelPreset.Custom, rows: List<LineupEntry> = editor.draft.entries, adding: Boolean = false): NewDuelState {
         val form = SelfDuelForm.quick(GAMES).copy(preset = preset)
+        val lineup = LineupEditor(LineupDraft(rows)).let { if (adding) it.openAdd() else it }
         return state(Opponent.PastYou, SelfDuelView(form, counts, GAMES), "Best of ${rows.size} · Zip, Queens, Zip · against your first solves")
-            .copy(lineup = LineupEditor(LineupDraft(rows)))
+            .copy(lineup = lineup)
     }
 
     private fun content(state: NewDuelState, actions: NewDuelActions = NO_ACTIONS) {
@@ -124,6 +125,18 @@ class PastYouLineupPanelTest {
         rule.onNodeWithTag("duel.lineup.sheet.game.${ZIP.value}").assertTextContains("Zip · 2 solved", substring = true).assertIsEnabled()
         rule.onNodeWithTag("duel.lineup.sheet.game.${TANGO.value}").assertTextContains("Tango · 0 solved", substring = true).assertIsNotEnabled()
         rule.onNodeWithTag("duel.lineup.search").assertDoesNotExist()
+    }
+
+    @Test
+    fun `with the counts unread the sheet's tiles are plain and enabled, not zero solved`() {
+        content(pastYouState(counts = null, adding = true))
+
+        rule.onNodeWithTag("duel.preset.custom").performClick()
+        rule.waitForIdle()
+
+        GAMES.forEach { game ->
+            rule.onNodeWithTag("duel.lineup.sheet.game.${game.id.value}").assertTextEquals(game.name).assertIsEnabled()
+        }
     }
 
     @Test

@@ -116,7 +116,7 @@ private fun SelfCustomizePanel(self: SelfDuelView, games: List<DuelGame>, action
 private fun SelfLineupPanel(lineup: LineupEditor, state: NewDuelState, actions: NewDuelActions, modifier: Modifier = Modifier) {
     val self = state.self
     Column(modifier.fillMaxWidth().testTag("duel.customize"), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        LineupPanel(lineup, state.games, self.form.includeFriends, actions.onEditLineup, audience = LineupAudience.PastYou(self.counts?.byGame.orEmpty()))
+        LineupPanel(lineup, state.games, self.form.includeFriends, actions.onEditLineup, audience = LineupAudience.PastYou(self.counts?.byGame))
         FriendsRow(self.form.includeFriends, actions.onFriends, hint = "Adds friend puzzles you've solved")
     }
 }

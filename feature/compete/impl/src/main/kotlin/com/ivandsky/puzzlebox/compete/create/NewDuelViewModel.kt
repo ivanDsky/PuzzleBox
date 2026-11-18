@@ -160,7 +160,7 @@ internal class NewDuelViewModel(
 
     /**
      * Customize, with the lineup on, is a preset of its own: the duel is the lineup's puzzles. The rows are kept from before.
-     * Past you's first Customize opens with Any rows over what the player has solved, once the counts are read; a lineup the player emptied or edited is never reseeded.
+     * Past you's lineup is seeded with Any rows over what the player has solved once the counts are read, and only while it is empty; one with rows is never reseeded.
      */
     fun chooseCustom() = working.update { work ->
         if (selfActive(work)) {
