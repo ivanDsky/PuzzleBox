@@ -25,8 +25,8 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * #1184: at the start state Undo has nothing to undo, so it is disabled and reads that way; once
- * the trace has a move it is enabled. The golden is the action bar at the start state, recorded
- * with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`.
+ * the trace has a move it is enabled. The golden is the action bar at the start state, rendered
+ * with `-Proborazzi.record=true` (untracked review captures in `snapshots/`).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

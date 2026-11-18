@@ -18,7 +18,7 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * The friend page's hidden board (nav-rethink M12-8) in each of the five real games, light and dark, on a phone, with
  * the puzzle's real board blurred under "Hidden until you play". Recorded with
- * `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`; goldens in `snapshots/friend-hidden-board/`.
+ * `-Proborazzi.record=true` into `snapshots/friend-hidden-board/` (untracked review captures).
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

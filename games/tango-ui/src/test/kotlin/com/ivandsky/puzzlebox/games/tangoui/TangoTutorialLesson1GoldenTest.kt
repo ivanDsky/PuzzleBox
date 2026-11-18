@@ -12,8 +12,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Tutorial lesson 1's open squares must read as invitations, not disabled content (#1186). The goldens run only under
- * `-Proborazzi.verify` / `-Proborazzi.record=true` ([GoldenCompare]).
+ * Tutorial lesson 1's open squares must read as invitations, not disabled content (#1186). Rendered with
+ * `-Proborazzi.record=true` into `snapshots/` (untracked review captures).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -26,9 +26,7 @@ class TangoTutorialLesson1GoldenTest {
     private fun capture(name: String, dark: Boolean) {
         composeRule.setContent { TangoLessonOneSample(dark) }
         composeRule.waitForIdle()
-        val scratch = File("build/roborecord/$name").apply { parentFile?.mkdirs() }
-        composeRule.onRoot().captureRoboImage(scratch)
-        GoldenCompare.check(File("src/test/resources/goldens/$name"), scratch, name)
+        composeRule.onRoot().captureRoboImage(File("snapshots/$name").apply { parentFile?.mkdirs() })
     }
 
     @Test fun `golden lesson 1 light`() = capture("tango-tutorial-lesson1-light.png", dark = false)

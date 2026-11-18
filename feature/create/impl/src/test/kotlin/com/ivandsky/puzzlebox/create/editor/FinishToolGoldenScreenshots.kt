@@ -25,8 +25,8 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * 62: the tool strip with the Finish tool at phone width: disabled, enabled and busy, stacked in
  * one capture, light and dark; Undo, Redo, Size and Clear keep their full width beside it.
- * Recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`; goldens in
- * `snapshots/finish-tool/`.
+ * Rendered with `-Proborazzi.record=true` into `snapshots/finish-tool/` (untracked review
+ * captures).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

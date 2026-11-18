@@ -14,7 +14,7 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * The approval sheet for the readable board tokens, light and dark, legacy beside readable. These are the
  * renders the user reviews before any game adopts the tokens (nav-rethink B3). Recorded with
- * `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`.
+ * `-Proborazzi.record=true` (untracked review captures in `snapshots/`).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

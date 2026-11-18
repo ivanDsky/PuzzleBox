@@ -35,7 +35,7 @@ import java.io.File
  * Goldens of [AdaptivePlayScaffold] (nav-rethink B5, B6), light and dark: the control row directly
  * under the board at the board's width on a phone and a portrait tablet, the phone's caption under
  * the row, and the landscape tablet's controls in a column beside the board. A plain square stands
- * for the board. Recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`.
+ * for the board. Rendered with `-Proborazzi.record=true` (untracked review captures in `snapshots/`).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

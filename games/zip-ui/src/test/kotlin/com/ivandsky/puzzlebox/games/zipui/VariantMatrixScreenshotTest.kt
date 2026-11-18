@@ -238,8 +238,7 @@ class VariantMatrixScreenshotTest {
                 }
             }
         }
-        // Gate evidence, not goldens: always record, even under -Proborazzi.verify=true,
-        // since the matrix dir is a gitignored scratch output with nothing to verify against.
+        // Review evidence in the gitignored scratch matrix dir, recorded whatever Roborazzi's mode.
         composeRule.onRoot().captureRoboImage(
             File(MATRIX_DIR, name).absolutePath,
             roborazziOptions = RoborazziOptions(taskType = RoborazziTaskType.Record),

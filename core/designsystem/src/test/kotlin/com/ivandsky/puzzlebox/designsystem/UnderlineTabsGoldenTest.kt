@@ -30,7 +30,7 @@ import java.io.File
  * Goldens of [UnderlineTabs], light and dark: each image stacks the strip once per selected
  * position (the indicator under each tab). Three tabs and four tabs, with and without counts,
  * the four with the Duels badge; and, at 320dp and font scale 1.3, the same with counts.
- * Recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`.
+ * Rendered with `-Proborazzi.record=true` (untracked review captures in `snapshots/`).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

@@ -131,14 +131,17 @@ Requires an Android SDK (`ANDROID_HOME` or `local.properties`). Install and run 
 Tests:
 
 ```bash
-./gradlew testDebugUnitTest :core:game:test :games:zip:test :games:queens:test :games:tango:test :core:model:test :core:network:test -Proborazzi.verify=true
-                                       # JVM unit tests against fakes; screenshot goldens in verify mode
+./gradlew testDebugUnitTest :core:game:test :games:zip:test :games:queens:test :games:tango:test :core:model:test :core:network:test
+                                       # JVM unit tests against fakes
+./gradlew :games:zip-ui:testDebugUnitTest -Proborazzi.record=true
+                                       # render a module's screenshots into games/zip-ui/snapshots/
 ./gradlew check                        # tests, lint and the module-graph guard (checkModuleGraph)
 ```
 
-By default no screenshot golden runs: test classes named `*Golden*` or `*Screenshot*` are excluded in
-every module, so `./gradlew test` never writes a tracked file. `-Proborazzi.verify=true` runs them and
-fails on drift; `-Proborazzi.record=true` runs them and records.
+Screenshots are review renders, not tests ([ADR-0033](docs/adr/0033-screenshots-as-review-not-gate.md)).
+Test classes named `*Golden*` or `*Screenshot*` are excluded by default. `-Proborazzi.record=true`
+runs them and writes PNGs, mostly into each module's gitignored `snapshots/` directory. Nothing is
+committed and nothing compares pixels.
 
 ## Contributing
 
@@ -154,9 +157,9 @@ rebased onto the latest `main`:
 Every push to `main` runs the full suite, release host tests included, in [`.github/workflows/release.yml`](.github/workflows/release.yml),
 split over two parallel jobs (`assembleDebug testCore` and `testUi`), while a third builds the
 signed release. It publishes a GitHub release only if the tests pass and the `versionName` is new.
-A red `main` stops merges until a revert or fix lands. Neither the merge gate nor CI runs the
-screenshot goldens (they are recorded on macOS and Linux fonts drift), so run the
-`-Proborazzi.verify=true` command above on the modules you changed before you push UI changes.
+A red `main` stops merges until a revert or fix lands. Neither the merge gate nor CI renders
+screenshots, so before you push a UI change, render the modules you changed with
+`-Proborazzi.record=true` and look at the PNGs of the screens you touched.
 
 Unfinished features merge dark behind a `ReleaseFlag` and ship by a flip PR
 ([ADR-0022](docs/adr/0022-trunk-delivery-release-flags.md)). To force a flag on in a debug

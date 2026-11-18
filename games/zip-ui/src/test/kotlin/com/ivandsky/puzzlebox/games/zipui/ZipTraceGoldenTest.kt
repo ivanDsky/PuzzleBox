@@ -19,8 +19,8 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * Goldens for the Zip line at rest (spec A1): the round-joined stroke with its head disc
  * on a plain cell, and a lone start cell showing only the head, each light and dark.
- * Recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`; goldens live in
- * `games/zip-ui/snapshots/`.
+ * Rendered with `-Proborazzi.record=true` into `games/zip-ui/snapshots/` (untracked review
+ * captures).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

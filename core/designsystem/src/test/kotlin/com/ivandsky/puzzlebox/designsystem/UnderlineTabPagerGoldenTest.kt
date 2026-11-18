@@ -28,7 +28,7 @@ import java.io.File
 
 /**
  * Goldens of [UnderlineTabPager], light and dark, with page one and with page two selected.
- * Recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`.
+ * Rendered with `-Proborazzi.record=true` (untracked review captures in `snapshots/`).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

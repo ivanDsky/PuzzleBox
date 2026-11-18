@@ -47,7 +47,7 @@ import org.robolectric.annotation.GraphicsMode
  * at the 1500 ms hand-off, and reduced motion's outline. The game's glyph stamps onto the board with the pop (440 ms), so
  * every pose from 560 ms on wears it; reduced motion has none. The stamp has landed at 1000 ms in light and dark, on a phone and on a tablet. One pair follows Zip's rounded outline, whose path runs the
  * other way round; the popped board and the comet stay inside the pane's margin. A plain square stands for the board.
- * Recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`.
+ * Rendered with `-Proborazzi.record=true` (untracked review captures in `snapshots/`).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

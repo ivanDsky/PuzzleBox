@@ -47,8 +47,8 @@ import java.io.File
  * System animations are off, so Checking shows its still cue; `checking-running` keeps them on
  * to pin the indeterminate bar a long check shows past its grace (on a frozen clock).
  * The board is the Studio preview's placeholder square: the game's own looks are the
- * Queens editor goldens (games/queens-ui) and the app's Studio composites. Recorded by
- * default, verified with `-Proborazzi.verify=true`; goldens in `snapshots/studio/`.
+ * Queens editor goldens (games/queens-ui) and the app's Studio composites. Rendered with
+ * `-Proborazzi.record=true` into `snapshots/studio/` (untracked review captures).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

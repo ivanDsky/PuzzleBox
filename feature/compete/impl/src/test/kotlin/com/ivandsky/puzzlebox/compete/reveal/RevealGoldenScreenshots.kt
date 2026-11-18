@@ -236,7 +236,7 @@ private fun ComposeContentTestRule.showGolden(dark: Boolean, content: @Composabl
 
 /**
  * Lets entrances settle, then captures the whole screen to `snapshots/reveal/<name>-<device>-<light|dark>.png`.
- * Recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`.
+ * Rendered with `-Proborazzi.record=true` (untracked review captures in `snapshots/`).
  */
 @OptIn(ExperimentalRoborazziApi::class)
 private fun ComposeContentTestRule.settleAndCapture(name: String, device: String, dark: Boolean) {

@@ -22,10 +22,9 @@ import java.io.File
 /**
  * Golden screenshot suite (queens-08 DoD): every meaningful board state × light/dark,
  * at compact (360dp) and expanded (1280dp) widths. Robolectric JVM capture (A17: no
- * emulator); recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`.
- * Goldens live in
- * `.scratch/queens/design/evidence/goldens/` — the queens-09 HITL walk is
- * preview-first, device-confirm, so the state matrix is walkable from these.
+ * emulator); rendered with `-Proborazzi.record=true` into `snapshots/` (untracked review
+ * captures) — the queens-09 HITL walk is preview-first, device-confirm, so the state matrix
+ * is walkable from these.
  *
  * Fix round 6: the win goldens are GONE (the modal overlay is deleted — the solved
  * state presents as the result route at app level).

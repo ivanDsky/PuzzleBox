@@ -33,7 +33,7 @@ import java.io.File
 
 /**
  * Goldens of the four Spotlight states at their final frame over a plain 6×6 board, light and dark, with a stand-in
- * filled-disc glyph. Recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`.
+ * filled-disc glyph. Rendered with `-Proborazzi.record=true` (untracked review captures in `snapshots/`).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

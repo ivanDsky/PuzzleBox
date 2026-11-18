@@ -46,8 +46,7 @@ import java.io.File
  * crowns with the movable-cell ring, witness A and B on the board, the 75% clash wash under
  * a crown, split stripes and the fix list. Every board is a real 6×6 draft whose verdict
  * comes from [QueensDraftAnalyzer], asserted before the capture.
- * Recorded with `-Proborazzi.record=true`,
- * verified with `-Proborazzi.verify=true`; goldens in `snapshots/editor/`.
+ * Rendered with `-Proborazzi.record=true` into `snapshots/editor/` (untracked review captures).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

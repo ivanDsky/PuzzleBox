@@ -38,8 +38,8 @@ import org.robolectric.annotation.GraphicsMode
  * Phone, phone in landscape (one pane, like the app: too short for two) and tablet (the strip sits
  * in a different place in each), light and dark. The board is the Studio preview's placeholder
  * square. The popover is its own window, so the tap runs on a live clock and the whole screen is
- * captured. Recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`;
- * goldens in `snapshots/finish-level/`.
+ * captured. Rendered with `-Proborazzi.record=true` into `snapshots/finish-level/` (untracked
+ * review captures).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

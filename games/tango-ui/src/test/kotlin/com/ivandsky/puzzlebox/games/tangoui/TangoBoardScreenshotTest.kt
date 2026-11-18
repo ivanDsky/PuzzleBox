@@ -20,8 +20,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Roborazzi capture of the walking-skeleton board (DoD: device-free render proof).
- * Captures write to the review tree; gate evidence, not verify-pinned goldens
- * (feature/play precedent) — ticket 04 owns the real goldens.
+ * Captures write to `build/reports/tango/`; TangoBoardGoldenTest renders the full matrix.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

@@ -29,12 +29,8 @@ import org.robolectric.annotation.GraphicsMode
  * (caption slot) must reflow while the board geometry stays pitch-exact. Plus the
  * tablet-landscape posture (w1280dp-h800dp, §10.8's second posture) in light.
  *
- * Committed goldens live in `src/test/resources/goldens/`. The module build wires
- * `tango.golden.mode`: the class does not run without `-Proborazzi.verify=true` or
- * `-Proborazzi.record=true`. `-Proborazzi.verify=true` pixel-compares against the committed
- * golden — drift or a missing golden fails the test (a REAL floor, review I6);
- * `-Pgoldens.pixelCompare=false` keeps the
- * size check and skips the pixel diff. `-Proborazzi.record=true` rewrites the goldens.
+ * Rendered with `-Proborazzi.record=true` into `snapshots/` (untracked review captures); without
+ * the flag the class does not run.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -44,11 +40,8 @@ class TangoBoardGoldenTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private fun goldenPath(name: String) =
-        File("src/test/resources/goldens/$name")
-
-    private fun scratchPath(name: String) =
-        File("build/roborecord/$name")
+    private fun capturePath(name: String) =
+        File("snapshots/$name")
 
     private fun capture(name: String, dark: Boolean, fontScale: Float) {
         composeRule.setContent {
@@ -63,9 +56,7 @@ class TangoBoardGoldenTest {
             }
         }
         composeRule.waitForIdle()
-        val scratch = scratchPath(name).apply { parentFile?.mkdirs() }
-        composeRule.onRoot().captureRoboImage(scratch)
-        GoldenCompare.check(goldenPath(name), scratch, name)
+        composeRule.onRoot().captureRoboImage(capturePath(name).apply { parentFile?.mkdirs() })
     }
 
     // ---- phone posture (w360dp): light + dark ----

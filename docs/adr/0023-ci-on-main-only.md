@@ -1,6 +1,6 @@
 # ADR-0023 — CI runs on main only; PRs merge without a status check
 
-Date: 2026-11-07 · Status: accepted · Supersedes: ADR-0022 decision 1 ("CI judges every merge")
+Date: 2026-11-07 · Status: accepted · Supersedes: ADR-0022 decision 1 ("CI judges every merge") · Golden parts superseded by ADR-0033 (2026-11-17: no committed goldens, no verify)
 
 ## Context
 ADR-0022 made `pr-check` (`./gradlew assembleDebug test`) main's required status check, with
@@ -98,7 +98,7 @@ user, the PR is a place to read the change, not a test gate.
   PROFILE's consent ledger. If merges start breaking main, bring back a required check (a
   warm-cache PR check takes about 3.5 minutes; see `.scratch/ci-speed/`).
 - Screenshot goldens gate nothing on CI or in the merge gate. Before the 2026-11-13 amendment they
-  all ran without pixel comparison (ADR-0022). Verify them locally with `-Proborazzi.verify=true`.
+  all ran without pixel comparison (ADR-0022). Since ADR-0033 they are not committed at all.
 - A semantic conflict through a file the PR does not touch can now reach main. Example: #109's
   forced-cells test broke after #89 changed `TangoRules`. Main's release run is the backstop,
   and §4 (red main stops merges) applies.

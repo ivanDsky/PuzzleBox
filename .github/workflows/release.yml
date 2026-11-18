@@ -23,10 +23,10 @@ jobs:
   # `assembleDebug` also runs checkModuleGraph (ADR-0008) via preBuild. `testCore` and `testUi`
   # together are `test`: the JVM modules, every Android module's debug unit tests, :app's release
   # host tests (ReleaseGameModulesTest, ReleaseUpdateChecksTest, ReleaseFlagsBindingTest) and
-  # :konsist (ADR-0009). Screenshot goldens are recorded on macOS and Linux fonts drift, so the
-  # default run skips every golden class and CI gates none of them; verify them locally with
-  # -Proborazzi.verify=true. :app's NativeGraphicsWarmUpTest keeps the Robolectric native
-  # runtime from aborting the test JVM now that no golden warms it up (ADR-0023).
+  # :konsist (ADR-0009). Screenshot classes are review renders, not tests: the default run skips
+  # them and nothing compares pixels (ADR-0033). :app's NativeGraphicsWarmUpTest keeps the
+  # Robolectric native runtime from aborting the test JVM now that no golden warms it up
+  # (ADR-0023).
   test:
     # A dispatch from another branch would publish unmerged code as the latest release.
     if: github.ref == 'refs/heads/main'

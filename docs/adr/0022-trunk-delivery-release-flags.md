@@ -18,7 +18,8 @@ to merge without being reachable in a release build.
    protection requires `pr-check`. Screenshot goldens are recorded on macOS, so CI runs them in
    record mode without comparing pixels (`-Pgoldens.pixelCompare=false` turns off the Tango
    harness's always-on diff); verify them locally with `-Proborazzi.verify=true`. *(ADR-0023,
-   2026-11-14: the default run no longer runs goldens at all.)*
+   2026-11-14: the default run no longer runs goldens at all. ADR-0033, 2026-11-17: goldens are
+   no longer committed or verified; screenshots are review renders.)*
 2. **Release flags are an enum in `core:common`.** `ReleaseFlag` (`com.ivandsky.puzzlebox.common.flags`)
    has one entry per feature in flight, each with a `label` and a `releaseDefault`. Keys are
    typed: code gates on `ReleaseFlag.X` and never looks a flag up by string. Every layer that
