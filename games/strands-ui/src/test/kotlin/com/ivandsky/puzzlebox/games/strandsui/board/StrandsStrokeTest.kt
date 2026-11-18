@@ -57,9 +57,15 @@ class StrandsStrokeTest {
     }
 
     @Test
-    fun `the solved path is 29 and 41 percent of the pitch`() {
-        assertEquals(0.29f, StrandsOutlinedSpec.ThemeConnector, 0f)
-        assertEquals(0.41f, StrandsOutlinedSpec.SpangramConnector, 0f)
+    fun `the solved path is about a quarter thinner than the 29 and 41 percent it was`() {
+        assertEquals(0.22f, StrandsOutlinedSpec.ThemeConnector, 0f)
+        assertEquals(0.31f, StrandsOutlinedSpec.SpangramConnector, 0f)
+    }
+
+    @Test
+    fun `the spangram stays wider than a theme word and a theme word wider than the live trace`() {
+        assertTrue(StrandsOutlinedSpec.SpangramConnector > StrandsOutlinedSpec.ThemeConnector)
+        assertTrue(StrandsOutlinedSpec.ThemeConnector > StrandsOutlinedSpec.ThinConnector)
     }
 
     @Test

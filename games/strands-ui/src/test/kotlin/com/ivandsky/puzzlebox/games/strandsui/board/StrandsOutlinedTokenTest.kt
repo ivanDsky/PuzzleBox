@@ -117,7 +117,7 @@ class StrandsOutlinedTokenTest {
     }
 
     @Test
-    fun `a found word's squares join through a 29 unit tint connector`() {
+    fun `a found word's squares join through a 22 unit tint connector`() {
         show()
         play(StrandsUiFixtures.row(0))
         val image = board()
@@ -126,13 +126,13 @@ class StrandsOutlinedTokenTest {
         val seam = pitch
         val mid = pitch / 2
         assertColor(light.strandsThemeTint, map[seam, mid], "the join, on the centre line")
-        assertColor(light.strandsThemeTint, map[seam, mid - (pitch * 0.12f).toInt()], "the join, inside half of 29 units")
+        assertColor(light.strandsThemeTint, map[seam, mid - (pitch * 0.08f).toInt()], "the join, inside half of 22 units")
         assertColor(map[seam, mid + (pitch * 0.30f).toInt()], map[seam, mid - (pitch * 0.30f).toInt()], "beyond the connector both sides are bare")
-        assertTrue(!map[seam, mid - (pitch * 0.25f).toInt()].near(light.strandsThemeTint))
+        assertTrue(!map[seam, mid - (pitch * 0.18f).toInt()].near(light.strandsThemeTint))
     }
 
     @Test
-    fun `the spangram is gold with a black inset ring and a 41 unit connector`() {
+    fun `the spangram is gold with a black inset ring and a 31 unit connector`() {
         show()
         play(StrandsUiFixtures.row(1))
         val p = Probe(cell(1, 0))
@@ -142,8 +142,8 @@ class StrandsOutlinedTokenTest {
         val map = image.toPixelMap()
         val pitch = image.width / 4
         val row = pitch + pitch / 2
-        assertColor(LightBoardTokens.strandsSpangramConnector, map[pitch, row - (pitch * 0.18f).toInt()], "the wide connector, inside half of 41 units")
-        assertTrue(!map[pitch, row - (pitch * 0.30f).toInt()].near(LightBoardTokens.strandsSpangramConnector))
+        assertColor(LightBoardTokens.strandsSpangramConnector, map[pitch, row - (pitch * 0.12f).toInt()], "the wide connector, inside half of 31 units")
+        assertTrue(!map[pitch, row - (pitch * 0.22f).toInt()].near(LightBoardTokens.strandsSpangramConnector))
     }
 
     @Test
