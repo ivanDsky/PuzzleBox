@@ -31,7 +31,6 @@ import com.ivandsky.puzzlebox.games.tango.engine.TangoRules
 import com.ivandsky.puzzlebox.games.tango.engine.TangoState
 import com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness
 import com.ivandsky.puzzlebox.games.tango.engine.TangoVerdict
-import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
 import com.ivandsky.puzzlebox.games.tango.render.TangoViolations
 import com.ivandsky.puzzlebox.games.tango.tangoPlugin
 import com.ivandsky.puzzlebox.games.tangoui.hint.tangoStepHints
@@ -63,6 +62,7 @@ class TangoPlayController(
     internal val hintMode: HintMode.Stepwise,
     solve: (TangoPuzzle) -> List<TangoCell>? = { TangoBoundedSolution.of(it) },
     plainCaptions: Boolean = false,
+    placeIt: Boolean = false,
 ) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback, PlayGuide {
 
     var session by mutableStateOf<TangoSession?>(null)
@@ -82,7 +82,10 @@ class TangoPlayController(
     private val settle = TangoSettle(env.scope)
 
     // Reset per play, never rebuilt, so the solution memo survives (A1, A9, A10).
-    private val stepHints = tangoStepHints(hintMode, env.scope, { session }, count = ::countHint, solve = solve, plainCaptions = plainCaptions)
+    private val stepHints = tangoStepHints(
+        hintMode, env.scope, { session }, count = ::countHint, solve = solve, plainCaptions = plainCaptions,
+        placeIt = if (placeIt) { idx, value -> onPlacement(TangoPlacement(idx, value)) } else null,
+    )
 
     /** The Stepwise hint on screen; null after any input. */
     val spotlight: Spotlight? get() = stepHints.spotlight
@@ -259,23 +262,6 @@ class TangoPlayController(
         commit(TangoSession(ref = current.ref, puzzle = current.puzzle)) // drops the old play's search
         stepHints.reset() // a fresh play forgets counted steps but keeps the solution memo
     }
-
-    //region derived + persistence
-
-    /** The renderer model the board draws — built here (F2: the state→model call site). */
-    fun rendererModel(): TangoRendererModel? {
-        val current = session ?: return null
-        return TangoRendererModel.of(
-            TangoState(current.puzzle, current.grid()),
-            verdict = lastRejection,
-            suppressedSets = suppressedSets,
-        ).let(guidance::apply)
-    }
-
-    /** Versioned session bytes (A19/F2 §2) — what [PlayEnvironment.onSessionChanged] receives. */
-    fun persist(): ByteArray? = session?.let(TangoSessionCodec::serialize)
-
-    //endregion
 
     //region internals
 
