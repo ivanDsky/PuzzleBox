@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import com.ivandsky.puzzlebox.compete.create.DuelSignIn
 import com.ivandsky.puzzlebox.designsystem.DuelTone
+import com.ivandsky.puzzlebox.designsystem.SIGN_IN_WITH_GOOGLE
 import com.ivandsky.puzzlebox.domain.SeatAction
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.ResultBeats
@@ -195,7 +196,7 @@ private fun SignInTail(invite: DuelUiState.Invite, actions: InviteActions) {
         DuelSignIn.Idle, DuelSignIn.SigningIn -> Unit
     }
     SecondaryButton(
-        text = if (signingIn) "Signing in…" else "Sign in with Google",
+        text = if (signingIn) "Signing in…" else SIGN_IN_WITH_GOOGLE,
         onClick = actions.onSignIn,
         enabled = !signingIn,
         modifier = Modifier.fillMaxWidth().testTag("duel.invite.signIn"),

@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.gameui
 
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
@@ -10,13 +12,16 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.text.TextLayoutResult
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.SIGN_IN_WITH_GOOGLE
 import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.domain.SpreadScope
 import com.ivandsky.puzzlebox.game.BestScore
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -239,13 +244,24 @@ class ResultSideCardTest {
     }
 
     @Test
-    fun `a signed out player gets the prompt and a Sign in button that calls back`() {
+    fun `a signed out player gets the prompt and the app's one sign-in button that calls back`() {
         val model = heroSampleModel(rank = ResultRank.SignedOut)
         setContent(model)
 
         composeRule.onAllNodesWithText((model.rank as HeroRank.SignIn).text).assertCountEquals(1)
-        composeRule.onNodeWithTag("result.side.rank.signin").assertIsDisplayed().performClick()
+        composeRule.onNodeWithTag("result.side.rank.signin").assertIsDisplayed().assertTextEquals(SIGN_IN_WITH_GOOGLE).performClick()
         assertEquals(1, signIns)
+    }
+
+    @Test
+    fun `the sign-in label fits the rank row at 360 dp on one line`() {
+        setContent(heroSampleModel(rank = ResultRank.SignedOut))
+
+        val layouts = mutableListOf<TextLayoutResult>()
+        composeRule.onNodeWithTag("result.side.rank.signin").fetchSemanticsNode().config
+            .getOrNull(SemanticsActions.GetTextLayoutResult)?.action?.invoke(layouts)
+        assertEquals(1, layouts.single().lineCount)
+        assertFalse(layouts.single().isLineEllipsized(0))
     }
 
     @Test

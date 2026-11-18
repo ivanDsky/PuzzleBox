@@ -38,6 +38,7 @@ import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
+import com.ivandsky.puzzlebox.designsystem.SIGN_IN_WITH_GOOGLE
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.profile.R
 
@@ -94,7 +95,7 @@ internal fun GoogleRow(
             extra = {
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     PrimaryButton(
-                        text = if (account.signingIn) "Signing in…" else "Sign in with Google",
+                        text = if (account.signingIn) "Signing in…" else SIGN_IN_WITH_GOOGLE,
                         onClick = onSignIn,
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !account.signingIn,

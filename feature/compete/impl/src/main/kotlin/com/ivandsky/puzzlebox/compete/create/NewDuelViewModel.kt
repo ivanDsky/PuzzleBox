@@ -270,7 +270,7 @@ internal class NewDuelViewModel(
     }
 
     /**
-     * Continue with Google: [activityContext] hosts the account picker and is not kept. A try under way is not
+     * Sign in with Google: [activityContext] hosts the account picker and is not kept. A try under way is not
      * repeated. Success leaves the sign-in panel for the create panel with the draft as it was.
      */
     suspend fun signIn(activityContext: Context) {

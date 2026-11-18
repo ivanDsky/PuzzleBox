@@ -26,14 +26,13 @@ import androidx.compose.ui.unit.sp
 import com.ivandsky.puzzlebox.designsystem.AppTextButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.ResultBeats
+import com.ivandsky.puzzlebox.designsystem.SIGN_IN_WITH_GOOGLE
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.rememberCountUp
 import com.ivandsky.puzzlebox.designsystem.resultBeat
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.domain.SpreadScope
-
-internal const val SIGN_IN_LABEL = "Sign in"
 
 private val FlameTile = 48.dp
 private val FlameIcon = 28.dp
@@ -186,7 +185,7 @@ private fun RankRow(rank: HeroRank, onSignIn: (() -> Unit)?, modifier: Modifier)
                     modifier = Modifier.weight(1f).padding(vertical = Spacing.sm),
                 )
                 if (onSignIn != null) {
-                    AppTextButton(text = SIGN_IN_LABEL, onClick = onSignIn, modifier = Modifier.testTag("result.side.rank.signin"))
+                    AppTextButton(text = SIGN_IN_WITH_GOOGLE, onClick = onSignIn, modifier = Modifier.testTag("result.side.rank.signin"))
                 }
             }
         }
