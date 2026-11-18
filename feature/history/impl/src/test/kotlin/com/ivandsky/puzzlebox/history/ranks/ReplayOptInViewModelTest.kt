@@ -1,9 +1,12 @@
 package com.ivandsky.puzzlebox.history.ranks
 
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.visibility.OwnTier
 import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeVisibilityRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import kotlinx.coroutines.CoroutineScope
@@ -24,7 +27,8 @@ class ReplayOptInViewModelTest {
     val main = MainDispatcherRule()
 
     private val visibility = FakeVisibilityRepository()
-    private val viewModel by lazy { ReplayOptInViewModel(visibility) }
+    private var flags: ReleaseFlags? = null
+    private val viewModel by lazy { ReplayOptInViewModel(visibility, flags) }
 
     private fun TestScope.collecting() {
         viewModel.show.launchIn(CoroutineScope(UnconfinedTestDispatcher(testScheduler)))
@@ -93,6 +97,31 @@ class ReplayOptInViewModelTest {
         viewModel.rankedRow(false)
         viewModel.rankedRow(true)
         assertFalse(viewModel.show.value)
+    }
+
+    @Test
+    fun `with SheetScreens on, the question waits while another sheet is open and shows when it closes`() = runTest {
+        flags = FakeReleaseFlags(ReleaseFlag.SheetScreens)
+        collecting()
+        visibility.emitOwn(OwnTier.Unset)
+        viewModel.hold(true)
+        viewModel.rankedRow(true)
+
+        assertFalse(viewModel.show.value)
+        viewModel.hold(false)
+        assertTrue(viewModel.show.value)
+    }
+
+    @Test
+    fun `with SheetScreens off, hold does nothing`() = runTest {
+        flags = FakeReleaseFlags()
+        collecting()
+        visibility.emitOwn(OwnTier.Unset)
+        viewModel.rankedRow(true)
+
+        viewModel.hold(true)
+
+        assertTrue(viewModel.show.value)
     }
 
     @Test

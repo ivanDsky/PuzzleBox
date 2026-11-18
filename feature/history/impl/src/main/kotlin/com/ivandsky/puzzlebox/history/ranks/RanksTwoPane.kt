@@ -19,10 +19,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -35,7 +31,6 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
-import com.ivandsky.puzzlebox.history.RanksTuneDefaults
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
 import com.ivandsky.puzzlebox.resultui.board.boardRowValueText
@@ -62,11 +57,10 @@ internal fun RanksTwoPane(
     rightScroll: ScrollState,
     onRowClick: ((DailyBoardRowModel) -> Unit)?,
     refreshing: Boolean,
+    onTune: () -> Unit,
+    onHowRanksWork: () -> Unit,
     modifier: Modifier = Modifier,
-    tuneDefaults: RanksTuneDefaults,
 ) {
-    var tuning by rememberSaveable { mutableStateOf(false) }
-    var howRanksWork by rememberSaveable { mutableStateOf(false) }
     val current = state.places.getOrNull(state.position)
     val accents = state.places.map { it.brand.accent.colors() }
     val containers = accents.map { it.container }
@@ -88,11 +82,11 @@ internal fun RanksTwoPane(
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             RanksCalendar(state.calendar.copy(expanded = true), state.stats, { day, _ -> actions.onShowCalendar(day, true) }, actions.onSelectDay, foldable = false, gapBelow = 0.dp)
-            GameList(state.places, current?.board, actions.onPickBoard, onHowRanksWork = { howRanksWork = true })
+            GameList(state.places, current?.board, actions.onPickBoard, onHowRanksWork = onHowRanksWork)
         }
         RanksPullToRefresh(refreshing, actions.onRefresh, Modifier.weight(BOARD_WEIGHT).fillMaxHeight().padding(bottom = Spacing.lg)) {
             FillRemainingColumn(Modifier.fillMaxSize().verticalScroll(rightScroll).testTag("ranks.rightpane")) {
-                RanksTopBar(tuneLabel(state.scope, state.window), onTune = { tuning = true }) {
+                RanksTopBar(tuneLabel(state.scope, state.window), onTune = onTune) {
                     BoardScrubCell(scrub, state.position, state.board.title, Modifier.padding(start = Spacing.sm), at = { state.sliceAt(it)?.title }) { title ->
                         Text(
                             title,
@@ -117,8 +111,6 @@ internal fun RanksTwoPane(
             }
         }
     }
-    if (tuning) TuneSheet(state.scope, state.window, actions.onScope, actions.onWindow, onDismiss = { tuning = false }, defaults = tuneDefaults)
-    if (howRanksWork) HowRanksWorkSheet(onDismiss = { howRanksWork = false })
 }
 
 /** The viewer's own official row of the shown board as its score column says it; null when they have none there. */
