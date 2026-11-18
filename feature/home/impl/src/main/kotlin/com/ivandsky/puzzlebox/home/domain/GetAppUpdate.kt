@@ -1,6 +1,7 @@
-package com.ivandsky.puzzlebox.domain
+package com.ivandsky.puzzlebox.home.domain
 
 import com.ivandsky.puzzlebox.data.update.AppReleaseRepository
+import com.ivandsky.puzzlebox.domain.AppBuild
 
 /** Compares the latest published release against the installed [AppBuild] (spec A3, A4, A6). */
 class GetAppUpdate(private val releases: AppReleaseRepository, private val build: AppBuild) {

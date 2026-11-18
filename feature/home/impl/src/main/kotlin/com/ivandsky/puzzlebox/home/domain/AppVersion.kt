@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain
+package com.ivandsky.puzzlebox.home.domain
 
 /**
  * A release's numeric MAJOR.MINOR.PATCH core (spec A3), ordered component by component so

@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain
+package com.ivandsky.puzzlebox.home.domain
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
