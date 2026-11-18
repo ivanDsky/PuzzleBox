@@ -40,6 +40,16 @@ jobs:
             tasks: assembleDebug testCore
           - shard: ui
             tasks: testUi
+    env:
+      # Robolectric's Android runtime jars (android-all-instrumented) for every SDK the tests run on,
+      # as Robolectric 4.17 names them: 32 and 34 come from `@Config(sdk = …)`, 37 is targetSdk, the
+      # default. Robolectric looks for them in ~/.m2/repository and downloads a missing one from
+      # Maven Central in the middle of a test run. A Robolectric bump or a test on a new SDK changes
+      # this list; the "Check Robolectric runtime list" step names the jar to add.
+      ROBOLECTRIC_ANDROID_ALL: >-
+        12.1-robolectric-8229987-i7
+        14-robolectric-10818077-i7
+        17-robolectric-15733970-i7
     steps:
       - uses: actions/checkout@v7
 
@@ -51,8 +61,56 @@ jobs:
       # Runs on the default branch only, so setup-gradle writes the Gradle cache here.
       - uses: gradle/actions/setup-gradle@v6
 
+      # A failed test-time download of a runtime jar took down 110 to 303 tests in 4 of 20 red main
+      # runs (ADR-0023). The jars come from this cache instead. On a miss the prefetch step fetches
+      # them with retries and checks their SHA-512, so a failed download fails that one step before
+      # any test runs. The save step follows the prefetch, so a red test step still keeps the jars.
+      - name: Restore Robolectric runtime
+        id: robolectric-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.m2/repository/org/robolectric/android-all-instrumented
+          key: robolectric-android-all-${{ env.ROBOLECTRIC_ANDROID_ALL }}
+
+      - name: Prefetch Robolectric runtime
+        if: steps.robolectric-cache.outputs.cache-hit != 'true'
+        run: |
+          repo=https://repo1.maven.org/maven2/org/robolectric/android-all-instrumented
+          for version in $ROBOLECTRIC_ANDROID_ALL; do
+            dir="$HOME/.m2/repository/org/robolectric/android-all-instrumented/$version"
+            mkdir -p "$dir"
+            for file in "android-all-instrumented-$version.pom" "android-all-instrumented-$version.jar"; do
+              for name in "$file" "$file.sha512"; do
+                curl --fail --silent --show-error --location --connect-timeout 30 --speed-limit 1024 --speed-time 60 \
+                  --retry 5 --retry-all-errors --retry-delay 15 \
+                  --output "$dir/$name" "$repo/$version/$name"
+              done
+              echo "$(cat "$dir/$file.sha512")  $dir/$file" | sha512sum --check --strict
+            done
+          done
+
+      # Both shards miss together on a new key; the second save only logs that the key exists.
+      - name: Save Robolectric runtime
+        if: steps.robolectric-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.m2/repository/org/robolectric/android-all-instrumented
+          key: ${{ steps.robolectric-cache.outputs.cache-primary-key }}
+
       - name: Build and unit tests
         run: ./gradlew ${{ matrix.tasks }} --continue
+
+      # A jar the list lacks was downloaded at test time, the failure mode the cache removes. Red
+      # here is a stale list, not a broken test: add the named jar to ROBOLECTRIC_ANDROID_ALL.
+      - name: Check Robolectric runtime list
+        if: success() || failure()
+        run: |
+          extra=$(comm -13 <(tr ' ' '\n' <<< "$ROBOLECTRIC_ANDROID_ALL" | sort) \
+            <(find "$HOME/.m2/repository/org/robolectric/android-all-instrumented" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort))
+          if [ -n "$extra" ]; then
+            echo "::error::Robolectric downloaded ${extra//$'\n'/ } at test time; add it to ROBOLECTRIC_ANDROID_ALL in release.yml"
+            exit 1
+          fi
 
       - name: Upload test reports
         if: failure()

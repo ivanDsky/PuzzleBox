@@ -1,6 +1,6 @@
 # ADR-0009 — In-module structure rules (`:konsist`)
 
-Date: 2026-11-04 · Status: accepted · Source: structure-rules run (S0 S1 S2 S4 S5 P1–P7); P8 from the navigation-ux run (spec A5); P9 from the nav-ia run (ADR-0027); P10 from the LinkedIn account run (ADR-0028); S6 from the sudoku run (spec A12); S7 from the Queens app-theme fix; S8 from the consistency polish run (spec S1); S9 from the Vibration switch (P3-07); S10 from the sheet fling fix (#1510, #1535); P11 from the ci-warnings run (#850); P12 and the P10 narrowing from the LinkedIn result post run (ADR-0032)
+Date: 2026-11-04 · Status: accepted · Source: structure-rules run (S0 S1 S2 S4 S5 P1–P7); P8 from the navigation-ux run (spec A5); P9 from the nav-ia run (ADR-0027); P10 from the LinkedIn account run (ADR-0028); S6 from the sudoku run (spec A12); S7 from the Queens app-theme fix; S8 from the consistency polish run (spec S1); S9 from the Vibration switch (P3-07); S10 from the sheet fling fix (#1510, #1535); S11 from the flaky-test quarantine (ADR-0023 amendment 2026-11-18); P11 from the ci-warnings run (#850); P12 and the P10 narrowing from the LinkedIn result post run (ADR-0032)
 
 ## Context
 ADR-0008 guards the edges between modules. It says nothing about what is inside a module:
@@ -28,7 +28,7 @@ misses on purpose, and how to fix a hit.
   `TestNamingTest` is the one test that bypasses `SourceTree`: it checks the naming of the rule
   tests themselves, and uses plain JUnit asserts.
 - **`Rule.kinds` drives scope.** The default is production source sets. S0 and P5 also scan test
-  source sets. A source set counts as test when its name starts with `test` or `androidTest`, or
+  source sets; S11 and P11 scan only them. A source set counts as test when its name starts with `test` or `androidTest`, or
   ends with `Test`. The same kinds decide which paths an allowlist entry may name.
 - **S0 is a policy ban, not a style check.** Suppressing a rule would defeat the ratchet, so
   S0 has no allowlist and no escape hatch.
@@ -74,7 +74,7 @@ returns these findings:
   fixtures are protected files: a worker does not edit them to make a test pass.
 
 Entries on record at the time of writing: S1 64, S2 6, S4 25, S5 4, P1 6, P2 1, P5 4, P6 1.
-S0, S6, S7, S8, S9, S10, P3, P4, P7, P8, P9, P10, P11 and P12 have none.
+S0, S6, S7, S8, S9, S10, S11, P3, P4, P7, P8, P9, P10, P11 and P12 have none.
 
 ### Payload cross-reference
 The `design-architecture` payload (`references/rules-architecture.md`) states four of these as
@@ -86,7 +86,7 @@ prose rules; the tests are their mechanical form and add no stricter bar:
 - Rule 20, one public top-level type per file (private helpers, extensions, typealiases and
   previews excepted): S1.
 
-The other rules (S0, S4, S5, S6, S7, S8, S9, P1, P4–P12) have no payload twin. Dependency direction between
+The other rules (S0, S4, S5, S6, S7, S8, S9, S10, S11, P1, P4–P12) have no payload twin. Dependency direction between
 modules stays in ADR-0008.
 
 ### Adding a rule
@@ -248,6 +248,19 @@ Every bottom sheet goes through `AppModalBottomSheet`, which swallows the fling 
   qualified. `AppModalBottomSheet(` is not matched. The violation is the file.
 - **Accepted misses:** a call through an import alias.
 - **How to fix:** call `AppModalBottomSheet` from `core:designsystem`.
+
+## S11
+Every ignored test is a dated quarantine with a ticket (ADR-0023): a test nobody owns does not sit ignored.
+
+- **Scope:** test files of every module.
+- **Detection:** in the file's code (comments and string contents removed), an `@Ignore` annotation, bare or
+  qualified (`@org.junit.Ignore`, `@kotlin.test.Ignore`). It passes only when its one argument is a plain string
+  literal that reads exactly `quarantine #<digits> until <YYYY-MM-DD>`, with a real calendar date. The violation is
+  the file. The date is not compared with today: an expired quarantine never turns main red by itself.
+- **Accepted misses:** an `Ignore` reached through an import alias or a typealias
+  (`typealias X = org.junit.Ignore`), the bracket form `@[Ignore …]`, and JUnit 5's `@Disabled` (the project runs
+  JUnit 4).
+- **How to fix:** fix or delete the test, or quarantine it with `@Ignore("quarantine #<issue> until <YYYY-MM-DD>")`.
 
 ## P1
 Every production file's package is under its module's package root.
