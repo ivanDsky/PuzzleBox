@@ -21,6 +21,8 @@ dependencies {
     // ADR-0001/ADR-0007: play is game-agnostic — every game reaches it through the
     // core:game-ui play seam (GamePlayUi/GamePlayController), never a games:* edge.
     implementation(projects.core.gameUi)
+    // The daily board on the game page and the stats panel.
+    implementation(projects.core.resultUi)
     // A friend puzzle's board needs sign-in: the Google ID token comes from GoogleIdTokenProvider.
     implementation(projects.core.auth)
 

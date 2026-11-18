@@ -35,10 +35,10 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
-import com.ivandsky.puzzlebox.gameui.board.boardRowValueText
 import com.ivandsky.puzzlebox.history.RanksTuneDefaults
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardRowModel
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
+import com.ivandsky.puzzlebox.resultui.board.boardRowValueText
 
 private const val LIST_WEIGHT = 0.4f
 private const val BOARD_WEIGHT = 0.6f

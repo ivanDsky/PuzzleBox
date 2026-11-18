@@ -26,8 +26,8 @@ import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.tabular
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardStyle
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardStyle
 
 private const val NONE = "—"
 

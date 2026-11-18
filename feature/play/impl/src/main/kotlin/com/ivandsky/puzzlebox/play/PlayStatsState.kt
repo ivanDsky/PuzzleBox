@@ -2,7 +2,7 @@ package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatus
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardLine
 
 /**
  * What the tablet play side panel shows beside the board (A15), besides the live clock

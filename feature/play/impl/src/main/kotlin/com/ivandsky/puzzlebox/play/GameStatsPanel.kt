@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardStyle
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardStyle
 
 /**
  * The tablet side panel's content: [PlayStatsPanel] over [stats], under the game's

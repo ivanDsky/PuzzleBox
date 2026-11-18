@@ -2,8 +2,8 @@ package com.ivandsky.puzzlebox.play.linkedin
 
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInBoardView
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
-import com.ivandsky.puzzlebox.gameui.board.GhostRowModel
-import com.ivandsky.puzzlebox.gameui.board.LinkedInYou
+import com.ivandsky.puzzlebox.resultui.board.GhostRowModel
+import com.ivandsky.puzzlebox.resultui.board.LinkedInYou
 
 /**
  * What a day's LinkedIn data adds to a board that ranks it with the PuzzleBox rows: the connections as [ghosts], each

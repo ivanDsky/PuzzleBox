@@ -14,8 +14,8 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import com.ivandsky.puzzlebox.designsystem.MorphCell
 import com.ivandsky.puzzlebox.designsystem.ScrubCell
-import com.ivandsky.puzzlebox.gameui.board.RollScrub
-import com.ivandsky.puzzlebox.gameui.board.RollingNumber
+import com.ivandsky.puzzlebox.resultui.board.RollScrub
+import com.ivandsky.puzzlebox.resultui.board.RollingNumber
 
 private val Runs = Regex("[0-9]+|[^0-9]+")
 

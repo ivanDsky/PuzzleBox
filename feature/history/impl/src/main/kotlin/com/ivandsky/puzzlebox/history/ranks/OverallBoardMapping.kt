@@ -3,9 +3,9 @@ package com.ivandsky.puzzlebox.history.ranks
 import com.ivandsky.puzzlebox.data.leaderboard.BoardPage
 import com.ivandsky.puzzlebox.domain.ranks.OverallStandings
 import com.ivandsky.puzzlebox.domain.ranks.OverallState
-import com.ivandsky.puzzlebox.gameui.board.BoardRowValue
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
+import com.ivandsky.puzzlebox.resultui.board.BoardRowValue
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardRowModel
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
 
 /**
  * The Overall result as the kit's board. The viewer's row is a normal row, marked

@@ -17,9 +17,9 @@ import com.ivandsky.puzzlebox.domain.ranks.PlayerActions
 import com.ivandsky.puzzlebox.domain.ranks.PlayerActions.Challenge
 import com.ivandsky.puzzlebox.domain.ranks.PlayerActions.Watch
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import com.ivandsky.puzzlebox.history.ranks.PlayerSheetViewModel.Challenge as ChallengeStatus
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Rule

@@ -30,8 +30,8 @@ import com.ivandsky.puzzlebox.designsystem.ScrubCell
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.tabular
-import com.ivandsky.puzzlebox.gameui.board.RollScrub
-import com.ivandsky.puzzlebox.gameui.board.RollingNumber
+import com.ivandsky.puzzlebox.resultui.board.RollScrub
+import com.ivandsky.puzzlebox.resultui.board.RollingNumber
 
 /**
  * What the hero card says of one board: the [board]'s name, where the viewer stands on it ([standing]) and the

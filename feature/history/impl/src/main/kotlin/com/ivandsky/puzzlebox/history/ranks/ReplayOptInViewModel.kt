@@ -5,8 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.data.visibility.OwnTier
 import com.ivandsky.puzzlebox.data.visibility.VisibilityRepository
 import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardRowModel
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow

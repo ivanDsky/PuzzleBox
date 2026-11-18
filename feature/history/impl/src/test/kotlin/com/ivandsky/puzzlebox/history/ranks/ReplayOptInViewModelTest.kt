@@ -2,8 +2,8 @@ package com.ivandsky.puzzlebox.history.ranks
 
 import com.ivandsky.puzzlebox.data.visibility.OwnTier
 import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardRowModel
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
 import com.ivandsky.puzzlebox.testing.repository.FakeVisibilityRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import kotlinx.coroutines.CoroutineScope

@@ -15,15 +15,15 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardList
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardNote
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardStyle
-import com.ivandsky.puzzlebox.gameui.board.dailyBoardListHeight
-import com.ivandsky.puzzlebox.gameui.board.toBoardNote
 import com.ivandsky.puzzlebox.gameui.rankRuleText
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
 import com.ivandsky.puzzlebox.play.friend.SignInPrompt
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardLine
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardList
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardNote
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardStyle
+import com.ivandsky.puzzlebox.resultui.board.dailyBoardListHeight
+import com.ivandsky.puzzlebox.resultui.board.toBoardNote
 
 /**
  * Today's times on this game's board (A15): the first five rows, the player's own row pinned under them when it
