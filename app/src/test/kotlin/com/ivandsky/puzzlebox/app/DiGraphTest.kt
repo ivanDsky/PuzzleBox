@@ -42,8 +42,6 @@ import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.ReportPuzzle
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
-import com.ivandsky.puzzlebox.domain.linkedin.CreateLinkedInLink
-import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInAccount
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInPost
@@ -71,6 +69,9 @@ import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.ResultViewModel
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
+import com.ivandsky.puzzlebox.profile.domain.linkedin.CreateLinkedInLink
+import com.ivandsky.puzzlebox.profile.domain.linkedin.ObserveLinkedInAccount
+import com.ivandsky.puzzlebox.profile.domain.linkedin.UpdateLinkedInPosting
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInSessionCookies
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
@@ -172,6 +173,7 @@ class DiGraphTest : KoinTest {
         try {
             PuzzleBoxApplication.prepareCloudSync(koinApp.koin)
             assertNotNull(koinApp.koin.get<ObserveLinkedInAccount>())
+            assertNotNull(koinApp.koin.get<UpdateLinkedInPosting>())
             assertNotNull(koinApp.koin.get<ProfileViewModel> { parametersOf(true) })
         } finally {
             stopKoin()

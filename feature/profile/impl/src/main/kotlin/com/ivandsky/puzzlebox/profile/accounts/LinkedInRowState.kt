@@ -1,6 +1,6 @@
 package com.ivandsky.puzzlebox.profile.accounts
 
-import com.ivandsky.puzzlebox.domain.linkedin.LinkedInAccountView
+import com.ivandsky.puzzlebox.profile.domain.linkedin.LinkedInAccountView
 
 /** What Profile's LinkedIn row draws; the caller derives it from the link and the phone's stored data, the row reads nothing. */
 sealed interface LinkedInRowState {

@@ -18,11 +18,11 @@ import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.linkedin.LinkState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInLink
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
-import com.ivandsky.puzzlebox.domain.linkedin.LinkedInAccountView
-import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInAccount
-import com.ivandsky.puzzlebox.domain.linkedin.UpdateLinkedInPosting
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead
 import com.ivandsky.puzzlebox.profile.accounts.LinkedInRowState
+import com.ivandsky.puzzlebox.profile.domain.linkedin.LinkedInAccountView
+import com.ivandsky.puzzlebox.profile.domain.linkedin.ObserveLinkedInAccount
+import com.ivandsky.puzzlebox.profile.domain.linkedin.UpdateLinkedInPosting
 import java.time.Clock
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow

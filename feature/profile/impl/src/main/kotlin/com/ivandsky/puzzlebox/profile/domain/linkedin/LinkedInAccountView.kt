@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain.linkedin
+package com.ivandsky.puzzlebox.profile.domain.linkedin
 
 /**
  * What Profile shows under a connected LinkedIn row. [name] and [photoPath] are null until a board named the player.

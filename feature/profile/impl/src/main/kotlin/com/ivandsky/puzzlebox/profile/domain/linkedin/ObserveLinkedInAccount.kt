@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain.linkedin
+package com.ivandsky.puzzlebox.profile.domain.linkedin
 
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInAccount
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInLink

@@ -25,9 +25,9 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.linkedin.LinkedInAccountView
 import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.profile.accounts.LinkedInRowState
+import com.ivandsky.puzzlebox.profile.domain.linkedin.LinkedInAccountView
 import com.ivandsky.puzzlebox.profile.settings.SettingsScreen
 import com.ivandsky.puzzlebox.profile.settings.SettingsUiState
 import java.time.LocalDate
