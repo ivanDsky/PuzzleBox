@@ -1,8 +1,6 @@
 package com.ivandsky.puzzlebox.app.e2e
 
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -10,7 +8,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The real shell and the real Koin graph: with WhatsNew on, Settings' About row opens the What's new page (the shell's own
+ * The real shell and the real Koin graph: Settings' About row opens the What's new page (the shell's own
  * `onOpenWhatsNew`, not a stand-in), the bundled notes are listed newest first, and Back returns to Settings.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -25,7 +23,7 @@ class WhatsNewE2ETest {
     @Config(qualifiers = RAIL)
     fun `on a tablet the same row opens the same page`() = openAndBack()
 
-    private fun openAndBack() = shellRobot(graph = shellGraph(ReleaseFlag.WhatsNew)) {
+    private fun openAndBack() = shellRobot(graph = shellGraph()) {
         tapAvatar()
         tapGear()
         assertRoute(SETTINGS)
@@ -37,16 +35,6 @@ class WhatsNewE2ETest {
 
         tap("whatsNew.back")
         assertRoute(SETTINGS)
-    }
-
-    @Test
-    @Config(qualifiers = PHONE)
-    fun `with the flag off Settings has no What's new row`() = shellRobot(graph = shellGraph()) {
-        tapAvatar()
-        tapGear()
-        assertRoute(SETTINGS)
-
-        assertFalse(shows("settings.whatsNew"))
     }
 
     private companion object {
