@@ -13,12 +13,14 @@ fun GameFilterChip(
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     FilterChip(
         selected = selected,
         onClick = onClick,
         label = { Text(label) },
         modifier = modifier,
+        enabled = enabled,
         leadingIcon = { GameGlyph(brand, GameGlyphSize.Inline) },
     )
 }

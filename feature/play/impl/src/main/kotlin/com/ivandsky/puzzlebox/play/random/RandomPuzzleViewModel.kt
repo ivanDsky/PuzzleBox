@@ -44,9 +44,12 @@ internal class RandomPuzzleViewModel(
 
     /** Picks one puzzle by the filters as they are now; ignored while a pick runs or its puzzle is open. */
     fun pick() {
-        val start = current.value
-        if (start.phase is RandomPhase.Picking || start.phase is RandomPhase.Opened) return
-        current.value = start.copy(phase = RandomPhase.Picking)
+        var started: RandomPuzzleState? = null
+        current.update {
+            started = it.takeUnless { state -> state.phase is RandomPhase.Picking || state.phase is RandomPhase.Opened }
+            started?.copy(phase = RandomPhase.Picking) ?: it
+        }
+        val start = started ?: return
         val filter = when (start.source) {
             RandomSource.Past -> RandomFilter.Archive(start.game, start.unsolvedOnly)
             RandomSource.Community -> RandomFilter.Community(start.game, start.difficulty?.levels.orEmpty())
