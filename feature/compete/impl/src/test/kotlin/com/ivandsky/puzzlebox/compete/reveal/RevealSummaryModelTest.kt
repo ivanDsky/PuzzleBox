@@ -136,6 +136,15 @@ class RevealSummaryModelTest {
     }
 
     @Test
+    fun aSelfDuelLineupRematchRedrawsEveryPuzzleAsAnyOfItsGameInOrder() {
+        val match = match(refs = listOf(zip, queens, zip), deadlineHours = 48, includeFriends = true)
+
+        assertEquals(listOf(AnyGame(zip), AnyGame(queens), AnyGame(zip)), selfRematchSettings(match, lineup = true).lineup)
+        assertNull(selfRematchSettings(match, lineup = false).lineup)
+        assertNull(selfRematchSettings(match).lineup)
+    }
+
+    @Test
     fun puzzleRowsNameTheWinnerShowEachTimeAndMarkAMissingResult() {
         val cards = listOf(
             card(leg(time(58_000), time(72_000), LegVerdict.Win(LegBasis.Time)), "Zip #401"),

@@ -29,7 +29,7 @@ internal data class RematchState(val sending: Boolean = false, val note: String?
 /**
  * The rematch sheet's state holder for [match]: Send new invite creates the duel again through [createMatch] (a self duel
  * through [createSelfDuel], which has no sheet: the reveal sends it from Rematch) with the
- * same settings and a fresh draw (with DuelLineup on, each puzzle an "Any" of its game, in the duel's order).
+ * same settings and a fresh draw (with DuelLineup on, each puzzle an "Any" of its game, in the duel's order, a self duel too).
  * One send runs at a time; a refusal becomes a [RematchState.note] and frees the button, while a created duel is handed over once on [created] and keeps the sheet [RematchState.sending] until
  * [reset] says it has left.
  */
@@ -52,8 +52,9 @@ internal class RematchViewModel(
     fun send() {
         if (working.getAndUpdate { RematchState(sending = true) }.sending) return
         viewModelScope.launch {
+            val lineup = releaseFlags?.isEnabled(ReleaseFlag.DuelLineup) == true
             val outcome = try {
-                if (match.isSelf) createSelfDuel(selfRematchSettings(match)) else createMatch(rematchSettings(match, lineup = releaseFlags?.isEnabled(ReleaseFlag.DuelLineup) == true), rematchOf = match)
+                if (match.isSelf) createSelfDuel(selfRematchSettings(match, lineup)) else createMatch(rematchSettings(match, lineup), rematchOf = match)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
