@@ -42,8 +42,9 @@ internal fun RandomPuzzleSheet(
     val opened = state.phase as? RandomPhase.Opened
     LaunchedEffect(opened) {
         val pick = opened?.pick ?: return@LaunchedEffect
-        scope.launch { sheetState.hide() }.invokeOnCompletion {
-            onOpen(pick)
+        // A hide cut short (the host dropped the sheet) hands nothing on, but must not leave the view model on Opened.
+        scope.launch { sheetState.hide() }.invokeOnCompletion { cause ->
+            if (cause == null) onOpen(pick)
             viewModel.reset()
         }
     }

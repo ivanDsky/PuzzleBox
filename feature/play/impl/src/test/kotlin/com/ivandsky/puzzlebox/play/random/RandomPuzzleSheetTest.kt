@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.play.random
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
@@ -23,6 +24,7 @@ import com.ivandsky.puzzlebox.domain.random.RandomPick
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.testDispatchers
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
@@ -96,16 +98,46 @@ class RandomPuzzleSheetTest {
         node("random.game.any").assertIsSelected()
     }
 
-    @Test
-    fun `a game chip narrows the next pick to that game`() {
+    private fun pickWithChip(game: GameId) {
         mountSheet()
 
-        node("random.game.beta").performClick()
-        node("random.game.beta").assertIsSelected()
+        node("random.game.${game.value}").performClick()
+        node("random.game.${game.value}").assertIsSelected()
         node("random.pick").performClick()
         composeRule.waitUntil(TIMEOUT_MS) { opened.isNotEmpty() }
 
-        assertEquals(beta, (opened.single() as RandomPick.Day).game)
+        assertEquals(game, (opened.single() as RandomPick.Day).game)
+    }
+
+    // Both games are tapped, in two tests: whichever game Any would draw first, an ignored chip fails the other one.
+    @Test
+    fun `the alpha chip narrows the next pick to alpha`() = pickWithChip(alpha)
+
+    @Test
+    fun `the beta chip narrows the next pick to beta`() = pickWithChip(beta)
+
+    @Test
+    fun `a hide cut short by the host leaving hands nothing on and leaves the view model idle`() {
+        val show = mutableStateOf(true)
+        val viewModel = viewModel()
+        composeRule.setContent {
+            PuzzleBoxTheme {
+                if (show.value) {
+                    RandomPuzzleSheet(null, games, PlayLayout.SinglePane, onOpen = { opened += it }, onDismiss = {}, viewModel = viewModel)
+                }
+            }
+        }
+        composeRule.mainClock.autoAdvance = false
+        node("random.pick").performClick()
+        composeRule.mainClock.advanceTimeByFrame()
+        assertTrue(viewModel.state.value.phase is RandomPhase.Opened)
+
+        show.value = false
+        composeRule.mainClock.autoAdvance = true
+        composeRule.waitForIdle()
+
+        assertTrue(opened.isEmpty())
+        assertEquals(RandomPhase.Idle, viewModel.state.value.phase)
     }
 
     @Test
