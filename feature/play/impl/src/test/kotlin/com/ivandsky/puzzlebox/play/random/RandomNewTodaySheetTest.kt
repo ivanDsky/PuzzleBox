@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.play.random
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
@@ -63,10 +64,11 @@ class RandomNewTodaySheetTest {
     private val gamma = GameId("gamma")
     private fun gameOf(id: GameId) = RandomGame(id, id.value.replaceFirstChar(Char::uppercase), GameBrand.Neutral)
     private val communityGames = listOf(ALPHA, BETA).map(::gameOf)
-    private val pastGames = communityGames + gameOf(gamma)
+    private val past = mutableStateOf(communityGames + gameOf(gamma))
+    private val newToday = mutableStateOf(communityGames)
     private val opened = mutableListOf<RandomPick>()
 
-    private fun mountSheet() {
+    private fun mountSheet(preset: GameId? = null) {
         val daily = FakeDailyRepository()
         val registry = TestGames.registry(listOf(ALPHA, BETA))
         val random = Random(1)
@@ -75,10 +77,10 @@ class RandomNewTodaySheetTest {
             LoadRandomDay(daily, FakeCompletionRepository(), LoadPastDay(daily, registry), registry, random),
             LoadRandomShared(ListCommunityPuzzles(fixture.shared, fixture.hidden, identity) { NOW }, random),
         )
-        val viewModel = RandomPuzzleViewModel(null, load, RandomPickMemory(), testDispatchers())
+        val viewModel = RandomPuzzleViewModel(preset, load, RandomPickMemory(), testDispatchers())
         composeRule.setContent {
             PuzzleBoxTheme {
-                RandomPuzzleSheet(null, pastGames, communityGames, PlayLayout.SinglePane, onOpen = { opened += it }, onDismiss = {}, viewModel = viewModel)
+                RandomPuzzleSheet(preset, past.value, newToday.value, PlayLayout.SinglePane, onOpen = { opened += it }, onDismiss = {}, viewModel = viewModel)
             }
         }
     }
@@ -132,6 +134,46 @@ class RandomNewTodaySheetTest {
     @Test
     fun `the beta chip narrows a New today pick to the beta puzzle`() {
         assertEquals("CCC333", pickOnNewToday("random.game.beta"))
+    }
+
+    @Test
+    fun `a chosen game that drops out of the games on offer falls back to Any`() {
+        mountSheet()
+        node("random.game.gamma").performClick()
+        node("random.game.gamma").assertIsSelected()
+
+        past.value = communityGames
+        composeRule.waitForIdle()
+
+        node("random.game.gamma").assertDoesNotExist()
+        node("random.game.any").assertIsSelected()
+    }
+
+    @Test
+    fun `a restored game stays chosen while the lists are still empty and is selected once they arrive`() {
+        past.value = emptyList()
+        newToday.value = emptyList()
+        mountSheet(preset = BETA)
+
+        past.value = communityGames + gameOf(gamma)
+        newToday.value = communityGames
+        composeRule.waitForIdle()
+
+        node("random.game.beta").assertIsSelected()
+    }
+
+    @Test
+    fun `a preset game the first list lacks stays chosen until its own list arrives`() {
+        past.value = emptyList()
+        newToday.value = emptyList()
+        mountSheet(preset = gamma)
+
+        newToday.value = communityGames
+        composeRule.waitForIdle()
+        past.value = communityGames + gameOf(gamma)
+        composeRule.waitForIdle()
+
+        node("random.game.gamma").assertIsSelected()
     }
 
     @Test
