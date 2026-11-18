@@ -4,7 +4,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
-import com.ivandsky.puzzlebox.designsystem.LocalOnFill
 import com.ivandsky.puzzlebox.designsystem.colors
 
 private const val SECONDARY_ALPHA = 0.82f
@@ -27,7 +26,7 @@ data class GameCardColors(
 )
 
 /**
- * A card in [brand]'s accent with on-fill content, or, when [offline], the
+ * A card in [brand]'s accent with that accent's on-colour content, or, when [offline], the
  * neutral surfaceContainerHigh card (muted, like a disabled game button)
  * with every content role in onSurfaceVariant.
  */
@@ -43,12 +42,13 @@ internal fun gameCardColors(brand: GameBrand, offline: Boolean): GameCardColors 
             motifAlpha = OFFLINE_MOTIF_ALPHA,
         )
     }
-    val onFill = LocalOnFill.current
+    // The accent's own on-colour: white clears 4.5:1 on none of the hues (AccentTokens).
+    val accent = brand.accent.colors()
     return GameCardColors(
-        fill = brand.accent.colors().accent,
-        fg = onFill,
-        fg2 = onFill.copy(alpha = SECONDARY_ALPHA),
-        motif = onFill,
+        fill = accent.accent,
+        fg = accent.onAccent,
+        fg2 = accent.onAccent.copy(alpha = SECONDARY_ALPHA),
+        motif = accent.onAccent,
         motifAlpha = MOTIF_ALPHA,
     )
 }
