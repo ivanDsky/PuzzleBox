@@ -32,8 +32,6 @@ internal object FoundThemeSpec : StrandsCellSpec {
 
     override fun fill(colors: BoardColors): Color = colors.strandsThemeFill
 
-    override fun lip(colors: BoardColors): Color = colors.strandsThemeLip
-
     override fun letter(colors: BoardColors): Color = colors.strandsTileText
 
     override val stateWord: String = StrandsCopy.STATE_THEME

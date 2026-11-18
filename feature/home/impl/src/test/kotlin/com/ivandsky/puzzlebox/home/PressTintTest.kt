@@ -23,7 +23,6 @@ import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.model.GameId
 import kotlin.math.abs
 import kotlin.math.roundToInt
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -33,27 +32,21 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Press tint (nav-rethink B1, M2 flat): the Today badge column has no ripple, so while flat is on a held press
- * washes it (ticket 16); flat off draws nothing.
+ * Press tint (nav-rethink B1, M2): the Today badge column has no ripple, so a held press
+ * washes it (ticket 16).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34])
-class FlatPressTintTest {
+class PressTintTest {
 
     @get:Rule
     val composeRule = createComposeRule()
 
     @Test
-    fun `flat on, a held press on the Today badge tints it within the press duration`() {
-        show(flat = true) { Badge() }
+    fun `a held press on the Today badge tints it within the press duration`() {
+        show { Badge() }
         assertTints("badge", fx = 0f, dx = 4f)
-    }
-
-    @Test
-    fun `flat off, a held press on the Today badge leaves its pixels alone`() {
-        show(flat = false) { Badge() }
-        assertUnchanged("badge", fx = 0f, dx = 4f)
     }
 
     @Composable
@@ -67,10 +60,10 @@ class FlatPressTintTest {
     )
 
 
-    private fun show(flat: Boolean, content: @Composable () -> Unit) {
+    private fun show(content: @Composable () -> Unit) {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
-            PuzzleBoxTheme(darkTheme = false, flatSurfaces = flat) {
+            PuzzleBoxTheme(darkTheme = false) {
                 Box(Modifier.background(MaterialTheme.colorScheme.surface)) { content() }
             }
         }
@@ -98,13 +91,8 @@ class FlatPressTintTest {
         assertTrue("no wash within the press duration: moved $shift", shift > WASH_MIN)
     }
 
-    private fun assertUnchanged(tag: String, fx: Float = 0.5f, dx: Float = 0f, dy: Float = 0f) {
-        assertEquals(0f, pressShift(tag, fx, dx, dy), WASH_NONE)
-    }
-
     private companion object {
         // The wash is 12 % of the ink over the face: well over 3 % on any pair the theme draws.
         const val WASH_MIN = 0.03f
-        const val WASH_NONE = 0.005f
     }
 }

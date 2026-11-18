@@ -1,5 +1,4 @@
 package com.ivandsky.puzzlebox.designsystem
-
 import androidx.compose.foundation.background
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.Box
@@ -26,28 +25,28 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-// The flat game button (nav-rethink B1): with flat on, a Tall button is 64dp in all, its bottom
-// edge is the face rather than a lip, a press scales and tints it but never sinks it, and a
+// The game button's face (nav-rethink B1): a Tall button is 64dp in all, its bottom
+// edge is the face, a press scales and tints it but never sinks it, and a
 // disabled one stays put as the muted wash; its cooldown ring hugs the face from the very top.
 // Pixels are read at 1dp = 1px (the Robolectric default), a row in from the edge to dodge
 // anti-aliasing.
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34])
-class GameButtonFlatTest {
+class GameButtonFaceTest {
 
     @get:Rule
     val composeRule = createComposeRule()
 
     private lateinit var teal: GameAccent
-    private var neutralLip = Color.Unspecified
+    private var neutralRim = Color.Unspecified
     private var neutralFill = Color.Unspecified
 
     private fun show(content: @Composable () -> Unit) {
         composeRule.setContent {
-            PuzzleBoxTheme(flatSurfaces = true) {
+            PuzzleBoxTheme {
                 teal = AccentSlot.Teal.colors()
-                neutralLip = LocalNeutralLip.current
+                neutralRim = LocalNeutralRim.current
                 neutralFill = MaterialTheme.colorScheme.surfaceContainerHigh
                 Box(Modifier.background(Color.White)) { content() }
             }
@@ -55,14 +54,14 @@ class GameButtonFlatTest {
     }
 
     @Test
-    fun `flat, a Tall game button measures exactly 64dp`() {
+    fun `a Tall game button measures exactly 64dp`() {
         show { GameButton(onClick = {}, icon = PuzzleIcons.Hint, label = "Hint", accent = AccentSlot.Teal, size = GameButtonSize.Tall, modifier = Modifier.testTag(BUTTON)) }
 
         composeRule.onNodeWithTag(BUTTON).assertHeightIsEqualTo(64.dp)
     }
 
     @Test
-    fun `flat, the bottom edge is the face and no lip colour shows`() {
+    fun `the bottom edge is the face`() {
         show { GameButton(onClick = {}, icon = PuzzleIcons.Hint, label = "Hint", accent = AccentSlot.Teal, size = GameButtonSize.Tall, modifier = Modifier.testTag(BUTTON)) }
         composeRule.waitForIdle()
 
@@ -73,7 +72,7 @@ class GameButtonFlatTest {
     }
 
     @Test
-    fun `flat, a click still fires`() {
+    fun `a click still fires`() {
         var clicks = 0
         show { GameButton(onClick = { clicks++ }, icon = PuzzleIcons.Undo, label = "Undo", size = GameButtonSize.Tall, modifier = Modifier.testTag(BUTTON)) }
 
@@ -84,7 +83,7 @@ class GameButtonFlatTest {
     }
 
     @Test
-    fun `flat, a held press does not sink the face`() {
+    fun `a held press does not sink the face`() {
         show { GameButton(onClick = {}, icon = PuzzleIcons.Hint, label = "Hint", accent = AccentSlot.Teal, size = GameButtonSize.Tall, modifier = Modifier.testTag(BUTTON)) }
 
         composeRule.onNodeWithTag(BUTTON).performTouchInput { down(center) }
@@ -97,7 +96,7 @@ class GameButtonFlatTest {
     }
 
     @Test
-    fun `flat, a disabled button does not fire and does not drop by the lip`() {
+    fun `a disabled button does not fire and starts at the top edge`() {
         var clicks = 0
         show { GameButton(onClick = { clicks++ }, icon = PuzzleIcons.Redo, label = "Redo", enabled = false, size = GameButtonSize.Tall, modifier = Modifier.testTag(BUTTON)) }
         composeRule.onNodeWithTag(BUTTON).performClick()
@@ -111,7 +110,7 @@ class GameButtonFlatTest {
     }
 
     @Test
-    fun `flat, the cooldown ring hugs the face from the top edge`() {
+    fun `the cooldown ring hugs the face from the top edge`() {
         show {
             GameButton(
                 onClick = {},
@@ -131,7 +130,7 @@ class GameButtonFlatTest {
     }
 
     @Test
-    fun `flat, a neutral button keeps a 2dp rim in the neutral lip colour and no lip`() {
+    fun `a neutral button keeps a 2dp rim in the neutral rim colour`() {
         show { GameButton(onClick = {}, icon = PuzzleIcons.Undo, label = "Undo", size = GameButtonSize.Tall, modifier = Modifier.testTag(BUTTON)) }
         composeRule.waitForIdle()
 
@@ -139,14 +138,14 @@ class GameButtonFlatTest {
         val mid = image.width / 2
 
         assertEquals(64, image.height)
-        assertEquals("top rim", neutralLip, image[mid, 1])
-        assertEquals("bottom rim", neutralLip, image[mid, image.height - 2])
+        assertEquals("top rim", neutralRim, image[mid, 1])
+        assertEquals("bottom rim", neutralRim, image[mid, image.height - 2])
         assertEquals("the face fill sits inside the rim", neutralFill, image[mid, 3])
-        assertEquals("no lip below the face", neutralFill, image[mid, image.height - 4])
+        assertEquals("nothing below the face", neutralFill, image[mid, image.height - 4])
     }
 
     @Test
-    fun `flat, a neutral toggle button keeps the rim too`() {
+    fun `a neutral toggle button keeps the rim too`() {
         show {
             GameToggleButton(
                 checked = false,
@@ -162,11 +161,11 @@ class GameButtonFlatTest {
 
         val image = composeRule.onNodeWithTag(BUTTON).captureToImage().toPixelMap()
 
-        assertEquals(neutralLip, image[image.width / 2, 1])
+        assertEquals(neutralRim, image[image.width / 2, 1])
     }
 
     @Test
-    fun `flat, an accent button has no rim`() {
+    fun `an accent button has no rim`() {
         show { GameButton(onClick = {}, icon = PuzzleIcons.Hint, label = "Hint", accent = AccentSlot.Teal, size = GameButtonSize.Tall, modifier = Modifier.testTag(BUTTON)) }
         composeRule.waitForIdle()
 
@@ -178,14 +177,14 @@ class GameButtonFlatTest {
     }
 
     @Test
-    fun `flat, a disabled neutral button fades its rim to the muted fill`() {
+    fun `a disabled neutral button fades its rim to the muted fill`() {
         show { GameButton(onClick = {}, icon = PuzzleIcons.Redo, label = "Redo", enabled = false, size = GameButtonSize.Tall, modifier = Modifier.testTag(BUTTON)) }
         composeRule.waitForIdle()
 
         val image = composeRule.onNodeWithTag(BUTTON).captureToImage().toPixelMap()
         val mid = image.width / 2
 
-        assertNotEquals("the rim is gone", neutralLip, image[mid, 1])
+        assertNotEquals("the rim is gone", neutralRim, image[mid, 1])
         assertEquals("the rim shows the same wash as the face", image[mid, 3], image[mid, 1])
     }
 

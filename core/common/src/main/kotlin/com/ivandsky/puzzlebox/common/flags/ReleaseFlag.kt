@@ -10,14 +10,8 @@ package com.ivandsky.puzzlebox.common.flags
  * @property releaseDefault the value every release build uses; debug builds start from it too.
  */
 enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
-    /** Flat buttons and cards: no lips, a tint plus a 100 ms scale on press. Read only by the app's root theme (nav-rethink B1). */
-    FlatSurfaces(label = "Flat buttons and cards", releaseDefault = true),
-
-    /**
-     * Strands' flat look (no lip under a token, a 64 dp hint row), split from [FlatSurfaces] so that can ship without
-     * touching Strands; pending its own prototype. Read only by the app's root theme (spec A2).
-     */
-    FlatStrands(label = "Flat Strands board", releaseDefault = false),
+    /** Post a PuzzleBox solve of today's LinkedIn daily to the player's LinkedIn account (ADR-0032). Experimental. */
+    LinkedInPush(label = "Post results to LinkedIn", releaseDefault = true),
 
     /**
      * Result hero polish (backlog #1162, #1170, #1171): previous and best as two labelled columns, a signed-out sign-in line

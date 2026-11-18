@@ -22,12 +22,11 @@ import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.unit.dp
 
 /**
- * The tint half of the flat press (nav-rethink B1): while [LocalFlatSurfaces] is on, a held
+ * The tint half of the flat press (nav-rethink B1): a held
  * press on [interactionSource] fades a [tint] wash over the surface, clipped to [shape], up to
  * [MotionTokens.PressTintAlpha] over [MotionTokens.PressDuration], and out again on release.
- * Reduced motion shows the wash at once: it is state, not motion. With flat off it draws
- * nothing. Place it after the surface's own background so the wash covers the face; pair it
- * with [pressScale] for the scale half.
+ * Reduced motion shows the wash at once: it is state, not motion. Place it after the surface's own
+ * background so the wash covers the face; pair it with [pressScale] for the scale half.
  */
 @Composable
 fun Modifier.pressTint(
@@ -35,7 +34,6 @@ fun Modifier.pressTint(
     shape: Shape,
     tint: Color = LocalContentColor.current,
 ): Modifier {
-    val flat = LocalFlatSurfaces.current
     val pressed by interactionSource.collectIsPressedAsState()
     val reduced = rememberReducedMotion()
     val alpha by animateFloatAsState(
@@ -43,7 +41,6 @@ fun Modifier.pressTint(
         animationSpec = if (reduced) snap() else tween(MotionTokens.PressDuration, easing = MotionTokens.EasingStandard),
         label = "press-tint",
     )
-    if (!flat) return this
     return drawWithContent {
         drawContent()
         if (alpha > 0f) {
@@ -56,7 +53,7 @@ fun Modifier.pressTint(
 @PuzzleBoxPreviews
 @Composable
 internal fun PressTintPreview() {
-    PuzzleBoxTheme(flatSurfaces = true) {
+    PuzzleBoxTheme {
         val interaction = remember { MutableInteractionSource() }
         Box(
             Modifier

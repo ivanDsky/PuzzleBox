@@ -40,7 +40,7 @@ class GameButtonEnableTransitionTest {
     val composeRule = createComposeRule()
 
     private val scheme = lightColorScheme()
-    private val accent = GameButtonColors(fill = Color(0xFF2EB5A6), content = Color.White, lip = Color(0xFF1A7F74))
+    private val accent = GameButtonColors(fill = Color(0xFF2EB5A6), content = Color.White, rim = Color(0xFF1A7F74))
     private var enabled by mutableStateOf(false)
 
     // The face is sampled over an opaque white backdrop, so the accent is an opaque pixel

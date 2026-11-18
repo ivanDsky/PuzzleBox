@@ -104,13 +104,12 @@ internal fun shellRobot(
     today: LocalDate = E2E_TODAY,
     graph: E2eKoinGraph = E2eKoinGraph(today),
     darkTheme: Boolean = false,
-    flatSurfaces: Boolean = false,
     platformHaptics: HapticFeedback? = null,
     block: ShellRobot.() -> Unit,
 ) {
     graph.start()
     try {
-        val robot = ShellRobot(graph, state, darkTheme, flatSurfaces, platformHaptics)
+        val robot = ShellRobot(graph, state, darkTheme, platformHaptics)
         val run = object : Statement() {
             override fun evaluate() {
                 robot.launch()
@@ -150,7 +149,6 @@ class ShellRobot internal constructor(
     val graph: E2eKoinGraph,
     private val initial: NavigationState?,
     private val darkTheme: Boolean = false,
-    private val flatSurfaces: Boolean = false,
     /** Stands in for the platform's haptics, under the shell's own Vibration gate; null keeps the real ones. */
     private val platformHaptics: HapticFeedback? = null,
 ) {
@@ -191,7 +189,7 @@ class ShellRobot internal constructor(
         registry = swapping
         val haptics = platformHaptics ?: LocalHapticFeedback.current
         CompositionLocalProvider(LocalSaveableStateRegistry provides swapping, LocalHapticFeedback provides haptics) {
-            PuzzleBoxTheme(darkTheme = darkTheme, flatSurfaces = flatSurfaces) {
+            PuzzleBoxTheme(darkTheme = darkTheme) {
                 PuzzleBoxApp(
                     windowWidthSizeClass = calculateWindowSizeClass(rule.activity).widthSizeClass,
                     navigator = (if (initial != null) rememberNavigator(initial) else rememberNavigator()).also { navigator = it },

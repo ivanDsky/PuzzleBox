@@ -13,7 +13,6 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
 import com.ivandsky.puzzlebox.games.sudoku.SudokuSession
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -21,11 +20,11 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** Flat surfaces (nav-rethink M10-8): the selected cell is its face alone, no lip band under it. */
+/** Flat surfaces (nav-rethink M10-8): the selected cell is its face alone, no band under it. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp-420dpi")
-class SudokuFlatSelectionTest {
+class SudokuSelectionTileTest {
 
     @get:Rule
     val composeRule = createComposeRule()
@@ -41,9 +40,9 @@ class SudokuFlatSelectionTest {
         ),
     )
 
-    private fun show(flat: Boolean) {
+    private fun show() {
         composeRule.setContent {
-            PuzzleBoxTheme(darkTheme = false, flatSurfaces = flat) {
+            PuzzleBoxTheme(darkTheme = false) {
                 SudokuGrid(model = sudokuBoardModel(mini, 35), onSelect = {}, modifier = Modifier.size(360.dp))
             }
         }
@@ -54,17 +53,9 @@ class SudokuFlatSelectionTest {
         .let { it[it.width / 2, it.height - 1 - fromBottom] }
 
     @Test
-    fun `flat on, the strip where the lip hung is the tile's own face`() {
-        show(flat = true)
-        val lipRow = with(composeRule.density) { 3.dp.toPx() }.toInt()
-        assertEquals(LightBoardTokens.sudokuSelection, selectedPixel(lipRow))
-        assertNotEquals(LightBoardTokens.sudokuSelectionLip, selectedPixel(lipRow))
-    }
-
-    @Test
-    fun `flat off, the lip hangs under the tile`() {
-        show(flat = false)
-        val lipRow = with(composeRule.density) { 3.dp.toPx() }.toInt()
-        assertEquals(LightBoardTokens.sudokuSelectionLip, selectedPixel(lipRow))
+    fun `the strip under the tile is the tile's own face`() {
+        show()
+        val strip = with(composeRule.density) { 3.dp.toPx() }.toInt()
+        assertEquals(LightBoardTokens.sudokuSelection, selectedPixel(strip))
     }
 }

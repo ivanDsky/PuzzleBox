@@ -130,7 +130,7 @@ class MotionTokensTest {
     }
 
     @Test
-    fun `flat press is a 100 ms scale to 0_97 with a 12 percent tint`() {
+    fun `press is a 100 ms scale to 0_97 with a 12 percent tint`() {
         assertEquals(100, MotionTokens.PressDuration)
         assertEquals(0.12f, MotionTokens.PressTintAlpha, 0f)
         assertEquals(0.97f, MotionTokens.PressScale, 0f)

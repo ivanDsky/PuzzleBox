@@ -123,13 +123,13 @@ class SudokuGridTest {
     }
 
     @Test
-    fun `the selected cell is an inset tile on its lip over the bare board`() {
+    fun `the selected cell is an inset flat tile over the bare board`() {
         show(mini, selected = 35)
 
         val image = cell(35).captureToImage().toPixelMap()
-        val lipRow = image.height - 1 - with(composeRule.density) { 3.dp.toPx() }.toInt()
+        val lowRow = image.height - 1 - with(composeRule.density) { 3.dp.toPx() }.toInt()
         assertEquals(LightBoardTokens.sudokuSelection, image[image.width / 2, image.height / 2])
-        assertEquals(LightBoardTokens.sudokuSelectionLip, image[image.width / 2, lipRow])
+        assertEquals(LightBoardTokens.sudokuSelection, image[image.width / 2, lowRow])
         assertNotEquals(LightBoardTokens.sudokuSelection, image[0, 0])
     }
 }

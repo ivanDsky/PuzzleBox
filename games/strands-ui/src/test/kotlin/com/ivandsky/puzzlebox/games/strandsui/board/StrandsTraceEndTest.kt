@@ -108,7 +108,7 @@ class StrandsTraceEndTest {
 
     /**
      * A tile fading out is translucent: the path's connector beneath it must not show
-     * through. Inside a tile of the path, a pixel on the connector's line matches one off it.
+     * through. Inside a tile of the path, a pixel on the connector's line matches one off it (0.1 pitch up, clear of the 0.12 line and inside the face's outline).
      */
     private fun assertNoLineThroughTiles(kind: TraceEndKind, atMs: Long) {
         show(reduceMotion = false)
@@ -116,7 +116,7 @@ class StrandsTraceEndTest {
         rule.mainClock.advanceTimeBy(atMs)
         val pixels = rule.onNodeWithTag("strands.board").captureToImage().toPixelMap()
         for (col in 1..2) {
-            assertEquals("col $col at $atMs ms", pixels.at(0, col, 0.3f, -0.25f), pixels.at(0, col, 0.3f, 0f))
+            assertEquals("col $col at $atMs ms", pixels.at(0, col, 0.3f, -0.1f), pixels.at(0, col, 0.3f, 0f))
         }
     }
 

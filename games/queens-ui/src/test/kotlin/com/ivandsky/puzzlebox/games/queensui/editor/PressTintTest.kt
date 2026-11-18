@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.create.editor
+package com.ivandsky.puzzlebox.games.queensui.editor
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -14,11 +14,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.game.editor.IncompleteReason
-import com.ivandsky.puzzlebox.game.editor.Verdict
 import kotlin.math.abs
 import kotlin.math.roundToInt
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -28,62 +25,37 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Press tint (nav-rethink B1, M2 flat): the Studio's ripple-less pressables, the title block and the verdict pill,
- * show the shared wash while flat is on (ticket 16); flat off draws nothing. The probe pixel sits on bare face,
- * clear of any label and of the 0.97 scale's edge.
+ * Press tint (nav-rethink B1, M2): the colour ring's swatches and its clear swatch have no ripple, so
+ * a held press washes them (ticket 16).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34])
-class FlatPressTintTest {
+class PressTintTest {
 
     @get:Rule
     val composeRule = createComposeRule()
 
     @Test
-    fun `flat on, a held press on the Studio title block tints it within the press duration`() {
-        show(flat = true) { TitleBar() }
-        assertTints("create.studio.title", dy = -28f)
+    fun `a held press on a colour swatch tints it within the press duration`() {
+        show { Ring() }
+        assertTints("queens.editor.ring.slot.1", dx = -14f)
     }
 
     @Test
-    fun `flat off, a held press on the Studio title block leaves its pixels alone`() {
-        show(flat = false) { TitleBar() }
-        assertUnchanged("create.studio.title", dy = -28f)
-    }
-
-    @Test
-    fun `flat on, a held press on the verdict pill tints it within the press duration`() {
-        show(flat = true) { Pill() }
-        assertTints("create.editor.pill", fx = 0f, dx = 8f)
-    }
-
-    @Test
-    fun `flat off, a held press on the verdict pill leaves its pixels alone`() {
-        show(flat = false) { Pill() }
-        assertUnchanged("create.editor.pill", fx = 0f, dx = 8f)
+    fun `a held press on the clear swatch tints it within the press duration`() {
+        show { Ring() }
+        assertTints("queens.editor.ring.unpaint", dx = -14f)
     }
 
     @Composable
-    private fun TitleBar() = StudioTopBar(
-        title = "Castle",
-        subtitle = "Queens 7×7",
-        saving = false,
-        onBack = {},
-        onRename = {},
-        onDuplicate = {},
-        onDelete = {},
-        pill = {},
-    )
-
-    @Composable
-    private fun Pill() = VerdictPill(verdict = Verdict.Incomplete(IncompleteReason("queens.unpainted", 49)), onClick = {})
+    private fun Ring() = QueensColourRing(colours = 9, used = setOf(0), current = 0, onPick = {})
 
 
-    private fun show(flat: Boolean, content: @Composable () -> Unit) {
+    private fun show(content: @Composable () -> Unit) {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
-            PuzzleBoxTheme(darkTheme = false, flatSurfaces = flat) {
+            PuzzleBoxTheme(darkTheme = false) {
                 Box(Modifier.background(MaterialTheme.colorScheme.surface)) { content() }
             }
         }
@@ -111,13 +83,8 @@ class FlatPressTintTest {
         assertTrue("no wash within the press duration: moved $shift", shift > WASH_MIN)
     }
 
-    private fun assertUnchanged(tag: String, fx: Float = 0.5f, dx: Float = 0f, dy: Float = 0f) {
-        assertEquals(0f, pressShift(tag, fx, dx, dy), WASH_NONE)
-    }
-
     private companion object {
         // The wash is 12 % of the ink over the face: well over 3 % on any pair the theme draws.
         const val WASH_MIN = 0.03f
-        const val WASH_NONE = 0.005f
     }
 }

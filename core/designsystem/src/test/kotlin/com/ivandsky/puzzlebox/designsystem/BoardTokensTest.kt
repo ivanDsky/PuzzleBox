@@ -54,32 +54,15 @@ class BoardTokensTest {
         val light = LightBoardTokens
         val dark = DarkBoardTokens
         assertEquals(Color(0xFF009DDE), light.pathTrace)
-        assertEquals(Color(0xFF0074A5), light.pathTraceLip)
         assertEquals(Color(0xFF21B7FF), dark.pathTrace)
-        assertEquals(Color(0xFF0077AA), dark.pathTraceLip)
         assertEquals(Color(0xFFCB6400), light.sunFill)
         assertEquals(Color(0xFFA69BFF), dark.boardSelection)
         assertEquals(Color(0xFF00C8BD), light.sudokuSelection)
-        assertEquals(Color(0xFF009B92), light.sudokuSelectionLip)
         assertEquals(Color(0xFF003C38), dark.sudokuPeer)
         assertEquals(Color(0xFFFF478A), light.strandsThemeFill)
         assertEquals(Color(0xFFFF63E4), dark.strandsThemeAltFill)
         assertEquals(Color(0xFFFECF00), dark.strandsSpangramFill)
         assertEquals(Color(0xFFE40070), light.strandsSelectionFill)
-        assertEquals(Color(0xFFCF0064), light.strandsThemeLip)
-        assertEquals(Color(0xFFB39100), dark.strandsSpangramLip)
-    }
-
-    @Test
-    fun `lips sit darker than their fills in both themes`() {
-        for (tokens in listOf(DarkBoardTokens, LightBoardTokens)) {
-            assertTrue(tokens.sudokuSelectionLip.luminance() < tokens.sudokuSelection.luminance())
-            assertTrue(tokens.pathTraceLip.luminance() < tokens.pathTrace.luminance())
-            assertTrue(tokens.strandsThemeLip.luminance() < tokens.strandsThemeFill.luminance())
-            assertTrue(tokens.strandsThemeAltLip.luminance() < tokens.strandsThemeAltFill.luminance())
-            assertTrue(tokens.strandsSpangramLip.luminance() < tokens.strandsSpangramFill.luminance())
-            assertTrue(tokens.strandsSelectionLip.luminance() < tokens.strandsSelectionFill.luminance())
-        }
     }
 
     @Test

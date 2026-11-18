@@ -11,24 +11,20 @@ import androidx.compose.ui.unit.dp
  */
 internal object StrandsBoardSpec {
 
-    /** Token diameter as a fraction of the cell pitch: NYT's 44 on 54. */
+    /**
+     * The token's side as a fraction of the cell pitch that the stroke widths below were tuned against (NYT's 44 on 54);
+     * [tokenStroke] recovers the pitch from a token radius with it. The drawn token is [StrandsOutlinedSpec.TokenFraction].
+     */
     const val TokenFraction: Float = 44f / 54f
 
-    /** Letter size as a fraction of the pitch: NYT's 26 px on 54. */
-    const val LetterFraction: Float = 26f / 54f
-
-    /*
-     * A filled token is a rounded square on a lip of its own hue (spec A14, prototype
-     * 03-game-colors ?v=e: 24% of the pitch on an 80% token, a 3 px lip): corner radius
-     * and lip depth as fractions of the token's side, so the depth scales with the board.
-     */
+    /** A token's corner radius as a fraction of its side. */
     const val TokenCornerFraction: Float = 0.30f
-    const val TokenLipFraction: Float = 0.08f
 
-    val ConnectorWidth: Dp = 10.dp
-
-    /** The spangram's non-colour cue (A32): a heavier line than a theme word's. */
-    val SpangramConnectorWidth: Dp = 15.dp
+    /**
+     * How much taller than its face a token's layer is, above and below, as a fraction of the face's side: room for the
+     * hint's dashed ring, which sits just outside the token, so a translucent layer (a dimmed or fading letter) never clips it.
+     */
+    const val RingRoomFraction: Float = 0.08f
 
     /** The hint's dashed ring, drawn just outside the token like NYT's CSS outline. */
     val HintRingWidth: Dp = 3.dp
@@ -38,14 +34,6 @@ internal object StrandsBoardSpec {
     /** The spangram's second cue (A32): a ring inset inside the gold token. */
     val SpangramRingWidth: Dp = 2.dp
     val SpangramRingInset: Dp = 4.dp
-
-    /**
-     * The readable board's cue for a selected letter (nav-rethink B3): a solid ring a gap outside
-     * the token, so selected differs from found by shape and not by tint alone. Ring and gap fit
-     * in the room the token leaves in its cell, so neighbouring rings never overlap.
-     */
-    val SelectionRingWidth: Dp = 2.5.dp
-    val SelectionRingGap: Dp = 1.5.dp
 
     /**
      * The pitch the connector, ring and outline widths above are named for. At it and above

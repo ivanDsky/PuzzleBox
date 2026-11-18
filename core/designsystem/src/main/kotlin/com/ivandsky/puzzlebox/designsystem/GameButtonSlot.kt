@@ -29,7 +29,7 @@ fun GameButton(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     GameButtonFace(
-        colors = gameButtonColors(accent?.colors(), MaterialTheme.colorScheme, LocalNeutralLip.current),
+        colors = gameButtonColors(accent?.colors(), MaterialTheme.colorScheme, LocalNeutralRim.current),
         enabled = enabled,
         interactionSource = interactionSource,
         label = label,

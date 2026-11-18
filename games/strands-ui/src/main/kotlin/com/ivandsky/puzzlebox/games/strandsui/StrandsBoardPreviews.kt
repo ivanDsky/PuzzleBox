@@ -37,15 +37,13 @@ private val previewPuzzle: StrandsPuzzle by lazy {
 
 /**
  * [trace] reaches the board as its live trace, as the play screen's does, not through the model.
- * [flat] asks the theme for flat Strands.
  */
 @Composable
 private fun BoardPane(
     state: StrandsState = StrandsState(previewPuzzle),
     trace: List<Coord> = emptyList(),
-    flat: Boolean = false,
 ) {
-    PuzzleBoxTheme(flatStrands = flat) {
+    PuzzleBoxTheme {
         StrandsBoardContent(
             model = StrandsRendererModel.of(state),
             found = null,
@@ -101,7 +99,7 @@ internal fun StrandsBoardShortPanePreview() =
 
 /**
  * The readable board with every look at once: PIES found, BAKE the found spangram, TART hinted,
- * and C-A-K traced, each selected letter in its ring, beside the idle E.
+ * and C-A-K traced in the thick selection outline, beside the idle E.
  */
 @PuzzleBoxPreviews
 @Preview(name = "Compact width", widthDp = 360, heightDp = 400, showBackground = true)
@@ -109,14 +107,4 @@ internal fun StrandsBoardShortPanePreview() =
 internal fun StrandsBoardReadablePreview() = BoardPane(
     StrandsState(previewPuzzle, found = listOf("PIES", "BAKE"), hintsUsed = 1, activeHint = ActiveHint("TART", HintStage.Outlined)),
     trace = listOf(Coord(3, 0), Coord(3, 1), Coord(3, 2)),
-)
-
-/** [StrandsBoardReadablePreview] with flat Strands on (nav-rethink M10-8): the same tokens with no lip under them. */
-@PuzzleBoxPreviews
-@Preview(name = "Compact width", widthDp = 360, heightDp = 400, showBackground = true)
-@Composable
-internal fun StrandsBoardFlatPreview() = BoardPane(
-    StrandsState(previewPuzzle, found = listOf("PIES", "BAKE"), hintsUsed = 1, activeHint = ActiveHint("TART", HintStage.Outlined)),
-    trace = listOf(Coord(3, 0), Coord(3, 1), Coord(3, 2)),
-    flat = true,
 )

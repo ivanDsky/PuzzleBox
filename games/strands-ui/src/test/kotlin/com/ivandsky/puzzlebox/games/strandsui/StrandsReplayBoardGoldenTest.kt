@@ -41,18 +41,7 @@ class StrandsReplayBoardGoldenCompactTest : StrandsReplayBoardGoldenBase("compac
 @Config(sdk = [34], qualifiers = "w1280dp-h900dp-420dpi")
 class StrandsReplayBoardGoldenExpandedTest : StrandsReplayBoardGoldenBase("expanded", 480)
 
-/** The replay board with Flat Strands on (nav-rethink 131). Goldens are `replay-flat-*`. */
-@RunWith(RobolectricTestRunner::class)
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = "w360dp-h640dp-420dpi")
-class StrandsReplayBoardFlatGoldenCompactTest : StrandsReplayBoardGoldenBase("compact", 320, flat = true)
-
-@RunWith(RobolectricTestRunner::class)
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = "w1280dp-h900dp-420dpi")
-class StrandsReplayBoardFlatGoldenExpandedTest : StrandsReplayBoardGoldenBase("expanded", 480, flat = true)
-
-abstract class StrandsReplayBoardGoldenBase(private val widthLabel: String, private val sideDp: Int, private val flat: Boolean = false) {
+abstract class StrandsReplayBoardGoldenBase(private val widthLabel: String, private val sideDp: Int) {
 
     @get:Rule
     val composeRule = createComposeRule()
@@ -108,7 +97,7 @@ abstract class StrandsReplayBoardGoldenBase(private val widthLabel: String, priv
 
     private fun out(name: String, dark: Boolean): String =
         File(checkNotNull(System.getProperty("user.dir")))
-            .resolve("snapshots/replay-${if (flat) "flat-" else ""}$name-$widthLabel-${if (dark) "dark" else "light"}.png")
+            .resolve("snapshots/replay-$name-$widthLabel-${if (dark) "dark" else "light"}.png")
             .canonicalFile
             .also { checkNotNull(it.parentFile).mkdirs() }
             .absolutePath
@@ -141,7 +130,7 @@ abstract class StrandsReplayBoardGoldenBase(private val widthLabel: String, priv
                     else android.content.res.Configuration.UI_MODE_NIGHT_NO
             }
             CompositionLocalProvider(LocalConfiguration provides config) {
-                PuzzleBoxTheme(darkTheme = dark, flatSurfaces = flat, flatStrands = flat) {
+                PuzzleBoxTheme(darkTheme = dark) {
                     Box(Modifier.background(MaterialTheme.colorScheme.background)) { StrandsReplayBoard.Board(frame, ReplayBoardOptions(animate = false, showErrors = true), Modifier.size(sideDp.dp)) }
                 }
             }

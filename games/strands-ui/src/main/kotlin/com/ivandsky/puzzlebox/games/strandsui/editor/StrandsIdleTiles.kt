@@ -14,7 +14,6 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.designsystem.LocalFlatStrands
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsOutlinedSpec
 import com.ivandsky.puzzlebox.games.strandsui.board.drawTokenSquare
@@ -29,7 +28,7 @@ import com.ivandsky.puzzlebox.games.strandsui.board.drawTokenSquare
 internal fun StrandsIdleTiles(idle: Set<Int>, modifier: Modifier = Modifier) {
     val fill = MaterialTheme.colorScheme.surfaceVariant
     val outline = MaterialTheme.colorScheme.outline
-    val fraction = StrandsOutlinedSpec.tokenFraction(LocalFlatStrands.current)
+    val fraction = StrandsOutlinedSpec.TokenFraction
     Column(modifier) {
         repeat(StrandsDraft.ROWS) { row ->
             Row(Modifier.fillMaxWidth().weight(1f)) {

@@ -15,8 +15,7 @@ import androidx.compose.ui.unit.dp
 // (`.scratch/puzzlebox/research/uiux-01-board-palette.md`) aliasing the scheme.
 // Every game highlight takes its own game's Splash accent (spec A14, prototype
 // 03-game-colors ?v=d): dark uses the accent itself; light uses the brightest
-// gamut-edge step of the same hue that clears its bar on white. `*Lip` roles are
-// the chunky-depth bottom edge: same hue, OKLCH L −0.13 light / −0.20 dark.
+// gamut-edge step of the same hue that clears its bar on white.
 // Bars: labels & dot fills >= 4.5:1 vs boardSurface and label-on-its-fill
 // (WCAG 1.4.3); trace/wall/selection >= 3:1 (1.4.11 non-text); gridline >= 2:1
 // self-imposed "clearly visible" floor. BoardTokensTest pins all of them.
@@ -32,7 +31,6 @@ data class BoardColors(
     val waypointLabel: Color,
     val waypointDotOnPath: Color,
     val pathTrace: Color,
-    val pathTraceLip: Color,
     // Queens' hint edge and overlay: the Queens violet.
     val boardSelection: Color,
     val boardRegion: Color,
@@ -52,22 +50,17 @@ data class BoardColors(
     // it; its row/column/box peers sit on the teal tint.
     val sudokuSelection: Color,
     val sudokuSelectionInk: Color,
-    val sudokuSelectionLip: Color,
     val sudokuPeer: Color,
 
     // Strands (spec A32, A14): found theme words alternate pink and magenta, the
     // spangram is gold, the live trace hot pink. The letter on a filled token is
     // always black (>= 4.5:1 on each fill). The hint ring previews the pink and is
     // non-text (>= 3:1 vs boardSurface); an idle letter sits on the bare board
-    // (>= 4.5:1). Connectors take their word's fill. Each filled token sits on its lip.
+    // (>= 4.5:1). Connectors take their word's fill.
     val strandsThemeFill: Color,
     val strandsThemeAltFill: Color,
     val strandsSpangramFill: Color,
     val strandsSelectionFill: Color,
-    val strandsThemeLip: Color,
-    val strandsThemeAltLip: Color,
-    val strandsSpangramLip: Color,
-    val strandsSelectionLip: Color,
     val strandsHintRing: Color,
     val strandsTileText: Color,
     val strandsIdleLetter: Color,
@@ -79,7 +72,7 @@ data class BoardColors(
 
     // The outlined (flat) Strands look (nav-rethink 131, prototype 07 C): idle letters in thin outlined squares,
     // found words filled with a quiet tint, the live trace and its hint ring in a deeper pink that clears 3:1.
-    // Separate roles, so the lipped and readable looks read the fields above and keep their pixels.
+    // Separate roles, so the readable look reads the fields above and keeps its pixels.
     val strandsThemeTint: Color,
     val strandsThemeAltTint: Color,
     val strandsFlatSelection: Color,
@@ -116,7 +109,6 @@ val DarkBoardTokens = BoardColors(
     waypointLabel = DarkColorScheme.onPrimary,
     waypointDotOnPath = Color(0xFF21B7FF),
     pathTrace = Color(0xFF21B7FF), // = waypointDotOnPath by design: continuity of the passed path
-    pathTraceLip = Color(0xFF0077AA),
     boardSelection = Color(0xFFA69BFF),
     boardRegion = DarkColorScheme.surfaceContainerHigh, // future fill tint; stroke its boundary with wall/gridline when built
     boardInk = DarkColorScheme.onSurface,
@@ -126,16 +118,11 @@ val DarkBoardTokens = BoardColors(
     moonFill = Color(0xFF21B7FF),
     sudokuSelection = Color(0xFF00E8DC),
     sudokuSelectionInk = Color(0xFF002E2B),
-    sudokuSelectionLip = Color(0xFF00A198),
     sudokuPeer = Color(0xFF003C38),
     strandsThemeFill = Color(0xFFFF77A0),
     strandsThemeAltFill = Color(0xFFFF63E4),
     strandsSpangramFill = SplashGold,
     strandsSelectionFill = StrandsHotPink,
-    strandsThemeLip = Color(0xFFB93665),
-    strandsThemeAltLip = Color(0xFFB90DA3),
-    strandsSpangramLip = Color(0xFFB39100),
-    strandsSelectionLip = Color(0xFF83003D),
     strandsHintRing = Color(0xFFFF77A0),
     strandsTileText = Color.Black,
     strandsIdleLetter = DarkColorScheme.onSurface,
@@ -167,7 +154,6 @@ val LightBoardTokens = BoardColors(
     waypointLabel = LightColorScheme.onError, // white
     waypointDotOnPath = Color(0xFF007CB1),
     pathTrace = Color(0xFF009DDE),
-    pathTraceLip = Color(0xFF0074A5),
     boardSelection = Color(0xFF8464FF),
     boardRegion = LightColorScheme.surfaceContainerHigh, // future fill tint
     boardInk = LightColorScheme.onSurface,
@@ -177,16 +163,11 @@ val LightBoardTokens = BoardColors(
     moonFill = Color(0xFF0089C3),
     sudokuSelection = Color(0xFF00C8BD),
     sudokuSelectionInk = Color(0xFF002E2B),
-    sudokuSelectionLip = Color(0xFF009B92),
     sudokuPeer = Color(0xFFB7F2EC),
     strandsThemeFill = Color(0xFFFF478A),
     strandsThemeAltFill = Color(0xFFFD00DF),
     strandsSpangramFill = SplashGold,
     strandsSelectionFill = StrandsHotPink,
-    strandsThemeLip = Color(0xFFCF0064),
-    strandsThemeAltLip = Color(0xFFBF00A8),
-    strandsSpangramLip = Color(0xFFCDA700),
-    strandsSelectionLip = Color(0xFFA4004E),
     strandsHintRing = Color(0xFFFF528F),
     strandsTileText = Color.Black,
     strandsIdleLetter = LightColorScheme.onSurface,

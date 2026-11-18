@@ -8,7 +8,7 @@ import org.junit.Test
 
 /**
  * The outlined Strands roles (nav-rethink 131, prototype 07 C): their values, the floors they clear in both
- * themes, and that the roles the lipped and readable looks read keep every value they had.
+ * themes, and that the roles the readable look reads keep every value they had.
  */
 class OutlinedStrandsTokensTest {
 
@@ -44,7 +44,7 @@ class OutlinedStrandsTokensTest {
     }
 
     @Test
-    fun `the roles the lipped and readable looks read are not touched`() {
+    fun `the roles the readable look reads are not touched`() {
         assertEquals(Color(0xFFFF528F), LightBoardTokens.strandsHintRing)
         assertEquals(Color(0xFFFF528F), LightBoardTokens.strandsHintConnector)
         assertEquals(Color(0xFFFF478A), LightBoardTokens.strandsThemeConnector)

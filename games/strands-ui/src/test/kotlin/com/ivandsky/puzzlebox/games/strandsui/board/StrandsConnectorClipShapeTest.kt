@@ -34,7 +34,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * A connector cut out of faded tiles (a dimmed link, a rejected path dissolving) is cut by the
- * shape the tile paints: face and lip, rounded. A diagonal's stroke passes the tile's rounded
+ * shape the tile paints: its face, rounded. A diagonal's stroke passes the tile's rounded
  * corner, where no tile paints, so there it stays on the bare board; cutting a plain square
  * wipes it out and leaves a notch.
  */
@@ -51,7 +51,7 @@ class StrandsConnectorClipShapeTest {
     private fun show(links: List<StrandsLink>, dim: StrandsDim, end: TraceEnd?, reduceMotion: Boolean) {
         rule.mainClock.autoAdvance = false
         val base = StrandsRendererModel.of(StrandsState(StrandsUiFixtures.puzzle), emptyList())
-        // The editor's tiles are found-theme ones: fill and lip, which an idle cell has neither of.
+        // The editor's tiles are found-theme ones: a fill, which an idle cell has none of.
         val linked = links.flatMap { it.cells }.toSet()
         val model = base.copy(
             links = links,
@@ -74,45 +74,17 @@ class StrandsConnectorClipShapeTest {
         }
     }
 
-    /** The pixel on the diagonal at the first tile's square corner, outside its rounded corner and lip. */
+    /** The pixel on the diagonal at the first tile's square corner, outside its rounded corner. */
     private fun PixelMap.corner(): Color {
         val pitch = width / 4f
-        val reach = pitch * StrandsBoardSpec.TokenFraction / 2 * 0.98f
+        val reach = pitch * StrandsOutlinedSpec.TokenFraction / 2 * 0.98f
         return this[(pitch * 0.5f + reach).toInt(), (pitch * 0.5f + reach).toInt()]
     }
 
     private fun board(): PixelMap = rule.onNodeWithTag("strands.board").captureToImage().toPixelMap()
 
-    /**
-     * A faded tile's lip hangs below the layer's face box: the pixel one row under the face,
-     * mid-column, must not be the bare board. Driven by the pitch alone, so it never repeats the lip's depth.
-     */
-    private fun assertLipPainted(pixels: PixelMap) {
-        val pitch = pixels.width / 4f
-        val half = pitch * StrandsBoardSpec.TokenFraction / 2
-        val x = (pitch * 0.5f + half * 0.3f).toInt()
-        val y = (pitch * 0.5f + half).toInt() + 1
-        assertNotEquals("bare board where the lip is", pixels[1, 1], pixels[x, y])
-    }
-
     @Test
-    fun `a dimmed tile paints its whole lip`() {
-        val alone = listOf(Coord(0, 0))
-        val link = StrandsLink(alone, LinkKind.Theme)
-        show(listOf(link), StrandsDim(alone.toSet(), setOf(link), alpha = 0.4f), end = null, reduceMotion = true)
-        rule.mainClock.advanceTimeByFrame()
-        assertLipPainted(board())
-    }
-
-    @Test
-    fun `a dissolving rejected tile paints its whole lip`() {
-        show(emptyList(), StrandsDim.None, TraceEnd(listOf(Coord(0, 0)), TraceEndKind.Short, 1), reduceMotion = false)
-        rule.mainClock.advanceTimeBy(StrandsMotion.ShortHoldMs + 40L)
-        assertLipPainted(board())
-    }
-
-    @Test
-    fun `a dimmed vertical link leaves no bare board between its tiles, whatever lip they paint`() {
+    fun `a dimmed vertical link leaves no bare board between its tiles`() {
         val vertical = listOf(Coord(0, 0), Coord(1, 0))
         val link = StrandsLink(vertical, LinkKind.Theme)
         show(listOf(link), StrandsDim(vertical.toSet(), setOf(link), alpha = 0.4f), end = null, reduceMotion = true)

@@ -22,7 +22,8 @@ import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.strands.StrandsDefinition
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsEditor
-import com.ivandsky.puzzlebox.games.strandsui.board.StrandsBoardSpec
+import com.ivandsky.puzzlebox.games.strandsui.board.StrandsOutlinedSpec
+import com.ivandsky.puzzlebox.games.strandsui.board.outlined
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -56,7 +57,7 @@ class StrandsEditorDragRenderTest {
         }
         rule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                colors = LocalBoardColors.current
+                colors = LocalBoardColors.current.outlined()
                 StrandsEditorUi.Board(controller, Verdict.Checking, PlayLayout.SinglePane, Modifier)
             }
         }
@@ -110,11 +111,11 @@ class StrandsEditorDragRenderTest {
     fun `the leaning end of a held drag shows over the idle tile it enters`() {
         show(reducedMotion = true)
         dragFourCells()
-        // 0.57 cell east of the tail: short of (1, 4)'s join circle, the round end past its edge.
-        rule.onNodeWithTag(BOARD).performTouchInput { moveTo(cellPoint(4.07f, 1.5f)) }
+        // 0.6 cell east of the tail: short of (1, 4)'s join circle, the round end past its edge.
+        rule.onNodeWithTag(BOARD).performTouchInput { moveTo(cellPoint(4.1f, 1.5f)) }
 
         assertEquals(listOf(0, 1, 2, 9), controller.trace.value)
-        val tileEdge = 4f + (1f - StrandsBoardSpec.TokenFraction) / 2
+        val tileEdge = 4f + (1f - StrandsOutlinedSpec.TokenFraction) / 2
         val inTile = pixelsAlong(1.5f, tileEdge + 0.01f, tileEdge + 0.1f)
         assertTrue("the line's end is hidden in $inTile", colors.strandsTraceConnector in inTile)
         rule.onNodeWithTag(BOARD).performTouchInput { up() }
@@ -124,9 +125,9 @@ class StrandsEditorDragRenderTest {
     fun `the leaning end reaches the tile with motion on too`() {
         show()
         dragFourCells()
-        rule.onNodeWithTag(BOARD).performTouchInput { moveTo(cellPoint(4.07f, 1.5f)) }
+        rule.onNodeWithTag(BOARD).performTouchInput { moveTo(cellPoint(4.1f, 1.5f)) }
 
-        val tileEdge = 4f + (1f - StrandsBoardSpec.TokenFraction) / 2
+        val tileEdge = 4f + (1f - StrandsOutlinedSpec.TokenFraction) / 2
         val inTile = pixelsAlong(1.5f, tileEdge + 0.01f, tileEdge + 0.1f)
         assertTrue("the line's end is hidden in $inTile", colors.strandsTraceConnector in inTile)
         rule.onNodeWithTag(BOARD).performTouchInput { up() }

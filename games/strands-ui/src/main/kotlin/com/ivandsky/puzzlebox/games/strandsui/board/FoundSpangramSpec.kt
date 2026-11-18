@@ -20,8 +20,6 @@ internal object FoundSpangramSpec : StrandsCellSpec {
 
     override fun fill(colors: BoardColors): Color = colors.strandsSpangramFill
 
-    override fun lip(colors: BoardColors): Color = colors.strandsSpangramLip
-
     override fun letter(colors: BoardColors): Color = colors.strandsTileText
 
     override val stateWord: String = StrandsCopy.STATE_SPANGRAM

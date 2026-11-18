@@ -13,7 +13,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -27,12 +26,10 @@ import java.time.Instant
 private const val SECONDARY_ALPHA = 0.82f
 private const val MOTIF_ALPHA = 0.18f
 
-/** How much of onPrimary the challenge card's lip takes: primary 70 %, onPrimary 30 % (the kit's `color-mix`). */
-private const val LIP_BLEND = 0.3f
 private const val MINUTES_PER_HOUR = 60L
 private val MotifSize = 96.dp
 
-/** The challenge card's paint: primary fill, onPrimary content, and a lip blended from primary toward onPrimary. */
+/** The challenge card's paint: primary fill and onPrimary content. */
 @Composable
 internal fun duelCardColors(): GameCardColors {
     val scheme = MaterialTheme.colorScheme
@@ -42,7 +39,6 @@ internal fun duelCardColors(): GameCardColors {
         fg2 = scheme.onPrimary.copy(alpha = SECONDARY_ALPHA),
         motif = scheme.onPrimary,
         motifAlpha = MOTIF_ALPHA,
-        lip = lerp(scheme.primary, scheme.onPrimary, LIP_BLEND),
     )
 }
 

@@ -28,11 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ivandsky.puzzlebox.designsystem.GameButton
-import com.ivandsky.puzzlebox.designsystem.GameButtonSize
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
-import com.ivandsky.puzzlebox.designsystem.LocalFlatStrands
-import com.ivandsky.puzzlebox.designsystem.LocalFlatSurfaces
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.cooldownRing
 import com.ivandsky.puzzlebox.gameui.rememberHintCooldown
@@ -43,9 +39,9 @@ import com.ivandsky.puzzlebox.games.strandsui.StrandsMotion
 import com.ivandsky.puzzlebox.games.strandsui.board.keyframes
 
 /**
- * The Strands hint control (SC4): a chunky "Hint" game button with three progress dots, one
+ * The Strands hint control (SC4): an outlined "Hint" pill with three progress dots, one
  * per non-theme word toward the next hint, and a count badge once a hint is banked. A banked
- * hint fills the face with the Strands accent; with none it is the neutral well, but stays
+ * hint fills the pill with the tint and the thick selection border; with none it is the resting outline, but stays
  * pressable, as on NYT: the press opens the A7 "Need a hint?" modal and spends nothing. A new
  * non-theme word fills a dot and rises a "+1" beside the button ([HintBonus]); the third lights
  * the button and swells it ([rememberHintFace]). TalkBack hears "Hint" and the state: how many
@@ -61,7 +57,6 @@ internal fun StrandsHintControl(
     modifier: Modifier = Modifier,
     fill: Boolean = false,
 ) {
-    val outlined = LocalFlatStrands.current
     val face = rememberHintFace(hint, reduceMotion)
     val shown = face.shown
     val swell = remember { Animatable(1f) }
@@ -86,24 +81,13 @@ internal fun StrandsHintControl(
                 .semantics { stateDescription = state }
                 .testTag("strands.hint")
                 .cooldownRing(cooldown.ring, StrandsBrand.accent)
-            if (outlined) {
-                StrandsHintPill(
-                    armed = shown.available,
-                    enabled = cooldown.gate(enabled = true),
-                    onClick = { cooldown.press(onHint) },
-                    modifier = buttonModifier,
-                ) { ink ->
-                    HintFaceContent(shown, ink, reduceMotion, Modifier, dotOn = LocalBoardColors.current.strandsFlatSelection)
-                }
-            } else {
-                GameButton(
-                    onClick = { cooldown.press(onHint) },
-                    label = StrandsCopy.HINT,
-                    enabled = cooldown.gate(enabled = true),
-                    accent = StrandsBrand.accent.takeIf { shown.available },
-                    size = GameButtonSize.Tall,
-                    modifier = buttonModifier,
-                ) { ink -> HintFaceContent(shown, ink, reduceMotion, Modifier.align(Alignment.Center)) }
+            StrandsHintPill(
+                armed = shown.available,
+                enabled = cooldown.gate(enabled = true),
+                onClick = { cooldown.press(onHint) },
+                modifier = buttonModifier,
+            ) { ink ->
+                HintFaceContent(shown, ink, reduceMotion, dotOn = LocalBoardColors.current.strandsFlatSelection)
             }
             if (shown.count > 0) {
                 HintBadge(shown.count, reduceMotion, Modifier.align(Alignment.TopEnd).offset(x = BadgeOutX, y = BadgeUp))
@@ -113,11 +97,11 @@ internal fun StrandsHintControl(
     }
 }
 
-/** The icon and "Hint" over the progress dots, in [ink]; [dotOn] is the outlined pill's solid-dot colour. */
+/** The icon and "Hint" over the progress dots, in [ink]; [dotOn] is the pill's solid-dot colour. */
 @Composable
-private fun HintFaceContent(shown: HintUi, ink: Color, reduceMotion: Boolean, modifier: Modifier, dotOn: Color? = null) {
+private fun HintFaceContent(shown: HintUi, ink: Color, reduceMotion: Boolean, dotOn: Color) {
     Column(
-        modifier,
+        Modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -139,9 +123,5 @@ private val HintWidth = 132.dp
 private val BadgeOutX = 7.dp
 private val BadgeUp = (-9).dp
 
-/**
- * The Tall game button's height, which the row keeps on the solve: a 64dp face on its 4dp lip,
- * or just the 64dp face when [LocalFlatSurfaces] is on and the lip is gone.
- */
-internal val HintHeight: Dp
-    @Composable get() = if (LocalFlatSurfaces.current) 64.dp else 68.dp
+/** The hint row's height, which the row keeps on the solve: the pill's 64dp. */
+internal val HintHeight: Dp = 64.dp

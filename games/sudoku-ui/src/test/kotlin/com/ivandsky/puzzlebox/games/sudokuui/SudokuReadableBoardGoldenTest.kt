@@ -67,16 +67,12 @@ class SudokuReadableBoardGoldenTest {
     @Test fun `6x6 mid play light`() = capture("mid-6x6", dark = false, miniMidPlay, selected = 0)
     @Test fun `6x6 mid play dark`() = capture("mid-6x6", dark = true, miniMidPlay, selected = 0)
 
-    /** The selected tile with flat surfaces on (nav-rethink M10-8): no lip under it. */
-    @Test fun `6x6 mid play flat light`() = capture("mid-6x6-flat", dark = false, miniMidPlay, selected = 0, flat = true)
-    @Test fun `6x6 mid play flat dark`() = capture("mid-6x6-flat", dark = true, miniMidPlay, selected = 0, flat = true)
-
     @Test fun `9x9 start light`() = capture("start-9x9", dark = false, classic)
     @Test fun `9x9 start dark`() = capture("start-9x9", dark = true, classic)
 
-    private fun capture(name: String, dark: Boolean, session: SudokuSession, selected: Int? = null, flat: Boolean = false) {
+    private fun capture(name: String, dark: Boolean, session: SudokuSession, selected: Int? = null) {
         composeRule.setContent {
-            PuzzleBoxTheme(darkTheme = dark, flatSurfaces = flat) {
+            PuzzleBoxTheme(darkTheme = dark) {
                 Box(Modifier.testTag(SCENE_TAG).background(MaterialTheme.colorScheme.background).padding(16.dp)) {
                     SudokuGrid(sudokuBoardModel(session, selected), onSelect = null, modifier = Modifier.size(360.dp))
                 }

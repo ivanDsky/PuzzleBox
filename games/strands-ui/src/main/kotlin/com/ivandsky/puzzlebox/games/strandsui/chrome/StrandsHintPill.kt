@@ -29,10 +29,10 @@ private val MinWidth = 48.dp
 private const val DISABLED_ALPHA = 0.38f
 
 /**
- * The Hint control's outlined look (nav-rethink 131, prototype 07 C), read while FlatStrands is on: a transparent
+ * The Hint control's outlined look (nav-rethink 131, prototype 07 C): a transparent
  * pill with the thin `outline` border; with a hint banked ([armed]) the tint fill and the thick selection border,
  * the same pair a selected letter wears. [content] gets the ink to draw in. It is pressable whenever it is
- * [enabled], armed or not, as the shared game button was, and a press is the house flat feedback (scale and a wash).
+ * [enabled], armed or not, and a press is the house flat feedback (scale and a wash).
  */
 @Composable
 internal fun StrandsHintPill(

@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.designsystem
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -17,22 +16,16 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 
 /**
- * The house press feedback for a pressable surface: [MotionTokens.PressScale] on the default
- * spring while [interactionSource] is pressed; [reduced] motion never scales. While
- * [LocalFlatSurfaces] is on, the scale takes [MotionTokens.PressDuration] in and out instead
- * of the spring (add [pressTint] for the wash).
+ * The house press feedback for a pressable surface: [MotionTokens.PressScale] over
+ * [MotionTokens.PressDuration] in and out while [interactionSource] is pressed; [reduced]
+ * motion never scales (add [pressTint] for the wash).
  */
 @Composable
 fun Modifier.pressScale(interactionSource: MutableInteractionSource, reduced: Boolean): Modifier {
     val pressed by interactionSource.collectIsPressedAsState()
-    val flat = LocalFlatSurfaces.current
     val scale by animateFloatAsState(
         targetValue = if (pressed && !reduced) MotionTokens.PressScale else 1f,
-        animationSpec = if (flat) {
-            tween(MotionTokens.PressDuration, easing = MotionTokens.EasingStandard)
-        } else {
-            spring(MotionTokens.SpringDampingDefault, MotionTokens.SpringStiffnessDefault)
-        },
+        animationSpec = tween(MotionTokens.PressDuration, easing = MotionTokens.EasingStandard),
         label = "press-scale",
     )
     return graphicsLayer {
