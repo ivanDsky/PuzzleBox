@@ -50,6 +50,13 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     PlayFeel(label = "Same feel in every game", releaseDefault = false),
 
     /**
+     * Daily reminder notifications (backlog #1169): Settings gets a Reminders section whose switch and time row arm one local
+     * notification a day that says today's puzzles are open. Read only in the app's reminder DI and the profile DI
+     * (ADR-0022 §3).
+     */
+    Reminders(label = "Daily reminder notifications", releaseDefault = false),
+
+    /**
      * Ranks shows when LinkedIn was last read (backlog #1357): a muted line under a game's Friends day board with when its
      * LinkedIn part was last read, and a pull on the board that also asks LinkedIn for that day, inside the read windows.
      * Read only in a ViewModel or a DI module (ADR-0022 §3).
