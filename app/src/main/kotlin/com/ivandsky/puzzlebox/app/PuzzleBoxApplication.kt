@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.app.di.reminderModule
 import com.ivandsky.puzzlebox.app.leaderboard.CustomBoardSubmitter
 import com.ivandsky.puzzlebox.app.leaderboard.DailyReplayPublisher
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
+import com.ivandsky.puzzlebox.app.reminder.ReminderAppHooks
 import com.ivandsky.puzzlebox.data.match.MatchResultPoster
 import com.ivandsky.puzzlebox.backend.firebase.PendingCacheClear
 import com.ivandsky.puzzlebox.backend.firebase.firebaseBackendModule
@@ -66,6 +67,8 @@ class PuzzleBoxApplication : Application() {
         koin.get<DailyReplayPublisher>().start()
         // Cloud sync: the one place that starts runs besides "Sync now".
         koin.get<CloudSyncRunner>().start()
+        // The daily reminder: follows the stored choice and the foreground; nothing when the Reminders flag is off.
+        koin.get<ReminderAppHooks>().start()
     }
 
     companion object {
