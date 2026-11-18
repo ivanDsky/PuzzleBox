@@ -11,6 +11,8 @@ import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.junit4.StateRestorationTester
@@ -109,6 +111,22 @@ class CommunityPanesTest {
 
         detail().assertTextEquals("puzzle BBB222")
         assertEquals(emptyList<String>(), pushed)
+    }
+
+    @Test
+    fun `tapping a second row crossfades the right pane in place, the list still`() {
+        rule.mainClock.autoAdvance = false
+        rule.setContent(content())
+        rule.mainClock.advanceTimeBy(500L)
+        val listLeft = rule.onNodeWithTag("row.AAA111").getBoundsInRoot().left
+
+        rule.onNodeWithTag("row.BBB222").performClick()
+        rule.mainClock.advanceTimeBy(100L)
+
+        assertEquals(2, rule.onAllNodesWithTag("pane.detail").fetchSemanticsNodes().size)
+        assertEquals(listLeft, rule.onNodeWithTag("row.AAA111").getBoundsInRoot().left)
+        rule.mainClock.advanceTimeBy(500L)
+        assertEquals(1, rule.onAllNodesWithTag("pane.detail").fetchSemanticsNodes().size)
     }
 
     @Test
