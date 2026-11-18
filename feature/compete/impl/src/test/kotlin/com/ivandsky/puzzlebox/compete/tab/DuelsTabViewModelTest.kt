@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.compete.tab
 
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.compete.create.DuelChallenge
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.match.ClaimResult
 import com.ivandsky.puzzlebox.data.match.LegRef
@@ -13,6 +14,7 @@ import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.match.WriteResult
 import com.ivandsky.puzzlebox.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.domain.UpdateMatchSeat
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
@@ -312,6 +314,47 @@ class DuelsTabViewModelTest {
         viewAs(null)
         val anonymous = started(viewModel())
         assertEquals("You", anonymous.state.value.selfName)
+    }
+
+    @Test
+    fun `starting New duel holds the request with its challenge and ending it clears it`() {
+        val vm = viewModel(FakeReleaseFlags(ReleaseFlag.SheetScreens))
+        val sam = DuelChallenge(friendUid = "sam", friendName = "Sam", game = GameId("alpha"))
+        assertEquals(null, vm.newDuel.value)
+
+        vm.startNewDuel()
+        assertEquals(NewDuelRequest(), vm.newDuel.value)
+
+        vm.startNewDuel(sam)
+        assertEquals(NewDuelRequest(sam), vm.newDuel.value)
+
+        vm.endNewDuel()
+        assertEquals(null, vm.newDuel.value)
+    }
+
+    @Test
+    fun `selecting a duel ends New duel and pins the pick`() = runTest {
+        annChallenges()
+        annChallenges(newCode = other)
+        val vm = started(viewModel(FakeReleaseFlags(ReleaseFlag.SheetScreens)))
+        val second = (vm.rowCodes() - vm.state.value.selected!!).single()
+        vm.startNewDuel()
+
+        vm.select(second)
+
+        assertEquals(null, vm.newDuel.value)
+        assertEquals(second, vm.state.value.selected)
+    }
+
+    @Test
+    fun `ending New duel keeps the selected duel`() = runTest {
+        annChallenges()
+        val vm = started(viewModel(FakeReleaseFlags(ReleaseFlag.SheetScreens)))
+        vm.startNewDuel()
+
+        vm.endNewDuel()
+
+        assertEquals(code, vm.state.value.selected)
     }
 
     @Test

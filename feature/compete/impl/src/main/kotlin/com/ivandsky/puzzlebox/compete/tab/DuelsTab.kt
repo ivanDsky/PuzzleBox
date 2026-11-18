@@ -43,7 +43,8 @@ import org.koin.androidx.compose.koinViewModel
  * to its top; the host owns the side inset. [onOpenDuel] opens the duel screen and [onOpenReveal] the reveal of a duel
  * whose reveal is ready or already seen. A pending [challenge] opens New duel filled in, once: [onChallengeTaken]
  * runs as it takes the challenge, and closing the sheet drops it. [onNewDuel] opens New duel as a screen (the phone, with
- * the flag on); without it, or in the pane, New duel is the sheet. With [inPane] (the tablet, whose right pane is [DuelsPane])
+ * the flag on); without it New duel is the sheet. With the flag on in the pane, New duel is the pane's form instead
+ * ([DuelsTabViewModel.startNewDuel]), and no row is highlighted while it is up. With [inPane] (the tablet, whose right pane is [DuelsPane])
  * a row, an accepted invite and a reveal row select that duel for the pane instead of calling [onOpenDuel] and
  * [onOpenReveal], and the selected row is highlighted.
  */
@@ -60,6 +61,7 @@ fun DuelsTab(
 ) {
     val viewModel: DuelsTabViewModel = koinViewModel()
     val state = viewModel.state.collectAsStateWithLifecycle()
+    val composing = viewModel.newDuel.collectAsStateWithLifecycle()
     val select: (String) -> Unit = { code -> ShareCode.parse(code)?.let(viewModel::select) }
     val open: (DuelKey) -> Unit = if (inPane) ({ select(it.code) }) else onOpenDuel
     val openReveal: (DuelRevealKey) -> Unit = if (inPane) ({ select(it.code) }) else onOpenReveal
@@ -76,7 +78,9 @@ fun DuelsTab(
     // A screen where there is one to push (the phone, flag on); else the sheet, over this tab.
     val newDuelScreen = onNewDuel.takeIf { viewModel.newDuelAsScreen && !inPane }
     val startNewDuel: (DuelChallenge?) -> Unit = { start ->
-        if (newDuelScreen != null) {
+        if (inPane && viewModel.newDuelAsScreen) {
+            viewModel.startNewDuel(start)
+        } else if (newDuelScreen != null) {
             newDuelScreen(NewDuelKey(start?.friendUid.orEmpty(), start?.friendName.orEmpty(), start?.game?.value.orEmpty()))
         } else {
             sheetChallenge = start
@@ -96,7 +100,7 @@ fun DuelsTab(
         onOpenReveal = openReveal,
         modifier = modifier,
         listState = listState,
-        selected = state.value.selected.takeIf { inPane },
+        selected = state.value.selected.takeIf { inPane && composing.value == null },
         inFlight = state.value.inFlight,
         notes = state.value.notes,
         onAccept = viewModel::accept,

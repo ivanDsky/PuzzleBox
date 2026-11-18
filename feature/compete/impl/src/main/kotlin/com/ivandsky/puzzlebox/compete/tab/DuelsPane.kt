@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.compete.tab
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -10,6 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.compete.create.NewDuelSheet
+import com.ivandsky.puzzlebox.compete.create.NewDuelViewModel
+import com.ivandsky.puzzlebox.compete.create.screen.NewDuelHost
 import com.ivandsky.puzzlebox.compete.duel.DuelContent
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.navigation.Navigator
@@ -27,7 +30,11 @@ import org.koin.androidx.compose.koinViewModel
 fun duelsPane(navigator: Navigator, layout: PlayLayout): @Composable (Modifier) -> Unit =
     { modifier -> DuelsPaneHost(navigator, layout, modifier) }
 
-/** [DuelsPaneContent] over [DuelsTabViewModel]; [sheet] draws the New duel sheet, so a test can stand in for its own view model. */
+/**
+ * [DuelsPaneContent] over [DuelsTabViewModel]. With [DuelsTabViewModel.newDuelAsScreen] New duel is the pane's own
+ * [NewDuelHost], on a [NewDuelViewModel] held at this entry's scope: the draft survives a look at another tab and is
+ * reset once no New duel is being composed. Without it [sheet] draws the New duel sheet, so a test can stand in for its own view model.
+ */
 @Composable
 internal fun DuelsPaneHost(
     navigator: Navigator,
@@ -37,9 +44,33 @@ internal fun DuelsPaneHost(
 ) {
     val viewModel: DuelsTabViewModel = koinViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val request by viewModel.newDuel.collectAsStateWithLifecycle()
+    val newDuelViewModel: NewDuelViewModel? = if (viewModel.newDuelAsScreen) koinViewModel() else null
     var newDuelOpen by rememberSaveable { mutableStateOf(false) }
-    DuelsPaneContent(selected = state.selected, onNewDuel = { newDuelOpen = true }, modifier = modifier) { code ->
+    val composing = request
+    if (newDuelViewModel != null) {
+        LaunchedEffect(newDuelViewModel, composing == null) { if (composing == null) newDuelViewModel.reset() }
+    }
+    val form: (@Composable () -> Unit)? = if (newDuelViewModel != null && composing != null) {
+        {
+            NewDuelHost(
+                challenge = composing.challenge,
+                onClose = viewModel::endNewDuel,
+                onOpened = viewModel::select,
+                pane = true,
+                viewModel = newDuelViewModel,
+            )
+        }
+    } else {
+        null
+    }
+    DuelsPaneContent(
+        selected = state.selected,
+        onNewDuel = { if (newDuelViewModel != null) viewModel.startNewDuel() else newDuelOpen = true },
+        modifier = modifier,
+        form = form,
+    ) { code ->
         DuelContent(code.value, navigator, layout, onClose = { viewModel.leave(code) }, modifier = Modifier.fillMaxSize().testTag("duels.pane.duel"))
     }
-    if (newDuelOpen) sheet(state.inviter) { newDuelOpen = false }
+    if (newDuelViewModel == null && newDuelOpen) sheet(state.inviter) { newDuelOpen = false }
 }

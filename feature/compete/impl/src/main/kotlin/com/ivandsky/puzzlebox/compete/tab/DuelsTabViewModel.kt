@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.isEnabled
+import com.ivandsky.puzzlebox.compete.create.DuelChallenge
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.domain.DuelRow
 import com.ivandsky.puzzlebox.domain.ObserveMyDuels
@@ -19,6 +20,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onEach
@@ -64,7 +66,8 @@ private const val STOP_TIMEOUT_MS = 5_000L
  * time boundary itself. Nothing is collected, the ticker included, while no one is looking at the tab.
  * It also holds which duel the tablet's right pane shows ([DuelsTabState.selected]): the one the player picked
  * ([select]), else the [defaultSelection] pinned as soon as there is a row, so the pane does not hop to another duel
- * when the shown one stops needing the player. The pane and the list read this one holder.
+ * when the shown one stops needing the player. The pane and the list read this one holder. With [newDuelAsScreen] it
+ * also holds the New duel being composed in the pane ([newDuel]), which a pick from the list ends.
  */
 internal class DuelsTabViewModel(
     observeMyDuels: ObserveMyDuels,
@@ -77,12 +80,16 @@ internal class DuelsTabViewModel(
     private val calls = MutableStateFlow(RowCalls())
     private val opens = Channel<ShareCode>(Channel.BUFFERED)
     private val pinned = MutableStateFlow<ShareCode?>(null)
+    private val composing = MutableStateFlow<NewDuelRequest?>(null)
 
     /** One-shot: the duel screen to open for this code, after an accept or when sign-in is needed first. */
     val openDuel: Flow<ShareCode> = opens.receiveAsFlow()
 
-    /** New duel opens as a screen, not a sheet, on the phone ([ReleaseFlag.SheetScreens]); false with no flags bound. */
+    /** New duel opens as a screen, not a sheet ([ReleaseFlag.SheetScreens]): pushed on the phone, in the pane on the tablet; false with no flags bound. */
     val newDuelAsScreen: Boolean = releaseFlags?.isEnabled(ReleaseFlag.SheetScreens) == true
+
+    /** The New duel being composed in the tablet's pane, or null. */
+    val newDuel: StateFlow<NewDuelRequest?> = composing.asStateFlow()
 
     val state: StateFlow<DuelsTabState> = combine(
         observeMyDuels().onEach { pin(it.rows) },
@@ -119,9 +126,20 @@ internal class DuelsTabViewModel(
             ),
         )
 
-    /** Shows [code] in the tablet's right pane. */
+    /** Shows [code] in the tablet's right pane; a New duel being composed there ends. */
     fun select(code: ShareCode) {
+        composing.value = null
         pinned.value = code
+    }
+
+    /** Opens New duel in the tablet's pane, filled in from [challenge]. */
+    fun startNewDuel(challenge: DuelChallenge? = null) {
+        composing.value = NewDuelRequest(challenge)
+    }
+
+    /** The pane is done with New duel; it shows the selected duel again. */
+    fun endNewDuel() {
+        composing.value = null
     }
 
     /** The pane's duel [code] is done with (its invite closed): shows the next one in its place, if any. */

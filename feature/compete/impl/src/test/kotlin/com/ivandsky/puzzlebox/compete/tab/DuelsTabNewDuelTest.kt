@@ -39,7 +39,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The Duels tab on the app's compete Koin module: with SheetScreens on, on the phone, New duel is a screen the host
- * pushes; with the flag off, in the tablet's pane, or with no screen to push, it stays the sheet.
+ * pushes, and in the tablet's pane it is the pane's form (see DuelsPaneNewDuelTest); with the flag off, or with no screen to push, it stays the sheet.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -125,8 +125,19 @@ class DuelsTabNewDuelTest {
     }
 
     @Test
-    fun `in the tablet's pane the flag does not push a screen, the sheet opens`() {
+    fun `in the tablet's pane the flag asks the pane for the form, so no screen is pushed and no sheet opens`() {
         show(FakeReleaseFlags(ReleaseFlag.SheetScreens), inPane = true)
+
+        rule.onNodeWithTag("duels.challenge").performClick()
+        rule.waitForIdle()
+
+        rule.onAllNodesWithTag("duel.new.sheet").assertCountEquals(0)
+        assertEquals(emptyList<NewDuelKey>(), pushed)
+    }
+
+    @Test
+    fun `in the pane with the flag off the card still opens the sheet`() {
+        show(FakeReleaseFlags(), inPane = true)
 
         rule.onNodeWithTag("duels.challenge").performClick()
         rule.waitForIdle()
