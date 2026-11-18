@@ -57,7 +57,7 @@ val profileModule: Module = module {
         )
     }
     single<WhatsNewSource> { AssetWhatsNewSource(get<Context>()) }
-    viewModel { WhatsNewViewModel(source = get()) }
+    viewModel { WhatsNewViewModel(source = get(), dispatchers = get()) }
     viewModel { LinkedInLoginViewModel(createLink = get(), cookies = get()) }
     // Both providers are lambdas, so resolving this neither starts the web view provider nor reads a cookie.
     single<LinkedInSessionCookies> { WebViewLinkedInSession({ CookieManager.getInstance() }, { WebSettings.getDefaultUserAgent(get()) }, get()) }

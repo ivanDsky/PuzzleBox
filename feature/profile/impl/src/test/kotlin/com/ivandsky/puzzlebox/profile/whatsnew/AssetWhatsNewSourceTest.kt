@@ -22,12 +22,17 @@ import org.robolectric.annotation.Config
 class AssetWhatsNewSourceTest {
 
     @Test
-    fun `the packaged file reads through the context's assets, newest first`() {
+    fun `the packaged file reads through the context's assets, newest first with no version twice`() {
         val releases = AssetWhatsNewSource(ApplicationProvider.getApplicationContext<Context>()).releases()
 
         assertTrue(releases.isNotEmpty())
-        assertEquals("0.36.2", releases.first().version)
         assertTrue(releases.all { it.notes.isNotEmpty() })
+        val versions = releases.map { it.version }
+        assertEquals("a version is listed twice", versions.size, versions.toSet().size)
+        val numbers = versions.map { v -> v.split('.').map(String::toInt) }
+        numbers.zipWithNext().forEach { (newer, older) ->
+            assertTrue("$newer must come before $older", compare(newer, older) > 0)
+        }
     }
 
     @Test
@@ -43,6 +48,9 @@ class AssetWhatsNewSourceTest {
 
         assertThrows(IllegalArgumentException::class.java) { source.releases() }
     }
+
+    private fun compare(a: List<Int>, b: List<Int>): Int =
+        a.zip(b).map { (x, y) -> x.compareTo(y) }.firstOrNull { it != 0 } ?: 0
 
     private fun contextWith(open: () -> java.io.InputStream): Context {
         val assets = mock(AssetManager::class.java)

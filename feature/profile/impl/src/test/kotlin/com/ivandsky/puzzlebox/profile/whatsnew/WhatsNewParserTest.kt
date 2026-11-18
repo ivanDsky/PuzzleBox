@@ -44,6 +44,11 @@ class WhatsNewParserTest {
     }
 
     @Test
+    fun `a version listed twice is an error at the second heading`() {
+        assertFormatError("## 0.36.2 2026-11-18\n- One.\n\n## 0.36.1 2026-11-17\n- Two.\n\n## 0.36.2 2026-11-16\n- Three.\n", line = 7)
+    }
+
+    @Test
     fun `a bad version is an error`() {
         assertFormatError("## 0.36 2026-11-18\n- One.\n", line = 1)
         assertFormatError("## v0.36.2 2026-11-18\n- One.\n", line = 1)

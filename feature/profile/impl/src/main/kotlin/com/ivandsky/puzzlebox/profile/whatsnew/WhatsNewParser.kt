@@ -2,17 +2,18 @@ package com.ivandsky.puzzlebox.profile.whatsnew
 
 /**
  * Reads the bundled notes file: `## <semver> <yyyy-mm-dd>` opens a release, `- <text>` adds one note to it, `# ...`
- * comments and blank lines are skipped. Releases come back in file order; their order is not checked here.
+ * comments and blank lines are skipped. Releases come back in file order; their order is not checked here, but a version
+ * listed twice is an error (the page keys its cards by version).
  */
 object WhatsNewParser {
 
-    // Month 01-12 and day 01-31 only: a real calendar date is not required.
-    private val header = Regex("""## (\d+\.\d+\.\d+) (\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))""")
+    private val header = Regex("""## (\d+\.\d+\.\d+) ($ISO_DATE_PATTERN)""")
 
     /** @throws IllegalArgumentException with a message starting `whats_new line <n>:` for the first bad line. */
     fun parse(text: String): List<WhatsNewRelease> {
         val releases = mutableListOf<WhatsNewRelease>()
         var open: Open? = null
+        val seen = mutableSetOf<String>()
 
         fun close() {
             val release = open ?: return
@@ -28,6 +29,7 @@ object WhatsNewParser {
                 line.startsWith("#") && !line.startsWith("##") -> Unit
                 line.startsWith("##") -> {
                     val match = header.matchEntire(line) ?: fail(number, "expected `## <x.y.z> <yyyy-mm-dd>`, got `$line`")
+                    if (!seen.add(match.groupValues[1])) fail(number, "duplicate release ${match.groupValues[1]}")
                     close()
                     open = Open(number, match.groupValues[1], match.groupValues[2])
                 }
