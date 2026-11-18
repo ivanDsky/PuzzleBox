@@ -109,12 +109,12 @@ class LinkedInGhostIsolationE2ETest {
             awaitSynced(today)
             pickDay(older)
             awaitSynced(older)
-            awaitLooper { shows("summary.rank") }
+            awaitDrained(DRAIN_TIMEOUT_MS) { shows("summary.rank") }
             // The hub's board shows the connections too.
             openZipRanks()
             // A player with no friend lands on Global (#1178); connections count on Friends.
             tuneRanks("Friends", "Day")
-            awaitLooper { textsUnder("daily_board.ghost.name").toSet() == names }
+            awaitDrained(DRAIN_TIMEOUT_MS) { textsUnder("daily_board.ghost.name").toSet() == names }
 
             graph.koin.get<LeaderboardSubmitWatcher>().start()
             rule.waitUntil(LinkedInDataWorld.TIMEOUT_MS) { graph.leaderboard.submitted.isNotEmpty() }
@@ -173,19 +173,19 @@ class LinkedInGhostIsolationE2ETest {
             runBlocking { link().connect(PROFILE_ID, CONSENT_AT_MS) }
             openZipPage()
             awaitSynced(today)
-            awaitLooper { shows("summary.rank") }
+            awaitDrained(DRAIN_TIMEOUT_MS) { shows("summary.rank") }
             openZipRanks()
             // A player with no friend lands on Global (#1178); connections count on Friends.
             tuneRanks("Friends", "Day")
-            awaitLooper { textsUnder("daily_board.ghost.name").toSet() == names }
+            awaitDrained(DRAIN_TIMEOUT_MS) { textsUnder("daily_board.ghost.name").toSet() == names }
 
             // Tier Replays and opted in before the solve, so the solve below is published at Posted.
             graph.koin.get<DailyReplayPublisher>().start()
-            awaitLooper { optIns.stamps.containsKey(me.uid) }
+            awaitDrained(DRAIN_TIMEOUT_MS) { optIns.stamps.containsKey(me.uid) }
             graph.koin.get<LeaderboardSubmitWatcher>().start()
             val record = CompletionRecord(ZipPuzzleRef(PuzzleKey.Daily(yesterday, zipNumber(yesterday))), 61_000, 0, RecordStats(1, "{}"))
             runBlocking { graph.koin.get<CompletionRepository>().onCompleted(record, SolveReplay.of(REPLAY_BYTES)) }
-            awaitLooper { replays.publishCalls.isNotEmpty() }
+            awaitDrained(DRAIN_TIMEOUT_MS) { replays.publishCalls.isNotEmpty() }
 
             val window = RankWindow.Month(today)
             val boards = graph.koin.get<ObserveRankWindow>()(window, listOf(ZipDefinition.id))
@@ -279,7 +279,7 @@ class LinkedInGhostIsolationE2ETest {
     /** Runs [block] on another thread while this one keeps turning the main looper, which the day view's collectors need. */
     private fun <T> ShellRobot.offMain(block: suspend () -> T): T {
         val done = CompletableFuture.supplyAsync { runBlocking { block() } }
-        awaitLooper { done.isDone }
+        awaitDrained(DRAIN_TIMEOUT_MS) { done.isDone }
         return done.get()
     }
 
@@ -304,5 +304,7 @@ class LinkedInGhostIsolationE2ETest {
         const val ARCHIVE_DAYS = 10L
         const val CONSENT_AT_MS = 1_700_000_000_000L
         const val MS_PER_SECOND = 1000L
+        // Wall-clock cap only: these waits end when the work is done, and the app's own time limits stay still meanwhile.
+        const val DRAIN_TIMEOUT_MS = 30_000L
     }
 }
