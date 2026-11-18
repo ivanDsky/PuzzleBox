@@ -189,4 +189,16 @@ object PuzzleIcons {
     /** Post a result out: `upload`, an arrow up out of a tray. */
     val Upload: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.ic_upload)
+
+    /** Difficulty, Easy: four ascending bars, the first filled (LevelBarsMark.kt). */
+    val LevelEasy: ImageVector = LevelEasyMark
+
+    /** Difficulty, Medium: two bars filled. */
+    val LevelMedium: ImageVector = LevelMediumMark
+
+    /** Difficulty, Hard: three bars filled. */
+    val LevelHard: ImageVector = LevelHardMark
+
+    /** Difficulty, Expert: all four bars filled. */
+    val LevelExpert: ImageVector = LevelExpertMark
 }
