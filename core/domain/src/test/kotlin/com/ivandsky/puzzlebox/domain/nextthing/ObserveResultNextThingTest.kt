@@ -25,6 +25,7 @@ import com.ivandsky.puzzlebox.domain.moments.Moment
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
@@ -123,6 +124,7 @@ class ObserveResultNextThingTest {
         leaderboardRepo: LeaderboardRepository = leaderboard,
         timeout: Duration = 2.seconds,
         showDayTotal: Boolean = false,
+        registry: GameRegistry = this.registry,
     ) = ObserveResultNextThing(
         registry = registry,
         identity = identity,
@@ -180,6 +182,21 @@ class ObserveResultNextThingTest {
         assertEquals(ResultNextThing(listOf(Moment.PersonalBest, passedBea, Moment.FullSetDone()), challenge, challenge), seen.last().value)
         assertTrue(seen.dropLast(1).none { it.value.nextThing == challenge && passedBea !in it.value.moments })
         assertEquals("the chain's rung and the Challenge row share one tier read", listOf("ann"), visibility.lookupCalls)
+    }
+
+    @Test
+    fun `a game the registry keeps off every surface is never offered as the next daily`() = runTest {
+        // Mirrors the old "Next skips a registered game the store cannot play": beta ships but is unlisted, so it is
+        // not in today's set, and the chain skips to gamma. A bound plugin with no play UI cannot reach here at all:
+        // the app's registry refuses to resolve (requireEveryGamePlayable).
+        val gamma = GameId("gamma")
+        daily.setToday(gamma, TestGames.puzzle(gamma))
+        scene(betaSolved = false)
+        val games = GameRegistry(listOf(alpha, beta, gamma).map(TestGames::plugin), unlisted = setOf(beta))
+
+        val seen = solve(timeMs = 60_000, use = observe(registry = games))
+
+        assertEquals(NextThing.NextDaily(gamma), seen.last().value.nextThing)
     }
 
     @Test
