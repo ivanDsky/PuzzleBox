@@ -1,6 +1,14 @@
 package com.ivandsky.puzzlebox.compete.duel
 
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.domain.lineup.ObserveLegTitles
+import com.ivandsky.puzzlebox.data.model.PostState
+import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
+import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
@@ -90,6 +98,8 @@ class DuelViewModelTest {
     private val timeLeft = MutableStateFlow(true)
     private val identity = FakeIdentityService()
     private val completions = FakeCompletionRepository()
+    private val received = FakeReceivedPuzzleRepository()
+    private val sharedPuzzles = FakeSharedPuzzleRepository()
     private val registry = TestGames.registry(listOf(TestGames.alpha, TestGames.beta))
     private var token: GoogleIdToken = GoogleIdToken.Available("token")
     private val idTokens = object : GoogleIdTokenProvider {
@@ -105,6 +115,7 @@ class DuelViewModelTest {
     private fun viewModel(
         rawCode: String = code.value,
         plays: SavedPlayRepository = FakeSavedPlayRepository(),
+        flags: ReleaseFlags? = null,
     ) = DuelViewModel(
         code = rawCode,
         observeDuel = ObserveDuel(
@@ -121,17 +132,19 @@ class DuelViewModelTest {
         showTimeLeft = timeLeft,
         loadLegPuzzle = LoadLegPuzzle(
             daily = FakeDailyRepository(),
-            received = FakeReceivedPuzzleRepository(),
+            received = received,
             loadShared = LoadSharedPuzzle(
                 registry = registry,
-                shared = FakeSharedPuzzleRepository(),
-                received = FakeReceivedPuzzleRepository(),
+                shared = sharedPuzzles,
+                received = received,
                 budget = { Budget.within(1_000, System::nanoTime) },
                 clock = { now },
             ),
         ),
         plays = GamePlayRegistry(emptyList()),
         dispatchers = DefaultDispatcherProvider(),
+        legTitles = ObserveLegTitles(received, FakePublishedPuzzleRepository(), sharedPuzzles),
+        releaseFlags = flags,
     )
 
     private fun TestScope.started(vm: DuelViewModel): DuelViewModel {
@@ -140,12 +153,9 @@ class DuelViewModelTest {
     }
 
     /** Ann opens the duel; [invited] makes it a rematch invite. The viewer is then [viewer]. */
-    private suspend fun annChallenges(viewer: Player?, invited: String? = null, claimedBy: Player? = null) {
+    private suspend fun annChallenges(viewer: Player?, invited: String? = null, claimedBy: Player? = null, lineup: List<LegRef>? = null) {
         viewAs(ann)
-        val legs = listOf(
-            MatchLeg(LegRef.Daily(TestGames.alpha, date, 1), null),
-            MatchLeg(LegRef.Daily(TestGames.beta, date, 2), null),
-        )
+        val legs = (lineup ?: listOf(LegRef.Daily(TestGames.alpha, date, 1), LegRef.Daily(TestGames.beta, date, 2))).map { MatchLeg(it, null) }
         server.create(MatchDraft(code, 24, ann, invited, legs, includeFriends = false, rematchOf = null))
         if (claimedBy != null) {
             viewAs(claimedBy)
@@ -180,6 +190,80 @@ class DuelViewModelTest {
         assertEquals(now.plusSeconds(24 * 3600), details.deadline)
         assertFalse(details.viewerIsChallenger)
         assertFalse(details.canDecline)
+    }
+
+    private val crown = ShareCode.parse("B8C3DF")!!
+    private val unreadable = ShareCode.parse("D5F7GH")!!
+
+    /** Daily alpha, a custom puzzle titled "Crown jewels", then a custom one no one can read. */
+    private val mixedLineup = listOf(
+        LegRef.Daily(TestGames.alpha, date, 1),
+        LegRef.Custom(TestGames.beta, crown),
+        LegRef.Custom(TestGames.alpha, unreadable),
+    )
+
+    private suspend fun crownIsSavedByTheViewer() = received.upsert(
+        ReceivedPuzzle(
+            code = crown, gameId = TestGames.beta, variant = TestGames.variant(TestGames.beta), sharedFormatVersion = 1,
+            puzzleBytes = byteArrayOf(TestGames.MAGIC), title = "Crown jewels", authorName = "Cleo", note = "", authorTimeMs = 1_000L,
+            authorHints = 0, authorUid = "cleo", openedAt = now, unpublished = false, postState = PostState.Pending,
+            postAttempts = 0, difficulty = null,
+        ),
+    )
+
+    private suspend fun crownIsPublic() {
+        sharedPuzzles.signedInUid = "cleo"
+        sharedPuzzles.publish(
+            SharedPuzzleDoc(
+                code = crown, formatVersion = SharedPuzzleDoc.FORMAT_VERSION, gameId = TestGames.beta.value,
+                variant = TestGames.variant(TestGames.beta).value, shareCodecVersion = 1, payload = byteArrayOf(1),
+                title = "Crown jewels", authorName = "Cleo", note = "", authorUid = "cleo", authorTimeMs = 1_000L,
+                authorHints = 0, createdAtMs = 0L, unpublished = false, visibility = SharedPuzzleDoc.Visibility.LinkOnly,
+            ),
+        )
+    }
+
+    private val lineupOn = FakeReleaseFlags(ReleaseFlag.DuelLineup)
+    private val expectedMixed = listOf("Alpha", "\"Crown jewels\"", "Alpha · ${unreadable.display}")
+
+    @Test
+    fun withTheLineupOnASignedInInviteeSeesEveryPuzzleInLegOrder() = runTest {
+        crownIsSavedByTheViewer()
+        annChallenges(viewer = bob, lineup = mixedLineup)
+        val vm = started(viewModel(flags = lineupOn))
+
+        assertEquals(expectedMixed, invite(vm).details!!.lineup!!.map { it.label })
+    }
+
+    @Test
+    fun withTheLineupOnASignedOutViewerSeesTheSameLineupWithPublicTitles() = runTest {
+        crownIsPublic()
+        annChallenges(viewer = null, lineup = mixedLineup)
+        val vm = started(viewModel(flags = lineupOn))
+
+        assertEquals(InviteKind.SignedOut, invite(vm).kind)
+        assertEquals(expectedMixed, invite(vm).details!!.lineup!!.map { it.label })
+    }
+
+    @Test
+    fun anOfflineViewerWithNoSavedTitleSeesTheGameAndCodeNotAnError() = runTest {
+        crownIsPublic()
+        annChallenges(viewer = null, lineup = mixedLineup)
+        sharedPuzzles.online = false
+        val vm = started(viewModel(flags = lineupOn))
+
+        assertEquals(listOf("Alpha", "Beta · ${crown.display}", "Alpha · ${unreadable.display}"), invite(vm).details!!.lineup!!.map { it.label })
+    }
+
+    @Test
+    fun withTheLineupOffTheInviteKeepsTodaysGameChips() = runTest {
+        crownIsPublic()
+        annChallenges(viewer = bob, lineup = mixedLineup)
+        val vm = started(viewModel())
+
+        val details = invite(vm).details!!
+        assertNull(details.lineup)
+        assertEquals(listOf("Alpha", "Beta"), details.games.map { it.name })
     }
 
     @Test

@@ -50,6 +50,7 @@ import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.model.ShareCode
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.getKoin
 
 /** What the sheet's panels can do; the host binds each to the view model. */
 internal class NewDuelActions(
@@ -92,12 +93,14 @@ internal fun NewDuelSheet(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val koin = getKoin()
     val who by rememberUpdatedState(inviter)
     val time by rememberUpdatedState(rememberCompeteTime())
     var shared by rememberSaveable(stateSaver = createdInviteSaver) { mutableStateOf<Pair<String, String>?>(null) }
     LaunchedEffect(viewModel) {
-        viewModel.created.collect { (code, puzzles, hours) ->
-            shared = createdInviteText(who, puzzles.size, puzzles.distinct(), hours, code, time) to code.matchLink
+        viewModel.created.collect { created ->
+            val games = created.inviteGames(koin.getOrNull())
+            shared = createdInviteText(who, created.puzzles.size, games, created.deadlineHours, created.code, time) to created.code.matchLink
         }
     }
     LaunchedEffect(viewModel) { viewModel.refreshSolved() }

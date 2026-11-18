@@ -6,7 +6,11 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -16,6 +20,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
+import org.junit.Assert.assertFalse
 import java.time.Instant
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -141,5 +146,48 @@ class DuelInviteCardTest {
         val detailsBottom = rule.onNodeWithTag("duel.invite.rounds").getBoundsInRoot().bottom
         val tailTop = rule.onNodeWithTag("duel.invite.signIn").getBoundsInRoot().top
         assertTrue(detailsBottom <= tailTop)
+    }
+
+    private val lineup = listOf(
+        InviteLeg(GameId("zip"), "Zip", code = null),
+        InviteLeg(GameId("queens"), "Queens", ShareCode.parse("B8C3DF"), title = "Crown jewels"),
+        InviteLeg(GameId("queens"), "Queens", ShareCode.parse("K7QX2M")),
+    )
+
+    private fun assertChip(tag: String, label: String) {
+        rule.onNode(hasTestTag(tag) and hasAnyDescendant(hasText(label))).assertExists()
+    }
+
+    private fun assertLineupInOrder() {
+        val tops = lineup.indices.map { rule.onNodeWithTag("duel.invite.leg.$it").getBoundsInRoot().top }
+        assertEquals(tops.sorted(), tops)
+        assertChip("duel.invite.leg.0", "Zip")
+        assertChip("duel.invite.leg.1", "\"Crown jewels\"")
+        assertChip("duel.invite.leg.2", "Queens · ${ShareCode.parse("K7QX2M")!!.display}")
+        assertEquals("one chip per puzzle, not per game", 0, rule.onAllNodesWithTag("duel.invite.game.queens").fetchSemanticsNodes().size)
+        assertShown("Best of 3")
+    }
+
+    @Test
+    fun withTheLineupAnInviteeSeesZipThenTheQuotedTitleThenQueensAndItsCode() {
+        show(InviteKind.Open, details(viewerIsChallenger = false).copy(lineup = lineup))
+
+        assertLineupInOrder()
+    }
+
+    @Test
+    fun withTheLineupASignedOutViewerSeesTheSameOrder() {
+        show(InviteKind.SignedOut, details(viewerIsChallenger = false).copy(lineup = lineup))
+
+        assertLineupInOrder()
+    }
+
+    @Test
+    fun withoutTheLineupTheCardKeepsOneChipPerGame() {
+        show(InviteKind.Open, details(viewerIsChallenger = false))
+
+        assertChip("duel.invite.game.zip", "Zip")
+        assertFalse(rule.onAllNodesWithTag("duel.invite.leg.0").fetchSemanticsNodes().isNotEmpty())
+        assertShown("Best of 3")
     }
 }

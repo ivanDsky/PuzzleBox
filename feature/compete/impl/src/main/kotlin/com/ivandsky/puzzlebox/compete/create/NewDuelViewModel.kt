@@ -238,7 +238,7 @@ internal class NewDuelViewModel(
             }
             // The server write is done whatever the sheet did meanwhile, so its code must still reach the creator.
             if (outcome is CreateOutcome.Created) {
-                createdCodes.send(CreatedDuel(outcome.code, outcome.legs.map { registry.displayName(it.ref.gameId) }, start.draft.deadlineHours))
+                createdCodes.send(CreatedDuel(outcome.code, outcome.legs.map { registry.displayName(it.ref.gameId) }, start.draft.deadlineHours, outcome.legs.filter { releaseFlags?.isEnabled(ReleaseFlag.DuelLineup) == true }.map { it.ref }))
             }
         }
     }
