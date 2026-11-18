@@ -184,7 +184,7 @@ class DuelsTabPaneTest {
                     single { SaveDuelPuzzles(loadShared::invoke) }
                     single { GamePlayRegistry(emptyList()) }
                     single<DispatcherProvider> { DefaultDispatcherProvider() }
-                    single { LoadLegPuzzle(daily = FakeDailyRepository(), received = received, loadShared = loadShared) }
+                    single { LoadLegPuzzle(daily = FakeDailyRepository(), received = received, loadShared = loadShared, published = FakePublishedPuzzleRepository()) }
                 },
             )
         }

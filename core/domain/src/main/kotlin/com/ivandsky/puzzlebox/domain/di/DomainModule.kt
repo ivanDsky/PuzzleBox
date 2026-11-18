@@ -268,9 +268,10 @@ val domainModule = module {
             daily = get(),
             received = get(),
             loadShared = get(),
+            published = get(),
         )
     }
-    factory { LoadLegPuzzle(daily = get(), received = get(), loadShared = get()) }
+    factory { LoadLegPuzzle(daily = get(), received = get(), loadShared = get(), published = get()) }
     factory { LoadPlayerReplay(replays = get(), daily = get()) }
     factory {
         LoadSolveReplay(

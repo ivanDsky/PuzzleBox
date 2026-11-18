@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.data.match.MatchResultOutbox
 import com.ivandsky.puzzlebox.data.match.ResultRead
 import com.ivandsky.puzzlebox.data.match.mySeat
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
+import com.ivandsky.puzzlebox.data.repository.PublishedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.model.SolveReplay
@@ -27,8 +28,9 @@ class LoadLegReplay(
     daily: DailyRepository,
     received: ReceivedPuzzleRepository,
     loadShared: LoadSharedPuzzle,
+    published: PublishedPuzzleRepository,
 ) {
-    private val puzzles = LoadLegPuzzle(daily, received, loadShared)
+    private val puzzles = LoadLegPuzzle(daily, received, loadShared, published)
 
     /** Null = no replay, for any cause. */
     suspend operator fun invoke(ref: SolveReplayRef): ReplaySource? = (read(ref) as? LegReplayRead.Found)?.source

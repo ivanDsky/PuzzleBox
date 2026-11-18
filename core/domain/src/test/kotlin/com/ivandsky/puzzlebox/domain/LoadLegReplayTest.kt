@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.domain
 
+import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.match.LegRef
@@ -404,7 +405,7 @@ class LoadLegReplayTest {
     private suspend fun entryTimeline(ref: SolveReplayRef) = entry()(ref)
 
     private fun resolver(dailyRepo: FakeDailyRepository) =
-        LoadLegReplay(matches, outbox, identity, dailyRepo, received, loadShared)
+        LoadLegReplay(matches, outbox, identity, dailyRepo, received, loadShared, FakePublishedPuzzleRepository())
 
     private fun entry(): suspend (SolveReplayRef) -> Timeline? {
         val completions = FakeCompletionRepository()

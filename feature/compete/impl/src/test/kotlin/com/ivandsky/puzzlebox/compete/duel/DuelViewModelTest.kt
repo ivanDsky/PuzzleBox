@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.domain.lineup.LegName
 import com.ivandsky.puzzlebox.domain.lineup.ObserveLegTitles
 import com.ivandsky.puzzlebox.domain.lineup.SaveDuelPuzzles
 import com.ivandsky.puzzlebox.data.model.PostState
+import com.ivandsky.puzzlebox.data.model.PublishedPuzzle
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
@@ -102,6 +103,7 @@ class DuelViewModelTest {
     private val identity = FakeIdentityService()
     private val completions = FakeCompletionRepository()
     private val received = FakeReceivedPuzzleRepository()
+    private val published = FakePublishedPuzzleRepository()
     private val sharedPuzzles = FakeSharedPuzzleRepository()
     private val registry = TestGames.registry(listOf(TestGames.alpha, TestGames.beta))
     private var token: GoogleIdToken = GoogleIdToken.Available("token")
@@ -137,6 +139,7 @@ class DuelViewModelTest {
         loadLegPuzzle = LoadLegPuzzle(
             daily = FakeDailyRepository(),
             received = received,
+            published = published,
             loadShared = LoadSharedPuzzle(
                 registry = registry,
                 shared = sharedPuzzles,
@@ -147,7 +150,7 @@ class DuelViewModelTest {
         ),
         plays = GamePlayRegistry(emptyList()),
         dispatchers = DefaultDispatcherProvider(),
-        legTitles = ObserveLegTitles(received, FakePublishedPuzzleRepository(), sharedPuzzles),
+        legTitles = ObserveLegTitles(received, published, sharedPuzzles),
         saveDuelPuzzles = SaveDuelPuzzles { savedOnAccept += it; OpenOutcome.NotFound },
         releaseFlags = flags,
     )
@@ -772,5 +775,22 @@ class DuelViewModelTest {
 
         assertFalse(state.lineup)
         assertTrue(state.names.isEmpty())
+    }
+
+    @Test
+    fun aViewersOwnUnpublishedPuzzleIsNamedFromTheirPublishedList_andViewingSavesNoFriendsPuzzle() = runTest {
+        published.upsert(
+            PublishedPuzzle(
+                code = crown, gameId = TestGames.beta, variant = TestGames.variant(TestGames.beta), title = "My crown",
+                authorTimeMs = 1_000L, authorHints = 0, createdAt = now, unpublished = true, solvesCount = null, solvesCountAt = null,
+            ),
+        )
+        annChallenges(viewer = bob, claimedBy = bob, lineup = mixedLineup)
+        val vm = started(viewModel(flags = lineupOn))
+
+        val state = vm.state.value as DuelUiState.Participant
+
+        assertEquals("My crown", state.names.getValue(crown).title)
+        assertTrue("viewing a duel saves nothing", received.get(crown) == null)
     }
 }

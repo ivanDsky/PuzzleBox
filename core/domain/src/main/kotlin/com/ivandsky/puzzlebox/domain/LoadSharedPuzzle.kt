@@ -35,7 +35,15 @@ class LoadSharedPuzzle(
 ) {
     /** A stored row wins (offline-safe, A13). Else fetch → registry lookup → SharedOpen.verify → upsert the row
      *  (postState Pending, the moment it opens, A19) → Opened. Pure; the caller runs it on DispatcherProvider.default. */
-    suspend operator fun invoke(code: ShareCode): OpenOutcome {
+    suspend operator fun invoke(code: ShareCode): OpenOutcome = open(code, save = true, own = false)
+
+    /**
+     * The same open that keeps nothing: a page that only shows a puzzle (a duel's legs) must not turn it into one of the
+     * friends' puzzles. [own] is the author looking at their own puzzle, which opens even after they withdrew it.
+     */
+    suspend fun peek(code: ShareCode, own: Boolean = false): OpenOutcome = open(code, save = false, own = own)
+
+    private suspend fun open(code: ShareCode, save: Boolean, own: Boolean): OpenOutcome {
         received.get(code)?.let { return OpenOutcome.Opened(it) }
         val doc = when (val fetched = shared.fetch(code)) {
             is SharedFetchResult.Found -> fetched.doc
@@ -43,7 +51,7 @@ class LoadSharedPuzzle(
             SharedFetchResult.Offline -> return OpenOutcome.Offline
             is SharedFetchResult.UnsupportedVersion -> return OpenOutcome.NeedsUpdate(fetched.found)
         }
-        if (doc.unpublished) return OpenOutcome.NoLongerAvailable
+        if (doc.unpublished && !own) return OpenOutcome.NoLongerAvailable
         val gameId = GameId(doc.gameId)
         val plugin = registry[gameId] ?: return OpenOutcome.UnknownGame(doc.gameId)
         val editor = plugin.editor ?: return OpenOutcome.FailedCheck
@@ -57,7 +65,7 @@ class LoadSharedPuzzle(
         return when (verified) {
             is SharedOpenResult.Verified -> {
                 val row = doc.toReceived(gameId, verified)
-                received.upsert(row)
+                if (save) received.upsert(row)
                 OpenOutcome.Opened(row)
             }
             is SharedOpenResult.NeedsUpdate -> OpenOutcome.NeedsUpdate(verified.found)

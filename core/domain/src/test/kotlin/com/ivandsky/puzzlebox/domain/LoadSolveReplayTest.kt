@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.domain
 
+import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.domain.SolveReplayRef.Latest
@@ -82,6 +83,7 @@ class LoadSolveReplayTest {
                 daily = daily,
                 received = received,
                 loadShared = loadShared,
+                published = FakePublishedPuzzleRepository(),
             ),
             player = LoadPlayerReplay(FakeDailyReplayRepository(), daily),
             completions = completions,

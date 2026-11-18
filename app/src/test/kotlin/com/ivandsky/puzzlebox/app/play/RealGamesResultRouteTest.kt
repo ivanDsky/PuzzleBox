@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.app.play
 
+import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
 import com.ivandsky.puzzlebox.data.visibility.HiddenPuzzles
 import com.ivandsky.puzzlebox.data.visibility.VisibilityRepository
@@ -226,7 +227,7 @@ class RealGamesResultRouteTest {
                             games = get(),
                             daily = LoadDailyReplay(get(), get()),
                             custom = LoadCustomReplay(get(), get(), get()),
-                            leg = LoadLegReplay(get(), FakeMatchResultOutbox(), get(), get(), get(), get()),
+                            leg = LoadLegReplay(get(), FakeMatchResultOutbox(), get(), get(), get(), get(), FakePublishedPuzzleRepository()),
                             player = LoadPlayerReplay(FakeDailyReplayRepository(), get()),
                             completions = get(),
                             dispatchers = get(),

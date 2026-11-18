@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.compete.reveal
 
+import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.match.LegRef
@@ -158,7 +159,7 @@ class RevealViewModelTest {
             games = registry,
             daily = LoadDailyReplay(completions, daily),
             custom = LoadCustomReplay(completions, received, loadShared),
-            leg = LoadLegReplay(matchStore, outbox, identity, daily, received, loadShared),
+            leg = LoadLegReplay(matchStore, outbox, identity, daily, received, loadShared, FakePublishedPuzzleRepository()),
             player = LoadPlayerReplay(FakeDailyReplayRepository(), daily),
             completions = completions,
             dispatchers = InlineDispatcherProvider,

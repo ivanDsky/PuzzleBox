@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.compete.duel
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.model.PostState
+import com.ivandsky.puzzlebox.data.model.PublishedPuzzle
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
 import com.ivandsky.puzzlebox.data.repository.DailyDay
@@ -18,12 +19,15 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -37,6 +41,7 @@ class DuelLegBoardsTest {
     private val daily = FakeDailyRepository()
     private val givens = StubGivens()
     private val received = FakeReceivedPuzzleRepository()
+    private val published = FakePublishedPuzzleRepository()
     private val shared = FakeSharedPuzzleRepository().apply { signedInUid = "cleo" }
     private val custom = LegRef.Custom(game, checkNotNull(ShareCode.parse("K7Q2MX")))
 
@@ -44,6 +49,7 @@ class DuelLegBoardsTest {
         loadPuzzle = LoadLegPuzzle(
             daily = daily,
             received = received,
+            published = published,
             loadShared = LoadSharedPuzzle(
                 registry = GameRegistry(emptyList()),
                 shared = shared,
@@ -154,5 +160,19 @@ class DuelLegBoardsTest {
         saveRow()
 
         assertTrue(boards(givens).of(custom) is LegBoard.Of)
+    }
+
+    @Test
+    fun `the challenger's own unpublished puzzle is never taken down, and viewing it saves nothing`() = runTest {
+        publish(unpublished = true)
+        published.upsert(
+            PublishedPuzzle(
+                code = custom.code, gameId = game, variant = VariantId("v1"), title = "Crown", authorTimeMs = 1_000L, authorHints = 0,
+                createdAt = Instant.EPOCH, unpublished = true, solvesCount = null, solvesCountAt = null,
+            ),
+        )
+
+        assertNotEquals(LegBoard.TakenDown, boards(givens).of(custom))
+        assertNull(received.get(custom.code))
     }
 }

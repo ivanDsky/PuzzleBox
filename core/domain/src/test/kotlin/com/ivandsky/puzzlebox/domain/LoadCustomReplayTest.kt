@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.domain
 
+import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
@@ -220,6 +221,7 @@ class LoadCustomReplayTest {
             daily = FakeDailyRepository(),
             received = received,
             loadShared = loadShared,
+            published = FakePublishedPuzzleRepository(),
         ),
         player = LoadPlayerReplay(FakeDailyReplayRepository(), FakeDailyRepository()),
         completions = completions,
