@@ -25,6 +25,8 @@ dependencies {
     implementation(projects.core.domain)
     // Game brands, glyphs and the calendar's day dots (identity §3).
     implementation(projects.core.gameUi)
+    // DailyBoard and its rows on the ranks page.
+    implementation(projects.core.resultUi)
 
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.kotlinx.coroutines.core)

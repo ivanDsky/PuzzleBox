@@ -1,0 +1,20 @@
+// Result, stats, daily-board and replay chrome that features share and no game UI imports.
+// The play kit the games compile against stays in core:game-ui.
+plugins {
+    alias(libs.plugins.puzzlebox.android.library.compose)
+    alias(libs.plugins.puzzlebox.android.roborazzi)
+}
+
+android {
+    namespace = "com.ivandsky.puzzlebox.resultui"
+}
+
+dependencies {
+    // Public signatures take play-kit types (RecordVerdict, GameReplayBoard, ReplayPlaybackState).
+    api(projects.core.gameUi)
+    implementation(projects.core.game)
+    implementation(projects.core.designsystem)
+    // The daily board's leaderboard rows and today status; core:data arrives through domain's api.
+    implementation(projects.core.domain)
+    implementation(libs.kotlinx.coroutines.core)
+}
