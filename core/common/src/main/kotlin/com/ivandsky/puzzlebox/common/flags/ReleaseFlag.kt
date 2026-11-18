@@ -57,6 +57,12 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     RanksFreshness(label = "Ranks shows when LinkedIn was last read", releaseDefault = false),
 
     /**
+     * Result share (epic #1188): the daily result's Share text gains a solve strip and a link to that day. Read only in
+     * a ViewModel or a DI module (ADR-0022 §3).
+     */
+    ShareResult(label = "Result share with link and solve strip", releaseDefault = false),
+
+    /**
      * Zip's next number pulses itself (backlog #1151): the number's own dot breathes in place of the separate ring that
      * blinks round it. Read only in feature/play's DI, which hands the Zip board one Boolean (ADR-0022 §3, spec A2).
      */
