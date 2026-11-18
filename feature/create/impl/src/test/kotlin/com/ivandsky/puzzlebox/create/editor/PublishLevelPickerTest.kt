@@ -3,12 +3,17 @@ package com.ivandsky.puzzlebox.create.editor
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertWidthIsAtLeast
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -44,19 +49,38 @@ class PublishLevelPickerTest {
     fun `it offers the four levels, marks the chosen one and says what was proposed`() {
         composeRule.setContent { PuzzleBoxTheme { PublishLevelPicker(changed, {}) } }
 
-        composeRule.onNodeWithText("Easy").assertIsSelected()
-        for (other in listOf("Medium", "Hard", "Expert")) composeRule.onNodeWithText(other).assertIsNotSelected()
-        composeRule.onNodeWithTag("create.details.level.proposed").assertExists()
-        composeRule.onNodeWithText("Proposed: Hard").assertExists()
+        chip(Level.Easy).assertIsSelected()
+        for (other in listOf(Level.Medium, Level.Hard, Level.Expert)) chip(other).assertIsNotSelected()
+        composeRule.onNodeWithText("Proposed:").assertExists()
+        proposed().assert(hasAnyDescendant(hasText("Hard")))
     }
 
     @Test
     fun `a followed proposal still says Proposed`() {
         composeRule.setContent { PuzzleBoxTheme { PublishLevelPicker(followed, {}) } }
 
-        composeRule.onNodeWithText("Hard").assertIsSelected()
-        composeRule.onNodeWithText("Proposed: Hard").assertExists()
+        chip(Level.Hard).assertIsSelected()
+        composeRule.onNodeWithText("Proposed:").assertExists()
+        proposed().assert(hasAnyDescendant(hasText("Hard")))
     }
+
+    @Test
+    fun `each chip shows its level's mark and the proposal line shows the proposed level's`() {
+        composeRule.setContent { PuzzleBoxTheme { PublishLevelPicker(changed, {}) } }
+
+        for (level in Level.entries) {
+            composeRule.onNode(mark(level) and hasAnyAncestor(hasTestTag(chipTag(level))), useUnmergedTree = true).assertIsDisplayed()
+        }
+        composeRule.onNode(mark(Level.Hard) and hasAnyAncestor(hasTestTag("create.details.level.proposed")), useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    private fun chipTag(level: Level) = "create.details.level.${level.name.lowercase()}"
+
+    private fun chip(level: Level) = composeRule.onNodeWithTag(chipTag(level))
+
+    private fun proposed() = composeRule.onNodeWithTag("create.details.level.proposed")
+
+    private fun mark(level: Level) = hasTestTag("difficulty.${level.name.lowercase()}")
 
     @Test
     fun `a tap reports the level`() {

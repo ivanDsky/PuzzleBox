@@ -8,13 +8,10 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -22,18 +19,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.create.ui.colors
-import com.ivandsky.puzzlebox.create.ui.gradeLabel
 import com.ivandsky.puzzlebox.create.ui.gradeState
-import com.ivandsky.puzzlebox.create.ui.tone
 import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -45,7 +36,6 @@ import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 
 private val CardMaxWidth = 320.dp
-private val GradeIconSize = 16.dp
 
 /** The checking cue's drop below the title's bottom edge: its bar sits centred in the gap to the next line. */
 private val CueDrop = (Spacing.sm + Spacing.xs) / 2
@@ -133,7 +123,7 @@ private fun CardFace(
             }
         }
         if (verdict is Verdict.Unique && verdict.gradeState() != null) {
-            Grade(verdict)
+            VerdictGrade(verdict)
         } else if (verdict !is Verdict.Multiple) {
             // 2+ solutions says it under the witness segments instead, so the card keeps its height.
             Text(
@@ -155,33 +145,6 @@ private fun CardFace(
             )
         }
         if (verdict is Verdict.Multiple) VerdictWitness(overlay, autoShow, onOverlay, onAutoShow, legend = legendOf(verdict))
-    }
-}
-
-/** A difficulty in the Unique tone, or the Needs guessing flag in the warn tone. */
-@Composable
-private fun Grade(verdict: Verdict.Unique) {
-    val (container, content) = verdict.tone().colors()
-    Surface(
-        modifier = Modifier
-            .testTag("create.verdict.grade")
-            .semantics { stateDescription = verdict.gradeState().orEmpty() },
-        shape = AppShapes.extraSmall,
-        color = container,
-        contentColor = content,
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (verdict.needsGuessing) {
-                Icon(PuzzleIcons.Hint, contentDescription = null, modifier = Modifier.size(GradeIconSize))
-                Text("Needs guessing", style = MaterialTheme.typography.labelLarge)
-            } else {
-                Text(verdict.gradeLabel().orEmpty(), style = MaterialTheme.typography.labelLarge)
-            }
-        }
     }
 }
 

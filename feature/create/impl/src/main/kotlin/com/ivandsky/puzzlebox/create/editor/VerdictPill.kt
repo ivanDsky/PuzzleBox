@@ -12,6 +12,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -38,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.create.ui.colors
 import com.ivandsky.puzzlebox.create.ui.glanceKey
 import com.ivandsky.puzzlebox.create.ui.glanceLabel
+import com.ivandsky.puzzlebox.create.ui.gradeLevel
 import com.ivandsky.puzzlebox.create.ui.gradeState
 import com.ivandsky.puzzlebox.create.ui.stateName
 import com.ivandsky.puzzlebox.create.ui.tone
@@ -54,6 +56,7 @@ import com.ivandsky.puzzlebox.game.editor.IncompleteReason
 import com.ivandsky.puzzlebox.game.editor.LadderRung
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
+import com.ivandsky.puzzlebox.gameui.DifficultyIcon
 
 private val PillHeight = 36.dp
 private val PillTouchHeight = 48.dp
@@ -62,14 +65,14 @@ private val PillMaxWidth = 208.dp
 
 /**
  * The Studio top bar's verdict at a glance: one line in the verdict's tone; a Unique adds its
- * grade ("Unique · Medium", "Unique · needs guessing") under `create.editor.pill.grade`, whose
+ * grade ("Unique · Medium", "Unique · needs guessing") under `create.editor.pill.grade`, with the level's mark before a level, whose
  * state is the grade's machine name. Tapping it ([onClick]) opens the verdict card. Its state
  * description is the verdict's machine name ("Unique", "Incomplete", …) for tests and
  * accessibility services alike. Motion (spec S19): a new verdict crossfades in on
  * MotionTokens short (already the 120 ms reduced-motion fade); entering Checking pulses once
  * (none under reduced motion), however many edits it stays Checking through; settling on
  * Unique from another settled verdict fires exactly one haptic; a press is Press feedback at
- * MotionTokens.PressScale. A [compact] pill shows the verdict's glyph alone (a window too narrow
+ * MotionTokens.PressScale. A [compact] pill shows the verdict's glyph alone, or a Unique's level mark in its place (a window too narrow
  * for both the title and the label); the label becomes its content description and stays in the card.
  */
 @Composable
@@ -132,13 +135,21 @@ private fun PillFace(verdict: Verdict, compact: Boolean, interactionSource: Inte
             } else {
                 Modifier.testTag("create.editor.pill.grade").semantics { stateDescription = grade }
             }
-            Text(
-                text = if (compact) glyphOf(verdict) else label,
-                modifier = if (compact) graded.semantics { contentDescription = label } else graded,
-                style = MaterialTheme.typography.labelLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            val level = (verdict as? Verdict.Unique)?.gradeLevel()
+            if (compact && level != null) {
+                Box(graded.semantics { contentDescription = label }) { DifficultyIcon(level) }
+            } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
+                    if (level != null) DifficultyIcon(level)
+                    Text(
+                        text = if (compact) glyphOf(verdict) else label,
+                        modifier = (if (compact) graded.semantics { contentDescription = label } else graded).weight(1f, fill = false),
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
         }
     }
 }

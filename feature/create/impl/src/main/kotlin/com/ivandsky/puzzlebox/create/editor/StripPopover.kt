@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
@@ -92,9 +93,18 @@ internal fun PopoverPanel(tag: String, content: @Composable ColumnScope.() -> Un
     }
 }
 
-/** One choice of a strip popover, at least 56×48dp: outlined on the surface; the checked one filled in the studio accent. */
+/**
+ * One choice of a strip popover, at least 56×48dp: outlined on the surface; the checked one filled in the studio accent.
+ * A [leadingIcon] sits before the word and takes the chip's content colour.
+ */
 @Composable
-internal fun PopoverChip(text: String, selected: Boolean, tag: String, onClick: () -> Unit) {
+internal fun PopoverChip(
+    text: String,
+    selected: Boolean,
+    tag: String,
+    leadingIcon: (@Composable () -> Unit)? = null,
+    onClick: () -> Unit,
+) {
     val accent = AccentSlot.Violet.colors()
     val scheme = MaterialTheme.colorScheme
     val fill = if (selected) accent.accent else scheme.surface
@@ -111,7 +121,10 @@ internal fun PopoverChip(text: String, selected: Boolean, tag: String, onClick: 
         contentColor = if (selected) accent.onAccent else scheme.onSurface,
     ) {
         Box(Modifier.defaultMinSize(ChipMinWidth, ChipMinHeight).padding(horizontal = Spacing.sm), contentAlignment = Alignment.Center) {
-            Text(text = text, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, maxLines = 1)
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
+                leadingIcon?.invoke()
+                Text(text = text, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, maxLines = 1)
+            }
         }
     }
 }

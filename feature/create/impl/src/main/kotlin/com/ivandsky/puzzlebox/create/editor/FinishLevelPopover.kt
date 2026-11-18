@@ -14,6 +14,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.editor.Difficulty
+import com.ivandsky.puzzlebox.gameui.DifficultyIcon
 
 /**
  * The Finish level picker (90): a [StripPopover] above the tool strip that asks how hard the
@@ -37,7 +38,7 @@ private fun FinishLevelPanel(current: Difficulty.Level, onPick: (Difficulty.Leve
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             Difficulty.Level.entries.forEach { level ->
-                PopoverChip(level.name, level == current, "create.finish.level.${level.name}") { onPick(level) }
+                PopoverChip(level.name, level == current, "create.finish.level.${level.name}", { DifficultyIcon(level) }) { onPick(level) }
             }
         }
         Text(
