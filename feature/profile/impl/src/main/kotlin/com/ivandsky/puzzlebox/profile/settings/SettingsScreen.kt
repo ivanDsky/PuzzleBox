@@ -31,7 +31,7 @@ import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.profile.AppearanceRow
 
 /**
- * Settings, a pushed tool screen: a compact top bar with Back, then Appearance, Haptics (the Vibration switch), Games, Play, Reminders (the [reminders] slot, when given), Visibility and Ranks (only with [SettingsUiState.visibility]), About (the version name, then the What's new row when [SettingsUiState.whatsNew]), and — in debug builds only — a "Debug build only" block set off by a divider (shown when [debugSections] or [onOpenCatalog] is given): the [debugSections] slot (the app's flags and game tools), then the Component catalog row, each only when given.
+ * Settings, a pushed tool screen: a compact top bar with Back, then Appearance, Haptics (the Vibration switch), Games, Play, Reminders (the [reminders] slot, when given), Visibility and Ranks (only with [SettingsUiState.visibility]), About (the version name, then the What's new row), and — in debug builds only — a "Debug build only" block set off by a divider (shown when [debugSections] or [onOpenCatalog] is given): the [debugSections] slot (the app's flags and game tools), then the Component catalog row, each only when given.
  */
 @Composable
 internal fun SettingsScreen(
@@ -109,7 +109,7 @@ internal fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                if (state.whatsNew) WhatsNewRow(onClick = onOpenWhatsNew)
+                WhatsNewRow(onClick = onOpenWhatsNew)
             }
             if (onOpenCatalog != null || debugSections != null) {
                 // Everything below the divider exists only in debug builds.

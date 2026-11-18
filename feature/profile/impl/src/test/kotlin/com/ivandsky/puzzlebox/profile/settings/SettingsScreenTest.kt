@@ -291,21 +291,13 @@ class SettingsScreenTest {
     }
 
     @Test
-    fun `about has a What's new row only with the flag, and a tap opens it`() {
-        setContent(SettingsUiState(themeMode = ThemeMode.SYSTEM, versionName = "1.4.0", whatsNew = true))
+    fun `about has a What's new row and a tap opens it`() {
+        setContent(SettingsUiState(themeMode = ThemeMode.SYSTEM, versionName = "1.4.0"))
 
         composeRule.onNodeWithTag("settings.whatsNew").performScrollTo().assertTextContains("What's new").performClick()
 
         assertEquals(1, whatsNewClicks)
         composeRule.assertTouchTargetsAtLeast48()
-    }
-
-    @Test
-    fun `without the flag about has no What's new row`() {
-        setContent()
-
-        composeRule.onNodeWithTag("settings.whatsNew").assertDoesNotExist()
-        composeRule.onNodeWithText("What's new").assertDoesNotExist()
     }
 
     @Test
