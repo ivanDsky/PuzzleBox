@@ -64,8 +64,14 @@ internal class LinkedInPostFlow(
     private val slots = MutableStateFlow<Map<DayKey, Slot>>(emptyMap())
 
     override fun observe(game: GameId, day: LocalDate): Flow<LinkedInPostView> {
-        val readings = combine(link.posting, link.state, completions.observeRecords(), log.observe(game, day)) { posting, state, records, entry ->
-            reading(game, day, posting, state, records, entry)
+        val readings = combine(
+            link.posting,
+            link.state,
+            completions.observeRecords(),
+            completions.observeImports(),
+            log.observe(game, day),
+        ) { posting, state, records, imports, entry ->
+            reading(game, day, posting, state, records, imports, entry)
         }
         return combine(readings, slots) { reading, slots ->
             LinkedInPostView(shown(reading.verdict, reading.key?.let(slots::get)), reading.timeMs)
@@ -224,7 +230,15 @@ internal class LinkedInPostFlow(
     }
 
     private suspend fun reading(game: GameId, day: LocalDate): Reading =
-        reading(game, day, link.posting.first(), link.state.first(), completions.observeRecords().first(), log.observe(game, day).first())
+        reading(
+            game,
+            day,
+            link.posting.first(),
+            link.state.first(),
+            completions.observeRecords().first(),
+            completions.observeImports().first(),
+            log.observe(game, day).first(),
+        )
 
     private suspend fun verdict(game: GameId, day: LocalDate): Verdict = reading(game, day).verdict
 
@@ -234,12 +248,14 @@ internal class LinkedInPostFlow(
         posting: Boolean,
         state: LinkState,
         records: List<CompletionRecord>,
+        imports: List<CompletionRecord>,
         entry: LinkedInPostLog.Entry,
     ): Reading {
         val facts = Facts(
             posting = posting,
             link = state,
-            record = records.firstOrNull { it.puzzleRef.gameId == game && (it.puzzleRef.key as? PuzzleKey.Daily)?.date == day },
+            record = records.firstOrNull { it.isOf(game, day) },
+            onLinkedIn = imports.any { it.isOf(game, day) },
             typeId = daily.linkedInGameTypeId(game),
             gamePath = daily.linkedInGamePath(game),
             delta = window.deltaOf(game, day),
@@ -282,3 +298,6 @@ private val LinkState.profileId: String?
         is LinkState.Connected -> profileId
         is LinkState.Paused -> profileId
     }
+
+private fun CompletionRecord.isOf(game: GameId, day: LocalDate): Boolean =
+    puzzleRef.gameId == game && (puzzleRef.key as? PuzzleKey.Daily)?.date == day

@@ -24,6 +24,8 @@ internal object LinkedInPostEligibility {
         val posted: Boolean,
         val sending: Boolean,
         val already: Boolean = false,
+        /** LinkedIn's result for the day is already on the phone: the day sync imported the player's own solved result. */
+        val onLinkedIn: Boolean = false,
     )
 
     sealed interface Verdict {
@@ -37,7 +39,8 @@ internal object LinkedInPostEligibility {
     /**
      * The order is the contract. What can never be posted is hidden first, so posting off or an import hides
      * even a posted or paused day. A posted day says so on any later day, and so does a day LinkedIn said it already holds. A day that is not today is refused
-     * before [play] is asked, so only a solve that could still be sent has its replay folded.
+     * before [play] is asked. A day whose own LinkedIn result the phone already read is [Facts.onLinkedIn]: it is told as already there
+     * only where a post could otherwise go out, so a pause or a missing replay still speaks first.
      */
     suspend fun decide(facts: Facts, play: suspend () -> LinkedInPlay?): Verdict {
         if (!facts.posting) return HIDDEN
@@ -56,6 +59,7 @@ internal object LinkedInPostEligibility {
         if (facts.delta != 0) return Verdict.Blocked(LinkedInPostState.NotToday)
         val encoded = play() ?: return HIDDEN
         if (facts.link is LinkState.Paused) return Verdict.Blocked(LinkedInPostState.Paused)
+        if (facts.onLinkedIn) return Verdict.Blocked(LinkedInPostState.AlreadyOnLinkedIn)
         val post = LinkedInPost(gamePath, typeId, number, record.time, hintUsed = record.hints > 0, play = encoded)
         return Verdict.Open(profileId, post, unsure = facts.sending)
     }
