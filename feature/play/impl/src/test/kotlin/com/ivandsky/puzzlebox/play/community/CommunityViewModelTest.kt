@@ -39,7 +39,7 @@ class CommunityViewModelTest {
         assertEquals(listOf("BBB222", "AAA111"), viewModel.rows())
         val rows = (viewModel.state.value.phase as CommunityPhase.Loaded).rows
         assertEquals(listOf("5 min ago", "3 h ago"), rows.map { it.age })
-        assertEquals(listOf(null, "Hard"), rows.map { it.difficulty })
+        assertEquals(listOf(null, Level.Hard), rows.map { it.difficulty })
     }
 
     @Test

@@ -6,6 +6,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -145,7 +146,9 @@ class FriendPuzzleCardTest {
         node("friend.card.author").assert(hasText(puzzle.authorName, substring = true))
         node("friend.card.note").assert(hasText(puzzle.note))
         node("friend.card.size").assert(hasText(puzzle.variant.value, substring = true))
-        node("friend.card.difficulty").assert(hasText(Difficulty.Level.Hard.name, substring = true))
+        val pill = hasAnyAncestor(hasTestTag("friend.card.difficulty"))
+        composeRule.onNode(hasTestTag("difficulty.hard") and pill, useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNode(hasText(Difficulty.Level.Hard.name) and pill, useUnmergedTree = true).assertIsDisplayed()
         node("friend.card.author.time").assert(hasText(formatDuration(puzzle.authorTimeMs), substring = true))
         node("friend.card.author.hints").assert(hasText(puzzle.authorHints.toString(), substring = true))
         node("friend.card.code").assert(hasText(code.display))

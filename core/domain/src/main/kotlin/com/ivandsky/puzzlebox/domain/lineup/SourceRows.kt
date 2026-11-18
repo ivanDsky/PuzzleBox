@@ -6,6 +6,5 @@ internal class SourceRows(val rows: List<Dated>, val offline: Boolean = false, v
     class Dated(val atMs: Long, val puzzle: PickablePuzzle)
 }
 
-/** The meta line of a puzzle: its size from the variant (`queens/n8` → `n8`) and its difficulty level, when it has one. */
-internal fun metaOf(variant: String, level: String?): String =
-    listOfNotNull(variant.substringAfter('/').ifEmpty { null }, level).joinToString(" · ")
+/** The meta line of a puzzle: its size from the variant (`queens/n8` → `n8`); the difficulty level is [PickablePuzzle.level]. */
+internal fun metaOf(variant: String): String = variant.substringAfter('/')

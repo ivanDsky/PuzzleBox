@@ -47,11 +47,7 @@ internal fun PickerRow(entry: PickerEntry, brand: GameBrand, onAdd: () -> Unit, 
                     if (puzzle.isNew) NewBadge()
                 }
                 Text(byline(entry), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(
-                    listOfNotNull(puzzle.meta.ifEmpty { null }, puzzle.code?.display).joinToString(" · "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                PickerMetaLine(puzzle)
             }
             FilledTonalButton(onClick = onAdd, enabled = !entry.added, modifier = Modifier.testTag("duel.lineup.pick.add.${exact.ref.wire}")) {
                 Text(if (entry.added) "Added" else "Add")

@@ -34,6 +34,7 @@ import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.FriendPuzzleRow
 import com.ivandsky.puzzlebox.domain.FriendStatus
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
@@ -368,7 +369,7 @@ class CommunityTabsTest {
 
         val LOADED = CommunityState(
             phase = CommunityPhase.Loaded(
-                List(NEW_ROWS) { CommunityRowModel(newCode(it), "Zip", ZIP, "New puzzle $it", author = "Maya", difficulty = "Hard", age = "2 h ago") },
+                List(NEW_ROWS) { CommunityRowModel(newCode(it), "Zip", ZIP, "New puzzle $it", author = "Maya", difficulty = Difficulty.Level.Hard, age = "2 h ago") },
             ),
         )
 

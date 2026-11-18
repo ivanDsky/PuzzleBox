@@ -22,14 +22,15 @@ import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.LocalSelectedRowCode
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.selectedRow
+import com.ivandsky.puzzlebox.gameui.DifficultyLabel
 import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 
 private val RowMinHeight = 72.dp
 
 /**
- * One community puzzle as a full-width card: the game's glyph over "Game · Difficulty" (no difficulty word for an
- * unlabelled puzzle), the title, then "by author · 5 min ago". The whole card opens it ([onOpen]); the ⋮ at the end
+ * One community puzzle as a full-width card: the game's glyph over "Game · Difficulty" (the level's mark beside its word; nothing
+ * for an unlabelled puzzle), the title, then "by author · 5 min ago". The whole card opens it ([onOpen]); the ⋮ at the end
  * offers Report ([onReport]). Taller than 48dp, so every target on it is large enough.
  */
 @Composable
@@ -48,14 +49,23 @@ internal fun CommunityRow(row: CommunityRowModel, onOpen: () -> Unit, onReport: 
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     GameGlyph(row.brand, GameGlyphSize.Chip)
-                    Text(
-                        text = listOfNotNull(row.game, row.difficulty).joinToString(" · "),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                    val style = MaterialTheme.typography.labelLarge
+                    val ink = MaterialTheme.colorScheme.onSurfaceVariant
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.testTag("community.row.$code.meta"),
-                    )
+                    ) {
+                        Text(
+                            text = if (row.difficulty == null) row.game else "${row.game} ·",
+                            style = style,
+                            color = ink,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                        row.difficulty?.let { DifficultyLabel(it, style, ink) }
+                    }
                 }
                 Text(
                     text = row.title,

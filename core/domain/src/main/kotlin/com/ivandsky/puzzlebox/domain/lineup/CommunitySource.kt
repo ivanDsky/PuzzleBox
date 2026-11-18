@@ -81,8 +81,9 @@ internal class CommunitySource(
                 entry = ExactPuzzle(ref, authorUid, title, authorName, PuzzleSource.Community),
                 isNew = createdAtMs >= clock() - COMMUNITY_WINDOW_MS,
                 played = ref.wire in solved,
-                meta = metaOf(variant, difficulty?.name),
+                meta = metaOf(variant),
                 code = code,
+                level = difficulty,
             ),
         )
     }

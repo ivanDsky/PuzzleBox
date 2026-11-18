@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.data.repository.CommunityListResult
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
@@ -83,7 +84,14 @@ class ObservePickablePuzzlesTest {
 
     private fun code(value: String) = checkNotNull(ShareCode.parse(value))
 
-    private suspend fun community(code: String, game: GameId, title: String, author: String = "Cleo", hoursAgo: Long = 1) {
+    private suspend fun community(
+        code: String,
+        game: GameId,
+        title: String,
+        author: String = "Cleo",
+        hoursAgo: Long = 1,
+        level: Difficulty.Level? = null,
+    ) {
         shared.signedInUid = "cleo"
         shared.publishesToday = 0
         shared.publish(
@@ -91,18 +99,25 @@ class ObservePickablePuzzlesTest {
                 code = code(code), formatVersion = SharedPuzzleDoc.FORMAT_VERSION, gameId = game.value, variant = "${game.value}/n8",
                 shareCodecVersion = 1, payload = byteArrayOf(1), title = title, authorName = author, note = "",
                 authorUid = "cleo", authorTimeMs = 1_000L, authorHints = 0, createdAtMs = now - hoursAgo * hour,
-                unpublished = false, visibility = SharedPuzzleDoc.Visibility.Public,
+                unpublished = false, visibility = SharedPuzzleDoc.Visibility.Public, difficulty = level,
             ),
         )
     }
 
-    private suspend fun friend(code: String, game: GameId, title: String, author: String = "Bo", openedHoursAgo: Long = 2) =
+    private suspend fun friend(
+        code: String,
+        game: GameId,
+        title: String,
+        author: String = "Bo",
+        openedHoursAgo: Long = 2,
+        level: Difficulty.Level? = null,
+    ) =
         received.upsert(
             ReceivedPuzzle(
                 code = code(code), gameId = game, variant = TestGames.variant(game), sharedFormatVersion = 1,
                 puzzleBytes = byteArrayOf(TestGames.MAGIC), title = title, authorName = author, note = "", authorTimeMs = 1_000L,
                 authorHints = 0, authorUid = "bo", openedAt = Instant.ofEpochMilli(now - openedHoursAgo * hour), unpublished = false,
-                postState = PostState.Pending, postAttempts = 0, difficulty = null,
+                postState = PostState.Pending, postAttempts = 0, difficulty = level,
             ),
         )
 
@@ -136,6 +151,20 @@ class ObservePickablePuzzlesTest {
             listOf(PuzzleSource.Community, PuzzleSource.Friend, PuzzleSource.Mine),
             rows.map { it.entry.source },
         )
+    }
+
+    @Test
+    fun `a community and a friend's puzzle carry their level apart from the size meta, an own one has none`() = runTest {
+        community("K7Q2MX", alpha, title = "Crown", level = Difficulty.Level.Expert)
+        friend("M3N4P5", beta, title = "Plain", level = Difficulty.Level.Easy)
+        own("R6S7T8", alpha, title = "Mine")
+
+        val rows = result().rows.associateBy { it.entry.source }
+
+        assertEquals(Difficulty.Level.Expert, rows.getValue(PuzzleSource.Community).level)
+        assertEquals("n8", rows.getValue(PuzzleSource.Community).meta)
+        assertEquals(Difficulty.Level.Easy, rows.getValue(PuzzleSource.Friend).level)
+        assertEquals(null, rows.getValue(PuzzleSource.Mine).level)
     }
 
     @Test

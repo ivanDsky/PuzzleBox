@@ -5,7 +5,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
-/** One selectable game chip: the game's inline glyph plus [label]. Callers own their row, any "All" chip and test tags. */
+/**
+ * One selectable chip: the game's inline glyph, or [icon] in its place, plus [label]. Callers own their row, any "All" chip and
+ * test tags.
+ */
 @Composable
 fun GameFilterChip(
     brand: GameBrand,
@@ -14,6 +17,7 @@ fun GameFilterChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    icon: (@Composable () -> Unit)? = null,
 ) {
     FilterChip(
         selected = selected,
@@ -21,6 +25,6 @@ fun GameFilterChip(
         label = { Text(label) },
         modifier = modifier,
         enabled = enabled,
-        leadingIcon = { GameGlyph(brand, GameGlyphSize.Inline) },
+        leadingIcon = icon ?: { GameGlyph(brand, GameGlyphSize.Inline) },
     )
 }

@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.play.community
 
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.model.ShareCode
 
@@ -9,7 +10,7 @@ private const val HOUR_MS = 60 * MINUTE_MS
 private const val DAY_MS = 24 * HOUR_MS
 
 /**
- * One New today row: [game] and its [brand], the puzzle's [title] and [author], the [difficulty] label when the
+ * One New today row: [game] and its [brand], the puzzle's [title] and [author], the [difficulty] level when the
  * puzzle has one, and [age] ("5 min ago"), read when the list loaded.
  */
 internal data class CommunityRowModel(
@@ -18,7 +19,7 @@ internal data class CommunityRowModel(
     val brand: GameBrand,
     val title: String,
     val author: String,
-    val difficulty: String?,
+    val difficulty: Difficulty.Level?,
     val age: String,
 )
 
@@ -29,7 +30,7 @@ internal fun SharedPuzzleDoc.toRow(game: String, brand: GameBrand, nowMs: Long) 
     brand = brand,
     title = title,
     author = authorName,
-    difficulty = difficulty?.name,
+    difficulty = difficulty,
     age = ageLabel(createdAtMs, nowMs),
 )
 

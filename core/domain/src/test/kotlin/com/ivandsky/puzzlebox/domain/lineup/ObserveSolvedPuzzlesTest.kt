@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.domain.ComputeSolvedPool
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
@@ -53,13 +54,13 @@ class ObserveSolvedPuzzlesTest {
 
     private fun daily(day: Int, number: Int? = day) = PuzzleKey.Daily(LocalDate.of(2026, 10, day), puzzleNumber = number)
 
-    private suspend fun hold(code: ShareCode, game: GameId, title: String, author: String = "Bo", unpublished: Boolean = false) =
+    private suspend fun hold(code: ShareCode, game: GameId, title: String, author: String = "Bo", unpublished: Boolean = false, level: Difficulty.Level? = null) =
         received.upsert(
             ReceivedPuzzle(
                 code = code, gameId = game, variant = TestGames.variant(game), sharedFormatVersion = 1,
                 puzzleBytes = byteArrayOf(TestGames.MAGIC), title = title, authorName = author, note = "", authorTimeMs = 1_000L,
                 authorHints = 0, authorUid = "bo", openedAt = Instant.EPOCH, unpublished = unpublished,
-                postState = PostState.Pending, postAttempts = 0, difficulty = null,
+                postState = PostState.Pending, postAttempts = 0, difficulty = level,
             ),
         )
 
@@ -72,7 +73,7 @@ class ObserveSolvedPuzzlesTest {
     private var stored = emptyList<CompletionRecord>()
 
     private suspend fun seed() {
-        hold(crown, alpha, "Crown jewels")
+        hold(crown, alpha, "Crown jewels", level = Difficulty.Level.Hard)
         hold(unsolved, beta, "Never played")
         hold(takenDown, alpha, "Gone", unpublished = true)
         stored = listOf(
@@ -112,6 +113,8 @@ class ObserveSolvedPuzzlesTest {
         assertEquals(ExactPuzzle(LegRef.Custom(alpha, crown), "bo", "Crown jewels", "Bo", PuzzleSource.Friend), friend.entry)
         assertEquals(crown, friend.code)
         assertEquals("v1", friend.meta)
+        assertEquals(Difficulty.Level.Hard, friend.level)
+        assertNull(day.level)
     }
 
     @Test

@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
@@ -18,7 +19,7 @@ private val Games = listOf(GameChoice(GameId("zip"), "Zip"), GameChoice(GameId("
 
 private val Actions = CommunityActions(onOpen = {}, onReport = {}, onGame = {}, onDifficulty = {}, onClearFilters = {}, onRetry = {})
 
-private fun row(code: String, game: String, brand: GameBrand, title: String, level: String?, age: String) =
+private fun row(code: String, game: String, brand: GameBrand, title: String, level: Difficulty.Level?, age: String) =
     CommunityRowModel(checkNotNull(ShareCode.parse(code)), game, brand, title, author = "Maya", difficulty = level, age = age)
 
 @Composable
@@ -35,7 +36,7 @@ private fun Section(phase: CommunityPhase) {
 internal fun CommunitySectionPreview() = Section(
     CommunityPhase.Loaded(
         listOf(
-            row("K7Q2MX", "Zip", Zip, "Spiral staircase", "Hard", "5 min ago"),
+            row("K7Q2MX", "Zip", Zip, "Spiral staircase", Difficulty.Level.Hard, "5 min ago"),
             row("P4R8NT", "Tango", Tango, "Sun and moon", null, "2 h ago"),
         ),
     ),

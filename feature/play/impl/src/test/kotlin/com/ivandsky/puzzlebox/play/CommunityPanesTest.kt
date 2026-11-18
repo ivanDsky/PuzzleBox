@@ -19,6 +19,7 @@ import androidx.compose.ui.test.junit4.StateRestorationTester
 import com.ivandsky.puzzlebox.designsystem.LocalSelectedRowCode
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.selectedRow
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.play.community.CommunityPhase
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -274,5 +275,5 @@ class CommunityPanesTest {
 }
 
 private object CommunityRowModels {
-    val first = CommunityPanesGoldenScreenshots.row("K7Q2MX", "Zip", CommunityPanesGoldenScreenshots.ZIP, "Spiral", "Hard", "5 min ago")
+    val first = CommunityPanesGoldenScreenshots.row("K7Q2MX", "Zip", CommunityPanesGoldenScreenshots.ZIP, "Spiral", Difficulty.Level.Hard, "5 min ago")
 }

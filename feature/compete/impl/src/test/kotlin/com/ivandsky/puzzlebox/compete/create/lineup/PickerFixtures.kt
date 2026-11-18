@@ -10,14 +10,15 @@ import com.ivandsky.puzzlebox.domain.lineup.PickablePuzzle
 import com.ivandsky.puzzlebox.domain.lineup.PickerQuery
 import com.ivandsky.puzzlebox.domain.lineup.PickerResult
 import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-internal fun pickable(game: GameId, code: String, title: String, author: String?, source: PuzzleSource, isNew: Boolean = false, played: Boolean = false): PickablePuzzle {
+internal fun pickable(game: GameId, code: String, title: String, author: String?, source: PuzzleSource, isNew: Boolean = false, played: Boolean = false, level: Difficulty.Level? = null): PickablePuzzle {
     val share = requireNotNull(ShareCode.parse(code))
-    return PickablePuzzle(ExactPuzzle(LegRef.Custom(game, share), "uid-$code", title, author, source), isNew, played, meta = "n8 · Easy", code = share)
+    return PickablePuzzle(ExactPuzzle(LegRef.Custom(game, share), "uid-$code", title, author, source), isNew, played, meta = "n8", code = share, level = level)
 }
 
 internal val CROWN_JEWELS = pickable(QUEENS, "K7Q2MX", "Crown jewels", "Bo", PuzzleSource.Friend, isNew = true)

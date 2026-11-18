@@ -22,7 +22,7 @@ internal class OwnSource(
                         entry = ExactPuzzle(ref, me, it.title, author = null, PuzzleSource.Mine),
                         isNew = false,
                         played = ref.wire in solved,
-                        meta = metaOf(it.variant.value, level = null),
+                        meta = metaOf(it.variant.value),
                         code = it.code,
                     ),
                 )
