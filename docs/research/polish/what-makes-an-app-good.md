@@ -103,7 +103,7 @@ Completion is the emotional peak, and it should be brief, specific and repeatabl
 
 ### 2.5 Sharing
 
-Wardle's emoji grid came from a player; it is spoiler-free; he added it in-game; most sharing is in group chats and with family; people share "for themselves" ([Slate](https://slate.com/culture/2022/01/wordle-game-creator-wardle-twitter-scores-strategy-stats.html)) **[S]**. Share rate was a launch signal at NYT ([Nieman Lab](https://www.niemanlab.org/2023/09/the-new-york-times-finds-a-match-with-the-word-game-connections)); LinkedIn players paste emoji scores in comments ([Wired](https://www.wired.com/story/games-are-still-the-best-part-of-linkedin/)) **[S]**. Share output should be spoiler-free, compact and promotional-free **[S/I]**.
+Wardle's emoji grid came from a player; it is spoiler-free; he added it in-game; most sharing is in group chats and with family; people share "for themselves" ([Slate](https://slate.com/culture/2022/01/wordle-game-creator-wardle-twitter-scores-strategy-stats.html)) **[S]**. Share rate was a launch signal at NYT ([Nieman Lab](https://www.niemanlab.org/2023/09/the-new-york-times-finds-a-match-with-the-word-game-connections)); LinkedIn players paste emoji scores in comments ([Wired](https://www.wired.com/story/games-are-still-the-best-part-of-linkedin/)) **[S]**. Share output should be spoiler-free, compact, with one functional link and no promotional links **[S/I]**.
 
 ### 2.6 Streaks without guilt
 
@@ -173,7 +173,7 @@ Run each item screen by screen on **phone (320dp and 411dp wide) and tablet**, *
 - [ ] Leaving a game and returning (back, app switch, rotation, process death) restores board state and timer exactly. ([State_Preservation](https://developer.android.com/docs/quality-guidelines/core-app-quality))
 - [ ] Rotation or fold change mid-puzzle causes no rendering problem and no lost progress. ([Orientation_Transitions](https://developer.android.com/docs/quality-guidelines/core-app-quality))
 - [ ] Haptic and sound meanings are consistent: one event type, one effect, across all five games and Duels. ([HIG haptics](https://developer.apple.com/design/human-interface-guidelines/playing-haptics))
-- [ ] Share text is spoiler-free, compact and free of promotional links. ([Slate](https://slate.com/culture/2022/01/wordle-game-creator-wardle-twitter-scores-strategy-stats.html))
+- [ ] Share text is spoiler-free, compact, with one functional link and no promotional links. ([Slate](https://slate.com/culture/2022/01/wordle-game-creator-wardle-twitter-scores-strategy-stats.html))
 
 ### C. Pleasure and delight
 

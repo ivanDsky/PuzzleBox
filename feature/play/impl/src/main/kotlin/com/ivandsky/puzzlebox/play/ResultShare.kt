@@ -8,13 +8,12 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 
 /**
- * A daily result's Share text. With [enabled] off it is the header alone. On, it adds the solve strip when the
- * replay is already read and the game has one, and the link to [slot]'s day unless the puzzle is practice; Share never
- * waits on the replay, so a replay that is hidden, unavailable or still loading gives no strip.
+ * A daily result's Share text: the header, the solve strip when the replay is already read and the game has one, and
+ * the link to [slot]'s day unless the puzzle is practice; Share never waits on the replay, so a replay that is
+ * hidden, unavailable or still loading gives no strip.
  */
-internal class ResultShare(private val enabled: Boolean, private val slot: PlaySlot.Daily) {
+internal class ResultShare(private val slot: PlaySlot.Daily) {
     fun textOf(state: ResultUiState, timeMs: Long, hints: Int): String {
-        if (!enabled) return resultShareText(state.game, state.puzzleNumber, timeMs, hints)
         val timeline = (state.replay as? ReplaySectionState.Ready)?.timeline?.takeIf { slot.gameId !in WithoutStrip }
         return resultShareText(
             game = state.game,

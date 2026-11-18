@@ -114,7 +114,7 @@ class ResultViewModel internal constructor(
     private val today: Boolean = calendar.today(slot.gameId) == slot.day
     private val replayRow = ResultReplayRow(completions, loadReplay, solve, live.takeIf { liveHoldsSolve })
     private val columns = releaseFlags?.isEnabled(ReleaseFlag.ResultHeroPolish) == true
-    private val share = ResultShare(releaseFlags?.isEnabled(ReleaseFlag.ShareResult) == true, slot)
+    private val share = ResultShare(slot)
     private val samePuzzleRows = ResultSamePuzzle(completions, solve, live.takeIf { liveHoldsSolve }, games.rankOrderOf(slot.gameId))
 
     val brand: GameBrand = ui.brandOf(slot.gameId)
@@ -244,7 +244,7 @@ class ResultViewModel internal constructor(
     /** Why the last sign-in did not finish, in words for the rank row; null while it is idle or under way. */
     val signInNote: StateFlow<String?> get() = signInRow.note
 
-    /** The Share sheet's text for [state]; with Share result on it carries the strip and the link, see [ResultShare]. */
+    /** The Share sheet's text for [state]; it carries the strip and the link, see [ResultShare]. */
     fun shareText(state: ResultUiState): String = share.textOf(state, solve.timeMs, solve.hints)
 
     /** The rank row's Google button: [activityContext] hosts Google's account picker, and is not kept. */

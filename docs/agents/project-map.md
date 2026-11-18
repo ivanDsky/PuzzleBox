@@ -467,7 +467,9 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `LeaderboardDocCodec`, `BackendModule` (`firebaseBackendModule`). Rules and indexes live
   alongside (`firebase.json`, `firestore.rules`, `firestore.indexes.json`); `hosting/` is the
   share-link page (`p/code.js`, `p/index.html`, `.well-known/assetlinks.json`), `m/` the duel-link landing page (`m/index.html`, `m/code.js`),
-  `hosting-test/` its Node test (`code.test.mjs` over `share-code-vectors.json`).
+  `hosting-test/` its Node test (`code.test.mjs` over `share-code-vectors.json`). The daily link
+  (`DailyLink` in `core:model`, the `FriendLink.Daily` it opens in `:app`) is served by `hosting/p/daily.html` + `daily.js`;
+  `hosting-test/daily.test.mjs` (Node), `DailyLinkTest` and `DailyPageFilesTest` (JVM) share `daily-link-vectors.json`.
 - `PROFILE.md` — product frame, ranked care-axes, deploy targets, testing style.
 - `docs/puzzle-notation.md` — the `puzzlebox <game> v<n>` text format agents write (spec A23);
   every sample is pinned by `NotationDocTest` in `:tools:puzzle-cli`.

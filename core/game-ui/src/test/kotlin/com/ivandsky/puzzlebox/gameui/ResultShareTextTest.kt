@@ -10,11 +10,10 @@ import org.junit.Test
  */
 class ResultShareTextTest {
 
-    private val daily = resultShareText("Queens", 918, 58_000, 0)
+    private val daily = resultShareText("Queens", 918, 58_000, 0, link = null, strip = null)
 
     @Test
-    fun `without a link or strip the text is today's header byte for byte`() {
-        assertEquals("PuzzleBox Zip #608 · 3:03 · 1 hint", resultShareText("Zip", 608, 183_000, 1))
+    fun `without a link or strip the text is the header byte for byte`() {
         assertEquals("PuzzleBox Zip #608 · 3:03 · 1 hint", resultShareText("Zip", 608, 183_000, 1, link = null, strip = null))
     }
 
@@ -28,8 +27,8 @@ class ResultShareTextTest {
         val header = "PuzzleBox Zip #608 · 3:03 · 1 hint"
         val strip = "🟥⬜⬜⬜⬜⬜⬜⬜⬜⬜"
         val link = "https://puzzlebox-f3356.web.app/p/zip/2026-11-18"
-        assertEquals("$header\n$strip", resultShareText("Zip", 608, 183_000, 1, strip = strip))
-        assertEquals("$header\n$link", resultShareText("Zip", 608, 183_000, 1, link = link))
+        assertEquals("$header\n$strip", resultShareText("Zip", 608, 183_000, 1, link = null, strip = strip))
+        assertEquals("$header\n$link", resultShareText("Zip", 608, 183_000, 1, link = link, strip = null))
         assertEquals("$header\n$strip\n$link", resultShareText("Zip", 608, 183_000, 1, link = link, strip = strip))
     }
 
@@ -45,7 +44,7 @@ class ResultShareTextTest {
 
     @Test
     fun `a practice puzzle has no edition number`() {
-        val practice = resultShareText("Tango", null, 72_000, 1)
+        val practice = resultShareText("Tango", null, 72_000, 1, link = null, strip = null)
         assertFalse(practice.contains("#"))
         assertEquals("1:12", practice.split(" · ")[1])
     }
