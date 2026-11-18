@@ -1,0 +1,89 @@
+package com.ivandsky.puzzlebox.compete.create.lineup
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.compete.create.DuelGame
+import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.gameui.GameGlyph
+import com.ivandsky.puzzlebox.gameui.GameGlyphSize
+import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.model.GameId
+import org.koin.compose.koinInject
+
+private val TILE_MIN_HEIGHT = 56.dp
+private const val TILES_PER_ROW = 2
+
+/**
+ * "Add puzzle N" or, from a row, "Change puzzle N": one tile per game for an "Any" puzzle of it, and below them
+ * [exactPuzzles], the slot for picking one exact puzzle. One column, as on a phone. A tile calls [onPickGame]; the
+ * sheet closes through [onDismiss] (a swipe, the scrim) or when the caller drops it.
+ */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+internal fun AddPuzzleSheet(
+    position: Int,
+    changing: Boolean,
+    games: List<DuelGame>,
+    onPickGame: (GameId) -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    exactPuzzles: @Composable () -> Unit = {},
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier.testTag("duel.lineup.sheet")) {
+        Column(
+            modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            Text(
+                text = if (changing) "Change puzzle $position" else "Add puzzle $position",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text("Any puzzle of a game", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                maxItemsInEachRow = TILES_PER_ROW,
+            ) {
+                games.forEach { game -> GameTile(game, onClick = { onPickGame(game.id) }, modifier = Modifier.weight(1f)) }
+            }
+            exactPuzzles()
+        }
+    }
+}
+
+@Composable
+private fun GameTile(game: DuelGame, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val brand = koinInject<GamePlayRegistry>().brandOf(game.id)
+    Surface(
+        onClick = onClick,
+        modifier = modifier.heightIn(min = TILE_MIN_HEIGHT).testTag("duel.lineup.sheet.game.${game.id.value}"),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Row(Modifier.padding(horizontal = Spacing.md), horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
+            GameGlyph(brand, GameGlyphSize.Tile)
+            Text(game.name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+        }
+    }
+}

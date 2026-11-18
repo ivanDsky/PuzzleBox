@@ -40,6 +40,7 @@ val competeModule: Module = module {
             clock = { Instant.now() },
             zone = { ZoneId.systemDefault() },
             locale = { Locale.getDefault() },
+            releaseFlags = getOrNull(),
         )
     }
     viewModel { (code: String) ->

@@ -38,6 +38,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ivandsky.puzzlebox.compete.create.lineup.LineupEditor
 import com.ivandsky.puzzlebox.compete.duel.rememberCompeteTime
 import com.ivandsky.puzzlebox.compete.share.DuelCreatedSheet
 import com.ivandsky.puzzlebox.compete.share.createdInviteSaver
@@ -62,6 +63,10 @@ internal class NewDuelActions(
     val onCreate: () -> Unit,
     val onGoogle: () -> Unit,
     val onCancel: () -> Unit,
+    /** Customize was opened; with the lineup on, it becomes the chosen preset. */
+    val onCustomize: () -> Unit = {},
+    /** Applies an edit to the lineup the Customize panel shows. */
+    val onEditLineup: ((LineupEditor) -> LineupEditor) -> Unit = {},
 )
 
 /**
@@ -121,6 +126,8 @@ internal fun NewDuelSheet(
         onCreate = viewModel::create,
         onGoogle = { scope.launch { viewModel.signIn(context) } },
         onCancel = dismiss,
+        onCustomize = viewModel::chooseCustom,
+        onEditLineup = viewModel::editLineup,
     )
     val created = shared
     if (created == null) {
@@ -240,6 +247,7 @@ internal fun Notice(notice: DuelNotice) {
         DuelNotice.Offline -> "You're offline. Connect and try again."
         DuelNotice.Busy -> "Duels are busy today. Try again later."
         DuelNotice.NoPuzzles -> "There are no puzzles to draw for these games. Pick more games."
+        is DuelNotice.EntryUndrawable -> "No unplayed ${notice.game} puzzle left for you both. Change puzzle ${notice.position}."
         is DuelNotice.Failed -> notice.message ?: "Couldn't create the duel. Please try again."
     }
     Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("duel.notice"))

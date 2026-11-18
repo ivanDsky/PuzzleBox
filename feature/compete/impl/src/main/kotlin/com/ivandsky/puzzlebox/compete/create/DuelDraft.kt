@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.compete.create
 import com.ivandsky.puzzlebox.compete.duel.formatEnds
 import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.domain.DuelSettings
+import com.ivandsky.puzzlebox.domain.lineup.LineupEntry
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.Instant
 import java.time.ZoneId
@@ -36,14 +37,15 @@ internal data class DuelDraft(
     val includeFriends: Boolean,
 ) {
 
-    /** The request [CreateMatch] takes; this sheet never pastes codes (Enter code does). */
-    fun toSettings() = DuelSettings(
+    /** The request [CreateMatch] takes; this sheet never pastes codes (Enter code does). A [lineup] decides the puzzles instead of the count and games. */
+    fun toSettings(lineup: List<LineupEntry>? = null) = DuelSettings(
         count = count,
         games = games,
         todayOnly = todayOnly,
         deadlineHours = deadlineHours,
         includeFriends = includeFriends,
         pastedCodes = emptyList(),
+        lineup = lineup,
     )
 
     /** "Best of 3 · mixed past dailies · ends Sun 18:00", plus " · incl. friends' puzzles" when friends are in. */
@@ -73,6 +75,9 @@ internal data class DuelDraft(
         val rounds = if (todayOnly) next.size.coerceIn(MIN_COUNT, Match.MAX_LEGS) else count
         return edited().copy(games = next, count = rounds)
     }
+
+    /** Customize as a preset of its own, which the lineup editor needs: neither Quick's nor Daily's rules apply any more. */
+    fun customized(): DuelDraft = copy(preset = DuelPreset.Custom, todayOnly = false)
 
     /** Quick leaves its preset on the first edit; the Daily duel stays today-only whatever else changes. */
     private fun edited(): DuelDraft = if (preset == DuelPreset.Quick) copy(preset = DuelPreset.Custom) else this

@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import com.ivandsky.puzzlebox.compete.create.lineup.LineupPanel
 import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.tabular
@@ -30,19 +31,24 @@ import org.koin.compose.koinInject
 private val QUICK_COUNTS = listOf(3, 5, 7)
 
 /**
- * The Customize panel: rounds (a stepper and 3/5/7 chips; a today-only duel plays each chosen game once, so it has
+ * The Customize panel: with a lineup, its ordered puzzles; else rounds (a stepper and 3/5/7 chips; a today-only duel plays each chosen game once, so it has
  * none), one chip per game, the deadline, and the friends' puzzles switch. Every edit goes through [actions].
  */
 @Composable
 internal fun DuelCustomizePanel(state: NewDuelState, actions: NewDuelActions, modifier: Modifier = Modifier) {
     val draft = state.draft
     Column(modifier.fillMaxWidth().testTag("duel.customize"), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        if (!draft.todayOnly) {
-            Section("PUZZLES · BEST OF") { RoundsRow(draft.count, actions.onCount) }
-        }
-        Section("GAMES") {
-            GameChips(state.games, draft, actions.onToggle)
-            HintsFirstNote(state.games, draft.games)
+        val lineup = state.lineup
+        if (lineup != null) {
+            LineupPanel(lineup, state.games, draft.includeFriends, actions.onEditLineup)
+        } else {
+            if (!draft.todayOnly) {
+                Section("PUZZLES · BEST OF") { RoundsRow(draft.count, actions.onCount) }
+            }
+            Section("GAMES") {
+                GameChips(state.games, draft, actions.onToggle)
+                HintsFirstNote(state.games, draft.games)
+            }
         }
         Section("DEADLINE") {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
