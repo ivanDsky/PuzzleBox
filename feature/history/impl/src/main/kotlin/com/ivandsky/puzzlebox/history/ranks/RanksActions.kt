@@ -9,7 +9,7 @@ import java.time.LocalDate
 /**
  * What the hub's taps, swipes and sheets do, the same on the phone and the tablet; the route turns each into a view
  * model call or a push. A null one means the hub has no such control: no back arrow, no row taps, no pull to refresh.
- * [onPlayThisDay] is the Play this day button on a game's unplayed day.
+ * [onPlayThisDay] is the Play this day button on a game's unplayed day; [onSheetOpen] says whether any Ranks sheet is up.
  */
 internal data class RanksActions(
     val onSignIn: () -> Unit,
@@ -31,6 +31,7 @@ internal data class RanksActions(
     val onClosePlayer: () -> Unit = {},
     val onShareReplays: () -> Unit = {},
     val onKeepReplaysPrivate: () -> Unit = {},
+    val onSheetOpen: (Boolean) -> Unit = {},
     val onRefresh: (() -> Unit)? = null,
     val onPlayThisDay: (GameId, LocalDate) -> Unit = { _, _ -> },
 )

@@ -115,6 +115,7 @@ private fun RanksRoute(
             onClosePlayer = playerSheet::close,
             onShareReplays = replayOptIn::share,
             onKeepReplaysPrivate = replayOptIn::keepPrivate,
+            onSheetOpen = replayOptIn::hold,
             onRefresh = viewModel::refresh,
         ),
         layout = layout,
