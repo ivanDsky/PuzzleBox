@@ -46,9 +46,11 @@ class LineupDraftTest {
             today.entries.map { (it as ExactPuzzle).title },
         )
         assertEquals(LegRef.Daily(ZIP, day, 12), (today.entries[0] as ExactPuzzle).ref)
-        assertTrue(today.isToday)
-        assertFalse(today.added(AnyGame(ZIP)).isToday)
-        assertFalse(LineupDraft(emptyList()).isToday)
+        assertTrue(today.isToday(games))
+        assertFalse(today.added(AnyGame(ZIP)).isToday(games))
+        assertFalse(LineupDraft(emptyList()).isToday(games))
+        val yesterday = LineupDraft(listOf((today.entries[0] as ExactPuzzle).let { it.copy(ref = LegRef.Daily(ZIP, day.minusDays(1), 11)) }))
+        assertFalse(yesterday.isToday(games))
         assertTrue(LineupDraft.today(GAMES).entries.isEmpty())
     }
 

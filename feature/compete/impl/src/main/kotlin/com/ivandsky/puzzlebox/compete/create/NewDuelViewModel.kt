@@ -142,10 +142,10 @@ internal class NewDuelViewModel(
 
     /** Daily, with the lineup on, shows today's puzzles as rows; coming from Customize with such rows keeps them (A13), any other rows are replaced. */
     fun chooseDaily() {
-        val today = if (lineupEnabled()) LineupDraft.today(games.value) else LineupDraft(emptyList())
         edit(friend = { DuelDraft.daily(games.value) }, lineup = { rows, from ->
-            val keep = from.preset == DuelPreset.Custom && rows.draft.isToday
-            if (today.entries.isEmpty() || keep) rows.unpinned() else rows.unpinned().copy(draft = today)
+            val keep = from.preset == DuelPreset.Custom && rows.draft.isToday(games.value)
+            val today = if (lineupEnabled() && !keep) LineupDraft.today(games.value) else null
+            if (today == null || today.entries.isEmpty()) rows.unpinned() else rows.unpinned().copy(draft = today)
         })
     }
     fun setCount(count: Int) = edit(friend = { it.withCount(count) }, self = { it.withCount(count) })
@@ -210,7 +210,7 @@ internal class NewDuelViewModel(
         if (selfActive(start)) return createSelf(start)
         if (start.draft.games.isEmpty()) return
         // Lineup on, Customize chosen: the lineup's puzzles in order, or the ones a failed try drew when this is a retry.
-        val lineup = start.lineup.takeIf { lineupEnabled() && (start.draft.preset == DuelPreset.Custom || start.draft.showsRows(start.lineup)) }
+        val lineup = start.lineup.takeIf { lineupEnabled() && (start.draft.preset == DuelPreset.Custom || start.draft.showsRows(start.lineup, games.value)) }
         viewModelScope.launch {
             val outcome = createMatch(start.draft.toSettings(lineup?.entries), invitedUid = start.challenge?.friendUid) { legs ->
                 if (lineup != null) working.update { if (it.generation == start.generation) it.copy(lineup = it.lineup.pin(legs)) else it }

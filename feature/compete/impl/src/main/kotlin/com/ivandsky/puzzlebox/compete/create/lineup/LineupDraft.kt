@@ -30,8 +30,11 @@ internal data class LineupDraft(val entries: List<LineupEntry>) {
         return copy(entries = entries.toMutableList().apply { add(to, removeAt(from)) })
     }
 
-    /** Every row is today's puzzle of its game: the rows of the Daily duel, which neither Add nor a change may touch. */
-    val isToday: Boolean get() = entries.isNotEmpty() && entries.all { it is ExactPuzzle && it.ref is LegRef.Daily && it.source == PuzzleSource.PastDay }
+    /** Every row is the puzzle [available] says is today's for its game: the rows of the Daily duel, which neither Add nor a change may touch. */
+    fun isToday(available: List<DuelGame>): Boolean = entries.isNotEmpty() && entries.all { entry ->
+        val ref = (entry as? ExactPuzzle)?.ref as? LegRef.Daily ?: return@all false
+        available.any { it.id == ref.gameId && it.todayDay == ref.day && it.todayNumber == ref.number }
+    }
 
     companion object {
         const val MIN_ENTRIES = 1

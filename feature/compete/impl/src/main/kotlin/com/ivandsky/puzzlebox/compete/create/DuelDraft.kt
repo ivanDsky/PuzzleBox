@@ -83,7 +83,7 @@ internal data class DuelDraft(
     fun customized(): DuelDraft = copy(preset = DuelPreset.Custom, todayOnly = false)
 
     /** Daily with today's puzzles as lineup rows (DuelLineup on), which take the place of its game chips. */
-    fun showsRows(lineup: LineupEditor?): Boolean = preset == DuelPreset.Daily && lineup?.draft?.isToday == true
+    fun showsRows(lineup: LineupEditor?, available: List<DuelGame>): Boolean = preset == DuelPreset.Daily && lineup?.draft?.isToday(available) == true
 
     /** Quick leaves its preset on the first edit; the Daily duel stays today-only whatever else changes. */
     private fun edited(): DuelDraft = if (preset == DuelPreset.Quick) copy(preset = DuelPreset.Custom) else this

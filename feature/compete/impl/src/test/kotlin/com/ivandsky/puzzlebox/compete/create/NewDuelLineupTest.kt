@@ -20,6 +20,7 @@ import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.lineup.AnyGame
 import com.ivandsky.puzzlebox.domain.lineup.ExactPuzzle
+import com.ivandsky.puzzlebox.domain.lineup.LineupEntry
 import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
@@ -198,7 +199,7 @@ class NewDuelLineupTest {
 
         assertEquals(DuelPreset.Daily, vm.state.value.draft.preset)
         assertEquals(listOf(today(alpha), today(beta)), vm.state.value.lineup!!.draft.entries)
-        assertTrue(vm.state.value.draft.showsRows(vm.state.value.lineup))
+        assertTrue(vm.state.value.draft.showsRows(vm.state.value.lineup, vm.state.value.games))
 
         vm.editLineup { it.remove(0) }
         assertEquals(listOf(today(beta)), vm.state.value.lineup!!.draft.entries)
@@ -213,6 +214,23 @@ class NewDuelLineupTest {
         vm.chooseDaily()
         assertEquals(DuelPreset.Daily, vm.state.value.draft.preset)
         assertEquals(listOf(today(alpha), today(beta)), vm.state.value.lineup!!.draft.entries)
+    }
+
+    @Test
+    fun `a Daily puzzle of an earlier day is not today's, so Daily replaces its rows instead of keeping them`() = runTest {
+        val vm = started()
+        val old = today(alpha).copy(ref = LegRef.Daily(alpha, today.minusDays(1), 5), title = "Alpha #5")
+        vm.chooseCustom()
+        vm.editLineup { it.openChange(0) }
+        vm.editLineup { it.pick(old) }
+        vm.editLineup { it.remove(2) }
+        vm.editLineup { it.remove(1) }
+        assertEquals(listOf<LineupEntry>(old), vm.state.value.lineup!!.draft.entries)
+
+        vm.chooseDaily()
+
+        assertEquals(listOf(today(alpha), today(beta)), vm.state.value.lineup!!.draft.entries)
+        assertTrue(vm.state.value.draft.showsRows(vm.state.value.lineup, vm.state.value.games))
     }
 
     @Test

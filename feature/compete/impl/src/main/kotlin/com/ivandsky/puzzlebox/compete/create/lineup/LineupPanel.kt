@@ -105,7 +105,7 @@ internal fun LineupPanel(
                         },
                         onCancel = { drag = null },
                     ),
-                    onClick = { if (!fixed) edit { it.openChange(index) } },
+                    onClick = if (fixed) null else ({ edit { it.openChange(index) } }),
                     onRemove = { edit { it.remove(index) } },
                     modifier = placed,
                 )
