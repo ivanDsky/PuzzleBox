@@ -27,7 +27,7 @@ internal class ResultShare(private val enabled: Boolean, private val slot: PlayS
     }
 
     private companion object {
-        // Strands' replay marks only plain words and hints, so its strip would be a row of green. A named set, no seam.
+        // Leaving Strands out is a product choice (spec A4), not missing data: its replay marks hints too.
         val WithoutStrip = setOf(GameId("strands"))
     }
 }
