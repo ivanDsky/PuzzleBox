@@ -5,16 +5,32 @@ import org.junit.Assert.assertFalse
 import org.junit.Test
 
 /**
- * The share line (spec A17) carries only the puzzle, the time and the hints: no link and
- * nothing about the board, so a shared result never spoils the puzzle.
+ * The share text's header carries only the puzzle, the time and the hints; the optional strip and link are extra
+ * lines, so a shared result never shows the board.
  */
 class ResultShareTextTest {
 
     private val daily = resultShareText("Queens", 918, 58_000, 0)
 
     @Test
-    fun `the share text carries no link`() {
+    fun `without a link or strip the text is today's header byte for byte`() {
+        assertEquals("PuzzleBox Zip #608 · 3:03 · 1 hint", resultShareText("Zip", 608, 183_000, 1))
+        assertEquals("PuzzleBox Zip #608 · 3:03 · 1 hint", resultShareText("Zip", 608, 183_000, 1, link = null, strip = null))
+    }
+
+    @Test
+    fun `the header has no link`() {
         listOf("http", "://", "www.").forEach { assertFalse("no $it in \"$daily\"", daily.contains(it)) }
+    }
+
+    @Test
+    fun `a strip adds a second line and a link adds the last line`() {
+        val header = "PuzzleBox Zip #608 · 3:03 · 1 hint"
+        val strip = "🟥⬜⬜⬜⬜⬜⬜⬜⬜⬜"
+        val link = "https://puzzlebox-f3356.web.app/p/zip/2026-11-18"
+        assertEquals("$header\n$strip", resultShareText("Zip", 608, 183_000, 1, strip = strip))
+        assertEquals("$header\n$link", resultShareText("Zip", 608, 183_000, 1, link = link))
+        assertEquals("$header\n$strip\n$link", resultShareText("Zip", 608, 183_000, 1, link = link, strip = strip))
     }
 
     @Test
