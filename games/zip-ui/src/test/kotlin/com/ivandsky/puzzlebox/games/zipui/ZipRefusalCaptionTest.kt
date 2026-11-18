@@ -10,11 +10,9 @@ import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.DragEvent
 import com.ivandsky.puzzlebox.gameui.GridCell
-import com.ivandsky.puzzlebox.gameui.LocalPlayTuning
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
-import com.ivandsky.puzzlebox.gameui.PlayTuning
 import java.time.LocalDate
 import kotlin.math.abs
 import kotlinx.coroutines.CoroutineScope
@@ -53,9 +51,7 @@ class ZipRefusalCaptionTest {
         val controller = refusedController()
         composeRule.setContent {
             PuzzleBoxTheme {
-                CompositionLocalProvider(LocalPlayTuning provides PlayTuning.Starting) {
-                    ZipPlayScreen(controller, PlayBoardStatus.Ready, PlayLayout.SinglePane, null, {}, { _, _ -> })
-                }
+                ZipPlayScreen(controller, PlayBoardStatus.Ready, PlayLayout.SinglePane, null, {}, { _, _ -> })
             }
         }
         composeRule.waitForIdle()

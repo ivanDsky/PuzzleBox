@@ -3,19 +3,15 @@ package com.ivandsky.puzzlebox.games.strandsui
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.gameui.Adopt
-import com.ivandsky.puzzlebox.gameui.LandscapeControls
-import com.ivandsky.puzzlebox.gameui.LocalPlayTuning
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
-import com.ivandsky.puzzlebox.gameui.PlayTuning
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
@@ -27,9 +23,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-// nav-rethink B5: under a non-null PlayTuning Strands' Hint sits under the board at the shared
-// control row's Hint slot, the board holds its cap and its 48dp cell floor, and the landscape
-// side column stacks the counter over Hint. Mdpi windows, so a dp is a pixel.
+// nav-rethink B5: Strands' Hint sits under the board at the shared control row's Hint slot, the
+// board holds its cap and its 48dp cell floor, and the landscape side column stacks the counter over Hint. Mdpi windows, so a dp is a pixel.
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w360dp-h800dp-mdpi")
@@ -42,21 +37,19 @@ class StrandsTunedLayoutTest {
         PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {}),
     ).also { assertEquals(Adopt.Adopted, it.adoptToday(RealDay.fetched.puzzle, RealDay.fetched.ref)) }
 
-    private fun show(layout: PlayLayout, tuning: PlayTuning? = PlayTuning.Starting) {
+    private fun show(layout: PlayLayout) {
         val controller = adopted()
         composeRule.setContent {
-            CompositionLocalProvider(LocalPlayTuning provides tuning) {
-                PuzzleBoxTheme(darkTheme = false) {
-                    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                        StrandsPlayScreen(
-                            controller = controller,
-                            status = PlayBoardStatus.Ready,
-                            layout = layout,
-                            sidePanel = null,
-                            onRetry = {},
-                            onSolved = { _, _ -> },
-                        )
-                    }
+            PuzzleBoxTheme(darkTheme = false) {
+                Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    StrandsPlayScreen(
+                        controller = controller,
+                        status = PlayBoardStatus.Ready,
+                        layout = layout,
+                        sidePanel = null,
+                        onRetry = {},
+                        onSolved = { _, _ -> },
+                    )
                 }
             }
         }
@@ -89,23 +82,12 @@ class StrandsTunedLayoutTest {
 
     @Test
     @Config(qualifiers = "w800dp-h1280dp-mdpi")
-    fun `tablet portrait - the board holds the 552dp cap and Hint stays under it`() {
+    fun `tablet portrait - the board holds the 6 column cell cap and Hint stays under it`() {
         show(PlayLayout.SinglePane)
 
         val board = rect("strands.board")
         val hint = rect("strands.hint")
-        assertTrue("board ${board.width} over the 552dp cap", board.width <= 552f + 1f)
-        assertTrue("hint $hint under board $board", hint.top >= board.bottom - 1f)
-        assertTrue("hint $hint inside board $board", hint.left >= board.left - 1f && hint.right <= board.right + 1f)
-    }
-
-    @Test
-    @Config(qualifiers = "w1280dp-h800dp-mdpi")
-    fun `tablet landscape - the row sits under the board in the scaffold's action slot`() {
-        show(PlayLayout.TwoPane)
-
-        val board = rect("strands.board")
-        val hint = rect("strands.hint")
+        assertTrue("board ${board.width} over the 576dp cap (6 cells of 96dp)", board.width <= 576f + 1f)
         assertTrue("hint $hint under board $board", hint.top >= board.bottom - 1f)
         assertTrue("hint $hint inside board $board", hint.left >= board.left - 1f && hint.right <= board.right + 1f)
     }
@@ -113,20 +95,12 @@ class StrandsTunedLayoutTest {
     @Test
     @Config(qualifiers = "w1280dp-h800dp-mdpi")
     fun `tablet landscape side column - the counter stacks over Hint beside the board`() {
-        show(PlayLayout.TwoPane, PlayTuning.Starting.copy(landscapeControls = LandscapeControls.SideColumn))
+        show(PlayLayout.TwoPane)
 
         val board = rect("strands.board")
         val counter = rect("strands.counter")
         val hint = rect("strands.hint")
         assertTrue("hint $hint right of board $board", hint.left >= board.right - 1f)
         assertTrue("counter $counter over hint $hint", counter.bottom <= hint.top + 1f)
-    }
-
-    @Test
-    fun `without a tuning the legacy hint row stays and the shared row is not there`() {
-        show(PlayLayout.SinglePane, tuning = null)
-
-        composeRule.onNodeWithTag("strands.hint_row", useUnmergedTree = true).assertExists()
-        composeRule.onNodeWithTag("play.action_bar", useUnmergedTree = true).assertDoesNotExist()
     }
 }

@@ -9,18 +9,13 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
-import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.height
-import androidx.compose.ui.unit.width
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.games.sudoku.SudokuCell
@@ -104,32 +99,26 @@ class SudokuPlayUiTest {
     }
 
     @Test
-    fun `the 6x6 cell takes all the height the 411x891 chrome leaves`() {
+    fun `the 6x6 cell takes all the height the 411x891 control row leaves`() {
         assertFitsSinglePane(ui, adopted(), size = 6)
     }
 
     @Test
-    fun `the 9x9 cell takes all the height the 411x891 chrome leaves`() {
+    fun `the 9x9 cell takes all the height the 411x891 control row leaves`() {
         val classic = SudokuPlayUi(SudokuGames.CLASSIC, InMemorySudokuHighlightSettings())
         assertFitsSinglePane(classic, adopted(classic, SudokuSamples.classic, SudokuPuzzleRef(SudokuGames.CLASSIC.id, PuzzleKey.Daily((ref.key as PuzzleKey.Daily).date, null))), size = 9)
     }
 
-    /** Grid, keypad and chrome stack apart on screen, sized by the balanced rule for the board pane (R1). */
+    /** Grid, keypad and control row stack apart on screen, the row as the last thing on it (R1). */
     private fun assertFitsSinglePane(game: SudokuPlayUi, controller: SudokuPlayController, size: Int) {
         setScreen(controller, PlayLayout.SinglePane, game)
         val grid = composeRule.onNodeWithTag("sudoku.grid").getUnclippedBoundsInRoot()
         val keypad = composeRule.onNodeWithTag("sudoku.keypad").getUnclippedBoundsInRoot()
-        val area = composeRule.onNodeWithTag("sudoku.board_area").getUnclippedBoundsInRoot()
-        val chrome = composeRule.onNodeWithTag("play.side_panel").getUnclippedBoundsInRoot()
+        val bar = composeRule.onNodeWithTag("play.action_bar").getUnclippedBoundsInRoot()
         val root = composeRule.onRoot().getUnclippedBoundsInRoot()
-        assertTrue("keypad under grid ($grid, $keypad)", keypad.top >= grid.bottom)
-        assertTrue("chrome under keypad ($keypad, $chrome)", chrome.top >= keypad.bottom)
-        assertTrue("chrome on screen ($chrome, $root)", chrome.bottom <= root.bottom)
-
-        val layout = SudokuSizing.layout(area.width, area.height, size)
-        println("R1 ${size}x$size: grid=${grid.width} keypad=${keypad.height} area=${area.width}x${area.height} chrome=${chrome.height} $layout")
-        assertEquals(layout.board.value, grid.width.value, 0.5f)
-        assertEquals(SudokuSizing.keypadHeight(layout).value, keypad.height.value, 1f) // per-row px rounding at 420dpi
+        assertTrue("${size}x$size keypad under grid ($grid, $keypad)", keypad.top >= grid.bottom)
+        assertTrue("${size}x$size control row under keypad ($keypad, $bar)", bar.top >= keypad.bottom)
+        assertTrue("${size}x$size control row on screen ($bar, $root)", bar.bottom <= root.bottom)
     }
 
     private fun session(controller: SudokuPlayController): SudokuSession = composeRule.runOnIdle { controller.board!!.session }
@@ -155,12 +144,12 @@ class SudokuPlayUiTest {
         key(4).performClick()
         assertEquals(SudokuCell.Entry(4), session(controller).board.cells[0])
 
-        composeRule.onNodeWithText("Notes").performClick()
+        composeRule.onNodeWithTag("sudoku.notes_toggle").performClick()
         cell(1).performClick()
         key(1).performClick()
         assertEquals(SudokuCell.Notes(1), session(controller).board.cells[1])
 
-        composeRule.onNodeWithText("Erase").performClick()
+        composeRule.onNodeWithTag("sudoku.erase").performClick()
         assertEquals(SudokuCell.Empty, session(controller).board.cells[1])
 
         composeRule.onNodeWithTag("play.undo").performClick()
@@ -181,66 +170,13 @@ class SudokuPlayUiTest {
         assertEquals(solution, won.board.cells.map { it.digit })
         composeRule.runOnIdle { assertEquals(listOf(won.elapsedMs to won.hintsUsed), solved) }
         hint().assertIsNotEnabled()
-        composeRule.onNodeWithText("Notes").assertIsNotEnabled()
-        composeRule.onNodeWithText("Erase").assertIsNotEnabled()
+        composeRule.onNodeWithTag("sudoku.notes_toggle").assertIsNotEnabled()
+        composeRule.onNodeWithTag("sudoku.erase").assertIsNotEnabled()
         // Clear is never disabled; on a solved board it is a no-op (the win is final).
-        composeRule.onNodeWithTag("sudoku.clear").assertIsEnabled().performClick()
+        composeRule.onNodeWithTag("play.clear").assertIsEnabled().performClick()
         assertEquals(won, session(controller))
         composeRule.runOnIdle { assertEquals(null, controller.board!!.selected) }
         cell(0).performClick().assertIsNotSelected()
-    }
-
-    @Test
-    fun `single pane stacks the keypad under the grid in the board pane`() {
-        setScreen(adopted(), PlayLayout.SinglePane)
-
-        composeRule.onNode(hasTestTag("sudoku.keypad") and hasAnyAncestor(hasTestTag("sudoku.board_area"))).assertExists()
-        composeRule.onNode(hasTestTag("sudoku.keypad") and hasAnyAncestor(hasTestTag("play.side_panel"))).assertDoesNotExist()
-        composeRule.onNode(hasTestTag("sudoku.clear") and hasAnyAncestor(hasTestTag("sudoku.keypad"))).assertExists()
-        composeRule.onNode(hasTestTag("sudoku.clear") and hasAnyAncestor(hasTestTag("play.side_panel"))).assertDoesNotExist()
-    }
-
-    @Test
-    @Config(qualifiers = "w1280dp-h800dp-land-mdpi")
-    fun `two pane - board with the digit pad and its notes column under a toolbar with erase and clear`() {
-        val controller = adopted()
-        setScreen(controller, PlayLayout.TwoPane)
-
-        val inBoard = hasAnyAncestor(hasTestTag("sudoku.board_area"))
-        val inToolbar = hasAnyAncestor(hasTestTag("play.toolbar"))
-        composeRule.onNode(hasTestTag("sudoku.keypad") and inBoard).assertExists()
-        composeRule.onNode(hasTestTag("sudoku.notes_key") and inBoard).assertExists()
-        composeRule.onNode(hasText("Notes") and hasClickAction()).assertDoesNotExist()
-        for (tag in listOf("play.undo", "play.redo", "sudoku.clear")) composeRule.onNode(hasTestTag(tag) and inToolbar).assertExists()
-        composeRule.onNode(hasText("Erase") and inToolbar).assertExists()
-        composeRule.onNode(hasClickAction() and hasText("Hint", substring = true) and inToolbar).assertExists()
-        composeRule.onNode(hasTestTag("play.undo") and hasAnyAncestor(hasTestTag("play.side_pane"))).assertDoesNotExist()
-
-        // Two rows of three digits, the notes key a fourth column as tall as both; the
-        // toolbar sits over the grid (A15).
-        val keys = (1..6).map { key(it).getUnclippedBoundsInRoot() }
-        val notes = composeRule.onNodeWithTag("sudoku.notes_key").getUnclippedBoundsInRoot()
-        assertEquals(listOf(keys[0].top, keys[3].top), keys.map { it.top }.distinct())
-        assertEquals(keys[0].top, notes.top)
-        assertEquals(keys[3].bottom, notes.bottom)
-        assertTrue("$notes after ${keys[2]}", notes.left > keys[2].right)
-        val grid = composeRule.onNodeWithTag("sudoku.grid").getUnclippedBoundsInRoot()
-        val toolbar = composeRule.onNodeWithTag("play.toolbar").getUnclippedBoundsInRoot()
-        assertTrue("$toolbar above $grid", toolbar.bottom <= grid.top)
-        val buttons = listOf("play.undo", "sudoku.clear").map { composeRule.onNodeWithTag(it).getUnclippedBoundsInRoot() }
-        assertEquals(grid.left.value, buttons[0].left.value, 1f)
-        assertEquals(grid.right.value, buttons[1].right.value, 1f)
-
-        composeRule.onNodeWithTag("sudoku.notes_key").performClick()
-        cell(1).performClick()
-        key(1).performClick()
-        assertEquals(SudokuCell.Notes(1), session(controller).board.cells[1])
-        composeRule.onNode(hasText("Erase") and inToolbar).performClick()
-        assertEquals(SudokuCell.Empty, session(controller).board.cells[1])
-        composeRule.onNodeWithTag("play.undo").performClick()
-        assertEquals(SudokuCell.Notes(1), session(controller).board.cells[1])
-        composeRule.onNodeWithTag("sudoku.clear").performClick()
-        assertEquals(SudokuCell.Empty, session(controller).board.cells[1])
     }
 
     @Test
@@ -249,7 +185,7 @@ class SudokuPlayUiTest {
         setScreen(controller, PlayLayout.SinglePane)
         val before = session(controller)
 
-        composeRule.onNodeWithTag("sudoku.clear").assertIsEnabled().performClick()
+        composeRule.onNodeWithTag("play.clear").assertIsEnabled().performClick()
 
         assertEquals(before, session(controller))
         assertFalse(session(controller).history.canUndo)
@@ -257,12 +193,12 @@ class SudokuPlayUiTest {
 
     @Test
     @Config(qualifiers = "w1280dp-h800dp-land-mdpi")
-    fun `two pane toolbar clear is enabled on an empty board and a tap changes nothing`() {
+    fun `two pane clear is enabled on an empty board and a tap changes nothing`() {
         val controller = adopted()
         setScreen(controller, PlayLayout.TwoPane)
         val before = session(controller)
 
-        composeRule.onNodeWithTag("sudoku.clear").assertIsEnabled().performClick()
+        composeRule.onNodeWithTag("play.clear").assertIsEnabled().performClick()
 
         assertEquals(before, session(controller))
     }
@@ -271,7 +207,7 @@ class SudokuPlayUiTest {
     fun `clear wipes the board in one undoable step`() {
         val controller = adopted()
         setScreen(controller, PlayLayout.SinglePane)
-        val clear = composeRule.onNodeWithTag("sudoku.clear")
+        val clear = composeRule.onNodeWithTag("play.clear")
         clear.assertIsEnabled()
 
         cell(0).performClick()

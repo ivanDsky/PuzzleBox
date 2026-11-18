@@ -47,12 +47,6 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     HintPolish(label = "Calm hint button and plain hint captions", releaseDefault = false),
 
     /**
-     * Fixed play controls and board size caps (nav-rethink B5, B6). Read only by the play-tuning source binding in the
-     * game UI DI, which holds a non-null `PlayTuning` only while this is on (spec A2).
-     */
-    BoardErgonomics(label = "Fixed play controls and board size caps", releaseDefault = true),
-
-    /**
      * Same feel in every game (spec A19): one Boolean that every play board hands its games. Read only in feature/play's DI,
      * which binds it once and provides it to the games as LocalPlayFeel (spec A2).
      */

@@ -113,11 +113,9 @@ internal fun GameBoard(
     selfLeg: SelfLeg? = null,
 ) {
     if (play == null) {
-        PlayTuningHost {
-            Column(modifier = modifier.testTag("route.game")) {
-                PlayTopBar(title = if (pastDay) PAST_DAY else "", pastDay = pastDay, onBack = onBack)
-                PlayBoardFallback(PlayBoardStatus.Unavailable(UNPLAYABLE), onRetry = {}, tagPrefix = "game")
-            }
+        Column(modifier = modifier.testTag("route.game")) {
+            PlayTopBar(title = if (pastDay) PAST_DAY else "", pastDay = pastDay, onBack = onBack)
+            PlayBoardFallback(PlayBoardStatus.Unavailable(UNPLAYABLE), onRetry = {}, tagPrefix = "game")
         }
         return
     }
@@ -139,7 +137,7 @@ internal fun GameBoard(
             onRetry = play::retry,
             onSolved = { timeMs, hintsUsed -> onSolved(play.slot, timeMs, hintsUsed) },
             overflow = overflow,
-            sidePanel = { clock, showTimer ->
+            sidePanel = {
                 // Phones never build the stats: only the two-pane side panel shows them.
                 val stats: PlayStatsViewModel? = if (layout == PlayLayout.TwoPane && selfLeg == null) {
                     koinViewModel(key = "stats:${play.slot}", parameters = { parametersOf(play.slot, linkedIn) })
@@ -148,11 +146,11 @@ internal fun GameBoard(
                 }
                 val activityContext = LocalContext.current
                 val controller = board.controller
-                remember(stats, clock, activityContext, boardStyle, showTimer, selfLeg, controller, layout) {
+                remember(stats, activityContext, boardStyle, selfLeg, controller, layout) {
                     when {
                         selfLeg != null && layout == PlayLayout.TwoPane ->
-                            legSidePanel(selfLeg, clock, { (controller as? PlayHints)?.hintsUsed ?: 0 }, showTimer)
-                        else -> stats?.let { statsPanel(it, clock, activityContext, boardStyle, showTimer) }
+                            legSidePanel(selfLeg, { (controller as? PlayHints)?.hintsUsed ?: 0 })
+                        else -> stats?.let { statsPanel(it, activityContext, boardStyle) }
                     }
                 }
             },

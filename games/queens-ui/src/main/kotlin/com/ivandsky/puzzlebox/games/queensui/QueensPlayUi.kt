@@ -184,7 +184,7 @@ private fun QueensBoard(controller: QueensPlayController, paneCap: Dp?, modifier
     val boardState = controller.board ?: return
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
         // §6 sizing policy: the board side is computed — the space given, capped by
-        // queensBoardMaxSideFor (64dp per cell on a daily, PlayBoardMaxWidth on a
+        // queensBoardMaxSideFor (64dp per cell on a daily, PhoneBoardCap on a
         // lesson), never above the pane. A two-pane board fills its pane instead (A15).
         val side = queensBoardSideFor(
             paneWidth = maxWidth,

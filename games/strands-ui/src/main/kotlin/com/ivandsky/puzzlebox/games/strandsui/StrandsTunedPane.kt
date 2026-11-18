@@ -21,7 +21,7 @@ import com.ivandsky.puzzlebox.games.strandsui.chrome.HintRowPlacement
 import com.ivandsky.puzzlebox.games.strandsui.chrome.StrandsHintRow
 
 /**
- * The board pane under a play tuning (nav-rethink B5, tablet landscape; the phone's page
+ * The board pane (nav-rethink B5, tablet landscape; the phone's page
  * keeps its own scroll and shares only the hint row): just the board, no hint row, so the
  * scaffold can put the shared controls under it. The cell is [strandsCellSizeFor] over the
  * pane (never wider than [paneCap], never under the 48 dp floor), and the board's width goes
@@ -31,7 +31,7 @@ import com.ivandsky.puzzlebox.games.strandsui.chrome.StrandsHintRow
 internal fun StrandsTunedBoardPane(
     controller: StrandsPlayController,
     status: PlayBoardStatus,
-    paneCap: Dp?,
+    paneCap: Dp,
     onRetry: () -> Unit,
     onBoardWidth: (Dp) -> Unit,
 ) {
@@ -41,7 +41,7 @@ internal fun StrandsTunedBoardPane(
             PlayBoardFallback(status, onRetry, tagPrefix = "strands")
         } else {
             BoxWithConstraints(Modifier.fillMaxWidth()) {
-                val cell = strandsCellSizeFor(minOf(maxWidth, paneCap ?: maxWidth), maxHeight, model.rows, model.cols)
+                val cell = strandsCellSizeFor(minOf(maxWidth, paneCap), maxHeight, model.rows, model.cols)
                 val boardWidth = cell * model.cols
                 SideEffect { onBoardWidth(boardWidth) }
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {

@@ -44,7 +44,7 @@ abstract class SandboxPlayGoldenScreenshots(private val device: String, private 
     @Before
     fun bind() {
         stopKoin() // tests share the JVM-global Koin context
-        startKoin { modules(module {}) } // no tuning source: today's layout
+        startKoin { modules(module {}) }
     }
 
     @After

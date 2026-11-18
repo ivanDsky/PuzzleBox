@@ -13,10 +13,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
@@ -29,7 +25,6 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardStyle
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
@@ -37,20 +32,16 @@ import com.ivandsky.puzzlebox.play.board.BoardSignIn
 private const val NONE = "—"
 
 /**
- * The tablet play side panel (A15, prototype 05 · B Stats), top to bottom: the large live
- * timer, today's progress across the daily set, then today's times on its board ([PlayTimesCard]).
- * [elapsedMs] is read in [PanelTimer], so a tick recomposes only the timer, once per shown second;
- * null (no running board) reads 0:00. Loading values show dashes in the same slots, so nothing moves when data lands.
+ * The tablet play side panel (A15, prototype 05 · B Stats), top to bottom: today's progress across the
+ * daily set, then today's times on its board ([PlayTimesCard]). The timer is in the top bar.
+ * Loading values show dashes in the same slots, so nothing moves when data lands.
  * It scrolls when the pane is shorter than the panel. [boardStyle] is the times card's. The streak is on Today.
- * With a play tuning the timer is in the top bar, so [showTimer] is false and the panel draws no timer.
  */
 @Composable
 internal fun ColumnScope.PlayStatsPanel(
     state: PlayStatsState,
-    elapsedMs: () -> Long?,
     signIn: BoardSignIn,
     onSignIn: () -> Unit,
-    showTimer: Boolean = true,
     boardStyle: DailyBoardStyle = DailyBoardStyle.defaults(),
 ) {
     Column(
@@ -63,34 +54,11 @@ internal fun ColumnScope.PlayStatsPanel(
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (showTimer) {
-                PanelTimer(elapsedMs)
-            }
         }
         TodayProgressCard(state)
         PlayTimesCard(state.times, signIn = signIn, onSignIn = onSignIn, animated = state.linkedIn, boardStyle = boardStyle)
     }
 }
-
-/**
- * The panel's timer label, which reads the whole second: the 200 ms shared tick recomposes it
- * only when the shown second changes, as the phone timer does.
- */
-@Composable
-private fun PanelTimer(elapsedMs: () -> Long?) {
-    val shownSecond by remember(elapsedMs) { derivedStateOf { (elapsedMs() ?: 0L) / 1000L } }
-    LocalPanelTimerComposed.current()
-    Text(
-        formatDuration(shownSecond * 1000L),
-        style = MaterialTheme.typography.displayLarge.tabular(),
-        fontWeight = FontWeight.Bold,
-        maxLines = 1,
-        modifier = Modifier.testTag("play.stats.timer"),
-    )
-}
-
-/** Counts the panel timer's recompositions in tests; a no-op in the app. */
-internal val LocalPanelTimerComposed = staticCompositionLocalOf<() -> Unit> { {} }
 
 @Composable
 private fun TodayProgressCard(state: PlayStatsState) {

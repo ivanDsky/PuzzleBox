@@ -65,7 +65,7 @@ object QueensBoardDefaults {
 
     // §6 upper bound: cell visual size caps at 64dp; larger panes pad instead. The cap
     // holds from 5 cells per side (every daily, A9); a smaller lesson board fills its
-    // pane up to the shared PlayBoardMaxWidth, like Tango's and Zip's (queensBoardMaxSideFor).
+    // pane up to the shared PhoneBoardCap, like Tango's and Zip's (queensBoardMaxSideFor).
     val cellMaxSize: Dp = 64.dp
     const val perCellCapFromCells: Int = 5
 

@@ -17,12 +17,9 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzleRef
 import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuCodec
 import com.ivandsky.puzzlebox.gameui.Adopt
-import com.ivandsky.puzzlebox.gameui.LandscapeControls
-import com.ivandsky.puzzlebox.gameui.LocalPlayTuning
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
-import com.ivandsky.puzzlebox.gameui.PlayTuning
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.io.File
 import java.time.Instant
@@ -38,12 +35,11 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Goldens of the Mini Sudoku play screen under [PlayTuning.Starting] (nav-rethink B5), light and
- * dark: a phone, a portrait tablet and a landscape tablet, plain and in notes mode (the italic
- * pencil digits), and the landscape tablet with the controls in a side column (Erase there).
- * The shared control row (Undo, Redo, Hint, Clear) sits under the keypad; Clear is no longer in
- * the keypad, whose digits have a strip above them with the corner Notes toggle and Erase.
- * Null-tuning goldens stay in SudokuGoldenScreenshots, untouched. Recorded with `-Proborazzi.record=true`,
+ * Goldens of the Mini Sudoku play screen (nav-rethink B5), light and dark: a phone, a portrait
+ * tablet and a landscape tablet (the controls in a side column, Erase there), plain and in notes
+ * mode (the italic pencil digits). The shared control row (Undo, Redo, Hint, Clear) sits under
+ * the keypad; Clear is not in the keypad, whose digits have a strip above them with the corner
+ * Notes toggle and Erase. Recorded with `-Proborazzi.record=true`,
  * verified with `-Proborazzi.verify=true`; files in `games/sudoku-ui/snapshots/`.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -54,26 +50,16 @@ class SudokuTunedGoldenPhoneTest : SudokuTunedGoldenScenes("tuned-phone")
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w800dp-h1280dp-mdpi")
-class SudokuTunedGoldenTabletPortraitTest : SudokuTunedGoldenScenes("tuned-tablet-portrait")
+class SudokuTunedGoldenTabletPortraitTest : SudokuTunedGoldenScenes("shipped-tablet-portrait")
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w1280dp-h800dp-land-mdpi")
-class SudokuTunedGoldenTabletLandscapeTest : SudokuTunedGoldenScenes("tuned-tablet-landscape", PlayLayout.TwoPane)
-
-@RunWith(RobolectricTestRunner::class)
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = "w1280dp-h800dp-land-mdpi")
-class SudokuTunedGoldenTabletSideColumnTest : SudokuTunedGoldenScenes(
-    "tuned-tablet-landscape-side",
-    PlayLayout.TwoPane,
-    PlayTuning.Starting.copy(landscapeControls = LandscapeControls.SideColumn),
-)
+class SudokuTunedGoldenTabletLandscapeTest : SudokuTunedGoldenScenes("shipped-tablet-landscape", PlayLayout.TwoPane)
 
 abstract class SudokuTunedGoldenScenes(
     private val label: String,
     private val layout: PlayLayout = PlayLayout.SinglePane,
-    private val tuning: PlayTuning = PlayTuning.Starting,
 ) {
 
     @get:Rule
@@ -123,7 +109,7 @@ abstract class SudokuTunedGoldenScenes(
                 uiMode = (uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or
                     if (dark) Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO
             }
-            CompositionLocalProvider(LocalConfiguration provides config, LocalPlayTuning provides tuning) {
+            CompositionLocalProvider(LocalConfiguration provides config) {
                 PuzzleBoxTheme(darkTheme = dark) {
                     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                         ui.Screen(

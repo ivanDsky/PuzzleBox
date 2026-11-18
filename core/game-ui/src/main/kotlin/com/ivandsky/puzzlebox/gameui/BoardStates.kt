@@ -26,7 +26,7 @@ fun BoardLoading(
 ) {
     Box(
         modifier = modifier
-            .widthIn(max = PlayBoardMaxWidth)
+            .widthIn(max = PhoneBoardCap)
             .fillMaxWidth()
             .aspectRatio(1f)
             .skeleton(MaterialTheme.colorScheme.surfaceContainer, MaterialTheme.shapes.medium)

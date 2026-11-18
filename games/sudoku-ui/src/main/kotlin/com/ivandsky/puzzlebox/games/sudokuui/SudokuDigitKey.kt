@@ -73,7 +73,7 @@ private val MORPH_EASING = CubicBezierEasing(0.23f, 1f, 0.32f, 1f)
 private val MORPH_BLUR = 2.dp
 private const val MORPH_ALPHA_DIP = 0.45f
 
-// The pencil look (under a play tuning): the digit stays large and centred, and in notes mode
+// The pencil look (play screen): the digit stays large and centred, and in notes mode
 // swaps to an italic face mid-way through a dip, so each key "writes" itself in pencil. The
 // dip is milder than the slot morph's, and the face flips as the digit is faintest.
 private const val PENCIL_ALPHA_DIP = 0.55f
@@ -94,7 +94,7 @@ private const val SLOT_SCALE_MAX = 0.62f
  * a cell (slot `d - 1` of the box-shaped notes grid), a look no board tint shares (V7).
  * The morph runs on a graphics layer (no remeasure), [staggerOrder] keys after the one
  * nearest the notes toggle; a new toggle retargets the running one. Reduced motion snaps.
- * With [pencilLook] (a play tuning is set) the digit keeps its large centred place in both
+ * With [pencilLook] (play screen) the digit keeps its large centred place in both
  * modes instead; notes mode swaps it to an italic face (a synthetic oblique of Baloo 2) in the
  * notes ink, through the same staggered morph, and the count stays under it.
  */

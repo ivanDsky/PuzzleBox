@@ -44,25 +44,25 @@ private val Loading = Loaded.copy(
 )
 
 @Composable
-private fun PanelPreview(state: PlayStatsState, elapsedMs: Long?) {
+private fun PanelPreview(state: PlayStatsState) {
     PuzzleBoxTheme {
         Column(Modifier.width(PreviewPaneWidth).background(MaterialTheme.colorScheme.surface).padding(Spacing.lg)) {
-            PlayStatsPanel(state, elapsedMs = { elapsedMs }, signIn = BoardSignIn.Idle, onSignIn = {})
+            PlayStatsPanel(state, signIn = BoardSignIn.Idle, onSignIn = {})
         }
     }
 }
 
 @PuzzleBoxPreviews
 @Composable
-internal fun PlayStatsPanelLoadedPreview() = PanelPreview(Loaded, elapsedMs = 31_000L)
+internal fun PlayStatsPanelLoadedPreview() = PanelPreview(Loaded)
 
 @PuzzleBoxPreviews
 @Composable
-internal fun PlayStatsPanelLoadingPreview() = PanelPreview(Loading, elapsedMs = null)
+internal fun PlayStatsPanelLoadingPreview() = PanelPreview(Loading)
 
 @PuzzleBoxPreviews
 @Composable
-internal fun PlayStatsPanelSignedOutPreview() = PanelPreview(Loaded.copy(times = PlayTimes.SignedOut), elapsedMs = 31_000L)
+internal fun PlayStatsPanelSignedOutPreview() = PanelPreview(Loaded.copy(times = PlayTimes.SignedOut))
 
 private val OthersOnly = (Loaded.times as PlayTimes.Board).rows.map { line ->
     if (line is DailyBoardLine.Real) line.copy(row = line.row.copy(isSelf = false)) else line
@@ -72,7 +72,6 @@ private val OthersOnly = (Loaded.times as PlayTimes.Board).rows.map { line ->
 @Composable
 internal fun PlayStatsPanelNotPostedPreview() = PanelPreview(
     Loaded.copy(times = PlayTimes.Board(OthersOnly, solved = false)),
-    elapsedMs = 95_000L,
 )
 
 /** Solved, own time not on the board yet: the times card reads "Posting your time…". */
@@ -80,13 +79,12 @@ internal fun PlayStatsPanelNotPostedPreview() = PanelPreview(
 @Composable
 internal fun PlayStatsPanelPostingPreview() = PanelPreview(
     Loaded.copy(times = PlayTimes.Board(OthersOnly, solved = true)),
-    elapsedMs = 95_000L,
 )
 
 @PuzzleBoxPreviews
 @Composable
 internal fun PlayStatsPanelEmptyBoardPreview() =
-    PanelPreview(Loaded.copy(times = PlayTimes.Board(emptyList(), solved = false)), elapsedMs = 4_000L)
+    PanelPreview(Loaded.copy(times = PlayTimes.Board(emptyList(), solved = false)))
 
 /** LinkedIn connected: connections' times rank in among the PuzzleBox times, outlined and marked. */
 @PuzzleBoxPreviews
@@ -104,7 +102,6 @@ internal fun PlayStatsPanelConnectionsPreview() = PanelPreview(
             solved = true,
         ),
     ),
-    elapsedMs = 31_000L,
 )
 
 /** Per-game board on, hints-first game: rows lead with hints and the label names the rule. */
@@ -119,7 +116,6 @@ internal fun PlayStatsPanelHintsFirstPreview() = PanelPreview(
             )
         },
     ),
-    elapsedMs = 31_000L,
 )
 
 /** Per-game board on, own post deferred: the times card reads the saved-offline note. */
@@ -134,7 +130,6 @@ internal fun PlayStatsPanelDeferredPreview() = PanelPreview(
             post = SubmitStatus.Deferred,
         ),
     ),
-    elapsedMs = 95_000L,
 )
 
 /** Per-game board on, own post rejected: the times card reads the failure note. */
@@ -149,5 +144,4 @@ internal fun PlayStatsPanelRejectedPreview() = PanelPreview(
             post = SubmitStatus.Rejected,
         ),
     ),
-    elapsedMs = 95_000L,
 )

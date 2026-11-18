@@ -16,8 +16,8 @@ import com.ivandsky.puzzlebox.gameui.PlayClear
 private val ControlRowMinWidth: Dp = SudokuSizing.keyMin * 4 + SudokuSizing.keyGap * 3
 
 /**
- * The shared Undo · Redo · Hint · Clear under a play tuning (nav-rethink B5), the only place
- * Sudoku's Clear is now. The scaffold hands the row the board cap's width, but the grid and
+ * The shared Undo · Redo · Hint · Clear under the board (nav-rethink B5), the only place
+ * Sudoku's Clear is. The scaffold hands the row the board cap's width, but the grid and
  * keypad above it can be narrower (a short pane shrinks the grid), so the row follows
  * [gridWidth] (null until the first layout: as wide as the pane gives), never under
  * [ControlRowMinWidth]. [beside] puts the same buttons in the column the scaffold stacks

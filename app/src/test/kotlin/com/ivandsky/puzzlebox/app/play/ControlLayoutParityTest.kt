@@ -59,11 +59,8 @@ import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zip.zipPlugin
 import com.ivandsky.puzzlebox.games.zipui.ZipPlayUi
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
-import com.ivandsky.puzzlebox.gameui.LandscapeControls
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayLayout
-import com.ivandsky.puzzlebox.gameui.PlayTuning
-import com.ivandsky.puzzlebox.gameui.PlayTuningSource
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
@@ -97,7 +94,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -116,10 +112,10 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The fixed control layout is one layout (nav-rethink B5): with a play tuning set, all five real games
+ * The fixed control layout is one layout (nav-rethink B5): all five real games
  * (Zip, Tango, Queens, Mini Sudoku, Strands) are opened in turn on the same Play stack and agree on where
  * their controls sit. Under the board a control row holds Undo, Redo, Hint and Clear left to right, as wide
- * as the board; in a landscape side column the same buttons stack top to bottom beside it. The timer sits
+ * as the board; on a landscape tablet the same buttons stack top to bottom in a column beside it. The timer sits
  * above the board, left of the top bar's buttons, at one place in every game. Strands has no Undo, Redo or
  * Clear: its counter takes their slots and its Hint the Hint slot. Mdpi windows, so a dp is a pixel.
  */
@@ -137,8 +133,6 @@ class ControlLayoutParityTest {
     private val games = listOf(ZipDefinition.id, TangoDefinition.id, QueensDefinition.id, SudokuGames.MINI.id, StrandsDefinition.id)
 
     private val navigator = Navigator(NavigationState(tab = PlayKey, stacks = listOf(listOf(PlayKey, GameKey(games.first().value)))))
-
-    private val tuning = MutableStateFlow<PlayTuning?>(null)
 
     private var koin: KoinApplication? = null
 
@@ -176,7 +170,6 @@ class ControlLayoutParityTest {
                     single<GameCalendar> { FakeGameCalendar(cadenceToday) }
                     // Every tutorial seen: the boards draw straight away.
                     single<UserPreferencesRepository> { FakeUserPreferencesRepository(seen = games.toSet()) }
-                    single<PlayTuningSource> { object : PlayTuningSource { override val tuning = this@ControlLayoutParityTest.tuning } }
                     single<GoogleIdTokenProvider> { CancelledGoogleIdTokenProvider }
                     single<LeaderboardRepository> { FakeLeaderboardRepository(emptyMap()) }
                     single<LinkedInDays> { FakeLinkedInDays() }
@@ -198,28 +191,18 @@ class ControlLayoutParityTest {
     @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w360dp-h800dp")
     @Test
     fun `controls sit under the board in the same slots in every game on a phone`() {
-        tuning.value = PlayTuning.Starting
         eachGame(DpSize(360.dp, 800.dp), PlayLayout.SinglePane) { assertRowUnderBoard(it) }
     }
 
     @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w800dp-h1280dp")
     @Test
     fun `controls sit under the board in the same slots in every game on a tablet in portrait`() {
-        tuning.value = PlayTuning.Starting
         eachGame(DpSize(800.dp, 1280.dp), PlayLayout.SinglePane) { assertRowUnderBoard(it) }
     }
 
     @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w1280dp-h800dp")
     @Test
-    fun `controls sit under the board in the same slots in every game on a tablet in landscape`() {
-        tuning.value = PlayTuning.Starting
-        eachGame(DpSize(1280.dp, 800.dp), PlayLayout.TwoPane) { assertRowUnderBoard(it) }
-    }
-
-    @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w1280dp-h800dp")
-    @Test
-    fun `controls stack beside the board in the same order in every game on a tablet in landscape with a side column`() {
-        tuning.value = PlayTuning.Starting.copy(landscapeControls = LandscapeControls.SideColumn)
+    fun `controls stack beside the board in the same order in every game on a tablet in landscape`() {
         eachGame(DpSize(1280.dp, 800.dp), PlayLayout.TwoPane) { game ->
             val board = rect(game, boardTag(game))
             val hint = rect(game, hintTag(game))
@@ -242,7 +225,6 @@ class ControlLayoutParityTest {
     @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w360dp-h800dp")
     @Test
     fun `the timer and the overflow button are at one place in every game`() {
-        tuning.value = PlayTuning.Starting
         val timers = mutableListOf<Rect>()
         val helps = mutableListOf<Rect>()
         val overflows = mutableListOf<Rect>() // only the games with settings to put behind it (Queens' Auto-cross)

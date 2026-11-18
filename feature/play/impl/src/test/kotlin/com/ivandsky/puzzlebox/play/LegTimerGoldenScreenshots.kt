@@ -57,7 +57,7 @@ abstract class LegTimerGoldenScreenshots(private val device: String, private val
     @Before
     fun bind() {
         stopKoin() // tests share the JVM-global Koin context
-        startKoin { modules(module {}) } // no tuning source: the bar holds the timer on a phone, the panel on a tablet
+        startKoin { modules(module {}) }
     }
 
     @After
@@ -113,7 +113,7 @@ abstract class LegTimerGoldenScreenshots(private val device: String, private val
                     onRetry = {},
                     onSolved = { _, _ -> },
                     overflow = listOf(PlayOverflowItem("Settings", checked = null, onClick = {})),
-                    sidePanel = { clock, showTimer -> legSidePanel(leg, clock, { hints }, showTimer) },
+                    sidePanel = { legSidePanel(leg, { hints }) },
                     modifier = Modifier,
                     targetMs = target?.inWholeMilliseconds,
                 )

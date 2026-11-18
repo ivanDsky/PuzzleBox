@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.games.sudokuui
 
-import androidx.compose.runtime.CompositionLocalProvider
 import android.content.Context
 import android.provider.Settings
 import androidx.compose.ui.Modifier
@@ -15,7 +14,6 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -26,12 +24,9 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzleRef
 import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuCodec
 import com.ivandsky.puzzlebox.gameui.Adopt
-import com.ivandsky.puzzlebox.gameui.LandscapeControls
-import com.ivandsky.puzzlebox.gameui.LocalPlayTuning
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
-import com.ivandsky.puzzlebox.gameui.PlayTuning
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
@@ -45,9 +40,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-// nav-rethink B5: under a non-null PlayTuning the shared control row sits under the board and
-// holds Undo, Redo, Hint and Clear; the keypad keeps the digits, a corner Notes toggle and, in
-// a phone or under-board layout, Erase (B5; ticket 57b).
+// nav-rethink B5: the shared control row sits under the board and holds Undo, Redo, Hint and
+// Clear; the keypad keeps the digits, a corner Notes toggle and, on a phone, Erase (B5; ticket 57b).
+// Two panes stack the row, with Erase, in a column beside the board.
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w360dp-h800dp-mdpi")
@@ -71,20 +66,18 @@ class SudokuTunedPlayUiTest {
         return controller
     }
 
-    private fun setScreen(controller: SudokuPlayController, layout: PlayLayout, tuning: PlayTuning? = PlayTuning.Starting) {
+    private fun setScreen(controller: SudokuPlayController, layout: PlayLayout) {
         composeRule.setContent {
-            CompositionLocalProvider(LocalPlayTuning provides tuning) {
-                PuzzleBoxTheme {
-                    ui.Screen(
-                        controller = controller,
-                        status = PlayBoardStatus.Ready,
-                        layout = layout,
-                        sidePanel = null,
-                        onRetry = {},
-                        onSolved = { _, _ -> },
-                        modifier = Modifier,
-                    )
-                }
+            PuzzleBoxTheme {
+                ui.Screen(
+                    controller = controller,
+                    status = PlayBoardStatus.Ready,
+                    layout = layout,
+                    sidePanel = null,
+                    onRetry = {},
+                    onSolved = { _, _ -> },
+                    modifier = Modifier,
+                )
             }
         }
     }
@@ -138,19 +131,8 @@ class SudokuTunedPlayUiTest {
 
     @Test
     @Config(qualifiers = "w1280dp-h800dp-land-mdpi")
-    fun `two pane under the starting tuning keeps the row under the board and drops the toolbar`() {
+    fun `two pane stacks the controls beside the board`() {
         setScreen(adopted(), PlayLayout.TwoPane)
-
-        val board = bounds("sudoku.board_area")
-        val clear = bounds("play.clear")
-        assertTrue("clear $clear under board $board", clear.top >= board.bottom - 1.dp)
-        composeRule.onNodeWithTag("sudoku.clear").assertDoesNotExist()
-    }
-
-    @Test
-    @Config(qualifiers = "w1280dp-h800dp-land-mdpi")
-    fun `two pane with a side column stacks the controls beside the board`() {
-        setScreen(adopted(), PlayLayout.TwoPane, PlayTuning.Starting.copy(landscapeControls = LandscapeControls.SideColumn))
 
         val board = bounds("sudoku.board_area")
         val undo = bounds("play.undo")
@@ -159,14 +141,6 @@ class SudokuTunedPlayUiTest {
         assertTrue("controls $undo right of the board $board", undo.left >= board.right - 1.dp)
         assertTrue("undo above hint above clear", undo.top < hint.top && hint.top < clear.top)
         assertEquals(undo.left.value, clear.left.value, 1f)
-    }
-
-    @Test
-    fun `without a tuning Clear stays in the keypad and the row is not there`() {
-        setScreen(adopted(), PlayLayout.SinglePane, tuning = null)
-
-        composeRule.onNode(hasTestTag("sudoku.clear") and hasAnyAncestor(hasTestTag("sudoku.keypad"))).assertExists()
-        composeRule.onNodeWithTag("play.clear").assertDoesNotExist()
     }
 
     private fun digitKey(digit: Int) = composeRule.onNode(hasContentDescription("$digit, ", substring = true) and hasAnyAncestor(hasTestTag("sudoku.keypad")))
@@ -233,18 +207,9 @@ class SudokuTunedPlayUiTest {
 
     @Test
     @Config(qualifiers = "w1280dp-h800dp-land-mdpi")
-    fun `two pane under the board keeps Erase on the pad, with no second one`() {
-        setScreen(adopted(), PlayLayout.TwoPane)
-
-        assertEquals(1, composeRule.onAllNodesWithTag("sudoku.erase").fetchSemanticsNodes().size)
-        assertTrue("erase left of the board's right edge", bounds("sudoku.erase").right <= bounds("sudoku.board_area").right)
-    }
-
-    @Test
-    @Config(qualifiers = "w1280dp-h800dp-land-mdpi")
     fun `the side column holds Erase with the other controls and it erases the selected cell`() {
         val controller = adopted()
-        setScreen(controller, PlayLayout.TwoPane, PlayTuning.Starting.copy(landscapeControls = LandscapeControls.SideColumn))
+        setScreen(controller, PlayLayout.TwoPane)
 
         assertEquals("one Erase, in the column", 1, composeRule.onAllNodesWithTag("sudoku.erase").fetchSemanticsNodes().size)
         val board = bounds("sudoku.board_area")
@@ -306,16 +271,5 @@ class SudokuTunedPlayUiTest {
         composeRule.mainClock.advanceTimeByFrame()
 
         assertEquals("italic within two frames", List(6) { true }, digitFontStyles().map { it == FontStyle.Italic })
-    }
-
-    @Test
-    fun `without a tuning there is no corner toggle and the digits stay upright in notes mode`() {
-        setScreen(adopted(), PlayLayout.SinglePane, tuning = null)
-
-        composeRule.onNodeWithTag("sudoku.notes_toggle").assertDoesNotExist()
-        composeRule.onNodeWithTag("sudoku.erase").assertDoesNotExist()
-        composeRule.onNodeWithText("Notes").performClick()
-        composeRule.waitForIdle()
-        assertEquals(List(6) { false }, digitFontStyles().map { it == FontStyle.Italic })
     }
 }

@@ -68,7 +68,7 @@ class LegBoardTouchTargetsTest {
                         onRetry = {},
                         onSolved = { _, _ -> },
                         overflow = listOf(PlayOverflowItem("Settings", checked = null, onClick = {})),
-                        sidePanel = { clock, showTimer -> legSidePanel(leg, clock, { 0 }, showTimer) },
+                        sidePanel = { legSidePanel(leg, { 0 }) },
                         modifier = Modifier,
                         targetMs = leg.target?.inWholeMilliseconds,
                     )

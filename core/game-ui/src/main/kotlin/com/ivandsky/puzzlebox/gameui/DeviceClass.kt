@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.gameui
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-/** The window's size class for play tuning: which board cap applies (nav-rethink B5, B6). */
+/** The window's size class for the play screen: which board cap applies (nav-rethink B5, B6). */
 enum class DeviceClass {
     /** Anything below the tablet width, a phone in landscape included. */
     Phone,

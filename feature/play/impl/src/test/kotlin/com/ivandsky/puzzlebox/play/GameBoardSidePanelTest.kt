@@ -153,10 +153,10 @@ class GameBoardSidePanelTest {
     }
 
     @Test
-    fun `a two-pane self leg shows its own time and hints and no stats panel`() {
+    fun `a two-pane self leg shows its own progress and hints and no stats panel`() {
         show(PlayLayout.TwoPane, SelfLeg(target = 134.seconds, played = 1, count = 3))
 
-        composeRule.onNodeWithTag("leg.time").assertExists()
+        composeRule.onNodeWithTag("leg.progress").assertExists()
         composeRule.onNodeWithTag("leg.hints").assertExists()
         composeRule.onNodeWithTag("play.stats").assertDoesNotExist()
     }
@@ -166,14 +166,14 @@ class GameBoardSidePanelTest {
         show(PlayLayout.TwoPane, selfLeg = null)
 
         composeRule.onNodeWithTag("play.stats").assertExists()
-        composeRule.onNodeWithTag("leg.time").assertDoesNotExist()
+        composeRule.onNodeWithTag("leg.progress").assertDoesNotExist()
     }
 
     @Test
     fun `a phone self leg builds no side panel`() {
         show(PlayLayout.SinglePane, SelfLeg(target = 134.seconds, played = 1, count = 3))
 
-        composeRule.onNodeWithTag("leg.time").assertDoesNotExist()
+        composeRule.onNodeWithTag("leg.progress").assertDoesNotExist()
         composeRule.onNodeWithTag("play.stats").assertDoesNotExist()
     }
 }

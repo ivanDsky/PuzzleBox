@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.games.queensui
 
 import androidx.compose.ui.unit.Dp
-import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
+import com.ivandsky.puzzlebox.gameui.PhoneBoardCap
 
 /**
  * §6 board sizing policy — pure, computed, never eyeballed. The board side is the
@@ -37,13 +37,13 @@ fun queensBoardSideFor(
  * The §6 readability cap on the board side: [QueensBoardDefaults.cellMaxSize] per cell
  * from [QueensBoardDefaults.perCellCapFromCells] cells per side (every daily). A smaller
  * board — the 4×4 lessons — would read as a postage stamp under the per-cell cap, so it
- * fills its pane up to [PlayBoardMaxWidth], the cap Tango's and Zip's boards share.
+ * fills its pane up to [PhoneBoardCap], the cap Tango's and Zip's boards share.
  */
 fun queensBoardMaxSideFor(cellsPerSide: Int): Dp =
     if (cellsPerSide >= QueensBoardDefaults.perCellCapFromCells) {
         QueensBoardDefaults.cellMaxSize * cellsPerSide
     } else {
-        PlayBoardMaxWidth
+        PhoneBoardCap
     }
 
 /** Total gutter around the daily board: 16dp per side, shrinking to 8dp from

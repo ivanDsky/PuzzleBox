@@ -12,7 +12,7 @@ enum class SudokuKeypadActions {
     NotesColumn,
 
     /**
-     * Under a play tuning: the digits take the full width and a 48dp strip above them holds the
+     * The digits take the full width and a 48dp strip above them holds the
      * small Notes toggle in its right corner, with Erase filling the strip when it is not in the
      * side column. Clear is in the shared control row.
      */

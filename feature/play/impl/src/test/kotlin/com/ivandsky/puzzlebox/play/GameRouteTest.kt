@@ -38,7 +38,6 @@ import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
-import com.ivandsky.puzzlebox.gameui.PlayTuningSource
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.di.playModule
@@ -90,7 +89,6 @@ class GameRouteTest {
         setHistory(alpha, listOf(DailyEntry(alpha, day, 7, "alpha/v1", 0L)))
     }
     private val calendar = FakeGameCalendar(day)
-    private val tuningSource = FakePlayTuningSource()
 
     private var koin: KoinApplication? = null
 
@@ -116,7 +114,6 @@ class GameRouteTest {
                 },
                 module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
-                module { single<PlayTuningSource> { tuningSource } },
                 hubOffFriendDay,
             )
         }
@@ -130,7 +127,7 @@ class GameRouteTest {
     private fun store() = koin!!.koin.get<PlaySessionStore>()
 
     @Test
-    fun `a phone route with a tuning times in the top bar and hands the tuning to the screen`() {
+    fun `a phone route times in the top bar`() {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 GameRoute(key = key, layout = PlayLayout.SinglePane, onBack = {}, onSolved = { _, _, _ -> })
@@ -139,21 +136,6 @@ class GameRouteTest {
         composeRule.waitForIdle()
 
         composeRule.onAllNodesWithTag("play.timer").assertCountEquals(1)
-        composeRule.onNodeWithTag("fake.tuned").assertExists()
-    }
-
-    @Test
-    fun `a phone route with a null tuning times in the top bar and the screen sees no tuning`() {
-        tuningSource.set(null)
-        composeRule.setContent {
-            PuzzleBoxTheme(darkTheme = false) {
-                GameRoute(key = key, layout = PlayLayout.SinglePane, onBack = {}, onSolved = { _, _, _ -> })
-            }
-        }
-        composeRule.waitForIdle()
-
-        composeRule.onAllNodesWithTag("play.timer").assertCountEquals(1)
-        composeRule.onNodeWithTag("fake.tuned").assertDoesNotExist()
     }
 
     @Test

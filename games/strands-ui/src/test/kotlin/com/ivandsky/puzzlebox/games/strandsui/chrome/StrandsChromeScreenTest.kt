@@ -4,7 +4,6 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.onRoot
-import androidx.compose.ui.unit.width
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasAnyAncestor
@@ -102,7 +101,7 @@ class StrandsChromeScreenTest {
     }
 
     @Test
-    fun `the tablet side panel carries the theme card, slot and found words, the board pane the hint row`() {
+    fun `the tablet side panel carries the theme card, slot and found words, the control column the hint row`() {
         show(adopted(), PlayLayout.TwoPane)
         val inSidePanel = hasAnyAncestor(hasTestTag("strands.side_panel"))
         val inBoardPane = hasAnyAncestor(hasTestTag("strands.board_area"))
@@ -111,7 +110,9 @@ class StrandsChromeScreenTest {
             rule.onNode(hasTestTag(tag) and inBoardPane).assertDoesNotExist()
         }
         for (tag in listOf("strands.counter", "strands.hint")) {
-            rule.onNode(hasTestTag(tag) and inBoardPane).assertExists()
+            rule.onNodeWithTag(tag).assertExists()
+            rule.onNode(hasTestTag(tag) and inSidePanel).assertDoesNotExist()
+            rule.onNode(hasTestTag(tag) and inBoardPane).assertDoesNotExist()
         }
     }
 
@@ -128,16 +129,6 @@ class StrandsChromeScreenTest {
         rule.onNodeWithTag("strands.found_word").assert(hasContentDescription("PIES"))
         rule.onNodeWithTag("strands.found_spangram").assert(hasContentDescription("BAKE, spangram"))
         rule.onAllNodesWithTag("strands.missing_word").assertCountEquals(2)
-    }
-
-    @Test
-    fun `the hint row sits under the board, as wide as it`() {
-        show(adopted(), PlayLayout.TwoPane)
-        val board = rule.onNodeWithTag("strands.board").getBoundsInRoot()
-        val row = rule.onNodeWithTag("strands.hint_row").getBoundsInRoot()
-        assertTrue(row.top >= board.bottom)
-        assertEquals(board.width.value, row.width.value, 0.5f)
-        assertEquals(board.left.value, row.left.value, 0.5f)
     }
 
     @Test

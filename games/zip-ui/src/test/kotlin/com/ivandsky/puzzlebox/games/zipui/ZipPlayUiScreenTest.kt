@@ -20,7 +20,7 @@ import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.DragEvent
 import com.ivandsky.puzzlebox.gameui.GridCell
-import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
+import com.ivandsky.puzzlebox.gameui.PhoneBoardCap
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
@@ -245,23 +245,20 @@ class ZipPlayUiScreenTest {
         composeRule.onNodeWithTag("play.side_panel").assertExists()
     }
 
-    /** A15: on a Tab S9 Ultra the board fills its 70% pane under the action toolbar. */
+    /** A15: on a Tab S9 Ultra the board keeps to its tablet cap (96 dp a cell: 480 dp for the 5x5 fixture), controls in a column beside it. */
     @Config(sdk = [34], qualifiers = "w1848dp-h1000dp-land")
     @Test
-    fun `landscape tablet grows the board past the phone cap under the action toolbar`() {
+    fun `landscape tablet caps the board at the tablet cap with the controls beside it`() {
         readyController(layout = PlayLayout.TwoPane)
         composeRule.waitForIdle()
 
         val board = composeRule.onNodeWithTag("play.board").getUnclippedBoundsInRoot()
         val bar = composeRule.onNodeWithTag("play.action_bar").getUnclippedBoundsInRoot()
-        check(board.width > 700.dp) { "board not lifted: ${board.width}" }
-        check(bar.bottom <= board.top) { "toolbar $bar not above board $board" }
-        check(abs((bar.left - board.left).value) <= 1f && abs((bar.right - board.right).value) <= 1f) {
-            "toolbar $bar not aligned to board $board"
-        }
+        check(board.width == 480.dp) { "board not at the tablet cap: ${board.width}" }
+        check(bar.left >= board.right - 1.dp) { "controls $bar not beside board $board" }
     }
 
-    /** A4: the board is capped at [PlayBoardMaxWidth], centered in its pane, aspect exact. */
+    /** A4: the board is capped at [PhoneBoardCap], centered in its pane, aspect exact. */
     @Test
     fun `wide pane caps the board at the max width and centers it`() {
         val controller = adoptedController()
@@ -279,7 +276,7 @@ class ZipPlayUiScreenTest {
         val board = composeRule.onNodeWithTag("play.board").fetchSemanticsNode()
         val area = composeRule.onNodeWithTag("play.board_area").fetchSemanticsNode()
         with(density) {
-            val capPx = PlayBoardMaxWidth.roundToPx()
+            val capPx = PhoneBoardCap.roundToPx()
             check(board.size.width == capPx) { "board not capped: ${board.size.width}px != $capPx" }
             check(board.size.height == capPx) { "grid aspect not exact: ${board.size.height}px != $capPx" }
         }

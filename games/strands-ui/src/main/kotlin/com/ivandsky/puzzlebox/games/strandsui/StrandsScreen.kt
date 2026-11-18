@@ -33,14 +33,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isFinite
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
-import com.ivandsky.puzzlebox.gameui.LandscapeControls
-import com.ivandsky.puzzlebox.gameui.LocalPlayTuning
-import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayChrome
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.SolveRestTapLayer
 import com.ivandsky.puzzlebox.gameui.SolveStamp
+import com.ivandsky.puzzlebox.gameui.boardCapFor
 import com.ivandsky.puzzlebox.gameui.rememberSolveRest
 import com.ivandsky.puzzlebox.gameui.singlePaneDeviceClass
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -65,9 +63,9 @@ import kotlinx.coroutines.launch
  * chrome. No undo and no shared hint control (A15: the hint is Strands' own economy). A
  * finished board stays on screen with its rating word and hands its time and hints to
  * [onSolved] once per completion. A tap anywhere off the board drops a half-traced word.
- * Under a play tuning the hint row joins the shared control row's slots (counter where Undo and
+ * The hint row joins the shared control row's slots (counter where Undo and
  * Redo sit, Hint where Hint and Clear do): the tablet's scaffold puts it under the board, the
- * phone's page keeps its scroll, capped to the tuning's board width.
+ * phone's page keeps its scroll, capped to its board width.
  */
 @Composable
 internal fun StrandsPlayScreen(
@@ -100,7 +98,6 @@ internal fun StrandsPlayScreen(
         onSolved(solved.elapsedMs, solved.state.hintsUsed)
     }
     val reduceMotion = rememberReducedMotion()
-    val tuning = LocalPlayTuning.current
     var boardWidth by remember { mutableStateOf<Dp?>(null) }
     val header = controller.header
     val stamp: (@Composable () -> Unit)? = if (rest.enabled) remember(rest) { @Composable { SolveStamp(StrandsBrand, rest) } } else null
@@ -112,16 +109,14 @@ internal fun StrandsPlayScreen(
                 // board a sliver. NYT's page scrolls the same way.
                 BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
                     val viewport = maxHeight
-                    val cap = tuning?.boardCapForGrid(singlePaneDeviceClass(), controller.baseModel.cols.takeIf { it > 0 })
-                    val pageWidth = if (cap != null) Modifier.widthIn(max = cap + Spacing.lg * 2) else Modifier
+                    val cap = boardCapFor(singlePaneDeviceClass(), controller.baseModel.cols.takeIf { it > 0 })
                     // heightIn(min) + Center: a page shorter than the viewport floats at its middle,
                     // a taller one grows past it and scrolls, so nothing clips.
                     Column(
-                        pageWidth.fillMaxWidth().heightIn(min = viewport).verticalScroll(rememberScrollState()).testTag("strands.scroll"),
+                        Modifier.widthIn(max = cap + Spacing.lg * 2).fillMaxWidth().heightIn(min = viewport).verticalScroll(rememberScrollState()).testTag("strands.scroll"),
                         verticalArrangement = Arrangement.Center,
                     ) {
-                        val placement = if (tuning != null) HintRowPlacement.Slots else HintRowPlacement.Legacy
-                        BoardColumn(controller, header, reduceMotion, fitHeight = viewport, withChrome = true, placement = placement)
+                        BoardColumn(controller, header, reduceMotion, fitHeight = viewport)
                         SidePanel(controller, status, reduceMotion, withChrome = false)
                     }
                 }
@@ -130,21 +125,10 @@ internal fun StrandsPlayScreen(
                     layout = layout,
                     gridColumns = controller.baseModel.cols.takeIf { it > 0 },
                     modifier = Modifier.fillMaxSize(),
-                    // Strands sizes its board by its own cell policy; a tuning only caps it (the pane cap).
-                    board = { paneCap ->
-                        if (tuning != null) {
-                            StrandsTunedBoardPane(controller, status, paneCap, onRetry, onBoardWidth = { boardWidth = it })
-                        } else {
-                            BoardPane(controller, status, reduceMotion, onRetry)
-                        }
-                    },
+                    // Strands sizes its board by its own cell policy; the scaffold only caps it (the pane cap).
+                    board = { paneCap -> StrandsTunedBoardPane(controller, status, paneCap, onRetry, onBoardWidth = { boardWidth = it }) },
                     side = { SidePanel(controller, status, reduceMotion, withChrome = true) },
-                    actions = tuning?.let {
-                        {
-                            val beside = layout == PlayLayout.TwoPane && it.landscapeControls == LandscapeControls.SideColumn
-                            StrandsTunedControls(controller, boardWidth, beside, reduceMotion)
-                        }
-                    },
+                    actions = { StrandsTunedControls(controller, boardWidth, beside = layout == PlayLayout.TwoPane, reduceMotion) },
                     sidePanel = sidePanel,
                 )
             }
@@ -169,47 +153,27 @@ private fun Modifier.clearTraceOnBackgroundTap(controller: StrandsPlayController
         }
     }
 
-@Composable
-private fun BoardPane(
-    controller: StrandsPlayController,
-    status: PlayBoardStatus,
-    reduceMotion: Boolean,
-    onRetry: () -> Unit,
-) {
-    val header = controller.header
-    if (status !is PlayBoardStatus.Ready || header == null) {
-        Box(Modifier.fillMaxSize().testTag("strands.board_area"), contentAlignment = Alignment.Center) {
-            PlayBoardFallback(status, onRetry, tagPrefix = "strands")
-        }
-        return
-    }
-    BoardColumn(controller, header, reduceMotion, fitHeight = null, withChrome = false, Modifier.fillMaxSize())
-}
-
 /**
- * With [withChrome], the [PuzzleChrome] above, then the board, then the hint row as wide as
+ * The phone page: the [PuzzleChrome] above, then the board, then the hint row as wide as
  * the board (NYT's grid and row under it). The board takes the height the rest leaves (A37):
- * the tablet pane's height, or on a phone [fitHeight], the viewport the page scrolls in, so
- * its cells shrink toward the 48 dp floor before the hint row is pushed off screen.
+ * [fitHeight], the viewport the page scrolls in, so its cells shrink toward the 48 dp floor
+ * before the hint row is pushed off screen.
  */
 @Composable
 private fun BoardColumn(
     controller: StrandsPlayController,
     header: StrandsHeader,
     reduceMotion: Boolean,
-    fitHeight: Dp?,
-    withChrome: Boolean,
-    modifier: Modifier = Modifier,
-    placement: HintRowPlacement = HintRowPlacement.Legacy,
+    fitHeight: Dp,
 ) {
     val model = controller.baseModel
     Layout(
         contents = listOf(
-            { if (withChrome) PuzzleChrome(controller, header, reduceMotion) },
+            { PuzzleChrome(controller, header, reduceMotion) },
             { StrandsBoard(controller) },
-            { ControllerHintRow(controller, reduceMotion, placement) },
+            { ControllerHintRow(controller, reduceMotion, HintRowPlacement.Slots) },
         ),
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.lg, vertical = BoardColumnPadding)
             .testTag("strands.board_area"),
@@ -225,7 +189,7 @@ private fun BoardColumn(
         val rowHeight = row.single().maxIntrinsicHeight(widest)
         val fit = when {
             constraints.hasBoundedHeight -> constraints.maxHeight
-            fitHeight != null && fitHeight.isFinite -> (fitHeight - BoardColumnPadding * 2).roundToPx()
+            fitHeight.isFinite -> (fitHeight - BoardColumnPadding * 2).roundToPx()
             else -> null
         }
         val boardBudget = fit?.let { (it - topHeight - rowHeight - gap).coerceAtLeast(0).toDp() } ?: Dp.Infinity
