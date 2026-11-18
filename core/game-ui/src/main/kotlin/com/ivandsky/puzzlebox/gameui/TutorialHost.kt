@@ -26,7 +26,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -168,9 +167,8 @@ private fun ColumnScope.LessonPane(
                     .testTag("tutorial.board_area"),
                 contentAlignment = Alignment.Center,
             ) {
-                // Lesson boards draw chrome-free, so the sweep follows the board's bounds
-                // (PlaySolveFrame's default shape).
-                Box(Modifier.solveSweep(sweep, ui.brand.accent.colors().accent, RectangleShape)) {
+                // Lesson boards draw chrome-free, so the sweep follows the board's own outline.
+                Box(Modifier.solveSweep(sweep, ui.brand.accent.colors().accent, ui.boardShape(controller))) {
                     // The buzz above is the lesson's one; a board that confirms its own solve (Sudoku) would double it.
                     CompositionLocalProvider(LocalSolveConfirmHosted provides playFeel) {
                         ui.Board(controller, Modifier)

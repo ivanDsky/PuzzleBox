@@ -20,6 +20,8 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.toRect
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import com.ivandsky.puzzlebox.designsystem.LocalBoardGeometry
@@ -50,6 +52,12 @@ import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.delay
 
+/** Zip's rounded board outline for an [n]-cell side, shared by the play sweep and the lesson sweep. */
+internal fun zipBoardOutlineShape(n: Int): Shape = GenericShape { size, _ ->
+    val radius = size.minDimension / n * ZipBoardSpec.boardOutlineRadiusFraction
+    addRoundRect(RoundRect(size.toRect(), CornerRadius(radius)))
+}
+
 /**
  * Zip's one play registration (ADR-0001): its controller, its board and its play screen.
  */
@@ -63,6 +71,11 @@ class ZipPlayUi : GamePlayUi {
     override val tutorial: List<TutorialStep> get() = ZipTutorial.steps
 
     override val replayBoard: GameReplayBoard get() = ZipReplayBoard
+
+    override fun boardShape(controller: GamePlayController): Shape {
+        val n = (controller as ZipPlayController).session?.puzzle?.board?.n ?: return RectangleShape
+        return zipBoardOutlineShape(n)
+    }
 
     @Composable
     override fun Board(controller: GamePlayController, modifier: Modifier) {
@@ -146,12 +159,7 @@ private fun BoxScope.BoardArea(
         if (status is PlayBoardStatus.Ready && session != null) {
             val n = session.puzzle.board.n
             // The sweep follows Zip's rounded outline (U1 §4).
-            val shape = remember(n) {
-                GenericShape { size, _ ->
-                    val radius = size.minDimension / n * ZipBoardSpec.boardOutlineRadiusFraction
-                    addRoundRect(RoundRect(size.toRect(), CornerRadius(radius)))
-                }
-            }
+            val shape = remember(n) { zipBoardOutlineShape(n) }
             // The win moment (ticket 23): a one-shot route handoff after the solve frame;
             // the record write keeps running in the store, never awaited here.
             PlaySolveFrame(
