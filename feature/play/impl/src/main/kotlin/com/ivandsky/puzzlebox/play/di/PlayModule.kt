@@ -124,8 +124,8 @@ val playModule = module {
     single { RandomPickMemory() }
     // The preset game is the one parameter: the page whose Random opened the sheet.
     viewModel { params -> RandomPuzzleViewModel(params.get<GameId>(), get(), get(), get()) }
-    // RulesSheet (rules-sheet 04): How to play opens the rules sheet over the live play while it is on.
-    single { HowToPlayRules(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.RulesSheet) == true) }
+    // How to play opens the rules sheet over the live play for a game with rules copy.
+    single { HowToPlayRules() }
     // The flag-as-parameter rule again: with it off the result never touches LinkedIn. The Post button's flag is
     // read inside the view model (the release flag), so its bindings resolve only on the same parameter.
     // The next-thing use case is resolved only when the view model first asks for it (today's solve).

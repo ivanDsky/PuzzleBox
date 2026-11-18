@@ -50,10 +50,10 @@ class GameViewModel internal constructor(
 
     internal val tutorial: StateFlow<TutorialGate> = gate.gate
 
-    /** The rules sheet's copy while it shows (RulesSheet on, a game with rules), else null. */
+    /** The rules sheet's copy while it shows (a game with rules), else null. */
     internal val rules: StateFlow<RulesSheetCopy?> = gate.rules
 
-    /** How to play: the rules sheet (RulesSheet on) or the game's tutorial opens over the live play. */
+    /** How to play: the rules sheet (a game with rules) or the game's tutorial opens over the live play. */
     fun howToPlay() = gate.howToPlay()
 
     /** The tutorial ended (finished or skipped): the game is marked seen and the board shows. */

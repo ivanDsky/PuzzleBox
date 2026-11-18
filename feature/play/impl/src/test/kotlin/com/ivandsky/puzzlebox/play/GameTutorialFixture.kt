@@ -58,14 +58,12 @@ import org.koin.dsl.module
 /**
  * The GameKey route's tutorial harness: the route over stand-in games, Koin wired per test.
  * Concrete tests pick the seen-read behaviour they need through [start]. [custom] runs the same
- * fixtures over a friend's puzzle, with [playFeel] as the graph's PlayFeel and [rulesSheet] as its RulesSheet.
+ * fixtures over a friend's puzzle, with [playFeel] as the graph's PlayFeel.
  */
 abstract class GameTutorialFixture(
     /** Opens the key as a friend's puzzle ([CustomGameKey], [CustomGameViewModel]) instead of a daily. */
     private val custom: Boolean = false,
     private val playFeel: Boolean = false,
-    /** The graph's RulesSheet flag, read by [HowToPlayRules]. */
-    private val rulesSheet: Boolean = false,
 ) {
 
     @get:Rule
@@ -88,8 +86,8 @@ abstract class GameTutorialFixture(
     protected var backs = 0
     protected val entry = mutableIntStateOf(0)
 
-    /** What the stand-in rules lookup returns while the sheet is on; a test sets null for a game with no rules. */
-    internal var rulesCopy: RulesSheetCopy? = RulesSheetCopy(listOf("Fill the grid"), listOf("Tap a cell"))
+    /** What the stand-in rules lookup returns; null (a game with no rules) by default, so How to play opens the tutorial. */
+    internal var rulesCopy: RulesSheetCopy? = null
 
     private var koin: KoinApplication? = null
 
@@ -121,7 +119,7 @@ abstract class GameTutorialFixture(
                 playModule,
                 hubOffFriendDay,
                 module { single { PlayFeel(playFeel) } },
-                module { single { HowToPlayRules(rulesSheet) { rulesCopy } } },
+                module { single { HowToPlayRules { rulesCopy } } },
             )
         }
         if (custom) runBlocking { received.upsert(friendPuzzle(game)) }

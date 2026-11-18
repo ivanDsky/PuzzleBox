@@ -18,14 +18,18 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * How to play with RulesSheet on, over the daily's [GameViewModel] and a friend's puzzle's [CustomGameViewModel]: the
+ * How to play over the daily's [GameViewModel] and a friend's puzzle's [CustomGameViewModel]: the
  * rules sheet opens over the live board in place of the tutorial, with the clock folded under it. Got it hands the
  * board and its clock back; Replay the tutorial opens the lessons, the clock still folded.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34])
-class RulesSheetRouteTest(custom: Boolean) : GameTutorialFixture(custom, playFeel = true, rulesSheet = true) {
+class RulesSheetRouteTest(custom: Boolean) : GameTutorialFixture(custom, playFeel = true) {
+
+    init {
+        rulesCopy = RulesSheetCopy(listOf("Fill the grid"), listOf("Tap a cell"))
+    }
 
     private fun startSeen() {
         fakes[alpha].teach(2)
