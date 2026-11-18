@@ -36,7 +36,6 @@ import com.ivandsky.puzzlebox.play.api.ReplayCompareKey
 import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.play.random.RandomPickMemory
-import com.ivandsky.puzzlebox.play.random.RandomPuzzleEntry
 import com.ivandsky.puzzlebox.play.random.RandomPuzzleViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -119,8 +118,7 @@ val playModule = module {
     single { HintPolish(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.HintPolish) == true) }
     // ZipDotPulse (backlog #1151) too: the Zip board's next number pulses its own dot while it is on.
     single { ZipDotPulse(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.ZipDotPulse) == true) }
-    // RandomPuzzle (epic #1153): screens read the holder, never the flag; the memory forgets the last pick with the process.
-    single { RandomPuzzleEntry(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.RandomPuzzle) == true) }
+    // The memory forgets the last pick with the process.
     single { RandomPickMemory() }
     // The preset game is the one parameter: the page whose Random opened the sheet.
     viewModel { params -> RandomPuzzleViewModel(params.get<GameId>(), get(), get(), get()) }

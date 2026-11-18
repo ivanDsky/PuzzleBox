@@ -419,7 +419,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   (`MatchLegRoute`/`MatchLegViewModel`, `MatchLegResultRoute`, `LegCompletionRepository`
   tagging a leg solve with its match), `friend/` (a friend's puzzle: `FromFriendsSection`,
   `EnterCodeSheet`, `FriendPuzzleRoute`, `CustomResultRoute`), `di/PlayModule`; `navigation/PlayEntries` (`playEntry`,
-  `resultEntry`) and `navigation/GameEntry`; `GameStatsPanel` is the tablet side panel's content (`PlayStatsPanel`: timer, today's progress and the day board).
+  `resultEntry`) and `navigation/GameEntry`; `random/` (`RandomPuzzleSheet`, the picker a game page's Random chip opens: `RandomPuzzleViewModel` picks one past day or New today puzzle by game and difficulty, a pick plays through `onPlay` or opens a card through `onOpenCode`); `GameStatsPanel` is the tablet side panel's content (`PlayStatsPanel`: timer, today's progress and the day board).
 - `feature/history/impl/` (`:feature:history:impl`, the Ranks hub; the module keeps its History name) —
   `navigation/RanksEntry` (the tab root `HistoryRootKey` and the pushed `HistoryKey`, both open the hub),
   `ranks/` (`RanksViewModel`, boards, player sheet, replay opt-in, `PlayThisDayRow` on a game's unplayed day, the Tune sheet with `TuneDefaultsBlock`; `di/HistoryModule`), `RanksTuneDefaults` (the player's defaults the app shell hands the Tune sheet), the replay

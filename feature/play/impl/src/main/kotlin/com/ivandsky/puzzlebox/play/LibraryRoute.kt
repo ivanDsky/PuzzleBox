@@ -26,13 +26,11 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.friend.EnterCodeSheet
 import com.ivandsky.puzzlebox.play.linkedin.rememberLinkedInCard
-import com.ivandsky.puzzlebox.play.random.RandomPuzzleEntry
 import com.ivandsky.puzzlebox.play.random.RandomPuzzleSheet
 import com.ivandsky.puzzlebox.play.random.archiveGames
 import com.ivandsky.puzzlebox.play.random.communityGamesOf
 import java.time.LocalDate
 import org.koin.androidx.compose.koinViewModel
-import org.koin.compose.currentKoinScope
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 
@@ -52,7 +50,7 @@ import org.koin.core.parameter.parametersOf
  * With [linkedIn] the day card shows the LinkedIn lines, and [onReconnectLinkedIn] opens its login.
  * [onMakeOne] puts "Make one" on each game page. The friend puzzles and Custom's list are the app's Community
  * tab ([CommunityRoute]); Games shows Dailies and Duels.
- * With the RandomPuzzle holder on, each game page's calendar has Random: it opens the random sheet for that game, and its
+ * Each game page's calendar has Random: it opens the random sheet for that game, and its
  * pick plays a past day through [onPlay] or opens a New today puzzle's card through [onOpenCode], the sheet closing first.
  */
 @Composable
@@ -92,8 +90,6 @@ internal fun LibraryRoute(
     }
     // A closed sheet forgets the draft: the next Enter code opens empty.
     if (!enteringCode && codePrefill.isNotEmpty()) LaunchedEffect(Unit) { codePrefill = "" }
-    val scope = currentKoinScope()
-    val randomEnabled = remember(scope) { scope.getOrNull<RandomPuzzleEntry>()?.enabled == true }
     // The game whose random sheet is open, null while it is closed.
     var randomGame by rememberSaveable { mutableStateOf<String?>(null) }
     LifecycleStartEffect(viewModel) {
@@ -117,7 +113,7 @@ internal fun LibraryRoute(
                 onBackToToday = viewModel::backToToday,
             ),
             onEnterCode = { enteringCode = true },
-            onRandom = randomEnabled.takeIf { it }?.let { { game -> randomGame = game.value } },
+            onRandom = { game -> randomGame = game.value },
             friends = friends,
             onOpenFriend = onOpenCode,
             onRemoveFriend = viewModel::removeFriend,

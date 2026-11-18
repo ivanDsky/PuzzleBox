@@ -53,7 +53,6 @@ import com.ivandsky.puzzlebox.play.community.HOUR
 import com.ivandsky.puzzlebox.play.community.NOW
 import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
-import com.ivandsky.puzzlebox.play.random.RandomPuzzleEntry
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.game.TestGames
@@ -90,8 +89,7 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * The library route's Random, which lives only in a game page's calendar: the chip opens the sheet with that game's chip
  * chosen (Past puzzles, Not solved yet on) and the pick plays that game's past day, or opens a New today puzzle's code.
- * One chip is pinned per test so no seed picks the game. A game with no archive, and a graph without the holder or with it
- * off, has no chip on its page; the Games tab header has no Random in any of them.
+ * One chip is pinned per test so no seed picks the game. A game with no archive has no chip on its page, and the Games tab header has no Random.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -109,7 +107,7 @@ class LibraryRandomPageRouteTest {
     private val opened = mutableListOf<ShareCode>()
     private var koin: KoinApplication? = null
 
-    private fun start(holder: RandomPuzzleEntry?) {
+    private fun start() {
         stopKoin() // tests share the JVM-global Koin context
         val fakes = FakeGames(listOf(zip, alpha, bare))
         val daily = FakeDailyRepository()
@@ -163,7 +161,6 @@ class LibraryRandomPageRouteTest {
                 module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
                 hubOffFriendDay,
-                module { holder?.let { entry -> single { entry } } },
                 module { single<DispatcherProvider> { testDispatchers() } },
             )
         }
@@ -204,7 +201,7 @@ class LibraryRandomPageRouteTest {
     private fun pageRandom() = composeRule.onNode(hasTestTag("library.page.random") and hasAnyAncestor(hasTestTag("library.calendar")))
 
     private fun pickFromPage(game: GameId) {
-        start(RandomPuzzleEntry(true))
+        start()
         openPage(game)
 
         pageRandom().performScrollTo().performClick()
@@ -226,7 +223,7 @@ class LibraryRandomPageRouteTest {
 
     @Test
     fun `a New today pick from the alpha page opens that puzzle's code and plays nothing`() {
-        start(RandomPuzzleEntry(true))
+        start()
         openPage(alpha)
 
         pageRandom().performScrollTo().performClick()
@@ -240,8 +237,8 @@ class LibraryRandomPageRouteTest {
     }
 
     @Test
-    fun `the Games tab header has no Random with the flag on`() {
-        start(RandomPuzzleEntry(true))
+    fun `the Games tab header has no Random`() {
+        start()
         mount()
         awaitTag("library.enterCode")
 
@@ -251,25 +248,8 @@ class LibraryRandomPageRouteTest {
 
     @Test
     fun `a game with no archive has no Random on its page`() {
-        start(RandomPuzzleEntry(true))
+        start()
         openPage(bare)
-
-        assertEquals(0, count("library.page.random"))
-    }
-
-    @Test
-    fun `with the flag off a page has no Random and no sheet`() {
-        start(RandomPuzzleEntry(false))
-        openPage(zip)
-
-        assertEquals(0, count("library.page.random"))
-        assertEquals(0, count("random.sheet"))
-    }
-
-    @Test
-    fun `without the holder a page has no Random`() {
-        start(null)
-        openPage(zip)
 
         assertEquals(0, count("library.page.random"))
     }
