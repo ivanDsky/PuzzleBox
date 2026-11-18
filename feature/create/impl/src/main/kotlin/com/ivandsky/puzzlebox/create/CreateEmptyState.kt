@@ -42,8 +42,8 @@ import com.ivandsky.puzzlebox.model.GameId
 private val GameRowMinHeight = 84.dp
 private const val RuleMaxLines = 2
 
-/** The chevron's icon width; every row reserves it so the size labels share one right edge. */
-private val ChevronSlotSize = 24.dp
+/** The chevron's rendered width; every row reserves it so the size labels share one right edge. */
+private val ChevronSlotSize = PuzzleIcons.Chevron.defaultWidth
 
 /** The first cloud restore's state (A34): the whole Custom list's, while it runs. */
 @Composable
