@@ -49,12 +49,11 @@ class HintCostHostTest {
     @After
     fun tearDown() = stopKoin()
 
-    private fun bind(feel: Boolean = true) {
+    private fun bind() {
         stopKoin() // tests share the JVM-global Koin context
         startKoin {
             modules(module {
                 single<GameSettingsRepository> { settings }
-                single { PlayFeel(feel) }
             })
         }
     }
@@ -89,12 +88,6 @@ class HintCostHostTest {
         bind()
         runBlocking { settings.setFlag(GameSetting(TestGames.alpha, "hint_cost_seen", default = false), true) }
         assertEquals(true, lineIn(TestGames.alpha)?.seen?.invoke())
-    }
-
-    @Test
-    fun `PlayFeel off offers none`() {
-        bind(feel = false)
-        assertNull(lineIn(TestGames.alpha))
     }
 
     @Test

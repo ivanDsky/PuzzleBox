@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.drop
  * Plays a game's move haptics (S2): each change of [snapshot] goes to [classify] with the snapshot before it, and
  * the answer plays as the soft tick for [MoveHaptic.Placed] or the soft buzz for [MoveHaptic.Rejected]. The snapshot
  * the effect starts with (a restore, a rotation) is the baseline and plays nothing; null (undo, a hint, a fresh
- * board) plays nothing. Only with [LocalPlayFeel] on.
+ * board) plays nothing.
  *
  * [snapshot] is read in the effect, never in the caller's composition, so a drag game does not recompose per step.
  * A change is a snapshot unequal to the last one. Where refused input leaves the session untouched, [S] must carry a
@@ -23,7 +23,6 @@ import kotlinx.coroutines.flow.drop
  */
 @Composable
 fun <S> MoveHapticsEffect(snapshot: () -> S, classify: (before: S, after: S) -> MoveHaptic?) {
-    if (!LocalPlayFeel.current) return
     val haptics = LocalHapticFeedback.current
     val read by rememberUpdatedState(snapshot)
     val classified by rememberUpdatedState(classify)

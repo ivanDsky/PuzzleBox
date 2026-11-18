@@ -135,12 +135,12 @@ class StrandsSolveRestTest {
     }
 
     @Test
-    fun `flag off, a solve does not buzz`() {
+    fun `with the rest off a solve confirms once`() {
         val controller = adopted()
         show(controller, rest = false)
         rule.runOnIdle { controller.solve() }
         advance(1_000)
-        assertEquals(emptyList<HapticFeedbackType>(), buzzes)
+        assertEquals(listOf(HapticFeedbackType.Confirm), buzzes)
     }
 
     @Test

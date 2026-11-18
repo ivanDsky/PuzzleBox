@@ -13,7 +13,7 @@ import org.koin.dsl.module
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** The local PlayFeelHost provides equals the ZipDotPulse holder the graph bound (backlog #1151); no holder reads off. */
+/** The local PlayBoardHosts provides equals the ZipDotPulse holder the graph bound (backlog #1151);. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class ZipDotPulseHostTest {
@@ -54,7 +54,7 @@ class ZipDotPulseHostTest {
         startKoin { modules(graph) }
         var seen: Boolean? = null
         composeRule.setContent {
-            if (replay) ZipDotPulseHost { seen = LocalZipDotPulse.current } else PlayFeelHost { seen = LocalZipDotPulse.current }
+            if (replay) ZipDotPulseHost { seen = LocalZipDotPulse.current } else PlayBoardHosts { seen = LocalZipDotPulse.current }
         }
         composeRule.waitForIdle()
         return seen

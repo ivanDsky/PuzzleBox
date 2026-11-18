@@ -37,7 +37,7 @@ class HintPolishHostTest {
         stopKoin() // tests share the JVM-global Koin context
         startKoin { modules(module { if (bound != null) single { bound } }) }
         var seen: Boolean? = null
-        composeRule.setContent { PlayFeelHost { seen = LocalHintPolish.current } }
+        composeRule.setContent { PlayBoardHosts { seen = LocalHintPolish.current } }
         return seen
     }
 }

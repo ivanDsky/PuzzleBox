@@ -16,7 +16,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** S2: a game's classified move plays its one haptic, only with PlayFeel on and never for the board as first seen. */
+/** S2: a game's classified move plays its one haptic and never for the board as first seen. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34])
@@ -38,9 +38,9 @@ class MoveHapticsEffectTest {
     private var hostState by mutableIntStateOf(0)
     private var compositions = 0
 
-    private fun setEffect(playFeel: Boolean, classify: (Int, Int) -> MoveHaptic?) {
+    private fun setEffect(classify: (Int, Int) -> MoveHaptic?) {
         composeRule.setContent {
-            CompositionLocalProvider(LocalHapticFeedback provides haptics, LocalPlayFeel provides playFeel) {
+            CompositionLocalProvider(LocalHapticFeedback provides haptics) {
                 val host = hostState
                 compositions++
                 // A lambda that captures composition state is a new instance each time, as a real caller's may be.
@@ -66,7 +66,7 @@ class MoveHapticsEffectTest {
 
     @Test
     fun `a placed move ticks and a rejected one buzzes`() {
-        setEffect(playFeel = true, byParity)
+        setEffect(byParity)
 
         change(2)
         assertEquals(listOf(HapticFeedbackType.TextHandleMove), played)
@@ -77,7 +77,7 @@ class MoveHapticsEffectTest {
 
     @Test
     fun `two refusals in a row each buzz`() {
-        setEffect(playFeel = true, byParity)
+        setEffect(byParity)
 
         change(1)
         change(3)
@@ -88,7 +88,7 @@ class MoveHapticsEffectTest {
     @Test
     fun `a change the game does not classify plays nothing`() {
         snapshot = 4
-        setEffect(playFeel = true, byParity)
+        setEffect(byParity)
 
         change(2)
 
@@ -98,7 +98,7 @@ class MoveHapticsEffectTest {
     @Test
     fun `each change is classified against the one before it`() {
         val seen = ArrayList<Pair<Int, Int>>()
-        setEffect(playFeel = true) { before, after ->
+        setEffect { before, after ->
             seen += before to after
             null
         }
@@ -112,14 +112,14 @@ class MoveHapticsEffectTest {
     @Test
     fun `the board as first composed plays nothing`() {
         snapshot = 2
-        setEffect(playFeel = true) { _, _ -> MoveHaptic.Placed }
+        setEffect { _, _ -> MoveHaptic.Placed }
 
         assertEquals(emptyList<HapticFeedbackType>(), played)
     }
 
     @Test
     fun `a recomposition with the snapshot unchanged plays nothing`() {
-        setEffect(playFeel = true) { _, _ -> MoveHaptic.Placed }
+        setEffect { _, _ -> MoveHaptic.Placed }
         val before = compositions
 
         composeRule.runOnIdle { hostState = 1 }
@@ -131,22 +131,12 @@ class MoveHapticsEffectTest {
 
     @Test
     fun `a change of the snapshot does not recompose the caller`() {
-        setEffect(playFeel = true, byParity)
+        setEffect(byParity)
         val before = compositions
 
         change(2)
 
         assertEquals(listOf(HapticFeedbackType.TextHandleMove), played)
         assertEquals(before, compositions)
-    }
-
-    @Test
-    fun `with PlayFeel off nothing plays`() {
-        setEffect(playFeel = false, byParity)
-
-        change(2)
-        change(3)
-
-        assertEquals(emptyList<HapticFeedbackType>(), played)
     }
 }

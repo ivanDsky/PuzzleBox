@@ -17,12 +17,12 @@ import org.robolectric.ParameterizedRobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The tutorial gate on both board entries that carry it, with PlayFeel on: the daily's [GameViewModel] and a
+ * The tutorial gate on both board entries that carry it: the daily's [GameViewModel] and a
  * friend's puzzle's [CustomGameViewModel] hold the same [TutorialGateHolder], so the daily's fixtures run over each.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @Config(sdk = [34])
-class TutorialGateViewModelsTest(private val custom: Boolean) : GameTutorialFixture(custom, playFeel = true) {
+class TutorialGateViewModelsTest(private val custom: Boolean) : GameTutorialFixture(custom) {
 
     @Test
     fun `unseen lessons open before the board and finishing them marks the game seen`() {

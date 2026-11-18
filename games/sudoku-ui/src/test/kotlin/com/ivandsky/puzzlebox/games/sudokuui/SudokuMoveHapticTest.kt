@@ -11,7 +11,6 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzleRef
 import com.ivandsky.puzzlebox.games.sudoku.SudokuSession
-import com.ivandsky.puzzlebox.gameui.LocalPlayFeel
 import com.ivandsky.puzzlebox.gameui.MoveHaptic
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
@@ -160,7 +159,7 @@ class SudokuMoveHapticTest {
     }
 
     @Test
-    fun `with PlayFeel on each move plays once through the effect, and a refused tap buzzes once`() {
+    fun `each move plays once through the effect, and a refused tap buzzes once`() {
         val played = ArrayList<HapticFeedbackType>()
         val haptics = object : HapticFeedback {
             override fun performHapticFeedback(hapticFeedbackType: HapticFeedbackType) {
@@ -171,10 +170,7 @@ class SudokuMoveHapticTest {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
             PuzzleBoxTheme {
-                CompositionLocalProvider(
-                    LocalHapticFeedback provides haptics,
-                    LocalPlayFeel provides true,
-                ) {
+                CompositionLocalProvider(LocalHapticFeedback provides haptics) {
                     rememberSudokuMotion(state)
                 }
             }

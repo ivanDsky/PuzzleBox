@@ -70,7 +70,7 @@ internal fun GameRoute(
 
 /**
  * A friend's puzzle's board: the live play of the key's custom slot under the same play top bar, behind
- * the daily's tutorial gate when PlayFeel is on ([CustomGameViewModel]). A friend's puzzle is never a past day.
+ * the daily's tutorial gate ([CustomGameViewModel]). A friend's puzzle is never a past day.
  */
 @Composable
 internal fun GameRoute(
@@ -87,7 +87,7 @@ internal fun GameRoute(
         play = viewModel.play,
         pastDay = false,
         tutorial = tutorial,
-        onHowToPlay = viewModel.howToPlay,
+        onHowToPlay = viewModel::howToPlay,
         onTutorialFinished = viewModel::closeTutorial,
         rules = rules,
         onDismissRules = viewModel::dismissRules,

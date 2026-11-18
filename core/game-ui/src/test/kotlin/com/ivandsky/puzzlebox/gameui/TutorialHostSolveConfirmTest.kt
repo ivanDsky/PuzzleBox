@@ -20,8 +20,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * S2 in the lessons: with PlayFeel on the tutorial host confirms each lesson's solve once, whatever the game's board
- * does on its own; with it off the host stays silent and a board's own confirm is as it was.
+ * S2 in the lessons: the tutorial host confirms each lesson's solve once, whatever the game's board
+ * does on its own.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -51,12 +51,12 @@ class TutorialHostSolveConfirmTest {
         }
     }
 
-    private fun setHost(playFeel: Boolean, ui: GamePlayUi = game, restOnBoard: Boolean = false) {
+    private fun setHost(ui: GamePlayUi = game, restOnBoard: Boolean = false) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 CompositionLocalProvider(
                     LocalHapticFeedback provides haptics,
-                    LocalPlayFeel provides playFeel,
+                    LocalHapticFeedback provides haptics,
                     LocalSolveRestOnBoard provides restOnBoard,
                 ) {
                     TutorialHost(ui = ui, session = session, onFinished = {})
@@ -75,8 +75,8 @@ class TutorialHostSolveConfirmTest {
     }
 
     @Test
-    fun `with PlayFeel on each lesson solve confirms once`() {
-        setHost(playFeel = true)
+    fun `each lesson solve confirms once`() {
+        setHost()
 
         solveLesson()
         assertEquals(listOf(HapticFeedbackType.Confirm), played)
@@ -86,17 +86,8 @@ class TutorialHostSolveConfirmTest {
     }
 
     @Test
-    fun `with PlayFeel off a lesson solve is silent`() {
-        setHost(playFeel = false)
-
-        solveLesson()
-
-        assertEquals(emptyList<HapticFeedbackType>(), played)
-    }
-
-    @Test
     fun `a board that confirms its own solve does not double the host's`() {
-        setHost(playFeel = true, ui = restingBoardGame)
+        setHost(ui = restingBoardGame)
 
         solveLesson()
 
@@ -105,16 +96,7 @@ class TutorialHostSolveConfirmTest {
 
     @Test
     fun `a board that rests does not double the host's either`() {
-        setHost(playFeel = true, ui = restingBoardGame, restOnBoard = true)
-
-        solveLesson()
-
-        assertEquals(listOf(HapticFeedbackType.Confirm), played)
-    }
-
-    @Test
-    fun `with PlayFeel off a resting board's own confirm is all there is`() {
-        setHost(playFeel = false, ui = restingBoardGame, restOnBoard = true)
+        setHost(ui = restingBoardGame, restOnBoard = true)
 
         solveLesson()
 
@@ -125,7 +107,7 @@ class TutorialHostSolveConfirmTest {
     fun `a lesson that comes back already solved does not confirm again`() {
         session.advance()
 
-        setHost(playFeel = true)
+        setHost()
         composeRule.mainClock.advanceTimeBy(PAST_THE_BEAT_MS)
         composeRule.waitForIdle()
 

@@ -9,7 +9,6 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
-import com.ivandsky.puzzlebox.gameui.LocalPlayFeel
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.TutorialHost
 import com.ivandsky.puzzlebox.gameui.TutorialSession
@@ -23,7 +22,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * S2 in the lessons: Queens's lesson board never reaches the play screen's solve frame, so the tutorial host
- * confirms the solve, once with PlayFeel on and not at all with it off.
+ * confirms the solve once.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -42,7 +41,7 @@ class QueensLessonConfirmTest {
     }
 
     /** Lesson one in the tutorial host, solved by its intended moves: the Confirms it played through the success beat. */
-    private fun confirmsOnSolve(playFeel: Boolean): Int {
+    private fun confirmsOnSolve(): Int {
         val real = QueensPlayFixtures.playUi()
         var lesson: GamePlayController? = null
         val ui = object : GamePlayUi by real {
@@ -51,7 +50,7 @@ class QueensLessonConfirmTest {
         }
         rule.mainClock.autoAdvance = false
         rule.setContent {
-            CompositionLocalProvider(LocalPlayFeel provides playFeel, LocalHapticFeedback provides haptics) {
+            CompositionLocalProvider(LocalHapticFeedback provides haptics) {
                 PuzzleBoxTheme(darkTheme = false) {
                     TutorialHost(ui = ui, session = TutorialSession(ui.tutorial), onFinished = {})
                 }
@@ -76,13 +75,8 @@ class QueensLessonConfirmTest {
     }
 
     @Test
-    fun `with PlayFeel a lesson solve confirms once`() {
-        assertEquals(1, confirmsOnSolve(playFeel = true))
-    }
-
-    @Test
-    fun `without PlayFeel a lesson solve is silent`() {
-        assertEquals(0, confirmsOnSolve(playFeel = false))
+    fun `a lesson solve confirms once`() {
+        assertEquals(1, confirmsOnSolve())
     }
 
     private companion object {

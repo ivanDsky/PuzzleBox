@@ -27,14 +27,14 @@ private const val NONE = -1
 
 /**
  * The cost line [PlayChrome]'s caption slot offers right now, or null. It arms when a hint applies ([PlayHints.hintsUsed]
- * rises, so a tap on a disabled Hint never counts) under [LocalPlayFeel] and an unseen [LocalHintCostLine], and stays
+ * rises, so a tap on a disabled Hint never counts) under an unseen [LocalHintCostLine], and stays
  * until the player's next input. The count a session starts from is taken once the hint is enabled, which a game
  * only is after its session is loaded, so a restored session's earlier hints never arm it. The slot calls
  * [HintCostLine.markSeen] when it actually draws the line.
  */
 @Composable
 internal fun hintCostNote(hints: PlayHints?): String? {
-    val line = LocalHintCostLine.current?.takeIf { LocalPlayFeel.current }
+    val line = LocalHintCostLine.current
     val offered by rememberUpdatedState(line?.takeIf { !it.seen() })
     val used = hints?.hintsUsed ?: 0
     val enabled = hints?.hintEnabled == true

@@ -31,7 +31,6 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuUnit
 import com.ivandsky.puzzlebox.games.sudoku.UnitKind
 import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuCodec
 import com.ivandsky.puzzlebox.gameui.Adopt
-import com.ivandsky.puzzlebox.gameui.LocalPlayFeel
 import com.ivandsky.puzzlebox.gameui.LocalSolveRestOnBoard
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
@@ -41,7 +40,6 @@ import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -194,13 +192,13 @@ class SudokuMotionTest {
         composeRule.mainClock.advanceTimeBy(SudokuMotion.SOLVE_RUN_MS - 50L)
         composeRule.runOnIdle {
             assertEquals("hand-off waits for the sweep", emptyList<Pair<Long, Int>>(), solved)
-            assertEquals(listOf(HapticFeedbackType.TextHandleMove), haptics.played)
+            assertEquals(listOf(HapticFeedbackType.Confirm), haptics.played)
         }
         composeRule.mainClock.advanceTimeBy(50L + 48L)
         composeRule.runOnIdle {
             val session = state.session
             assertEquals(listOf(session.elapsedMs to session.hintsUsed), solved)
-            assertEquals(listOf(HapticFeedbackType.TextHandleMove, HapticFeedbackType.Confirm), haptics.played)
+            assertEquals(listOf(HapticFeedbackType.Confirm), haptics.played)
         }
     }
 
@@ -210,7 +208,6 @@ class SudokuMotionTest {
     private fun solveWithRest(
         rest: Boolean,
         reduced: Boolean = false,
-        playFeel: Boolean = false,
         beforeWin: () -> Unit = {},
     ): Triple<SudokuBoardState, List<Pair<Long, Int>>, () -> Unit> {
         if (reduced) {
@@ -228,7 +225,6 @@ class SudokuMotionTest {
                 CompositionLocalProvider(
                     LocalHapticFeedback provides haptics,
                     LocalSolveRestOnBoard provides rest,
-                    LocalPlayFeel provides playFeel,
                 ) {
                     ui.Screen(
                         controller = controller,
@@ -278,14 +274,14 @@ class SudokuMotionTest {
     }
 
     @Test
-    fun `with the rest on the success buzz comes once as the sweep starts, and the old confirm steps aside`() {
+    fun `with the rest on the success buzz comes once as the sweep starts`() {
         val (_, solved, _) = solveWithRest(rest = true)
         advance(300)
-        assertEquals(listOf(HapticFeedbackType.TextHandleMove, HapticFeedbackType.Confirm), haptics.played)
+        assertEquals(listOf(HapticFeedbackType.Confirm), haptics.played)
         advance(CelebrationMotion.SolveMomentMs * 2)
         composeRule.runOnIdle {
             assertEquals(1, solved.size)
-            assertEquals("once, and the board's own confirm would be a second buzz", 1, haptics.played.count { it == HapticFeedbackType.Confirm })
+            assertEquals("once, and the a second confirm would show as a second buzz", 1, haptics.played.count { it == HapticFeedbackType.Confirm })
         }
     }
 
@@ -294,41 +290,36 @@ class SudokuMotionTest {
         val (_, _, restore) = solveWithRest(rest = true, reduced = true)
         try {
             advance(300)
-            assertEquals(listOf(HapticFeedbackType.TextHandleMove, HapticFeedbackType.Confirm), haptics.played)
+            assertEquals(listOf(HapticFeedbackType.Confirm), haptics.played)
         } finally {
             restore()
         }
     }
 
     /**
-     * One live solve through to its hand-off: the Confirms played while the sweep still runs, and in all. The solve
-     * rest and the board share one recorder, so a doubled confirm shows as two.
+     * One live solve through to its hand-off: exactly one Confirm goes out as the sweep starts, and no second one
+     * by the hand-off. The solve rest and the board share one recorder, so a doubled confirm shows as two.
      */
-    private fun solveConfirms(rest: Boolean, playFeel: Boolean): Pair<Int, Int> {
+    private fun assertOneConfirm(rest: Boolean) {
         fun confirms() = haptics.played.count { it == HapticFeedbackType.Confirm }
-        val (_, solved, _) = solveWithRest(rest, playFeel = playFeel)
+        val (_, solved, _) = solveWithRest(rest)
         advance(300)
-        val duringSweep = confirms()
+        assertEquals("as the sweep starts", 1, confirms())
         advance(CelebrationMotion.SolveMomentMs * 2)
-        return composeRule.runOnIdle {
+        composeRule.runOnIdle {
             assertEquals(1, solved.size)
-            duringSweep to confirms()
+            assertEquals("no second confirm after the sweep", 1, confirms())
         }
     }
 
     @Test
-    fun `PlayFeel on with the rest off confirms once as the sweep starts, and the board's own confirm steps aside`() {
-        assertEquals(1 to 1, solveConfirms(rest = false, playFeel = true))
+    fun `with the rest off the solve confirms once as the sweep starts`() {
+        assertOneConfirm(rest = false)
     }
 
     @Test
-    fun `PlayFeel on with the rest on confirms once`() {
-        assertEquals(1 to 1, solveConfirms(rest = true, playFeel = true))
-    }
-
-    @Test
-    fun `PlayFeel off with the rest off keeps the board's own confirm after the sweep as the only one`() {
-        assertEquals(0 to 1, solveConfirms(rest = false, playFeel = false))
+    fun `with the rest on the solve confirms once as the sweep starts`() {
+        assertOneConfirm(rest = true)
     }
 
     @Test
@@ -478,17 +469,6 @@ class SudokuMotionTest {
         val before = state.session
         state.action()
         return sudokuPlayerEvent(before, state.session)
-    }
-
-    @Test
-    fun `each player event maps to its haptic`() {
-        assertEquals(SudokuHaptic.Tick, sudokuHapticFor(SudokuPlayerEvent.Placed(0, emptyList())))
-        assertEquals(SudokuHaptic.Confirm, sudokuHapticFor(SudokuPlayerEvent.Placed(0, listOf(SudokuUnit(UnitKind.ROW, 0)))))
-        assertEquals(SudokuHaptic.Tick, sudokuHapticFor(SudokuPlayerEvent.Solved(0)))
-        assertNull(sudokuHapticFor(SudokuPlayerEvent.Erased(0, 4)))
-        assertNull(sudokuHapticFor(SudokuPlayerEvent.None))
-        assertEquals(HapticFeedbackType.TextHandleMove, SudokuHaptic.Tick.feedbackType())
-        assertEquals(HapticFeedbackType.Confirm, SudokuHaptic.Confirm.feedbackType())
     }
 
     @Test

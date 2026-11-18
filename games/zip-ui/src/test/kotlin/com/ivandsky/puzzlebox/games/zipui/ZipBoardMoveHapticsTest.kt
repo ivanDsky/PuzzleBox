@@ -13,7 +13,6 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.DragEvent
 import com.ivandsky.puzzlebox.gameui.GridCell
-import com.ivandsky.puzzlebox.gameui.LocalPlayFeel
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
@@ -30,8 +29,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * S2 on the real Zip board: with PlayFeel on each committed read ticks, a refused step buzzes, the solve is one
- * confirm, and nothing plays on open, undo or hint; with PlayFeel off the board stays silent.
+ * S2 on the real Zip board: each committed read ticks, a refused step buzzes, the solve is one
+ * confirm, and nothing plays on open, undo or hint.
  *
  * The seam reads the board once per frame, so the steps one gesture injection lands in a single frame are one read
  * and tick once. A gesture only starts once the finger moves, so each stroke opens with a move in the same injection.
@@ -55,10 +54,10 @@ class ZipBoardMoveHapticsTest {
         check(it.adoptToday(ZipPlayFixture.envelope(), ZipPlayFixture.ref(LocalDate.of(2026, 11, 16))) == Adopt.Adopted)
     }
 
-    private fun show(playFeel: Boolean) {
+    private fun show() {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                CompositionLocalProvider(LocalHapticFeedback provides haptics, LocalPlayFeel provides playFeel) {
+                CompositionLocalProvider(LocalHapticFeedback provides haptics) {
                     ZipPlayScreen(
                         controller = controller,
                         status = PlayBoardStatus.Ready,
@@ -87,8 +86,8 @@ class ZipBoardMoveHapticsTest {
     private fun grid(idx: Int) = GridCell(idx / 5, idx % 5)
 
     @Test
-    fun `with PlayFeel on each step ticks and a drag back ticks`() {
-        show(playFeel = true)
+    fun `each step ticks and a drag back ticks`() {
+        show()
 
         drag { down(at(0)); moveTo(at(1)) }
         assertEquals(listOf(HapticFeedbackType.TextHandleMove), played)
@@ -102,7 +101,7 @@ class ZipBoardMoveHapticsTest {
 
     @Test
     fun `a single move that jumps two cells is one tick`() {
-        show(playFeel = true)
+        show()
         drag { down(at(0)); moveTo(at(1)) }
         assertEquals(1, played.size)
 
@@ -115,7 +114,7 @@ class ZipBoardMoveHapticsTest {
 
     @Test
     fun `a refused start buzzes on every refused step`() {
-        show(playFeel = true)
+        show()
 
         drag { down(at(1)); moveTo(at(2)) }
         val first = played.size
@@ -131,7 +130,7 @@ class ZipBoardMoveHapticsTest {
 
     @Test
     fun `a stray across a wall onto a traced cell buzzes once`() {
-        show(playFeel = true)
+        show()
         // Snake: 0..4 along row 0, 9..7 back along row 1. Cell 2 has a wall below it, so the stray from 7 is an
         // explained refusal (WallBetween): the one buzz a refused step makes.
         drag { down(at(0)); moveTo(at(1)) }
@@ -149,7 +148,7 @@ class ZipBoardMoveHapticsTest {
 
     @Test
     fun `solving by a drag is one confirm and no tick for the last step`() {
-        show(playFeel = true)
+        show()
         composeRule.runOnIdle {
             ZipPlayFixture.solution.dropLast(1).forEach { controller.onDragEvent(DragEvent.Extend(grid(it.idx))) }
         }
@@ -171,14 +170,14 @@ class ZipBoardMoveHapticsTest {
     fun `a board that opens with a trace on it plays nothing`() {
         listOf(0, 1, 2).forEach { composeRule.runOnIdle { controller.onDragEvent(DragEvent.Extend(grid(it))) } }
 
-        show(playFeel = true)
+        show()
 
         assertEquals(emptyList<HapticFeedbackType>(), played)
     }
 
     @Test
     fun `undo and hint play nothing`() {
-        show(playFeel = true)
+        show()
         drag { down(at(0)); moveTo(at(1)) }
         val ticks = played.toList()
         assertEquals(1, ticks.size)
@@ -190,16 +189,5 @@ class ZipBoardMoveHapticsTest {
         composeRule.runOnIdle { controller.undo() }
         composeRule.waitForIdle()
         assertEquals(ticks, played)
-    }
-
-    @Test
-    fun `with PlayFeel off the board stays silent`() {
-        show(playFeel = false)
-
-        drag { down(at(0)); moveTo(at(1)) }
-        drag { up() }
-
-        assertEquals("the drag landed", listOf(0, 1), path())
-        assertEquals(emptyList<HapticFeedbackType>(), played)
     }
 }

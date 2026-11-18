@@ -11,7 +11,6 @@ import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
-import com.ivandsky.puzzlebox.gameui.LocalPlayFeel
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.TutorialHost
 import com.ivandsky.puzzlebox.gameui.TutorialSession
@@ -25,8 +24,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * S2 in the lessons: Sudoku's lesson board confirms its own solve, so with PlayFeel on, where the tutorial host
- * confirms every game's lesson, the two must not double; with it off the board's own confirm is all there is.
+ * S2 in the lessons: Sudoku's lesson board confirms its own solve, where the tutorial host
+ * confirms every game's lesson, and the two must not double.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -45,7 +44,7 @@ class SudokuLessonConfirmTest {
     }
 
     /** Lesson one in the tutorial host, solved by its intended moves: the Confirms it played through the success beat. */
-    private fun confirmsOnSolve(playFeel: Boolean): Int {
+    private fun confirmsOnSolve(): Int {
         val real = SudokuPlayUi(SudokuGames.MINI, InMemorySudokuHighlightSettings())
         var lesson: GamePlayController? = null
         val ui = object : GamePlayUi by real {
@@ -54,7 +53,7 @@ class SudokuLessonConfirmTest {
         }
         rule.mainClock.autoAdvance = false
         rule.setContent {
-            CompositionLocalProvider(LocalPlayFeel provides playFeel, LocalHapticFeedback provides haptics) {
+            CompositionLocalProvider(LocalHapticFeedback provides haptics) {
                 PuzzleBoxTheme(darkTheme = false) {
                     TutorialHost(ui = ui, session = TutorialSession(ui.tutorial), onFinished = {})
                 }
@@ -84,13 +83,8 @@ class SudokuLessonConfirmTest {
     }
 
     @Test
-    fun `with PlayFeel a lesson solve confirms once`() {
-        assertEquals(1, confirmsOnSolve(playFeel = true))
-    }
-
-    @Test
-    fun `without PlayFeel the board's own confirm still plays once`() {
-        assertEquals(1, confirmsOnSolve(playFeel = false))
+    fun `a lesson solve confirms once`() {
+        assertEquals(1, confirmsOnSolve())
     }
 
     private companion object {

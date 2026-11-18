@@ -374,7 +374,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `GamePlayUi` and `GameEditorUi`.
   `sudoku-ui` serves both ids
   (`SudokuUiModules`: `miniSudokuUiModule`, `sudokuUiModule`): `SudokuGrid` + `SudokuKeypad`,
-  `SudokuBoardState`, pure `SudokuSizing`/`SudokuLayout`, `SudokuMotion`, `SudokuHaptics`,
+  `SudokuBoardState`, pure `SudokuSizing`/`SudokuLayout`, `SudokuMotion`, `SudokuPlayerEvent`,
   `SudokuTutorial`.
   Extending Sudoku (ADR-0015): a new board size is a `SudokuVariants` row and a source, a
   `SudokuTutorial` `BOARDS` entry, and a `gridStrokes` branch in `SudokuGrid` if neither

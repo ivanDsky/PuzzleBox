@@ -58,12 +58,11 @@ import org.koin.dsl.module
 /**
  * The GameKey route's tutorial harness: the route over stand-in games, Koin wired per test.
  * Concrete tests pick the seen-read behaviour they need through [start]. [custom] runs the same
- * fixtures over a friend's puzzle, with [playFeel] as the graph's PlayFeel.
+ * fixtures over a friend's puzzle.
  */
 abstract class GameTutorialFixture(
     /** Opens the key as a friend's puzzle ([CustomGameKey], [CustomGameViewModel]) instead of a daily. */
     private val custom: Boolean = false,
-    private val playFeel: Boolean = false,
 ) {
 
     @get:Rule
@@ -118,7 +117,6 @@ abstract class GameTutorialFixture(
                 module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
                 hubOffFriendDay,
-                module { single { PlayFeel(playFeel) } },
                 module { single { HowToPlayRules { rulesCopy } } },
             )
         }

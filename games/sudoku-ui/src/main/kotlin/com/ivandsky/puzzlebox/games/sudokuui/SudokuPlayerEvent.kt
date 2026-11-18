@@ -1,14 +1,12 @@
 package com.ivandsky.puzzlebox.games.sudokuui
 
-import androidx.compose.ui.hapticfeedback.HapticFeedback
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import com.ivandsky.puzzlebox.games.sudoku.SudokuBoard
 import com.ivandsky.puzzlebox.games.sudoku.SudokuCommand
 import com.ivandsky.puzzlebox.games.sudoku.SudokuSession
 import com.ivandsky.puzzlebox.games.sudoku.SudokuUnit
 import com.ivandsky.puzzlebox.games.sudoku.UnitKind
 
-/** What a stored session change meant to the player, for motion (A12) and haptics (A13). */
+/** What a stored session change meant to the player, for motion (A12). */
 internal sealed interface SudokuPlayerEvent {
 
     /** Undo, redo, notes, Clear, the notes-mode toggle, a hint count: nothing to play. */
@@ -23,8 +21,6 @@ internal sealed interface SudokuPlayerEvent {
     /** The commit at [idx] solved the board. */
     data class Solved(val idx: Int) : SudokuPlayerEvent
 }
-
-internal enum class SudokuHaptic { Tick, Confirm }
 
 /**
  * Classifies [previous] → [next]. Only a newly recorded command counts: undo and redo move
@@ -44,20 +40,6 @@ internal fun sudokuPlayerEvent(previous: SudokuSession, next: SudokuSession): Su
     if (!previous.isComplete && next.isComplete) return SudokuPlayerEvent.Solved(idx)
     return SudokuPlayerEvent.Placed(idx, newlyCompletedUnits(previous.board, next.board, idx))
 }
-
-/** The commit's own haptic. A solve ticks now; its CONFIRM follows the solve run. */
-internal fun sudokuHapticFor(event: SudokuPlayerEvent): SudokuHaptic? = when (event) {
-    is SudokuPlayerEvent.Placed -> if (event.completedUnits.isEmpty()) SudokuHaptic.Tick else SudokuHaptic.Confirm
-    is SudokuPlayerEvent.Solved -> SudokuHaptic.Tick
-    is SudokuPlayerEvent.Erased, SudokuPlayerEvent.None -> null
-}
-
-internal fun SudokuHaptic.feedbackType(): HapticFeedbackType = when (this) {
-    SudokuHaptic.Tick -> HapticFeedbackType.TextHandleMove
-    SudokuHaptic.Confirm -> HapticFeedbackType.Confirm
-}
-
-internal fun HapticFeedback.perform(haptic: SudokuHaptic) = performHapticFeedback(haptic.feedbackType())
 
 /** The one command a step recorded, or null when the step recorded none (undo, redo, a no-op). */
 internal fun recordedCommand(previous: SudokuSession, next: SudokuSession): SudokuCommand? {

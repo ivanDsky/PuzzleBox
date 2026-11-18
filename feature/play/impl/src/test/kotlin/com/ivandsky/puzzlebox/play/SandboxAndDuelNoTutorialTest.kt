@@ -60,7 +60,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The Studio's test solve and a duel puzzle never get the tutorial gate, even with PlayFeel on and a game whose
+ * The Studio's test solve and a duel puzzle never get the tutorial gate and a game whose
  * lessons are unseen: both draw the board straight, with no How to play.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -79,7 +79,7 @@ class SandboxAndDuelNoTutorialTest {
     @Test
     fun `the Studio's test solve shows its board with no lessons and no how to play`() {
         stopKoin() // tests share the JVM-global Koin context
-        startKoin { modules(module { single { PlayFeel(true) } }) }
+        startKoin { modules(module {}) }
         val ui = fakes[alpha]
         val controller = ui.createController(PlayEnvironment(CoroutineScope(Job()), onSessionChanged = {}, onWon = {}))
         composeRule.setContent {
@@ -127,7 +127,6 @@ class SandboxAndDuelNoTutorialTest {
                 module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
                 hubOffFriendDay,
-                module { single { PlayFeel(true) } },
             )
         }
         composeRule.setContent {
