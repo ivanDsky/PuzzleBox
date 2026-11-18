@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.domain.linkedin
 
+import com.ivandsky.puzzlebox.data.linkedin.LinkState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInDays
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInLink
 import com.ivandsky.puzzlebox.model.GameId
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -33,13 +35,19 @@ class ObserveLinkedInDayView(
     // Bumped to run the shown day again; the number itself means nothing.
     private val again = MutableStateFlow(0)
 
+    /**
+     * The profile the link reads as, null while it does not read. A day's sync answers for the link as it was when it
+     * ran, so a connect that lands after it (a fresh login, a reconnect of a paused link) needs the day synced again.
+     */
+    private val readingAs: Flow<String?> = link.state.map { (it as? LinkState.Connected)?.profileId }.distinctUntilChanged()
+
     // No re-delivery: a Resume with nobody collecting is dropped, so it cannot lift the pause later behind the player's back.
     private val resumes = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
     /**
-     * The view of [target]'s day, null while [target] is null. Collecting starts that day's one sync
-     * (debounced by [SyncLinkedInDay]); [target] changing or the collector going away cancels both the
-     * observation and a sync still waiting out its debounce. Nothing runs without a collector.
+     * The view of [target]'s day, null while [target] is null. Collecting starts that day's one sync (debounced by
+     * [SyncLinkedInDay]), and one more whenever the link starts or stops reading; [target] changing or the collector
+     * going away cancels both the observation and a sync still waiting out its debounce. Nothing runs without a collector.
      */
     operator fun invoke(target: Flow<Target?>): Flow<LinkedInDayView?> = channelFlow {
         val shown = MutableStateFlow<Target?>(null)
@@ -53,7 +61,7 @@ class ObserveLinkedInDayView(
             }
         }
         var previous: Target? = null
-        combine(target.distinctUntilChanged(), again) { day, _ -> day }
+        combine(target.distinctUntilChanged(), again, readingAs) { day, _, _ -> day }
             .transformLatest { day ->
                 shown.value = day
                 // The old day's view is dropped at once: the store answers the new day a moment later, and until
