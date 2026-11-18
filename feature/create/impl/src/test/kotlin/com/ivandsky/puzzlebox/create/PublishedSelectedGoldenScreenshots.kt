@@ -44,9 +44,6 @@ class PublishedSelectedGoldenScreenshots {
                         CustomBodyContent(
                             state = LISTED,
                             listState = rememberLazyListState(),
-                            friendsEmpty = true,
-                            friends = {},
-                            community = null,
                             onNewPuzzle = {},
                             onStart = { _, _ -> },
                             onImport = {},

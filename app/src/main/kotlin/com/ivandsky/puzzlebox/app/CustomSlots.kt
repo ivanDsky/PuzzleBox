@@ -12,14 +12,11 @@ import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.CustomSlot
 import com.ivandsky.puzzlebox.play.LocalCommunityPicker
 import com.ivandsky.puzzlebox.play.YoursSummary
-import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
-import com.ivandsky.puzzlebox.play.community.CommunityHost
 
 /**
- * The Custom body of the Community tab: create's drafts and published rows, which open their screens
- * on the current stack. Inside the Community tablet's two-pane ([LocalCommunityPicker]) a New today row and a published
- * row pick their puzzle for the right pane instead, which [publishedPuzzlePane] draws for a published one. Its
- * [CustomSlot.yours] is the same list with only your own puzzles ([YoursBody]), and [CustomSlot.yoursSummary] their count.
+ * The Custom seams of the Community tab: [CustomSlot.yours] is create's drafts and published rows ([YoursBody]), which open
+ * their screens on the current stack, or pick a published puzzle for the tablet's right pane ([LocalCommunityPicker]),
+ * which [publishedPuzzlePane] draws; [CustomSlot.yoursSummary] is their count.
  */
 @Composable
 internal fun rememberCustomSlot(navigator: Navigator): CustomSlot = remember(navigator) {
@@ -30,31 +27,16 @@ internal fun rememberCustomSlot(navigator: Navigator): CustomSlot = remember(nav
             val yours = YoursState.current()
             YoursSummary(yours.count, yours.firstPublishedCode)
         },
-    ) { listState, friendsEmpty, friends ->
-        val picker = LocalCommunityPicker.current
-        CommunityHost(onOpen = { picker?.puzzle(it) ?: navigator.pushOnce(FriendPuzzleKey(it)) }) { community ->
-            CustomBody(
-                listState = listState,
-                friendsEmpty = friendsEmpty,
-                friends = friends,
-                onOpenDraft = { navigator.pushOnce(EditorKey(it)) },
-                onOpenPublished = { picker?.published(it) ?: navigator.pushOnce(PublishedPuzzleKey(it)) },
-                community = community,
-            )
-        }
-    }
+    )
 }
 
-/** Community's Yours list: [CustomBody] with no friends and no community, so the first-time screen shows when empty. */
+/** Community's Yours list: [CustomBody], with the first-time screen when empty. */
 @Composable
 private fun YoursBody(navigator: Navigator, listState: LazyListState) {
     val picker = LocalCommunityPicker.current
     CustomBody(
         listState = listState,
-        friendsEmpty = true,
-        friends = {},
         onOpenDraft = { navigator.pushOnce(EditorKey(it)) },
         onOpenPublished = { picker?.published(it) ?: navigator.pushOnce(PublishedPuzzleKey(it)) },
-        community = null,
     )
 }

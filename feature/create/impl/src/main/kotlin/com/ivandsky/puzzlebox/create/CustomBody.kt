@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
@@ -48,12 +47,10 @@ import com.ivandsky.puzzlebox.model.ShareCode
  * 1. **New puzzle** opens the New puzzle sheet; the draft it starts is reported to [onOpenDraft].
  * 2. **Continue**: the drafts. A tap reports the draft's id to [onOpenDraft]; ⋮ or a long press offers Continue,
  *    Duplicate and Delete, and a delete can be undone from the snackbar at the bottom.
- * 3. The caller's [friends] items, with their own head and spacing.
- * 4. **Published by you**: a tap reports the puzzle's share code to [onOpenPublished].
- * 5. The caller's [community] items; null adds nothing.
+ * 3. **Published by you**: a tap reports the puzzle's share code to [onOpenPublished].
  *
- * With no drafts, nothing published, [friendsEmpty] and no [community], the first-time empty state shows in the
- * list's place (pick a game to start a draft, or import one) and [friends] is not asked for items.
+ * With no drafts and nothing published, the first-time empty state shows in the list's place (pick a game to
+ * start a draft, or import one).
  *
  * It is a root of the one activity-scoped [CreateViewModel], so drafts, the Undo window and an import carry over
  * to and from the Studio. While it shows, text another app shared is imported and opened through [onOpenDraft],
@@ -65,11 +62,8 @@ import com.ivandsky.puzzlebox.model.ShareCode
 @Composable
 fun CustomBody(
     listState: LazyListState,
-    friendsEmpty: Boolean,
-    friends: LazyListScope.() -> Unit,
     onOpenDraft: (String) -> Unit,
     onOpenPublished: (String) -> Unit,
-    community: (LazyListScope.() -> Unit)? = null,
 ) {
     val viewModel = rememberCreateViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -81,9 +75,6 @@ fun CustomBody(
     CustomBodyContent(
         state = state,
         listState = listState,
-        friendsEmpty = friendsEmpty,
-        friends = friends,
-        community = community,
         onNewPuzzle = { sheetOpen = true },
         onStart = viewModel::newPuzzle,
         onImport = viewModel.importText::open,
@@ -127,9 +118,6 @@ fun CustomBody(
 internal fun CustomBodyContent(
     state: CreateUiState,
     listState: LazyListState,
-    friendsEmpty: Boolean,
-    friends: LazyListScope.() -> Unit,
-    community: (LazyListScope.() -> Unit)?,
     onNewPuzzle: () -> Unit,
     onStart: (GameId, VariantId) -> Unit,
     onImport: () -> Unit,
@@ -139,18 +127,17 @@ internal fun CustomBodyContent(
     onUndoDelete: () -> Unit,
 ) {
     val reducedMotion = rememberReducedMotion()
-    val nothingElse = friendsEmpty && community == null
     Box(Modifier.fillMaxSize()) {
         // Keyed on the restoring card alone, only the first cloud restore's fill-in animates.
         Crossfade(
-            targetState = state.restoringScreen() && nothingElse,
+            targetState = state.restoringScreen(),
             animationSpec = tween(createFadeMillis(reducedMotion)),
             label = "customRestore",
         ) { restoring ->
             when {
                 restoring -> CreateEmptyState(games = state.games, onStart = onStart, onImport = onImport, restoring = true)
                 state.loading -> Unit
-                state.isEmpty && nothingElse -> CreateEmptyState(games = state.games, onStart = onStart, onImport = onImport)
+                state.isEmpty -> CreateEmptyState(games = state.games, onStart = onStart, onImport = onImport)
                 else -> LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize().testTag("custom.list"),
@@ -169,14 +156,12 @@ internal fun CustomBodyContent(
                         }
                         draftRows(state.drafts, reducedMotion, onOpenDraft, onDraftActions)
                     }
-                    friends()
                     if (state.published.isNotEmpty()) {
                         item(key = "custom.published") {
                             SectionHead("Published by you", state.published.size, Modifier.testTag("custom.published"))
                         }
                         publishedRows(state.published, reducedMotion, onOpenPublished)
                     }
-                    community?.invoke(this)
                 }
             }
         }
@@ -184,7 +169,7 @@ internal fun CustomBodyContent(
     }
 }
 
-/** A section's [title] with how many rows it holds, as the friends section's head is drawn. */
+/** A section's [title] with how many rows it holds. */
 @Composable
 private fun SectionHead(title: String, count: Int, modifier: Modifier = Modifier) {
     Row(
@@ -234,13 +219,6 @@ private fun CustomBodyContentPreview() {
             CustomBodyContent(
                 state = CreateUiState(loading = false, drafts = drafts, draftCount = drafts.size, games = PreviewGames, published = listOf(published)),
                 listState = rememberLazyListState(),
-                friendsEmpty = false,
-                friends = {
-                    item(key = "friend:preview") {
-                        Text("From friends", Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.lg), style = MaterialTheme.typography.titleLarge)
-                    }
-                },
-                community = null,
                 onNewPuzzle = {},
                 onStart = { _, _ -> },
                 onImport = {},

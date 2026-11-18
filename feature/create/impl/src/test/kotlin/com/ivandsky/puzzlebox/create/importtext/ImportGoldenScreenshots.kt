@@ -155,9 +155,6 @@ abstract class ImportGoldenScreenshots(private val layout: PlayLayout, private v
         CustomBodyContent(
             state = LISTED,
             listState = rememberLazyListState(),
-            friendsEmpty = true,
-            friends = {},
-            community = null,
             onNewPuzzle = {},
             onStart = { _, _ -> },
             onImport = {},

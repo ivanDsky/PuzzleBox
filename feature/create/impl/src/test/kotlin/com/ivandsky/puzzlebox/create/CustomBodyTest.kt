@@ -1,11 +1,7 @@
 package com.ivandsky.puzzlebox.create
 
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.Text
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -59,9 +55,8 @@ import org.robolectric.shadows.ShadowLooper
 
 /**
  * The Custom list body over the real activity-scoped [CreateViewModel]: a New puzzle pick stores a draft and reports its
- * id; a draft row keeps its actions (open, duplicate, delete with Undo); the sections sit in the order drafts, the
- * caller's friends rows, published, the caller's community rows; text another app shared imports while the body shows;
- * the published rows get their solve counts; and with nothing in any section the Create empty state shows instead.
+ * id; a draft row keeps its actions (open, duplicate, delete with Undo); the sections sit in the order drafts,
+ * published; text another app shared imports while the body shows; the published rows get their solve counts; and with nothing in any section the Create empty state shows instead.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w360dp-h640dp")
@@ -87,6 +82,7 @@ class CustomBodyTest {
 
     @Test
     fun `a New puzzle pick stores a draft and reports its id`() {
+        store(draftRow("plain", code = null))
         show()
         awaitTag(NEW)
 
@@ -95,18 +91,18 @@ class CustomBodyTest {
 
         awaitTrue { openedDrafts.isNotEmpty() }
         assertEquals(listOf("draft-1"), openedDrafts)
-        assertEquals(setOf("draft-1"), drafts.rows.keys)
+        assertEquals(setOf("plain", "draft-1"), drafts.rows.keys)
         assertFalse(composeRule.exists(NEW_SHEET))
     }
 
     @Test
-    fun `the sections sit in order - drafts, friends, published, community`() {
+    fun `the sections sit in order - drafts, published`() {
         store(draftRow("plain", code = null))
         storePublished(CODE, "shared")
-        show(community = { item(key = "community:one") { Text("New today", Modifier.testTag(COMMUNITY)) } })
-        awaitTag(COMMUNITY)
+        show()
+        awaitTag(PUBLISHED_ROW)
 
-        val tops = listOf(NEW, CONTINUE, DRAFT_ROW, FRIEND, PUBLISHED, PUBLISHED_ROW, COMMUNITY).map { tag ->
+        val tops = listOf(NEW, CONTINUE, DRAFT_ROW, PUBLISHED, PUBLISHED_ROW).map { tag ->
             composeRule.onNodeWithTag(tag).getUnclippedBoundsInRoot().top
         }
         assertEquals("each section starts under the one before it", tops.sorted(), tops)
@@ -145,7 +141,7 @@ class CustomBodyTest {
     fun `deleting the last draft offers Undo, and Undo brings it back`() {
         val row = draftRow("plain", code = null)
         store(row)
-        show(friendsEmpty = true)
+        show()
         awaitCount(DRAFT_ROW, 1)
 
         composeRule.onNodeWithTag(DRAFT_MORE).performClick()
@@ -202,7 +198,7 @@ class CustomBodyTest {
 
     @Test
     fun `nothing made and no friends puzzles shows the empty state, whose game row starts a draft`() {
-        show(friendsEmpty = true)
+        show()
         awaitTag(EMPTY)
         assertFalse(composeRule.exists(NEW))
 
@@ -212,27 +208,7 @@ class CustomBodyTest {
         assertEquals(listOf("draft-1"), openedDrafts)
     }
 
-    @Test
-    fun `a community section keeps the list in place of the empty state`() {
-        show(friendsEmpty = true, community = { item(key = "community:one") { Text("New today", Modifier.testTag(COMMUNITY)) } })
-
-        awaitTag(COMMUNITY)
-        assertTrue(composeRule.exists(NEW))
-        assertFalse(composeRule.exists(EMPTY))
-    }
-
-    @Test
-    fun `friends puzzles alone keep the list in place of the empty state`() {
-        show(friendsEmpty = false)
-
-        awaitTag(FRIEND)
-        assertTrue(composeRule.exists(NEW))
-        assertFalse(composeRule.exists(EMPTY))
-        assertFalse(composeRule.exists(CONTINUE))
-        assertFalse(composeRule.exists(PUBLISHED))
-    }
-
-    private fun show(friendsEmpty: Boolean = false, community: (LazyListScope.() -> Unit)? = null) {
+    private fun show() {
         var ids = 0
         startKoin {
             modules(
@@ -260,13 +236,8 @@ class CustomBodyTest {
             PuzzleBoxTheme {
                 CustomBody(
                     listState = rememberLazyListState(),
-                    friendsEmpty = friendsEmpty,
-                    friends = {
-                        if (!friendsEmpty) item(key = "friend:one") { Text("From a friend", Modifier.testTag(FRIEND)) }
-                    },
                     onOpenDraft = { openedDrafts += it },
                     onOpenPublished = { openedPublished += it },
-                    community = community,
                 )
             }
         }
@@ -368,8 +339,6 @@ class CustomBodyTest {
         const val NEW = "custom.new"
         const val CONTINUE = "custom.continue"
         const val PUBLISHED = "custom.published"
-        const val FRIEND = "test.friend"
-        const val COMMUNITY = "test.community"
         const val NEW_SHEET = "create.new.sheet"
         const val SHEET_GAME = "create.new.game.fake"
         const val IMPORT_SHEET = "create.import.sheet"

@@ -83,7 +83,7 @@ class CustomBodySharedTextTest {
     @Test
     fun `text arriving while the list shows imports one draft and opens it`() {
         show()
-        awaitTag(ROOT)
+        awaitTrue { listShows() }
 
         store.put(NOTATION)
         awaitTrue { opened.isNotEmpty() }
@@ -111,9 +111,9 @@ class CustomBodySharedTextTest {
     @Test
     fun `text arriving while another screen covers the list waits for the list`() {
         show()
-        awaitTag(ROOT)
+        awaitTrue { listShows() }
         composeRule.runOnUiThread { covered = true }
-        awaitTrue { !composeRule.exists(ROOT) }
+        awaitTrue { !listShows() }
 
         store.put(NOTATION)
         idle()
@@ -136,7 +136,7 @@ class CustomBodySharedTextTest {
         awaitTrue { opened.isNotEmpty() }
 
         composeRule.runOnUiThread { covered = false }
-        awaitTag(ROOT)
+        awaitTrue { listShows() }
         idle()
 
         assertEquals(setOf("draft-1"), drafts.rows.keys)
@@ -148,7 +148,7 @@ class CustomBodySharedTextTest {
         val owner = ManualLifecycle(Lifecycle.State.STARTED)
         store.put(NOTATION)
         show(owner)
-        awaitTag(ROOT)
+        awaitTrue { listShows() }
         idle()
 
         assertEquals(NOTATION, store.pending.value)
@@ -164,7 +164,7 @@ class CustomBodySharedTextTest {
     @Test
     fun `a text shared during a check waits for it, then imports after the first`() {
         show()
-        awaitTag(ROOT)
+        awaitTrue { listShows() }
         store.put(BLOCKED)
         awaitTrue { editor.entered.count == 0L }
         assertTrue(vm.importText.ui.value.checking)
@@ -228,8 +228,6 @@ class CustomBodySharedTextTest {
         if (covered) return
         CustomBody(
             listState = rememberLazyListState(),
-            friendsEmpty = false,
-            friends = {},
             onOpenDraft = {
                 opened += it
                 covered = true
@@ -244,6 +242,9 @@ class CustomBodySharedTextTest {
     private fun awaitTag(tag: String) = awaitTrue { composeRule.exists(tag) }
 
     /** Lets the paused main looper run the view model's and the effects' coroutines. */
+    /** The body is up: the list, or with no draft yet the first-time screen. */
+    private fun listShows() = composeRule.exists(LIST) || composeRule.exists(EMPTY)
+
     private fun idle() {
         composeRule.waitForIdle()
         ShadowLooper.idleMainLooper(IDLE_MS, TimeUnit.MILLISECONDS)
@@ -321,7 +322,8 @@ class CustomBodySharedTextTest {
         const val TIMEOUT_MS = 5_000L
         const val FRAME_MS = 16L
         const val IDLE_MS = 200L
-        const val ROOT = "custom.list"
+        const val LIST = "custom.list"
+        const val EMPTY = "create.empty"
         const val SHEET = "create.import.sheet"
     }
 }

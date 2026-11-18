@@ -16,6 +16,8 @@ import com.ivandsky.puzzlebox.domain.CreateDraft
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.domain.SyncSolvesCounts
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.games.queens.QueensDefinition
+import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
 import com.ivandsky.puzzlebox.games.queens.queensPlugin
 import com.ivandsky.puzzlebox.games.queensui.editor.QueensEditorUi
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
@@ -28,6 +30,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedTextStore
 import java.time.Instant
+import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Rule
 import org.junit.Test
@@ -40,7 +43,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Import from text (M5-01-d) is offered by the New puzzle sheet on Games' Custom list and opens the Import
+ * Import from text (M5-01-d) is offered by the New puzzle sheet on the Custom list with a draft in it and opens the Import
  * from text sheet.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -72,6 +75,7 @@ class ImportTextGateTest {
         val games = GameRegistry(listOf(queensPlugin))
         var next = 0
         val createDraft = CreateDraft(games, drafts, newId = { "draft-${++next}" }, clock = { NOW })
+        runBlocking { createDraft(QueensDefinition.id, QueensEditor.variants.first()) }
         startKoin {
             modules(
                 module {

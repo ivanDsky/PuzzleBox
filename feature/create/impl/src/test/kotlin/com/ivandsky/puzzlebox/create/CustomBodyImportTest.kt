@@ -144,8 +144,6 @@ class CustomBodyImportTest {
             PuzzleBoxTheme {
                 CustomBody(
                     listState = rememberLazyListState(),
-                    friendsEmpty = true,
-                    friends = {},
                     onOpenDraft = {},
                     onOpenPublished = {},
                 )

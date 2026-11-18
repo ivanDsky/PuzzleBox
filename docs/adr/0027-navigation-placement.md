@@ -132,8 +132,7 @@ lives in Community › Yours; no other tab set remains, so §10 and §12 describ
     default branch.
 
     The Custom entries, now plain parameters, so code and this text agree:
-    - `CustomSlot(content: @Composable (LazyListState, friendsEmpty: Boolean, friends: LazyListScope.() -> Unit) -> Unit)`,
-      required by the Community entry; Games takes none;
+    - `CustomSlot(published, yours, yoursSummary)`, required by the Community entry; Games takes none;
     - game page `onMakeOne: ((GameId) -> Unit)?`; Result `onMakeOneLikeThis: ((GameId, VariantId?) -> Unit)?`; `null`
       hides the button;
     - the tab list is `topLevelDestinations` (Today, Games, Community, Ranks); no source picks it any more.
