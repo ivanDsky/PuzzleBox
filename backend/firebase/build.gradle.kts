@@ -29,7 +29,7 @@ dependencies {
 // firestore.indexes.json, through File(path) from the module dir; Gradle cannot see that, so
 // undeclared, an edited file would be served FROM-CACHE as a stale green.
 tasks.withType<Test>().configureEach {
-    inputs.files("firebase.json", "firestore.indexes.json", fileTree("hosting"), "hosting-test/share-code-vectors.json")
+    inputs.files("firebase.json", "firestore.indexes.json", fileTree("hosting"), "hosting-test/share-code-vectors.json", "hosting-test/daily-link-vectors.json")
         .withPropertyName("hostingFiles")
         .withPathSensitivity(PathSensitivity.RELATIVE)
 }
