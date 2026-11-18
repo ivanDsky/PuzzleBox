@@ -2,9 +2,11 @@ package com.ivandsky.puzzlebox.app.reminder
 
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.reminder.NotificationAccess
 import com.ivandsky.puzzlebox.data.reminder.ReminderAlarm
 import com.ivandsky.puzzlebox.data.reminder.ReminderNotifier
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import android.os.Looper
@@ -13,6 +15,7 @@ import org.junit.runner.RunWith
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
+import org.koin.dsl.module
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
@@ -40,7 +43,7 @@ class ReminderGraphTest {
     fun `the alarm resolves as the Android one and the runner is off in the real graph`() {
         val koin = startKoin {
             androidContext(RuntimeEnvironment.getApplication())
-            modules(PuzzleBoxApplication.appModules)
+            modules(PuzzleBoxApplication.appModules + module { single<ReleaseFlags> { FakeReleaseFlags() } })
         }.koin
         try {
             assertTrue(koin.get<ReminderAlarm>() is AndroidReminderAlarm)
@@ -55,7 +58,7 @@ class ReminderGraphTest {
         val application = RuntimeEnvironment.getApplication()
         val koin = startKoin {
             androidContext(application)
-            modules(PuzzleBoxApplication.appModules)
+            modules(PuzzleBoxApplication.appModules + module { single<ReleaseFlags> { FakeReleaseFlags() } })
         }.koin
         try {
             koin.get<ReminderAppHooks>().start()
