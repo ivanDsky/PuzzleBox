@@ -327,12 +327,12 @@ class ProfileViewModelTest {
 
         link.connect("me", consentAtMs = 1L)
         advanceUntilIdle()
-        assertEquals(LinkedInRowState.Connected(emptySummary, postingOffered = true), deps.vm.uiState.value.linkedIn)
+        assertEquals(LinkedInRowState.Connected(emptySummary), deps.vm.uiState.value.linkedIn)
 
         link.pause(Kind.Challenge)
         advanceUntilIdle()
         assertEquals(
-            LinkedInRowState.Paused(emptySummary, "LinkedIn asked for a check, so reading is paused.", needsReconnect = false, postingOffered = true),
+            LinkedInRowState.Paused(emptySummary, "LinkedIn asked for a check, so reading is paused.", needsReconnect = false),
             deps.vm.uiState.value.linkedIn,
         )
 
@@ -353,7 +353,7 @@ class ProfileViewModelTest {
         link.pause(Kind.SessionExpired)
         advanceUntilIdle()
         assertEquals(
-            LinkedInRowState.Paused(emptySummary, "Your LinkedIn login expired. Reconnect to keep reading.", needsReconnect = true, postingOffered = true),
+            LinkedInRowState.Paused(emptySummary, "Your LinkedIn login expired. Reconnect to keep reading.", needsReconnect = true),
             deps.vm.uiState.value.linkedIn,
         )
     }
@@ -368,7 +368,7 @@ class ProfileViewModelTest {
         advanceUntilIdle()
 
         assertEquals(
-            LinkedInRowState.Connected(LinkedInAccountView("Ada Lovelace", "/p/ada.jpg", 7, 0, 0, emptyList(), 1_000L), postingOffered = true),
+            LinkedInRowState.Connected(LinkedInAccountView("Ada Lovelace", "/p/ada.jpg", 7, 0, 0, emptyList(), 1_000L)),
             deps.vm.uiState.value.linkedIn,
         )
     }
@@ -383,7 +383,7 @@ class ProfileViewModelTest {
 
         deps.vm.onResumeLinkedIn()
         advanceUntilIdle()
-        assertEquals(LinkedInRowState.Connected(emptySummary, postingOffered = true), deps.vm.uiState.value.linkedIn)
+        assertEquals(LinkedInRowState.Connected(emptySummary), deps.vm.uiState.value.linkedIn)
 
         deps.vm.onDisconnectLinkedIn()
         advanceUntilIdle()

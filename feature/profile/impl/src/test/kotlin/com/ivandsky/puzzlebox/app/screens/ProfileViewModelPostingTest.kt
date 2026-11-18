@@ -82,7 +82,6 @@ class ProfileViewModelPostingTest {
     fun `connected the switch is offered and off by default`() = runTest(dispatcher) {
         val vm = viewModel(FakeLinkedInLink(LinkState.Connected("me")))
 
-        assertTrue(vm.connected().postingOffered)
         assertFalse(vm.connected().summary.posting)
     }
 
@@ -110,7 +109,6 @@ class ProfileViewModelPostingTest {
         advanceUntilIdle()
 
         val row = vm.uiState.value.linkedIn as LinkedInRowState.Paused
-        assertTrue(row.postingOffered)
         assertTrue(row.summary.posting)
     }
 

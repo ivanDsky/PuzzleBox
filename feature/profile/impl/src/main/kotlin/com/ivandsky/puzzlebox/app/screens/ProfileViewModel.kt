@@ -240,12 +240,11 @@ private fun CloudSyncState.toSync(erase: Deletion, oversizedDrafts: Int): Profil
 
 private fun LinkState.toRow(summary: LinkedInAccountView): LinkedInRowState = when (this) {
     LinkState.NotConnected -> LinkedInRowState.NotConnected
-    is LinkState.Connected -> LinkedInRowState.Connected(summary, postingOffered = true)
+    is LinkState.Connected -> LinkedInRowState.Connected(summary)
     is LinkState.Paused -> LinkedInRowState.Paused(
         summary = summary,
         reason = kind.reason(),
         needsReconnect = kind == LinkedInRead.Rejected.Kind.SessionExpired,
-        postingOffered = true,
     )
 }
 
