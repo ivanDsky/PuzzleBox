@@ -31,6 +31,10 @@ internal object StrandsEditorCopy {
         return "$letters letters, path has $cells: the extra $extra ${if (extra == 1) "isn't" else "aren't"} written"
     }
 
+    /** The fix-list warning for a word whose letters can be walked in more than one order; the puzzle still publishes. */
+    fun multiTrace(word: String): String =
+        "$word can be traced more than one way, so players may find it along a different path."
+
     /** The clue field's label, so the two boxes tell themselves apart. */
     const val CLUE_FIELD = "Theme clue"
 
