@@ -8,12 +8,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.EmptyState
+import com.ivandsky.puzzlebox.designsystem.LocalTabFadeLink
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.TabFadeLink
+import com.ivandsky.puzzlebox.designsystem.TabFadePane
 import com.ivandsky.puzzlebox.play.community.CommunityPhase
 
 /** The list pane's width on the tablet: Games' list column. */
@@ -38,12 +44,18 @@ internal fun CommunityPanes(
     modifier: Modifier = Modifier,
 ) {
     val picks = rememberCommunityTabPicks(default)
-    val tab = picks.tab
-    val pick = picks.current
+    val home = picks.tab.ordinal
+    val link = remember { TabFadeLink(home) }
+    SideEffect { link.home = home }
     Row(modifier.fillMaxSize().padding(start = Spacing.xl, top = Spacing.lg, end = Spacing.xxl, bottom = Spacing.xl)) {
-        list(Modifier.width(ListPaneWidth).fillMaxHeight(), picks)
+        CompositionLocalProvider(LocalTabFadeLink provides link) {
+            list(Modifier.width(ListPaneWidth).fillMaxHeight(), picks)
+        }
         Spacer(Modifier.width(Spacing.xl))
-        Box(Modifier.weight(1f).fillMaxHeight()) {
+        // The right pane fades with the tabs on the list's own progress, and shows each tab's pick as it fades in.
+        TabFadePane(link, Modifier.weight(1f).fillMaxHeight()) { index ->
+            val tab = CommunityTab.entries[index.coerceIn(CommunityTab.entries.indices)]
+            val pick = picks.pickOf(tab)
             if (pick == null) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { empty(tab) }
             } else {

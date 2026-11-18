@@ -103,24 +103,22 @@ class UnderlineTabPagerTest {
     }
 
     @Test
-    fun `a tap on another tab slides the pages and the bar over 300ms and lands there`() {
+    fun `a tap on another tab glides the bar over 240ms, fades the pages through and lands there`() {
         animatorScale(1f)
         composeRule.mainClock.autoAdvance = false
         show()
-        val width = pagerWidth()
 
         composeRule.onNodeWithTag("t.friends").performClick()
         composeRule.mainClock.advanceTimeByFrame()
-        advance(100)
-        val at = pageLeft(0)
-        assertTrue("page 0 at $at should be mid-slide", at < -0.05f * width && at > -0.95f * width)
+        advance(60)
         val bar = indicatorX()
-        assertTrue("bar at $bar should be mid-slide", bar > 0.1f * tabWidth() && bar < 0.95f * tabWidth())
+        assertTrue("bar at $bar should be mid-glide", bar > 0.1f * tabWidth() && bar < 0.95f * tabWidth())
+        assertEquals("the page does not slide a whole page", 0f, pageLeft(0), 0.1f * pagerWidth())
 
         advance(400)
         composeRule.waitForIdle()
         assertEquals(0f, pageLeft(1), 1f)
-        assertTrue("page 0 is off to the left", !isShown(0) || pageLeft(0) <= -pagerWidth() + 1f)
+        assertTrue("page 0 is gone", !isShown(0))
         composeRule.onNodeWithTag("t.friends").assertIsSelected()
         assertEquals(1f * tabWidth(), indicatorX(), 1f)
         assertTrue("a tap on another tab is not a reselect", reselected.isEmpty())

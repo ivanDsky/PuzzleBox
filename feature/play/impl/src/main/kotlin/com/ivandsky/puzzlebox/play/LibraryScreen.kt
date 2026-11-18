@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -11,16 +12,21 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.LocalTabFadeLink
 import com.ivandsky.puzzlebox.designsystem.OnTabReselect
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.TabFadeLink
+import com.ivandsky.puzzlebox.designsystem.TabFadePane
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.gameui.PlayLayout
@@ -116,15 +122,23 @@ internal fun LibraryScreen(
         duelPrefill = duelPrefill, onDuelPrefillTaken = { duelPrefill = null },
     )
     if (layout == PlayLayout.TwoPane) {
+        val home = tab.ordinal
+        val link = remember { TabFadeLink(home) }
+        SideEffect { link.home = home }
         Row(modifier.fillMaxSize().padding(start = Spacing.xl, top = Spacing.lg, end = Spacing.xxl, bottom = Spacing.xl)) {
-            CompositionLocalProvider(LocalEnterSettled provides true) { GamesList(onRow, Modifier.width(400.dp)) }
+            CompositionLocalProvider(LocalEnterSettled provides true, LocalTabFadeLink provides link) {
+                GamesList(onRow, Modifier.width(400.dp))
+            }
             Spacer(Modifier.width(Spacing.xl))
             // The Duels tab's right pane is a duel, never a game's page; going back to Dailies shows the selected game again.
-            if (duels != null && tab == GamesTab.Duels) {
-                duels.pane(Modifier.fillMaxSize())
-            } else if (selected != null) {
-                LibraryPane(LibraryPaneFrame(selected, page, month)) { shown ->
-                    Page(shown.row, onBack = null, shown.page, shown.month)
+            // It fades with the tabs: the pager's own progress drives it.
+            TabFadePane(link, Modifier.weight(1f).fillMaxHeight()) { index ->
+                if (duels != null && GamesTab.entries[index] == GamesTab.Duels) {
+                    duels.pane(Modifier.fillMaxSize())
+                } else if (selected != null) {
+                    LibraryPane(LibraryPaneFrame(selected, page, month)) { shown ->
+                        Page(shown.row, onBack = null, shown.page, shown.month)
+                    }
                 }
             }
         }
