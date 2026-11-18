@@ -42,6 +42,7 @@ import kotlinx.coroutines.CoroutineScope
  * a press shows a [spotlight] and never places (A1), a culprit is only marked and a second press
  * re-shows it for free (A4), and every input above clears the Spotlight in the same call (A10).
  * [hint] then stays null, so the legacy wash, rings and caption never draw (A15).
+ * [placeIt] (PlaceIt) puts "Place it" in a single's or reveal's callout; it places the explained digit as the player's own move.
  */
 class SudokuBoardState(
     initialSession: SudokuSession,
@@ -56,6 +57,7 @@ class SudokuBoardState(
     hintMode: HintMode = HintMode.Legacy,
     scope: CoroutineScope? = null,
     plainCaptions: Boolean = false,
+    placeIt: Boolean = false,
     // Read when the model is built, so a toggle repaints the board without rebuilding the state.
     private val peerHighlight: () -> Boolean = { true },
     private val sameDigitHighlight: () -> Boolean = { true },
@@ -91,7 +93,11 @@ class SudokuBoardState(
     internal val stepHints: StepHints<SudokuStep, SudokuSpotlightMapper.Key>? =
         (hintMode as? HintMode.Stepwise)?.let { mode ->
             scope?.let {
-                val game = SudokuStepGame(session = { session }, plainCaptions = plainCaptions)
+                val game = SudokuStepGame(
+                    session = { session },
+                    plainCaptions = plainCaptions,
+                    placeIt = if (placeIt) ::placeExplained else null,
+                )
                 StepHints(mode, it, game, used = { session.hintsUsed }, onCount = { countHint() })
             }
         }
@@ -107,34 +113,6 @@ class SudokuBoardState(
     val hintCaption: String? get() = if (spotlight != null) null else SudokuHintCaptions.hint(hint, session.board)
 
     val violation: String? get() = if (spotlight != null) null else SudokuHintCaptions.violation(session.board)
-
-    /** The cell the hint places into, null for hints that point at a set of cells. */
-    val hintTarget: Int?
-        get() = when (val h = hint) {
-            is SudokuHint.Place -> h.cell
-            is SudokuHint.Reveal -> h.cell
-            else -> null
-        }
-
-    /** The cells that justify or make up the hint, the target excluded. */
-    val hintCells: Set<Int>
-        get() {
-            val geometry = session.board.geometry
-            return when (val h = hint) {
-                is SudokuHint.Place -> {
-                    // A naked single is justified by everything the cell sees, not by one unit.
-                    val cells = h.unit?.let(geometry::cellsOf) ?: geometry.peersOf(h.cell)
-                    cells.filterTo(HashSet()) { it != h.cell }
-                }
-                is SudokuHint.Conflict -> h.conflict.cells.toSet()
-                is SudokuHint.Wrong -> h.cells.toSet()
-                is SudokuHint.Reveal, SudokuHint.None, null -> emptySet()
-            }
-        }
-
-    /** The cells whose candidates the hint's eliminations cleared, stage 1 only (spec A8). */
-    val hintStruck: Set<Int>
-        get() = (hint as? SudokuHint.Place)?.takeUnless { hintRevealed }?.struck?.toSet().orEmpty()
 
     val model: SudokuBoardModel
         get() = sudokuBoardModel(session, selected, hintTarget, hintCells, hintStruck, peerHighlight(), sameDigitHighlight())
@@ -232,6 +210,17 @@ class SudokuBoardState(
         // A cell that already holds the digit changes nothing: the hint stays unrevealed.
         if (session === before) return
         hintRevealed = true
+    }
+
+    /**
+     * "Place it": the explained digit as the player's own entry, whatever Notes mode says. Selection stays where it was.
+     * A given is refused as a tap on it is; a digit the cell already holds commits nothing, so a repeat is a no-op.
+     */
+    internal fun placeExplained(idx: Int, digit: Int) {
+        onInput()
+        clearFeedback()
+        if (rejectsGiven(idx)) return
+        commit(SudokuReplayMove.Place(idx, digit))
     }
 
     /** One counted hint: through [settle], never [commit], so the Stepwise Spotlight stays. */
