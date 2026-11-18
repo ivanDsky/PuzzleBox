@@ -7,6 +7,9 @@ import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.match.MatchFetch
 import com.ivandsky.puzzlebox.data.match.ResultRead
 import com.ivandsky.puzzlebox.data.match.SelfSeats
+import com.ivandsky.puzzlebox.domain.lineup.AnyGame
+import com.ivandsky.puzzlebox.domain.lineup.ExactPuzzle
+import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
@@ -166,5 +169,50 @@ class CreateSelfDuelTest {
 
         assertTrue(a != b)
         assertEquals(2, self.observeAll().first().size)
+    }
+
+    @Test
+    fun `a lineup saves a duel with its legs in order, two of one game different`() = runTest {
+        completions.setRecords(listOf(record(alpha, daily(1)), record(alpha, daily(2)), record(beta, daily(3))))
+        val lineup = listOf(AnyGame(alpha), AnyGame(beta), AnyGame(alpha))
+
+        val outcome = created(create()(settings().copy(lineup = lineup)))
+
+        assertEquals(listOf(alpha, beta, alpha), outcome.legs.map { it.ref.gameId })
+        assertEquals(2, outcome.legs.map { it.ref }.filter { it.gameId == alpha }.toSet().size)
+        assertEquals(outcome.legs, self.observeAll().first().single().legs)
+    }
+
+    @Test
+    fun `a lineup leg's past result is the first solve, never a later faster play`() = runTest {
+        completions.setRecords(
+            listOf(
+                record(alpha, daily(1), time = 77_000, hints = 3, at = 4_000),
+                record(alpha, daily(1), time = 10_000, at = 8_000, isRecord = false),
+            ),
+        )
+
+        val code = created(create()(settings().copy(lineup = listOf(AnyGame(alpha))))).code
+
+        val past = (self.readResult(code, 0, SelfSeats.PAST) as ResultRead.Found).result
+        assertEquals(77_000L, past.timeMs)
+        assertEquals(3, past.hints)
+    }
+
+    @Test
+    fun `a lineup row that can't be filled is refused at its position and saves nothing`() = runTest {
+        completions.setRecords(listOf(record(alpha, daily(1)), record(beta, daily(3))))
+        val lineup = listOf(AnyGame(alpha), AnyGame(beta), AnyGame(alpha))
+
+        assertEquals(CreateOutcome.EntryUndrawable(3, alpha), create()(settings().copy(lineup = lineup)))
+        val gone = ExactPuzzle(LegRef.Daily(alpha, LocalDate.of(2026, 11, 9), 9), null, "t", null, PuzzleSource.PastDay)
+        assertEquals(CreateOutcome.EntryUnavailable(2), create()(settings().copy(lineup = listOf(AnyGame(alpha), gone))))
+        assertTrue(self.observeAll().first().isEmpty())
+    }
+
+    @Test
+    fun `an empty lineup answers NoPuzzles`() = runTest {
+        completions.setRecords(listOf(record(alpha, daily(1))))
+        assertEquals(CreateOutcome.NoPuzzles, create()(settings().copy(lineup = emptyList())))
     }
 }
