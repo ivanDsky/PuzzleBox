@@ -82,6 +82,7 @@ class QueensPlaceItTest {
             onSessionChanged = { saved += it },
             mode = QueensPlayFixtures.hintMode,
             scope = CoroutineScope(Dispatchers.Unconfined),
+            offersPlaceIt = true,
         )
         val session: QueensSession get() = board.session
 
@@ -270,8 +271,8 @@ class QueensPlaceItTest {
     }
 
     @Test
-    fun `the play UI's boards and guided lessons both carry the action`() {
-        val ui = QueensPlayUi(InMemoryQueensSettings(), QueensPlayFixtures.hintMode)
+    fun `the play UI hands Place it to its boards but not to a guided lesson`() {
+        val ui = QueensPlayUi(InMemoryQueensSettings(), { QueensPlayFixtures.hintMode }, offersPlaceIt = true)
         fun actionOn(controller: GamePlayController): SpotlightAction? {
             val queens = controller as QueensPlayController
             assertEquals(Adopt.Adopted, queens.adoptToday(QueensPlayFixtures.envelope(), QueensPlayFixtures.ref()))
@@ -281,7 +282,7 @@ class QueensPlaceItTest {
         val env = { PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {}) }
 
         assertNotNull(actionOn(ui.createController(env())))
-        assertNotNull(actionOn(ui.createLessonController(env())))
+        assertNull(actionOn(ui.createLessonController(env())))
     }
 
     // Any other input removes the pill first (A10)

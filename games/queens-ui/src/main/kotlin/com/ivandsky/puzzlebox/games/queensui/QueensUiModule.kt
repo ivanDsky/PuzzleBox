@@ -20,7 +20,7 @@ val queensUiModule: Module = module {
     single<GamePlayUi>(qualifier = qualifier(QueensDefinition.id.value)) {
         val flags = getOrNull<ReleaseFlags>()
         val compute = get<DispatcherProvider>().default
-        QueensPlayUi(get<QueensSettings>(), { HintMode.Stepwise(compute) }, { queensPlainCaptions(flags) })
+        QueensPlayUi(get<QueensSettings>(), { HintMode.Stepwise(compute) }, { queensPlainCaptions(flags) }, offersPlaceIt = true)
     }
     single<GameEditorUi>(qualifier = qualifier("${QueensDefinition.id.value}.editor")) { QueensEditorUi }
 }

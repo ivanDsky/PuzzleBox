@@ -64,6 +64,8 @@ class QueensPlayController(
     private val hintMode: HintMode.Stepwise,
     /** Read once at creation like [hintMode]: the plain hint captions (HintPolish). */
     private val plainCaptions: Boolean = false,
+    /** Whether this controller's boards offer "Place it"; the lesson controller leaves it off (A8). */
+    private val offersPlaceIt: Boolean = false,
 ) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback, PlayGuide {
 
     /** The live interaction holder, null until a session is adopted. */
@@ -152,6 +154,7 @@ class QueensPlayController(
             mode = hintMode,
             scope = env.scope,
             plainCaptions = plainCaptions,
+            offersPlaceIt = offersPlaceIt,
             onInput = env.onInput,
         )
     }
