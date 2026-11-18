@@ -90,7 +90,7 @@ internal class NewDuelViewModel(
     /** The new duel, once, after Create succeeded: a duel created as the sheet closed waits here for the next opening. */
     val created: Flow<CreatedDuel> = createdCodes.receiveAsFlow()
 
-    /** The code of a duel against Past you, once, after Create succeeded: the sheet opens that duel. */
+    /** The code of a duel against Past you, once, after Create succeeded: the sheet opens that duel, the next opening's if it closed first. */
     val opened: Flow<ShareCode> = openedCodes.receiveAsFlow()
 
     /** Bumped each time the sheet opens, so the solved counts are read again for puzzles solved since. */
@@ -225,10 +225,8 @@ internal class NewDuelViewModel(
     private fun createSelf(start: DuelWorking) {
         viewModelScope.launch {
             val outcome = selfStep.create(start.form, solved.value)
-            var current = false
             working.update { work ->
-                current = work.generation == start.generation
-                if (!current) return@update work
+                if (work.generation != start.generation) return@update work
                 when (outcome) {
                     is CreateOutcome.Created -> work
                     null -> work.copy(creating = false)
@@ -236,7 +234,8 @@ internal class NewDuelViewModel(
                     else -> work.copy(creating = false, notice = DuelNotice.Failed(null))
                 }
             }
-            if (current && outcome is CreateOutcome.Created) openedCodes.send(outcome.code)
+            // The duel is stored whatever the sheet did meanwhile, so its code must still reach the creator.
+            if (outcome is CreateOutcome.Created) openedCodes.send(outcome.code)
         }
     }
 

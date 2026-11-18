@@ -34,9 +34,11 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import java.util.Locale
 import kotlin.random.Random
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -76,11 +78,12 @@ class NewDuelSelfViewModelTest {
     private val local = FakeMatchLocalRepository()
     private val self = FakeSelfMatchRepository()
     private var poolThrows = false
+    private var gate = CompletableDeferred(Unit)
     private val pool = ComputeSolvedPool(
         registry,
         object : CompletionRepository by completions {
             override fun observeRecords(): Flow<List<CompletionRecord>> =
-                if (poolThrows) flow { throw IllegalStateException("room closed") } else completions.observeRecords()
+                if (poolThrows) flow { throw IllegalStateException("room closed") } else completions.observeRecords().onStart { gate.await() }
         },
         received,
     )
@@ -268,6 +271,18 @@ class NewDuelSelfViewModelTest {
         vm.chooseOpponent(Opponent.PastYou)
 
         assertEquals(Opponent.PastYou, vm.state.value.opponent)
+    }
+
+    @Test
+    fun `closing the sheet mid-create still delivers the Past you duel it made`() = runTest {
+        solve(alpha, 1, 2, 3, 4)
+        val vm = started()
+        vm.chooseOpponent(Opponent.PastYou)
+        gate = CompletableDeferred()
+        vm.create()
+        vm.reset()
+        gate.complete(Unit)
+        assertEquals(self.observeAll().first().single().code, vm.opened.first())
     }
 
     @Test
