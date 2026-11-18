@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.history
 
+import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
@@ -104,6 +105,7 @@ object HistoryTestSupport {
                 daily = daily,
                 received = received,
                 loadShared = loadShared,
+                published = FakePublishedPuzzleRepository(),
             ),
             player = LoadPlayerReplay(FakeDailyReplayRepository(), daily),
             completions = completions,

@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.play.friend
 
+import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import androidx.compose.runtime.Composable
@@ -250,7 +251,7 @@ class CustomResultViewModelTest {
             games = games,
             daily = LoadDailyReplay(completions, FakeDailyRepository()),
             custom = LoadCustomReplay(completions, received, loadShared),
-            leg = LoadLegReplay(FakeMatchRepository(), FakeMatchResultOutbox(), FakeIdentityService(), FakeDailyRepository(), received, loadShared),
+            leg = LoadLegReplay(FakeMatchRepository(), FakeMatchResultOutbox(), FakeIdentityService(), FakeDailyRepository(), received, loadShared, FakePublishedPuzzleRepository()),
             player = LoadPlayerReplay(FakeDailyReplayRepository(), FakeDailyRepository()),
             completions = completions,
             dispatchers = dispatchers,

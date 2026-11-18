@@ -29,7 +29,9 @@ internal class DuelLegBoards(
                     (givens?.let(LegBoard::Of) ?: LegBoard.None).also { settled[leg.wire] = it }
                 }
                 LegPuzzleRead.Absent -> LegBoard.None.also { settled[leg.wire] = it }
-                LegPuzzleRead.Unavailable -> LegBoard.None
+                LegPuzzleRead.TakenDown -> LegBoard.TakenDown.also { settled[leg.wire] = it }
+                // A daily leg that cannot be fetched is not "offline": only a friend's puzzle has a line for it.
+                LegPuzzleRead.Unavailable -> if (leg is LegRef.Custom) LegBoard.Offline else LegBoard.None
             }
         }
     }

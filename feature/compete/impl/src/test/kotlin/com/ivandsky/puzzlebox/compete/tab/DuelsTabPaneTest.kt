@@ -53,6 +53,7 @@ import com.ivandsky.puzzlebox.domain.DeleteSelfDuel
 import com.ivandsky.puzzlebox.domain.ObserveDuel
 import com.ivandsky.puzzlebox.domain.ObserveMatch
 import com.ivandsky.puzzlebox.domain.lineup.ObserveLegTitles
+import com.ivandsky.puzzlebox.domain.lineup.SaveDuelPuzzles
 import com.ivandsky.puzzlebox.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.domain.UpdateMatchSeat
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
@@ -180,9 +181,10 @@ class DuelsTabPaneTest {
                     }
                     single { registry }
                     single { ObserveLegTitles(received, FakePublishedPuzzleRepository(), FakeSharedPuzzleRepository()) }
+                    single { SaveDuelPuzzles(loadShared::invoke) }
                     single { GamePlayRegistry(emptyList()) }
                     single<DispatcherProvider> { DefaultDispatcherProvider() }
-                    single { LoadLegPuzzle(daily = FakeDailyRepository(), received = received, loadShared = loadShared) }
+                    single { LoadLegPuzzle(daily = FakeDailyRepository(), received = received, loadShared = loadShared, published = FakePublishedPuzzleRepository()) }
                 },
             )
         }

@@ -271,68 +271,12 @@ class LoadSharedPuzzleTest {
         postState = PostState.Pending, postAttempts = 0, difficulty = null,
     )
 
-    /**
-     * Two cells, each 1 or 2 and never equal; 0 is a blank. `[1, 0]` has one solution,
-     * `[0, 0]` two. The share payload is the cells as bytes; the puzzle carries the solution.
-     */
-    private object PairEditor : GameEditor<List<Int>>, EditorShareCodec<List<Int>>, DraftExport<List<Int>> {
-        const val SHARE_VERSION = 1
-        val VARIANT = VariantId("pair/n2")
-
-        override val gameId: GameId = PAIR
-        override val variants: List<VariantId> = listOf(VARIANT)
-        override val draftFormatVersion: Int = 1
-        override val shareFormatVersion: Int = SHARE_VERSION
-        override fun newDraft(variant: VariantId): List<Int> = listOf(0, 0)
-        override fun variantOf(draft: List<Int>): VariantId = VARIANT
-        override fun encodeDraft(state: DraftState<List<Int>>): ByteArray = encodeShare(state.draft)
-        override fun decodeDraft(bytes: ByteArray): DecodeResult<DraftState<List<Int>>> = when (val d = decodeShare(bytes)) {
-            is DecodeResult.Ok -> DecodeResult.Ok(DraftState(d.value))
-            is DecodeResult.Err -> d
-        }
-
-        override fun analyze(draft: List<Int>, budget: Budget): Verdict {
-            val solutions = listOf(listOf(1, 2), listOf(2, 1))
-                .filter { candidate -> draft.indices.all { draft[it] == 0 || draft[it] == candidate[it] } }
-                .map(::Solution)
-            return when (solutions.size) {
-                0 -> Verdict.None(conflicts = draft.indices.toSet())
-                1 -> Verdict.Unique(solutions.single())
-                else -> Verdict.Multiple(solutions[0], solutions[1], differingCells = draft.indices.toSet())
-            }
-        }
-
-        override fun encodeShare(draft: List<Int>): ByteArray = ByteArray(draft.size) { draft[it].toByte() }
-        override fun decodeShare(bytes: ByteArray): DecodeResult<List<Int>> =
-            if (bytes.size == 2 && bytes.all { it in 0..2 }) DecodeResult.Ok(bytes.map { it.toInt() })
-            else DecodeResult.Err(DecodeError.Malformed("not a pair board"))
-
-        override fun toPuzzle(draft: List<Int>, solution: Solution): Puzzle =
-            Puzzle(gameId, VARIANT, 1, ByteArray(solution.values.size) { solution.values[it].toByte() })
-    }
-
     private companion object {
-        val PAIR = GameId("pair")
+        val PAIR = PairEditor.GAME
         val PLAIN = GameId("plain")
         val CODE = checkNotNull(ShareCode.parse("K7Q2MX"))
         const val AUTHOR = "uid-jonas"
         const val BUDGET_MS = 1_000L
         val NOW: Instant = Instant.parse("2026-11-07T10:00:00Z")
-
-        fun withEditor(game: GameId, editor: GameEditor<*> = PairEditor): GamePlugin<*, *, *> {
-            val base = TestGames.plugin(game)
-            return GamePlugin(
-                definition = base.definition,
-                rules = base.rules,
-                session = base.session,
-                score = base.score,
-                stateOf = base.stateOf,
-                initialSession = base.initialSession,
-                refOf = base.refOf,
-                playAgainSession = base.playAgainSession,
-                rendererModel = base.rendererModel,
-                editor = editor,
-            )
-        }
     }
 }

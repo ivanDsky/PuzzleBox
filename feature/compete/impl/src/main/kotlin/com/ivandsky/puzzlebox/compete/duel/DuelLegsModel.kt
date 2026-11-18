@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.data.match.ResultPostState
 import com.ivandsky.puzzlebox.data.match.isSelf
 import com.ivandsky.puzzlebox.domain.LegSeen
 import com.ivandsky.puzzlebox.domain.MatchView
+import com.ivandsky.puzzlebox.domain.lineup.LegName
 import com.ivandsky.puzzlebox.domain.revealReady
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.model.GameId
@@ -44,7 +45,11 @@ internal enum class PostingCaption { Pending, Late, LocalOnly }
 
 internal enum class LegAction { Start, Resume }
 
-/** One puzzle's card: [action] is null once it is done; [actionEnabled] is false for an unstarted puzzle of a settled duel. */
+/**
+ * One puzzle's card: [action] is null once it is done; [actionEnabled] is false for an unstarted puzzle of a settled duel.
+ * A [custom] puzzle whose title is known (DuelLineup on) is titled by it, with the game, its author and the code as the
+ * [subtitle]; else the title is the game and code and there is no subtitle.
+ */
 internal data class LegRowModel(
     val legIndex: Int,
     val gameId: GameId,
@@ -55,6 +60,8 @@ internal data class LegRowModel(
     val posting: PostingCaption?,
     val action: LegAction?,
     val actionEnabled: Boolean,
+    val subtitle: String? = null,
+    val custom: Boolean = false,
 )
 
 /** Playing: a puzzle of mine is open. Waiting: mine are done. RevealReady: [MatchView.match]'s reveal rule says so. */
@@ -74,6 +81,7 @@ internal data class DuelLegsModel(
  * puzzle is the viewer's outbox row; otherwise a saved play makes it In progress, else New. The footer asks the
  * match's own reveal rule rather than restating it. A self duel names me [myName] (its stored "You" is a placeholder)
  * and shows each opponent line as the [dayOf] the puzzle's [firstSolvedAt]: past you's score is never read here.
+ * [names] holds the custom puzzles' titles and authors where known; none keeps today's titles.
  */
 internal fun duelLegsModel(
     view: MatchView,
@@ -84,6 +92,7 @@ internal fun duelLegsModel(
     myName: String? = null,
     firstSolvedAt: Map<String, Instant> = emptyMap(),
     dayOf: (Instant) -> String = Instant::toString,
+    names: Map<ShareCode, LegName> = emptyMap(),
 ): DuelLegsModel {
     val match = view.match
     val mine = view.mine.filter { it.result.uid == view.me }.associateBy { it.result.legIndex }
@@ -95,10 +104,14 @@ internal fun duelLegsModel(
             outbox.result.gaveUp -> LegStatus.GaveUp
             else -> LegStatus.Solved(outbox.result.timeMs, outbox.result.hints)
         }
+        val gameName = nameOf(leg.ref.gameId)
+        val named = (leg.ref as? LegRef.Custom)?.let { names[it.code] }
         LegRowModel(
             legIndex = index,
             gameId = leg.ref.gameId,
-            title = legTitle(leg.ref, nameOf(leg.ref.gameId)),
+            title = named?.title ?: legTitle(leg.ref, gameName),
+            subtitle = named?.let { legSubtitle(leg.ref as LegRef.Custom, gameName, it) },
+            custom = leg.ref is LegRef.Custom,
             rankOrder = rankOrderOf(leg.ref.gameId),
             status = status,
             opponent = if (match.isSelf) firstSolve(firstSolvedAt[leg.ref.wire], dayOf) else opponentLine(view.theirs.getOrNull(index)),
@@ -130,6 +143,9 @@ private fun legTitle(ref: LegRef, gameName: String): String = when (ref) {
     is LegRef.Daily -> "$gameName #${ref.number}"
     is LegRef.Custom -> "$gameName · ${ref.code.display}"
 }
+
+private fun legSubtitle(ref: LegRef.Custom, gameName: String, name: LegName): String =
+    listOfNotNull(gameName, name.author?.let { "by $it" }, ref.code.display).joinToString(" · ")
 
 private fun opponentLine(seen: LegSeen?): OpponentLine = when (seen) {
     null, LegSeen.NotPlayed -> OpponentLine.NotPlayed

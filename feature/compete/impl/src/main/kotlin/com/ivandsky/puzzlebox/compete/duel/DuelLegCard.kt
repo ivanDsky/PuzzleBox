@@ -33,8 +33,9 @@ private val SelectedBorder = 2.dp
 
 /**
  * One puzzle of the duel as an outlined card: game tile, title and rank rule, my status, the opponent line and, when
- * it applies, the posting caption. [onAction] adds the Start / Resume button under them (the tablet keeps it in the
- * detail pane instead); [onClick] selects the card; [selected] outlines it in primary.
+ * it applies, the posting caption. [extra] draws under them, as the line that explains a puzzle that cannot be started.
+ * [onAction] adds the Start / Resume button under them (the tablet keeps it in the detail pane instead); [onClick]
+ * selects the card; [selected] outlines it in primary.
  */
 @Composable
 internal fun DuelLegCard(
@@ -45,6 +46,7 @@ internal fun DuelLegCard(
     selected: Boolean = false,
     onClick: (() -> Unit)? = null,
     onAction: (() -> Unit)? = null,
+    extra: @Composable () -> Unit = {},
 ) {
     val scheme = MaterialTheme.colorScheme
     val shape = AppShapes.large
@@ -68,7 +70,18 @@ internal fun DuelLegCard(
                     color = scheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.testTag("duel.legs.title.${row.legIndex}"),
                 )
+                row.subtitle?.let { subtitle ->
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = scheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.testTag("duel.legs.subtitle.${row.legIndex}"),
+                    )
+                }
                 Text(
                     text = rankRuleText(row.rankOrder),
                     style = MaterialTheme.typography.bodySmall,
@@ -79,6 +92,7 @@ internal fun DuelLegCard(
         }
         OpponentText(row.opponent, opponentName)
         PostingNote(row.posting)
+        extra()
         if (onAction != null) LegActionButton(row, onAction, Modifier.fillMaxWidth())
     }
 }

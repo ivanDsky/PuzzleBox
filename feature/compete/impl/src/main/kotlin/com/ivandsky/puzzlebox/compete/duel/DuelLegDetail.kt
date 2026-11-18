@@ -35,7 +35,8 @@ internal fun LegDetail(row: LegRowModel, content: LegsContent, brands: GamePlayR
         height = height,
         details = { LegDetails(row, content, brands) },
         board = { side ->
-            key(row.legIndex) { LegBoardPreview(row.legIndex, sharp = row.status is LegStatus.Solved, maxSide = side, board = content.board) }
+            // Keyed on the read too: a Retry that answers re-reads the board the preview drew as nothing.
+            key(row.legIndex, content.reads.answer(row.legIndex)) { LegBoardPreview(row.legIndex, sharp = row.status is LegStatus.Solved, maxSide = side, board = content.board) }
         },
     )
 }
@@ -64,14 +65,17 @@ internal fun BoardOverDetails(height: Dp, details: @Composable () -> Unit, board
 }
 
 @Composable
-private fun LegDetails(row: LegRowModel, content: LegsContent, brands: GamePlayRegistry) {
+private fun LegDetails(picked: LegRowModel, content: LegsContent, brands: GamePlayRegistry) {
+    val row = content.reads.shown(picked)
     Column(Modifier.fillMaxWidth().testTag("duel.legs.detail"), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         GameGlyph(brands.brandOf(row.gameId), GameGlyphSize.Hero)
         Text(row.title, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
+        row.subtitle?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         Text(rankRuleText(row.rankOrder), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         LegStatusPill(row.status)
         OpponentText(row.opponent, content.model.opponent.name)
         PostingNote(row.posting)
+        LegUnavailable(content.reads.answer(row.legIndex), row.legIndex, { content.reads.retry(row.legIndex) })
         if (content.model.self) Callout(done = row.action == null, timeLeftShown = content.timeLeftShown)
         LegActionButton(row, onClick = { content.actions.onOpenLeg(row) }, modifier = Modifier.fillMaxWidth())
     }

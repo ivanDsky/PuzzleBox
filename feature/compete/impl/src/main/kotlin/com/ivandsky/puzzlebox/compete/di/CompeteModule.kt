@@ -63,6 +63,7 @@ val competeModule: Module = module {
             plays = get(),
             dispatchers = get(),
             legTitles = get(),
+            saveDuelPuzzles = get(),
             releaseFlags = getOrNull(),
         )
     }

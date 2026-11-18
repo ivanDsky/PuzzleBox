@@ -15,17 +15,21 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.domain.DuelSnapshot
 import com.ivandsky.puzzlebox.domain.MatchState
+import com.ivandsky.puzzlebox.compete.create.TITLES_WAIT_MS
+import com.ivandsky.puzzlebox.domain.lineup.LegName
 import com.ivandsky.puzzlebox.domain.lineup.ObserveLegTitles
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * One puzzle of the duel as an invite lists it (spec A8, A19): a daily leg is its game, a custom leg its [title] in
@@ -57,14 +61,17 @@ private fun DuelSnapshot.legRefs(): List<LegRef> = when (val state = match) {
 }
 
 /**
- * The titles of the custom legs of the duel this flow shows, read once per set of codes; none while [lineupOn] is
- * false. Starts with none, so the card draws the codes first.
+ * The names (title and author) of the custom legs of the duel this flow shows, read once per set of codes, for at most
+ * [TITLES_WAIT_MS] and keeping what came in by then; none while [lineupOn] is false. Starts with none, so the page draws
+ * the codes first and a slow read never holds it.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-internal fun Flow<DuelSnapshot>.legTitlesBy(titles: ObserveLegTitles, lineupOn: () -> Boolean): Flow<Map<ShareCode, String>> =
+internal fun Flow<DuelSnapshot>.legTitlesBy(titles: ObserveLegTitles, lineupOn: () -> Boolean): Flow<Map<ShareCode, LegName>> =
     map { duel -> if (lineupOn()) duel.legRefs().customCodes() else emptyList() }
         .distinctUntilChanged()
-        .flatMapLatest { codes -> if (codes.isEmpty()) flowOf(emptyMap()) else titles(codes) }
+        .flatMapLatest { codes ->
+            if (codes.isEmpty()) flowOf(emptyMap()) else channelFlow { withTimeoutOrNull(TITLES_WAIT_MS) { titles.names(codes).collect { send(it) } } }
+        }
         .onStart { emit(emptyMap()) }
 
 private val NumberWidth = 20.dp

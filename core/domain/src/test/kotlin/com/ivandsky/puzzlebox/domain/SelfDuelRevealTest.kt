@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.domain
 
+import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.LegResult
@@ -70,6 +71,7 @@ class SelfDuelRevealTest {
             budget = { Budget.within(1_000, System::nanoTime) },
             clock = { Instant.EPOCH },
         ),
+        published = FakePublishedPuzzleRepository(),
     )
 
     private fun day(index: Int) = LocalDate.of(2026, 11, 1 + index)
