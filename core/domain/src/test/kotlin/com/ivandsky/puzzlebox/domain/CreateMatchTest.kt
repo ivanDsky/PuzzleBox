@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.match.PuzzleCodeCheck
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
+import com.ivandsky.puzzlebox.domain.lineup.ValidateExactPuzzles
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
@@ -25,6 +26,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import java.time.Instant
 import java.time.LocalDate
 import kotlin.random.Random
@@ -63,7 +65,7 @@ class CreateMatchTest {
     private fun drawer() = ComputeMatchLegs(registry, daily, FakeGameCalendar(today), history, received, Random(DRAW_SEED))
 
     private fun createMatch(repository: MatchRepository = repo) =
-        CreateMatch(repository, local, drawer(), identity, Random(CODE_SEED))
+        CreateMatch(repository, local, drawer(), identity, Random(CODE_SEED), ValidateExactPuzzles(FakeSharedPuzzleRepository()))
 
     /** The codes a fresh [createMatch] tries, in order. */
     private fun codes(count: Int): List<ShareCode> = Random(CODE_SEED).let { random -> List(count) { ShareCode.random(random) } }

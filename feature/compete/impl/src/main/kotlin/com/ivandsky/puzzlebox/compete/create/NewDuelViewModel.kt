@@ -158,7 +158,7 @@ internal class NewDuelViewModel(
 
     /** Applies [edit] to the lineup; it is a Customize edit, so it leaves Quick and Daily, and it clears a refusal. */
     fun editLineup(edit: (LineupEditor) -> LineupEditor) = working.update {
-        val cleared = if (it.notice is DuelNotice.EntryUndrawable) it.withoutNotice() else it
+        val cleared = if (it.notice is DuelNotice.EntryUndrawable || it.notice is DuelNotice.EntryUnavailable) it.withoutNotice() else it
         val next = edit(cleared.lineup)
         // Daily's rows can be reordered and removed without leaving Daily.
         if (next == cleared.lineup) it else cleared.copy(lineup = next, draft = if (it.draft.preset == DuelPreset.Daily) it.draft else it.draft.customized())
@@ -224,6 +224,11 @@ internal class NewDuelViewModel(
                     CreateOutcome.DailyCapReached -> work.copy(creating = false, notice = DuelNotice.Busy)
                     CreateOutcome.NoPuzzles -> work.copy(creating = false, notice = DuelNotice.NoPuzzles)
                     is CreateOutcome.Failed -> work.copy(creating = false, notice = DuelNotice.Failed(outcome.message))
+                    is CreateOutcome.EntryUnavailable -> work.copy(
+                        creating = false,
+                        notice = DuelNotice.EntryUnavailable(outcome.position),
+                        lineup = work.lineup.refused(outcome.position),
+                    )
                     is CreateOutcome.EntryUndrawable -> work.copy(
                         creating = false,
                         notice = DuelNotice.EntryUndrawable(outcome.position, registry.displayName(outcome.gameId)),

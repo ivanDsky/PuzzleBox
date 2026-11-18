@@ -50,6 +50,7 @@ import com.ivandsky.puzzlebox.domain.ReportPuzzle
 import com.ivandsky.puzzlebox.domain.ValidatePublish
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.UpdateMatchSeat
+import com.ivandsky.puzzlebox.domain.lineup.ValidateExactPuzzles
 import com.ivandsky.puzzlebox.domain.linkedin.CreateLinkedInLink
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInAccount
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
@@ -194,7 +195,8 @@ val domainModule = module {
             replays = get(),
         )
     }
-    factory { CreateMatch(repo = get(), local = get(), draw = get(), identity = get(), random = Random.Default) }
+    factory { ValidateExactPuzzles(shared = get()) }
+    factory { CreateMatch(repo = get(), local = get(), draw = get(), identity = get(), random = Random.Default, validateExact = get()) }
     factory { ComputeSolvedPool(registry = get(), completions = get(), received = get()) }
     factory {
         CreateSelfDuel(

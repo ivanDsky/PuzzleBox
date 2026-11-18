@@ -80,7 +80,7 @@ private fun refusalNote(outcome: CreateOutcome): String? = when (outcome) {
     CreateOutcome.SignedOut -> "Sign in to send a rematch."
     CreateOutcome.NoPuzzles -> "There are no puzzles left to draw. Try again later."
     is CreateOutcome.Failed -> outcome.message ?: "Couldn't send the invite. Try again."
-    is CreateOutcome.EntryUndrawable -> "Couldn't send the invite. Try again."
+    is CreateOutcome.EntryUndrawable, is CreateOutcome.EntryUnavailable -> "Couldn't send the invite. Try again."
 }
 
 private const val TAG = "RematchViewModel"

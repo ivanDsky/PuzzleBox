@@ -11,6 +11,8 @@ import com.ivandsky.puzzlebox.domain.lineup.AnyGame
 import com.ivandsky.puzzlebox.domain.lineup.ExactPuzzle
 import com.ivandsky.puzzlebox.domain.lineup.LineupEntry
 import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
+import com.ivandsky.puzzlebox.domain.lineup.ReadCountingSharedPuzzleRepository
+import com.ivandsky.puzzlebox.domain.lineup.ValidateExactPuzzles
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
@@ -51,11 +53,12 @@ class CreateMatchLineupTest {
     private val repo = RecordingMatchRepository(server)
     private val local = FakeMatchLocalRepository()
     private val history = ObserveGameHistory(registry, daily, completions)
+    private val shared = ReadCountingSharedPuzzleRepository()
 
     private fun create(repository: MatchRepository = repo) = CreateMatch(
         repository, local,
         ComputeMatchLegs(registry, daily, FakeGameCalendar(today), history, FakeReceivedPuzzleRepository(), Random(DRAW_SEED)),
-        FakeIdentityService(ME), Random(CODE_SEED),
+        FakeIdentityService(ME), Random(CODE_SEED), ValidateExactPuzzles(shared),
     )
 
     private fun number(day: LocalDate): Int = (day.toEpochDay() % 10_000).toInt() + 1
@@ -83,6 +86,7 @@ class CreateMatchLineupTest {
     fun `a lineup creates its legs in order, ignoring count and games, with distinct puzzles of a repeated game`() = runTest {
         solveAlphaExcept(open = setOf(0L, 5L, 9L))
         val custom = LegRef.Custom(alpha, requireNotNull(ShareCode.parse("EXACT1")))
+        shared.store(custom.code)
         val lineup = listOf(AnyGame(beta), ExactPuzzle(custom, "bo", "t", "Bo", PuzzleSource.Friend), AnyGame(alpha), AnyGame(alpha))
 
         val created = create()(settings(lineup, count = 1, games = setOf(beta))) as CreateOutcome.Created
@@ -98,12 +102,57 @@ class CreateMatchLineupTest {
     fun `an Any entry with a single unplayed puzzle left refuses with its position and game and writes nothing`() = runTest {
         solveAlphaExcept(open = setOf(3L))
         val custom = LegRef.Custom(alpha, requireNotNull(ShareCode.parse("EXACT1")))
+        shared.store(custom.code)
         val lineup = listOf(AnyGame(beta), ExactPuzzle(custom, null, "t", null, PuzzleSource.Community), AnyGame(alpha), AnyGame(alpha))
 
         assertEquals(CreateOutcome.EntryUndrawable(4, alpha), create()(settings(lineup)))
         assertEquals(0, repo.checked)
         assertTrue(server.matches.isEmpty())
         assertTrue(rows().isEmpty())
+    }
+
+    @Test
+    fun `a lineup whose second exact puzzle is unpublished refuses with its position and writes nothing`() = runTest {
+        val first = LegRef.Custom(alpha, requireNotNull(ShareCode.parse("EXACT1")))
+        val second = LegRef.Custom(alpha, requireNotNull(ShareCode.parse("EXACT2")))
+        shared.store(first.code)
+        shared.store(second.code, unpublished = true)
+        val lineup = listOf(
+            ExactPuzzle(first, "bo", "a", "Bo", PuzzleSource.Friend), AnyGame(beta),
+            ExactPuzzle(second, "bo", "b", "Bo", PuzzleSource.Friend),
+        )
+
+        assertEquals(CreateOutcome.EntryUnavailable(3), create()(settings(lineup)))
+        assertEquals(0, repo.checked)
+        assertTrue(server.matches.isEmpty())
+        assertTrue(rows().isEmpty())
+    }
+
+    @Test
+    fun `a lineup whose exact puzzles are all available is read once per exact entry and created`() = runTest {
+        val codes = listOf("EXACT1", "EXACT2").map { requireNotNull(ShareCode.parse(it)) }
+        codes.forEach { shared.store(it) }
+        val lineup = listOf(ExactPuzzle(LegRef.Custom(alpha, codes[0]), "bo", "a", "Bo", PuzzleSource.Friend), AnyGame(beta)) +
+            ExactPuzzle(LegRef.Custom(alpha, codes[1]), "bo", "b", "Bo", PuzzleSource.Friend)
+
+        val created = create()(settings(lineup)) as CreateOutcome.Created
+
+        assertEquals(3, created.legs.size)
+        assertEquals(codes, shared.reads.sortedBy { it.value })
+    }
+
+    @Test
+    fun `offline the check keeps today's offline answer and a lineup without exact puzzles reads nothing`() = runTest {
+        val custom = LegRef.Custom(alpha, requireNotNull(ShareCode.parse("EXACT1")))
+        shared.store(custom.code)
+        shared.online = false
+
+        assertEquals(CreateOutcome.Offline, create()(settings(listOf(ExactPuzzle(custom, "bo", "a", "Bo", PuzzleSource.Friend)))))
+        assertTrue(server.matches.isEmpty())
+
+        shared.reads.clear()
+        create()(settings(List(2) { AnyGame(alpha) }))
+        assertTrue(shared.reads.isEmpty())
     }
 
     @Test

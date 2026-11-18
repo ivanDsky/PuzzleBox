@@ -13,5 +13,7 @@ sealed interface CreateOutcome {
     data object NoPuzzles : CreateOutcome
     /** The lineup entry at [position] (from 1) is an "Any" of [gameId] with no puzzle left to draw. */
     data class EntryUndrawable(val position: Int, val gameId: GameId) : CreateOutcome
+    /** The exact puzzle at [position] (from 1) was taken down or can't be read, so the duel would have fewer legs than the lineup. */
+    data class EntryUnavailable(val position: Int) : CreateOutcome
     data class Failed(val message: String?) : CreateOutcome
 }

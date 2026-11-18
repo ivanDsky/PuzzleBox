@@ -17,6 +17,7 @@ import com.ivandsky.puzzlebox.domain.ComputeSolvedPool
 import com.ivandsky.puzzlebox.domain.CreateMatch
 import com.ivandsky.puzzlebox.domain.CreateSelfDuel
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
+import com.ivandsky.puzzlebox.domain.lineup.ValidateExactPuzzles
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
@@ -34,6 +35,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Instant
 import java.time.LocalDate
@@ -109,7 +111,7 @@ class RematchViewModelTest {
     }
 
     private fun viewModel(repo: MatchRepository = server, match: Match = played, flags: FakeReleaseFlags? = null) =
-        RematchViewModel(match, CreateMatch(repo, local, draw, identity, Random(CODE_SEED)), selfDuel, releaseFlags = flags)
+        RematchViewModel(match, CreateMatch(repo, local, draw, identity, Random(CODE_SEED), ValidateExactPuzzles(FakeSharedPuzzleRepository())), selfDuel, releaseFlags = flags)
 
     @Test
     fun withTheLineupOnARematchKeepsTheDuelsGameOrder() = runTest {
@@ -234,7 +236,7 @@ class RematchViewModelTest {
     fun aSelfDuelRematchDrawsANewSelfDuelWithTheSameSettings() = runTest {
         completions.setRecords((1..4).flatMap { listOf(record(alpha, it), record(beta, it + 10)) })
         val self = played.copy(challenger = Player(SelfSeats.ME, "You", null), opponent = Player(SelfSeats.PAST, SelfSeats.PAST_NAME, null))
-        val vm = RematchViewModel(self, CreateMatch(server, local, draw, identity, Random(CODE_SEED)), selfDuel)
+        val vm = RematchViewModel(self, CreateMatch(server, local, draw, identity, Random(CODE_SEED), ValidateExactPuzzles(FakeSharedPuzzleRepository())), selfDuel)
 
         vm.send()
 
@@ -247,7 +249,7 @@ class RematchViewModelTest {
     @Test
     fun aSelfDuelRematchWithNothingToDrawIsANote() = runTest {
         val self = played.copy(challenger = Player(SelfSeats.ME, "You", null), opponent = Player(SelfSeats.PAST, SelfSeats.PAST_NAME, null))
-        val vm = RematchViewModel(self, CreateMatch(server, local, draw, identity, Random(CODE_SEED)), selfDuel)
+        val vm = RematchViewModel(self, CreateMatch(server, local, draw, identity, Random(CODE_SEED), ValidateExactPuzzles(FakeSharedPuzzleRepository())), selfDuel)
 
         vm.send()
 
@@ -267,7 +269,7 @@ class RematchViewModelTest {
             { Instant.parse("2026-11-09T10:00:00Z") }, Random(CODE_SEED),
         )
         val reported = mutableListOf<Throwable>()
-        val vm = RematchViewModel(self, CreateMatch(server, local, draw, identity, Random(CODE_SEED)), failing, FailureLog { _, _, cause -> reported += cause })
+        val vm = RematchViewModel(self, CreateMatch(server, local, draw, identity, Random(CODE_SEED), ValidateExactPuzzles(FakeSharedPuzzleRepository())), failing, FailureLog { _, _, cause -> reported += cause })
 
         vm.send()
 

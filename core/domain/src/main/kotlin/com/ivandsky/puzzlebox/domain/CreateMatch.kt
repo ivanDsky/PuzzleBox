@@ -11,12 +11,14 @@ import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.match.PuzzleCodeCheck
 import com.ivandsky.puzzlebox.domain.lineup.ResolveLineup
+import com.ivandsky.puzzlebox.domain.lineup.ValidateExactPuzzles
 import com.ivandsky.puzzlebox.model.ShareCode
 import kotlin.random.Random
 
 /**
  * Starts a duel ("Start duel", "Rematch"): draws its puzzles once (a lineup in [DuelSettings] decides them entry by entry; an
- * "Any" entry with nothing left to draw answers [CreateOutcome.EntryUndrawable]), picks a [random] code that is neither a shared
+ * "Any" entry with nothing left to draw answers [CreateOutcome.EntryUndrawable]; an exact puzzle that [validateExact] finds gone answers
+ * [CreateOutcome.EntryUnavailable], before anything is drawn), picks a [random] code that is neither a shared
  * puzzle's nor a match's, writes the match and remembers it as mine, so it lists at once. A rematch invites the
  * other player of [Match] `rematchOf` and links its code. An explicit [invitedUid] invites that player instead; the two
  * never combine. A taken code is replaced a bounded number of times.
@@ -30,6 +32,7 @@ class CreateMatch(
     private val draw: ComputeMatchLegs,
     private val identity: IdentityService,
     private val random: Random,
+    private val validateExact: ValidateExactPuzzles,
 ) {
     private val resolveLineup = ResolveLineup(draw.pools)
 
@@ -52,9 +55,16 @@ class CreateMatch(
                     me = me.uid,
                 ),
             )
-            else -> when (val drawn = resolveLineup(lineup, me.uid, settings.includeFriends)) {
-                is ResolveLineup.Draw.Drawn -> drawn.legs
-                is ResolveLineup.Draw.Undrawable -> return CreateOutcome.EntryUndrawable(drawn.position, drawn.gameId)
+            else -> {
+                when (val check = validateExact(lineup)) {
+                    ValidateExactPuzzles.Result.Available -> Unit
+                    ValidateExactPuzzles.Result.Offline -> return CreateOutcome.Offline
+                    is ValidateExactPuzzles.Result.Unavailable -> return CreateOutcome.EntryUnavailable(check.position)
+                }
+                when (val drawn = resolveLineup(lineup, me.uid, settings.includeFriends)) {
+                    is ResolveLineup.Draw.Drawn -> drawn.legs
+                    is ResolveLineup.Draw.Undrawable -> return CreateOutcome.EntryUndrawable(drawn.position, drawn.gameId)
+                }
             }
         }
         if (legs.isEmpty()) return CreateOutcome.NoPuzzles

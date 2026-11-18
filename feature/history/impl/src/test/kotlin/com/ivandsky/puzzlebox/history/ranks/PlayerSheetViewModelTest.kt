@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
 import com.ivandsky.puzzlebox.domain.ComputeMatchLegs
 import com.ivandsky.puzzlebox.domain.CreateMatch
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
+import com.ivandsky.puzzlebox.domain.lineup.ValidateExactPuzzles
 import com.ivandsky.puzzlebox.domain.ranks.GetPlayerActions
 import com.ivandsky.puzzlebox.domain.ranks.PlayerActions
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
@@ -21,6 +22,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeVisibilityRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.LocalDate
@@ -58,6 +60,7 @@ class PlayerSheetViewModelTest {
         ComputeMatchLegs(registry, daily, FakeGameCalendar(today), ObserveGameHistory(registry, daily, completions), FakeReceivedPuzzleRepository(), Random(DRAW_SEED)),
         identity,
         Random(CODE_SEED),
+        ValidateExactPuzzles(FakeSharedPuzzleRepository()),
     )
     private val viewModel = PlayerSheetViewModel(
         GetPlayerActions(visibility, completions),
