@@ -305,7 +305,7 @@ class RoomLinkedInDaysAvatarTest {
 
     @Test
     fun `a photo that fails on the first pass is asked for once more while the day is shown, and shows in the same visit`() = runTest {
-        val source = FailsFirst(url("a")).apply {
+        val source = FailsFirstLinkedInPhotoSource(url("a")).apply {
             respond(url("a"), byteArrayOf(1))
             respond(url("b"), byteArrayOf(2))
         }
@@ -330,7 +330,7 @@ class RoomLinkedInDaysAvatarTest {
 
     @Test
     fun `a day left before the re-ask is due asks no more and holds no address`() = runTest {
-        val source = FailsFirst(url("a")).apply {
+        val source = FailsFirstLinkedInPhotoSource(url("a")).apply {
             respond(url("a"), byteArrayOf(1))
             respond(url("b"), byteArrayOf(2))
         }
@@ -397,7 +397,7 @@ class RoomLinkedInDaysAvatarTest {
         testAvatars(File(dir.parentFile, "reask_avatars"), source, reaskWait)
 
     /** A fake source whose first fetch of [failing] answers nothing, as a dead cold connection would. */
-    private class FailsFirst(private val failing: String) : LinkedInPhotoSource {
+    private class FailsFirstLinkedInPhotoSource(private val failing: String) : LinkedInPhotoSource {
         private val delegate = FakeLinkedInPhotoSource()
         private var failed = false
         val calls: List<String> get() = delegate.calls
