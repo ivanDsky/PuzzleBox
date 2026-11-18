@@ -62,6 +62,7 @@ off  # user ruling 2026-11-05 (replaces 2026-10-31 `always`): publish the review
 - pre-approved: Firebase rules deploys to the dev project only
 - pre-approved: taste picks the user explicitly delegated in the current run
 - pre-approved: versionCode via build_identity
+- pre-approved: CI cache steps (actions/cache or prefetch steps, no action version bump) merge on a green gate   # user ruling 2026-11-18
 # never pre-approved, however delegated: flag flip, release, production rules deploy, data deletion, anything public
 
 ## Taste rules

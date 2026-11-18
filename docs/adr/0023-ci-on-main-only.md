@@ -92,6 +92,49 @@ user, the PR is a place to read the change, not a test gate.
      polling main CI after every merge (more than 100 watch calls in one day) and sat idle while
      waiting for an almost-certain green.
 
+   *Amendment 2026-11-18 (flaky tests and test-time downloads):* red has to mean a defect again.
+   Of the 20 red main runs in the 9 days before this amendment, 13 were flaky tests, 4 were
+   Robolectric artifact downloads, 2 were GitHub and 1 was a defect. One flaky test caused 8 red
+   runs over 8 days. The red rate rose from 2% (11-11) to 5.4% (since 11-17).
+
+   | Cause | Runs | Detail |
+   |---|---|---|
+   | `HintSearchTest` race (`core:game-ui`) | 8 | First red 11-10, fixed 11-18 by #1495. Eight days, eight red runs, including the 130-minute incident |
+   | Robolectric artifact download failed at test time | 4 | Took down 110, 303, 148 and 133 tests. No pre-fetch or cache step existed in the workflow or Gradle config |
+   | `FullReplayE2ETest` Compose timeout (`:app`) | 2 | |
+   | `TangoStepwiseHintTest` | 1 | One more run failed together with `HintSearchTest`; it is counted in that row |
+   | `CreatePublishedTabTest`, `DuelUserCheckE2ETest` | 1 each | The first went green on the next run with no fix |
+   | GitHub infrastructure (no job started) | 2 | |
+   | **Real defect** (konsist `P4UseCaseShapeTest` after #772) | 1 | Fixed forward by #774 in 14 min |
+
+   - **Flaky tests are quarantined in the same incident.** A test that fails on main and passes
+     on rerun with no code change gets
+     `@Ignore("quarantine #<issue> until <YYYY-MM-DD>")`, which takes it out of the gate and CI.
+     The issue owns the fix, and the date is at most 48 hours away. Konsist rule S11 (ADR-0009)
+     fails any other `@Ignore` in test sources. It checks the form of the reason, not the date,
+     so an expired quarantine never turns main red by itself. `main_health.py status` and `watch`
+     print each expired quarantine written in the positional form `@Ignore("…")`, with unchanged
+     exit codes; the S11 format makes that form the norm.
+   - **Every red run's failing tests go into the main-health ledger.** For each red Main run
+     (keyed on run id and attempt) the watcher records the failing test names from the failed
+     jobs' log (`Class.method`, else the failed Gradle tasks) and a cause hint: `test`,
+     `compile`, `download`, `infra` or `unknown`. The red line in `status` and `watch` names the
+     cause and the first failing tests. A `download` or `infra` red names no commit and needs
+     no culprit: the failed jobs are rerun (`gh run rerun <id> --failed`), and a green attempt
+     turns main green again.
+   - **CI downloads nothing at test time.** Robolectric loads its Android runtime jars
+     (`android-all-instrumented`, one per SDK) from `~/.m2/repository` and fetched a missing one
+     from Maven Central in the middle of the run. A failed fetch logged
+     `AssertionError("Failed to fetch maven artifact …")` from `MavenArtifactFetcher`, wrapping an
+     `IOException`, and failed every test class of that JVM. The Main test jobs now restore the
+     jars from an `actions/cache` entry keyed by the list `ROBOLECTRIC_ANDROID_ALL` in
+     `release.yml` (SDK 32 and 34 from `@Config(sdk = …)`, 37 from targetSdk; Robolectric 4.17).
+     On a miss, a prefetch step downloads them with retries and checks their SHA-512 before any
+     test runs, then saves the entry, so a red test step still keeps it. A failed download
+     fails that one step. The setup-gradle cache is unchanged. If a test still downloads a jar
+     the list lacks (after a Robolectric bump or a test on a new SDK), the "Check Robolectric
+     runtime list" step turns the job red and names the jar to add.
+
 ## Consequences
 - PRs merge minutes after review instead of after about 9 minutes of CI and rebase churn.
   Runner minutes drop by roughly half: one job per merge instead of a PR run, a main pr-check
@@ -108,3 +151,6 @@ user, the PR is a place to read the change, not a test gate.
 - A semantic conflict through a file the PR does not touch can now reach main. Example: #109's
   forced-cells test broke after #89 changed `TangoRules`. Main's release run is the backstop,
   and §4 (red main stops merges) applies.
+- Red main means a defect again (amendment 2026-11-18). A quarantined test is a known gap until
+  its date. The Robolectric jars (about 545 MB) share the repository's Actions cache quota
+  with the Gradle cache, and the first Main run after the amendment proves the cache step.
