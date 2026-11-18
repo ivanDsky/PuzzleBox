@@ -1,12 +1,20 @@
 package com.ivandsky.puzzlebox.gameui
 
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -61,6 +69,33 @@ class TutorialHostTest {
         composeRule.waitForIdle()
         composeRule.mainClock.advanceTimeBy(PAST_THE_BEAT_MS)
         composeRule.waitForIdle()
+    }
+
+    @Test
+    fun `a solved lesson sweeps along the game's own board shape`() {
+        var outlined = 0
+        val rounded = object : Shape {
+            override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
+                outlined++
+                return Outline.Rectangle(Rect(Offset.Zero, size))
+            }
+        }
+        val shaped = object : GamePlayUi by game {
+            override fun boardShape(controller: GamePlayController): Shape = rounded
+        }
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                TutorialHost(ui = shaped, session = session, onFinished = {})
+            }
+        }
+        composeRule.mainClock.autoAdvance = false
+
+        composeRule.onNodeWithTag("lesson.solve").performClick()
+        composeRule.mainClock.advanceTimeByFrame()
+        composeRule.mainClock.advanceTimeBy(MID_BEAT_MS)
+        composeRule.onNodeWithTag("lesson.board").captureToImage()
+
+        assertTrue("the sweep never used the game's board shape", outlined > 0)
     }
 
     @Test

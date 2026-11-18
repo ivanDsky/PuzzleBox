@@ -141,6 +141,7 @@ private fun ColumnScope.LessonPane(
     // the lesson stamp takes its place. Keyed per lesson, so each one gets a fresh sweep.
     key(lesson.index) {
         val sweep = rememberSolveSweepState()
+        val boardShape = remember(ui, controller) { ui.boardShape(controller) }
         val playFeel = LocalPlayFeel.current
         val haptics = LocalHapticFeedback.current
         // The play screen's solve confirm, never its rest: the beat above is the lesson's pause, and with the rest
@@ -168,7 +169,7 @@ private fun ColumnScope.LessonPane(
                 contentAlignment = Alignment.Center,
             ) {
                 // Lesson boards draw chrome-free, so the sweep follows the board's own outline.
-                Box(Modifier.solveSweep(sweep, ui.brand.accent.colors().accent, ui.boardShape(controller))) {
+                Box(Modifier.solveSweep(sweep, ui.brand.accent.colors().accent, boardShape)) {
                     // The buzz above is the lesson's one; a board that confirms its own solve (Sudoku) would double it.
                     CompositionLocalProvider(LocalSolveConfirmHosted provides playFeel) {
                         ui.Board(controller, Modifier)

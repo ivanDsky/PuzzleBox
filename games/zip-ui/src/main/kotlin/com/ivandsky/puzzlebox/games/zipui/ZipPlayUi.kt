@@ -73,7 +73,7 @@ class ZipPlayUi : GamePlayUi {
     override val replayBoard: GameReplayBoard get() = ZipReplayBoard
 
     override fun boardShape(controller: GamePlayController): Shape {
-        val n = (controller as ZipPlayController).session?.puzzle?.board?.n ?: return RectangleShape
+        val n = (controller as? ZipPlayController)?.session?.puzzle?.board?.n ?: return RectangleShape
         return zipBoardOutlineShape(n)
     }
 
