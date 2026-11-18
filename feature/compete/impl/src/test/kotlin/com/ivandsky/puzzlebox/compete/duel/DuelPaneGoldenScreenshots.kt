@@ -34,7 +34,7 @@ import org.robolectric.annotation.GraphicsMode
 private const val GOLDEN_TABLET = "w1280dp-h800dp-land-mdpi"
 
 /**
- * A duel's page in the tablet's centred two columns, light and dark, with the selected puzzle's blurred board over its
+ * A duel's page in the tablet's full-width two panes, light and dark, with the selected puzzle's blurred board over its
  * details: a self duel played in full (See results, Remove duel, the DONE card, a solved puzzle's sharp board), a duel
  * with Sam still open, and a self duel with a puzzle to play. Goldens in `snapshots/duel-pane/`.
  */

@@ -4,7 +4,6 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
-import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.compete.duel.CompeteTime
 import com.ivandsky.puzzlebox.compete.duel.DuelLegs
 import com.ivandsky.puzzlebox.compete.duel.DuelLegsSkeleton
@@ -98,7 +97,7 @@ class DuelsPaneGoldenScreenshots {
     private fun loading(dark: Boolean) {
         rule.showGolden(dark) {
             DuelsPaneContent(selected = CODE, onNewDuel = {}, modifier = Modifier.fillMaxSize()) {
-                DuelLegsSkeleton(paneHeight = PANE_HEIGHT)
+                DuelLegsSkeleton()
             }
         }
         rule.settleAndCapture("pane", "duel-loading", "tablet", dark)
@@ -137,6 +136,5 @@ class DuelsPaneGoldenScreenshots {
     private companion object {
         val CODE = checkNotNull(ShareCode.parse("K7Q2MX"))
         val NOW: Instant = Instant.parse("2026-11-09T12:00:00Z")
-        val PANE_HEIGHT = 800.dp
     }
 }

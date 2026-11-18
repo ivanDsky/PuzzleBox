@@ -23,13 +23,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.gameui.PastYouAvatar
 import com.ivandsky.puzzlebox.designsystem.DuelTone
 import com.ivandsky.puzzlebox.designsystem.MaxContentWidth
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.designsystem.TwoColumnFrame
 import com.ivandsky.puzzlebox.designsystem.TwoColumnMinWidth
 import com.ivandsky.puzzlebox.designsystem.maxContentWidth
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -56,8 +54,8 @@ internal data class LegsActions(
 
 /**
  * The duel's puzzles for a seat holder: header, one card per puzzle, then the footer. [layout] `TwoPane`, in room for
- * two columns ([TwoColumnMinWidth]), puts the list on the left and the selected puzzle's detail (with its Start button) in
- * the fixed column on the right, laid out as the friend page is; a narrower pane keeps the one column, capped at
+ * two columns ([TwoColumnMinWidth]), fills the pane: the list on the left, a divider, and the selected puzzle's detail with its Start
+ * button pinned to the bottom on the right; a narrower pane keeps the one column, capped at
  * [MaxContentWidth]. [now] is the clock the countdown, Nudge and footer read; the caller owns the ticker. [time] writes the deadline.
  */
 @Composable
@@ -91,7 +89,7 @@ internal fun DuelLegs(
     BoxWithConstraints(modifier.fillMaxSize()) {
         val twoPane = layout == PlayLayout.TwoPane
         when {
-            twoPane && maxWidth >= TwoColumnMinWidth -> TwoColumnLegs(content, brands, maxHeight)
+            twoPane && maxWidth >= TwoColumnMinWidth -> TwoColumnLegs(content, brands)
             model.self -> SelfDuelLegs(content, brands, capped = twoPane)
             else -> SingleColumnLegs(content, brands, capped = twoPane)
         }
@@ -126,38 +124,26 @@ internal class LegsContent(
 )
 
 /**
- * The tablet pane's two columns on a pane [paneHeight] high ([TwoColumnFrame], as the friend page): the header, list
- * and footer on the left, and the selected puzzle's [LegDetail] in the fixed right column. The page is capped at
- * [MaxContentWidth] and centred; each column is centred in the pane when shorter than it, and the page scrolls from the top when taller.
+ * The tablet's wide page ([DuelWideFrame]): the header, list and footer (results, Remove duel, Nudge) on the left, and the
+ * selected puzzle's [LegDetail], Start / Resume under its card, on the right.
  */
 @Composable
-private fun TwoColumnLegs(content: LegsContent, brands: GamePlayRegistry, paneHeight: Dp) {
+private fun TwoColumnLegs(content: LegsContent, brands: GamePlayRegistry) {
     val rows = content.model.rows
     var picked by rememberSaveable { mutableIntStateOf(-1) }
     val selected = rows.firstOrNull { it.legIndex == picked } ?: rows.firstOrNull { it.action != null } ?: rows.firstOrNull()
-    Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        TwoColumnFrame(
-            paneHeight = paneHeight,
-            tag = DUEL_GRID_TAG,
-            contentMaxWidth = MaxContentWidth,
-            left = { column, _ ->
-                Column(column, verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                    LegsHeader(content)
-                    PuzzleList(content, brands, selected = selected?.legIndex, onSelect = { picked = it })
-                    LegsFooter(content)
-                }
-            },
-            right = {
-                if (selected != null) {
-                    LegDetail(selected, content, brands, height = paneHeight - Spacing.lg * 2)
-                }
-            },
-        )
-    }
+    DuelWideFrame(
+        tag = DUEL_GRID_TAG,
+        left = {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                LegsHeader(content)
+                PuzzleList(content, brands, selected = selected?.legIndex, onSelect = { picked = it })
+                LegsFooter(content)
+            }
+        },
+        right = { height -> if (selected != null) LegDetail(selected, content, brands, height) },
+    )
 }
-
-/** Marks the two-column page: `duel.legs.grid`, with `.left` and `.right` for its columns; its loading skeleton adds `.skeleton`. */
-internal const val DUEL_GRID_TAG = "duel.legs.grid"
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

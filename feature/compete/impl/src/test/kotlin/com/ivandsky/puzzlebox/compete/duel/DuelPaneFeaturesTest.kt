@@ -19,7 +19,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import com.ivandsky.puzzlebox.data.match.LegRef
-import com.ivandsky.puzzlebox.designsystem.MaxContentWidth
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
@@ -46,7 +45,7 @@ private val SUDOKU = GameId("Mini Sudoku")
 
 /**
  * A duel's page in the tablet's two columns, whoever the opponent: a self duel keeps what it has on the phone, the
- * results card with See results and Remove duel and the DONE / IN THIS PUZZLE card, all inside the centred, capped page.
+ * results card with See results and Remove duel and the DONE / IN THIS PUZZLE card, all inside the full-width page.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w1280dp-h800dp-land-mdpi")
@@ -102,7 +101,7 @@ class DuelPaneFeaturesTest {
     fun `a self duel played in full has the results card, See results and Remove duel under the list`() {
         show(DuelPageFixtures.self(refs, doneLegs = setOf(0, 1, 2)))
 
-        rule.onNode(inLeft("duel.legs.footer")).performScrollTo().assertIsDisplayed()
+        rule.onNode(inLeft("duel.legs.footer")).assertIsDisplayed()
         rule.onNode(inLeft("duel.legs.reveal")).assertIsDisplayed()
         rule.onNode(inLeft("duel.legs.remove")).assertIsDisplayed()
         val list = rule.onNodeWithTag("duel.legs.card.2").getUnclippedBoundsInRoot()
@@ -135,17 +134,54 @@ class DuelPaneFeaturesTest {
         rule.onNode(inCallout("Hints count against you.")).assertIsDisplayed()
         rule.onNode(inRight("duel.legs.action.1")).assertIsDisplayed()
         rule.onAllNodesWithTag("duel.legs.reveal").assertCountEquals(0)
-        rule.onNode(inLeft("duel.legs.remove")).performScrollTo().assertIsDisplayed()
+        rule.onNode(inLeft("duel.legs.remove")).assertIsDisplayed()
     }
 
     @Test
-    fun `a self duel is the capped centred page, not two panes edge to edge`() {
+    fun `the page fills the width, a divider between the list and the detail, no centred frame`() {
         show(DuelPageFixtures.self(refs, doneLegs = setOf(0, 1, 2)))
 
         val root = rule.onRoot().getUnclippedBoundsInRoot()
         val grid = rule.onNodeWithTag("duel.legs.grid").getUnclippedBoundsInRoot()
-        assertTrue("capped: ${grid.width}", grid.width <= MaxContentWidth + 32.dp + 1.dp)
-        assertEquals("centred across", (root.left + root.right).value / 2f, (grid.left + grid.right).value / 2f, 1f)
+        val left = rule.onNodeWithTag("duel.legs.grid.left").getUnclippedBoundsInRoot()
+        val right = rule.onNodeWithTag("duel.legs.grid.right").getUnclippedBoundsInRoot()
+        assertEquals("edge to edge", root.width.value, grid.width.value, 1f)
+        assertEquals("from the top", root.top.value, grid.top.value, 1f)
+        assertEquals("to the bottom", root.height.value, grid.height.value, 1f)
+        assertEquals("equal panes", left.width.value, right.width.value, 2f)
+        val divider = rule.onNodeWithTag("duel.legs.divider").getUnclippedBoundsInRoot()
+        assertTrue("divider between the panes", divider.left >= left.right - 1.dp && divider.right <= right.left + 1.dp)
+        assertEquals("divider is full height", root.height.value, divider.height.value, 1f)
+    }
+
+    @Test
+    fun `short columns are centred down the pane as a block, Start under the detail card and Remove duel under the list`() {
+        show(DuelPageFixtures.self(refs, doneLegs = setOf(0)))
+
+        val root = rule.onRoot().getUnclippedBoundsInRoot()
+        val title = rule.onNodeWithTag("duel.legs.title").getUnclippedBoundsInRoot()
+        val remove = rule.onNodeWithTag("duel.legs.remove").getUnclippedBoundsInRoot()
+        val detail = rule.onNodeWithTag("duel.legs.detail").getUnclippedBoundsInRoot()
+        val action = rule.onNodeWithTag("duel.legs.action.1").getUnclippedBoundsInRoot()
+        val list = rule.onNodeWithTag("duel.legs.card.2").getUnclippedBoundsInRoot()
+        assertEquals("left block centred", root.height.value / 2f, (title.top + remove.bottom).value / 2f, 24f)
+        assertTrue("room above the list: ${title.top}", title.top.value > 48f)
+        assertTrue("Remove duel directly under the list", remove.top >= list.bottom && remove.top.value - list.bottom.value < 64f)
+        val callout = rule.onNodeWithTag("duel.legs.callout").getUnclippedBoundsInRoot()
+        assertTrue("Start directly under the card", action.top >= callout.bottom && action.top.value - callout.bottom.value < 32f)
+        assertEquals("Start ends the detail", detail.bottom.value, action.bottom.value, 1f)
+        assertTrue("Start directly under, not pinned: ${action.bottom}", action.bottom.value < root.height.value - 48f)
+    }
+
+    @Test
+    @Config(sdk = [34], qualifiers = "w1280dp-h360dp-land-mdpi")
+    fun `a column taller than the pane starts at the top and scrolls`() {
+        show(DuelPageFixtures.self(refs, doneLegs = setOf(0)))
+
+        val title = rule.onNodeWithTag("duel.legs.title").getUnclippedBoundsInRoot()
+        assertEquals("top-aligned below the padding", 16f, title.top.value, 1f)
+        rule.onNodeWithTag("duel.legs.remove").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithTag("duel.legs.divider").getUnclippedBoundsInRoot().let { assertEquals(360f, it.height.value, 1f) }
     }
 
     @Test
