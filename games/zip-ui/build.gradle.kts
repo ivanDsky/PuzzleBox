@@ -20,6 +20,4 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     // Plugin-adjacent Koin wiring (ADR-0001): one ui module, collected by `app`.
     implementation(libs.koin.core)
-
-    testImplementation(projects.core.testing)
 }
