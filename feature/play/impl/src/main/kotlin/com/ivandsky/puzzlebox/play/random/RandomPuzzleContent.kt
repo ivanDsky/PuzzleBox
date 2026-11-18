@@ -23,9 +23,10 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 
 /**
- * The random sheet's body: its title and the Past puzzles controls, with the pick's status line under the button. One
- * column on a phone; on [PlayLayout.TwoPane] two: the Game chips on the left, "Not solved yet", Pick and the status on
- * the right. Chips and the switch are off while a pick runs or its puzzle opens.
+ * The random sheet's body: its title, the source toggle, the Game chips of the source ([games]), that source's option
+ * ("Not solved yet" for Past puzzles, the Difficulty chips for New today) and the Pick button with the status line.
+ * One column on a phone; on [PlayLayout.TwoPane] two: the toggle and the Game chips on the left, the option, Pick and
+ * the status on the right. Every control is off while a pick runs or its puzzle opens.
  */
 @Composable
 internal fun RandomPuzzleContent(
@@ -36,6 +37,7 @@ internal fun RandomPuzzleContent(
     modifier: Modifier = Modifier,
 ) {
     val busy = state.phase is RandomPhase.Picking || state.phase is RandomPhase.Opened
+    val source: @Composable (Modifier) -> Unit = { RandomSourceToggle(state.source, !busy, actions.onSource, it.fillMaxWidth()) }
     val chips: @Composable (Modifier) -> Unit = { RandomGameChips(state.game, games, !busy, actions.onGame, it) }
     val pick: @Composable (Modifier) -> Unit = { RandomPickControls(state, busy, actions, it) }
     Column(
@@ -48,31 +50,28 @@ internal fun RandomPuzzleContent(
         Text("Random puzzle", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
         if (layout == PlayLayout.TwoPane) {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xl)) {
-                chips(Modifier.weight(1f).testTag("random.left"))
+                Column(Modifier.weight(1f).testTag("random.left"), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                    source(Modifier)
+                    chips(Modifier)
+                }
                 pick(Modifier.weight(1f).testTag("random.right"))
             }
         } else {
+            source(Modifier)
             chips(Modifier)
             pick(Modifier)
         }
     }
 }
 
-/** "Not solved yet", the Pick button and the status line, one under the other. */
+/** The source's option, the Pick button and the status line, one under the other. */
 @Composable
 private fun RandomPickControls(state: RandomPuzzleState, busy: Boolean, actions: RandomPuzzleActions, modifier: Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = MinRowHeight)
-                .toggleable(value = state.unsolvedOnly, enabled = !busy, role = Role.Switch, onValueChange = actions.onUnsolved)
-                .testTag("random.unsolved"),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text("Not solved yet", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
-            Switch(checked = state.unsolvedOnly, onCheckedChange = null, enabled = !busy)
+        if (state.source == RandomSource.Past) {
+            RandomUnsolvedRow(state.unsolvedOnly, !busy, actions.onUnsolved)
+        } else {
+            RandomDifficultyChips(state.difficulty, !busy, actions.onDifficulty)
         }
         PrimaryButton(
             text = "Pick one for me",
@@ -82,6 +81,22 @@ private fun RandomPickControls(state: RandomPuzzleState, busy: Boolean, actions:
             loading = state.phase is RandomPhase.Picking,
         )
         (state.phase as? RandomPhase.Said)?.let { RandomStatusText(it.message) }
+    }
+}
+
+@Composable
+private fun RandomUnsolvedRow(on: Boolean, enabled: Boolean, onUnsolved: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = MinRowHeight)
+            .toggleable(value = on, enabled = enabled, role = Role.Switch, onValueChange = onUnsolved)
+            .testTag("random.unsolved"),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text("Not solved yet", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+        Switch(checked = on, onCheckedChange = null, enabled = enabled)
     }
 }
 
