@@ -6,6 +6,8 @@ import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
+import com.ivandsky.puzzlebox.model.DailyRef
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
@@ -16,6 +18,7 @@ import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import org.junit.Assert.assertEquals
+import java.time.LocalDate
 import org.junit.Test
 
 /**
@@ -91,6 +94,38 @@ class ApplyFriendLinkTest {
     }
 
     @Test
+    fun `a daily link selects Play and pushes that day's board once, however often it is applied`() {
+        val before = stacks(CommunityKey, community = listOf(CommunityKey, EditorKey("castle")))
+
+        val once = before.applying(DAILY)
+        val twice = once.applying(DAILY)
+
+        assertEquals(PlayKey, once.tab)
+        assertEquals(listOf(PlayKey, ZIP_DAY), once.stackOf(PlayKey))
+        assertEquals(before.stackOf(CommunityKey), once.stackOf(CommunityKey))
+        assertEquals(once, twice)
+    }
+
+    @Test
+    fun `a daily link on a fresh navigator leaves the day on top of Play`() {
+        assertEquals(ZIP_DAY, stacks(HomeKey).applying(DAILY).stackOf(PlayKey).last())
+    }
+
+    @Test
+    fun `a daily link keeps the live board of today beneath and adds the day beside it`() {
+        val before = stacks(PlayKey, play = listOf(PlayKey, GameKey("zip")))
+
+        assertEquals(listOf(PlayKey, GameKey("zip"), ZIP_DAY), before.applying(DAILY).stackOf(PlayKey))
+    }
+
+    @Test
+    fun `a daily link whose day is already open on Play only selects Play`() {
+        val playing = stacks(HomeKey, play = listOf(PlayKey, ZIP_DAY, GameKey("zip", "2026-11-17")))
+
+        assertEquals(playing.copy(tab = PlayKey), playing.applying(DAILY))
+    }
+
+    @Test
     fun `text that is not a code selects Community's root and keeps every other stack`() {
         listOf(
             stacks(HomeKey, home = listOf(HomeKey, HistoryKey())),
@@ -130,6 +165,8 @@ class ApplyFriendLinkTest {
         fun code(value: String): ShareCode = checkNotNull(ShareCode.parse(value))
         val K7Q2MX = FriendLink.Code(code("K7Q2MX"))
         val MATCH = FriendLink.Match(code("K7Q2MX"))
+        val DAILY = FriendLink.Daily(DailyRef(GameId("zip"), LocalDate.parse("2026-11-18")))
+        val ZIP_DAY = GameKey("zip", "2026-11-18")
         val DUEL = DuelKey("K7Q2MX")
         val CARD = FriendPuzzleKey("K7Q2MX")
     }

@@ -41,10 +41,12 @@ import com.ivandsky.puzzlebox.app.nav.applySharedText
 import com.ivandsky.puzzlebox.app.nav.chromeMotion
 import com.ivandsky.puzzlebox.app.nav.chromePadding
 import com.ivandsky.puzzlebox.app.nav.isImmersive
+import com.ivandsky.puzzlebox.app.nav.isPlayable
 import com.ivandsky.puzzlebox.app.nav.playTabBadged
 import com.ivandsky.puzzlebox.app.nav.rememberLibraryRequests
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
+import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
@@ -90,7 +92,8 @@ import org.koin.compose.koinInject
  * A [pendingLink] (a tapped share link's URI) lands on the back stack in the composition
  * that first sees it, so a cold start draws the friend's card on its first frame; then
  * [onLinkApplied]. A link whose code doesn't parse opens Community's code sheet holding its text.
- * A duel link (`/m/`) opens the duel screen.
+ * A duel link (`/m/`) opens the duel screen. A daily link (`/p/<game>/<day>`) opens that day's board on the Games tab;
+ * one naming a game this build lacks or a day with no puzzle yet is dropped, the app opening as usual.
  * A [pendingShare] (shared text waiting in the store, which `MainActivity` filled) shows Community's root, the
  * list of drafts, the same way, then [onShareApplied]; that screen imports the text.
  */
@@ -104,13 +107,15 @@ fun PuzzleBoxApp(
     pendingShare: Boolean = false,
     onShareApplied: () -> Unit = {},
     todaySet: ObserveTodaySet = koinInject(),
+    games: GameRegistry = koinInject(),
+    calendar: GameCalendar = koinInject(),
     firstScreenReady: FirstScreenReady = koinInject(),
 ) {
     var codeDraft by rememberSaveable { mutableStateOf<String?>(null) }
     val libraryRequests = rememberLibraryRequests()
     if (pendingLink != null) {
         remember(pendingLink) {
-            FriendLink.of(pendingLink)?.let { link ->
+            FriendLink.of(pendingLink)?.takeIf { it.isPlayable(games, calendar) }?.let { link ->
                 navigator.applyFriendLink(link)
                 if (link is FriendLink.Invalid) codeDraft = link.text
             }

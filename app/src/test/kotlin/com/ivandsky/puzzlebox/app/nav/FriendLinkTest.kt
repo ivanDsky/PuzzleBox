@@ -1,6 +1,9 @@
 package com.ivandsky.puzzlebox.app.nav
 
+import com.ivandsky.puzzlebox.model.DailyRef
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
+import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -30,6 +33,32 @@ class FriendLinkTest {
             "https://puzzlebox-f3356.web.app/p/K7Q2M/extra" to "K7Q2M/extra",
             "https://puzzlebox-f3356.web.app/p/" to "",
         ).forEach { (uri, text) -> assertEquals(uri, FriendLink.Invalid(text), FriendLink.of(uri)) }
+    }
+
+    @Test
+    fun `a daily link is a daily friend link for its game and day`() {
+        val zip = FriendLink.Daily(DailyRef(GameId("zip"), LocalDate.parse("2026-11-18")))
+        listOf(
+            "https://puzzlebox-f3356.web.app/p/zip/2026-11-18",
+            "https://puzzlebox-f3356.web.app/p/zip/2026-11-18/",
+            "https://puzzlebox-f3356.web.app/p/ZIP/2026-11-18?utm_source=chat",
+            "https://PuzzleBox-F3356.web.app/p/zip/2026-11-18#top",
+        ).forEach { uri -> assertEquals(uri, zip, FriendLink.of(uri)) }
+    }
+
+    @Test
+    fun `a daily link that is not a date keeps its text for the code sheet`() {
+        listOf(
+            "https://puzzlebox-f3356.web.app/p/zip/2026-13-40" to "zip/2026-13-40",
+            "https://puzzlebox-f3356.web.app/p/zip/yesterday" to "zip/yesterday",
+            "https://puzzlebox-f3356.web.app/p/zip/2026-11-18/extra" to "zip/2026-11-18/extra",
+        ).forEach { (uri, text) -> assertEquals(uri, FriendLink.Invalid(text), FriendLink.of(uri)) }
+    }
+
+    @Test
+    fun `a code that also reads as a game id stays a code`() {
+        // The code is tried first, so a six-character code is never mistaken for part of a daily link.
+        assertEquals(FriendLink.Code(checkNotNull(ShareCode.parse("K7Q2MX"))), FriendLink.of("https://puzzlebox-f3356.web.app/p/K7Q2MX"))
     }
 
     @Test
