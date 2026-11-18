@@ -23,7 +23,6 @@ import com.ivandsky.puzzlebox.gameui.ResultHeroFacts
 import com.ivandsky.puzzlebox.gameui.ResultHeroScreen
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.gameui.replay.ReplaySection
-import com.ivandsky.puzzlebox.gameui.resultShareText
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.ReplayKey
@@ -43,7 +42,7 @@ import org.koin.core.parameter.parametersOf
  * back [onPlayAgain]: the app resets the solved live play to a fresh attempt
  * ([PlaySessionStore.playAgain]) and replaces this entry with the game. "Next: <game>" hands back
  * [onNext] with the next unsolved daily. Share opens the system share sheet
- * with the plain [resultShareText] — no screen of our own.
+ * with the view model's [ResultViewModel.shareText] — no screen of our own.
  *
  * The hero page ([ResultHeroScreen]) draws the solve: the frozen facts, the view model's
  * insights and rank, and the same callbacks plus a sign in.
@@ -89,7 +88,7 @@ fun ResultRoute(
             null -> Unit
         }
     }
-    val onShare = { context.shareText(resultShareText(state.game, state.puzzleNumber, key.timeMs, key.hintsUsed)) }
+    val onShare = { context.shareText(viewModel.shareText(state)) }
     Column(modifier = modifier.testTag("route.result")) {
         CompactTopBar(
             // The result card already names the puzzle; the bar only carries Up.
