@@ -20,8 +20,6 @@ import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
-import com.ivandsky.puzzlebox.domain.linkedin.LinkedInAccountView
-import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInAccount
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RecordStats
@@ -29,6 +27,8 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead.Rejected.Kind
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.profile.accounts.LinkedInRowState
+import com.ivandsky.puzzlebox.profile.domain.linkedin.LinkedInAccountView
+import com.ivandsky.puzzlebox.profile.domain.linkedin.ObserveLinkedInAccount
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.cloud.FakeOversizedDrafts
 import com.ivandsky.puzzlebox.testing.cloud.FakeSavedBoardsCloud

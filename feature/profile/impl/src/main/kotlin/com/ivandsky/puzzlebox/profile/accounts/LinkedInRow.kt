@@ -26,8 +26,8 @@ import com.ivandsky.puzzlebox.designsystem.LinkedInResumeButton
 import com.ivandsky.puzzlebox.designsystem.LocalWarning
 import com.ivandsky.puzzlebox.designsystem.R
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.domain.linkedin.LinkedInAccountView
 import com.ivandsky.puzzlebox.gameui.PlayerAvatar
+import com.ivandsky.puzzlebox.profile.domain.linkedin.LinkedInAccountView
 
 private val TileSize = 40.dp
 private val PhotoSize = 44.dp

@@ -26,4 +26,6 @@ dependencies {
 
     testImplementation(projects.core.testing)
     testImplementation(libs.mockito.core)
+    // ObserveLinkedInAccountTest collects the summary flow with Turbine.
+    testImplementation(libs.turbine)
 }

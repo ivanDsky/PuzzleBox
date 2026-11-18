@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain.linkedin
+package com.ivandsky.puzzlebox.profile.domain.linkedin
 
 import app.cash.turbine.test
 import com.ivandsky.puzzlebox.data.linkedin.LinkState

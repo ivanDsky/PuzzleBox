@@ -1,12 +1,12 @@
 package com.ivandsky.puzzlebox.profile.linkedin
 
 import com.ivandsky.puzzlebox.data.linkedin.LinkState
-import com.ivandsky.puzzlebox.domain.linkedin.CreateLinkedInLink
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInAccountSession
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInAccountSource
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.profile.domain.linkedin.CreateLinkedInLink
 import com.ivandsky.puzzlebox.profile.linkedin.LinkedInLoginViewModel.Step
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInAccountSource

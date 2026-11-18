@@ -8,7 +8,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.app.screens.ProfileUiState.LinkedInBoards
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.linkedin.LinkedInAccountView
+import com.ivandsky.puzzlebox.profile.domain.linkedin.LinkedInAccountView
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test

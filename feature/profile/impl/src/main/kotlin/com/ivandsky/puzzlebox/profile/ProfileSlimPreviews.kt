@@ -6,8 +6,8 @@ import com.ivandsky.puzzlebox.app.screens.ProfileUiState
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.linkedin.LinkedInAccountView
 import com.ivandsky.puzzlebox.profile.accounts.LinkedInRowState
+import com.ivandsky.puzzlebox.profile.domain.linkedin.LinkedInAccountView
 import java.time.LocalDate
 
 private const val PREVIEW_NOW_MS = 1_800_000_000_000L

@@ -11,6 +11,9 @@ import com.ivandsky.puzzlebox.data.cloud.OversizedDrafts
 import com.ivandsky.puzzlebox.data.cloud.SavedBoardsCloud
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
+import com.ivandsky.puzzlebox.profile.domain.linkedin.CreateLinkedInLink
+import com.ivandsky.puzzlebox.profile.domain.linkedin.ObserveLinkedInAccount
+import com.ivandsky.puzzlebox.profile.domain.linkedin.UpdateLinkedInPosting
 import com.ivandsky.puzzlebox.profile.linkedin.LinkedInLoginViewModel
 import com.ivandsky.puzzlebox.profile.linkedin.WebViewLinkedInSession
 import com.ivandsky.puzzlebox.profile.settings.RemindersViewModel
@@ -23,10 +26,13 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 /**
- * Profile feature wiring: ProfileRoute's koinViewModel(). The sign-in seam comes from
- * authModule, the use cases from domainModule.
+ * Profile feature wiring: ProfileRoute's koinViewModel() and Profile's own LinkedIn account use
+ * cases. The sign-in seam comes from authModule, the shared use cases from domainModule.
  */
 val profileModule: Module = module {
+    factory { ObserveLinkedInAccount(account = get(), link = get(), completions = get(), puzzleDay = get(), registry = get()) }
+    factory { UpdateLinkedInPosting(link = get(), clock = System::currentTimeMillis) }
+    factory { CreateLinkedInLink(source = get(), link = get(), daily = get(), registry = get(), clock = System::currentTimeMillis) }
     // The parameter says whether the LinkedIn row is on; off, no LinkedIn object is resolved at all.
     viewModel { params ->
         val linkedIn = params.getOrNull<Boolean>() == true
