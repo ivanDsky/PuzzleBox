@@ -100,21 +100,20 @@ val LocalFlatStrands = staticCompositionLocalOf { false }
 /**
  * Theme composition root (ticket 10): the promoted style IS the token set — Baloo 2
  * typography, C3 light scheme, C6 dark scheme. The [darkTheme] request picks the
- * scheme; [flatSurfaces] is the app's flat-surfaces request, handed to [LocalFlatSurfaces]; [flatStrands] is Strands' own, handed to [LocalFlatStrands]; [readableBoard] is the
- * app's readable-board request (nav-rethink B3), which picks the [LocalBoardGeometry] value and the [LocalBoardColors] instance. */
+ * scheme; [flatSurfaces] is the app's flat-surfaces request, handed to [LocalFlatSurfaces]; [flatStrands] is Strands' own, handed to [LocalFlatStrands]. The board look (nav-rethink B3) is not a request: [LocalBoardGeometry] is
+ * [BoardGeometry.Readable] and [LocalBoardColors] is the dark or light board instance of the resolved theme. */
 @Composable
 fun PuzzleBoxTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     flatSurfaces: Boolean = false,
     flatStrands: Boolean = false,
-    readableBoard: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     CompositionLocalProvider(
         LocalDarkTheme provides darkTheme,
         LocalFlatSurfaces provides flatSurfaces,
         LocalFlatStrands provides flatStrands,
-        LocalBoardGeometry provides if (readableBoard) BoardGeometry.Readable else BoardGeometry.Legacy,
+        LocalBoardGeometry provides BoardGeometry.Readable,
         LocalPrimaryText provides if (darkTheme) DarkPrimaryText else LightPrimaryText,
         LocalTimerFill provides if (darkTheme) DarkTimerFill else LightTimerFill,
         LocalOnFill provides if (darkTheme) DarkOnFill else LightOnFill,
@@ -123,7 +122,7 @@ fun PuzzleBoxTheme(
         LocalNeutralLip provides if (darkTheme) DarkNeutralLip else LightNeutralLip,
         LocalMutedStatus provides if (darkTheme) DarkMutedStatus else LightMutedStatus,
         LocalIce provides if (darkTheme) DarkIce else LightIce,
-        LocalBoardColors provides boardColors(darkTheme, readableBoard),
+        LocalBoardColors provides if (darkTheme) DarkBoardTokens else LightBoardTokens,
         LocalAccentPalette provides accentPalette(darkTheme),
     ) {
         MaterialTheme(
@@ -133,11 +132,4 @@ fun PuzzleBoxTheme(
             content = content,
         )
     }
-}
-
-private fun boardColors(darkTheme: Boolean, readable: Boolean): BoardColors = when {
-    readable && darkTheme -> ReadableDarkBoardTokens
-    readable -> ReadableLightBoardTokens
-    darkTheme -> DarkBoardTokens
-    else -> LightBoardTokens
 }

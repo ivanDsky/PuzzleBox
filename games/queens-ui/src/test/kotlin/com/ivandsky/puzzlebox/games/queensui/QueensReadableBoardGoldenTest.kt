@@ -24,7 +24,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * B3, ticket 44: the Queens board under the readable board theme, light and dark, on a compact phone. The 8×8 play
+ * The Queens board under the readable board theme, light and dark, on a compact phone. The 8×8 play
  * fixture has irregular regions, so the walls turn corners and end against the outline; two queens with their auto
  * crosses and two manual crosses show the glyph ink on several fills. Rendered with
  * `-Proborazzi.record=true` into the same `snapshots/` directory as QueensGoldenScreenshots.
@@ -65,7 +65,7 @@ class QueensReadableBoardGoldenTest {
                     if (dark) Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO
             }
             CompositionLocalProvider(LocalConfiguration provides config) {
-                PuzzleBoxTheme(darkTheme = dark, readableBoard = true) {
+                PuzzleBoxTheme(darkTheme = dark) {
                     QueensPlayBoard(state, Modifier.size(side))
                 }
             }

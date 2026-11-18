@@ -4,7 +4,6 @@ import com.ivandsky.puzzlebox.game.replay.GameReplay
 import com.ivandsky.puzzlebox.game.replay.MoveKind
 import com.ivandsky.puzzlebox.game.replay.MoveMark
 import com.ivandsky.puzzlebox.game.replay.ReplayFacts
-import com.ivandsky.puzzlebox.game.replay.ReplayFirstMove
 import com.ivandsky.puzzlebox.game.replay.ReplayMove
 import com.ivandsky.puzzlebox.games.tango.engine.TangoBoundedSolution
 import com.ivandsky.puzzlebox.games.tango.engine.TangoMove
@@ -18,11 +17,10 @@ import java.time.Instant
 
 /**
  * Tango solve replay: a recorded move runs through the session reducer live play calls for it,
- * so a replayed board cannot drift from the played one. A hint's target is recomputed with the
- * first-move option [firstMove] answers now (nav-rethink B4, ticket 47b); the record cannot carry it (ADR-0025).
- * `TangoReplay` on its own is the legacy order, the instance a plugin carries when no option is bound.
+ * so a replayed board cannot drift from the played one. A hint's target is recomputed with the live
+ * stepper; the record cannot carry it (ADR-0025).
  */
-class TangoReplay(private val firstMove: ReplayFirstMove = ReplayFirstMove.Off) : GameReplay<TangoSession> {
+class TangoReplay : GameReplay<TangoSession> {
 
     companion object : GameReplay<TangoSession> by TangoReplay()
 
@@ -76,7 +74,7 @@ class TangoReplay(private val firstMove: ReplayFirstMove = ReplayFirstMove.Off) 
     private fun hintTarget(session: TangoSession): Set<Int> {
         val puzzle = session.puzzle
         val lastMove = (session.history.done.lastOrNull() as? TangoPlace)?.idx
-        return when (val step = TangoStepper.next(puzzle, session.grid(), lastMove, TangoBoundedSolution.of(puzzle), firstMove.enabled())) {
+        return when (val step = TangoStepper.next(puzzle, session.grid(), lastMove, TangoBoundedSolution.of(puzzle))) {
             is TangoStep.Deduction -> setOf(step.idx)
             is TangoStep.Reveal -> setOf(step.idx)
             is TangoStep.Mistake -> setOf(step.idx)

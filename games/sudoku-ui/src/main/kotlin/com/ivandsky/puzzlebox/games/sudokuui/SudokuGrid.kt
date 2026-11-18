@@ -31,7 +31,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import com.ivandsky.puzzlebox.designsystem.BoardGeometry
 import com.ivandsky.puzzlebox.designsystem.BoardTokens
@@ -55,7 +54,7 @@ import com.ivandsky.puzzlebox.games.sudokuui.hint.withDigitStyle
 @Composable
 fun SudokuGrid(model: SudokuBoardModel, onSelect: ((Int) -> Unit)?, modifier: Modifier = Modifier, spotlight: Spotlight? = null) {
     val geometry = LocalBoardGeometry.current
-    val strokes = gridStrokes(model.size, geometry)
+    val strokes = gridStrokes(geometry)
     val board = LocalBoardColors.current
     val cellLine = board.boardGridLine
     val boxLine = board.boardInk
@@ -70,7 +69,7 @@ fun SudokuGrid(model: SudokuBoardModel, onSelect: ((Int) -> Unit)?, modifier: Mo
                 .fillMaxSize()
                 .drawWithContent {
                     drawContent()
-                    drawGridLines(model, strokes, cellLine, boxLine, geometry.roundedWallCaps)
+                    drawGridLines(model, strokes, cellLine, boxLine)
                 }
                 .padding(strokes.box),
         ) {
@@ -135,44 +134,37 @@ private fun cellTextStyle(fontSize: Dp): TextStyle {
 internal class GridStrokes(val cell: Dp, val box: Dp)
 
 /**
- * With a wall outline (the readable board) the grid takes the shared weights at both sizes: the token gridline and
- * the geometry's wall. Without one it keeps the legacy strokes, where the 9x9 has more lines in the same square and
- * so a lighter box stroke than the 6x6; cleanup ticket 49b deletes that branch with the legacy look.
+ * The grid takes the shared weights at both sizes: the token gridline and the geometry's wall.
  */
-internal fun gridStrokes(size: Int, geometry: BoardGeometry): GridStrokes = when {
-    geometry.wallOutline -> GridStrokes(cell = BoardTokens.boardGridLineWeight, box = geometry.wallWeight)
-    size > MINI_SIZE -> GridStrokes(cell = 0.75.dp, box = 2.dp)
-    else -> GridStrokes(cell = 1.dp, box = 3.dp)
-}
+internal fun gridStrokes(geometry: BoardGeometry): GridStrokes =
+    GridStrokes(cell = BoardTokens.boardGridLineWeight, box = geometry.wallWeight)
 
 /**
- * Lines sit on the cell edges inside the frame; the thin ones go first so box lines cover their ends. [rounded]
- * rounds the frame's corners and the box lines' ends; a round end runs to the frame's centre line, so its cap sits
+ * Lines sit on the cell edges inside the frame; the thin ones go first so box lines cover their ends. The frame's
+ * corners and the box lines' ends are rounded; a round end runs to the frame's centre line, so its cap sits
  * inside the frame's own stroke.
  */
-private fun DrawScope.drawGridLines(model: SudokuBoardModel, strokes: GridStrokes, cellLine: Color, boxLine: Color, rounded: Boolean) {
+private fun DrawScope.drawGridLines(model: SudokuBoardModel, strokes: GridStrokes, cellLine: Color, boxLine: Color) {
     val frame = strokes.box.toPx()
     val step = (size.width - 2 * frame) / model.size
     for (thick in listOf(false, true)) {
         val width = if (thick) frame else strokes.cell.toPx()
         val color = if (thick) boxLine else cellLine
-        val round = thick && rounded
-        val from = if (round) frame / 2 else frame
+        val from = if (thick) frame / 2 else frame
         val to = size.width - from
-        val cap = if (round) StrokeCap.Round else StrokeCap.Butt
+        val cap = if (thick) StrokeCap.Round else StrokeCap.Butt
         for (i in 1 until model.size) {
             val at = frame + i * step
             if ((i % model.boxCols == 0) == thick) drawLine(color, Offset(at, from), Offset(at, to), width, cap)
             if ((i % model.boxRows == 0) == thick) drawLine(color, Offset(from, at), Offset(to, at), width, cap)
         }
     }
-    val outline = Stroke(frame, join = if (rounded) StrokeJoin.Round else StrokeJoin.Miter)
+    val outline = Stroke(frame, join = StrokeJoin.Round)
     drawRect(boxLine, Offset(frame / 2, frame / 2), Size(size.width - frame, size.height - frame), style = outline)
 }
 
 private const val GRID_TAG = "sudoku.grid"
 private const val SPOTLIGHT_TAG = "sudoku.spotlight"
 private const val TABULAR_FIGURES = "tnum"
-private const val MINI_SIZE = 6
 private const val DIGIT_FRACTION = 0.6f
 private const val NOTE_FRACTION = 0.8f

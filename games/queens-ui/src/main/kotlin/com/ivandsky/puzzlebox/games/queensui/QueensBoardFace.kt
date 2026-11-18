@@ -30,9 +30,8 @@ internal fun QueensBoardFace(model: QueensBoardModel, modifier: Modifier = Modif
 internal fun QueensBoardFace(model: QueensBoardModel, modifier: Modifier, staggerFrom: Int?, hinted: Set<Int> = emptySet()) {
     val colors = LocalBoardColors.current
     val geometry = LocalBoardGeometry.current
-    // A wall-weight outline turns its corners round; the square corner fills are cut to match it.
-    val corners = if (geometry.wallOutline && geometry.roundedWallCaps) Modifier.clip(RoundedCornerShape(geometry.wallWeight / 2)) else Modifier
-    Box(modifier.aspectRatio(1f).then(corners)) {
+    // The wall-weight outline turns its corners round; the square corner fills are cut to match it.
+    Box(modifier.aspectRatio(1f).clip(RoundedCornerShape(geometry.wallWeight / 2))) {
         BoardGrid(
             rows = model.n,
             cols = model.n,
@@ -48,7 +47,7 @@ internal fun QueensBoardFace(model: QueensBoardModel, modifier: Modifier, stagge
         // a hairline lattice on every cell edge and heavier ink on region boundaries.
         // Glyphs never reach cell edges, so the marks stay visually above this layer.
         Canvas(Modifier.matchParentSize()) {
-            if (geometry.wallOutline) drawWalledEdges(model, colors, geometry) else drawCellEdges(model, colors.boardInk)
+            drawWalledEdges(model, colors, geometry)
         }
     }
 }

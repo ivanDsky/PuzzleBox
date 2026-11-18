@@ -24,9 +24,8 @@ import org.junit.Assert.fail
 import org.junit.Test
 
 /**
- * B4, ticket 44: with the first-move option on, a press skips the deductions a player sees at a glance (the ladder's
- * [QueensLadder.obvious] rungs) while another rung proves something those would not give; with it off the ladder
- * order stands. Mistake first, one deduction per press and the reveal are the same either way.
+ * A press skips the deductions a player sees at a glance (the ladder's [QueensLadder.obvious] rungs) while
+ * another rung proves something those would not give. Mistake first, one deduction per press and the reveal stand.
  */
 class QueensFirstMoveStepperTest {
 
@@ -48,65 +47,54 @@ class QueensFirstMoveStepperTest {
     private val harder = FakeRung("harder") { r -> listOf(exclude(r, 3) to setOf(7)) }
     private val silent = FakeRung("silent") { emptyList() }
 
-    private fun fakeStep(ladder: QueensLadder, firstMove: Boolean): QueensStep.Deduction =
-        QueensStepper.next(n4, QueensBoard(), true, Cell(0), null, ladder, firstMove) as QueensStep.Deduction
+    private fun fakeStep(ladder: QueensLadder): QueensStep.Deduction =
+        QueensStepper.next(n4, QueensBoard(), true, Cell(0), null, ladder) as QueensStep.Deduction
 
     // ---- fakes (the DoD) ----
 
     @Test
-    fun `first move on skips an obvious rung while another rung has a proof`() {
-        val step = fakeStep(QueensLadder(listOf(seen, real), obvious = setOf(seen)), firstMove = true)
+    fun `skips an obvious rung while another rung has a proof`() {
+        val step = fakeStep(QueensLadder(listOf(seen, real), obvious = setOf(seen)))
         assertEquals(real, step.unit.rung)
     }
 
     @Test
-    fun `first move off keeps the ladder order - the obvious rung still goes first`() {
-        val ladder = QueensLadder(listOf(seen, real), obvious = setOf(seen))
-        assertEquals(seen, fakeStep(ladder, firstMove = false).unit.rung)
-        assertEquals(
-            QueensStepper.next(n4, QueensBoard(), true, Cell(0), null, QueensLadder(listOf(seen, real))),
-            QueensStepper.next(n4, QueensBoard(), true, Cell(0), null, ladder, firstMove = false),
-        )
-    }
-
-    @Test
-    fun `first move on falls back to the obvious rung when no other rung has a proof`() {
-        val step = fakeStep(QueensLadder(listOf(seen, silent), obvious = setOf(seen)), firstMove = true)
+    fun `falls back to the obvious rung when no other rung has a proof`() {
+        val step = fakeStep(QueensLadder(listOf(seen, silent), obvious = setOf(seen)))
         assertEquals(seen, step.unit.rung)
         assertEquals(Result.Cross(setOf(Cell(0))), step.result)
     }
 
     @Test
-    fun `first move on picks the lowest other rung and its smallest evidence - the most constrained move`() {
-        val step = fakeStep(QueensLadder(listOf(seen, real, harder), obvious = setOf(seen)), firstMove = true)
+    fun `picks the lowest other rung and its smallest evidence - the most constrained move`() {
+        val step = fakeStep(QueensLadder(listOf(seen, real, harder), obvious = setOf(seen)))
         assertEquals(real, step.unit.rung)
         assertEquals(Result.Cross(setOf(Cell(14))), step.result)
     }
 
     @Test
-    fun `first move on skips an obvious rung wherever it sits on the ladder`() {
-        val step = fakeStep(QueensLadder(listOf(real, seen, harder), obvious = setOf(real, seen)), firstMove = true)
+    fun `skips an obvious rung wherever it sits on the ladder`() {
+        val step = fakeStep(QueensLadder(listOf(real, seen, harder), obvious = setOf(real, seen)))
         assertEquals(harder, step.unit.rung)
     }
 
     @Test
-    fun `a ladder that names no obvious rung answers the same with first move on`() {
-        val ladder = QueensLadder(listOf(seen, real))
-        assertEquals(fakeStep(ladder, firstMove = false), fakeStep(ladder, firstMove = true))
+    fun `a ladder that names no obvious rung answers in ladder order`() {
+        assertEquals(seen, fakeStep(QueensLadder(listOf(seen, real))).unit.rung)
     }
 
     @Test
-    fun `first move on passes over a proof that only repeats what the obvious rungs give`() {
+    fun `passes over a proof that only repeats what the obvious rungs give`() {
         // Crosses cell 0, which the obvious rung crosses anyway: a longer way to say the same thing.
         val echo = FakeRung("echo") { r -> listOf(exclude(r, 0) to setOf(9, 10)) }
-        assertEquals(real, fakeStep(QueensLadder(listOf(seen, echo, real), obvious = setOf(seen)), firstMove = true).unit.rung)
-        assertEquals(seen, fakeStep(QueensLadder(listOf(seen, echo), obvious = setOf(seen)), firstMove = true).unit.rung)
+        assertEquals(real, fakeStep(QueensLadder(listOf(seen, echo, real), obvious = setOf(seen))).unit.rung)
+        assertEquals(seen, fakeStep(QueensLadder(listOf(seen, echo), obvious = setOf(seen))).unit.rung)
     }
 
     @Test
-    fun `first move on keeps a proof that adds a cell to what the obvious rungs give`() {
+    fun `keeps a proof that adds a cell to what the obvious rungs give`() {
         val wider = FakeRung("wider") { r -> listOf(exclude(r, 0, 1) to setOf(9, 10)) }
-        val step = fakeStep(QueensLadder(listOf(seen, wider), obvious = setOf(seen)), firstMove = true)
+        val step = fakeStep(QueensLadder(listOf(seen, wider), obvious = setOf(seen)))
         assertEquals(wider, step.unit.rung)
         assertEquals(Result.Cross(setOf(Cell(0), Cell(1))), step.result)
     }
@@ -121,14 +109,15 @@ class QueensFirstMoveStepperTest {
     @Test
     fun `a wrong queen still comes before any first move`() {
         val off = Cell((0 until n8.cellCount).first { Cell(it) !in solution })
-        val step = QueensStepper.next(n8, QueensBoard(listOf(off)), true, null, solution, firstMove = true)
+        val step = QueensStepper.next(n8, QueensBoard(listOf(off)), true, null, solution)
         assertEquals(off, (step as QueensStep.Mistake).cell)
     }
 
     @Test
-    fun `first move reruns reach solved by sound steps, each telling more than a glance or nothing more to tell`() {
-        val skipped = rerun(n8, autoCross = true) + rerun(n8, autoCross = false) + rerun(play, autoCross = true)
-        assertTrue("first move never changed a press, so the reruns pinned nothing", skipped > 0)
+    fun `a press reruns reach solved by sound steps, each telling more than a glance or nothing more to tell`() {
+        rerun(n8, autoCross = true)
+        rerun(n8, autoCross = false)
+        rerun(play, autoCross = true)
     }
 
     @Test
@@ -136,7 +125,7 @@ class QueensFirstMoveStepperTest {
         // Queens 5 and 10 are on the solution; auto-cross off leaves every cell they attack open on the board.
         val board = QueensBoard(listOf(Cell(5), Cell(10)))
         val known = QueensCandidates.start(n8, setOf(5, 10))
-        val step = QueensStepper.next(n8, board, false, null, solution, firstMove = true) as QueensStep.Deduction
+        val step = QueensStepper.next(n8, board, false, null, solution) as QueensStep.Deduction
         assertTrue("$step", step.unit.rung !in QueensLadder.Stepwise.obvious)
         when (val r = step.result) {
             is Result.Cross -> assertTrue("$step", r.cells.all { known.isOpen(it.idx) })
@@ -185,16 +174,14 @@ class QueensFirstMoveStepperTest {
     }
 
     /**
-     * Presses first-move hints from the empty board, applying each as the player would. Returns how many presses
-     * showed another step than the ladder order would have.
+     * Presses hints from the empty board, applying each as the player would, until the board is solved.
      */
-    private fun rerun(puzzle: QueensPuzzle, autoCross: Boolean): Int {
+    private fun rerun(puzzle: QueensPuzzle, autoCross: Boolean) {
         val solution = puzzle.solution!!.toSet()
         val ladder = QueensLadder.Stepwise
         val others = ladder.rungs.filterNot { it in ladder.obvious }
         var board = QueensBoard()
         var last: Cell? = null
-        var skipped = 0
         repeat(puzzle.cellCount * 2) {
             val queens = board.queens.map { it.idx }.toSet()
             val crosses = board.manual.map { it.idx }.toSet()
@@ -202,10 +189,9 @@ class QueensFirstMoveStepperTest {
             val known = QueensCandidates.start(puzzle, queens).exclude(crosses)
             val open = if (autoCross) known else QueensCandidates(puzzle.size, queens, emptySet()).exclude(crosses)
             val glance = glance(puzzle, known)
-            when (val step = QueensStepper.next(puzzle, board, autoCross, last, solution, firstMove = true)) {
-                QueensStep.Solved -> return skipped
+            when (val step = QueensStepper.next(puzzle, board, autoCross, last, solution)) {
+                QueensStep.Solved -> return
                 is QueensStep.Deduction -> {
-                    if (step != QueensStepper.next(puzzle, board, autoCross, last, solution)) skipped++
                     if (step.unit.rung in ladder.obvious) {
                         val more = others.firstNotNullOfOrNull { rung -> rung.simplestSteps(puzzle, known).firstOrNull { it.tellsMoreThan(glance) } }
                         assertTrue("obvious $step while $more tells more on $board", more == null)

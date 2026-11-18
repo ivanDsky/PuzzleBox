@@ -74,12 +74,11 @@ class SudokuStepwiseHintTest {
     private fun stepwise(
         session: SudokuSession = SudokuSession(ref = null, puzzle = peanut450),
         compute: CoroutineDispatcher = Dispatchers.Unconfined,
-        firstMove: Boolean = false,
     ) = SudokuBoardState(
         initialSession = session,
         now = { Instant.EPOCH },
         settle = { settled++; it },
-        hintMode = HintMode.Stepwise(compute, firstMove),
+        hintMode = HintMode.Stepwise(compute),
         scope = CoroutineScope(Dispatchers.Unconfined),
     )
 
@@ -133,22 +132,19 @@ class SudokuStepwiseHintTest {
     // First move (B4)
 
     @Test
-    fun `with the mode's first-move option the press lights the forced cell in the open box, not the row's last cell`() {
+    fun `the press lights the forced cell in the open box, not the row's last cell`() {
         // Row 5 lacks only cell 35; the three 6s leave cell 0 the only home for 6 in the still-empty box 0.
         val puzzle = SudokuPuzzle(
             SudokuGames.MINI.variant,
             grid("...... ...6.. ..6... ...... .6.... 23456."),
             grid("612345 345612 456123 123456 561234 234561"),
         )
-        val usual = stepwise(SudokuSession(ref = null, puzzle = puzzle))
-        val firstMove = stepwise(SudokuSession(ref = null, puzzle = puzzle), firstMove = true)
+        val state = stepwise(SudokuSession(ref = null, puzzle = puzzle))
 
-        usual.requestHint()
-        firstMove.requestHint()
+        state.requestHint()
 
-        assertEquals(setOf(35), usual.targets())
-        assertEquals(setOf(0), firstMove.targets())
-        assertEquals(1, firstMove.session.hintsUsed)
+        assertEquals(setOf(0), state.targets())
+        assertEquals(1, state.session.hintsUsed)
     }
 
     // Wrong digit: mark only (A4)

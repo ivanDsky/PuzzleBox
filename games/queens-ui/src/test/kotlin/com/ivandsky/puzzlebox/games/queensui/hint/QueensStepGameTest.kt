@@ -10,7 +10,6 @@ import com.ivandsky.puzzlebox.games.queens.engine.hints.step.QueensStepper
 import com.ivandsky.puzzlebox.games.queensui.QueensUiFixtures
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -181,12 +180,24 @@ class QueensStepGameTest {
 
     @Test
     fun `auto-cross off is snapshotted with the board`() {
+        val solution = big.solution!!
         val play = Play(big)
         play.session = play.session.withAutoCross(false)
-        play.place(big.solution!!.first())
-        val board = play.session.board
-        val off = QueensStepper.next(big, board, false, big.solution!!.first(), big.solution!!.toSet())
-        assertNotEquals("precondition: auto-cross changes the step", QueensStepper.next(big, board, true, big.solution!!.first(), big.solution!!.toSet()), off)
+        // Place solution queens until the board is one where auto-cross changes the step (the first-move rule may need a few).
+        var last = solution.first()
+        var board = play.session.board
+        var off: QueensStep? = null
+        for (cell in solution.dropLast(1)) {
+            play.place(cell)
+            last = cell
+            board = play.session.board
+            val candidate = QueensStepper.next(big, board, false, last, solution.toSet())
+            if (candidate != QueensStepper.next(big, board, true, last, solution.toSet())) {
+                off = candidate
+                break
+            }
+        }
+        assertNotNull("precondition: auto-cross changes the step", off)
 
         assertEquals(off, play.next())
     }

@@ -57,7 +57,7 @@ internal val LocalTokenComposed = staticCompositionLocalOf<(Coord) -> Unit> { {}
 /**
  * One letter's token: its cell state's look, the join fill and pop while it is on the trace,
  * and, once its path is submitted, [end]'s refusal or fade-out in place of both. A letter on
- * [dim]'s cells is faded to its alpha, unless it is on the trace. With [selectionRing] a letter
+ * [dim]'s cells is faded to its alpha, unless it is on the trace. A letter
  * on the trace wears [TraceOverlaySpec]'s ring in place of its own state's decoration.
  */
 @Composable
@@ -71,7 +71,6 @@ internal fun LetterToken(
     colors: BoardColors,
     altTheme: Boolean,
     dim: StrandsDim,
-    selectionRing: Boolean,
     trace: () -> Trace,
     onTrace: (TraceStep) -> Unit,
 ) {
@@ -137,7 +136,7 @@ internal fun LetterToken(
                         drawTokenSquare(it, half, lip = true)
                     }
                     tokenColor(fill, TraceOverlaySpec.fill(colors), traced, frame, join.value)?.let { drawTokenSquare(it, half) }
-                    if (selectionRing && traced) {
+                    if (traced) {
                         with(TraceOverlaySpec) { decorate(colors, half, join.value) }
                     } else {
                         with(spec) { decorate(colors, half, frame) }

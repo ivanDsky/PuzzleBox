@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.games.zipui
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -28,14 +27,12 @@ import androidx.compose.ui.graphics.ColorProducer
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
-import com.ivandsky.puzzlebox.designsystem.LocalBoardGeometry
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.tracePop
 import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
@@ -48,11 +45,11 @@ private val cellCorner = RoundedCornerShape(10.dp)
  * lives in the board-level [ZipPipes] layer (ticket 28) under every cell's content, so
  * each dot's surface hole punches the pipe globally instead of per-cell caps clipping
  * into neighbor dots. Sizes come from [ZipBoardSpec] fractions of the cell. Resting by
- * contract (A8): the next-target flash and the waypoint pop when the trace reaches a dot
- * animate only in the live game — the play screen passes [animated] (false under reduced
- * motion); previews and read-only boards stay static. When the board geometry rings the
- * next number to reach, [nextNumberAlpha] is that ring's opacity, read as it is drawn: the
- * play screen passes its pulse, everything else leaves the ring full.
+ * contract (A8): the waypoint pop when the trace reaches a dot animates only in the live
+ * game — the play screen passes [animated] (false under reduced motion); previews and
+ * read-only boards stay static. [nextNumberAlpha] is the opacity of the ring on the next
+ * number to reach, read as it is drawn: the play screen passes its pulse, everything else
+ * leaves the ring full.
  */
 @Composable
 fun ZipCellDecor(
@@ -105,9 +102,6 @@ internal fun ZipCell(face: ZipCellFace, modifier: Modifier, animated: Boolean, n
     val isHint = face.isHint
     val isRejected = face.isRejected
     val board = LocalBoardColors.current
-    // The readable board marks the next number with its own ring round the dot; without it
-    // the dot itself takes the trace colour (the flash below).
-    val ringed = LocalBoardGeometry.current.nextNumberRing
     val scheme = MaterialTheme.colorScheme
 
     val pulse by animateFloatAsState(
@@ -145,7 +139,7 @@ internal fun ZipCell(face: ZipCellFace, modifier: Modifier, animated: Boolean, n
         if (isRejected) {
             Box(Modifier.fillMaxSize().background(scheme.errorContainer.copy(alpha = 0.7f), cellCorner))
         }
-        if (ringed && face.isNextTarget) {
+        if (face.isNextTarget) {
             // Its own node, so a pulsing alpha repaints this cell alone and recomposes nothing.
             Box(
                 Modifier.fillMaxSize().testTag("play.next_number_ring").drawBehind {
@@ -162,33 +156,16 @@ internal fun ZipCell(face: ZipCellFace, modifier: Modifier, animated: Boolean, n
         // unvisited and start in the waypointDot role, a traced dot in the blue on-path
         // role (D2, round 3). The label always rides the ring's state color on the
         // surface hole (both roles ≥4.5 on boardSurface in each theme); filled
-        // disks are gone. The next-target ring HOLDS the trace-role color while it is the
-        // target (persistent step-point cue, user round 6) and plays ONE flash from the
-        // state color on transition (MotionTokens.FlashDuration, single event, never a loop); reduced motion
-        // settles instantly. Previews render the static state.
+        // disks are gone. The next target wears its own ring (above), so the dot keeps its
+        // state color. Previews render the static state.
         val ringColor = if (inPath) board.waypointDotOnPath else board.waypointDot
-        val flash = remember { Animatable(1f) }
-        LaunchedEffect(animated, face.isNextTarget, ringed) {
-            if (animated && face.isNextTarget && !ringed) {
-                flash.snapTo(0f)
-                flash.animateTo(1f, tween(MotionTokens.FlashDuration))
-            } else {
-                flash.snapTo(1f)
-            }
-        }
-        // Read where the ring and label are drawn, so the flash repaints them frame by frame
-        // without recomposing the cell (ticket 02b: it ran for FlashDuration into every drag
-        // that had just reached a waypoint).
-        val ringPaint = ColorProducer {
-            if (face.isNextTarget && !ringed) lerp(ringColor, board.waypointDotOnPath, flash.value) else ringColor
-        }
         if (face.isWaypoint) {
             Box(
                 Modifier
                     .fillMaxSize(dotFraction)
                     .drawWithCache {
                         val ring = CircleShape.createOutline(size, layoutDirection, this)
-                        onDrawBehind { drawOutline(ring, ringPaint()) }
+                        onDrawBehind { drawOutline(ring, ringColor) }
                     }
                     .testTag("play.waypoint_dot_$idx"),
                 contentAlignment = Alignment.Center,
@@ -222,7 +199,7 @@ internal fun ZipCell(face: ZipCellFace, modifier: Modifier, animated: Boolean, n
                 BasicText(
                     text = label.toString(),
                     style = TextStyle(fontWeight = FontWeight.Bold, fontSize = fontSize),
-                    color = ringPaint, // label rides the ring (state color, or the trace blue while next target)
+                    color = ColorProducer { ringColor }, // label rides the ring (state color)
                     maxLines = 1,
                 )
             }

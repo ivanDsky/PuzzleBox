@@ -13,9 +13,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * The first-move option (nav-rethink B4): a single the player sees at a glance, one in a unit with at most two
- * empty cells, is skipped for the first forced single that is not obvious. Mistakes still come first, and with the
- * option off the pick is the usual one.
+ * The first-move rule: a single the player sees at a glance, one in a unit with at most two
+ * empty cells, is skipped for the first forced single that is not obvious. Mistakes still come first.
  */
 class SudokuStepperFirstMoveTest {
 
@@ -25,8 +24,8 @@ class SudokuStepperFirstMoveTest {
     private fun puzzle(givens: Map<Int, Int>): SudokuPuzzle =
         SudokuPuzzle(SudokuVariants.MINI, List(36) { givens[it] ?: 0 }, solution)
 
-    private fun next(puzzle: SudokuPuzzle, board: SudokuBoard = SudokuBoard.of(puzzle), firstMove: Boolean) =
-        SudokuStepper.next(puzzle, board, lastMove = null, known = emptyMap(), firstMove = firstMove)
+    private fun next(puzzle: SudokuPuzzle, board: SudokuBoard = SudokuBoard.of(puzzle)) =
+        SudokuStepper.next(puzzle, board, lastMove = null, known = emptyMap())
 
     private fun single(cell: Int, digit: Int, technique: SudokuTechnique, unit: SudokuUnit, lastCell: SudokuUnit?, blockers: Set<Int>) =
         SudokuStep.Single(SudokuHint.Place(cell, digit, technique, unit, null, emptyList()), lastCell, blockers)
@@ -41,14 +40,8 @@ class SudokuStepperFirstMoveTest {
     private val row5 = SudokuUnit(UnitKind.ROW, 5)
 
     @Test
-    fun `with first move on, the forced single in a wide open box is chosen over a row's last cell`() {
-        assertEquals(sixInOpenBox, next(puzzle(lastCellAndOpenBox), firstMove = true))
-    }
-
-    @Test
-    fun `with first move off, the same board gives the row's last cell first`() {
-        val lastCell = single(35, 1, SudokuTechnique.HIDDEN_SINGLE_LINE, row5, row5, emptySet())
-        assertEquals(lastCell, next(puzzle(lastCellAndOpenBox), firstMove = false))
+    fun `the forced single in a wide open box is chosen over a row's last cell`() {
+        assertEquals(sixInOpenBox, next(puzzle(lastCellAndOpenBox)))
     }
 
     @Test
@@ -56,7 +49,7 @@ class SudokuStepperFirstMoveTest {
         val puzzle = puzzle(lastCellAndOpenBox)
         // Cell 1 is 1 in the solution; no peer holds a 5.
         val board = SudokuBoard.of(puzzle).with(1, SudokuCell.Entry(5))
-        assertEquals(SudokuStep.Mistake(1, 5, null), next(puzzle, board, firstMove = true))
+        assertEquals(SudokuStep.Mistake(1, 5, null), next(puzzle, board))
     }
 
     @Test
@@ -64,14 +57,13 @@ class SudokuStepperFirstMoveTest {
         // The 1 at cell 26 also makes cell 35 the only home for 1 in box 5, which has four empty cells: one blocker,
         // cheaper than the three of cell 0. It is the same cell the row gives away, so it stays skipped.
         // (Cell 24 becomes box 4's last cell, obvious as well.)
-        assertEquals(sixInOpenBox, next(puzzle(lastCellAndOpenBox + (26 to 1)), firstMove = true))
+        assertEquals(sixInOpenBox, next(puzzle(lastCellAndOpenBox + (26 to 1))))
     }
 
     @Test
     fun `when every single is obvious, the usual pick stands and no elimination or reveal jumps ahead`() {
         // Column 0 has two empty cells: the 6 at cell 9 leaves cell 0 its only home for 6, and cell 6 can only be 3.
         val puzzle = puzzle(mapOf(9 to 6, 12 to 4, 18 to 1, 24 to 5, 30 to 2))
-        assertEquals(next(puzzle, firstMove = false), next(puzzle, firstMove = true))
-        assertEquals(0, (next(puzzle, firstMove = true) as SudokuStep.Single).place.cell)
+        assertEquals(0, (next(puzzle) as SudokuStep.Single).place.cell)
     }
 }

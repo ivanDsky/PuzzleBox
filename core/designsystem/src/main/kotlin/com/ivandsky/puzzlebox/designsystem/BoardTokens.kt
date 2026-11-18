@@ -38,8 +38,7 @@ data class BoardColors(
     val boardRegion: Color,
 
     // Shared board vocabulary (nav-rethink B3): ink for numbers and strong marks, the target ring on
-    // the next number to reach, and a legal-cell tint. Legacy instances carry today's equivalents (the
-    // scheme ink, the on-path blue, no tint); the readable ones are in ReadableBoardTokens.kt.
+    // the next number to reach, and a legal-cell tint (none today).
     val boardInk: Color,
     val boardTarget: Color,
     val legalCellTint: Color,
@@ -111,8 +110,8 @@ private val StrandsHotPink = Color(0xFFE40070) // live trace in both modes, blac
 // trace/on-path 7.39, Queens violet 6.9, Strands pink 6.68.
 val DarkBoardTokens = BoardColors(
     boardSurface = DarkColorScheme.surfaceContainer,
-    boardGridLine = DarkColorScheme.outline,
-    boardWall = DarkColorScheme.onSurfaceVariant,
+    boardGridLine = Color(0xFF505863), // 2.3:1 vs boardSurface: quiet, just above the 2:1 floor
+    boardWall = DarkColorScheme.onSurface, // the full board ink, 12.4:1, so a wall reads as a wall
     waypointDot = DarkColorScheme.primary,
     waypointLabel = DarkColorScheme.onPrimary,
     waypointDotOnPath = Color(0xFF21B7FF),
@@ -121,7 +120,7 @@ val DarkBoardTokens = BoardColors(
     boardSelection = Color(0xFFA69BFF),
     boardRegion = DarkColorScheme.surfaceContainerHigh, // future fill tint; stroke its boundary with wall/gridline when built
     boardInk = DarkColorScheme.onSurface,
-    boardTarget = Color(0xFF21B7FF),
+    boardTarget = Color(0xFF21B7FF), // the trace blue: the ring on the next number, 7.4:1
     legalCellTint = Color.Transparent,
     sunFill = Color(0xFFFF8524),
     moonFill = Color(0xFF21B7FF),
@@ -162,8 +161,8 @@ val DarkBoardTokens = BoardColors(
 // and the on-path ring/label is the text-grade blue (4.65).
 val LightBoardTokens = BoardColors(
     boardSurface = LightColorScheme.surface,
-    boardGridLine = LightColorScheme.outline,
-    boardWall = LightColorScheme.onSurfaceVariant,
+    boardGridLine = Color(0xFFA8AEB8), // 2.2:1 vs boardSurface: quiet, just above the 2:1 floor
+    boardWall = LightColorScheme.onSurface, // the full board ink, 12.1:1, so a wall reads as a wall
     waypointDot = LightPrimaryText,
     waypointLabel = LightColorScheme.onError, // white
     waypointDotOnPath = Color(0xFF007CB1),
@@ -172,7 +171,7 @@ val LightBoardTokens = BoardColors(
     boardSelection = Color(0xFF8464FF),
     boardRegion = LightColorScheme.surfaceContainerHigh, // future fill tint
     boardInk = LightColorScheme.onSurface,
-    boardTarget = Color(0xFF007CB1),
+    boardTarget = Color(0xFF007CB1), // the text-grade on-path blue: the ring on the next number, 4.7:1
     legalCellTint = Color.Transparent,
     sunFill = Color(0xFFCB6400),
     moonFill = Color(0xFF0089C3),

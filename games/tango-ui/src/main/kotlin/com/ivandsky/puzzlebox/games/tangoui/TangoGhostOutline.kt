@@ -9,7 +9,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 
 /**
  * The dashed accent outline on an open guided square (#1186): the shape cue that tells an invitation from a placed
- * piece and from the given wash. Inset from the cell edge so it never merges with the gridline.
+ * piece. Inset from the cell edge so it never merges with the gridline.
  */
 internal fun DrawScope.drawGhostOutline(accent: Color, strokeWidthPx: Float) {
     val pitchPx = size.minDimension

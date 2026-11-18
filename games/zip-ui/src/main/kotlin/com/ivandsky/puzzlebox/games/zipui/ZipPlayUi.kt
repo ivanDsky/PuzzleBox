@@ -44,7 +44,6 @@ import com.ivandsky.puzzlebox.gameui.PlayClear
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.PlaySolveFrame
 import com.ivandsky.puzzlebox.gameui.TutorialStep
-import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.model.GameId
@@ -52,14 +51,13 @@ import kotlinx.coroutines.delay
 
 /**
  * Zip's one play registration (ADR-0001): its controller, its board and its play screen.
- * [hintMode] is what the Hint button gives on every board this registration opens.
  */
-class ZipPlayUi(private val hintMode: HintMode = HintMode.Legacy) : GamePlayUi {
+class ZipPlayUi : GamePlayUi {
     override val gameId: GameId get() = ZipDefinition.id
 
     override val brand: GameBrand get() = ZipBrand
 
-    override fun createController(env: PlayEnvironment): GamePlayController = ZipPlayController(env, hintMode = hintMode)
+    override fun createController(env: PlayEnvironment): GamePlayController = ZipPlayController(env)
 
     override val tutorial: List<TutorialStep> get() = ZipTutorial.steps
 

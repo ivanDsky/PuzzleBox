@@ -80,24 +80,13 @@ class SudokuHintModeWiringTest {
     }
 
     @Test
-    fun `with HintFirstMove off, mini resolves stepwise on the provider's default dispatcher and classic resolves legacy`() {
+    fun `mini resolves stepwise on the provider's default dispatcher and classic resolves legacy`() {
         val koin = koinWith()
 
         val mini = playUi(koin, SudokuGames.MINI).createController(env) as SudokuPlayController
         val classic = playUi(koin, SudokuGames.CLASSIC).createController(env) as SudokuPlayController
 
         assertEquals(HintMode.Stepwise(defaultDispatcher), mini.hintMode)
-        assertEquals(HintMode.Legacy, classic.hintMode)
-    }
-
-    @Test
-    fun `with HintFirstMove on, mini's mode carries the first-move option and classic stays legacy`() {
-        val koin = koinWith(ReleaseFlag.HintFirstMove)
-
-        val mini = playUi(koin, SudokuGames.MINI).createController(env) as SudokuPlayController
-        val classic = playUi(koin, SudokuGames.CLASSIC).createController(env) as SudokuPlayController
-
-        assertEquals(HintMode.Stepwise(defaultDispatcher, firstMove = true), mini.hintMode)
         assertEquals(HintMode.Legacy, classic.hintMode)
     }
 }

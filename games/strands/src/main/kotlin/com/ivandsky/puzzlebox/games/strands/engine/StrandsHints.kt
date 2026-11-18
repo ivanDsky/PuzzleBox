@@ -25,28 +25,19 @@ object StrandsHints {
     /** Thirds of the meter filled toward the next hint. */
     fun meterThirds(state: StrandsState): Int = state.nonTheme.size % WORDS_PER_HINT
 
-    /** The next hint press. [firstMove] (nav-rethink B4) only changes which word a fresh hint names. */
-    fun hintFor(state: StrandsState, firstMove: Boolean = false): StrandsHint {
+    /** The next hint press. */
+    fun hintFor(state: StrandsState): StrandsHint {
         val active = state.activeHint
         if (active?.stage == HintStage.OrderRevealed) return StrandsHint.OnBoard
         if (available(state) == 0) return StrandsHint.NoneAvailable
         if (active != null) return StrandsHint.Reveal(active.copy(stage = HintStage.OrderRevealed))
-        val target = target(state, firstMove) ?: return StrandsHint.NoneAvailable
+        val target = target(state) ?: return StrandsHint.NoneAvailable
         return StrandsHint.Reveal(ActiveHint(target.text, HintStage.Outlined))
     }
 
-    /**
-     * A theme word first, the spangram only once they are all found. Legacy: the shortest unfound
-     * theme word, feed order breaking ties. First move: [StrandsFirstMovePicker]'s choice.
-     */
-    private fun target(state: StrandsState, firstMove: Boolean): StrandsWord? {
-        val themeWord = if (firstMove) {
-            StrandsFirstMovePicker.pick(state)
-        } else {
-            state.puzzle.themeWords.filter { it.text !in state.found }.minByOrNull { it.text.length }
-        }
-        return themeWord ?: state.puzzle.spangram.takeIf { it.text !in state.found }
-    }
+    /** A theme word first ([StrandsFirstMovePicker]'s choice), the spangram only once they are all found. */
+    private fun target(state: StrandsState): StrandsWord? =
+        StrandsFirstMovePicker.pick(state) ?: state.puzzle.spangram.takeIf { it.text !in state.found }
 
     private fun stagesShown(hint: ActiveHint?): Int = when (hint?.stage) {
         null -> 0

@@ -238,9 +238,9 @@ class SudokuStepGameTest {
     @Test
     fun `of two equal singles the one nearer the newest placement is shown`() {
         val play = Play(peanut450)
-        play.place(PLACED_CELL, peanut450.solution[PLACED_CELL])
+        play.place(NEAR_CELL, peanut450.solution[NEAR_CELL])
         val board = play.session.board
-        val near = SudokuStepper.next(peanut450, board, PLACED_CELL, emptyMap())
+        val near = SudokuStepper.next(peanut450, board, NEAR_CELL, emptyMap())
         assertNotEquals(SudokuStepper.next(peanut450, board, null, emptyMap()), near)
 
         assertEquals(near, play.press())
@@ -301,6 +301,8 @@ class SudokuStepGameTest {
 
         /** Empty cells of peanut450 where a last move changes which of two equal singles wins. */
         const val PLACED_CELL = 30
+        /** Placing it makes the first-move pick differ with and without the last move (cell 14 against cell 10). */
+        const val NEAR_CELL = 13
         const val NOTED_CELL = 25
     }
 }

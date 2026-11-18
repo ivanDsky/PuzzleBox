@@ -16,8 +16,6 @@ dependencies {
     implementation(projects.core.game)
     implementation(projects.core.gameUi)
     implementation(projects.core.designsystem)
-    // The UI module reads the HintFirstMove release flag when it builds the hint mode (nav-rethink A2).
-    implementation(projects.core.common)
 
     implementation(libs.kotlinx.coroutines.core)
     // Plugin-adjacent Koin wiring (ADR-0001): one ui module, collected by `app`.

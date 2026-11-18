@@ -7,7 +7,6 @@ import com.ivandsky.puzzlebox.game.GameDefinition
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.SessionBlob
-import com.ivandsky.puzzlebox.game.replay.ReplayFirstMove
 import com.ivandsky.puzzlebox.games.tango.codec.TangoCodec
 import com.ivandsky.puzzlebox.games.tango.codec.TangoSessionCodec
 import com.ivandsky.puzzlebox.games.tango.editor.TangoEditor
@@ -107,15 +106,6 @@ val tangoPlugin: GamePlugin<TangoState, TangoSession, TangoRendererModel> =
  * [com.ivandsky.puzzlebox.game.FeedTransport].
  */
 val tangoModule: Module = module {
-    single(qualifier = qualifier(TangoDefinition.id.value)) {
-        tangoPluginFor(getOrNull<ReplayFirstMove>(qualifier(TangoDefinition.id.value)))
-    }
+    single(qualifier = qualifier(TangoDefinition.id.value)) { tangoPlugin }
     single { TangoSeedBackedSource(LinkedInTangoDailySource(get())) } bind DailySource::class
 }
-
-/**
- * The plugin the graph registers: [tangoPlugin] itself, or with a [TangoReplay] that asks [replayOption] when a
- * UI module bound one under this game's id, so a replay marks the hint the play UI would give (nav-rethink 47b).
- */
-internal fun tangoPluginFor(replayOption: ReplayFirstMove?): GamePlugin<TangoState, TangoSession, TangoRendererModel> =
-    replayOption?.let { tangoPlugin.withReplay(TangoReplay(it)) } ?: tangoPlugin

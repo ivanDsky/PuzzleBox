@@ -80,11 +80,13 @@ internal object StrandsReplayScript {
 
 /**
  * One replay board under a test clock that is paused and stepped one frame at a time, sampled by its rendered pixels.
- * [reference] (optional) draws live's own board beside it, with [referenceTrace] selected, at the same size.
+ * [reference] (optional) draws live's own board beside it, with [referenceTrace] selected, at the same size, and
+ * [setReferenceAside] shows a path set aside there as live shows a bonus word once its trace is lifted.
  */
 internal class StrandsReplayRig(private val rule: ComposeContentTestRule) {
     private var frame by mutableStateOf(StrandsReplayScript.frameAfter(emptyList()))
     private var hasReference = false
+    private var referenceEnd by mutableStateOf<List<Coord>?>(null)
     private var options by mutableStateOf(ReplayBoardOptions(animate = true, showErrors = true))
 
     /** Shows [shown]; the clock stays paused afterwards. [referenceTrace] adds the reference board. */
@@ -106,6 +108,7 @@ internal class StrandsReplayRig(private val rule: ComposeContentTestRule) {
                                 reduceMotion = true,
                                 trace = { Trace(referenceTrace) },
                                 onTrace = {},
+                                traceEnd = { referenceEnd?.let { TraceEnd(it, TraceEndKind.Bonus, seq = 1, holdMs = StrandsMotion.ReplayBonusHoldMs) } },
                                 floor = 0.dp,
                                 readOnly = true,
                                 modifier = Modifier.weight(1f),
@@ -117,6 +120,14 @@ internal class StrandsReplayRig(private val rule: ComposeContentTestRule) {
         }
         rule.waitForIdle()
         rule.mainClock.autoAdvance = false
+    }
+
+    /** Sets [path] aside on the reference board and lets it draw; the clock stays paused, so the path is in its hold. */
+    fun setReferenceAside(path: List<Coord>) {
+        referenceEnd = path
+        repeat(3) { rule.mainClock.advanceTimeByFrame() }
+        // A capture shows the board as it was before the change; the next one shows it.
+        reference()
     }
 
     /** Moves to [next] (or just to [animate]) and lets the board draw it. */

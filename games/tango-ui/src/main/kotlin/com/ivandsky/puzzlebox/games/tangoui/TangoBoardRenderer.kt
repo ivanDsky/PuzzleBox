@@ -21,7 +21,6 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -163,7 +162,6 @@ private fun Cell(
     val violationPhrase = TangoSemantics.violationPhraseAt(model, idx)
     val violating = violationPhrase != null
     val scheme = MaterialTheme.colorScheme
-    val given = render?.isGiven == true && render.value != null
     val inviting = guideGhosts && render?.value == null && model.ghosts.containsKey(idx)
     val gridLineWeight = BoardTokens.boardGridLineWeight
     val reducedMotion = rememberReducedMotion()
@@ -180,11 +178,7 @@ private fun Cell(
                 // Square corners (user QA 2026-11-02): the board is a squared
                 // gridline mesh — state washes follow the cells, not tiles.
                 val stateRadius = CornerRadius.Zero
-                // Given identity, legacy look (user QA 2026-11-02): preplaced cells read as DISABLED —
-                // a muted background wash, not a dot. Drawn before the violation tint so
-                // a given caught in a violating line still shows the error state above it.
-                // The readable look has no wash; a given is told by its sun or moon colour alone.
-                if (given && style.givenWash.isSpecified) drawRoundRect(color = style.givenWash, cornerRadius = stateRadius)
+                // A given has no wash; it is told by its sun or moon colour alone.
                 // An open guide square: a dashed accent outline reads as "tap here" (#1186).
                 if (inviting) drawGhostOutline(scheme.primary, gridLineWeight.toPx())
                 if (violating) {

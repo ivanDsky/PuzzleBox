@@ -76,7 +76,7 @@ private fun givenConflicts(board: SudokuDraft, geometry: SudokuGeometry): Set<In
  */
 @Composable
 internal fun SudokuDiagnosticsLayer(size: Int, diagnostics: SudokuDiagnostics, modifier: Modifier = Modifier) {
-    val frame = gridStrokes(size, LocalBoardGeometry.current).box
+    val frame = gridStrokes(LocalBoardGeometry.current).box
     val diffTint = LocalBoardColors.current.editorDiffRing.copy(alpha = DIFF_ALPHA)
     val error = MaterialTheme.colorScheme.error
     val faint = MaterialTheme.colorScheme.onSurface.copy(alpha = WITNESS_ALPHA)

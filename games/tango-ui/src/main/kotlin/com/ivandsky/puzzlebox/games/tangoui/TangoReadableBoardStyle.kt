@@ -1,7 +1,5 @@
 package com.ivandsky.puzzlebox.games.tangoui
 
-import androidx.compose.foundation.border
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
@@ -20,55 +18,31 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import com.ivandsky.puzzlebox.designsystem.BoardColors
 import com.ivandsky.puzzlebox.designsystem.BoardGeometry
-import com.ivandsky.puzzlebox.designsystem.BoardTokens
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.LocalBoardGeometry
 
 /**
- * What the shared board tokens decide on the Tango board (nav-rethink B3): the frame, how a given is told from the
- * player's own entries, and the sign ink. Built from [LocalBoardColors] and [LocalBoardGeometry] alone, never from a
- * release flag. Under the legacy tokens every value is the board as it was drawn before them, pixel for pixel; under
- * the readable tokens the frame is a wall in ink, a given is told by its sun or moon colour, and no cell is tinted for being a given.
+ * What the shared board tokens decide on the Tango board: the frame (a wall in ink, inside the board's own bounds so
+ * the board keeps its size) and the sign ink. A given is told by its sun or moon colour; no cell is tinted for being
+ * one. Built from [LocalBoardColors] and [LocalBoardGeometry] alone, never from a release flag.
  */
 @Immutable
 internal class TangoReadableBoardStyle(
     private val colors: BoardColors,
     private val geometry: BoardGeometry,
-    private val legacyGivenWash: Color,
 ) {
-    /**
-     * The one token that tells the two looks apart: the readable geometry draws the board edge as a wall. Tango has
-     * no inner walls, so its frame is the only wall it draws.
-     */
-    private val readable: Boolean get() = geometry.wallOutline
-
     /** The `=` and `×` signs: board ink, the strongest stroke on the board. */
     val signInk: Color get() = colors.boardInk
 
-    /**
-     * The legacy given wash over the whole cell (user QA 2026-11-02: a preplaced cell reads as disabled, not dotted).
-     * Unspecified under the readable tokens: there a given is told by its glyph colour alone and no cell carries a tint.
-     */
-    val givenWash: Color get() = if (readable) Color.Unspecified else legacyGivenWash
-
-    /**
-     * Closes the mesh, drawn above the cells. Legacy: a double grid line (user QA 2026-11-02: without an outer border
-     * the top row reads as glyphs floating above the board). Readable: a wall in wall ink at the shared wall weight,
-     * inside the board's own bounds so the board keeps its size.
-     */
-    val frame: Modifier = if (readable) {
-        Modifier.drawWithCache { wallFrame() }
-    } else {
-        Modifier.border(width = BoardTokens.boardGridLineWeight * 2, color = colors.boardGridLine)
-    }
+    /** Closes the mesh, drawn above the cells: a wall in wall ink at the shared wall weight. */
+    val frame: Modifier = Modifier.drawWithCache { wallFrame() }
 
     /** Built once per board size. The cells are clipped to the wall's outer edge: a broken line's dashes sit on the cell edge and would show outside it. */
     private fun CacheDrawScope.wallFrame(): DrawResult {
         val weight = geometry.wallWeight.toPx()
-        val rounded = geometry.roundedWallCaps
-        val stroke = Stroke(width = weight, join = if (rounded) StrokeJoin.Round else StrokeJoin.Miter)
+        val stroke = Stroke(width = weight, join = StrokeJoin.Round)
         val outer = Path().apply {
-            addRoundRect(RoundRect(0f, 0f, size.width, size.height, CornerRadius(if (rounded) weight / 2f else 0f)))
+            addRoundRect(RoundRect(0f, 0f, size.width, size.height, CornerRadius(weight / 2f)))
         }
         val inset = Offset(weight / 2f, weight / 2f)
         val centreLine = Size(size.width - weight, size.height - weight)
@@ -85,6 +59,5 @@ internal class TangoReadableBoardStyle(
 internal fun rememberTangoBoardStyle(): TangoReadableBoardStyle {
     val colors = LocalBoardColors.current
     val geometry = LocalBoardGeometry.current
-    val givenWash = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = TangoBoardSpec.givenTintAlpha)
-    return remember(colors, geometry, givenWash) { TangoReadableBoardStyle(colors, geometry, givenWash) }
+    return remember(colors, geometry) { TangoReadableBoardStyle(colors, geometry) }
 }

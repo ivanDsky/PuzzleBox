@@ -59,15 +59,15 @@ fun ZipPipes(
  * segment's head cell, rotated to the segment's direction, sized from the cell in the
  * number labels' size language, in the trace role's color. Nothing else is drawn — the
  * cap-wing chevron (stray pieces past the pipe) is deleted. Labeled heads are skipped:
- * their dot ring plays the one-shot flash instead. The screen hangs it ABOVE the board
+ * their dot ring already marks them instead. The screen hangs it ABOVE the board
  * (sized to it); [alpha] carries the ~2s fade (reduced motion removes the arrow
  * instantly).
  */
 @Composable
 fun HintArrowHead(arrow: HintArrow, model: ZipRendererModel, alpha: Float, modifier: Modifier = Modifier) {
     val n = model.n
-    // A labeled head already announces itself — its dot ring plays the one-shot
-    // next-target flash, and a blue glyph over the blue ring/number reads as mush
+    // A labeled head already announces itself — its dot ring marks it, and
+    // a blue glyph over the blue ring/number reads as mush
     // (user finding, board-review round 2). Plain heads get the arrow.
     if (model.cells[arrow.headIdx].label != null) return
     val board = LocalBoardColors.current

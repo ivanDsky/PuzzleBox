@@ -240,15 +240,6 @@ class QueensStepperTest {
     // ---- seeding ----
 
     @Test
-    fun `auto-cross off lists the crosses a queen still owes as D0`() {
-        // 18 touches queen 10 and is outside everything queen 5 attacks, so queen 10's list is the nearer one.
-        val step = next(board(queens = listOf(5, 10)), lastMove = Cell(18), autoCross = false) as QueensStep.Deduction
-        assertEquals(AttackRung, step.unit.rung)
-        assertEquals(cells(10), step.evidence)
-        assertEquals(Result.Cross((attackedBy(n8, 10) - 5).map(::Cell).toSet()), step.result)
-    }
-
-    @Test
     fun `with every attacked cell crossed by hand, or auto-cross on, D0 does not fire`() {
         val crossed = attackedBy(n8, 5) + attackedBy(n8, 10) - setOf(5, 10)
         val byHand = next(board(queens = listOf(5, 10), manual = crossed), autoCross = false) as QueensStep.Deduction

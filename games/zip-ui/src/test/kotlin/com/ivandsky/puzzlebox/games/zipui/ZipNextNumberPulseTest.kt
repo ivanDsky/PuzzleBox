@@ -12,7 +12,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ApplicationProvider
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.designsystem.ReadableLightBoardTokens
+import com.ivandsky.puzzlebox.designsystem.LightBoardTokens
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.DragEvent
 import com.ivandsky.puzzlebox.gameui.GridCell
@@ -32,9 +32,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The ring on the next number to reach, on the real play screen with the readable board on
- * (nav-rethink B3, ticket 42): it pulses in a loop while the board is idle, holds still while a
- * drag is held and under reduced motion, and is not there with the readable board off.
+ * The ring on the next number to reach, on the real play screen (nav-rethink B3, ticket 42): it pulses in a loop while the board is idle, holds still while a
+ * drag is held and under reduced motion.
  *
  * The fixture's start cell is traced before the screen shows, so the next number is "2" in the
  * middle cell (2, 2) throughout. The clock is paused and stepped by hand.
@@ -54,14 +53,14 @@ class ZipNextNumberPulseTest {
 
     private var cellComposed: (Int) -> Unit = {}
 
-    private fun show(readable: Boolean, reducedMotion: Boolean = false) {
+    private fun show(reducedMotion: Boolean = false) {
         if (reducedMotion) {
             val context = ApplicationProvider.getApplicationContext<Context>()
             Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
         }
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
-            PuzzleBoxTheme(darkTheme = false, readableBoard = readable) {
+            PuzzleBoxTheme(darkTheme = false) {
                 CompositionLocalProvider(LocalZipCellComposed provides { cellComposed(it) }) {
                     ZipPlayScreen(
                         controller = controller,
@@ -103,8 +102,8 @@ class ZipNextNumberPulseTest {
 
     @Test
     fun `the idle ring pulses in the target colour and no cell recomposes for it`() {
-        show(readable = true)
-        assertEquals("at rest the ring is the full target colour", ReadableLightBoardTokens.boardTarget, ringPixel())
+        show()
+        assertEquals("at rest the ring is the full target colour", LightBoardTokens.boardTarget, ringPixel())
         val recomposed = mutableListOf<Int>()
         cellComposed = { recomposed += it }
 
@@ -116,7 +115,7 @@ class ZipNextNumberPulseTest {
 
     @Test
     fun `the pulse holds still while a drag is held and starts again when the finger lifts`() {
-        show(readable = true)
+        show()
         composeRule.mainClock.advanceTimeBy(300) // into the fade, so a pause has something to stop
 
         composeRule.onNodeWithTag("play.board").performTouchInput {
@@ -126,7 +125,7 @@ class ZipNextNumberPulseTest {
         composeRule.mainClock.advanceTimeBy(SETTLE_MS)
         val held = ringOverACycle()
 
-        assertEquals("a held drag shows the full, still ring", listOf(ReadableLightBoardTokens.boardTarget), held.distinct())
+        assertEquals("a held drag shows the full, still ring", listOf(LightBoardTokens.boardTarget), held.distinct())
 
         composeRule.onNodeWithTag("play.board").performTouchInput { up() }
         val lifted = ringOverACycle()
@@ -136,22 +135,11 @@ class ZipNextNumberPulseTest {
 
     @Test
     fun `with reduced motion the ring is there and never pulses`() {
-        show(readable = true, reducedMotion = true)
+        show(reducedMotion = true)
 
         val seen = ringOverACycle()
 
-        assertEquals(listOf(ReadableLightBoardTokens.boardTarget), seen.distinct())
-    }
-
-    @Test
-    fun `with the readable board off there is no ring and no loop`() {
-        show(readable = false)
-        composeRule.mainClock.advanceTimeBy(SETTLE_MS) // today's one flash on the dot has played out
-
-        val seen = ringOverACycle()
-
-        // The board paints no surface of its own, so "no ring" is "the same as an empty cell".
-        assertEquals(listOf(ringPixel(row = 3, col = 1)), seen.distinct())
+        assertEquals(listOf(LightBoardTokens.boardTarget), seen.distinct())
     }
 
     private companion object {

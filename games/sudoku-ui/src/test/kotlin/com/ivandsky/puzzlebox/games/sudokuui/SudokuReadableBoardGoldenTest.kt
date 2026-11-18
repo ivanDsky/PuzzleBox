@@ -26,9 +26,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Goldens of the grid under the readable board (nav-rethink B3), light and dark: the look the approved board token
+ * Goldens of the grid on the readable board, light and dark: the look the approved board token
  * sheets set. The grid alone on the screen background, so the lines, the frame and the digit inks are all there is to
- * compare. Every other Sudoku golden renders the legacy board and must not move.
+ * compare.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -76,7 +76,7 @@ class SudokuReadableBoardGoldenTest {
 
     private fun capture(name: String, dark: Boolean, session: SudokuSession, selected: Int? = null, flat: Boolean = false) {
         composeRule.setContent {
-            PuzzleBoxTheme(darkTheme = dark, flatSurfaces = flat, readableBoard = true) {
+            PuzzleBoxTheme(darkTheme = dark, flatSurfaces = flat) {
                 Box(Modifier.testTag(SCENE_TAG).background(MaterialTheme.colorScheme.background).padding(16.dp)) {
                     SudokuGrid(sudokuBoardModel(session, selected), onSelect = null, modifier = Modifier.size(360.dp))
                 }

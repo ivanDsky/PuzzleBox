@@ -65,22 +65,3 @@ internal fun SudokuGridClassicStartPreview() {
         SudokuGrid(sudokuBoardModel(SudokuSession(ref = null, puzzle = classicPuzzle), selected = null), onSelect = {}, modifier = previewModifier)
     }
 }
-
-/** The readable board (nav-rethink B3): the shared gridline, the heavier ink wall with rounded corners, digits in ink. */
-@PuzzleBoxPreviews
-@Preview(name = "Compact width", widthDp = 360, heightDp = 400, showBackground = true)
-@Composable
-internal fun SudokuGridMiniReadablePreview() {
-    PuzzleBoxTheme(readableBoard = true) {
-        SudokuGrid(sudokuBoardModel(miniNotesConflictSession(), selected = 0), onSelect = {}, modifier = previewModifier)
-    }
-}
-
-@PuzzleBoxPreviews
-@Preview(name = "Compact width", widthDp = 360, heightDp = 400, showBackground = true)
-@Composable
-internal fun SudokuGridClassicReadablePreview() {
-    PuzzleBoxTheme(readableBoard = true) {
-        SudokuGrid(sudokuBoardModel(SudokuSession(ref = null, puzzle = classicPuzzle), selected = null), onSelect = {}, modifier = previewModifier)
-    }
-}
