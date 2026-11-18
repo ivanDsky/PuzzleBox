@@ -29,15 +29,3 @@ class ObservePickablePuzzles internal constructor(
         }
     }
 }
-
-private fun PickablePuzzle.passes(query: PickerQuery): Boolean =
-    matches(query.text) &&
-        (query.fresh.isEmpty() || Freshness.New in query.fresh && isNew || Freshness.NotPlayed in query.fresh && !played) &&
-        (query.sources.isEmpty() || entry.source in query.sources) &&
-        (query.games.isEmpty() || entry.gameId in query.games)
-
-private fun PickablePuzzle.matches(text: String): Boolean {
-    val needle = text.trim()
-    if (needle.isEmpty()) return true
-    return listOfNotNull(entry.title, entry.author, code?.value, code?.display).any { it.contains(needle, ignoreCase = true) }
-}
