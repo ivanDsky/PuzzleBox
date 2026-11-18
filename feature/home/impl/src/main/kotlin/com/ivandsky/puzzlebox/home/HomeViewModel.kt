@@ -1,10 +1,12 @@
 package com.ivandsky.puzzlebox.home
 
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ivandsky.puzzlebox.auth.GoogleIdToken
+import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.identity.IdentityService
-import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.domain.GameHistoryDay
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.GetAppUpdate
@@ -61,7 +63,8 @@ internal const val SELECTED_DAY_KEY = "home.selectedDay"
  * registering its plugin. The header's day and [GetNextRollover]'s instant are re-read on
  * every emission. [syncToday] prefetches today's uncached puzzles (A12; the route calls it
  * on every resume), so a game that can't load reads Offline. [checkForUpdate] (also on every
- * resume) asks [GetAppUpdate] for a newer release; its URL lands in [HomeUiState.updateUrl].
+ * resume) asks [GetAppUpdate] for a newer release; its URL lands in [HomeUiState.updateUrl]. The picked
+ * day's solved games each carry the player's place that day ([ObserveResultRank], signed in only).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModel(
@@ -76,7 +79,8 @@ class HomeViewModel(
     private val syncTodayPuzzles: SyncTodayPuzzles,
     private val getAppUpdate: GetAppUpdate,
     observeLatestSolvedToday: ObserveLatestSolvedToday,
-    observeResultRank: ObserveResultRank,
+    private val observeResultRank: ObserveResultRank,
+    private val idTokens: GoogleIdTokenProvider,
     private val savedState: SavedStateHandle,
     private val firstScreenReady: FirstScreenReady,
 ) : ViewModel() {
@@ -143,6 +147,26 @@ class HomeViewModel(
         }
     }.distinctUntilChanged().seededOnce(null, ::account)
 
+    // The picked day's solved games and the player's place on each; empty while signed out or with no pick.
+    private val standings: Flow<Map<GameId, HistoryDay.Standing>> =
+        combine(pickedDay, history, identityService.current) { picked, held, identity ->
+            val day = picked?.let(LocalDate::parse)
+            val solved = if (day == null || identity == null) {
+                emptyList()
+            } else {
+                held.orEmpty().filter { it.day == day && it.record != null }.map { it.gameId }.sortedBy { it.value }
+            }
+            day to solved
+        }.distinctUntilChanged().flatMapLatest { (day, solved) ->
+            if (day == null || solved.isEmpty()) {
+                flowOf(emptyMap())
+            } else {
+                combine(solved.map { game -> observeResultRank(game, day).map { game to (it as? ResultRank.Ranked)?.standing() } }) { places ->
+                    places.mapNotNull { (game, standing) -> standing?.let { game to it } }.toMap()
+                }
+            }
+        }
+
     internal val uiState: StateFlow<HomeUiState> =
         combine(
             today,
@@ -176,6 +200,10 @@ class HomeViewModel(
                 if (picked != null && listed == null && state.isLocalStateLoaded) savedState[SELECTED_DAY_KEY] = null
                 state.copy(selectedDay = listed)
             }
+            .combine(standings) { state, places ->
+                // Only the open day carries places, so the other days keep their rows as history built them.
+                state.copy(history = state.history.map { if (it.isoDay == state.selectedDay) it.withStandings(places) else it })
+            }
             .onEach { if (it.isLocalStateLoaded) firstScreenReady.markReady() }
             .stateIn(
                 scope = viewModelScope,
@@ -204,6 +232,12 @@ class HomeViewModel(
         viewModelScope.launch { updateUrl.value = getAppUpdate()?.url }
     }
 
+    /** Opens the Google account picker and signs in with its token; a cancel or failure leaves the player signed out. */
+    suspend fun signIn(activityContext: Context) {
+        val token = idTokens.idToken(activityContext) as? GoogleIdToken.Available ?: return
+        identityService.signInWithGoogleIdToken(token.token)
+    }
+
     private fun recentDays(days: List<GameHistoryDay>, before: LocalDate): List<HistoryDay> =
         days.asSequence()
             .filter { it.day < before }
@@ -215,17 +249,27 @@ class HomeViewModel(
                 HistoryDay(
                     isoDay = day.toString(),
                     headline = day.format(HEADLINE),
-                    games = games
-                        .sortedWith(registryOrder)
-                        .map { game ->
-                            HistoryDay.GameResult(
-                                gameName = registry.displayName(game.gameId),
-                                brand = brands.brandOf(game.gameId),
-                                time = game.record?.let { formatDuration(it.time) },
-                            )
-                        },
+                    games = gameResults(games.associateBy { it.gameId }),
                 )
             }
+
+    // Every registered game, in registry order, then any unregistered game that has a row; a game with no row was not played.
+    private fun gameResults(played: Map<GameId, GameHistoryDay>): List<HistoryDay.GameResult> {
+        val ids = registry.all.map { it.definition.id } + played.keys.filter { registryRank(it) == Int.MAX_VALUE }.sortedBy { it.value }
+        return ids.map { id ->
+            val record = played[id]?.record
+            HistoryDay.GameResult(
+                gameId = id,
+                gameName = registry.displayName(id),
+                brand = brands.brandOf(id),
+                outcome = when {
+                    record != null -> HistoryDay.Outcome.Solved(record.time, record.hints)
+                    played.containsKey(id) -> HistoryDay.Outcome.Opened
+                    else -> HistoryDay.Outcome.NotPlayed
+                },
+            )
+        }
+    }
 
     private fun registryRank(id: GameId): Int =
         registry.all.indexOfFirst { it.definition.id == id }.let { if (it < 0) Int.MAX_VALUE else it }

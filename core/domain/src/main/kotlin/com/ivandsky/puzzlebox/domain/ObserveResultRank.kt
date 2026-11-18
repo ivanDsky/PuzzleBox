@@ -57,16 +57,17 @@ class ObserveResultRank(
         val entries = (signedIn.board as? TodayLeaderboard.Board.Loaded)?.snapshot?.entries ?: return ResultRank.Hidden
         val uid = signedIn.identity.uid
         // In Friends the place already counts the connections, so there is no second place to carry.
-        if (friends != null) return friends.standing(entries, uid, order)?.let { ranked(it.place, it.count, null) } ?: ResultRank.Hidden
+        if (friends != null) return friends.standing(entries, uid, order)?.let { ranked(it.place, it.count, null, amongFriends = true) } ?: ResultRank.Hidden
         val index = entries.indexOfFirst { it.uid == uid }
         return if (index < 0) ResultRank.Hidden else ranked(index + 1, entries.size, withConnections(entries, index, view, order.comparator))
     }
 
-    private fun ranked(position: Int, count: Int, withConnections: ResultRank.WithConnections?) = ResultRank.Ranked(
+    private fun ranked(position: Int, count: Int, withConnections: ResultRank.WithConnections?, amongFriends: Boolean = false) = ResultRank.Ranked(
         position,
         count,
         topPercent = maxOf(1, (position * 100 + count - 1) / count),
         withConnections = withConnections,
+        amongFriends = amongFriends,
     )
 
     // A connection with a hidden time has no score, so it takes no place and is not counted. A LinkedIn time wins:

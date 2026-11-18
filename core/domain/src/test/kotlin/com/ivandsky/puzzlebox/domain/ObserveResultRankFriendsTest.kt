@@ -115,7 +115,7 @@ class ObserveResultRankFriendsTest {
         connection(seconds = 20)
         rank(setting()).test {
             // The connection, then b, then me: a and c are no friends and the hidden time takes no place.
-            assertEquals(ResultRank.Ranked(position = 3, count = 3, topPercent = 100), lastRanked())
+            assertEquals(ResultRank.Ranked(position = 3, count = 3, topPercent = 100, amongFriends = true), lastRanked())
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -127,7 +127,7 @@ class ObserveResultRankFriendsTest {
         rank(setting()).test {
             assertEquals(ResultRank.Ranked(position = 3, count = 4, topPercent = 75), lastRanked())
             preferences.setRanksFriendsDefault(true)
-            assertEquals(ResultRank.Ranked(position = 2, count = 2, topPercent = 100), lastRanked())
+            assertEquals(ResultRank.Ranked(position = 2, count = 2, topPercent = 100, amongFriends = true), lastRanked())
             cancelAndIgnoreRemainingEvents()
         }
     }

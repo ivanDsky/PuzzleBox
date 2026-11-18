@@ -6,17 +6,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.model.GameId
-
-/**
- * One puzzle day in the recent list: [isoDay] is its unique key, [games] every game
- * played that day in registry order.
- */
-internal data class HistoryDay(val isoDay: String, val headline: String, val games: List<GameResult>) {
-    /** One game's result chip that day; [time] is the solve time, null when opened but not solved. */
-    data class GameResult(val gameName: String, val brand: GameBrand, val time: String?)
-}
 
 /**
  * The real Home screen (A10–A12, A15): Today tiles and the one CTA, the streak card, the
@@ -29,7 +19,8 @@ internal data class HistoryDay(val isoDay: String, val headline: String, val gam
  * render from [state]'s rows, never from a hardcoded id; the header's date is the puzzle
  * roll-over day (A9), never the phone's.
  * A non-null [HomeUiState.updateUrl] shows the Update available pill in the header (spec A7);
- * its tap calls [onOpenUpdate] with that URL. [summaries] adds the rank and duels rows.
+ * its tap calls [onOpenUpdate] with that URL. The picked day's Finish and Play call [onOpenGameDay] with the
+ * game and the ISO day; its signed-out link calls [onSignIn]. [summaries] adds the rank and duels rows.
  */
 @Composable
 internal fun HomeScreen(
@@ -41,6 +32,8 @@ internal fun HomeScreen(
     title: String,
     modifier: Modifier = Modifier,
     onOpenUpdate: (String) -> Unit = {},
+    onOpenGameDay: (GameId, String) -> Unit = { _, _ -> },
+    onSignIn: () -> Unit = {},
 ) {
     Box(modifier.fillMaxSize()) {
         if (layout == HomeLayout.TwoPane) {
@@ -68,6 +61,8 @@ internal fun HomeScreen(
                         .fillMaxHeight(),
                     onOpenStreak = summaries.onOpenStreak,
                     onOpenDay = summaries.onOpenDay,
+                    onOpenGameDay = onOpenGameDay,
+                    onSignIn = onSignIn,
                 )
             }
         } else {

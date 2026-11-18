@@ -2,13 +2,16 @@ package com.ivandsky.puzzlebox.home
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.model.GameId
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
 /**
@@ -16,13 +19,15 @@ import org.koin.androidx.compose.koinViewModel
  * decided once at the app shell (width class + orientation) and passed in; UI below
  * this point stays repository-free. [onOpenGame] reports the [GameId] a Today tile or the
  * CTA opens (the CTA's is [HomeUiState.playTarget]: the saved game, else the next unsolved
- * one). Every resume prefetches today's uncached puzzles (A12), so the tiles can say which
+ * one). [onOpenGameDay] reports the game and ISO day a picked day's Finish or Play opens. Every resume
+ * prefetches today's uncached puzzles (A12), so the tiles can say which
  * ones are offline, and checks for a newer release, whose pill opens it in the browser.
  */
 @Composable
 fun HomeRoute(
     layout: HomeLayout,
     onOpenGame: (GameId) -> Unit,
+    onOpenGameDay: (GameId, String) -> Unit,
     summaries: HomeSummaries,
     title: String,
     modifier: Modifier = Modifier,
@@ -30,6 +35,8 @@ fun HomeRoute(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     // No reset on dispose: a return within the state's 5 s WhileSubscribed grace keeps the rank. After
     // the grace the stream restarts from no rank, so the row can blip out and back in.
     SideEffect { viewModel.setSummariesShown(true) }
@@ -43,6 +50,8 @@ fun HomeRoute(
         layout = layout,
         state = uiState,
         onOpenGame = onOpenGame,
+        onOpenGameDay = onOpenGameDay,
+        onSignIn = { scope.launch { viewModel.signIn(context) } },
         onSelectDay = viewModel::selectDay,
         summaries = summaries,
         title = title,

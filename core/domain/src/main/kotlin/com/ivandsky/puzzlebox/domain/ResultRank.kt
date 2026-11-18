@@ -11,13 +11,16 @@ sealed interface ResultRank {
     /**
      * 1-based [position] among [count] entries; [topPercent] is `max(1, ceil(position / count * 100))`.
      * [withConnections] is the player's place once the LinkedIn connections who played the day join the board; null
-     * when none of them has a time, so the row is exactly the PuzzleBox rank alone.
+     * when none of them has a time, so the row is exactly the PuzzleBox rank alone. [amongFriends] is true when
+     * [position] and [count] are the player's place among their friends and connections (Friends scope), false
+     * when they are the whole board's.
      */
     data class Ranked(
         val position: Int,
         val count: Int,
         val topPercent: Int,
         val withConnections: WithConnections? = null,
+        val amongFriends: Boolean = false,
     ) : ResultRank
 
     /**

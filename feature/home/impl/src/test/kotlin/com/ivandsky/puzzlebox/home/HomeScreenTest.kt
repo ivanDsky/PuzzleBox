@@ -126,7 +126,7 @@ class HomeScreenTest {
     fun `a picked day rises over the stats pane, which holds still beneath it - polish 04`() {
         setContent(
             HomeLayout.TwoPane,
-            history = listOf(HistoryDay("2026-11-03", "November 3", listOf(HistoryDay.GameResult("Zip", GameBrand.Neutral, "0:42")))),
+            history = listOf(HistoryDay("2026-11-03", "November 3", listOf(solvedZip()))),
         )
         composeRule.onNodeWithTag("home.history_row_2026-11-03").performScrollTo()
         composeRule.waitForIdle()
@@ -267,7 +267,7 @@ class HomeScreenTest {
     @Test
     fun `a tab reselect scrolls the list back to its header`() {
         val reselect = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-        val days = (1..6).map { HistoryDay("2026-10-0$it", "October $it", listOf(HistoryDay.GameResult("Zip", GameBrand.Neutral, "0:42"))) }
+        val days = (1..6).map { HistoryDay("2026-10-0$it", "October $it", listOf(solvedZip())) }
         setContent(HomeLayout.SinglePane, history = days, reselect = reselect)
         composeRule.onNodeWithTag("home.history_row_2026-10-06").performScrollTo()
         composeRule.onNodeWithText("PuzzleBox").assertIsNotDisplayed()

@@ -17,7 +17,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.width
 import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.home.HomeScreenTest.Companion.TODAY
 import com.ivandsky.puzzlebox.home.HomeScreenTest.Companion.state
 import com.ivandsky.puzzlebox.model.GameId
@@ -42,7 +41,7 @@ class HomeDoorsTest {
 
     private val opened = mutableListOf<String>()
     private var streakOpened = 0
-    private val day = HistoryDay("2026-11-03", "November 3", listOf(HistoryDay.GameResult("Zip", GameBrand.Neutral, "0:42")))
+    private val day = HistoryDay("2026-11-03", "November 3", listOf(solvedZip()))
 
     private fun setContent(layout: HomeLayout, picked: String? = null) {
         val summaries = HomeSummaries(

@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.home
 
+import android.content.Context
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.UriHandler
@@ -13,6 +14,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.navigation3.runtime.entryProvider
+import com.ivandsky.puzzlebox.auth.GoogleIdToken
+import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
@@ -111,6 +114,7 @@ class HomeRouteTest {
                 HomeRoute(
                     layout = HomeLayout.SinglePane,
                     onOpenGame = onOpenGame,
+                    onOpenGameDay = { _, _ -> },
                     summaries = HomeSummaries(onOpenRank = null, duels = null, onOpenDay = {}, onOpenStreak = {}),
                     title = "Today",
                 )
@@ -148,6 +152,11 @@ class HomeRouteTest {
                     single<AppReleaseRepository> { releases }
                     single { AppBuild(versionName = "1.0.0", checksForUpdates = true) }
                     single { FirstScreenReady() }
+                    single<GoogleIdTokenProvider> {
+                        object : GoogleIdTokenProvider {
+                            override suspend fun idToken(activityContext: Context) = GoogleIdToken.Unavailable(GoogleIdToken.Unavailable.Reason.CANCELLED)
+                        }
+                    }
                 },
                 domainModule,
                 homeModule,
@@ -315,6 +324,7 @@ class HomeRouteTest {
                     HomeRoute(
                         layout = HomeLayout.SinglePane,
                         onOpenGame = {},
+                        onOpenGameDay = { _, _ -> },
                         summaries = HomeSummaries(onOpenRank = null, duels = null, onOpenDay = {}, onOpenStreak = {}),
                         title = "Today",
                     )
@@ -348,6 +358,7 @@ class HomeRouteTest {
                     HomeRoute(
                         layout = HomeLayout.SinglePane,
                         onOpenGame = {},
+                        onOpenGameDay = { _, _ -> },
                         summaries = HomeSummaries(onOpenRank = null, duels = null, onOpenDay = {}, onOpenStreak = {}),
                         title = "Today",
                     )
