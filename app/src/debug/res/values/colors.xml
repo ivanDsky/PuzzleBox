@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dev icon: dark canvas (DarkColorScheme.background) so the Dev build reads apart from release at a glance. -->
+    <color name="ic_launcher_background">#101418</color>
+    <!-- Dev badge: brand orange accent (BoardTokens sunFill). -->
+    <color name="ic_launcher_dev_badge">#FF8524</color>
+</resources>
