@@ -74,6 +74,10 @@ import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import java.time.Duration
 import java.time.LocalDate
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.MainCoroutineDispatcher
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -523,7 +527,14 @@ class ShellRobot internal constructor(
             rule.activity.viewModelStore.clear()
             generation++
         }
+        // Closing Koin cancels the scopes the graph owns, but a DataStore frees its file only once its (IO) scope has
+        // completed: wait for the off-main ones, or the next graph's DataStore on the same file throws "multiple
+        // DataStores active". Main-thread scopes hold no file, and their leftover work runs on the looper we drive.
+        val closing = graph.koin.getAll<CoroutineScope>()
+            .filter { it.coroutineContext[CoroutineDispatcher] !is MainCoroutineDispatcher }
+            .mapNotNull { it.coroutineContext[Job] }
         graph.stop()
+        rule.waitUntil(TIMEOUT_MS) { closing.all { it.isCompleted || !it.isCancelled } }
         graph.start()
         restoredState = saved?.mapValuesTo(mutableMapOf()) { it.value.toMutableList() }
         ignoreRestored = saved == null
