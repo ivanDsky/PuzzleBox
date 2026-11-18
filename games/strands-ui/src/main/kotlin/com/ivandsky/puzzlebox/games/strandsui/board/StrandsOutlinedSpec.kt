@@ -4,7 +4,7 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.games.strands.render.LinkKind
 
 /**
- * The outlined look's anatomy (nav-rethink 131, prototype 07 C), read while FlatStrands is on. Sizes are fractions
+ * The Strands look's anatomy (nav-rethink 131, prototype 07 C). Sizes are fractions
  * of the cell pitch, so the look scales with the board and a stroke never outgrows its token: the square is 78% of
  * the cell and its letter 46%; a found word's squares are joined by a connector about 30% of a cell wide (the
  * spangram's about 40%, its second cue besides the ring); the live trace and the hint's pieces are thin.
@@ -26,10 +26,6 @@ internal object StrandsOutlinedSpec {
 
     /** How much of the `outline` colour an idle letter's outline keeps: softer on the board, still above a 1.5:1 floor. */
     const val IdleOutlineAlpha: Float = 0.6f
-
-    fun tokenFraction(flat: Boolean): Float = if (flat) TokenFraction else StrandsBoardSpec.TokenFraction
-
-    fun letterFraction(flat: Boolean): Float = if (flat) LetterFraction else StrandsBoardSpec.LetterFraction
 
     /** [kind]'s connector width as a fraction of the pitch. */
     fun connector(kind: LinkKind): Float = when (kind) {

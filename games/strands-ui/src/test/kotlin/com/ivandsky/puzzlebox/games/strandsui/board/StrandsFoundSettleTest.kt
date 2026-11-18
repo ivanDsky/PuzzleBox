@@ -13,6 +13,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.Dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.games.strands.Coord
+import com.ivandsky.puzzlebox.games.strands.render.LinkKind
 import com.ivandsky.puzzlebox.games.strandsui.RealDay
 import com.ivandsky.puzzlebox.games.strandsui.StrandsMotion
 import com.ivandsky.puzzlebox.games.strandsui.StrandsPlayController
@@ -37,7 +38,7 @@ import org.robolectric.annotation.GraphicsMode
  * A found word's settle (dip 0.62 → overshoot 1.13 → rest) on a phone-sized 6 × 8 board, the
  * clock paused and stepped frame by frame. The link between two letters carries on the trace
  * line the player drew until its letters start, then is as thick as they are scaled: never
- * absent, never a fat bar behind a shrunken tile. The bottom row's tiles keep their whole lip
+ * absent, never a fat bar behind a shrunken tile. The bottom row's tiles keep their whole face
  * at the dip and at the peak. PINECONE ends on the bottom row: O at (7, 1), then N at (7, 0).
  */
 @RunWith(RobolectricTestRunner::class)
@@ -132,7 +133,7 @@ class StrandsFoundSettleTest {
         return run((x0 + x1) / 2, y)
     }
 
-    private fun restBar() = StrandsBoardSpec.ConnectorWidth.value * density
+    private fun restBar() = connectorWidth(LinkKind.Theme, pitch)
 
     @Test
     fun `from the frame after the tap until its letters start every step of the link is drawn`() {
@@ -174,33 +175,33 @@ class StrandsFoundSettleTest {
     }
 
     /** The lowest tile pixel under [cell]'s centre column. */
-    private fun PixelMap.lipBottom(cell: Coord): Float {
+    private fun PixelMap.faceBottom(cell: Coord): Float {
         val (x, y) = centre(cell)
         var last = y.toInt()
         while (differs(this[x.toInt(), last + 1], bare())) last++
         return last.toFloat()
     }
 
-    private fun assertWholeLip(shot: Shot, cell: Coord, scale: Float) {
-        val half = pitch * StrandsBoardSpec.TokenFraction / 2
-        val expected = centre(cell).second + (half + half * 2 * StrandsBoardSpec.TokenLipFraction) * scale
-        assertEquals("lip of $cell at scale $scale", expected, shot.pixels.lipBottom(cell), 1f)
+    private fun assertWholeFace(shot: Shot, cell: Coord, scale: Float) {
+        val half = pitch * StrandsOutlinedSpec.TokenFraction / 2
+        val expected = centre(cell).second + half * scale
+        assertEquals("face of $cell at scale $scale", expected, shot.pixels.faceBottom(cell), 2f)
     }
 
     @Test
-    fun `the bottom row keeps its whole lip at the deepest dip`() {
+    fun `the bottom row keeps its whole face at the deepest dip`() {
         found()
         val dip = shot(to * stagger + settle / 4)
         assertEquals(StrandsMotion.SettleDipScale, scale(to, dip), 0.01f)
-        assertWholeLip(dip, word[to], scale(to, dip))
+        assertWholeFace(dip, word[to], scale(to, dip))
     }
 
     @Test
-    fun `the bottom row keeps its whole lip at the peak overshoot`() {
+    fun `the bottom row keeps its whole face at the peak overshoot`() {
         found()
         val peak = shot(to * stagger + settle / 2)
         assertEquals(StrandsMotion.SettleOvershootScale, scale(to, peak), 0.01f)
-        assertWholeLip(peak, word[to], scale(to, peak))
+        assertWholeFace(peak, word[to], scale(to, peak))
     }
 
     private companion object {

@@ -24,7 +24,7 @@ import java.io.File
 
 /**
  * Goldens of the cooldown ring half round on a disabled [GameButton], light and dark: the ring
- * hugs the sunk face, concentric with it, and leaves the empty lip strip above it clear.
+ * hugs the face, concentric with it, from the very top edge.
  * Rendered with `-Proborazzi.record=true` (untracked review captures in `snapshots/`).
  */
 @RunWith(RobolectricTestRunner::class)
@@ -36,10 +36,10 @@ class CooldownRingGoldenTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun `half round on the sunk face of a disabled Hint button`() = capture(dark = false, "CooldownRing_half.png")
+    fun `half round on the face of a disabled Hint button`() = capture(dark = false, "CooldownRing_half.png")
 
     @Test
-    fun `half round on the sunk face in the dark theme`() = capture(dark = true, "CooldownRing_half_dark.png")
+    fun `half round on the face in the dark theme`() = capture(dark = true, "CooldownRing_half_dark.png")
 
     private fun capture(dark: Boolean, file: String) {
         val context = ApplicationProvider.getApplicationContext<Context>()

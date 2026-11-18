@@ -17,7 +17,6 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import java.io.File
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -27,21 +26,21 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Flat surfaces (nav-rethink M10-8): the colour ring's disc has no drop shadow, a 1 dp outline holds its edge
- * instead. Flat off keeps the shadow and no outline. Goldens: `snapshots/editor/ring-{flat,raised}-*.png`.
+ * instead. Goldens: `snapshots/editor/ring-{light,dark}.png`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w400dp-h800dp-xxhdpi")
-class QueensColourRingFlatTest {
+class QueensColourRingGoldenTest {
 
     @get:Rule
     val composeRule = createComposeRule()
 
     private var outline = Color.Unspecified
 
-    private fun show(flat: Boolean, dark: Boolean = false) {
+    private fun show(dark: Boolean = false) {
         composeRule.setContent {
-            PuzzleBoxTheme(darkTheme = dark, flatSurfaces = flat) {
+            PuzzleBoxTheme(darkTheme = dark) {
                 outline = MaterialTheme.colorScheme.outlineVariant
                 Scene()
             }
@@ -56,36 +55,26 @@ class QueensColourRingFlatTest {
         }
     }
 
-    /** The ring's left-most pixel column at its vertical middle: where the outline sits when there is one. */
+    /** The ring's left-most pixel column at its vertical middle: where the outline sits. */
     private fun edgePixel(): Color {
         val image = composeRule.onNodeWithTag("queens.editor.ring").captureToImage().toPixelMap()
         return image[1, image.height / 2]
     }
 
     @Test
-    fun `flat on, the disc edge is the outline`() {
-        show(flat = true)
+    fun `the disc edge is the outline`() {
+        show()
         assertEquals(outline, edgePixel())
     }
 
-    @Test
-    fun `flat off, the disc has no outline`() {
-        show(flat = false)
-        assertNotEquals(outline, edgePixel())
-    }
+    @Test fun `golden light`() = golden(dark = false)
 
-    @Test fun `golden flat light`() = golden(flat = true, dark = false)
+    @Test fun `golden dark`() = golden(dark = true)
 
-    @Test fun `golden flat dark`() = golden(flat = true, dark = true)
-
-    @Test fun `golden raised light`() = golden(flat = false, dark = false)
-
-    @Test fun `golden raised dark`() = golden(flat = false, dark = true)
-
-    private fun golden(flat: Boolean, dark: Boolean) {
-        show(flat, dark)
+    private fun golden(dark: Boolean) {
+        show(dark)
         val out = File(checkNotNull(System.getProperty("user.dir")))
-            .resolve("snapshots/editor/ring-${if (flat) "flat" else "raised"}-${if (dark) "dark" else "light"}.png")
+            .resolve("snapshots/editor/ring-${if (dark) "dark" else "light"}.png")
             .canonicalFile
             .also { checkNotNull(it.parentFile).mkdirs() }
         composeRule.onNodeWithTag(SCENE).captureRoboImage(out.absolutePath)

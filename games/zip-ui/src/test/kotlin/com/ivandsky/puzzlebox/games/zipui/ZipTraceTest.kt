@@ -20,7 +20,6 @@ import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.ZipReplay
 import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -30,18 +29,17 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Flat surfaces (nav-rethink B1, F1 "3d path distracting"): with the flat fact on, the Zip trace is one
- * stroke in `pathTrace` — no lip band and no offset — in play and in replay; with it off the lip stays.
+ * Flat surfaces (nav-rethink B1, F1 "3d path distracting"): the Zip trace is one stroke in `pathTrace`,
+ * with no band and no offset, in play and in replay.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34])
-class ZipTraceFlatTest {
+class ZipTraceTest {
 
     @get:Rule
     val composeRule = createComposeRule()
 
-    private val lip = LightBoardTokens.pathTraceLip
     private val trace = LightBoardTokens.pathTrace
 
     private fun PixelMap.contains(color: Color): Boolean =
@@ -49,9 +47,9 @@ class ZipTraceFlatTest {
 
     private fun px(dp: Int): Int = with(composeRule.density) { dp.dp.toPx() }.toInt()
 
-    private fun capture(flat: Boolean, content: @Composable () -> Unit): PixelMap {
+    private fun capture(content: @Composable () -> Unit): PixelMap {
         composeRule.setContent {
-            PuzzleBoxTheme(darkTheme = false, flatSurfaces = flat) {
+            PuzzleBoxTheme(darkTheme = false) {
                 Box(Modifier.size(300.dp).testTag("board")) { content() }
             }
         }
@@ -81,17 +79,16 @@ class ZipTraceFlatTest {
     }
 
     @Test
-    fun `flat play trace has no lip pixel and no offset`() {
-        val image = capture(flat = true) { ZipPipes(tracedModel()) }
-        // A 100dp pitch: the 54dp line spans y 23–77dp along row 0. Flat, nothing sits below it.
+    fun `play trace is one stroke with no offset band under it`() {
+        val image = capture { ZipPipes(tracedModel()) }
+        // A 100dp pitch: the 54dp line spans y 23–77dp along row 0. Nothing sits below it.
         assertEquals(trace, image[px(150), px(50)])
-        assertFalse("a lip pixel under the flat line", image.contains(lip))
-        assertTrue("the flat line ends at 77dp", image[px(150), px(82)] != trace)
+        assertTrue("the line ends at 77dp", image[px(150), px(82)] != trace)
         assertEquals(trace, image[px(150), px(76)])
     }
 
     @Test
-    fun `flat replay trace has no lip pixel`() {
+    fun `replay shows the trace`() {
         val session = ZipPlayFixture.session().copy(path = (0..9).map(::Cell).take(5))
         val frame = ReplayFrame(
             session = session,
@@ -103,17 +100,9 @@ class ZipTraceFlatTest {
             sinceMoveMs = 0L,
             ended = false,
         )
-        val image = capture(flat = true) {
+        val image = capture {
             ZipReplayBoard.Board(frame, ReplayBoardOptions(animate = false, showErrors = true), Modifier.size(300.dp))
         }
         assertTrue("the replay shows the trace", image.contains(trace))
-        assertFalse("a lip pixel in the flat replay", image.contains(lip))
-    }
-
-    @Test
-    fun `flat off keeps the lip`() {
-        val image = capture(flat = false) { ZipPipes(tracedModel()) }
-        assertEquals(trace, image[px(150), px(50)])
-        assertEquals(lip, image[px(150), px(82)])
     }
 }

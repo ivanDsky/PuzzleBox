@@ -29,9 +29,6 @@ internal interface StrandsCellSpec {
     /** The token's fill; null leaves the bare board showing through. */
     fun fill(colors: BoardColors): Color?
 
-    /** The darker same-hue edge under a filled token; null exactly when [fill] is. */
-    fun lip(colors: BoardColors): Color?
-
     fun letter(colors: BoardColors): Color
 
     /** The TalkBack state word (SC12); null when the look has nothing to say. */
@@ -83,48 +80,39 @@ internal object StrandsCellDrawing {
 
 /*
  * The token's proportions, the single source for the painter ([drawTokenSquare]), the connector
- * clipper ([addToken], via [tokenGeometry]) and the layer's lip room ([lipRoomPx]): a face of
- * half-side `half * scale`, a lip [tokenDrop] lower, one rounded [tokenCorner] on both, keeping
- * the token's proportion as it grows or shrinks. Scalar, so the painter allocates nothing.
+ * clipper ([addToken], via [tokenGeometry]) and the layer's ring room ([ringRoomPx]): a face of
+ * half-side `half * scale` with one rounded [tokenCorner], keeping the token's proportion as it
+ * grows or shrinks. Scalar, so the painter allocates nothing.
  */
 
 /** The side of the token's face: [half] at [scale], doubled. */
 internal fun tokenSide(half: Float, scale: Float = 1f): Float = half * scale * 2
 
-/** How far the lip sits below a face of side [side]; none when [flat] (LocalFlatStrands on). */
-internal fun tokenDrop(side: Float, flat: Boolean = false): Float = if (flat) 0f else side * StrandsBoardSpec.TokenLipFraction
-
-/** The corner radius of a face of side [side], and of its lip. */
+/** The corner radius of a face of side [side]. */
 internal fun tokenCorner(side: Float): Float = side * StrandsBoardSpec.TokenCornerFraction
 
-/** One token's face and lip as shapes, for the clipper: built from the scalar functions above. */
-internal class TokenGeometry(val face: Rect, val drop: Float, val cornerRadius: CornerRadius) {
-    val lip: Rect get() = face.translate(0f, drop)
-}
+/** One token's face as a shape, for the clipper: built from the scalar functions above. */
+internal class TokenGeometry(val face: Rect, val cornerRadius: CornerRadius)
 
-/** The geometry of the token of half-side [half] at [scale], its face centred on [center]; flat, the lip is the face. */
-internal fun tokenGeometry(center: Offset, half: Float, scale: Float = 1f, flat: Boolean = false): TokenGeometry {
+/** The geometry of the token of half-side [half] at [scale], its face centred on [center]. */
+internal fun tokenGeometry(center: Offset, half: Float, scale: Float = 1f): TokenGeometry {
     val reach = half * scale
     val side = tokenSide(half, scale)
     val face = Rect(center.x - reach, center.y - reach, center.x + reach, center.y + reach)
-    return TokenGeometry(face, tokenDrop(side, flat), CornerRadius(tokenCorner(side)))
+    return TokenGeometry(face, CornerRadius(tokenCorner(side)))
 }
 
-/**
- * The token's rounded square of half-side [half], centred in the draw area, or, with [lip], its
- * lip: the same square moved down by [tokenDrop].
- */
+/** The token's rounded square of half-side [half], centred in the draw area. */
 internal fun DrawScope.drawTokenSquare(
     color: Color,
     half: Float,
-    lip: Boolean = false,
     alpha: Float = 1f,
     style: DrawStyle = Fill,
 ) {
     val side = tokenSide(half)
     drawRoundRect(
         color = color,
-        topLeft = Offset(center.x - half, center.y - half + if (lip) tokenDrop(side) else 0f),
+        topLeft = Offset(center.x - half, center.y - half),
         size = Size(side, side),
         cornerRadius = CornerRadius(tokenCorner(side)),
         alpha = alpha,
@@ -133,25 +121,23 @@ internal fun DrawScope.drawTokenSquare(
 }
 
 /**
- * What [drawTokenSquare] paints for one token at [scale] about its face's centre [center]: the face
- * and, [StrandsBoardSpec.TokenLipFraction] lower, its lip. A connector cut out of its faded
- * tokens clips this exact shape, so the line meets the visible edge with no gap at a corner or
- * below the lip.
+ * What [drawTokenSquare] paints for one token at [scale] about its face's centre [center]. A connector cut
+ * out of its faded tokens clips this exact shape, so the line meets the visible edge with no gap at a corner.
  */
-internal fun Path.addToken(center: Offset, half: Float, scale: Float = 1f, flat: Boolean = false) {
-    val token = tokenGeometry(center, half, scale, flat)
+internal fun Path.addToken(center: Offset, half: Float, scale: Float = 1f) {
+    val token = tokenGeometry(center, half, scale)
     addRoundRect(RoundRect(token.face, token.cornerRadius))
-    if (!flat) addRoundRect(RoundRect(token.lip, token.cornerRadius))
 }
 
 /**
- * The extra layer height, in px, above and below a token whose face is [facePx] square: its lip's
- * [tokenDrop] rounded up, so the layer reaches at least as far as the lip paints.
+ * The extra layer height, in px, above and below a token whose face is [facePx] square:
+ * [StrandsBoardSpec.RingRoomFraction] of its side, rounded up, so a translucent layer never clips the hint's dashed
+ * ring just outside the token.
  */
-internal fun lipRoomPx(facePx: Int): Int = ceil(tokenDrop(tokenSide(facePx / 2f))).toInt()
+internal fun ringRoomPx(facePx: Int): Int = ceil(tokenSide(facePx / 2f) * StrandsBoardSpec.RingRoomFraction).toInt()
 
 /**
- * One role of the token (its fill or its lip): the live trace's [selection] overlays the
+ * One role of the token (its fill): the live trace's [selection] overlays the
  * letter's own [base], filling in over it as the letter joins ([join]); a found letter
  * turns from the trace colour to its own as it lights ([frame]).
  */

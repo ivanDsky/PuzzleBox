@@ -7,7 +7,6 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.translate
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.gameui.DragTraceHooks
 import com.ivandsky.puzzlebox.gameui.GridCell
@@ -16,8 +15,7 @@ import kotlin.math.floor
 import kotlinx.coroutines.CoroutineScope
 
 /**
- * The Zip line's frame state over the shared [TraceLineMotion]: Zip draws the line, its lip
- * (none when [lip] is null: the flat look is one stroke) and the head on the visible end. While the drag runs, [finger] (board px, read in the draw
+ * The Zip line's frame state over the shared [TraceLineMotion]: Zip draws the line (one stroke, no lip) and the head on the visible end. While the drag runs, [finger] (board px, read in the draw
  * phase) puts the end where [ZipTipAim] projects it on a step [hooks] accepts, on the frame
  * of the pointer event: a held line is drawn without blends. Called from the draw phase
  * only: the finger and the Animatables are read there, so a moving finger or a running tween
@@ -34,9 +32,7 @@ internal class ZipLineMotion(scope: CoroutineScope) {
         hooks: DragTraceHooks?,
         n: Int,
         color: Color,
-        lip: Color?,
         widthFraction: Float,
-        lipFraction: Float,
         animate: Boolean,
     ) {
         val pitchX = size.width / n
@@ -67,13 +63,6 @@ internal class ZipLineMotion(scope: CoroutineScope) {
             stroke.moveTo(start.x, start.y)
             for (i in 1..last) centre(i).let { stroke.lineTo(it.x, it.y) }
             stroke.lineTo(endPoint.x, endPoint.y)
-        }
-        // The lip (spec A14): the same line and head, a fraction of the pitch lower, in the darker hue.
-        if (lip != null) {
-            translate(top = minOf(pitchX, pitchY) * lipFraction) {
-                if (end > 0f) drawPath(stroke, lip, style = style)
-                drawCircle(lip, radius = headRadius, center = endPoint)
-            }
         }
         if (end > 0f) drawPath(stroke, color, style = style)
         drawCircle(color, radius = headRadius, center = endPoint)

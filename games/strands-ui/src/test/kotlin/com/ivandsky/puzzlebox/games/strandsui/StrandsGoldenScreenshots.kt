@@ -24,7 +24,6 @@ import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
-import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -35,8 +34,9 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * Golden matrix for the Strands play screen over a real NYT day (2026-11-06, 6×8, read
  * through the production source and trust gate): idle, mid-trace, a found theme word beside
- * the spangram, both hint stages and the solved board with its rating word, each light and
- * dark, on a phone (single pane) and a tablet (two panes). Robolectric capture, no emulator;
+ * the spangram, two merged theme words, both hint stages, a large font and the solved board with its
+ * rating word, each light and dark, on a phone (single pane) and a tablet (two panes). Outlined
+ * squares, merged found words, gold spangram. Robolectric capture, no emulator;
  * rendered with `-Proborazzi.record=true` into `games/strands-ui/snapshots/` (untracked review
  * captures).
  *
@@ -52,21 +52,9 @@ class StrandsGoldenCompactTest : StrandsGoldenTestBase("compact", PlayLayout.Sin
 @Config(sdk = [34], qualifiers = "w1280dp-h900dp-420dpi")
 class StrandsGoldenExpandedTest : StrandsGoldenTestBase("expanded", PlayLayout.TwoPane)
 
-/** The same matrix with Flat Strands on (nav-rethink 131): outlined squares, merged found words, gold spangram. Goldens are `flat-*`. */
-@RunWith(RobolectricTestRunner::class)
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = "w360dp-h640dp-420dpi")
-class StrandsFlatGoldenCompactTest : StrandsGoldenTestBase("compact", PlayLayout.SinglePane, flat = true)
-
-@RunWith(RobolectricTestRunner::class)
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = "w1280dp-h900dp-420dpi")
-class StrandsFlatGoldenExpandedTest : StrandsGoldenTestBase("expanded", PlayLayout.TwoPane, flat = true)
-
 abstract class StrandsGoldenTestBase(
     private val widthLabel: String,
     private val layout: PlayLayout,
-    private val flat: Boolean = false,
 ) {
 
     @get:Rule
@@ -74,7 +62,7 @@ abstract class StrandsGoldenTestBase(
 
     private fun out(name: String, dark: Boolean): String =
         File(checkNotNull(System.getProperty("user.dir")))
-            .resolve("snapshots/${if (flat) "flat-" else ""}$name-$widthLabel-${if (dark) "dark" else "light"}.png")
+            .resolve("snapshots/$name-$widthLabel-${if (dark) "dark" else "light"}.png")
             .canonicalFile
             .also { checkNotNull(it.parentFile).mkdirs() }
             .absolutePath
@@ -106,7 +94,7 @@ abstract class StrandsGoldenTestBase(
                     if (dark) Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO
             }
             CompositionLocalProvider(LocalConfiguration provides config, LocalDensity provides Density(LocalDensity.current.density, fontScale)) {
-                PuzzleBoxTheme(darkTheme = dark, flatSurfaces = flat, flatStrands = flat) {
+                PuzzleBoxTheme(darkTheme = dark) {
                     // The shell paints the page; without it a dark capture sits on a white window.
                     Surface(color = MaterialTheme.colorScheme.background) {
                         StrandsPlayScreen(
@@ -157,14 +145,9 @@ abstract class StrandsGoldenTestBase(
     @Test fun `solved with rating light`() = capture("solved", dark = false) { solve() }
     @Test fun `solved with rating dark`() = capture("solved", dark = true) { solve() }
 
-    // The flat look (nav-rethink 131) only: two merged theme words, the alt theme tint, and a large font.
-    @Test fun `flat two merged words light`() = flatOnly { capture("found-two", dark = false) { play(RealDay.themeWords[0]); play(RealDay.themeWords[1]) } }
-    @Test fun `flat two merged words dark`() = flatOnly { capture("found-two", dark = true) { play(RealDay.themeWords[0]); play(RealDay.themeWords[1]) } }
-    @Test fun `flat large font light`() = flatOnly { capture("large-font", dark = false, fontScale = 1.3f) { hintOutlined(); play(RealDay.themeWords[0]) } }
-    @Test fun `flat large font dark`() = flatOnly { capture("large-font", dark = true, fontScale = 1.3f) { hintOutlined(); play(RealDay.themeWords[0]) } }
-
-    private fun flatOnly(body: () -> Unit) {
-        assumeTrue(flat)
-        body()
-    }
+    // Two merged theme words, the alt theme tint, and a large font.
+    @Test fun `two merged words light`() = capture("found-two", dark = false) { play(RealDay.themeWords[0]); play(RealDay.themeWords[1]) }
+    @Test fun `two merged words dark`() = capture("found-two", dark = true) { play(RealDay.themeWords[0]); play(RealDay.themeWords[1]) }
+    @Test fun `large font light`() = capture("large-font", dark = false, fontScale = 1.3f) { hintOutlined(); play(RealDay.themeWords[0]) }
+    @Test fun `large font dark`() = capture("large-font", dark = true, fontScale = 1.3f) { hintOutlined(); play(RealDay.themeWords[0]) }
 }

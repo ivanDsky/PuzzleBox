@@ -21,9 +21,7 @@ import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.util.lerp
-import androidx.compose.ui.unit.Density
 import com.ivandsky.puzzlebox.designsystem.BoardColors
-import com.ivandsky.puzzlebox.designsystem.LocalFlatStrands
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.render.LinkKind
 import com.ivandsky.puzzlebox.games.strands.render.StrandsLink
@@ -66,7 +64,6 @@ internal fun StrandsConnectors(
     val alphas = links.map { link -> key(link) { animateFloatAsState(if (link in dim.links) dim.alpha else 1f, spec, label = "dim") } }
     val scope = rememberCoroutineScope()
     val motion = remember { StrandsLineMotion(scope) }
-    val flat = LocalFlatStrands.current
     Spacer(
         Modifier
             .fillMaxSize()
@@ -74,14 +71,14 @@ internal fun StrandsConnectors(
                 val geometry = GridGeometry(rows, cols, size.width, size.height)
                 val alt = altThemeLinks(links)
                 val visible = links.withIndex().filter { it.value.cells.size >= 2 }
-                val drawn = visible.map { (_, link) -> linkDrawing(link, geometry, colors, link in alt, flat) }
+                val drawn = visible.map { (_, link) -> linkDrawing(link, geometry, colors, link in alt) }
                 onDrawBehind {
                     val settling = settle()
                     for (i in drawn.indices) {
                         val (index, link) = visible[i]
                         if (settling != null && link == settling.link) {
                             val color = linkColor(link, colors, link in alt)
-                            drawSettling(settling, geometry, color, connectorColor(LinkKind.Trace, colors), flat)
+                            drawSettling(settling, geometry, color, connectorColor(LinkKind.Trace, colors))
                         } else {
                             drawn[i](this, alphas[index].value)
                         }
@@ -90,7 +87,7 @@ internal fun StrandsConnectors(
             }
             .drawWithCache {
                 val color = connectorColor(LinkKind.Trace, colors)
-                val stroke = roundStroke(LinkKind.Trace, GridGeometry(rows, cols, size.width, size.height).pitch, flat)
+                val stroke = roundStroke(LinkKind.Trace, GridGeometry(rows, cols, size.width, size.height).pitch)
                 onDrawBehind {
                     with(motion) { drawTrace(trace().path, finger(), found, rows, cols, color, stroke, animate) }
                 }
@@ -99,12 +96,12 @@ internal fun StrandsConnectors(
 }
 
 /** One link's draw call, taking its alpha, over geometry built once: a stroked polyline, or a hint's trimmed butt-capped pieces. */
-private fun CacheDrawScope.linkDrawing(link: StrandsLink, geometry: GridGeometry, colors: BoardColors, alt: Boolean, flat: Boolean): DrawScope.(Float) -> Unit {
+private fun CacheDrawScope.linkDrawing(link: StrandsLink, geometry: GridGeometry, colors: BoardColors, alt: Boolean): DrawScope.(Float) -> Unit {
     val color = linkColor(link, colors, alt)
-    val tokenRadius = geometry.pitch * StrandsOutlinedSpec.tokenFraction(flat) / 2
+    val tokenRadius = geometry.pitch * StrandsOutlinedSpec.TokenFraction / 2
     if (link.kind != LinkKind.Hint) {
         val path = Path().polylineThrough(link.cells, geometry)
-        val stroke = roundStroke(link.kind, geometry.pitch, flat)
+        val stroke = roundStroke(link.kind, geometry.pitch)
         // A faded token shows what is under it, so the line is cut out of the tokens it runs
         // under; at full strength the opaque tokens hide it anyway and nothing is cut.
         // Built on the first faded draw: play never fades, so it never pays for it.
@@ -112,7 +109,7 @@ private fun CacheDrawScope.linkDrawing(link: StrandsLink, geometry: GridGeometry
             Path().apply {
                 link.cells.forEach { cell ->
                     val c = geometry.centerOf(GridCell(cell.row, cell.col))
-                    addToken(c, tokenRadius, flat = flat)
+                    addToken(c, tokenRadius)
                 }
             }
         }
@@ -121,9 +118,9 @@ private fun CacheDrawScope.linkDrawing(link: StrandsLink, geometry: GridGeometry
             else clipPath(tokens, ClipOp.Difference) { drawPath(path, color, alpha, stroke) }
         }
     }
-    val trim = if (flat) geometry.pitch * StrandsOutlinedSpec.HintTrim else tokenRadius
+    val trim = geometry.pitch * StrandsOutlinedSpec.HintTrim
     val pieces = hintSegments(link.cells.map { geometry.centerOf(GridCell(it.row, it.col)) }, trim)
-    val width = connectorWidth(link.kind, geometry.pitch, flat)
+    val width = connectorWidth(link.kind, geometry.pitch)
     return { alpha ->
         for (i in pieces.indices) drawLine(color, pieces[i].first, pieces[i].second, strokeWidth = width, cap = StrokeCap.Butt, alpha = alpha)
     }
@@ -142,12 +139,11 @@ private fun DrawScope.drawSettling(
     geometry: GridGeometry,
     color: Color,
     traceColor: Color,
-    flat: Boolean,
 ) {
     val scales = settle.stepScales()
     val lit = settle.stepLit()
-    val traceWidth = connectorWidth(LinkKind.Trace, geometry.pitch, flat)
-    val restWidth = connectorWidth(settle.link.kind, geometry.pitch, flat)
+    val traceWidth = connectorWidth(LinkKind.Trace, geometry.pitch)
+    val restWidth = connectorWidth(settle.link.kind, geometry.pitch)
     val cells = settle.link.cells
     for (i in scales.indices) {
         val from = geometry.centerOf(GridCell(cells[i].row, cells[i].col))
@@ -164,8 +160,8 @@ private fun Path.polylineThrough(cells: List<Coord>, geometry: GridGeometry): Pa
     }
 }
 
-private fun CacheDrawScope.roundStroke(kind: LinkKind, pitch: Float, flat: Boolean): Stroke =
-    Stroke(width = connectorWidth(kind, pitch, flat), cap = StrokeCap.Round, join = StrokeJoin.Round)
+private fun roundStroke(kind: LinkKind, pitch: Float): Stroke =
+    Stroke(width = connectorWidth(kind, pitch), cap = StrokeCap.Round, join = StrokeJoin.Round)
 
 /**
  * The hint link's visible pieces: each step between neighbouring [centers], trimmed by
@@ -178,12 +174,8 @@ internal fun hintSegments(centers: List<Offset>, tokenRadius: Float): List<Pair<
         from + inset to to - inset
     }
 
-/** The [kind]'s line width in px on a cell [pitch] px wide: [strandsStroke], or, [flat], a fraction of the pitch ([StrandsOutlinedSpec]). */
-internal fun Density.connectorWidth(kind: LinkKind, pitch: Float, flat: Boolean = false): Float = when {
-    flat -> pitch * StrandsOutlinedSpec.connector(kind)
-    kind == LinkKind.Spangram -> strandsStroke(StrandsBoardSpec.SpangramConnectorWidth, pitch)
-    else -> strandsStroke(StrandsBoardSpec.ConnectorWidth, pitch)
-}
+/** The [kind]'s line width in px on a cell [pitch] px wide: a fraction of the pitch ([StrandsOutlinedSpec]). */
+internal fun connectorWidth(kind: LinkKind, pitch: Float): Float = pitch * StrandsOutlinedSpec.connector(kind)
 
 /** The smaller side of a cell: the pitch the board's strokes scale with. */
 internal val GridGeometry.pitch: Float get() = minOf(cellWidth, cellHeight)

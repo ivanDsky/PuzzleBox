@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.gameui
 
-import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -21,16 +20,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawOutline
-import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
-import com.ivandsky.puzzlebox.designsystem.LocalFlatSurfaces
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -38,19 +31,17 @@ import com.ivandsky.puzzlebox.designsystem.pressScale
 import com.ivandsky.puzzlebox.designsystem.pressTint
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
-// Chunky depth (spec A14, prototype 03-game-colors ?v=e): every hub card shares one 24dp
-// face on a 5dp lip of its own hue, so the shape belongs to the card, not its caller.
+// Flat card (spec A14, nav-rethink B1): every hub card shares one 24dp face, so the shape
+// belongs to the card, not its caller.
 val GameCardCornerRadius: Dp = 24.dp
-internal val GameCardLipDepth: Dp = 5.dp
 private val GameCardShape = RoundedCornerShape(GameCardCornerRadius)
 
 /**
  * The one clickable hub card shell (hub card handoff §Up-next card, §Tile): [colors]'
- * fill on a [GameCardCornerRadius] face sitting on its [GameCardColors.lip], [motif]
+ * fill on a [GameCardCornerRadius] face filling [modifier]'s bounds, [motif]
  * behind [content], both filling the face, and the whole card one click target that
- * scales to [MotionTokens.PressScale] while pressed. The lip sits inside [modifier]'s
- * bounds. While [LocalFlatSurfaces] is on (nav-rethink B1) there is no lip: the face fills
- * [modifier]'s bounds, the press is a [colors]' fg wash plus the 100 ms scale, and no ripple.
+ * scales to [MotionTokens.PressScale] while pressed. The press is a [colors]' fg wash plus the
+ * 100 ms scale, and no ripple.
  * Always enabled: an offline card's tap is its retry. Content defaults to [colors]' fg.
  */
 @Composable
@@ -62,19 +53,15 @@ fun GameCardSurface(
     content: @Composable BoxScope.() -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val flat = LocalFlatSurfaces.current
-    val face = if (flat) {
-        Modifier.clip(GameCardShape).background(colors.fill).pressTint(interactionSource, GameCardShape, colors.fg)
-    } else {
-        Modifier.lipped(colors.lip).padding(bottom = GameCardLipDepth).clip(GameCardShape).background(colors.fill)
-    }
     Box(
         modifier = modifier
             .pressScale(interactionSource, reduced = false)
-            .then(face)
+            .clip(GameCardShape)
+            .background(colors.fill)
+            .pressTint(interactionSource, GameCardShape, colors.fg)
             .clickable(
                 interactionSource = interactionSource,
-                indication = if (flat) null else LocalIndication.current,
+                indication = null,
                 onClick = onClick,
             ),
     ) {
@@ -83,13 +70,6 @@ fun GameCardSurface(
             content()
         }
     }
-}
-
-/** The lip: [lip] drawn as the card's face shape shifted down by [GameCardLipDepth]. */
-private fun Modifier.lipped(lip: Color): Modifier = drawBehind {
-    val depth = GameCardLipDepth.toPx()
-    val face = Size(size.width, size.height - depth)
-    translate(top = depth) { drawOutline(GameCardShape.createOutline(face, layoutDirection, this), lip) }
 }
 
 // Preview: a hero-sized and a tile-sized card in the accent, then the offline tile.

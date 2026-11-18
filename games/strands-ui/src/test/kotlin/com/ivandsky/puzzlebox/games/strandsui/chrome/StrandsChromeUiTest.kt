@@ -25,6 +25,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -97,7 +98,7 @@ class StrandsChromeUiTest {
         show { StrandsHintControl(HintUi(count = 0, meterThirds = 2), onHint = { presses++ }, reduceMotion = true) }
         rule.onNodeWithTag("strands.hint")
             .assertIsEnabled()
-            .assert(hasContentDescription(StrandsCopy.HINT))
+            .assert(hasText(StrandsCopy.HINT))
             .assert(hasStateDescription("No hint available, 2 of 3 words toward the next hint"))
             .performClick()
         assertEquals(1, presses)
@@ -134,27 +135,12 @@ class StrandsChromeUiTest {
     }
 
     @Test
-    @GraphicsMode(GraphicsMode.Mode.NATIVE)
-    fun `a waiting hint is a chunky Strands-pink button on its lip`() {
-        var lip = Color.Unspecified
-        show {
-            lip = StrandsBrand.accent.colors().lip
-            Box(Modifier.testTag("frame")) {
-                StrandsHintControl(HintUi(count = 1, meterThirds = 0), onHint = {}, reduceMotion = true)
-            }
-        }
-        val image = rule.onNodeWithTag("frame").captureToImage().toPixelMap()
-        assertEquals(lip, image[image.width / 2, image.height - 2])
-    }
-
-    @Test
     fun `the control's only label is Hint, never a used count (SC4)`() {
         show { StrandsHintControl(HintUi(count = 1, meterThirds = 2), onHint = {}, reduceMotion = true) }
         val node = rule.onNodeWithTag("strands.hint").fetchSemanticsNode()
         val texts = node.config.getOrElse(SemanticsProperties.Text) { emptyList() }.map { it.text }
         val descriptions = node.config.getOrElse(SemanticsProperties.ContentDescription) { emptyList() }
-        assertTrue(texts.all { it == StrandsCopy.HINT })
-        assertEquals(listOf(StrandsCopy.HINT), descriptions)
+        assertEquals(listOf(StrandsCopy.HINT), texts)
         assertTrue(texts.plus(descriptions).none { label -> label.any(Char::isDigit) })
     }
 

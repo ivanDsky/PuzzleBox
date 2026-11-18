@@ -22,7 +22,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The solved disc (spec A14): the accent face sits a few dp up on a darker lip of its hue. */
+/** The solved disc (spec A14): a plain accent disc filling the ring. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34])
@@ -32,12 +32,11 @@ class TodayBadgeRingTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun `a solved disc sits on its lip`() {
+    fun `a solved disc is the accent to the bottom edge`() {
         var face = Color.Unspecified
-        var lip = Color.Unspecified
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                Accents { face = it.first; lip = it.second }
+                face = GameBrand.Neutral.accent.colors().accent
                 Box(Modifier.testTag("ring")) {
                     TodayBadgeRing(GameBrand.Neutral, TodayStatus.Solved(36_000L), TodayBadgeSize.Compact)
                 }
@@ -46,14 +45,8 @@ class TodayBadgeRingTest {
 
         val image = composeRule.onNodeWithTag("ring").captureToImage().toPixelMap()
         val px = { dp: Float -> with(composeRule.density) { dp.dp.toPx() }.toInt() }
-        // 56dp ring: the face spans 1–53dp down the centre line, the lip shows from 53 to 56dp.
+        // 56dp ring: the accent runs on to the rim.
         assertEquals(face, image[px(28f), px(6f)])
-        assertEquals(lip, image[px(28f), px(54.5f)])
-    }
-
-    @Composable
-    private fun Accents(read: (Pair<Color, Color>) -> Unit) {
-        val colors = GameBrand.Neutral.accent.colors()
-        read(colors.accent to colors.lip)
+        assertEquals(face, image[px(28f), px(53.5f)])
     }
 }

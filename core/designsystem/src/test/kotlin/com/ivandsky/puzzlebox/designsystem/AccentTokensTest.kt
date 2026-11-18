@@ -2,11 +2,9 @@ package com.ivandsky.puzzlebox.designsystem
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -43,7 +41,6 @@ class AccentTokensTest {
             assertNotEquals("$slot accent", light.accent, dark.accent)
             assertNotEquals("$slot container", light.container, dark.container)
             assertNotEquals("$slot onContainer", light.onContainer, dark.onContainer)
-            assertNotEquals("$slot lip", light.lip, dark.lip)
         }
     }
 
@@ -59,28 +56,19 @@ class AccentTokensTest {
     @Test
     fun `hue slots pin the Splash set`() {
         assertEquals(
-            listOf(0xFF00B4FE, 0xFF002A3F, 0xFFCAEAFF, 0xFF006C9B, 0xFF008AC4),
+            listOf(0xFF00B4FE, 0xFF002A3F, 0xFFCAEAFF, 0xFF006C9B),
             LightAccentTokens.getValue(AccentSlot.Blue).argb(),
         )
         assertEquals(
-            listOf(0xFFFF478A, 0xFF4D0021, 0xFFFFD9E2, 0xFFC4005F, 0xFFCF0064),
+            listOf(0xFFFF478A, 0xFF4D0021, 0xFFFFD9E2, 0xFFC4005F),
             LightAccentTokens.getValue(AccentSlot.Pink).argb(),
         )
         assertEquals(
-            listOf(0xFF00E8DC, 0xFF002E2B, 0xFF003C38, 0xFF00E8DC, 0xFF00A198),
+            listOf(0xFF00E8DC, 0xFF002E2B, 0xFF003C38, 0xFF00E8DC),
             DarkAccentTokens.getValue(AccentSlot.Teal).argb(),
         )
     }
 
-    @Test
-    fun `every lip sits darker than its fill`() {
-        for (palette in listOf(LightAccentTokens, DarkAccentTokens)) {
-            for ((slot, accent) in palette) {
-                assertTrue("$slot lip", accent.lip.luminance() < accent.accent.luminance())
-            }
-        }
-    }
-
     private fun GameAccent.argb() =
-        listOf(accent, onAccent, container, onContainer, lip).map { it.toArgb().toLong() and 0xFFFFFFFFL }
+        listOf(accent, onAccent, container, onContainer).map { it.toArgb().toLong() and 0xFFFFFFFFL }
 }

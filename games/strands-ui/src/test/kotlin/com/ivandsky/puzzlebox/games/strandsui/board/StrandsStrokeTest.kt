@@ -41,12 +41,12 @@ class StrandsStrokeTest {
     }
 
     @Test
-    fun `connectors keep their play widths and thin on a small cell`() {
-        val spangram = StrandsBoardSpec.SpangramConnectorWidth.value
-        val theme = StrandsBoardSpec.ConnectorWidth.value
-        assertEquals(px(spangram), with(density) { connectorWidth(LinkKind.Spangram, px(48f)) }, 1e-4f)
-        assertEquals(px(theme), with(density) { connectorWidth(LinkKind.Theme, px(60f)) }, 1e-4f)
-        assertEquals(px(theme / 2), with(density) { connectorWidth(LinkKind.Theme, px(24f)) }, 1e-4f)
+    fun `connectors are a fraction of the cell pitch, whatever the size`() {
+        for (pitch in listOf(24f, 48f, 60f, 96f)) {
+            assertEquals(pitch * StrandsOutlinedSpec.SpangramConnector, connectorWidth(LinkKind.Spangram, pitch), 1e-4f)
+            assertEquals(pitch * StrandsOutlinedSpec.ThemeConnector, connectorWidth(LinkKind.Theme, pitch), 1e-4f)
+            assertEquals(pitch * StrandsOutlinedSpec.ThinConnector, connectorWidth(LinkKind.Trace, pitch), 1e-4f)
+        }
     }
 
     @Test
@@ -57,9 +57,7 @@ class StrandsStrokeTest {
     }
 
     @Test
-    fun `the solved path is about 15 percent thinner than the 12 and 18 dp it was`() {
-        assertEquals(10f, StrandsBoardSpec.ConnectorWidth.value, 0f)
-        assertEquals(15f, StrandsBoardSpec.SpangramConnectorWidth.value, 0f)
+    fun `the solved path is 29 and 41 percent of the pitch`() {
         assertEquals(0.29f, StrandsOutlinedSpec.ThemeConnector, 0f)
         assertEquals(0.41f, StrandsOutlinedSpec.SpangramConnector, 0f)
     }

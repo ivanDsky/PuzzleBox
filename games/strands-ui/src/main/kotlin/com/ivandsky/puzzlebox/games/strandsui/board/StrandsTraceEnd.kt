@@ -20,10 +20,8 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalDensity
 import com.ivandsky.puzzlebox.designsystem.BoardColors
-import com.ivandsky.puzzlebox.designsystem.LocalFlatStrands
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.render.LinkKind
@@ -41,18 +39,12 @@ internal class TraceEndFrame(
 ) {
     fun fill(colors: BoardColors): Color = if (error) colors.strandsPathError else TraceOverlaySpec.fill(colors)
 
-    fun lip(colors: BoardColors): Color =
-        if (error) lerp(colors.strandsPathError, Color.Black, ErrorLipShade) else TraceOverlaySpec.lip(colors)
-
     fun letter(colors: BoardColors): Color = if (error) colors.strandsPathErrorInk else TraceOverlaySpec.letter(colors)
 
     fun connector(colors: BoardColors): Color = if (error) colors.strandsPathError else colors.strandsTraceConnector
 }
 
 internal fun TraceEndFrame?.at(coord: Coord): TraceEndFrame? = this?.takeIf { coord in path }
-
-/** How far the red lip sits below the red fill, toward black. */
-private const val ErrorLipShade = 0.35f
 
 /**
  * Plays [end] on the frame clock: null before it, after it, and from the first touch-down,
@@ -95,13 +87,12 @@ private fun frameOf(end: TraceEnd, elapsedMs: Int, reduceMotion: Boolean, amplit
  */
 @Composable
 internal fun StrandsTraceEndConnector(rows: Int, cols: Int, frame: () -> TraceEndFrame?, colors: BoardColors) {
-    val flat = LocalFlatStrands.current
     Spacer(
         Modifier
             .fillMaxSize()
             .drawWithCache {
                 val geometry = GridGeometry(rows, cols, size.width, size.height)
-                val width = connectorWidth(LinkKind.Trace, geometry.pitch, flat)
+                val width = connectorWidth(LinkKind.Trace, geometry.pitch)
                 var builtFor: List<Coord>? = null
                 var tokensFor: List<Coord>? = null
                 var tokensScale = Float.NaN
@@ -109,7 +100,7 @@ internal fun StrandsTraceEndConnector(rows: Int, cols: Int, frame: () -> TraceEn
                 var strokeScale = 1f
                 val line = Path()
                 val tokens = Path()
-                val half = geometry.pitch * StrandsOutlinedSpec.tokenFraction(flat) / 2
+                val half = geometry.pitch * StrandsOutlinedSpec.TokenFraction / 2
                 onDrawBehind {
                     val now = frame() ?: return@onDrawBehind
                     if (builtFor !== now.path) {
@@ -135,7 +126,7 @@ internal fun StrandsTraceEndConnector(rows: Int, cols: Int, frame: () -> TraceEn
                                 tokensScale = now.scale
                                 tokens.reset()
                                 now.path.forEach { coord ->
-                                    tokens.addToken(geometry.centerOf(GridCell(coord.row, coord.col)), half, now.scale, flat)
+                                    tokens.addToken(geometry.centerOf(GridCell(coord.row, coord.col)), half, now.scale)
                                 }
                             }
                             clipPath(tokens, ClipOp.Difference) { drawPath(line, faded, style = stroke) }

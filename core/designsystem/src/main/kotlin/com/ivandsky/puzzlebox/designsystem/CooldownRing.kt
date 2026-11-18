@@ -8,11 +8,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.translate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
@@ -20,13 +17,10 @@ import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 
 /**
- * A ring traced around a [GameButton]'s face as it sits while disabled (sunk by the lip depth,
- * so the face fills the bounds below the lip strip; with [LocalFlatSurfaces] on there is no lip
- * and the face is the whole bounds), in [accent], from top centre clockwise,
+ * A ring traced around a [GameButton]'s face as it sits while disabled (the face is the whole bounds), in [accent],
+ * from top centre clockwise,
  * that fills as [progress] (0..1) goes up: a cooldown the button waits out. [progress] null draws
  * nothing and adds nothing. It is read in the draw phase only, so a running fill redraws without
  * recomposing; the trace, its measure and the stroke are built once per size, and each frame
@@ -35,15 +29,12 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun Modifier.cooldownRing(progress: (() -> Float)?, accent: AccentSlot): Modifier {
     if (progress == null) return this
-    val lipDepth = if (LocalFlatSurfaces.current) 0.dp else GameButtonLipDepth
-    return cooldownRing(progress, accent.colors().accent, MaterialTheme.shapes.medium, lipDepth)
+    return cooldownRing(progress, accent.colors().accent, MaterialTheme.shapes.medium)
 }
 
-private fun Modifier.cooldownRing(progress: () -> Float, color: Color, shape: Shape, lipDepth: Dp): Modifier = drawWithCache {
+private fun Modifier.cooldownRing(progress: () -> Float, color: Color, shape: Shape): Modifier = drawWithCache {
     val stroke = Stroke(width = Spacing.xs.toPx(), cap = StrokeCap.Round)
-    val lip = lipDepth.toPx()
-    val face = Size(size.width, (size.height - lip).coerceAtLeast(0f))
-    val measure = PathMeasure().apply { setPath(ringTrace(shape.createOutline(face, layoutDirection, this@drawWithCache), stroke.width / 2, lip), false) }
+    val measure = PathMeasure().apply { setPath(ringTrace(shape.createOutline(size, layoutDirection, this@drawWithCache), stroke.width / 2), false) }
     val length = measure.length
     val filled = Path()
     onDrawWithContent {
@@ -57,11 +48,11 @@ private fun Modifier.cooldownRing(progress: () -> Float, color: Color, shape: Sh
     }
 }
 
-/** [outline] inset by [inset] on every side and moved down by [top], as one clockwise path from its top centre. */
-private fun ringTrace(outline: Outline, inset: Float, top: Float): Path = when (outline) {
-    is Outline.Rectangle -> roundTrace(RoundRect(outline.rect.translate(Offset(0f, top))), inset)
-    is Outline.Rounded -> roundTrace(outline.roundRect.translate(Offset(0f, top)), inset)
-    is Outline.Generic -> Path().apply { addPath(outline.path, Offset(0f, top)) }
+/** [outline] inset by [inset] on every side, as one clockwise path from its top centre. */
+private fun ringTrace(outline: Outline, inset: Float): Path = when (outline) {
+    is Outline.Rectangle -> roundTrace(RoundRect(outline.rect), inset)
+    is Outline.Rounded -> roundTrace(outline.roundRect, inset)
+    is Outline.Generic -> Path().apply { addPath(outline.path) }
 }
 
 private fun roundTrace(shape: RoundRect, inset: Float): Path {

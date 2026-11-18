@@ -45,11 +45,11 @@ val DarkWarning = Color(0xFFFFC800)
 val LightOnFill = Color(0xFFFFFFFF)
 val DarkOnFill = Color(0xFF101418)
 
-// The lip under a neutral GameButton, whose face is `surfaceContainerHigh`: the face's
+// The rim of a neutral GameButton, whose face is `surfaceContainerHigh`: the face's
 // hue at OKLCH L −0.13 in light; dark takes the prototype's near-black (07 C), as −0.20
 // clips to black.
-val LightNeutralLip = Color(0xFFC2C5C8)
-val DarkNeutralLip = Color(0xFF07090B)
+val LightNeutralRim = Color(0xFFC2C5C8)
+val DarkNeutralRim = Color(0xFF07090B)
 
 // A state that is over rather than live (MutedStatusColors.kt): a cool slate step off the
 // neutral ramp, so the chip reads as its own role. Light 6.1:1, dark 6.2:1.

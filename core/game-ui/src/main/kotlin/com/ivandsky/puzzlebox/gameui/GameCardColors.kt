@@ -15,8 +15,7 @@ private const val OFFLINE_MOTIF_ALPHA = 0.10f
 
 /**
  * One hub card's paint (hub card handoff §Tokens): [fill] behind everything, [fg] for the
- * name, status and marks, [fg2] for the secondary lines, [motif] tinted at [motifAlpha],
- * [lip] the darker same-hue edge the face sits on.
+ * name, status and marks, [fg2] for the secondary lines, [motif] tinted at [motifAlpha].
  */
 @Immutable
 data class GameCardColors(
@@ -25,12 +24,11 @@ data class GameCardColors(
     val fg2: Color,
     val motif: Color,
     val motifAlpha: Float,
-    val lip: Color,
 )
 
 /**
- * A card in [brand]'s accent on its lip with on-fill content, or, when [offline], the
- * neutral surfaceContainerHigh card sitting flat (muted, like a disabled game button)
+ * A card in [brand]'s accent with on-fill content, or, when [offline], the
+ * neutral surfaceContainerHigh card (muted, like a disabled game button)
  * with every content role in onSurfaceVariant.
  */
 @Composable
@@ -43,7 +41,6 @@ internal fun gameCardColors(brand: GameBrand, offline: Boolean): GameCardColors 
             fg2 = content,
             motif = content,
             motifAlpha = OFFLINE_MOTIF_ALPHA,
-            lip = Color.Transparent,
         )
     }
     val onFill = LocalOnFill.current
@@ -53,6 +50,5 @@ internal fun gameCardColors(brand: GameBrand, offline: Boolean): GameCardColors 
         fg2 = onFill.copy(alpha = SECONDARY_ALPHA),
         motif = onFill,
         motifAlpha = MOTIF_ALPHA,
-        lip = brand.accent.colors().lip,
     )
 }

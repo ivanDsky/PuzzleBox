@@ -26,7 +26,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.width
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -34,9 +33,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-// The one press language (nav-rethink B1): while flat is on, a held press reaches the 0.97
-// scale and the 12 % ink wash inside PressDuration, and both fade back on release; flat off
-// keeps the 320 ms spring and draws no wash; reduced motion never scales but still tints.
+// The one press language (nav-rethink B1): a held press reaches the 0.97
+// scale and the 12 % ink wash inside PressDuration, and both fade back on release;
+// reduced motion never scales but still tints.
 // Sampled on a paused test clock, with a white face and black ink so the wash is a grey step.
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -46,14 +45,14 @@ class PressFeedbackTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private fun show(flat: Boolean, reducedMotion: Boolean = false) {
+    private fun show(reducedMotion: Boolean = false) {
         if (reducedMotion) {
             val context = ApplicationProvider.getApplicationContext<Context>()
             Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
         }
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
-            PuzzleBoxTheme(flatSurfaces = flat) {
+            PuzzleBoxTheme {
                 CompositionLocalProvider(LocalContentColor provides Color.Black) {
                     val interaction = remember { MutableInteractionSource() }
                     Box(Modifier.background(Color.White)) {
@@ -93,8 +92,8 @@ class PressFeedbackTest {
     private fun scale(): Float = composeRule.onNodeWithTag(SURFACE).getBoundsInRoot().width.value / SIZE
 
     @Test
-    fun `flat on, a held press tints and scales to 0_97 within the press duration`() {
-        show(flat = true)
+    fun `a held press tints and scales to 0_97 within the press duration`() {
+        show()
         assertEquals(0f, wash(), TOLERANCE)
 
         press()
@@ -105,8 +104,8 @@ class PressFeedbackTest {
     }
 
     @Test
-    fun `flat on, release fades the tint and the scale back within the press duration`() {
-        show(flat = true)
+    fun `release fades the tint and the scale back within the press duration`() {
+        show()
         press()
         advance(MotionTokens.PressDuration.toLong())
         release()
@@ -117,23 +116,8 @@ class PressFeedbackTest {
     }
 
     @Test
-    fun `flat off, a held press draws no tint and keeps the spring`() {
-        show(flat = false)
-
-        press()
-        advance(MotionTokens.PressDuration.toLong())
-        assertEquals(0f, wash(), TOLERANCE)
-        // Still easing in at 100 ms: the spring has not reached 0.97 yet.
-        assertTrue("spring done too early: ${scale()}", scale() > MotionTokens.PressScale + 0.005f)
-
-        advance(SPRING_SETTLE_MS)
-        assertEquals(0f, wash(), TOLERANCE)
-        assertEquals(MotionTokens.PressScale, scale(), SCALE_TOLERANCE)
-    }
-
-    @Test
     fun `reduced motion tints at once and never scales`() {
-        show(flat = true, reducedMotion = true)
+        show(reducedMotion = true)
 
         press()
         composeRule.mainClock.advanceTimeByFrame()
@@ -149,6 +133,5 @@ class PressFeedbackTest {
         val SHAPE = RoundedCornerShape(24.dp)
         const val TOLERANCE = 0.02f
         const val SCALE_TOLERANCE = 0.003f
-        const val SPRING_SETTLE_MS = 1000L
     }
 }

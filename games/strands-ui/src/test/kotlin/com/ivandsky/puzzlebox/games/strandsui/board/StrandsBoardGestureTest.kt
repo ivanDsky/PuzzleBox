@@ -134,21 +134,6 @@ class StrandsBoardGestureTest {
     }
 
     @Test
-    fun `a found letter is a tile on its lip, the lip showing below the face`() {
-        show()
-        StrandsUiFixtures.row(0).forEach { cell(it).performClick() }
-        cell(Coord(0, 3)).performClick()
-        rule.waitForIdle()
-
-        val image = cell(Coord(0, 0)).captureToImage().toPixelMap()
-        val token = image.height * StrandsBoardSpec.TokenFraction
-        val lip = token * StrandsBoardSpec.TokenLipFraction
-        val faceBottom = image.height / 2f + token / 2
-        assertEquals(LightBoardTokens.strandsThemeLip, image[image.width / 2, (faceBottom + lip / 2).toInt()])
-        assertEquals(LightBoardTokens.strandsThemeFill, image[image.width / 2, (faceBottom - lip).toInt()])
-    }
-
-    @Test
     fun `a diagonal drag through the corner skips the side letters`() {
         show()
         board().performTouchInput {

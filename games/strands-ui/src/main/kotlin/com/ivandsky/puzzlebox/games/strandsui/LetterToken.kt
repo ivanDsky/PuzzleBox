@@ -22,7 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -30,7 +29,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import com.ivandsky.puzzlebox.designsystem.BoardColors
-import com.ivandsky.puzzlebox.designsystem.LocalFlatStrands
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.render.StrandsCell
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsBoardSemantics.letterButton
@@ -46,10 +44,8 @@ import com.ivandsky.puzzlebox.games.strandsui.board.TraceOverlaySpec
 import com.ivandsky.puzzlebox.games.strandsui.board.at
 import com.ivandsky.puzzlebox.games.strandsui.board.dimSpec
 import com.ivandsky.puzzlebox.games.strandsui.board.drawOutlinedToken
-import com.ivandsky.puzzlebox.games.strandsui.board.drawTokenSquare
-import com.ivandsky.puzzlebox.games.strandsui.board.lipRoomPx
 import com.ivandsky.puzzlebox.games.strandsui.board.outlinedLetterColor
-import com.ivandsky.puzzlebox.games.strandsui.board.tokenColor
+import com.ivandsky.puzzlebox.games.strandsui.board.ringRoomPx
 
 /** Called with a letter's cell each time its token composes; a no-op outside tests, which count recompositions with it. */
 internal val LocalTokenComposed = staticCompositionLocalOf<(Coord) -> Unit> { {} }
@@ -57,8 +53,7 @@ internal val LocalTokenComposed = staticCompositionLocalOf<(Coord) -> Unit> { {}
 /**
  * One letter's token: its cell state's look, the join fill and pop while it is on the trace,
  * and, once its path is submitted, [end]'s refusal or fade-out in place of both. A letter on
- * [dim]'s cells is faded to its alpha, unless it is on the trace. A letter
- * on the trace wears [TraceOverlaySpec]'s ring in place of its own state's decoration.
+ * [dim]'s cells is faded to its alpha, unless it is on the trace.
  */
 @Composable
 internal fun LetterToken(
@@ -75,8 +70,6 @@ internal fun LetterToken(
     onTrace: (TraceStep) -> Unit,
 ) {
     LocalTokenComposed.current(cell.coord)
-    // Flat Strands: the token is its face alone, no lip under it (nav-rethink M10-8).
-    val flat = LocalFlatStrands.current
     val traceIndex by remember(cell.coord, trace) {
         derivedStateOf { trace().path.indexOf(cell.coord).takeIf { it >= 0 } }
     }
@@ -90,9 +83,9 @@ internal fun LetterToken(
     SideEffect { composed.done = true }
     val joinTrigger = remember(traced) { JoinTrigger.takeIf { traced && composed.done } }
     val join = rememberCellFrame(TraceOverlaySpec, joinTrigger, reduceMotion, touchSeq)
-    val tokenSize = pitch * StrandsOutlinedSpec.tokenFraction(flat)
+    val tokenSize = pitch * StrandsOutlinedSpec.TokenFraction
     // Pitch-proportional and immune to font scale, like the token it sits in.
-    val letterSize = with(LocalDensity.current) { (pitch * StrandsOutlinedSpec.letterFraction(flat)).toSp() }
+    val letterSize = with(LocalDensity.current) { (pitch * StrandsOutlinedSpec.LetterFraction).toSp() }
     // A letter on the live trace is never faded; the others fade and recover on [dimSpec].
     val dimmed = !traced && cell.coord in dim.cells
     val faded = animateFloatAsState(if (cell.coord in dim.cells) dim.alpha else 1f, dimSpec(reduceMotion), label = "dim")
@@ -106,7 +99,7 @@ internal fun LetterToken(
         Box(
             Modifier
                 .size(tokenSize)
-                .withLipRoom()
+                .withRingRoom()
                 .graphicsLayer {
                     val ended = end.value.at(cell.coord)
                     val scale = base.value.scale * join.value.scale * (ended?.scale ?: 1f)
@@ -117,67 +110,34 @@ internal fun LetterToken(
                 }
                 .drawBehind {
                     val frame = base.value
-                    val half = size.minDimension / 2
                     val ended = end.value.at(cell.coord)
-                    if (flat) {
-                        drawOutlinedToken(spec, colors, altTheme, traced, frame, join.value, ended)
-                        // The hint's dashed ring and the spangram's ring; the selection is the thick outline above.
-                        if (ended == null) with(spec) { decorate(colors, half, frame) }
-                        return@drawBehind
-                    }
-                    if (ended != null) {
-                        drawTokenSquare(ended.lip(colors), half, lip = true)
-                        drawTokenSquare(ended.fill(colors), half)
-                        return@drawBehind
-                    }
-                    val lip = if (altTheme) colors.strandsThemeAltLip else spec.lip(colors)
-                    val fill = if (altTheme) colors.strandsThemeAltFill else spec.fill(colors)
-                    tokenColor(lip, TraceOverlaySpec.lip(colors), traced, frame, join.value)?.let {
-                        drawTokenSquare(it, half, lip = true)
-                    }
-                    tokenColor(fill, TraceOverlaySpec.fill(colors), traced, frame, join.value)?.let { drawTokenSquare(it, half) }
-                    if (traced) {
-                        with(TraceOverlaySpec) { decorate(colors, half, join.value) }
-                    } else {
-                        with(spec) { decorate(colors, half, frame) }
-                    }
+                    drawOutlinedToken(spec, colors, altTheme, traced, frame, join.value, ended)
+                    // The hint's dashed ring and the spangram's ring; the selection is the thick outline above.
+                    if (ended == null) with(spec) { decorate(colors, size.minDimension / 2, frame) }
                 },
             contentAlignment = Alignment.Center,
         ) {
             BasicText(
                 text = cell.letter.toString(),
                 style = MaterialTheme.typography.titleLarge.merge(fontSize = letterSize, fontWeight = FontWeight.Medium),
-                color = {
-                    val lit = join.value.lit
-                    val ended = end.value.at(cell.coord)
-                    when {
-                        flat -> outlinedLetterColor(spec, colors, traced, ended)
-                        ended != null -> ended.letter(colors)
-                        !traced -> spec.letter(colors)
-                        lit >= 1f -> TraceOverlaySpec.letter(colors)
-                        else -> lerp(spec.letter(colors), TraceOverlaySpec.letter(colors), lit)
-                    }
-                },
+                color = { outlinedLetterColor(spec, colors, traced, end.value.at(cell.coord)) },
             )
         }
     }
 }
 
 /**
- * The token's layer bounds reach as far above the face as below it, a lip's depth
- * ([lipRoomPx], from the geometry the painter and the connector clipper read), while it
- * lays out as the face's own square: the lip hangs below the face and a translucent layer clips
- * to its bounds, which would cut it. The face centre, the scale pivot, is exactly where it was.
- * Flat surfaces draw no lip but keep this room: the layer bounds, the layout and the hit area do not move, and a
- * dashed ring or a selection ring is never clipped differently.
+ * The token's layer bounds reach as far above the face as below it, [ringRoomPx] (from the geometry the painter and
+ * the connector clipper read), while it lays out as the face's own square: a translucent layer clips to its bounds,
+ * which would cut the hint's dashed ring just outside the token. The face centre, the scale pivot, is the cell's centre.
  *
  * Precondition: the constraints are fixed (it follows `.size(tokenSize)`), and `graphicsLayer`
  * comes after it, so the layer takes the enlarged bounds.
  */
-private fun Modifier.withLipRoom(): Modifier = layout { measurable, constraints ->
-    val lip = lipRoomPx(constraints.maxHeight)
-    val placeable = measurable.measure(Constraints.fixed(constraints.maxWidth, constraints.maxHeight + 2 * lip))
-    layout(constraints.maxWidth, constraints.maxHeight) { placeable.place(0, -lip) }
+private fun Modifier.withRingRoom(): Modifier = layout { measurable, constraints ->
+    val room = ringRoomPx(constraints.maxHeight)
+    val placeable = measurable.measure(Constraints.fixed(constraints.maxWidth, constraints.maxHeight + 2 * room))
+    layout(constraints.maxWidth, constraints.maxHeight) { placeable.place(0, -room) }
 }
 
 /** A letter joining the trace fills and pops once; the key is constant because leaving the trace resets it. */

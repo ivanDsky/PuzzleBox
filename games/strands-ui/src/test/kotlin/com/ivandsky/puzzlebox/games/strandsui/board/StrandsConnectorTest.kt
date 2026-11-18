@@ -70,7 +70,7 @@ class StrandsConnectorTest {
 
     private fun assertLinkBehindLetters(dark: Boolean) {
         val pixels = board(dark)
-        val hint = (if (dark) DarkBoardTokens else LightBoardTokens).strandsHintConnector
+        val hint = (if (dark) DarkBoardTokens else LightBoardTokens).strandsFlatHintRing
         // Between the letter and its ring, on the link's line: bare board, as beside an idle "A".
         assertEquals(pixels.at(row = 2, col = 1, dx = 0.3f), pixels.at(row = 0, col = 1, dx = 0.3f))
         assertNotEquals(hint, pixels.at(row = 0, col = 1, dx = 0.3f))

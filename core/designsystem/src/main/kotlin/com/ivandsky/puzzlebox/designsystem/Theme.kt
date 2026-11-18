@@ -44,10 +44,10 @@ val LocalWarning = staticCompositionLocalOf { LightWarning }
 val LocalLinkedInText = staticCompositionLocalOf { LightLinkedInText }
 
 /**
- * The neutral GameButton's lip (ColorTokens.kt). Provided by [PuzzleBoxTheme] like
+ * The neutral GameButton's rim (ColorTokens.kt). Provided by [PuzzleBoxTheme] like
  * [LocalOnFill].
  */
-internal val LocalNeutralLip = staticCompositionLocalOf { LightNeutralLip }
+internal val LocalNeutralRim = staticCompositionLocalOf { LightNeutralRim }
 
 /**
  * Muted-status chip role (MutedStatusColors.kt): a state that is over, like a puzzle taken
@@ -85,41 +85,24 @@ val LocalAccentPalette = staticCompositionLocalOf { LightAccentTokens }
 val LocalDarkTheme = staticCompositionLocalOf { false }
 
 /**
- * Whether surfaces are flat (nav-rethink B1): no lip, a tint plus a 100 ms scale on press.
- * [PuzzleBoxTheme]'s `flatSurfaces`; false by default so previews, the Showkase browser and
- * every test keep today's look. Components read this, never `ReleaseFlags` (spec A2).
- */
-val LocalFlatSurfaces = staticCompositionLocalOf { false }
-
-/**
- * Whether Strands draws its flat look (no lip under a token, a 64 dp hint row), split from [LocalFlatSurfaces] so
- * that can ship without touching Strands. [PuzzleBoxTheme]'s `flatStrands`; false by default. Only Strands reads it.
- */
-val LocalFlatStrands = staticCompositionLocalOf { false }
-
-/**
  * Theme composition root (ticket 10): the promoted style IS the token set — Baloo 2
  * typography, C3 light scheme, C6 dark scheme. The [darkTheme] request picks the
- * scheme; [flatSurfaces] is the app's flat-surfaces request, handed to [LocalFlatSurfaces]; [flatStrands] is Strands' own, handed to [LocalFlatStrands]. The board look (nav-rethink B3) is not a request: [LocalBoardGeometry] is
+ * scheme; the board look (nav-rethink B3) is not a request: [LocalBoardGeometry] is
  * [BoardGeometry.Readable] and [LocalBoardColors] is the dark or light board instance of the resolved theme. */
 @Composable
 fun PuzzleBoxTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    flatSurfaces: Boolean = false,
-    flatStrands: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     CompositionLocalProvider(
         LocalDarkTheme provides darkTheme,
-        LocalFlatSurfaces provides flatSurfaces,
-        LocalFlatStrands provides flatStrands,
         LocalBoardGeometry provides BoardGeometry.Readable,
         LocalPrimaryText provides if (darkTheme) DarkPrimaryText else LightPrimaryText,
         LocalTimerFill provides if (darkTheme) DarkTimerFill else LightTimerFill,
         LocalOnFill provides if (darkTheme) DarkOnFill else LightOnFill,
         LocalWarning provides if (darkTheme) DarkWarning else LightWarning,
         LocalLinkedInText provides if (darkTheme) DarkLinkedInText else LightLinkedInText,
-        LocalNeutralLip provides if (darkTheme) DarkNeutralLip else LightNeutralLip,
+        LocalNeutralRim provides if (darkTheme) DarkNeutralRim else LightNeutralRim,
         LocalMutedStatus provides if (darkTheme) DarkMutedStatus else LightMutedStatus,
         LocalIce provides if (darkTheme) DarkIce else LightIce,
         LocalBoardColors provides if (darkTheme) DarkBoardTokens else LightBoardTokens,

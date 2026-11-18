@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.games.strandsui.board
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
@@ -15,8 +14,6 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.LightBoardTokens
-import com.ivandsky.puzzlebox.designsystem.LocalFlatStrands
-import com.ivandsky.puzzlebox.designsystem.LocalFlatSurfaces
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strandsui.StrandsBoard
@@ -37,10 +34,10 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The outlined Strands look (nav-rethink 131, prototype 07 C): with [LocalFlatStrands] on, an idle letter is a thin
+ * The outlined Strands look (nav-rethink 131, prototype 07 C): an idle letter is a thin
  * outlined square at 78% of its cell with no fill; a found word is tint, joined by a tint connector into one shape; the
  * spangram is gold with its inset ring and a wider connector; the live selection is a thick outline; the hint ring is
- * dashed. Flat off, none of it draws. Probed at 3x so every stroke is whole pixels.
+ * dashed. Probed at 3x so every stroke is whole pixels.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -56,11 +53,9 @@ class StrandsOutlinedTokenTest {
         PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {}),
     ).also { assertEquals(Adopt.Adopted, it.adoptToday(StrandsUiFixtures.envelope(), StrandsUiFixtures.ref)) }
 
-    private fun show(flat: Boolean) = rule.setContent {
+    private fun show() = rule.setContent {
         PuzzleBoxTheme(darkTheme = false) {
-            CompositionLocalProvider(LocalFlatStrands provides flat, LocalFlatSurfaces provides flat) {
-                Box(Modifier.size(300.dp, 300.dp).testTag("host")) { StrandsBoard(controller) }
-            }
+            Box(Modifier.size(300.dp, 300.dp).testTag("host")) { StrandsBoard(controller) }
         }
     }
 
@@ -91,8 +86,8 @@ class StrandsOutlinedTokenTest {
     }
 
     @Test
-    fun `outlined on, an idle letter is a thin outlined square at 78 percent and has no fill`() {
-        show(flat = true)
+    fun `an idle letter is a thin outlined square at 78 percent and has no fill`() {
+        show()
         val p = Probe(cell(0, 0))
         assertColor(light.strandsFlatOutline.copy(alpha = StrandsOutlinedSpec.IdleOutlineAlpha).compositeOver(p.bare), p.map[p.cx, p.edgeTop + 2], "the softened outline on the token's top edge")
         assertColor(p.bare, p.map[p.cx, p.cy - (p.pitch * 0.33f).toInt()], "inside the token, above the letter")
@@ -100,15 +95,8 @@ class StrandsOutlinedTokenTest {
     }
 
     @Test
-    fun `outlined off, an idle letter draws no outline`() {
-        show(flat = false)
-        val p = Probe(cell(0, 0))
-        assertColor(p.bare, p.map[p.cx, p.edgeTop + 2], "the lipped idle letter has no token")
-    }
-
-    @Test
-    fun `outlined on, the cell and so the hit area is the size it was`() {
-        show(flat = true)
+    fun `the cell and so the hit area is the size it was`() {
+        show()
         val on = rule.onNodeWithTag("strands.cell.0.0").getUnclippedBoundsInRoot()
         rule.waitForIdle()
         assertEquals(75.dp, on.right - on.left)
@@ -116,8 +104,8 @@ class StrandsOutlinedTokenTest {
     }
 
     @Test
-    fun `outlined on, a found word is tint with no outline and an alternate word takes the alt tint`() {
-        show(flat = true)
+    fun `a found word is tint with no outline and an alternate word takes the alt tint`() {
+        show()
         play(StrandsUiFixtures.row(0))
         play(StrandsUiFixtures.row(2))
         val first = Probe(cell(0, 0))
@@ -129,8 +117,8 @@ class StrandsOutlinedTokenTest {
     }
 
     @Test
-    fun `outlined on, a found word's squares join through a 29 unit tint connector`() {
-        show(flat = true)
+    fun `a found word's squares join through a 29 unit tint connector`() {
+        show()
         play(StrandsUiFixtures.row(0))
         val image = board()
         val map = image.toPixelMap()
@@ -144,8 +132,8 @@ class StrandsOutlinedTokenTest {
     }
 
     @Test
-    fun `outlined on, the spangram is gold with a black inset ring and a 41 unit connector`() {
-        show(flat = true)
+    fun `the spangram is gold with a black inset ring and a 41 unit connector`() {
+        show()
         play(StrandsUiFixtures.row(1))
         val p = Probe(cell(1, 0))
         assertColor(LightBoardTokens.strandsSpangramFill, p.at(-(p.pitch * 0.37f).toInt()), "the gold between ring and edge")
@@ -159,8 +147,8 @@ class StrandsOutlinedTokenTest {
     }
 
     @Test
-    fun `outlined on, a selected letter has a thick selection outline over a tint face`() {
-        show(flat = true)
+    fun `a selected letter has a thick selection outline over a tint face`() {
+        show()
         controller.tap(Coord(0, 0))
         rule.waitForIdle()
         val p = Probe(cell(0, 0))
@@ -169,8 +157,8 @@ class StrandsOutlinedTokenTest {
     }
 
     @Test
-    fun `outlined on, a hinted letter has a dashed ring and no solid outline`() {
-        show(flat = true)
+    fun `a hinted letter has a dashed ring and no solid outline`() {
+        show()
         play(StrandsUiFixtures.row(0))
         listOf("TAKE", "RAKE", "CART").forEach { play(StrandsUiFixtures.nonTheme.getValue(it)) }
         controller.pressHint()

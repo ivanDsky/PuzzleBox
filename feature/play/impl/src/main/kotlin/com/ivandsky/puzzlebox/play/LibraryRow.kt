@@ -78,7 +78,6 @@ internal fun libraryCardColors(brand: GameBrand): GameCardColors {
         fg2 = onFill.copy(alpha = SECONDARY_ALPHA),
         motif = onFill,
         motifAlpha = MOTIF_ALPHA,
-        lip = brand.accent.colors().lip,
     )
 }
 
