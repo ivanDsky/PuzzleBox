@@ -96,6 +96,16 @@ abstract class SharedPuzzleCommunityContract : SharedPuzzleRepositoryContract() 
     }
 
     @Test
+    fun aListingWithNoWindowReturnsTheNewestOfAnyAge() = runTest {
+        seed(publicDoc("K7Q2MA", ageMs = 10 * 24 * HOUR_MS))
+        seed(publicDoc("K7Q2MB", ageMs = 25 * HOUR_MS))
+        seed(publicDoc("K7Q2MC", ageMs = 1 * HOUR_MS))
+
+        assertEquals(listOf("K7Q2MC"), listedCodes())
+        assertEquals(listOf("K7Q2MC", "K7Q2MB", "K7Q2MA"), listedCodes(CommunityFilter(windowMs = null)))
+    }
+
+    @Test
     fun listingForAGameReturnsOnlyThatGame() = runTest {
         seed(publicDoc("K7Q2MA", ageMs = 3 * HOUR_MS))
         seed(publicDoc("K7Q2MB", ageMs = 2 * HOUR_MS, gameId = "zip"))

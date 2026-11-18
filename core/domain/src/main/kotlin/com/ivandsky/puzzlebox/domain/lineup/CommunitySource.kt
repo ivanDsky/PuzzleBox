@@ -66,7 +66,7 @@ internal class CommunitySource(
     }
 
     private suspend fun list(game: GameId): CommunityListResult = try {
-        shared.listPublic(CommunityFilter(gameId = game.value))
+        shared.listPublic(CommunityFilter(gameId = game.value, windowMs = null))
     } catch (e: CancellationException) {
         throw e
     } catch (_: Exception) {

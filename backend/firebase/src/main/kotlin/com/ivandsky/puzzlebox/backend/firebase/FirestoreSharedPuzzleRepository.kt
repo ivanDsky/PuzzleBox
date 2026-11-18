@@ -5,7 +5,6 @@ import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
 import com.ivandsky.puzzlebox.data.repository.COMMUNITY_LIST_LIMIT
-import com.ivandsky.puzzlebox.data.repository.COMMUNITY_WINDOW_MS
 import com.ivandsky.puzzlebox.data.repository.CommunityFilter
 import com.ivandsky.puzzlebox.data.repository.CommunityListResult
 import com.ivandsky.puzzlebox.data.repository.PublishResult
@@ -134,7 +133,8 @@ internal class FirestoreSharedPuzzleRepository(
     /**
      * The rules allow a list only when the query itself keeps to public, still-published puzzles,
      * at most [COMMUNITY_LIST_LIMIT] of them. Every query is the equalities, then `difficulty in`,
-     * then `createdAt >=` the window's start ordered by `createdAt` descending. Each shape needs
+     * then `createdAt >=` the window's start when the filter has a window, ordered by `createdAt`
+     * descending (so a windowless query needs the same indexes). Each shape needs
      * its own composite index on `puzzles` in firestore.indexes.json, every field ascending but
      * `createdAt`, descending:
      *
@@ -153,7 +153,7 @@ internal class FirestoreSharedPuzzleRepository(
         ),
         anyOf = Difficulty.Level.entries.filter { it in difficulties }.takeIf { it.isNotEmpty() }
             ?.let { SharedPuzzleDocCodec.FIELD_DIFFICULTY to it.map(SharedPuzzleDocCodec::difficultyName) },
-        createdSince = Timestamp(Date(nowMs() - COMMUNITY_WINDOW_MS)),
+        createdSince = windowMs?.let { Timestamp(Date(nowMs() - it)) },
         limit = COMMUNITY_LIST_LIMIT,
     )
 

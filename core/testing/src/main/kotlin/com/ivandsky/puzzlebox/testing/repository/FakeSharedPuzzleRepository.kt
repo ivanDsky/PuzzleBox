@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.testing.repository
 
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
 import com.ivandsky.puzzlebox.data.repository.COMMUNITY_LIST_LIMIT
-import com.ivandsky.puzzlebox.data.repository.COMMUNITY_WINDOW_MS
 import com.ivandsky.puzzlebox.data.repository.CommunityFilter
 import com.ivandsky.puzzlebox.data.repository.CommunityListResult
 import com.ivandsky.puzzlebox.data.repository.DAILY_PUBLISH_CAP
@@ -95,7 +94,7 @@ class FakeSharedPuzzleRepository : SharedPuzzleRepository {
     override suspend fun listPublic(filter: CommunityFilter): CommunityListResult = synchronized(stored) {
         if (!online) return CommunityListResult.Offline
         if (listRefused) return CommunityListResult.Refused
-        val oldest = clock() - COMMUNITY_WINDOW_MS
+        val oldest = filter.windowMs?.let { clock() - it } ?: Long.MIN_VALUE
         val listed = stored.values.filter { doc ->
             doc.visibility == SharedPuzzleDoc.Visibility.Public &&
                 !doc.unpublished &&

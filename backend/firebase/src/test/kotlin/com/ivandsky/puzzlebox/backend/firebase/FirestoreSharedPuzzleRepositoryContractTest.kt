@@ -5,6 +5,7 @@ import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
+import com.ivandsky.puzzlebox.data.repository.COMMUNITY_WINDOW_MS
 import com.ivandsky.puzzlebox.data.repository.CommunityFilter
 import com.ivandsky.puzzlebox.data.repository.CommunityListResult
 import com.ivandsky.puzzlebox.data.repository.PublishResult
@@ -95,7 +96,7 @@ class FirestoreSharedPuzzleRepositoryContractTest : SharedPuzzleCommunityContrac
                 .filter { (_, fields) ->
                     query.equalTo.all { (field, value) -> fields[field] == value } &&
                         query.anyOf?.let { (field, values) -> values.any { it == fields[field] } } != false &&
-                        fields.getValue("createdAt") as Timestamp >= query.createdSince
+                        query.createdSince?.let { fields.getValue("createdAt") as Timestamp >= it } != false
                 }
                 .sortedByDescending { it.value.getValue("createdAt") as Timestamp }
                 .take(query.limit)
@@ -405,6 +406,17 @@ class FirestoreSharedPuzzleRepositoryContractTest : SharedPuzzleCommunityContrac
             assertTrue("no index $needed for $filter", needed in deployedPuzzleIndexes())
         }
         assertEquals(4, store.queries.map { it.equalTo.size to (it.anyOf != null) }.distinct().size)
+    }
+
+    @Test
+    fun `a filter with no window builds no createdSince and the default one starts 24 hours back`() = runTest {
+        repository.listPublic(CommunityFilter(windowMs = null))
+        repository.listPublic(CommunityFilter())
+
+        assertEquals(
+            listOf(null, Timestamp(Date(NOW - COMMUNITY_WINDOW_MS))),
+            store.queries.map { it.createdSince },
+        )
     }
 
     @Test
