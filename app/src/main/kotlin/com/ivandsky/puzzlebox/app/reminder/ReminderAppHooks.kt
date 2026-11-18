@@ -7,7 +7,7 @@ import android.os.Bundle
 /**
  * Starts the [runner] with the app and reconciles it each time an activity starts, so allowing notifications in system
  * settings, a time-zone change, a restart or a force-stop is corrected the next time the app opens. No debounce: a
- * reconcile is cheap and replaces the one pending alarm. Disabled runner, nothing registered.
+ * reconcile is cheap and replaces the one pending alarm.
  */
 class ReminderAppHooks(
     private val application: Application,
@@ -15,7 +15,6 @@ class ReminderAppHooks(
 ) {
 
     fun start() {
-        if (!runner.enabled) return
         runner.start()
         application.registerActivityLifecycleCallbacks(
             object : Application.ActivityLifecycleCallbacks {

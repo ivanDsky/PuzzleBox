@@ -67,7 +67,7 @@ class PuzzleBoxApplication : Application() {
         koin.get<DailyReplayPublisher>().start()
         // Cloud sync: the one place that starts runs besides "Sync now".
         koin.get<CloudSyncRunner>().start()
-        // The daily reminder: follows the stored choice and the foreground; nothing when the Reminders flag is off.
+        // The daily reminder: follows the stored choice and the foreground.
         koin.get<ReminderAppHooks>().start()
     }
 

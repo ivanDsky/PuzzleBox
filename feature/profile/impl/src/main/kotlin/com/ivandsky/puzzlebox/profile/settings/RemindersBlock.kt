@@ -18,9 +18,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
 
 /**
- * The DI-bound Reminders block of Settings: with the flag off it builds lazily, reads nothing and draws nothing; else
- * the section plus the system side of it, the permission prompt (Android 13 and up; earlier versions have none, so a switch-on that is not allowed is blocked
- * at once) and the trip to the app's notification settings.
+ * The DI-bound Reminders block of Settings: the section plus the system side of it, the permission prompt (Android 13 and up;
+ * earlier versions have none, so a switch-on that is not allowed is blocked at once) and the trip to the app's notification
+ * settings.
  */
 @Composable
 internal fun RemindersBlock(viewModel: RemindersViewModel = koinViewModel()) {
@@ -28,7 +28,7 @@ internal fun RemindersBlock(viewModel: RemindersViewModel = koinViewModel()) {
     val context = LocalContext.current
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission(), viewModel::onPermissionResult)
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResume() }
-    val ask = state?.askPermission == true
+    val ask = state.askPermission
     LaunchedEffect(ask) {
         if (!ask) return@LaunchedEffect
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -38,9 +38,8 @@ internal fun RemindersBlock(viewModel: RemindersViewModel = koinViewModel()) {
         }
         viewModel.onPermissionAsked()
     }
-    val current = state ?: return
     RemindersSection(
-        state = current,
+        state = state,
         onSetEnabled = viewModel::onSetEnabled,
         onOpenSettings = {
             try {

@@ -114,4 +114,5 @@ to merge without being reachable in a release build.
 - The PlaceIt flag was removed on 2026-11-18 (#1431), with its `placeIt` parameters, DI reads and flag-off branches: a Tango, Queens or Mini Sudoku hint always carries Place it.
 - ShareResult flipped to `releaseDefault = true` in 0.37.0 on 2026-11-18 (#1433; user-approved with the seven other flips of that release): the daily result's Share text carries a solve strip and a link; the hosting page (#1430) was live before the flip.
 - Reminders flipped to `releaseDefault = true` in 0.37.0 on 2026-11-18 (#1447; user-approved with the seven other flips of that release): Settings gets the Reminders section; `RemindersFlagTest` was deleted.
+- The Reminders flag was removed, with the runner's and the Settings view model's `enabled` parameters and every branch on it, on 2026-11-18 (#1448); the daily reminder stays as shipped in 0.37.0.
 - RandomPuzzle flipped to `releaseDefault = true` in 0.37.0 on 2026-11-18 (#1456; user-approved with the seven other flips of that release): a Random action opens one puzzle from past days or New today.
