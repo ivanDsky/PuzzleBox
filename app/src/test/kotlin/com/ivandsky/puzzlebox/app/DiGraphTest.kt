@@ -35,6 +35,7 @@ import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadSolveReplay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
+import com.ivandsky.puzzlebox.domain.ObserveLatestSolvedToday
 import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObservePlayStats
@@ -336,6 +337,8 @@ class DiGraphTest : KoinTest {
             // Home's resume update check: the use case over the shell-bound installed build;
             // this debug-variant graph never checks.
             assertNotNull(koin.get<GetAppUpdate>())
+            // Home's "Play today" pick: the latest official daily solved on each game's own today.
+            assertNotNull(koin.get<ObserveLatestSolvedToday>())
             assertEquals(false, koin.get<AppBuild>().checksForUpdates)
             // Today's featured game (Profile's board, the leaderboard) is the registry's first.
             assertEquals(GameId("zip"), koin.get<GetFeaturedGame>()().id)
