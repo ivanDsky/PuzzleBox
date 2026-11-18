@@ -31,21 +31,34 @@ private val MinBoardSide = 160.dp
  */
 @Composable
 internal fun LegDetail(row: LegRowModel, content: LegsContent, brands: GamePlayRegistry, height: Dp) {
+    BoardOverDetails(
+        height = height,
+        details = { LegDetails(row, content, brands) },
+        board = { side ->
+            key(row.legIndex) { LegBoardPreview(row.legIndex, sharp = row.status is LegStatus.Solved, maxSide = side, board = content.board) }
+        },
+    )
+}
+
+/**
+ * The detail pane's column: the [board] over the [details], fitted to [height] as [LegDetail] describes. The loaded page
+ * and its loading skeleton lay out through this, so the board is the same size in the same place in both.
+ */
+@Composable
+internal fun BoardOverDetails(height: Dp, details: @Composable () -> Unit, board: @Composable (side: Dp) -> Unit) {
     SubcomposeLayout { constraints ->
         val gap = Spacing.md.roundToPx()
         val loose = constraints.copy(minWidth = 0, minHeight = 0, maxHeight = Constraints.Infinity)
-        val details = subcompose("details") { LegDetails(row, content, brands) }.map { it.measure(loose) }
-        val detailsHeight = details.sumOf { it.height }
+        val detailsPlaceables = subcompose("details", details).map { it.measure(loose) }
+        val detailsHeight = detailsPlaceables.sumOf { it.height }
         val side = (height.roundToPx() - detailsHeight - gap)
             .coerceIn(MinBoardSide.roundToPx(), HiddenBoardTokens.MaxSide.roundToPx())
-        val board = subcompose("board") {
-            key(row.legIndex) { LegBoardPreview(row.legIndex, sharp = row.status is LegStatus.Solved, maxSide = side.toDp(), board = content.board) }
-        }.map { it.measure(loose) }
-        val boardHeight = board.sumOf { it.height }
+        val boardPlaceables = subcompose("board") { board(side.toDp()) }.map { it.measure(loose) }
+        val boardHeight = boardPlaceables.sumOf { it.height }
         val boardBlock = if (boardHeight > 0) boardHeight + gap else 0
         layout(constraints.maxWidth, boardBlock + detailsHeight) {
-            board.forEach { it.place(0, 0) }
-            details.forEach { it.place(0, boardBlock) }
+            boardPlaceables.forEach { it.place(0, 0) }
+            detailsPlaceables.forEach { it.place(0, boardBlock) }
         }
     }
 }

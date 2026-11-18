@@ -82,6 +82,6 @@ private fun Block(modifier: Modifier, shape: Shape) {
 }
 
 private val HEAD_HEIGHT = 48.dp
-private val ACTION_HEIGHT = 56.dp
+private val ACTION_HEIGHT = 52.dp
 private val RANKS_HEIGHT = 160.dp
 private const val TITLE_FRACTION = 0.7f

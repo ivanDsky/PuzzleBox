@@ -20,12 +20,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AppShapes
-import com.ivandsky.puzzlebox.designsystem.HiddenBoardTokens
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.skeleton
@@ -35,7 +35,7 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 private val AvatarBlock = 40.dp
 private val CardBlockHeight = 104.dp
 private val HeroBlock = 64.dp
-private val ActionBlockHeight = 56.dp
+private val ActionBlockHeight = 52.dp
 private const val SKELETON_CARDS = 3
 private const val TITLE_FRACTION = 0.7f
 
@@ -81,16 +81,28 @@ internal fun DuelLegsSkeleton(modifier: Modifier = Modifier) {
                 repeat(SKELETON_CARDS) { Block(Modifier.fillMaxWidth().height(CardBlockHeight), AppShapes.large) }
             }
         },
-        right = {
-            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                Block(Modifier.widthIn(max = HiddenBoardTokens.MaxSide).fillMaxWidth().aspectRatio(1f), MaterialTheme.shapes.medium)
-                Block(Modifier.size(HeroBlock), AppShapes.large)
-                Bar(Modifier.fillMaxWidth(TITLE_FRACTION), MaterialTheme.typography.headlineSmall)
-                Bar(Modifier.width(160.dp), MaterialTheme.typography.bodyMedium)
-                Bar(Modifier.width(120.dp), MaterialTheme.typography.labelMedium, PillShape, Spacing.xs)
-                Bar(Modifier.width(200.dp), MaterialTheme.typography.bodyMedium)
-                Block(Modifier.fillMaxWidth().height(ActionBlockHeight), AppShapes.large)
-            }
+        right = { height ->
+            BoardOverDetails(
+                height = height,
+                board = { side ->
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                        Block(
+                            Modifier.testTag("$DUEL_GRID_TAG.skeleton.board").widthIn(max = side).fillMaxWidth().aspectRatio(1f),
+                            MaterialTheme.shapes.medium,
+                        )
+                    }
+                },
+                details = {
+                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                        Block(Modifier.size(HeroBlock), AppShapes.large)
+                        Bar(Modifier.fillMaxWidth(TITLE_FRACTION), MaterialTheme.typography.headlineSmall)
+                        Bar(Modifier.width(160.dp), MaterialTheme.typography.bodyMedium)
+                        Bar(Modifier.width(120.dp), MaterialTheme.typography.labelMedium, PillShape, Spacing.xs)
+                        Bar(Modifier.width(200.dp), MaterialTheme.typography.bodyMedium)
+                        Block(Modifier.fillMaxWidth().height(ActionBlockHeight), AppShapes.large)
+                    }
+                },
+            )
         },
     )
 }

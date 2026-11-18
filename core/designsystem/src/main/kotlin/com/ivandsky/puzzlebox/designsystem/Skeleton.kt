@@ -52,9 +52,7 @@ fun Modifier.skeleton(color: Color, shape: Shape): Modifier {
     return base.testTag(SHIMMER_TAG).drawWithContent {
         drawContent()
         val band = size.width * SHEEN_WIDTH
-        // Travels from fully before the start edge to fully past the end edge.
-        val travelled = -band + (size.width + band) * progress.value
-        val left = if (rtl) size.width - travelled - band else travelled
+        val left = sheenLeft(progress.value, size.width, rtl)
         drawRect(
             brush = Brush.horizontalGradient(
                 colors = listOf(Color.Transparent, sheen, Color.Transparent),
@@ -65,6 +63,17 @@ fun Modifier.skeleton(color: Color, shape: Shape): Modifier {
             size = size.copy(width = band),
         )
     }
+}
+
+/**
+ * The sheen band's left edge at [progress] (0..1) across a skeleton [width] px wide. The band travels from fully before the
+ * start edge to fully past the end edge, so at 0.5 its centre is the skeleton's centre and the travel before and after
+ * it is equal; [rtl] mirrors it, starting at the right edge.
+ */
+internal fun sheenLeft(progress: Float, width: Float, rtl: Boolean): Float {
+    val band = width * SHEEN_WIDTH
+    val travelled = -band + (width + band) * progress
+    return if (rtl) width - travelled - band else travelled
 }
 
 @Composable

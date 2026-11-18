@@ -26,6 +26,7 @@ import com.ivandsky.puzzlebox.testing.game.TestGames
 import java.time.Clock
 import java.time.ZoneOffset
 import java.util.Locale
+import kotlinx.coroutines.awaitCancellation
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -188,6 +189,15 @@ class DuelPaneFeaturesTest {
         assertTrue("Start directly under the card", action.top >= callout.bottom && action.top.value - callout.bottom.value < 32f)
         assertEquals("Start ends the detail", detail.bottom.value, action.bottom.value, 1f)
         assertTrue("Start directly under, not pinned: ${action.bottom}", action.bottom.value < root.height.value - 48f)
+    }
+
+    @Test
+    fun `the board's loading bars are centred in the right pane, as the board is`() {
+        show(DuelPageFixtures.self(refs, doneLegs = setOf(0)), boards = LegBoards { awaitCancellation() })
+
+        val pane = rule.onNodeWithTag("duel.legs.grid.right").getUnclippedBoundsInRoot()
+        val loading = rule.onNodeWithTag("duel.legs.board.loading").getUnclippedBoundsInRoot()
+        assertEquals("centres", (pane.left + pane.right).value / 2f, (loading.left + loading.right).value / 2f, 1f)
     }
 
     @Test
