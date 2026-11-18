@@ -6,9 +6,9 @@ internal sealed interface DuelNotice {
     /** The service's daily limit on new duels was reached; not a connection problem. */
     data object Busy : DuelNotice
     data object NoPuzzles : DuelNotice
-    /** The lineup's puzzle at [position] (from 1) is an "Any" of [game] with nothing left to draw. */
-    data class EntryUndrawable(val position: Int, val game: String) : DuelNotice
-    /** The lineup's exact puzzle at [position] (from 1) was taken down or can't be read. */
-    data class EntryUnavailable(val position: Int) : DuelNotice
+    /** The lineup's puzzle at [position] (from 1) is an "Any" of [game] with nothing left to draw; for [pastYou], nothing solved left. */
+    data class EntryUndrawable(val position: Int, val game: String, val pastYou: Boolean = false) : DuelNotice
+    /** The lineup's exact puzzle at [position] (from 1) was taken down or can't be read; for [pastYou], it is no longer one the player has solved. */
+    data class EntryUnavailable(val position: Int, val pastYou: Boolean = false) : DuelNotice
     data class Failed(val message: String?) : DuelNotice
 }

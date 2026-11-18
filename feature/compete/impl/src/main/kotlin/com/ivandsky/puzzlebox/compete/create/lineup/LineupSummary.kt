@@ -24,12 +24,25 @@ internal fun lineupSummary(
     locale: Locale,
     nameOf: (GameId) -> String,
 ): String {
-    val puzzles = entries.joinToString(", ") { entry ->
-        when (entry) {
-            is AnyGame -> nameOf(entry.gameId)
-            is ExactPuzzle -> "\"${entry.title}\""
-        }
-    }
+    val puzzles = names(entries, nameOf)
     val ends = formatEnds(now.plusSeconds(deadlineHours * SECONDS_PER_HOUR), zone, locale)
     return "Best of ${entries.size} · $puzzles · ends $ends" + if (includeFriends) " · incl. friends' puzzles" else ""
+}
+
+/**
+ * Past you's footer: "Best of 3 · Zip, Queens · against your first solves", plus " · incl. friends' puzzles" when friends
+ * are in. Blank until the lineup has a puzzle, since there is nothing yet to say about it.
+ */
+internal fun pastYouLineupSummary(entries: List<LineupEntry>, includeFriends: Boolean, nameOf: (GameId) -> String): String =
+    if (entries.isEmpty()) {
+        ""
+    } else {
+        "Best of ${entries.size} · ${names(entries, nameOf)} · against your first solves" + if (includeFriends) " · incl. friends' puzzles" else ""
+    }
+
+private fun names(entries: List<LineupEntry>, nameOf: (GameId) -> String): String = entries.joinToString(", ") { entry ->
+    when (entry) {
+        is AnyGame -> nameOf(entry.gameId)
+        is ExactPuzzle -> "\"${entry.title}\""
+    }
 }

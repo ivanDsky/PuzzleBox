@@ -44,4 +44,30 @@ class LineupSummaryTest {
     fun `friends in adds the same clause as the other presets`() {
         assertEquals("Best of 1 · Tango · ends Wed 10:00 · incl. friends' puzzles", summary(listOf(AnyGame(TANGO)), hours = 48, friends = true))
     }
+
+    private fun pastYou(entries: List<com.ivandsky.puzzlebox.domain.lineup.LineupEntry>, friends: Boolean = false) =
+        pastYouLineupSummary(entries, friends, ::nameOf)
+
+    @Test
+    fun `Past you's footer counts the rows, lists the games in order and says whose solves it races`() {
+        assertEquals(
+            "Best of 3 · Zip, Queens, Zip · against your first solves",
+            pastYou(listOf(ZIP, QUEENS, ZIP).map(::AnyGame)),
+        )
+        assertEquals(
+            "Best of 2 · Zip, \"Crown jewels\" · against your first solves · incl. friends' puzzles",
+            pastYou(
+                listOf(
+                    AnyGame(ZIP),
+                    ExactPuzzle(LegRef.Daily(QUEENS, LocalDate.of(2026, 11, 1), 3), null, "Crown jewels", null, PuzzleSource.PastDay),
+                ),
+                friends = true,
+            ),
+        )
+    }
+
+    @Test
+    fun `Past you's footer is blank until the lineup has a row`() {
+        assertEquals("", pastYou(emptyList()))
+    }
 }

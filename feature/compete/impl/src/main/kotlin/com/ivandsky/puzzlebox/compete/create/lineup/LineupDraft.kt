@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.domain.lineup.AnyGame
 import com.ivandsky.puzzlebox.domain.lineup.ExactPuzzle
 import com.ivandsky.puzzlebox.domain.lineup.LineupEntry
 import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
+import com.ivandsky.puzzlebox.model.GameId
 
 /** The ordered puzzles of a duel being built: one to [Match.MAX_LEGS]. Pure; every edit returns a new draft, and one that can't apply returns this. */
 internal data class LineupDraft(val entries: List<LineupEntry>) {
@@ -52,5 +53,15 @@ internal data class LineupDraft(val entries: List<LineupEntry>) {
         /** What Quick draws, as rows: three "Any", one per game in turn; empty until [available] is known. */
         fun opening(available: List<DuelGame>): LineupDraft =
             LineupDraft(if (available.isEmpty()) emptyList() else List(OPENING_ENTRIES) { AnyGame(available[it % available.size].id) })
+
+        /**
+         * What Quick draws for Past you, as rows: "Any" of each game in turn, a game dropping out once its [solved] puzzles
+         * are all in rows, so no game has more rows than it has solved; empty when nothing is solved.
+         */
+        fun openingSolved(available: List<DuelGame>, solved: Map<GameId, Int>): LineupDraft {
+            fun DuelGame.solvedBeyond(round: Int) = (solved[id] ?: 0) > round
+            val rounds = generateSequence(0) { it + 1 }.takeWhile { round -> available.any { it.solvedBeyond(round) } }
+            return LineupDraft(rounds.flatMap { round -> available.filter { it.solvedBeyond(round) } }.take(OPENING_ENTRIES).map { AnyGame(it.id) }.toList())
+        }
     }
 }

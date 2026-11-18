@@ -21,6 +21,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
@@ -39,6 +40,7 @@ private const val TILES_PER_ROW = 2
 private val TWO_PANE_MAX_WIDTH = 960.dp
 private const val TILES_PANE_WEIGHT = 2f
 private const val SEARCH_PANE_WEIGHT = 3f
+private const val DISABLED_ALPHA = 0.38f
 
 /**
  * "Add puzzle N" or, from a row, "Change puzzle N": one tile per game for an "Any" puzzle of it, and [exactPuzzles], the
@@ -46,6 +48,9 @@ private const val SEARCH_PANE_WEIGHT = 3f
  * results. Where the app splits panes (the single rule in [PanePolicy]) the sheet widens and splits: the tiles and the
  * [filters] on the left, the exact-puzzle search on the right, told through `filtersInline = false` not to draw the chips
  * again. A tile calls [onPickGame]; the sheet closes through [onDismiss] (a swipe, the scrim) or when the caller drops it.
+ *
+ * With [solved] (Past you's sheet: how many puzzles of each game the player has solved) a tile says its count and is off
+ * at zero, since nothing could be drawn; there is no [exactPuzzles] to split off then, so the tiles keep the whole sheet.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -56,8 +61,9 @@ internal fun AddPuzzleSheet(
     onPickGame: (GameId) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    solved: Map<GameId, Int>? = null,
     filters: @Composable () -> Unit = {},
-    exactPuzzles: @Composable (filtersInline: Boolean) -> Unit = {},
+    exactPuzzles: (@Composable (filtersInline: Boolean) -> Unit)? = null,
 ) {
     val window = LocalWindowInfo.current.containerSize
     val twoPane = with(LocalDensity.current) { PanePolicy.isTwoPane(window.width.toDp(), window.height.toDp()) }
@@ -76,17 +82,17 @@ internal fun AddPuzzleSheet(
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            if (twoPane) {
+            if (twoPane && exactPuzzles != null) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
                     Column(Modifier.weight(TILES_PANE_WEIGHT), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                        GameTiles(games, onPickGame)
+                        GameTiles(games, solved, onPickGame)
                         filters()
                     }
                     Column(Modifier.weight(SEARCH_PANE_WEIGHT)) { exactPuzzles(false) }
                 }
             } else {
-                GameTiles(games, onPickGame)
-                exactPuzzles(true)
+                GameTiles(games, solved, onPickGame)
+                exactPuzzles?.invoke(true)
             }
         }
     }
@@ -94,7 +100,7 @@ internal fun AddPuzzleSheet(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun GameTiles(games: List<DuelGame>, onPickGame: (GameId) -> Unit) {
+private fun GameTiles(games: List<DuelGame>, solved: Map<GameId, Int>?, onPickGame: (GameId) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Text("Any puzzle of a game", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         FlowRow(
@@ -102,24 +108,32 @@ private fun GameTiles(games: List<DuelGame>, onPickGame: (GameId) -> Unit) {
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             maxItemsInEachRow = TILES_PER_ROW,
         ) {
-            games.forEach { game -> GameTile(game, onClick = { onPickGame(game.id) }, modifier = Modifier.weight(1f)) }
+            games.forEach { game ->
+                GameTile(game, solved?.let { it[game.id] ?: 0 }, onClick = { onPickGame(game.id) }, modifier = Modifier.weight(1f))
+            }
         }
     }
 }
 
 @Composable
-private fun GameTile(game: DuelGame, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun GameTile(game: DuelGame, solved: Int?, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val brand = koinInject<GamePlayRegistry>().brandOf(game.id)
+    val available = solved == null || solved > 0
     Surface(
         onClick = onClick,
-        modifier = modifier.heightIn(min = TILE_MIN_HEIGHT).testTag("duel.lineup.sheet.game.${game.id.value}"),
+        modifier = modifier.heightIn(min = TILE_MIN_HEIGHT).alpha(if (available) 1f else DISABLED_ALPHA).testTag("duel.lineup.sheet.game.${game.id.value}"),
+        enabled = available,
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Row(Modifier.padding(horizontal = Spacing.md), horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
             GameGlyph(brand, GameGlyphSize.Tile)
-            Text(game.name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+            Text(
+                text = if (solved == null) game.name else "${game.name} · $solved solved",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
         }
     }
 }

@@ -14,7 +14,9 @@ internal data class DuelWorking(
     val opponent: Opponent = Opponent.Friend,
     val form: SelfDuelForm = SelfDuelForm.quick(emptyList()),
     val lineup: LineupEditor = LineupEditor(),
+    /** The lineup Customize shows for Past you, apart from the friend duel's [lineup] so each keeps its own rows. */
+    val selfLineup: LineupEditor = LineupEditor(),
 ) {
-    /** Drops the notice and the lineup row it marked, which are the same refusal. */
-    fun withoutNotice(): DuelWorking = copy(notice = null, lineup = lineup.unmarked())
+    /** Drops the notice and the lineup rows it marked, which are the same refusal. */
+    fun withoutNotice(): DuelWorking = copy(notice = null, lineup = lineup.unmarked(), selfLineup = selfLineup.unmarked())
 }
