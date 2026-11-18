@@ -2,4 +2,6 @@
     <!-- Pairs with LightColorScheme.background (deepest canvas, see ColorTokens.kt). -->
     <color name="puzzlebox_launch_background">#F2F4F7</color>
     <color name="ic_launcher_background">#FFF8F6</color>
+    <!-- Brand primary (LightColorScheme.primary, ColorTokens.kt) for the splash mark; app resources cannot import it. -->
+    <color name="puzzlebox_splash_mark">#58CC02</color>
 </resources>
