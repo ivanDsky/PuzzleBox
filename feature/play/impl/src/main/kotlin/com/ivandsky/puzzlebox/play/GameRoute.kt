@@ -30,7 +30,8 @@ import org.koin.core.parameter.parametersOf
  * blob: the store's slot row is what survives process death.
  *
  * A game's first play opens its tutorial in place of the board once the seen-check lands, and
- * the bar's How to play reopens it over the live play; Skip or "Let's play" hands back to the board.
+ * the bar's How to play reopens it over the live play (or, with RulesSheet on, opens the rules sheet there, which offers
+ * the tutorial); Skip or "Let's play" hands back to the board.
  * The bar's Up stays, so back leaves the game from a tutorial too. [boardStyle] is the side panel's
  * times' (see [PlayTimesCard]).
  */
@@ -47,6 +48,7 @@ internal fun GameRoute(
     val viewModel: GameViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
     val pastDay by viewModel.pastDay.collectAsStateWithLifecycle()
     val tutorial by viewModel.tutorial.collectAsStateWithLifecycle()
+    val rules by viewModel.rules.collectAsStateWithLifecycle()
     GameBoard(
         play = viewModel.play,
         pastDay = pastDay,
@@ -54,6 +56,9 @@ internal fun GameRoute(
         boardStyle = boardStyle,
         onHowToPlay = viewModel::howToPlay,
         onTutorialFinished = viewModel::closeTutorial,
+        rules = rules,
+        onDismissRules = viewModel::dismissRules,
+        onReplayTutorial = viewModel::replayTutorial,
         layout = layout,
         onBack = onBack,
         onSolved = onSolved,
@@ -77,12 +82,16 @@ internal fun GameRoute(
 ) {
     val viewModel: CustomGameViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
     val tutorial by viewModel.tutorial.collectAsStateWithLifecycle()
+    val rules by viewModel.rules.collectAsStateWithLifecycle()
     GameBoard(
         play = viewModel.play,
         pastDay = false,
         tutorial = tutorial,
         onHowToPlay = viewModel.howToPlay,
         onTutorialFinished = viewModel::closeTutorial,
+        rules = rules,
+        onDismissRules = viewModel::dismissRules,
+        onReplayTutorial = viewModel::replayTutorial,
         layout = layout,
         onBack = onBack,
         onSolved = onSolved,
@@ -95,7 +104,8 @@ internal fun GameRoute(
  *  when [onHowToPlay] is given and the game has lessons, and the route's [overflow] items
  *  follow the game's own in the bar's menu. [linkedIn] ranks the day's LinkedIn connections into the side panel's times
  *  and [boardStyle] is how their board looks (see [PlayTimesCard]). A [selfLeg] puts past you's time on the timer
- *  and, on two panes, swaps the side panel for the self-duel leg's own ([legSidePanel]). */
+ *  and, on two panes, swaps the side panel for the self-duel leg's own ([legSidePanel]). While [rules] is set the rules sheet
+ *  shows over the board ([PlayBoardChrome]). */
 @Composable
 internal fun GameBoard(
     play: ActivePlay?,
@@ -111,6 +121,9 @@ internal fun GameBoard(
     linkedIn: Boolean = false,
     boardStyle: DailyBoardStyle = DailyBoardStyle.defaults(),
     selfLeg: SelfLeg? = null,
+    rules: RulesSheetCopy? = null,
+    onDismissRules: () -> Unit = {},
+    onReplayTutorial: () -> Unit = {},
 ) {
     if (play == null) {
         Column(modifier = modifier.testTag("route.game")) {
@@ -156,6 +169,9 @@ internal fun GameBoard(
             },
             modifier = modifier.testTag("route.game"),
             targetMs = selfLeg?.target?.inWholeMilliseconds,
+            rules = rules,
+            onDismissRules = onDismissRules,
+            onReplayTutorial = onReplayTutorial,
         )
     }
 }
