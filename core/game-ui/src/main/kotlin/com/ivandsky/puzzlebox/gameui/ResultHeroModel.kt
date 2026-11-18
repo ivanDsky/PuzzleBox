@@ -152,11 +152,12 @@ internal fun resultHeroModel(
  */
 private fun bestLine(facts: ResultHeroFacts, verdict: RecordVerdict?): String? {
     val same = facts.samePuzzle
+    val previous = same?.previous
     return when {
         facts.practice -> null
         same != null && !same.read -> null
-        same?.previous != null -> {
-            val line = heroSamePuzzleLine(same.previous, same.previousFromLinkedIn, facts.rankOrder, facts.timeMs, facts.hintsUsed)
+        same != null && previous != null -> {
+            val line = heroSamePuzzleLine(previous, same.previousFromLinkedIn, facts.rankOrder, facts.timeMs, facts.hintsUsed)
             if (facts.playAgain) "${PlayAgainCopy.LABEL} · $line" else line
         }
         else -> heroBestLine(

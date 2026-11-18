@@ -244,12 +244,13 @@ private fun HeroPill(text: String, brand: GameBrand, modifier: Modifier = Modifi
 /** One stat chip: its bold [ResultHeroChip.value] over its [ResultHeroChip.label], on the tonal surface. */
 @Composable
 private fun HeroChipTile(chip: ResultHeroChip, modifier: Modifier = Modifier) {
+    val onClick = chip.onClick
     Column(
         modifier = modifier
             .heightIn(min = ChipMinHeight)
             .clip(MaterialTheme.shapes.small)
             .background(MaterialTheme.colorScheme.surfaceContainer)
-            .then(if (chip.onClick == null) Modifier else Modifier.clickable(role = Role.Button, onClick = chip.onClick))
+            .then(if (onClick == null) Modifier else Modifier.clickable(role = Role.Button, onClick = onClick))
             .padding(horizontal = Spacing.md, vertical = Spacing.sm)
             .testTag(chip.tag),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
