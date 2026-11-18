@@ -73,7 +73,7 @@ returns these findings:
 - **Worker contract.** Fix a violation by splitting or moving code. Rules, allowlists and
   fixtures are protected files: a worker does not edit them to make a test pass.
 
-Entries on record at the time of writing: S1 64, S2 6, S4 25, S5 4, P1 6, P2 1, P5 4, P6 1, P14 116.
+Entries on record at the time of writing: S1 64, S2 6, S4 25, S5 4, P1 6, P2 1, P5 4, P6 1, P14 107.
 S0, S6, S7, S8, S9, S10, S11, P3, P4, P7, P8, P9, P10, P11, P12 and P13 have none.
 
 ### Payload cross-reference
