@@ -4,8 +4,13 @@ package com.ivandsky.puzzlebox.domain
 sealed interface CustomBoardView {
     val author: AuthorPin
 
-    /** The [top] rows, plus [mine] when this user ranks below them. */
-    data class Ranked(val top: List<RankedEntry>, val mine: RankedEntry?, override val author: AuthorPin) : CustomBoardView
+    /** The [top] rows, plus [mine] when this user ranks below them; [count] is how many players are ranked, shown or not. */
+    data class Ranked(
+        val top: List<RankedEntry>,
+        val mine: RankedEntry?,
+        override val author: AuthorPin,
+        val count: Int = top.size + if (mine != null) 1 else 0,
+    ) : CustomBoardView
 
     /** Nobody is signed in, so the board cannot be read. */
     data class SignedOut(override val author: AuthorPin) : CustomBoardView

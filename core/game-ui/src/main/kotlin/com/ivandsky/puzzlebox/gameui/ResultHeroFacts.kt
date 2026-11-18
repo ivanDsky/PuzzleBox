@@ -13,6 +13,8 @@ import com.ivandsky.puzzlebox.game.RankOrder
  * [samePuzzle] (M10) is what the player's earlier solves of this very puzzle say; null (a duel leg) keeps the line that
  * compares with the game's best, and any value, even [SamePuzzleSolves.None], draws that line larger.
  * [signInLine] (Result hero polish) puts the sign-in invitation under the time of a signed-out player's counting solve.
+ * [community], when given, makes this a community puzzle's hero: Hints reads "0" rather than "None" and its chips follow it
+ * in place of the Today and Average chips.
  */
 data class ResultHeroFacts(
     val timeMs: Long,
@@ -34,4 +36,5 @@ data class ResultHeroFacts(
     val challenge: ResultPrimaryAction.ChallengeFriend?,
     val samePuzzle: SamePuzzleSolves?,
     val signInLine: Boolean = false,
+    val community: ResultCommunity? = null,
 )

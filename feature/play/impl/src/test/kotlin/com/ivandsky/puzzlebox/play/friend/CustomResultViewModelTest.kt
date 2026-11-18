@@ -27,7 +27,9 @@ import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.gameui.SamePuzzleSolves
 import com.ivandsky.puzzlebox.data.visibility.HiddenPuzzles
 import com.ivandsky.puzzlebox.domain.ReportPuzzle
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
@@ -221,10 +223,11 @@ class CustomResultViewModelTest {
     private fun row(timeMs: Long, hints: Int = 0, isRecord: Boolean = false) =
         CompletionRecord(ref, timeMs, hints, RecordStats(1, "{}"), isRecord = isRecord)
 
-    private fun observed(key: CustomResultKey): CustomResultViewModel {
+    private fun observed(key: CustomResultKey, flags: ReleaseFlags? = null): CustomResultViewModel {
         val koin = checkNotNull(koin).koin
         val viewModel = CustomResultViewModel(
             key, completions, received, fakes.games, fakes.registry, koin.get(), koin.get(), koin.get(), loadReplay(fakes.games),
+            releaseFlags = flags,
         )
         screen.launch { viewModel.state.collect {} }
         main.testDispatcher.scheduler.runCurrent()
@@ -466,6 +469,36 @@ class CustomResultViewModelTest {
         assertEquals(CustomStanding.PlayAgain(BestScore(118_000L, 0)), state.standing)
         assertEquals(130_000L, state.timeMs)
         assertEquals(1, state.hintsUsed)
+    }
+
+    @Test
+    fun `with Result hero polish on the state asks for the hero and a first solve has no earlier solves`() {
+        completions.setRecords(listOf(row(42_000L, isRecord = true)))
+
+        val state = observed(key(42_000L), FakeReleaseFlags(ReleaseFlag.ResultHeroPolish)).state.value
+
+        assertTrue(state.heroPolish)
+        assertEquals(SamePuzzleSolves.None.copy(columns = true), state.samePuzzle)
+    }
+
+    @Test
+    fun `with Result hero polish on a play again compares with the earlier solves`() {
+        completions.setRecords(listOf(row(118_000L, isRecord = true), row(130_000L, hints = 1)))
+
+        val state = observed(key(130_000L, hints = 1), FakeReleaseFlags(ReleaseFlag.ResultHeroPolish)).state.value
+
+        assertEquals(BestScore(118_000L, 0), state.samePuzzle.previous)
+        assertTrue(state.samePuzzle.columns)
+    }
+
+    @Test
+    fun `with Result hero polish off the old card stays and the earlier solves are never read`() {
+        completions.setRecords(listOf(row(118_000L, isRecord = true), row(130_000L, hints = 1)))
+
+        val state = observed(key(130_000L, hints = 1), FakeReleaseFlags()).state.value
+
+        assertFalse(state.heroPolish)
+        assertEquals(SamePuzzleSolves.Unread, state.samePuzzle)
     }
 
     @Test

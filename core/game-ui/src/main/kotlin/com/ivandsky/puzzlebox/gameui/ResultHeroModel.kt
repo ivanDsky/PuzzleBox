@@ -173,11 +173,13 @@ private fun chips(facts: ResultHeroFacts, insights: ResultInsights?, supplied: R
     add(
         ResultHeroChip(
             tag = "result.hero.chip.hints",
-            value = if (facts.hintsUsed == 0) "None" else "${facts.hintsUsed}",
+            value = if (facts.hintsUsed == 0 && facts.community == null) "None" else "${facts.hintsUsed}",
             label = if (facts.hintsUsed == 1) "Hint" else "Hints",
         ),
     )
-    if (supplied != null) {
+    if (facts.community != null) {
+        addAll(facts.community.chips)
+    } else if (supplied != null) {
         add(supplied)
     } else if (facts.doneToday != null && facts.total != null && facts.total > 0) {
         add(ResultHeroChip("result.hero.chip.today", "${facts.doneToday} of ${facts.total}", "Today"))
