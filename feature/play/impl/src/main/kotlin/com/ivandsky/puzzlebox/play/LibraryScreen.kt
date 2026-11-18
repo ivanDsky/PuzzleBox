@@ -90,7 +90,7 @@ internal fun LibraryScreen(
     fun Page(row: LibraryRowModel, onBack: (() -> Unit)?, shownPage: ArchivePageState? = page, shownMonth: YearMonth? = month) = LibraryGamePage(
         row, shownPage, shownMonth, layout, calendar, onPlay, onRetry, onOpenLesson, onBack,
         offline = state.offline, hasLesson = hasLesson(row.card.game),
-        onOpenRanks = onOpenRanks, linkedIn = linkedIn, onMakeOne = onMakeOne,
+        onOpenRanks = onOpenRanks, linkedIn = linkedIn, onMakeOne = onMakeOne, onRandom = onRandom,
     )
     val selected = state.rows.firstOrNull { it.card.game == state.selected } ?: state.rows.firstOrNull()
     var tab by rememberSaveable { mutableStateOf(GamesTab.Dailies) }

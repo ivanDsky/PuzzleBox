@@ -41,6 +41,8 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
  * the phone column's, so picking a day can bring the day card back into view. The [board]
  * (the game's rank row) goes under the stats card, before how to play. The tablet's right column scrolls as one so how to play keeps
  * its place under them. A non-null [onMakeOne] adds a "Make one" button (`library.page.makeOne`) between the board and how to play.
+ * A non-null [onRandom] adds a "Random" button (`library.page.random`): after the title in the tablet's title row, and
+ * on the phone, where the title has no width to spare, on its own line under it.
  */
 @Composable
 internal fun GamePage(
@@ -56,6 +58,7 @@ internal fun GamePage(
     hasLesson: Boolean = true,
     scroll: ScrollState = rememberScrollState(),
     onMakeOne: (() -> Unit)? = null,
+    onRandom: (() -> Unit)? = null,
 ) {
     val reduced = rememberReducedMotion()
     val tag = "library.page.${row.card.game.value}"
@@ -63,6 +66,7 @@ internal fun GamePage(
         Column(modifier.fillMaxSize().testTag(tag), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
             Row(Modifier.fillMaxWidth().heightIn(min = 64.dp), verticalAlignment = Alignment.CenterVertically) {
                 PageTitle(row, Modifier.weight(1f))
+                onRandom?.let { RandomButton(it) }
                 if (offline) OfflinePill()
             }
             Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
@@ -97,6 +101,8 @@ internal fun GamePage(
                 }
                 PageTitle(row, Modifier.weight(1f))
             }
+            // Beside the title it would cut the archive line before its solved count, so it gets its own line.
+            onRandom?.let { random -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { RandomButton(random) } }
             if (offline) OfflinePill()
             EnterFade(0, reduced) { dayCard() }
             EnterFade(1, reduced) { calendar() }
@@ -104,6 +110,12 @@ internal fun GamePage(
             EnterFade(3, reduced) { PageTail(Spacing.md, board, row, hasLesson, onOpenLesson, onMakeOne) }
         }
     }
+}
+
+/** The title row's Random button; the title beside it keeps its one-line ellipsis and gives up the width. */
+@Composable
+private fun RandomButton(onClick: () -> Unit) {
+    SecondaryButton(text = "Random", onClick = onClick, modifier = Modifier.padding(start = Spacing.sm).testTag("library.page.random"))
 }
 
 /** The board, Make one and how to play, which enter as one beat. */
