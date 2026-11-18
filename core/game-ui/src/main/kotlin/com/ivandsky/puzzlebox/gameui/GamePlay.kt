@@ -3,6 +3,8 @@ package com.ivandsky.puzzlebox.gameui
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.PuzzleRef
@@ -47,6 +49,12 @@ interface GamePlayUi {
      */
     @Composable
     fun Board(controller: GamePlayController, modifier: Modifier)
+
+    /**
+     * The outline of [controller]'s board, which the solve sweep follows in a lesson. Square
+     * by default; a game whose board is rounded returns that outline.
+     */
+    fun boardShape(controller: GamePlayController): Shape = RectangleShape
 
     /**
      * The game's Clear over [controller] (A14): null when the game has none, which hides
