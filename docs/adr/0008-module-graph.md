@@ -28,10 +28,20 @@ the build instead of a review.
    binds exactly one `GamePlayUi` under its id qualifier; `app` builds
    `GamePlayRegistry(getAll())` once (a duplicate id throws). `feature:play:impl` drives any
    game through `GamePlayController` (ADR-0007).
-4. **Cross-feature business logic lives in `core:domain`** as use cases (`domainModule`):
-   `ComputeStreak`, `GetFeaturedGame`, `LoadPastDay`, `ObserveGameHistory`, `ObserveLeaderboard`,
-   `ObservePlayStats`, `ObserveTodaySet`. Features call use cases or `core:data` repositories, never
+4. **Cross-feature business logic lives in `core:domain`** as use cases (`domainModule`), for
+   example `ComputeStreak`, `ObserveGameHistory`, `ObserveLeaderboard`, `ObserveTodaySet`.
+   **A use case with a single feature consumer lives in that feature's `impl`**, in the package
+   `com.ivandsky.puzzlebox.<feature>.domain`, and is registered in that feature's Koin module, not
+   in `domainModule`. A use case moves to `core:domain` when a second feature (or `:app`, or
+   another `core:*` module) needs it, and moves back out when only one feature remains. A konsist
+   rule (ADR-0009) enforces this. Features call use cases or `core:data` repositories, never
    each other's ViewModels.
+   *(Amended 2026-11-18: before this amendment `core:domain` held every use case. A scan found
+   112 of its 200 main files had exactly one feature consumer by direct imports, or 116 when helper
+   closure and foreign-feature tests are counted. `DomainModule.kt` had 67 commits in 14 days, and
+   each `core:domain` edit retests 14 modules. Single-consumer logic now sits next to its only
+   caller; the stale examples `GetFeaturedGame`, `LoadPastDay` and `ObservePlayStats` are dropped
+   from this decision.)*
 5. **Navigation is api/impl.** `feature:<name>:api` holds only the feature's `@Serializable`
    NavKeys and a `<name>NavKeys()` polymorphic registration (`core:navigation`'s
    `navKeySavedStateConfiguration`); `feature:<name>:impl` holds screens, ViewModels, Koin
