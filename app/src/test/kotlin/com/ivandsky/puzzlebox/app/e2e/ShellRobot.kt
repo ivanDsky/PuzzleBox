@@ -444,6 +444,19 @@ class ShellRobot internal constructor(
         }
     }
 
+    /**
+     * [awaitIdling] that runs what is due on the main looper without turning its clock. Time limits inside the app
+     * (the next-thing chain's two seconds, a read's timeout) run on that clock, so a poll that skips 100 ms of app
+     * time lets a slow machine burn through them while a real thread (DataStore's I/O) has not answered yet.
+     * [timeoutMs] is wall-clock and only caps a wait that never ends; it is not what the wait waits for.
+     */
+    fun awaitDrained(timeoutMs: Long = TIMEOUT_MS, condition: () -> Boolean) {
+        rule.waitUntil(timeoutMs) {
+            shadowOf(Looper.getMainLooper()).idle()
+            condition()
+        }
+    }
+
     /** System back: one press through the activity's dispatcher. */
     fun back() {
         rule.runOnUiThread { rule.activity.onBackPressedDispatcher.onBackPressed() }
