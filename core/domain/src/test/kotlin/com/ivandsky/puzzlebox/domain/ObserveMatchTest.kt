@@ -120,6 +120,28 @@ class ObserveMatchTest {
     private suspend fun ReceiveTurbine<MatchState>.view(): MatchView = (awaitItem() as MatchState.Loaded).view
 
     @Test
+    fun theViewersSeatWearsTheAccountsCurrentPhotoNotTheOneTheMatchStored() = runTest {
+        created()
+        identity.currentIdentity = Identity(ann.uid, ann.name, "https://example.com/ann-now.png")
+
+        observe().test {
+            val match = view().match
+            assertEquals("https://example.com/ann-now.png", match.challenger.photoUrl)
+            assertNull("the opponent keeps what the match stored", match.opponent?.photoUrl)
+        }
+    }
+
+    @Test
+    fun anAccountWithoutAPhotoKeepsTheSeatsStoredOne() = runTest {
+        viewAs(ann)
+        server.create(MatchDraft(code, 24, ann.copy(photoUrl = "https://example.com/ann-then.png"), invitedUid = null, legs(1), includeFriends = false, rematchOf = null))
+
+        observe().test {
+            assertEquals("https://example.com/ann-then.png", view().match.challenger.photoUrl)
+        }
+    }
+
+    @Test
     fun fetchOutcomesMapToTheirStates() = runTest {
         viewAs(ann)
         observe().test {

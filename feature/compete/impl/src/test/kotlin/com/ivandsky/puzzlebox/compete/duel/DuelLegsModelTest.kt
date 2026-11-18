@@ -178,6 +178,15 @@ class DuelLegsModelTest {
     }
 
     @Test
+    fun aSelfDuelShowsMyPhotoOnMySeat() {
+        val view = selfView(legs = 1, done = emptySet())
+        val mine = view.copy(match = view.match.copy(challenger = view.match.challenger.copy(photoUrl = "https://example.com/me.png")))
+
+        assertEquals("https://example.com/me.png", model(mine).me.photoUrl)
+        assertNull(model(view).me.photoUrl)
+    }
+
+    @Test
     fun aSelfDuelNeverWaitsOnAnyoneAndOffersTheResultsOnceIPlayedEveryPuzzle() {
         val playing = model(selfView(legs = 2, done = setOf(0)))
         val played = model(selfView(legs = 2, done = setOf(0, 1)))

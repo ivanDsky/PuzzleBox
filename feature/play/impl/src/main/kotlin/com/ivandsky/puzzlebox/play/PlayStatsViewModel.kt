@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
@@ -19,6 +20,7 @@ import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.gameui.board.rankWithLinkedIn
+import com.ivandsky.puzzlebox.gameui.board.withOwnPhoto
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
 import com.ivandsky.puzzlebox.play.board.BoardSignInHolder
 import com.ivandsky.puzzlebox.play.linkedin.LinkedInBoardInput
@@ -100,18 +102,18 @@ class PlayStatsViewModel(
         is TodayLeaderboard.SignedIn -> when (val state = board.board) {
             TodayLeaderboard.Board.Loading -> PlayTimes.Loading
             TodayLeaderboard.Board.Unavailable -> PlayTimes.Unavailable
-            is TodayLeaderboard.Board.Loaded -> rows(state.snapshot, board.identity.uid, solved, post, input)
+            is TodayLeaderboard.Board.Loaded -> rows(state.snapshot, board.identity, solved, post, input)
         }
     }
 
-    private fun rows(snapshot: LeaderboardSnapshot, uid: String, solved: Boolean, post: SubmitStatus?, input: LinkedInBoardInput): PlayTimes.Board {
+    private fun rows(snapshot: LeaderboardSnapshot, me: Identity, solved: Boolean, post: SubmitStatus?, input: LinkedInBoardInput): PlayTimes.Board {
         val daily = slot as? PlaySlot.Daily
         val order = registry.rankOrderOf(slot.gameId)
         val board = snapshot.entries.mapIndexed { index, entry ->
-            DailyBoardRowModel(rank = index + 1, name = entry.displayName, timeMs = entry.timeMs, hints = entry.hints, isSelf = entry.uid == uid, playerId = entry.uid)
+            DailyBoardRowModel(rank = index + 1, name = entry.displayName, timeMs = entry.timeMs, hints = entry.hints, isSelf = entry.uid == me.uid, playerId = entry.uid)
         }
         return PlayTimes.Board(
-            rows = rankWithLinkedIn(board, input.ghosts, input.you, order).timed(),
+            rows = rankWithLinkedIn(board, input.ghosts, input.you, order).timed().withOwnPhoto(me.photoUrl),
             solved = solved,
             order = order,
             post = post,

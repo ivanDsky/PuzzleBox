@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.domain.ranks.RankWindow
 import com.ivandsky.puzzlebox.domain.ranks.RankWindowBoards
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
+import com.ivandsky.puzzlebox.gameui.board.withOwnPhoto
 import com.ivandsky.puzzlebox.history.HistoryDayRow
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
@@ -81,6 +82,7 @@ internal class RanksBoardSlices(
         val friends = scope == RankScope.Friends
         val oneDay = kind == RanksSelection.Window.Day
         val photos = if (friends) inWindow?.photos().orEmpty() else emptyMap()
+        // Leaderboard rows carry no photo: every slice's own row joins the signed-in account's, after the connections' pictures.
         return boards.map { board ->
             when (board) {
                 RanksBoard.Overall -> overallSlice(kind, day, overall, me?.uid).let { if (friends) it.inFriendsCounted(photos) else it }
@@ -93,7 +95,7 @@ internal class RanksBoardSlices(
                     }
                 }
             }
-        }
+        }.map { it.copy(state = it.state.withOwnPhoto(me?.photoUrl)) }
     }
 
     private fun game(
