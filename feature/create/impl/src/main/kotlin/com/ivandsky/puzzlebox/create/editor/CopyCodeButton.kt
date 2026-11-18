@@ -87,5 +87,5 @@ private fun swap(reduced: Boolean): ContentTransform {
 
 private const val COPIED_HOLD_MS = 1_500L
 private const val CLIP_LABEL = "PuzzleBox code"
-private val ActionHeight = 52.dp
+internal val ActionHeight = 52.dp
 private val MarkSize = 18.dp

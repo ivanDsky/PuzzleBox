@@ -174,6 +174,12 @@ class FriendPuzzleGridTest {
     fun `a pane 1200 dp wide, the skeleton's board is exactly where the loaded board lands`() = assertSkeletonInPlace(1200.dp)
 
     @Test
+    fun `a pane 880 dp wide, the skeleton's right column blocks sit where the loaded pieces land`() = assertRightColumnInPlace(880.dp)
+
+    @Test
+    fun `a pane 1200 dp wide, the skeleton's right column blocks sit where the loaded pieces land`() = assertRightColumnInPlace(1200.dp)
+
+    @Test
     fun `a narrow pane keeps the single column's loading bars`() {
         openGate = CompletableDeferred()
         show(showUp = false, pane = 600.dp)
@@ -229,6 +235,38 @@ class FriendPuzzleGridTest {
         composeRule.waitForIdle()
 
         assertEquals(loading, bounds("friend.card.board.hidden"))
+    }
+
+    /**
+     * Each block of the skeleton's right column starts where the loaded page's piece does, within 8 dp, and the columns
+     * span the same top and bottom, so nothing moves vertically when the page arrives. The note sits inside its card's
+     * padding, so the card is the note's bounds grown by [Spacing.md].
+     */
+    private fun assertRightColumnInPlace(pane: Dp) {
+        openGate = CompletableDeferred()
+        show(showUp = false, pane = pane)
+        val pieces = listOf("right", "head", "title", "note", "action", "ranks")
+        val skeleton = pieces.associateWith { bounds("friend.card.grid.skeleton.$it") }
+        openGate?.complete(Unit)
+        composeRule.waitForIdle()
+
+        val margin = with(composeRule.density) { Spacing.md.toPx() }
+        val loaded = mapOf(
+            "right" to bounds("friend.card.grid.right"),
+            "head" to bounds("friend.card.copy"),
+            "title" to bounds("friend.card.title"),
+            "note" to bounds("friend.card.note").let { Rect(it.left, it.top - margin, it.right, it.bottom + margin) },
+            "action" to bounds("friend.card.play"),
+            "ranks" to bounds("friend.card.board"),
+        )
+        val tolerance = with(composeRule.density) { 8.dp.toPx() }
+        val off = loaded.flatMap { (piece, landed) ->
+            val drawn = skeleton.getValue(piece)
+            val edges = mutableListOf("$piece top" to drawn.top - landed.top)
+            if (piece in setOf("right", "note", "action", "ranks")) edges += "$piece bottom" to drawn.bottom - landed.bottom
+            edges
+        }.filter { (_, delta) -> kotlin.math.abs(delta) > tolerance }
+        assertTrue("skeleton off the loaded page (dp): ${off.map { (what, delta) -> "$what ${delta / composeRule.density.density}" }}", off.isEmpty())
     }
 
     /** The topmost and lowest parts of the page leave equal gaps above and below, within 1 dp. */
