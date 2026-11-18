@@ -9,9 +9,7 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.compete.create.lineup.LineupDraft
 import com.ivandsky.puzzlebox.compete.create.lineup.LineupEditor
-import com.ivandsky.puzzlebox.compete.create.lineup.lineupSummary
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
-import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.domain.CreateMatch
@@ -65,28 +63,15 @@ internal class NewDuelViewModel(
     private val registry: GameRegistry,
     createSelfDuel: CreateSelfDuel,
     computeSolvedPool: ComputeSolvedPool,
-    private val clock: () -> Instant,
-    private val zone: () -> ZoneId,
-    private val locale: () -> Locale,
+    clock: () -> Instant,
+    zone: () -> ZoneId,
+    locale: () -> Locale,
     private val releaseFlags: ReleaseFlags? = null,
 ) : ViewModel() {
 
-    private data class Working(
-        val draft: DuelDraft,
-        val creating: Boolean = false,
-        val notice: DuelNotice? = null,
-        val signInRequired: Boolean = false,
-        val signIn: DuelSignIn = DuelSignIn.Idle,
-        val generation: Int = 0,
-        val challenge: DuelChallenge? = null,
-        val opponent: Opponent = Opponent.Friend,
-        val form: SelfDuelForm = SelfDuelForm.quick(emptyList()),
-        val lineup: LineupEditor = LineupEditor(),
-    )
-
     private val signInStep = DuelSignInStep(identity, idTokens)
     private val selfStep = SelfDuelStep(computeSolvedPool, createSelfDuel)
-    private val working = MutableStateFlow(Working(DuelDraft.quick(emptyList())))
+    private val working = MutableStateFlow(DuelWorking(DuelDraft.quick(emptyList())))
     private val createdCodes = Channel<CreatedDuel>(Channel.BUFFERED)
     private val openedCodes = Channel<ShareCode>(Channel.BUFFERED)
 
@@ -121,11 +106,13 @@ internal class NewDuelViewModel(
 
     private val lineupOn: Flow<Boolean> = releaseFlags?.enabled?.map { ReleaseFlag.DuelLineup in it } ?: flowOf(false)
 
-    val state: StateFlow<NewDuelState> = combine(working, games, identity.current, solved, lineupOn, ::build)
+    private val builder = NewDuelStateBuilder(clock, zone, locale)
+
+    val state: StateFlow<NewDuelState> = combine(working, games, identity.current, solved, lineupOn, builder::build)
         .stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
-            build(working.value, emptyList(), identity.current.value, solved.value, lineupOn = false),
+            builder.build(working.value, emptyList(), identity.current.value, solved.value, lineupOn = false),
         )
 
     init {
@@ -142,39 +129,10 @@ internal class NewDuelViewModel(
         }
     }
 
-    private fun build(work: Working, available: List<DuelGame>, who: Identity?, counts: SolvedCounts?, lineupOn: Boolean): NewDuelState {
-        val offered = work.challenge == null
-        val opponent = if (offered) work.opponent else Opponent.Friend
-        val self = SelfDuelView(work.form, counts, available)
-        val lineup = work.lineup.takeIf { lineupOn && opponent == Opponent.Friend }
-        return NewDuelState(
-            draft = work.draft,
-            games = available,
-            summary = when {
-                opponent == Opponent.PastYou -> self.summary
-                lineup != null && work.draft.preset == DuelPreset.Custom -> lineupSummary(
-                    lineup.entries, work.draft.deadlineHours, work.draft.includeFriends, clock(), zone(), locale(),
-                ) { id -> available.firstOrNull { it.id == id }?.name ?: id.value }
-                else -> work.draft.summary(clock(), zone(), available, locale())
-            },
-            invitee = work.challenge?.friendName,
-            // Past you needs no account: only a friend duel meets the sign-in panel.
-            step = if (opponent == Opponent.Friend && (who == null || work.signInRequired)) DuelStep.SignIn else DuelStep.Create,
-            creating = work.creating,
-            notice = work.notice,
-            signIn = work.signIn,
-            selfOffered = offered,
-            opponent = opponent,
-            selfName = who?.displayName ?: "You",
-            self = self,
-            lineup = lineup,
-        )
-    }
-
-    private fun selfActive(work: Working) = work.opponent == Opponent.PastYou && work.challenge == null
+    private fun selfActive(work: DuelWorking) = work.opponent == Opponent.PastYou && work.challenge == null
 
     /** Past you or a friend: the choice is kept apart, so each keeps its own draft while the other is shown. */
-    fun chooseOpponent(opponent: Opponent) = working.update { it.copy(opponent = opponent, notice = null) }
+    fun chooseOpponent(opponent: Opponent) = working.update { it.withoutNotice().copy(opponent = opponent) }
 
     fun chooseQuick() = edit(friend = { DuelDraft.quick(games.value) }, self = { SelfDuelForm.quick(games.value) })
     fun chooseDaily() = edit(friend = { DuelDraft.daily(games.value) })
@@ -184,12 +142,13 @@ internal class NewDuelViewModel(
     fun setFriends(included: Boolean) = edit(friend = { it.withFriends(included) }, self = { it.withFriends(included) })
 
     /** Customize, with the lineup on, is a preset of its own: the duel is the lineup's puzzles. The rows are kept from before. */
-    fun chooseCustom() = working.update { if (it.draft.preset == DuelPreset.Custom) it else it.copy(draft = it.draft.customized(), notice = null) }
+    fun chooseCustom() = working.update { if (it.draft.preset == DuelPreset.Custom) it else it.withoutNotice().copy(draft = it.draft.customized()) }
 
     /** Applies [edit] to the lineup; it is a Customize edit, so it leaves Quick and Daily, and it clears a refusal. */
     fun editLineup(edit: (LineupEditor) -> LineupEditor) = working.update {
-        val next = edit(it.lineup)
-        if (next == it.lineup) it else it.copy(lineup = next, draft = it.draft.customized(), notice = it.notice.takeUnless { n -> n is DuelNotice.EntryUndrawable })
+        val cleared = if (it.notice is DuelNotice.EntryUndrawable) it.withoutNotice() else it
+        val next = edit(cleared.lineup)
+        if (next == cleared.lineup) it else cleared.copy(lineup = next, draft = it.draft.customized())
     }
 
     /**
@@ -213,9 +172,9 @@ internal class NewDuelViewModel(
      */
     private fun edit(friend: (DuelDraft) -> DuelDraft, self: (SelfDuelForm) -> SelfDuelForm = { it }) = working.update {
         if (selfActive(it)) {
-            it.copy(form = self(it.form), notice = null)
+            it.withoutNotice().copy(form = self(it.form))
         } else {
-            it.copy(draft = friend(it.draft), lineup = it.lineup.unpinned(), notice = null)
+            it.withoutNotice().let { cleared -> cleared.copy(draft = friend(it.draft), lineup = cleared.lineup.unpinned()) }
         }
     }
 
@@ -224,12 +183,12 @@ internal class NewDuelViewModel(
 
     /** Back to the Quick duel with nothing pending (no challenge either), as the sheet closes; a create still in flight keeps its place in [created] but not the sheet. */
     fun reset() = working.update {
-        Working(DuelDraft.quick(games.value), form = SelfDuelForm.quick(games.value), generation = it.generation + 1, lineup = LineupEditor.opening(games.value))
+        DuelWorking(DuelDraft.quick(games.value), form = SelfDuelForm.quick(games.value), generation = it.generation + 1, lineup = LineupEditor.opening(games.value))
     }
 
     /** Create duel, one at a time; a created duel stays `creating` until [reset]. A failure from before a [reset] is dropped; a created duel is not. */
     fun create() {
-        val start = working.getAndUpdate { if (it.creating) it else it.copy(creating = true, notice = null) }
+        val start = working.getAndUpdate { if (it.creating) it else it.withoutNotice().copy(creating = true) }
         if (start.creating) return
         if (selfActive(start)) return createSelf(start)
         if (start.draft.games.isEmpty()) return
@@ -263,7 +222,7 @@ internal class NewDuelViewModel(
     }
 
     /** Create against Past you: no account, no code to share; the new duel's code leaves through [opened]. */
-    private fun createSelf(start: Working) {
+    private fun createSelf(start: DuelWorking) {
         viewModelScope.launch {
             val outcome = selfStep.create(start.form, solved.value)
             var current = false

@@ -21,6 +21,12 @@ internal data class LineupDraft(val entries: List<LineupEntry>) {
     fun removed(index: Int): LineupDraft =
         if (canRemove && index in entries.indices) copy(entries = entries.filterIndexed { at, _ -> at != index }) else this
 
+    /** The puzzle at [from] taken out and put back so it ends at [to]; the others keep their order. */
+    fun moved(from: Int, to: Int): LineupDraft {
+        if (from == to || from !in entries.indices || to !in entries.indices) return this
+        return copy(entries = entries.toMutableList().apply { add(to, removeAt(from)) })
+    }
+
     companion object {
         const val MIN_ENTRIES = 1
         const val OPENING_ENTRIES = 3

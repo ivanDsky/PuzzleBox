@@ -37,8 +37,16 @@ internal data class LineupEditor(
     fun remove(index: Int): LineupEditor = copy(draft = draft.removed(index), target = null, flashed = null, marked = null, pinned = null)
     fun flashDone(): LineupEditor = copy(flashed = null)
 
+    /** Moves the puzzle at [from] to [to], which only reorders the rows; nothing else about them changes. */
+    fun moved(from: Int, to: Int): LineupEditor {
+        val next = draft.moved(from, to)
+        return if (next == draft) this else copy(draft = next, target = null, flashed = null, marked = null, pinned = null)
+    }
+
     /** Create refused the row at [position], which counts from 1. */
     fun refused(position: Int): LineupEditor = copy(marked = position - 1)
+
+    fun unmarked(): LineupEditor = if (marked == null) this else copy(marked = null)
 
     fun pin(legs: List<MatchLeg>): LineupEditor = copy(pinned = legs.map(MatchLeg::asExact))
 

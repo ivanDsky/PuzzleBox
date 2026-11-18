@@ -59,4 +59,22 @@ class LineupDraftTest {
         assertSame(draft, draft.replaced(2, AnyGame(QUEENS)))
         assertSame(draft, draft.removed(-1))
     }
+
+    @Test
+    fun `moving a puzzle to another slot keeps the others in order, at either end of the list`() {
+        val draft = draftOf(listOf(ZIP, TANGO, QUEENS, MINI))
+
+        assertEquals(draftOf(listOf(QUEENS, ZIP, TANGO, MINI)), draft.moved(2, 0))
+        assertEquals(draftOf(listOf(TANGO, QUEENS, MINI, ZIP)), draft.moved(0, 3))
+        assertEquals(draftOf(listOf(ZIP, QUEENS, TANGO, MINI)), draft.moved(1, 2))
+    }
+
+    @Test
+    fun `a move to the same slot or from or to a row that does not exist changes nothing`() {
+        val draft = draftOf(listOf(ZIP, TANGO))
+
+        assertSame(draft, draft.moved(1, 1))
+        assertSame(draft, draft.moved(0, 2))
+        assertSame(draft, draft.moved(-1, 0))
+    }
 }

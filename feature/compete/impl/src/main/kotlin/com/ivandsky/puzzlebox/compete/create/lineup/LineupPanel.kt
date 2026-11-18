@@ -12,13 +12,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.compete.create.DuelGame
@@ -32,6 +36,7 @@ import org.koin.compose.koinInject
 private const val FLASH_MS = 600L
 private val ADD_MIN_HEIGHT = 56.dp
 private val ADD_SHAPE = RoundedCornerShape(12.dp)
+private val ROW_GAP = Spacing.sm
 private val DASH = floatArrayOf(16f, 12f)
 
 /**
@@ -50,13 +55,17 @@ internal fun LineupPanel(
     val registry = koinInject<GamePlayRegistry>()
     val draft = editor.draft
     val edit by rememberUpdatedState(onEdit)
+    val heights = remember { IntArray(Match.MAX_LEGS) }
+    val gap = with(LocalDensity.current) { ROW_GAP.toPx() }
+    var drag by remember { mutableStateOf<ActiveDrag?>(null) }
+    val landed = drag?.let { it.dropped && (draft != it.base || it.reorder.target == it.reorder.lifted) } == true
     LaunchedEffect(editor.flashed, draft) {
         if (editor.flashed != null) {
             delay(FLASH_MS)
             edit { it.flashDone() }
         }
     }
-    Column(modifier.fillMaxWidth().testTag("duel.lineup"), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+    Column(modifier.fillMaxWidth().testTag("duel.lineup"), verticalArrangement = Arrangement.spacedBy(ROW_GAP)) {
         Text(
             text = "Puzzles, in order · ${draft.size} of ${Match.MAX_LEGS}",
             style = MaterialTheme.typography.titleSmall,
@@ -64,16 +73,37 @@ internal fun LineupPanel(
             modifier = Modifier.testTag("duel.lineup.header"),
         )
         draft.entries.forEachIndexed { index, entry ->
-            LineupRow(
-                position = index + 1,
-                model = entry.rowModel(games.firstOrNull { it.id == entry.gameId }?.name ?: entry.gameId.value, includeFriends),
-                brand = registry.brandOf(entry.gameId),
-                canRemove = draft.canRemove,
-                flashed = editor.flashed == index,
-                refused = editor.marked == index,
-                onClick = { edit { it.openChange(index) } },
-                onRemove = { edit { it.remove(index) } },
-            )
+            LineupSlot(
+                index = index,
+                drag = drag,
+                landed = landed,
+                onSize = { heights[index] = it },
+                onSettled = { drag = null },
+            ) { placed, lifted ->
+                LineupRow(
+                    position = index + 1,
+                    model = entry.rowModel(games.firstOrNull { it.id == entry.gameId }?.name ?: entry.gameId.value, includeFriends),
+                    brand = registry.brandOf(entry.gameId),
+                    canRemove = draft.canRemove,
+                    flashed = editor.flashed == index,
+                    refused = editor.marked == index,
+                    lifted = lifted,
+                    drag = RowDrag(
+                        onStart = { if (drag == null) drag = ActiveDrag(LineupReorder.lift(List(draft.size) { heights[it] + gap }, index), draft) },
+                        onDelta = { dy -> drag = drag?.takeIf { !it.dropped }?.let { it.copy(reorder = it.reorder.dragged(dy)) } ?: drag },
+                        onEnd = {
+                            drag = drag?.takeIf { !it.dropped }?.also { held ->
+                                val (from, to) = held.reorder.lifted to held.reorder.target
+                                if (from != to) edit { it.moved(from, to) }
+                            }?.copy(dropped = true) ?: drag
+                        },
+                        onCancel = { drag = null },
+                    ),
+                    onClick = { edit { it.openChange(index) } },
+                    onRemove = { edit { it.remove(index) } },
+                    modifier = placed,
+                )
+            }
         }
         if (draft.canAdd) {
             AddRow(position = draft.size + 1, onClick = { edit { it.openAdd() } })

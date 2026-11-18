@@ -77,4 +77,20 @@ class LineupEditorTest {
         assertEquals(opening.entries, pinned.unpinned().entries)
         assertEquals(opening.remove(0).entries, pinned.remove(0).entries)
     }
+
+    @Test
+    fun `a move reorders the draft, drops the pinned puzzles and the refusal mark, and a move in place is no edit`() {
+        val daily = MatchLeg(LegRef.Daily(ZIP, LocalDate.of(2026, 11, 1), 12), authorUid = null)
+        val moved = opening.refused(1).pin(listOf(daily)).moved(2, 0)
+
+        assertEquals(listOf(QUEENS, ZIP, TANGO), moved.entries.map { it.gameId })
+        assertNull(moved.marked)
+        assertSame(opening, opening.moved(1, 1))
+    }
+
+    @Test
+    fun `unmarked clears only the mark`() {
+        assertNull(opening.refused(2).unmarked().marked)
+        assertSame(opening, opening.unmarked())
+    }
 }

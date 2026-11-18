@@ -1,21 +1,40 @@
 package com.ivandsky.puzzlebox.compete.create.lineup
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.compete.create.GAMES
+import com.ivandsky.puzzlebox.compete.create.QUEENS
 import com.ivandsky.puzzlebox.compete.create.TANGO
 import com.ivandsky.puzzlebox.compete.create.ZIP
 import com.ivandsky.puzzlebox.compete.create.newDuelBrands
 import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.lineup.AnyGame
+import java.time.Instant
+import java.time.ZoneOffset
+import java.util.Locale
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -100,5 +119,105 @@ class LineupPanelTest {
         rule.onNodeWithTag("duel.lineup.sheet.game.${TANGO.value}").performClick()
 
         assertEquals(AnyGame(TANGO), editor.draft.entries.last())
+    }
+
+    @Test
+    fun `dragging row 3 by its handle above row 1 makes the lineup read 3, 1, 2 and the summary follow`() {
+        var editor by mutableStateOf(LineupEditor.opening(GAMES))
+        val names = mapOf(ZIP to "Zip", TANGO to "Tango", QUEENS to "Queens")
+        rule.setContent {
+            PuzzleBoxTheme {
+                Column {
+                    Text(
+                        lineupSummary(editor.entries, 24, false, Instant.parse("2026-11-09T10:00:00Z"), ZoneOffset.UTC, Locale.US) { names.getValue(it) },
+                        Modifier.testTag("summary"),
+                    )
+                    LineupPanel(editor, GAMES, includeFriends = false, onEdit = { edit -> editor = edit(editor) })
+                }
+            }
+        }
+        rule.waitForIdle()
+        val rowHeight = rule.onNodeWithTag("duel.lineup.row.3").fetchSemanticsNode().size.height.toFloat()
+
+        rule.onNodeWithTag("duel.lineup.handle.3", useUnmergedTree = true).performTouchInput {
+            down(center)
+            repeat(DRAG_STEPS) { moveBy(Offset(0f, -rowHeight * 2.5f / DRAG_STEPS)) }
+            up()
+        }
+        rule.waitForIdle()
+
+        assertEquals(listOf(QUEENS, ZIP, TANGO), editor.entries.map { it.gameId })
+        rule.onNodeWithTag("duel.lineup.row.1").assertTextContains("Any Queens", substring = true)
+        rule.onNodeWithTag("duel.lineup.row.3").assertTextContains("Any Tango", substring = true)
+        rule.onNodeWithTag("summary").assertTextContains("Best of 3 · Queens, Zip, Tango", substring = true)
+    }
+
+    @Test
+    fun `a short drag that stays within its slot leaves the order as it was`() {
+        var editor by mutableStateOf(LineupEditor.opening(GAMES))
+        show(editor) { edit -> editor = edit(editor) }
+        val rowHeight = rule.onNodeWithTag("duel.lineup.row.1").fetchSemanticsNode().size.height.toFloat()
+
+        rule.onNodeWithTag("duel.lineup.handle.1", useUnmergedTree = true).performTouchInput {
+            down(center)
+            repeat(DRAG_STEPS) { moveBy(Offset(0f, rowHeight * 0.3f / DRAG_STEPS)) }
+            up()
+        }
+        rule.waitForIdle()
+
+        assertEquals(listOf(ZIP, TANGO, QUEENS), editor.entries.map { it.gameId })
+    }
+
+    /** The panel as NewDuelSheet holds it: in a column that scrolls, taller than its window. */
+    private fun showScrolling(onEdit: ((LineupEditor) -> LineupEditor) -> Unit): androidx.compose.foundation.ScrollState {
+        val scroll = androidx.compose.foundation.ScrollState(0)
+        rule.setContent {
+            PuzzleBoxTheme {
+                Column(Modifier.height(400.dp).verticalScroll(scroll)) {
+                    LineupPanel(LineupEditor.opening(GAMES), GAMES, includeFriends = false, onEdit = onEdit)
+                    Spacer(Modifier.height(1_000.dp))
+                }
+            }
+        }
+        rule.waitForIdle()
+        return scroll
+    }
+
+    @Test
+    fun `in a scrolling column a handle drag reorders and the column does not scroll`() {
+        var editor = LineupEditor.opening(GAMES)
+        val scroll = showScrolling { edit -> editor = edit(editor) }
+        val rowHeight = rule.onNodeWithTag("duel.lineup.row.1").fetchSemanticsNode().size.height.toFloat()
+
+        rule.onNodeWithTag("duel.lineup.handle.1", useUnmergedTree = true).performTouchInput {
+            down(center)
+            repeat(DRAG_STEPS) { moveBy(Offset(0f, rowHeight * 2.5f / DRAG_STEPS)) }
+            up()
+        }
+        rule.waitForIdle()
+
+        assertEquals(listOf(TANGO, QUEENS, ZIP), editor.entries.map { it.gameId })
+        assertEquals(0, scroll.value)
+    }
+
+    @Test
+    fun `a drag the system cancels puts the row back and reorders nothing`() {
+        var editor = LineupEditor.opening(GAMES)
+        val scroll = showScrolling { edit -> editor = edit(editor) }
+        val rowHeight = rule.onNodeWithTag("duel.lineup.row.1").fetchSemanticsNode().size.height.toFloat()
+
+        rule.onNodeWithTag("duel.lineup.handle.1", useUnmergedTree = true).performTouchInput {
+            down(center)
+            repeat(DRAG_STEPS) { moveBy(Offset(0f, rowHeight * 2.5f / DRAG_STEPS)) }
+            cancel()
+        }
+        rule.waitForIdle()
+
+        assertEquals(listOf(ZIP, TANGO, QUEENS), editor.entries.map { it.gameId })
+        assertEquals(0, scroll.value)
+    }
+
+    private companion object {
+        const val DRAG_STEPS = 10
     }
 }
