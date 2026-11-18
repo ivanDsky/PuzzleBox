@@ -9,8 +9,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performTouchInput
 import com.ivandsky.puzzlebox.create.GOLDEN_PHONE
+import com.ivandsky.puzzlebox.create.GOLDEN_PHONE_360
 import com.ivandsky.puzzlebox.create.GOLDEN_TABLET
 import com.ivandsky.puzzlebox.create.settleAndCapture
 import com.ivandsky.puzzlebox.create.showGolden
@@ -43,6 +47,12 @@ import org.robolectric.annotation.GraphicsMode
 @Config(sdk = [34], qualifiers = GOLDEN_PHONE)
 class PublishGoldenScreenshotsPhone : PublishGoldenScreenshots(PlayLayout.SinglePane, "phone")
 
+/** The same matrix on a 360 dp phone, where the paired author field is narrowest. */
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(sdk = [34], qualifiers = GOLDEN_PHONE_360)
+class PublishGoldenScreenshotsPhone360 : PublishGoldenScreenshots(PlayLayout.SinglePane, "phone-360")
+
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = GOLDEN_TABLET)
@@ -59,8 +69,8 @@ abstract class PublishGoldenScreenshots(private val layout: PlayLayout, private 
     @Test fun `details link only light`() = capture("details-link-only", PublishSession.State(details = PICKER_LINK_ONLY), dark = false)
     @Test fun `details link only dark`() = capture("details-link-only", PublishSession.State(details = PICKER_LINK_ONLY), dark = true)
 
-    @Test fun `signed out light`() = capture("signed-out", SIGNED_OUT, dark = false)
-    @Test fun `signed out dark`() = capture("signed-out", SIGNED_OUT, dark = true)
+    @Test fun `signed out light`() = capture("signed-out", SIGNED_OUT, dark = false, focusAuthor = true)
+    @Test fun `signed out dark`() = capture("signed-out", SIGNED_OUT, dark = true, focusAuthor = true)
 
     @Test fun `sign-in sheet light`() = capture("sign-in-sheet", SIGNED_OUT.copy(signIn = PublishSession.SignIn()), dark = false)
     @Test fun `sign-in sheet dark`() = capture("sign-in-sheet", SIGNED_OUT.copy(signIn = PublishSession.SignIn()), dark = true)
@@ -83,11 +93,19 @@ abstract class PublishGoldenScreenshots(private val layout: PlayLayout, private 
     @Test fun `unpublished record light`() = capture("unpublished", PUBLISHED, dark = false, ticket = TICKET.copy(unpublished = true))
     @Test fun `unpublished record dark`() = capture("unpublished", PUBLISHED, dark = true, ticket = TICKET.copy(unpublished = true))
 
-    private fun capture(name: String, publish: PublishSession.State, dark: Boolean, ticket: ShareTicket? = null) {
+    private fun capture(
+        name: String,
+        publish: PublishSession.State,
+        dark: Boolean,
+        ticket: ShareTicket? = null,
+        focusAuthor: Boolean = false,
+    ) {
         rule.showGolden(dark) {
             Studio(publish, ticket)
             SignInPublishSheet(signIn = publish.signIn, onGoogle = {}, onCancel = {})
         }
+        // The author placeholder shows only while its field is focused, so a tap focuses it as a user's does.
+        if (focusAuthor) rule.onNodeWithTag(AUTHOR_FIELD).performTouchInput { click() }
         rule.settleAndCapture("publish", name, device, dark)
     }
 
@@ -175,6 +193,7 @@ abstract class PublishGoldenScreenshots(private val layout: PlayLayout, private 
 
     private companion object {
         const val TITLE = "Sunday Queens"
+        const val AUTHOR_FIELD = "create.details.author"
 
         val SIZE = VariantId("queens/6")
         val UNIQUE = Verdict.Unique(Solution(listOf(1, 9, 12, 22, 26, 35)))
