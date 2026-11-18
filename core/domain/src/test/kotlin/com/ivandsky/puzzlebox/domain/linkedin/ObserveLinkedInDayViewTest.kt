@@ -2,19 +2,23 @@ package com.ivandsky.puzzlebox.domain.linkedin
 
 import com.ivandsky.puzzlebox.data.linkedin.LinkState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInDayData
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInDays
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInLink
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInSync
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView.Target
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead.Rejected.Kind
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInLink
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.LocalDate
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -335,7 +339,84 @@ class ObserveLinkedInDayViewTest {
         assertEquals(listOf(game to dayA, game to dayA), days.syncCalls)
     }
 
+    @Test
+    fun aConnectWhileTheDayIsShownSyncsItAgainAndShowsWhatItReads() = runTest(main.testDispatcher) {
+        val link = FakeLinkedInLink()
+        val linked = LinkedDays(link, days)
+        target.value = Target(game, dayA)
+        val views = mutableListOf<LinkedInDayView?>()
+        ObserveLinkedInDayView(ObserveLinkedInDay(linked, TestGames.registry(listOf(game))), SyncLinkedInDay(linked, 500), link, linked)(target)
+            .onEach { views += it }.launchIn(backgroundScope)
+        after(HOUR_MS)
+        // The day was shown with no account: its sync found none and read nothing.
+        assertEquals(emptyList<Any>(), days.syncCalls)
+        assertEquals(LinkedInDayStatus.NotConnected, views.last()?.status)
+
+        link.connect(profile, consentAtMs = 0)
+        after(500)
+
+        assertEquals(listOf(game to dayA), days.syncCalls)
+        assertEquals(LinkedInDayStatus.DidNotPlay, views.last()?.status)
+    }
+
+    @Test
+    fun aReconnectOfAPausedLinkSyncsTheShownDayAgain() = runTest(main.testDispatcher) {
+        val link = FakeLinkedInLink(paused)
+        val linked = LinkedDays(link, days)
+        target.value = Target(game, dayA)
+        ObserveLinkedInDayView(ObserveLinkedInDay(linked, TestGames.registry(listOf(game))), SyncLinkedInDay(linked, 500), link, linked)(target)
+            .launchIn(backgroundScope)
+        after(HOUR_MS)
+        assertEquals(emptyList<Any>(), days.syncCalls)
+
+        link.connect(profile, consentAtMs = 0)
+        after(500)
+
+        assertEquals(listOf(game to dayA), days.syncCalls)
+    }
+
+    /** The connect lands at every moment of the debounce and beyond: the first read after it goes out and is shown, every time. */
+    @Test
+    fun theFirstReadAfterAConnectIsSentAndShownWheneverTheConnectLands() = runTest(main.testDispatcher) {
+        repeat(CONNECT_RUNS) { run ->
+            val fresh = FakeLinkedInDays()
+            val link = FakeLinkedInLink()
+            val linked = LinkedDays(link, fresh)
+            val target = MutableStateFlow<Target?>(Target(game, dayA))
+            val views = mutableListOf<LinkedInDayView?>()
+            val screen = ObserveLinkedInDayView(ObserveLinkedInDay(linked, TestGames.registry(listOf(game))), SyncLinkedInDay(linked, 500), link, linked)(target)
+                .onEach { views += it }.launchIn(this)
+
+            after(run * 17L)
+            link.connect(profile, consentAtMs = 0)
+            after(500)
+
+            assertEquals("run $run", listOf(game to dayA), fresh.syncCalls)
+            assertEquals("run $run", LinkedInDayStatus.DidNotPlay, views.last()?.status)
+            screen.cancel()
+        }
+    }
+
+    /**
+     * [days] as the real store behaves around the link: a sync reads nothing unless an account is linked, and
+     * what a read finds is what the day then shows.
+     */
+    private inner class LinkedDays(private val link: LinkedInLink, private val store: FakeLinkedInDays) : LinkedInDays by store {
+        override suspend fun sync(game: GameId, day: LocalDate): LinkedInSync {
+            val linked = link.state.first()
+            if (linked !is LinkState.Connected) return LinkedInSync.NotLinked
+            store.sync(game, day)
+            store.emit(game, day, data(own = LinkedInOwnState.NotPlayed, lastSync = LinkedInSync.Done).copy(link = linked))
+            return LinkedInSync.Done
+        }
+
+        /** Shows the link as it is, as the real store does, until a read finds something. */
+        override fun observe(game: GameId, day: LocalDate): Flow<LinkedInDayData> =
+            combine(store.observe(game, day), link.state) { stored, linked -> stored.copy(link = linked) }
+    }
+
     private companion object {
         const val HOUR_MS = 3_600_000L
+        const val CONNECT_RUNS = 50
     }
 }
