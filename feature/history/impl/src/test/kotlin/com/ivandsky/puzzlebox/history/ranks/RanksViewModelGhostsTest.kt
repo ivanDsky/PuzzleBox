@@ -7,9 +7,9 @@ import com.ivandsky.puzzlebox.data.linkedin.LinkedInDayData
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
 import com.ivandsky.puzzlebox.domain.ranks.RankScope
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardLine
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.LocalDate

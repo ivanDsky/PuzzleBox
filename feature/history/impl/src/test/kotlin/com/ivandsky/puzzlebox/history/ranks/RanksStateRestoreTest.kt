@@ -15,8 +15,8 @@ import com.ivandsky.puzzlebox.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.QUEENS
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.LocalDate

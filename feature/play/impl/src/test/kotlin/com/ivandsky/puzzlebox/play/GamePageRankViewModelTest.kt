@@ -21,13 +21,13 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.RecordStats
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
-import com.ivandsky.puzzlebox.gameui.board.GhostRowModel
 import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardLine
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardRowModel
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
+import com.ivandsky.puzzlebox.resultui.board.GhostRowModel
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays

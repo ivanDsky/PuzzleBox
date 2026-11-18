@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.history.ranks
 
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
 
 /**
  * What the board slot draws: the kit's [state] under [title] and the rule caption of [order]

@@ -13,10 +13,10 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatus
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
-import com.ivandsky.puzzlebox.gameui.board.GhostRowModel
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardLine
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardRowModel
+import com.ivandsky.puzzlebox.resultui.board.GhostRowModel
 
 // A 30% side pane on a 1280dp-wide tablet.
 private val PreviewPaneWidth = 384.dp

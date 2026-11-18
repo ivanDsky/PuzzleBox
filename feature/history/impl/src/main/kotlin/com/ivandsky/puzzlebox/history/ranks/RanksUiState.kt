@@ -2,9 +2,9 @@ package com.ivandsky.puzzlebox.history.ranks
 
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.ranks.RankScope
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import com.ivandsky.puzzlebox.history.CalendarState
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardLine
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
 
 /**
  * Everything the hub renders, one slice per concern; each slot reads only its own slice. Later

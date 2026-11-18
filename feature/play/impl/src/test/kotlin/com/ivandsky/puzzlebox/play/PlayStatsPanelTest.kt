@@ -46,14 +46,14 @@ import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.today
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardStyle
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
 import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
 import com.ivandsky.puzzlebox.play.friend.oneGoogleAccount
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardLine
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardRowModel
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardStyle
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays

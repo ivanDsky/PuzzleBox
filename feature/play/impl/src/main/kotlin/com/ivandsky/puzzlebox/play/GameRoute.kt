@@ -13,10 +13,10 @@ import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayHints
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.PlayOverflowItem
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardStyle
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.GameKey
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardStyle
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 

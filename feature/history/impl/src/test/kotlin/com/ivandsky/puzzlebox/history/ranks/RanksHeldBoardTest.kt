@@ -12,10 +12,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import com.ivandsky.puzzlebox.history.CalendarState
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardRowModel
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame

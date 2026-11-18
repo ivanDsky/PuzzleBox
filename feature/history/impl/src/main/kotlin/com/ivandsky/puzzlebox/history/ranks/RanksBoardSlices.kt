@@ -10,9 +10,9 @@ import com.ivandsky.puzzlebox.domain.ranks.RankWindow
 import com.ivandsky.puzzlebox.domain.ranks.RankWindowBoards
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.gameui.board.withOwnPhoto
 import com.ivandsky.puzzlebox.history.HistoryDayRow
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.resultui.board.withOwnPhoto
 import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow

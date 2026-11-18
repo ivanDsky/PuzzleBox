@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.play.navigation
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.gameui.PlayLayout
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardStyle
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.DuelPrefill
@@ -28,6 +27,7 @@ import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.play.friend.CustomResultRoute
 import com.ivandsky.puzzlebox.play.friend.FriendPuzzleRoute
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardStyle
 import java.time.LocalDate
 import org.koin.compose.koinInject
 

@@ -3,8 +3,8 @@ package com.ivandsky.puzzlebox.history.ranks
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInBoardView
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
-import com.ivandsky.puzzlebox.gameui.board.GhostRowModel
-import com.ivandsky.puzzlebox.gameui.board.LinkedInYou
+import com.ivandsky.puzzlebox.resultui.board.GhostRowModel
+import com.ivandsky.puzzlebox.resultui.board.LinkedInYou
 
 /**
  * What one day's LinkedIn data adds to a Friends board: the connections as [ghosts], the viewer's own import as [you],

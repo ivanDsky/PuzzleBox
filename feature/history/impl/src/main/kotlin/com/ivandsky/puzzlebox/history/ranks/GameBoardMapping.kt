@@ -8,13 +8,13 @@ import com.ivandsky.puzzlebox.domain.ranks.gameWindowStandings
 import com.ivandsky.puzzlebox.domain.ranks.connectionUid
 import com.ivandsky.puzzlebox.domain.ranks.rankBoard
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.gameui.board.BoardRowValue
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
-import com.ivandsky.puzzlebox.gameui.board.LinkedInYou
 import com.ivandsky.puzzlebox.history.ranks.RanksSelection.Window
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.resultui.board.BoardRowValue
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardLine
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardRowModel
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
+import com.ivandsky.puzzlebox.resultui.board.LinkedInYou
 import kotlin.math.roundToInt
 
 /**

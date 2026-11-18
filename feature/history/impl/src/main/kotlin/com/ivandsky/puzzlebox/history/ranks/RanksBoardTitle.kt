@@ -1,6 +1,6 @@
 package com.ivandsky.puzzlebox.history.ranks
 
-import com.ivandsky.puzzlebox.gameui.board.dailyBoardTitle
+import com.ivandsky.puzzlebox.resultui.board.dailyBoardTitle
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter

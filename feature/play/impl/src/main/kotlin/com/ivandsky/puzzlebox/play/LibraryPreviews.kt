@@ -24,11 +24,11 @@ import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GameCardModel
 import com.ivandsky.puzzlebox.gameui.PlayLayout
-import com.ivandsky.puzzlebox.gameui.board.DailyBoard
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
-import com.ivandsky.puzzlebox.gameui.board.dailyBoardTitle
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.resultui.board.DailyBoard
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardRowModel
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
+import com.ivandsky.puzzlebox.resultui.board.dailyBoardTitle
 import java.time.LocalDate
 
 private val PreviewToday = LocalDate.parse("2026-11-05")

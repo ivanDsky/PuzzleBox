@@ -7,7 +7,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
 import kotlinx.coroutines.delay
 
 /** How long a board on screen waits for the next day's before the hub says Loading; the game page's board waits as long. */

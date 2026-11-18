@@ -22,9 +22,9 @@ import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.OnTabReselect
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.history.HistoryLayout
 import com.ivandsky.puzzlebox.history.RanksTuneDefaults
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardRowModel
 
 /**
  * The Ranks hub as a stack of slots, each reading only its own slice of [state]; every tap is reported through [actions].

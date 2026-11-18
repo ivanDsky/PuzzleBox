@@ -13,10 +13,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
-import com.ivandsky.puzzlebox.gameui.board.LocalSelfRowJump
-import com.ivandsky.puzzlebox.gameui.board.SelfRowJump
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardRowModel
+import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
+import com.ivandsky.puzzlebox.resultui.board.LocalSelfRowJump
+import com.ivandsky.puzzlebox.resultui.board.SelfRowJump
 import kotlinx.coroutines.launch
 
 /**
