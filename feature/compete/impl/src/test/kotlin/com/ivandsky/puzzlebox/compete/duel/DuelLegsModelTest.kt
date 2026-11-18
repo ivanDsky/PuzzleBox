@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.data.match.SelfSeats
 import com.ivandsky.puzzlebox.domain.LegSeen
 import com.ivandsky.puzzlebox.domain.MatchView
 import com.ivandsky.puzzlebox.domain.Outcome
+import com.ivandsky.puzzlebox.domain.lineup.LegName
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
@@ -270,5 +271,42 @@ class DuelLegsModelTest {
 
         assertTrue(text.contains("Your duel with Bob closes in 17 h 42 m."))
         assertTrue(text.contains(code.matchLink))
+    }
+
+    private fun customMatch(): Match = match(legs = 0).copy(
+        legs = listOf(MatchLeg(LegRef.Daily(zip, day, 400), null), MatchLeg(LegRef.Custom(zip, code), "cleo")),
+    )
+
+    @Test
+    fun aCustomPuzzleWithANameIsTitledByItAndSubtitledWithTheGameAuthorAndCode() {
+        val rows = duelLegsModel(
+            view(customMatch()), emptyMap(), createdAt, nameOf = { "Zip" }, rankOrderOf = { RankOrder.TimeThenHints },
+            names = mapOf(code to LegName("Crown jewels", "Cleo")),
+        ).rows
+
+        assertEquals("Crown jewels", rows[1].title)
+        assertEquals("Zip · by Cleo · ${code.display}", rows[1].subtitle)
+        assertTrue(rows[1].custom)
+        assertEquals("Zip #400", rows[0].title)
+        assertNull(rows[0].subtitle)
+        assertFalse(rows[0].custom)
+    }
+
+    @Test
+    fun aCustomPuzzleWithNoKnownAuthorLeavesOutTheByLine() {
+        val row = duelLegsModel(
+            view(customMatch()), emptyMap(), createdAt, nameOf = { "Zip" }, rankOrderOf = { RankOrder.TimeThenHints },
+            names = mapOf(code to LegName("Mine", null)),
+        ).rows[1]
+
+        assertEquals("Zip · ${code.display}", row.subtitle)
+    }
+
+    @Test
+    fun withNoNamesACustomPuzzleKeepsTodaysTitleAndNoSubtitle() {
+        val row = model(view(customMatch())).rows[1]
+
+        assertEquals("Zip · ${code.display}", row.title)
+        assertNull(row.subtitle)
     }
 }

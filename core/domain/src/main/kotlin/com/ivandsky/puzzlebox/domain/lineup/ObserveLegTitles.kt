@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -19,29 +20,33 @@ import kotlinx.coroutines.sync.withLock
  *
  * Emits the empty map at once, then the map again each time a title is learned, so a saved title shows without waiting
  * for a read. Ends when every code is settled; the last map is the whole answer. Reads run side by side.
+ * [names] is the same read with each title's author, for the duel page's subtitle (A9).
  */
 class ObserveLegTitles(
     private val received: ReceivedPuzzleRepository,
     private val published: PublishedPuzzleRepository,
     private val shared: SharedPuzzleRepository,
 ) {
-    operator fun invoke(codes: Collection<ShareCode>): Flow<Map<ShareCode, String>> = channelFlow {
-        val known = mutableMapOf<ShareCode, String>()
+    operator fun invoke(codes: Collection<ShareCode>): Flow<Map<ShareCode, String>> =
+        names(codes).map { known -> known.mapValues { it.value.title } }
+
+    fun names(codes: Collection<ShareCode>): Flow<Map<ShareCode, LegName>> = channelFlow {
+        val known = mutableMapOf<ShareCode, LegName>()
         val lock = Mutex()
         send(emptyMap())
         for (code in codes.toSet()) {
             launch {
-                val title = titleOf(code) ?: return@launch
+                val name = nameOf(code) ?: return@launch
                 lock.withLock {
-                    known[code] = title
+                    known[code] = name
                     send(known.toMap())
                 }
             }
         }
     }
 
-    private suspend fun titleOf(code: ShareCode): String? =
-        received.get(code)?.title
-            ?: published.observe(code).first()?.title
-            ?: (shared.fetch(code) as? SharedFetchResult.Found)?.doc?.takeUnless { it.unpublished }?.title
+    private suspend fun nameOf(code: ShareCode): LegName? =
+        received.get(code)?.let { LegName(it.title, it.authorName) }
+            ?: published.observe(code).first()?.let { LegName(it.title, null) }
+            ?: (shared.fetch(code) as? SharedFetchResult.Found)?.doc?.takeUnless { it.unpublished }?.let { LegName(it.title, it.authorName) }
 }

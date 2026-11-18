@@ -23,7 +23,9 @@ import com.ivandsky.puzzlebox.domain.ObserveDuel
 import com.ivandsky.puzzlebox.domain.SeatAction
 import com.ivandsky.puzzlebox.domain.SeatResult
 import com.ivandsky.puzzlebox.domain.UpdateMatchSeat
+import com.ivandsky.puzzlebox.domain.lineup.LegName
 import com.ivandsky.puzzlebox.domain.lineup.ObserveLegTitles
+import com.ivandsky.puzzlebox.domain.lineup.SaveDuelPuzzles
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
@@ -47,73 +49,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** What the invite card tells a viewer who holds no seat: the tail below the card follows the kind. */
-internal enum class InviteKind { SignedOut, Open, Waiting, Taken, Cancelled }
-
-/** Why the last seat call did not finish, and which [action] it was; the invite stays so the viewer can try again. */
-internal sealed interface InviteNotice {
-    val action: SeatAction
-
-    data class Offline(override val action: SeatAction) : InviteNotice
-    data class Closed(override val action: SeatAction) : InviteNotice
-    data class Failed(override val action: SeatAction, val message: String?) : InviteNotice
-}
-
-/** One game of the duel, by id and name, for the card's chips. */
-internal data class InviteGame(val id: GameId, val name: String)
-
-/**
- * The card's facts about the duel: who [challenger] is, the [games] (one per game, in puzzle order), the [rounds] to
- * play and when it ends. [viewerIsChallenger] is a duel the viewer opened; [declined] a rematch the invitee refused;
- * [solvedBefore] when the viewer already has a completion of one of the puzzles; [canDecline] when the invite is
- * addressed to the viewer. [lineup] is every puzzle in leg order (DuelLineup on), which the card lists in place of [games].
- */
-internal data class InviteDetails(
-    val challenger: Player,
-    val games: List<InviteGame>,
-    val rounds: Int,
-    val deadline: Instant,
-    val viewerIsChallenger: Boolean,
-    val declined: Boolean,
-    val solvedBefore: Boolean,
-    val canDecline: Boolean,
-    val lineup: List<InviteLeg>? = null,
-)
-
-/** What the duel screen draws. */
-internal sealed interface DuelUiState {
-    data object Loading : DuelUiState
-
-    /** No seat held. [details] is null only while signed out with the match unread. [working] is a seat call in flight. */
-    data class Invite(
-        val kind: InviteKind,
-        val code: ShareCode,
-        val details: InviteDetails?,
-        val working: Boolean,
-        val notice: InviteNotice?,
-        val signIn: DuelSignIn,
-    ) : DuelUiState
-
-    /**
-     * The viewer holds a seat; the puzzles screen takes [view] and the saved plays' [elapsedMs], by puzzle index.
-     * A self duel also takes [firstSolvedAt] (the day past you set each score, by the puzzle's wire key), [myName]
-     * (the signed-in name, null signed out), [removeAsked] (the remove-confirm showing) and [timeLeftShown] (the Play
-     * setting: the leg timer counts down to past you's time).
-     */
-    data class Participant(
-        val view: MatchView,
-        val elapsedMs: Map<Int, Long>,
-        val firstSolvedAt: Map<String, Instant> = emptyMap(),
-        val myName: String? = null,
-        val removeAsked: Boolean = false,
-        val timeLeftShown: Boolean = true,
-    ) : DuelUiState
-
-    data object NotFound : DuelUiState
-    data object Offline : DuelUiState
-    data object UpdateApp : DuelUiState
-}
-
 private const val STOP_TIMEOUT_MS = 5_000L
 
 /**
@@ -136,6 +71,7 @@ internal class DuelViewModel(
     plays: GamePlayRegistry,
     dispatchers: DispatcherProvider,
     private val legTitles: ObserveLegTitles,
+    private val saveDuelPuzzles: SaveDuelPuzzles,
     private val releaseFlags: ReleaseFlags? = null,
 ) : ViewModel() {
 
@@ -184,20 +120,20 @@ internal class DuelViewModel(
             identity.current,
             removal.step,
             showTimeLeft,
-        ) { (duel, titles), work, me, step, timeLeft -> build(shareCode, duel, titles, work, me?.displayName, step, timeLeft) }
+        ) { (duel, names), work, me, step, timeLeft -> build(shareCode, duel, names, work, me?.displayName, step, timeLeft) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DuelUiState.Loading)
     }
 
-    private fun build(code: ShareCode, duel: DuelSnapshot, titles: Map<ShareCode, String>, work: Working, myName: String?, removal: RemovalStep, timeLeft: Boolean): DuelUiState {
+    private fun build(code: ShareCode, duel: DuelSnapshot, names: Map<ShareCode, LegName>, work: Working, myName: String?, removal: RemovalStep, timeLeft: Boolean): DuelUiState {
         if (removal == RemovalStep.Removing) return DuelUiState.Loading
         return when (val match = duel.match) {
             MatchState.NotFound -> DuelUiState.NotFound
             MatchState.Offline -> DuelUiState.Offline
             is MatchState.UpdateApp -> DuelUiState.UpdateApp
             is MatchState.SignedOut -> DuelUiState.Invite(
-                InviteKind.SignedOut, code, match.match?.let { inviteDetails(it, null, duel.solvedBefore, titles) }, false, null, work.signIn,
+                InviteKind.SignedOut, code, match.match?.let { inviteDetails(it, null, duel.solvedBefore, names) }, false, null, work.signIn,
             )
-            is MatchState.Loaded -> loaded(code, match.view, duel, titles, work, myName, removal == RemovalStep.Asking, timeLeft)
+            is MatchState.Loaded -> loaded(code, match.view, duel, names, work, myName, removal == RemovalStep.Asking, timeLeft)
         }
     }
 
@@ -205,7 +141,7 @@ internal class DuelViewModel(
         code: ShareCode,
         view: MatchView,
         duel: DuelSnapshot,
-        titles: Map<ShareCode, String>,
+        names: Map<ShareCode, LegName>,
         work: Working,
         myName: String?,
         removeAsked: Boolean,
@@ -222,6 +158,8 @@ internal class DuelViewModel(
                 myName = myName,
                 removeAsked = removeAsked,
                 timeLeftShown = timeLeftShown,
+                names = names,
+                lineup = lineupOn(),
             )
         }
         val kind = work.outcome ?: when {
@@ -230,12 +168,12 @@ internal class DuelViewModel(
             challenger -> InviteKind.Waiting
             else -> InviteKind.Open
         }
-        val details = inviteDetails(match, me, duel.solvedBefore, titles)
+        val details = inviteDetails(match, me, duel.solvedBefore, names)
         return DuelUiState.Invite(kind, code, details, work.seat != null, work.notice, work.signIn)
     }
 
     /** The card's facts; [me] is null signed out, when the viewer is neither challenger nor invitee. */
-    private fun inviteDetails(match: Match, me: String?, solvedBefore: Boolean, titles: Map<ShareCode, String>) = InviteDetails(
+    private fun inviteDetails(match: Match, me: String?, solvedBefore: Boolean, names: Map<ShareCode, LegName>) = InviteDetails(
         challenger = match.challenger,
         games = match.legs.map { it.ref.gameId }.distinct().map { InviteGame(it, registry.displayName(it)) },
         rounds = match.legs.size,
@@ -244,7 +182,7 @@ internal class DuelViewModel(
         declined = match.declined,
         solvedBefore = solvedBefore,
         canDecline = me != null && match.invitedUid == me,
-        lineup = inviteLegs(match.legs.map { it.ref }, registry::displayName, titles).takeIf { lineupOn() },
+        lineup = inviteLegs(match.legs.map { it.ref }, registry::displayName, names.mapValues { it.value.title }).takeIf { lineupOn() },
     )
 
     private fun lineupOn() = releaseFlags?.isEnabled(ReleaseFlag.DuelLineup) == true
@@ -262,9 +200,12 @@ internal class DuelViewModel(
     private fun seat(action: SeatAction) {
         val code = shareCode ?: return
         if (working.getAndUpdate { if (it.seat == null) it.copy(seat = action, notice = null) else it }.seat != null) return
+        // Read before the call: once the seat is mine the card is gone. Only a DuelLineup-on card lists the puzzles.
+        val exact = (state.value as? DuelUiState.Invite)?.details?.lineup.orEmpty().mapNotNull { it.code }
         viewModelScope.launch {
             val result = updateSeat(code, action)
             working.update { it.after(action, result) }
+            if (action == SeatAction.Claim && result == SeatResult.Done) saveDuelPuzzles(exact)
             if (action == SeatAction.Decline && result == SeatResult.Done) closeEvents.send(Unit)
         }
     }

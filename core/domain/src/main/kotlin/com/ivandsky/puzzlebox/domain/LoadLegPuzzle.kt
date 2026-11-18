@@ -36,6 +36,7 @@ class LoadLegPuzzle(
         val row = received.get(leg.code) ?: when (val opened = loadShared(leg.code)) {
             is OpenOutcome.Opened -> opened.puzzle
             OpenOutcome.Offline -> return LegPuzzleRead.Unavailable
+            OpenOutcome.NoLongerAvailable -> return LegPuzzleRead.TakenDown
             else -> null
         }
         return row?.takeIf { it.gameId == leg.gameId }

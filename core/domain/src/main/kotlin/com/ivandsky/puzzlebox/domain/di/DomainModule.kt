@@ -53,6 +53,7 @@ import com.ivandsky.puzzlebox.domain.ReportPuzzle
 import com.ivandsky.puzzlebox.domain.ValidatePublish
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.UpdateMatchSeat
+import com.ivandsky.puzzlebox.domain.lineup.SaveDuelPuzzles
 import com.ivandsky.puzzlebox.domain.lineup.ValidateExactPuzzles
 import com.ivandsky.puzzlebox.domain.linkedin.CreateLinkedInLink
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInAccount
@@ -200,6 +201,7 @@ val domainModule = module {
     }
     factory { ValidateExactPuzzles(shared = get()) }
     factory { LoadPuzzleByCode(load = get<LoadSharedPuzzle>()::invoke, dispatchers = get()) }
+    factory { SaveDuelPuzzles(open = get<LoadSharedPuzzle>()::invoke) }
     factory { CreateMatch(repo = get(), local = get(), draw = get(), identity = get(), random = Random.Default, validateExact = get()) }
     factory { ComputeSolvedPool(registry = get(), completions = get(), received = get()) }
     factory {

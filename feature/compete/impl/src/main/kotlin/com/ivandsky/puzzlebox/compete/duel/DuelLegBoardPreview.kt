@@ -25,7 +25,7 @@ internal fun LegBoardPreview(legIndex: Int, sharp: Boolean, maxSide: Dp, board: 
         null -> Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
             HiddenBoardLoading(Modifier.testTag("duel.legs.board.loading"), maxSide = maxSide)
         }
-        LegBoard.None -> Unit
+        LegBoard.None, LegBoard.TakenDown, LegBoard.Offline -> Unit
         is LegBoard.Of -> HiddenBoardSection(current.givens, sharp, tagPrefix = "duel.legs.board", maxSide = maxSide)
     }
 }

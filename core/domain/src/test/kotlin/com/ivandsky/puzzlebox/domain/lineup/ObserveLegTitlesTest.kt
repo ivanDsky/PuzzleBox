@@ -89,4 +89,20 @@ class ObserveLegTitlesTest {
         assertEquals(emptyMap<ShareCode, String>(), emissions.first())
         assertEquals(mapOf(code("K7Q2MX") to "Crown jewels"), emissions.last())
     }
+
+    @Test
+    fun namesCarryTheAuthorWhereTheSourceKnowsOne() = runTest {
+        saved("K7Q2MX", "Crown jewels")
+        own("B8C3DF", "Mine")
+        online("D5F7GH", "Public")
+
+        assertEquals(
+            mapOf(
+                code("K7Q2MX") to LegName("Crown jewels", "Bo"),
+                code("B8C3DF") to LegName("Mine", null),
+                code("D5F7GH") to LegName("Public", "Cleo"),
+            ),
+            titles.names(listOf("K7Q2MX", "B8C3DF", "D5F7GH").map(::code)).toList().last(),
+        )
+    }
 }

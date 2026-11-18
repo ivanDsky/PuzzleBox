@@ -81,11 +81,13 @@ internal fun DuelLegs(
             myName = state.myName,
             firstSolvedAt = state.firstSolvedAt,
             dayOf = time::day,
+            names = state.names,
         )
     }
     val legs = view.match.legs
     val board = remember<suspend (Int) -> LegBoard>(legs, boards) { { index -> boards.of(legs[index].ref) } }
-    val content = LegsContent(model, view.match.deadline, time.ends(view.match.deadline), view.match.closesAt, view.match.code, now, actions, board, state.timeLeftShown)
+    val reads = rememberLegReads(if (state.lineup) model.rows.filter { it.custom }.map { it.legIndex } else emptyList(), board)
+    val content = LegsContent(model, view.match.deadline, time.ends(view.match.deadline), view.match.closesAt, view.match.code, now, actions, board, state.timeLeftShown, reads)
     BoxWithConstraints(modifier.fillMaxSize()) {
         val twoPane = layout == PlayLayout.TwoPane
         when {
@@ -122,6 +124,7 @@ internal class LegsContent(
     val actions: LegsActions,
     val board: suspend (Int) -> LegBoard,
     val timeLeftShown: Boolean = true,
+    val reads: LegReads = LegReads.None,
 )
 
 /**
@@ -203,12 +206,13 @@ internal fun PuzzleList(content: LegsContent, brands: GamePlayRegistry, selected
     }
     rows.forEach { row ->
         DuelLegCard(
-            row = row,
+            row = content.reads.shown(row),
             opponentName = content.model.opponent.name,
             brand = brands.brandOf(row.gameId),
             selected = row.legIndex == selected,
             onClick = onSelect?.let { select -> { select(row.legIndex) } },
             onAction = if (onSelect == null) ({ content.actions.onOpenLeg(row) }) else null,
+            extra = { LegUnavailable(content.reads.answer(row.legIndex), row.legIndex, { content.reads.retry(row.legIndex) }) },
         )
     }
 }

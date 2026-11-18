@@ -68,7 +68,7 @@ class LoadLegReplay(
         return when (val read = puzzles(leg)) {
             is LegPuzzleRead.Found -> LegReplayRead.Found(ReplaySource(read.puzzle, bytes))
             LegPuzzleRead.Unavailable -> LegReplayRead.Unavailable
-            LegPuzzleRead.Absent -> LegReplayRead.Absent
+            LegPuzzleRead.Absent, LegPuzzleRead.TakenDown -> LegReplayRead.Absent
         }
     }
 }

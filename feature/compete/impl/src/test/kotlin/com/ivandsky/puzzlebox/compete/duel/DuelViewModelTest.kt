@@ -5,7 +5,10 @@ import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.domain.OpenOutcome
+import com.ivandsky.puzzlebox.domain.lineup.LegName
 import com.ivandsky.puzzlebox.domain.lineup.ObserveLegTitles
+import com.ivandsky.puzzlebox.domain.lineup.SaveDuelPuzzles
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
@@ -106,6 +109,7 @@ class DuelViewModelTest {
         override suspend fun idToken(activityContext: Context): GoogleIdToken = token
     }
     private val context: Context = ApplicationProvider.getApplicationContext()
+    private val savedOnAccept = mutableListOf<ShareCode>()
 
     private fun viewAs(player: Player?) {
         identity.currentIdentity = player?.let { Identity(it.uid, it.name, null) }
@@ -144,6 +148,7 @@ class DuelViewModelTest {
         plays = GamePlayRegistry(emptyList()),
         dispatchers = DefaultDispatcherProvider(),
         legTitles = ObserveLegTitles(received, FakePublishedPuzzleRepository(), sharedPuzzles),
+        saveDuelPuzzles = SaveDuelPuzzles { savedOnAccept += it; OpenOutcome.NotFound },
         releaseFlags = flags,
     )
 
@@ -710,5 +715,62 @@ class DuelViewModelTest {
         timeLeft.value = false
 
         assertFalse((vm.state.value as DuelUiState.Participant).timeLeftShown)
+    }
+
+    private val twoCustom = listOf(LegRef.Custom(TestGames.alpha, unreadable), LegRef.Custom(TestGames.beta, crown))
+
+    @Test
+    fun acceptSavesBothExactPuzzlesOfATwoCustomLegDuel() = runTest {
+        annChallenges(viewer = bob, lineup = twoCustom)
+        val vm = started(viewModel(flags = lineupOn))
+
+        vm.accept()
+
+        assertEquals(setOf(unreadable, crown), savedOnAccept.toSet())
+        assertEquals(2, savedOnAccept.size)
+    }
+
+    @Test
+    fun withTheLineupOffAcceptSavesNothing() = runTest {
+        annChallenges(viewer = bob, lineup = twoCustom)
+        val vm = started(viewModel())
+
+        vm.accept()
+
+        assertTrue(savedOnAccept.isEmpty())
+    }
+
+    @Test
+    fun aDeclineSavesNothing() = runTest {
+        annChallenges(viewer = bob, invited = bob.uid, lineup = twoCustom)
+        val vm = started(viewModel(flags = lineupOn))
+
+        vm.decline()
+
+        assertTrue(savedOnAccept.isEmpty())
+    }
+
+    @Test
+    fun aParticipantCarriesTheNamesOfItsCustomPuzzlesWhenTheLineupIsOn() = runTest {
+        crownIsSavedByTheViewer()
+        annChallenges(viewer = bob, claimedBy = bob, lineup = mixedLineup)
+        val vm = started(viewModel(flags = lineupOn))
+
+        val state = vm.state.value as DuelUiState.Participant
+
+        assertTrue(state.lineup)
+        assertEquals(mapOf(crown to LegName("Crown jewels", "Cleo")), state.names)
+    }
+
+    @Test
+    fun withTheLineupOffAParticipantCarriesNoNames() = runTest {
+        crownIsSavedByTheViewer()
+        annChallenges(viewer = bob, claimedBy = bob, lineup = mixedLineup)
+        val vm = started(viewModel())
+
+        val state = vm.state.value as DuelUiState.Participant
+
+        assertFalse(state.lineup)
+        assertTrue(state.names.isEmpty())
     }
 }

@@ -1,6 +1,9 @@
 package com.ivandsky.puzzlebox.domain
 
 import com.ivandsky.puzzlebox.data.match.LegRef
+import com.ivandsky.puzzlebox.data.model.PostState
+import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
+import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
 import com.ivandsky.puzzlebox.data.repository.DailyDay
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -25,13 +28,15 @@ class LoadLegPuzzleTest {
     private val day = LocalDate.of(2026, 11, 9)
     private val puzzle = Puzzle(game, VariantId("v1"), 1, byteArrayOf(7))
     private val daily = FakeDailyRepository()
+    private val received = FakeReceivedPuzzleRepository()
+    private val shared = FakeSharedPuzzleRepository()
     private val load = LoadLegPuzzle(
         daily = daily,
-        received = FakeReceivedPuzzleRepository(),
+        received = received,
         loadShared = LoadSharedPuzzle(
             registry = GameRegistry(emptyList()),
-            shared = FakeSharedPuzzleRepository(),
-            received = FakeReceivedPuzzleRepository(),
+            shared = shared,
+            received = received,
             budget = { Budget.within(1_000, System::nanoTime) },
             clock = { Instant.EPOCH },
         ),
@@ -67,5 +72,49 @@ class LoadLegPuzzleTest {
     @Test
     fun `a friend's leg that is neither stored nor on the server is absent`() = runTest {
         assertEquals(LegPuzzleRead.Absent, load(LegRef.Custom(game, checkNotNull(ShareCode.parse("ABC234")))))
+    }
+
+    private val code = checkNotNull(ShareCode.parse("K7Q2MX"))
+    private val custom = LegRef.Custom(game, code)
+
+    private suspend fun publishedThenTakenDown() {
+        shared.signedInUid = "cleo"
+        shared.publish(
+            SharedPuzzleDoc(
+                code = code, formatVersion = SharedPuzzleDoc.FORMAT_VERSION, gameId = game.value, variant = "v1",
+                shareCodecVersion = 1, payload = byteArrayOf(1), title = "Crown", authorName = "Cleo", note = "",
+                authorUid = "cleo", authorTimeMs = 1_000L, authorHints = 0, createdAtMs = 0L, unpublished = false,
+            ),
+        )
+        shared.unpublish(code)
+    }
+
+    @Test
+    fun `a friend's leg its author took down, never saved here, is taken down`() = runTest {
+        publishedThenTakenDown()
+
+        assertEquals(LegPuzzleRead.TakenDown, load(custom))
+    }
+
+    @Test
+    fun `a friend's leg taken down after this device saved it is still found`() = runTest {
+        publishedThenTakenDown()
+        received.upsert(
+            ReceivedPuzzle(
+                code = code, gameId = game, variant = VariantId("v1"), sharedFormatVersion = 1, puzzleBytes = byteArrayOf(7),
+                title = "Crown", authorName = "Cleo", note = "", authorTimeMs = 1_000L, authorHints = 0, authorUid = "cleo",
+                openedAt = Instant.EPOCH, unpublished = false, postState = PostState.Pending, postAttempts = 0, difficulty = null,
+            ),
+        )
+
+        assertEquals(puzzle, found(load(custom)))
+    }
+
+    @Test
+    fun `a friend's leg read while offline is unavailable, never taken down`() = runTest {
+        publishedThenTakenDown()
+        shared.online = false
+
+        assertEquals(LegPuzzleRead.Unavailable, load(custom))
     }
 }
