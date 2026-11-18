@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.LocalTabFadeLink
 import com.ivandsky.puzzlebox.designsystem.OnTabReselect
+import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.TabFadeLink
@@ -174,7 +175,7 @@ internal fun LibraryScreen(
 private fun LibraryHeaderActions(onRandom: (() -> Unit)?, onEnterCode: (() -> Unit)?) {
     if (onRandom == null && onEnterCode == null) return
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        onRandom?.let { SecondaryButton(text = "Random", onClick = it, modifier = Modifier.testTag("library.random")) }
+        onRandom?.let { SecondaryButton(text = "Random", onClick = it, modifier = Modifier.testTag("library.random"), icon = PuzzleIcons.Dice) }
         onEnterCode?.let { SecondaryButton(text = "Enter code", onClick = it, modifier = Modifier.testTag("library.enterCode")) }
     }
 }

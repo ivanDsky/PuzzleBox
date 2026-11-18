@@ -9,14 +9,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsNodeInteraction
-import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -45,8 +50,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The game page's Random button in the title row: only for a game with an archive and only with a handler, handing back
- * this page's game, at touch size, and on the phone without costing the archive line its solved count.
+ * The game page's Random chip, the last of the calendar's jump row: only for a game with an archive and only with a
+ * handler, handing back this page's game, with the title row left as it was.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -119,26 +124,32 @@ class LibraryGamePageRandomTest {
         return results.single()
     }
 
-    private fun SemanticsNodeInteraction.assertTouchSizeInside(screen: Dp) {
+    private fun chip() = composeRule.onNode(hasTestTag("library.page.random") and hasAnyAncestor(hasTestTag("library.calendar")))
+
+    private fun SemanticsNodeInteraction.assertInside(screen: Dp) {
         assertIsDisplayed()
-        assertHeightIsAtLeast(48.dp)
         val right = getBoundsInRoot().right
         assert(right <= screen) { "ends at $right" }
     }
 
     @Test
-    fun `the phone page has Random at touch size on screen, reporting this page's game`() {
+    fun `the phone calendar ends its jump row with Random, reporting this page's game`() {
         val random = mutableListOf<GameId>()
         show(PlayLayout.SinglePane) { random += it }
 
-        composeRule.onNodeWithTag("library.page.random").assertTouchSizeInside(360.dp)
-        composeRule.onNodeWithTag("library.page.random").performClick()
+        chip().performScrollTo().assertInside(360.dp)
+        chip().assertHeightIsEqualTo(36.dp)
+        chip().assertTextContains("Random")
+        val today = composeRule.onNodeWithTag("library.calendar.jump.today").getBoundsInRoot()
+        val bounds = chip().getBoundsInRoot()
+        assertTrue("Random follows Today", bounds.left >= today.right || bounds.top >= today.bottom)
+        chip().performClick()
 
         composeRule.runOnIdle { assertEquals(listOf(zip), random) }
     }
 
     @Test
-    fun `the phone's Random sits under the title and leaves the archive line as long as without it`() {
+    fun `the title row has no Random and the archive line is as long as without a handler`() {
         var withRandom by mutableStateOf(false)
         composeRule.setContent {
             PuzzleBoxTheme {
@@ -150,43 +161,38 @@ class LibraryGamePageRandomTest {
             }
         }
         val without = archiveLine().getLineEnd(0, visibleEnd = true)
+        val titleBottom = composeRule.onNodeWithText("Zip").getBoundsInRoot().bottom
         composeRule.runOnIdle { withRandom = true }
         composeRule.waitForIdle()
 
-        // At 360 dp the line already ellipsizes; beside Random it would lose the solved count.
         assertEquals(without, archiveLine().getLineEnd(0, visibleEnd = true))
-        val button = composeRule.onNodeWithTag("library.page.random").getBoundsInRoot()
-        assertTrue("Random is under the title", button.top >= composeRule.onNodeWithText("Zip").getBoundsInRoot().bottom)
+        assertEquals(titleBottom, composeRule.onNodeWithText("Zip").getBoundsInRoot().bottom)
+        assertEquals(1, composeRule.onAllNodesWithTag("library.page.random").fetchSemanticsNodes().size)
     }
 
     @Test
-    fun `a game with no archive has no Random button`() {
+    fun `a game with no archive has no Random chip`() {
         show(PlayLayout.SinglePane, row = row(progress = null)) {}
 
         composeRule.onNodeWithTag("library.page.random").assertDoesNotExist()
     }
 
     @Test
-    fun `without a handler the page has no Random button`() {
+    fun `without a handler the calendar has no Random chip`() {
         show(PlayLayout.SinglePane, onRandom = null)
 
+        composeRule.onNodeWithTag("library.calendar").assertExists()
         composeRule.onNodeWithTag("library.page.random").assertDoesNotExist()
     }
 
     @Test
     @Config(sdk = [34], qualifiers = "w1280dp-h800dp")
-    fun `the tablet page has Random after the title in its row, at touch size inside the pane, reporting its game`() {
+    fun `the tablet calendar has Random inside the pane, reporting its game`() {
         val random = mutableListOf<GameId>()
         show(PlayLayout.TwoPane, width = 800.dp) { random += it }
 
-        val button = composeRule.onNodeWithTag("library.page.random")
-        button.assertTouchSizeInside(800.dp)
-        val title = composeRule.onNodeWithText("Zip").getBoundsInRoot()
-        assertTrue("Random is beside the title", button.getBoundsInRoot().top < title.bottom)
-        assertTrue("Random is after the title", button.getBoundsInRoot().left >= title.right)
-        // The whole line shows beside Random: the ellipsis flag reads true even for a line that fits.
-        assertEquals(archiveLine().layoutInput.text.length, archiveLine().getLineEnd(0, visibleEnd = true))
-        button.performClick()
+        chip().assertInside(800.dp)
+        chip().performClick()
 
         composeRule.runOnIdle { assertEquals(listOf(zip), random) }
     }
