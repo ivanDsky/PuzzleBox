@@ -3,14 +3,12 @@ package com.ivandsky.puzzlebox.profile.settings
 import android.content.Context
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.identity.AuthError
 import com.ivandsky.puzzlebox.data.identity.AuthResult
 import com.ivandsky.puzzlebox.data.visibility.OwnTier
 import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
 import com.ivandsky.puzzlebox.domain.AppBuild
 import com.ivandsky.puzzlebox.model.ThemeMode
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeVisibilityRepository
@@ -45,7 +43,7 @@ class SettingsViewModelTest {
     @Test
     fun `choosing dark persists the theme`() = runTest(dispatcher) {
         val preferences = FakeUserPreferencesRepository()
-        val vm = SettingsViewModel(preferences, FakeGameOptions(), appBuild, FakeReleaseFlags(), identity, tokens)
+        val vm = SettingsViewModel(preferences, FakeGameOptions(), appBuild, identity, tokens)
         backgroundScope.launch { vm.uiState.collect {} }
         advanceUntilIdle()
         assertEquals(SettingsUiState(ThemeMode.SYSTEM, "1.4.0"), vm.uiState.value)
@@ -60,7 +58,7 @@ class SettingsViewModelTest {
     @Test
     fun `each games switch writes its own stored value and leaves the others`() = runTest(dispatcher) {
         val games = FakeGameOptions()
-        val vm = SettingsViewModel(FakeUserPreferencesRepository(), games, appBuild, FakeReleaseFlags(), identity, tokens)
+        val vm = SettingsViewModel(FakeUserPreferencesRepository(), games, appBuild, identity, tokens)
         backgroundScope.launch { vm.uiState.collect {} }
         advanceUntilIdle()
 
@@ -81,7 +79,7 @@ class SettingsViewModelTest {
     @Test
     fun `the games state follows the store when it changes elsewhere`() = runTest(dispatcher) {
         val games = FakeGameOptions()
-        val vm = SettingsViewModel(FakeUserPreferencesRepository(), games, appBuild, FakeReleaseFlags(), identity, tokens)
+        val vm = SettingsViewModel(FakeUserPreferencesRepository(), games, appBuild, identity, tokens)
         backgroundScope.launch { vm.uiState.collect {} }
         advanceUntilIdle()
 
@@ -99,7 +97,7 @@ class SettingsViewModelTest {
     @Test
     fun `picking a tier calls setOwnTier and the section shows the stored tier`() = runTest(dispatcher) {
         val repository = FakeVisibilityRepository(OwnTier.Unset)
-        val vm = SettingsViewModel(FakeUserPreferencesRepository(), FakeGameOptions(), appBuild, FakeReleaseFlags(), identity, tokens, slotOf(repository))
+        val vm = SettingsViewModel(FakeUserPreferencesRepository(), FakeGameOptions(), appBuild, identity, tokens, slotOf(repository))
         backgroundScope.launch { vm.uiState.collect {} }
         advanceUntilIdle()
         assertEquals(OwnTier.Unset, vm.uiState.value.visibility)
@@ -114,7 +112,7 @@ class SettingsViewModelTest {
     @Test
     fun `a signed-out pick writes nothing and leaves the tier unknown`() = runTest(dispatcher) {
         val repository = FakeVisibilityRepository().apply { signedIn = false }
-        val vm = SettingsViewModel(FakeUserPreferencesRepository(), FakeGameOptions(), appBuild, FakeReleaseFlags(), identity, tokens, slotOf(repository))
+        val vm = SettingsViewModel(FakeUserPreferencesRepository(), FakeGameOptions(), appBuild, identity, tokens, slotOf(repository))
         backgroundScope.launch { vm.uiState.collect {} }
         advanceUntilIdle()
 
@@ -128,7 +126,7 @@ class SettingsViewModelTest {
 
     @Test
     fun `the section is absent without a slot and a pick touches nothing`() = runTest(dispatcher) {
-        val vm = SettingsViewModel(FakeUserPreferencesRepository(), FakeGameOptions(), appBuild, FakeReleaseFlags(), identity, tokens)
+        val vm = SettingsViewModel(FakeUserPreferencesRepository(), FakeGameOptions(), appBuild, identity, tokens)
         backgroundScope.launch { vm.uiState.collect {} }
         advanceUntilIdle()
 
@@ -141,7 +139,7 @@ class SettingsViewModelTest {
     @Test
     fun `the ranks default follows the stored scope and a pick writes it`() = runTest(dispatcher) {
         val preferences = FakeUserPreferencesRepository()
-        val vm = SettingsViewModel(preferences, FakeGameOptions(), appBuild, FakeReleaseFlags(), identity, tokens, slotOf(FakeVisibilityRepository(OwnTier.Unset)))
+        val vm = SettingsViewModel(preferences, FakeGameOptions(), appBuild, identity, tokens, slotOf(FakeVisibilityRepository(OwnTier.Unset)))
         backgroundScope.launch { vm.uiState.collect {} }
         advanceUntilIdle()
         assertEquals(true, vm.uiState.value.ranksFriendsDefault)
@@ -156,7 +154,7 @@ class SettingsViewModelTest {
     @Test
     fun `vibration follows the stored switch and a flip writes it`() = runTest(dispatcher) {
         val preferences = FakeUserPreferencesRepository()
-        val vm = SettingsViewModel(preferences, FakeGameOptions(), appBuild, FakeReleaseFlags(), identity, tokens)
+        val vm = SettingsViewModel(preferences, FakeGameOptions(), appBuild, identity, tokens)
         backgroundScope.launch { vm.uiState.collect {} }
         advanceUntilIdle()
         assertEquals(true, vm.uiState.value.vibration)
@@ -171,7 +169,7 @@ class SettingsViewModelTest {
     @Test
     fun `without the slot a ranks pick writes nothing`() = runTest(dispatcher) {
         val preferences = FakeUserPreferencesRepository()
-        val vm = SettingsViewModel(preferences, FakeGameOptions(), appBuild, FakeReleaseFlags(), identity, tokens)
+        val vm = SettingsViewModel(preferences, FakeGameOptions(), appBuild, identity, tokens)
 
         vm.onSetRanksFriendsDefault(false)
         advanceUntilIdle()
@@ -180,21 +178,11 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun `the play section is hidden while the duel flag is off`() = runTest(dispatcher) {
-        val vm = SettingsViewModel(FakeUserPreferencesRepository(), FakeGameOptions(), appBuild, FakeReleaseFlags(), identity, tokens)
-        backgroundScope.launch { vm.uiState.collect {} }
-        advanceUntilIdle()
-
-        assertEquals(false, vm.uiState.value.duelPlay)
-    }
-
-    @Test
-    fun `the play section shows with the stored time-left switch while the duel flag is on and a flip writes it`() = runTest(dispatcher) {
+    fun `the play section shows the stored time-left switch and a flip writes it`() = runTest(dispatcher) {
         val preferences = FakeUserPreferencesRepository()
-        val vm = SettingsViewModel(preferences, FakeGameOptions(), appBuild, FakeReleaseFlags(ReleaseFlag.VirtualDuel), identity, tokens)
+        val vm = SettingsViewModel(preferences, FakeGameOptions(), appBuild, identity, tokens)
         backgroundScope.launch { vm.uiState.collect {} }
         advanceUntilIdle()
-        assertEquals(true, vm.uiState.value.duelPlay)
         assertEquals(true, vm.uiState.value.showSelfDuelTimeLeft)
 
         vm.onSetShowSelfDuelTimeLeft(false)
@@ -206,7 +194,7 @@ class SettingsViewModelTest {
 
     private fun TestScope.signedOutVm(): SettingsViewModel {
         val vm = SettingsViewModel(
-            FakeUserPreferencesRepository(), FakeGameOptions(), appBuild, FakeReleaseFlags(), identity, tokens,
+            FakeUserPreferencesRepository(), FakeGameOptions(), appBuild, identity, tokens,
             slotOf(FakeVisibilityRepository(OwnTier.Unknown)),
         )
         backgroundScope.launch { vm.uiState.collect {} }

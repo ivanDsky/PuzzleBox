@@ -42,7 +42,6 @@ val profileModule: Module = module {
             preferences = get(),
             games = get(),
             appBuild = get(),
-            releaseFlags = get(),
             identityService = get(),
             idTokenProvider = get(),
             visibility = params.getOrNull(),

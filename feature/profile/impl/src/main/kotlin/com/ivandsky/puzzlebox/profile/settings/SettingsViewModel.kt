@@ -5,8 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.AuthError
 import com.ivandsky.puzzlebox.data.identity.AuthResult
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -20,7 +18,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -33,13 +30,12 @@ private data class SignInProgress(val running: Boolean = false, val message: Str
 /**
  * Settings state: the stored theme mode, the Games switches (live from [games]) and [AppBuild.versionName]; a pick is
  * saved through [preferences] and a switch through [games]. [visibility] (null: no Visibility section, repository untouched)
- * supplies and saves the player's own tier. The Play section follows [ReleaseFlag.VirtualDuel] live.
+ * supplies and saves the player's own tier.
  */
 internal class SettingsViewModel(
     private val preferences: UserPreferencesRepository,
     private val games: GameOptions,
     appBuild: AppBuild,
-    releaseFlags: ReleaseFlags,
     private val identityService: IdentityService,
     private val idTokenProvider: GoogleIdTokenProvider,
     private val visibility: VisibilitySlot? = null,
@@ -47,10 +43,6 @@ internal class SettingsViewModel(
 
     private val gamesSection: Flow<GamesSectionState> =
         combine(games.queensAutoCross, games.sudokuPeerHighlight, games.sudokuSameDigitHighlight, ::GamesSectionState)
-
-    private val duelPlay: Flow<Boolean> = releaseFlags.enabled.map { ReleaseFlag.VirtualDuel in it }
-
-    private val play: Flow<Pair<Boolean, Boolean>> = combine(duelPlay, preferences.showSelfDuelTimeLeft, ::Pair)
 
     private val signIn = MutableStateFlow(SignInProgress())
 
@@ -60,8 +52,8 @@ internal class SettingsViewModel(
             gamesSection,
             visibility?.ownTier ?: flowOf(null),
             combine(preferences.ranksFriendsDefault, preferences.vibration, ::Pair),
-            play,
-        ) { mode, gamesState, ownTier, (ranksFriends, vibration), (duelPlay, timeLeft) ->
+            preferences.showSelfDuelTimeLeft,
+        ) { mode, gamesState, ownTier, (ranksFriends, vibration), timeLeft ->
             SettingsUiState(
                 themeMode = mode,
                 versionName = appBuild.versionName,
@@ -69,7 +61,6 @@ internal class SettingsViewModel(
                 visibility = ownTier,
                 ranksFriendsDefault = ranksFriends,
                 vibration = vibration,
-                duelPlay = duelPlay,
                 showSelfDuelTimeLeft = timeLeft,
             )
         }.combine(signIn) { state, progress ->

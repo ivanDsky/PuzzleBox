@@ -103,7 +103,6 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
                 DuelsTabContent(
                     rows = state.rows,
                     signedIn = state.signedIn,
-                    duelYourself = state.duelYourself,
                     selfName = state.selfName,
                     inviter = state.inviter,
                     now = { state.now },
@@ -175,9 +174,8 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
             ),
         )
 
-        // Friend rows and Past you rows side by side, the flag on.
+        // Friend rows and Past you rows side by side.
         val MIXED = EMPTY.copy(
-            duelYourself = true,
             rows = listOf(
                 row("JON333", DuelRowKind.Invited, "Jonas", 0, 3, Duration.ofHours(23)),
                 row("SAM222", DuelRowKind.YourMove, "Sam", 1, 3, Duration.ofMinutes(5 * 60 + 12L), theirDone = 2),
@@ -189,11 +187,10 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
             ),
         )
 
-        // Signed out with the flag on: only Past you duels, and the challenge card offers them.
+        // Signed out: only Past you duels, and the challenge card offers them.
         val SELF_ONLY = EMPTY.copy(
             signedIn = false,
             inviter = null,
-            duelYourself = true,
             rows = listOf(
                 self("SELF11", DuelRowKind.YourMove, 1, 3),
                 self("SELF33", DuelRowKind.YourMove, 0, 5),
@@ -205,7 +202,6 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
 
         // Finished section: a won and a lost Past you duel among friend ones, a draw too.
         val FINISHED = EMPTY.copy(
-            duelYourself = true,
             rows = listOf(
                 row("SAM222", DuelRowKind.YourMove, "Sam", 1, 3, Duration.ofMinutes(5 * 60 + 12L), theirDone = 2),
                 self("SELF44", DuelRowKind.Finished(2, 1), 3, 3),

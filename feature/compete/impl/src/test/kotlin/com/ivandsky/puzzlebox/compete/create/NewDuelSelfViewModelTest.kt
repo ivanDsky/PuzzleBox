@@ -3,8 +3,6 @@ package com.ivandsky.puzzlebox.compete.create
 import android.content.Context
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.domain.ComputeMatchLegs
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.domain.ComputeSolvedPool
@@ -19,7 +17,6 @@ import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
@@ -38,7 +35,6 @@ import java.time.ZoneOffset
 import java.util.Locale
 import kotlin.random.Random
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -79,13 +75,12 @@ class NewDuelSelfViewModelTest {
     private val server = FakeMatchRepository().apply { signedInUid = ANN.uid }
     private val local = FakeMatchLocalRepository()
     private val self = FakeSelfMatchRepository()
-    private var poolReads = 0
     private var poolThrows = false
     private val pool = ComputeSolvedPool(
         registry,
         object : CompletionRepository by completions {
             override fun observeRecords(): Flow<List<CompletionRecord>> =
-                if (poolThrows) flow { throw IllegalStateException("room closed") } else completions.observeRecords().also { poolReads++ }
+                if (poolThrows) flow { throw IllegalStateException("room closed") } else completions.observeRecords()
         },
         received,
     )
@@ -93,12 +88,7 @@ class NewDuelSelfViewModelTest {
         override suspend fun idToken(activityContext: Context): GoogleIdToken = GoogleIdToken.Available("t")
     }
 
-    /** Release flags a test can flip, to show the sheet reads them live. */
-    private class SwitchableFlags(initial: Set<ReleaseFlag>) : ReleaseFlags {
-        override val enabled: MutableStateFlow<Set<ReleaseFlag>> = MutableStateFlow(initial)
-    }
-
-    private fun TestScope.started(flags: ReleaseFlags = FakeReleaseFlags(ReleaseFlag.VirtualDuel)): NewDuelViewModel {
+    private fun TestScope.started(): NewDuelViewModel {
         val history = ObserveGameHistory(registry, daily, completions)
         val vm = NewDuelViewModel(
             createMatch = CreateMatch(server, local, ComputeMatchLegs(registry, daily, calendar, history, received, Random(DRAW_SEED)), identity, Random(CODE_SEED)),
@@ -108,7 +98,6 @@ class NewDuelSelfViewModelTest {
             calendar = calendar,
             daily = daily,
             registry = registry,
-            flags = flags,
             createSelfDuel = CreateSelfDuel(pool, completions, received, self, local, { NOW }, Random(DRAW_SEED)),
             computeSolvedPool = pool,
             clock = { NOW },
@@ -180,18 +169,6 @@ class NewDuelSelfViewModelTest {
     }
 
     @Test
-    fun `with the flag off the solved pool is never read`() = runTest {
-        solve(alpha, 1, 2)
-        val vm = started(FakeReleaseFlags())
-
-        vm.refreshSolved()
-        vm.setFriends(true)
-        vm.reset()
-
-        assertEquals(0, poolReads)
-    }
-
-    @Test
     fun `friends' puzzles switch re-reads the pool`() = runTest {
         solve(alpha, 1, 2)
         val vm = started()
@@ -239,33 +216,6 @@ class NewDuelSelfViewModelTest {
         vm.opened.first()
         assertEquals(1, self.observeAll().first().size)
         assertEquals("You", vm.state.value.selfName)
-    }
-
-    @Test
-    fun `flag off keeps the sheet a friend duel only, whatever was chosen`() = runTest {
-        solve(alpha, 1, 2, 3)
-        val vm = started(FakeReleaseFlags())
-
-        vm.chooseOpponent(Opponent.PastYou)
-
-        assertFalse(vm.state.value.selfOffered)
-        assertEquals(Opponent.Friend, vm.state.value.opponent)
-        vm.setCount(5)
-        assertEquals(5, vm.state.value.draft.count)
-        vm.create()
-        vm.created.first()
-        assertTrue(self.observeAll().first().isEmpty())
-    }
-
-    @Test
-    fun `the flag is collected, so turning it on offers past you at once`() = runTest {
-        val flags = SwitchableFlags(emptySet())
-        val vm = started(flags)
-        assertFalse(vm.state.value.selfOffered)
-
-        flags.enabled.value = setOf(ReleaseFlag.VirtualDuel)
-
-        assertTrue(vm.state.value.selfOffered)
     }
 
     @Test

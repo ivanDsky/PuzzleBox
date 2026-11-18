@@ -77,7 +77,6 @@ fun DuelsTab(
     DuelsTabContent(
         rows = state.value.rows,
         signedIn = state.value.signedIn,
-        duelYourself = state.value.duelYourself,
         selfName = state.value.selfName,
         inviter = state.value.inviter,
         // Read only inside each row's time-left text, so the minute tick redraws that text and nothing else.
@@ -115,7 +114,6 @@ fun DuelsTab(
 internal fun DuelsTabContent(
     rows: List<DuelRow>,
     signedIn: Boolean,
-    duelYourself: Boolean = false,
     selfName: String = "You",
     inviter: String?,
     now: () -> Instant,
@@ -168,7 +166,7 @@ internal fun DuelsTabContent(
         contentPadding = PaddingValues(vertical = Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
-        item(key = "challenge") { DuelChallengeCard(signedIn = signedIn, onClick = onNewDuel, duelYourself = duelYourself) }
+        item(key = "challenge") { DuelChallengeCard(signedIn = signedIn, onClick = onNewDuel) }
         items(sections, key = { it.section.tag }) { section(it) }
         if (rows.isEmpty()) item(key = "empty") { DuelsEmptyNote() }
     }

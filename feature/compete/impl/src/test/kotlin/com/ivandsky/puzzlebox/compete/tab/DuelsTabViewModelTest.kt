@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.compete.tab
 
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.match.ClaimResult
 import com.ivandsky.puzzlebox.data.match.LegRef
@@ -13,7 +12,6 @@ import com.ivandsky.puzzlebox.data.match.WriteResult
 import com.ivandsky.puzzlebox.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.domain.UpdateMatchSeat
 import com.ivandsky.puzzlebox.model.ShareCode
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
@@ -80,11 +78,10 @@ class DuelsTabViewModelTest {
         server.signedInUid = player?.uid
     }
 
-    private fun viewModel(vararg flags: ReleaseFlag) = DuelsTabViewModel(
+    private fun viewModel() = DuelsTabViewModel(
         observeMyDuels = ObserveMyDuels(repo, FakeSelfMatchRepository(), FakeMatchResultOutbox(), local, identity) { now },
         updateSeat = UpdateMatchSeat(repo, local, identity),
         identity = identity,
-        releaseFlags = FakeReleaseFlags(*flags),
         clock = { now },
     )
 
@@ -300,16 +297,6 @@ class DuelsTabViewModelTest {
         vm.decline(shown)
 
         assertEquals(listOf(if (shown == code) other else code), listOf(vm.state.value.selected))
-    }
-
-    @Test
-    fun `the duel yourself line follows the Virtual duel flag`() = runTest {
-        viewAs(null)
-        val off = started(viewModel())
-        val on = started(viewModel(ReleaseFlag.VirtualDuel))
-
-        assertFalse(off.state.value.duelYourself)
-        assertTrue(on.state.value.duelYourself)
     }
 
     @Test

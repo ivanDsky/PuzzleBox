@@ -110,18 +110,11 @@ class SettingsScreenTest {
 
     @Test
     fun `the play row shows the stored value and a tap reports the flipped one`() {
-        setContent(state = SettingsUiState(themeMode = ThemeMode.LIGHT, versionName = "1.4.0", duelPlay = true, showSelfDuelTimeLeft = true))
+        setContent(state = SettingsUiState(themeMode = ThemeMode.LIGHT, versionName = "1.4.0", showSelfDuelTimeLeft = true))
 
         composeRule.onNodeWithTag("settings.play.timeleft").performScrollTo().assertIsOn().performClick()
 
         assertEquals(listOf(false), timeLeft)
-    }
-
-    @Test
-    fun `the play section is absent unless the duel flag put it there`() {
-        setContent(state = SettingsUiState(themeMode = ThemeMode.LIGHT, versionName = "1.4.0", showSelfDuelTimeLeft = true))
-
-        composeRule.onNodeWithTag("settings.play").assertDoesNotExist()
     }
 
     @Test

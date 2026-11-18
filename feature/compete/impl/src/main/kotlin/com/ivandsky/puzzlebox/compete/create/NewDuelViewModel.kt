@@ -4,8 +4,6 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -64,7 +62,7 @@ internal data class NewDuelState(
     val creating: Boolean,
     val notice: DuelNotice?,
     val signIn: DuelSignIn,
-    /** Past you is offered: the flag is on and no challenge already names a friend. */
+    /** Past you is offered: no challenge already names a friend. */
     val selfOffered: Boolean = false,
     /** Who the duel is against; [Opponent.PastYou] only while [selfOffered]. */
     val opponent: Opponent = Opponent.Friend,
@@ -83,8 +81,8 @@ private const val STOP_TIMEOUT_MS = 5_000L
 
 /**
  * The New duel sheet's state holder: presets and customize edits on a [DuelDraft], Create through [createMatch], and
- * the Google sign-in a signed-out player gets first. With [ReleaseFlag.VirtualDuel] on (collected, so it applies live)
- * "Play against" also offers Past you: its choices live on a [SelfDuelForm] measured against the solved pool ([SelfDuelStep]),
+ * the Google sign-in a signed-out player gets first. "Play against" also offers Past you (unless a challenge already names a friend):
+ * its choices live on a [SelfDuelForm] measured against the solved pool ([SelfDuelStep]),
  * Create goes through it too and the new duel's code leaves once through [opened] (it has nothing to share).
  * A created friend duel's code leaves once through [created]; the sheet calls [reset] when it closes so the next
  * opening starts from the Quick duel again.
@@ -97,7 +95,6 @@ internal class NewDuelViewModel(
     calendar: GameCalendar,
     daily: DailyRepository,
     private val registry: GameRegistry,
-    private val flags: ReleaseFlags,
     createSelfDuel: CreateSelfDuel,
     computeSolvedPool: ComputeSolvedPool,
     private val clock: () -> Instant,
@@ -118,7 +115,7 @@ internal class NewDuelViewModel(
     )
 
     private val signInStep = DuelSignInStep(identity, idTokens)
-    private val selfStep = SelfDuelStep(computeSolvedPool, createSelfDuel, flags)
+    private val selfStep = SelfDuelStep(computeSolvedPool, createSelfDuel)
     private val working = MutableStateFlow(Working(DuelDraft.quick(emptyList())))
     private val createdCodes = Channel<Pair<ShareCode, List<String>>>(Channel.BUFFERED)
     private val openedCodes = Channel<ShareCode>(Channel.BUFFERED)
@@ -152,11 +149,11 @@ internal class NewDuelViewModel(
         )
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    val state: StateFlow<NewDuelState> = combine(working, games, identity.current, solved, flags.enabled, ::build)
+    val state: StateFlow<NewDuelState> = combine(working, games, identity.current, solved, ::build)
         .stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
-            build(working.value, emptyList(), identity.current.value, solved.value, flags.enabled.value),
+            build(working.value, emptyList(), identity.current.value, solved.value),
         )
 
     init {
@@ -169,8 +166,8 @@ internal class NewDuelViewModel(
         }
     }
 
-    private fun build(work: Working, available: List<DuelGame>, who: Identity?, counts: SolvedCounts?, on: Set<ReleaseFlag>): NewDuelState {
-        val offered = ReleaseFlag.VirtualDuel in on && work.challenge == null
+    private fun build(work: Working, available: List<DuelGame>, who: Identity?, counts: SolvedCounts?): NewDuelState {
+        val offered = work.challenge == null
         val opponent = if (offered) work.opponent else Opponent.Friend
         val self = SelfDuelView(work.form, counts, available)
         return NewDuelState(
@@ -190,7 +187,7 @@ internal class NewDuelViewModel(
         )
     }
 
-    private fun selfActive(work: Working) = work.opponent == Opponent.PastYou && work.challenge == null && ReleaseFlag.VirtualDuel in flags.enabled.value
+    private fun selfActive(work: Working) = work.opponent == Opponent.PastYou && work.challenge == null
 
     /** Past you or a friend: the choice is kept apart, so each keeps its own draft while the other is shown. */
     fun chooseOpponent(opponent: Opponent) = working.update { it.copy(opponent = opponent, notice = null) }

@@ -14,7 +14,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** Settings with its Haptics (Vibration) section and, with the duel flag on, the Play section: the screen a light-theme signed-in user sees on a 360dp phone and the landscape tablet, light. Goldens in `snapshots/settings/`. */
+/** Settings with its Haptics (Vibration) section and its Play section: the screen a light-theme signed-in user sees on a 360dp phone and the landscape tablet, light. Goldens in `snapshots/settings/`. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34])
@@ -85,7 +85,6 @@ class SettingsGoldenScreenshots {
                     themeMode = if (dark) ThemeMode.DARK else ThemeMode.LIGHT,
                     versionName = "1.4.0",
                     visibility = OwnTier.Chosen(VisibilityTier.Board),
-                    duelPlay = true,
                     showSelfDuelTimeLeft = timeLeft,
                 ),
                 onSetThemeMode = {},
