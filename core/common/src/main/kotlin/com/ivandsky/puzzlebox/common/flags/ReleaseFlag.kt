@@ -26,12 +26,6 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     HintPolish(label = "Calm hint button and plain hint captions", releaseDefault = false),
 
     /**
-     * Random puzzle (epic #1153): a Random action opens one puzzle picked from the daily archive's past days or from
-     * Community's New today, narrowed by game and difficulty. Read only in a ViewModel or a DI module (ADR-0022 §3).
-     */
-    RandomPuzzle(label = "Random puzzle from the archive or Community", releaseDefault = true),
-
-    /**
      * Same feel in every game (spec A19): one Boolean that every play board hands its games. Read only in feature/play's DI,
      * which binds it once and provides it to the games as LocalPlayFeel (spec A2).
      */

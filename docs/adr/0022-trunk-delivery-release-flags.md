@@ -120,3 +120,4 @@ to merge without being reachable in a release build.
 - The WhatsNew flag was removed, with the Settings view model's `whatsNew` parameter, the DI read and the flag-off About row, on 2026-11-18 (#1405); Settings, About keeps the What's new row as shipped in 0.37.0.
 - RandomPuzzle flipped to `releaseDefault = true` in 0.37.0 on 2026-11-18 (#1456; user-approved with the seven other flips of that release): a Random action opens one puzzle from past days or New today.
 - The RulesSheet flag was removed, with its DI read and the flag-off route test, on 2026-11-18 (#1415); How to play opens the rules sheet for a game with rules copy and the tutorial for one without, as shipped in 0.37.0.
+- The RandomPuzzle flag was removed, with the `RandomPuzzleEntry` holder and the null-`onRandom` gate in the Games route, on 2026-11-18 (#1457); a game page with an archive always has Random, as shipped in 0.37.0.

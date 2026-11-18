@@ -30,6 +30,7 @@ lives in Community › Yours; no other tab set remains, so §10 and §12 describ
    | History timeline (every past play) | Ranks | Games › game page: "Your history" row; Today: the recent days, and on the tablet the picked day's detail |
    | Per-game stats (solved, hint-free, avg, best) | Games › game page | — |
    | Past-day archive (play a past day) | Games › game page | History detail: "Play this day" action |
+| Random puzzle (a door, not a content owner: community puzzles stay with the Community tab, the archive with the Games game page) | Games › game page (the Random chip opens the sheet) | — |
    | Daily leaderboards | Ranks | Games › game page: one summary row; Today: "Today's rank: #12 on Zip"; Result: "You: #12 of 340" |
    | Duels | Games › Duels section | Today: "2 duels need you" |
    | Drafts, published puzzles, friends' puzzles (received, enter code) | Community › Yours, Community › Friends | — |
