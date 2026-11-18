@@ -292,12 +292,5 @@ internal class LinkedInPostFlow(
     }
 }
 
-private val LinkState.profileId: String?
-    get() = when (this) {
-        LinkState.NotConnected -> null
-        is LinkState.Connected -> profileId
-        is LinkState.Paused -> profileId
-    }
-
 private fun CompletionRecord.isOf(game: GameId, day: LocalDate): Boolean =
     puzzleRef.gameId == game && (puzzleRef.key as? PuzzleKey.Daily)?.date == day
