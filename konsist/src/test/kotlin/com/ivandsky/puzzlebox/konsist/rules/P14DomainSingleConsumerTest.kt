@@ -27,6 +27,8 @@ class P14DomainSingleConsumerTest {
         Violation("$dir/NestedImport.kt", null, ""),
         Violation("$dir/ApiAndImpl.kt", null, ""),
         Violation("$dir/CommentOnly.kt", null, ""),
+        // GetViaB is a composite only feature b uses; LeafThing, which feature a uses directly, stays clean.
+        Violation("$dir/CompositeOfB.kt", null, ""),
         Violation("$dir/ranks/RankExtensions.kt", null, ""),
         Violation("$dir/stars/StarTarget.kt", null, ""),
     )
@@ -38,7 +40,7 @@ class P14DomainSingleConsumerTest {
 
     @Test
     fun `P14 fixture yields exact violations`() {
-        RuleCheck.assertFixture(P14DomainSingleConsumer, "P14", 15, expected)
+        RuleCheck.assertFixture(P14DomainSingleConsumer, "P14", 17, expected)
     }
 
     @Test

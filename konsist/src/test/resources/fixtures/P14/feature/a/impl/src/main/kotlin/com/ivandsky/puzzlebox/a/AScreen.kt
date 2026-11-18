@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.domain.GetCoreToo
 import com.ivandsky.puzzlebox.domain.GetForeignTested
 import com.ivandsky.puzzlebox.domain.GetShared
 import com.ivandsky.puzzlebox.domain.GetSingle
+import com.ivandsky.puzzlebox.domain.LeafThing
 import com.ivandsky.puzzlebox.domain.ranks.isTopRank
 
 class AScreen(
@@ -19,6 +20,7 @@ class AScreen(
     val appTested: GetAppTested,
     val apiImpl: GetApiImpl,
     val commented: GetCommented,
+    val leaf: LeafThing,
 ) {
     fun top(rank: Int) = rank.isTopRank()
 
