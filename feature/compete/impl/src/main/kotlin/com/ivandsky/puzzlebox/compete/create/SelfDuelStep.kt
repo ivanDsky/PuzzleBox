@@ -10,9 +10,11 @@ import com.ivandsky.puzzlebox.domain.lineup.LineupEntry
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 
 /**
  * What a duel against Past you needs from the data layer, for the New duel sheet: the solved puzzles it can draw
@@ -26,23 +28,22 @@ internal class SelfDuelStep(
     private val failures: FailureLog = LogcatFailureLog,
 ) {
     /**
-     * What each game's solved puzzles number, read again whenever [games] or [includeFriends] changes or [rereads]
-     * emits (the sheet opening, a reset), so a solve made since the last read is counted. Null until the first read or
-     * when the read failed.
+     * What each game's solved puzzles number, following the device: it is read again when [games] or [includeFriends]
+     * changes or [rereads] emits (the sheet opening, a reset), and again on every stored change, so a solve made while
+     * the sheet is open is counted without reopening it. Null until the first read or when the read failed.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
     fun solved(games: Flow<List<DuelGame>>, includeFriends: Flow<Boolean>, rereads: Flow<Any>): Flow<SolvedCounts?> =
         combine(games, includeFriends, rereads) { available, friends, _ -> available to friends }
             .filter { (available, _) -> available.isNotEmpty() }
-            .mapLatest { (available, friends) ->
-                try {
-                    SolvedCounts(computeSolvedPool(available.mapTo(HashSet()) { it.id }, friends).groupingBy { it.gameId }.eachCount())
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    failures.warn(TAG, "solved pool read failed", e)
-                    null
-                }
+            .flatMapLatest { (available, friends) ->
+                computeSolvedPool.observe(available.mapTo(HashSet()) { it.id }, friends)
+                    .map { pool -> SolvedCounts(pool.groupingBy { it.gameId }.eachCount()) }
+                    .catch<SolvedCounts?> { e ->
+                        if (e !is Exception) throw e
+                        failures.warn(TAG, "solved pool read failed", e)
+                        emit(null)
+                    }
             }
 
     /**
