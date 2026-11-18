@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.sudokuui.hint
 
+import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
 import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightRole
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.gameui.hint.StepHints
@@ -53,11 +54,14 @@ class SudokuStepGameTest {
     private inner class Play(puzzle: SudokuPuzzle) {
         var session = SudokuSession(ref = null, puzzle = puzzle)
         var used = 0
-        val game = SudokuStepGame(session = { session })
+        val game = SudokuStepGame(session = { session }, placeIt = { _, _ -> })
         val hints = StepHints(HintMode.Stepwise(Dispatchers.Unconfined), CoroutineScope(Dispatchers.Unconfined), game, { used }, { used = it })
 
         /** What the next press would find, read off the game's own pure block. */
         fun next(): SudokuStep = game.capture()()
+
+        /** The callout's Place it is the one thing the mapper does not draw, and a lambda has no equality. */
+        private fun Spotlight.withoutAction() = copy(callout = callout?.copy(action = null))
 
         /** Presses, checks the Spotlight on screen is exactly the step's (none for a step without a key), and returns that step. */
         fun press(): SudokuStep {
@@ -66,7 +70,7 @@ class SudokuStepGameTest {
             val shown = hints.spotlight
             val expected = SudokuSpotlightMapper.keyOf(step)
                 ?.let { SudokuSpotlightMapper.map(step, session.puzzle, session.board, shown?.playId ?: 0) }
-            assertEquals(expected, shown)
+            assertEquals(expected, shown?.withoutAction())
             return step
         }
 

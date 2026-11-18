@@ -7,17 +7,12 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.spotlight.PLACE_IT
 import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightRole
 import com.ivandsky.puzzlebox.game.replay.MoveLog
 import com.ivandsky.puzzlebox.game.replay.ReplayCodec
 import com.ivandsky.puzzlebox.game.replay.StampedMove
-import com.ivandsky.puzzlebox.gameui.GamePlayUi
-import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.games.sudoku.SudokuCell
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
@@ -30,8 +25,6 @@ import com.ivandsky.puzzlebox.games.sudokuui.hint.SudokuStepGame
 import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -40,16 +33,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.koin.core.annotation.KoinInternalApi
-import org.koin.core.qualifier.qualifier
-import org.koin.dsl.koinApplication
-import org.koin.dsl.module
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Pins "Place it" on a Mini Sudoku hint (PlaceIt, #1423): the callout's action puts the explained digit in the explained
+ * Pins "Place it" on a Mini Sudoku hint (#1423): the callout's action puts the explained digit in the explained
  * cell as the player's own Place, through the board's one placement. It is no hint reveal, ignores Notes mode, leaves the
  * selection, counts nothing, and a given, a repeat, an elimination and a mistake do nothing or show no action.
  */
@@ -79,14 +68,13 @@ class SudokuPlaceItTest {
 
     private val log = MoveLog.fresh(SudokuGames.MINI.id)
 
-    private fun state(puzzle: SudokuPuzzle = peanut450, session: SudokuSession = SudokuSession(ref = null, puzzle = puzzle), placeIt: Boolean = true) =
+    private fun state(puzzle: SudokuPuzzle = peanut450, session: SudokuSession = SudokuSession(ref = null, puzzle = puzzle)) =
         SudokuBoardState(
             initialSession = session,
             now = { Instant.EPOCH },
             log = log,
             hintMode = HintMode.Stepwise(Dispatchers.Unconfined),
             scope = CoroutineScope(Dispatchers.Unconfined),
-            placeIt = placeIt,
         )
 
     private fun SudokuBoardState.target(): Int =
@@ -138,17 +126,7 @@ class SudokuPlaceItTest {
     }
 
     @Test
-    fun `flag off, a single's callout has no action`() {
-        val s = state(placeIt = false)
-
-        s.requestHint()
-
-        assertNotNull(s.spotlight!!.callout)
-        assertNull(s.spotlight!!.callout!!.action)
-    }
-
-    @Test
-    fun `an elimination's callout has no action even with the flag on`() {
+    fun `an elimination's callout has no action`() {
         val s = state(noSingle)
 
         s.requestHint()
@@ -158,7 +136,7 @@ class SudokuPlaceItTest {
     }
 
     @Test
-    fun `a mistake's callout has no action even with the flag on`() {
+    fun `a mistake's callout has no action`() {
         val s = state().apply {
             select(0)
             input(WRONG_DIGIT)
@@ -298,47 +276,6 @@ class SudokuPlaceItTest {
         assertEquals(other, s.selected)
         assertNull(s.spotlight)
         assertEquals(moves(SudokuReplayMove.Hint), recorded().map { it.move })
-    }
-
-    // Wiring
-
-    private val koinModules = listOf(miniSudokuUiModule, sudokuUiModule)
-
-    @After
-    @OptIn(KoinInternalApi::class)
-    fun dropCachedSingles() = koinModules.forEach { module -> module.mappings.values.forEach { it.dropAll() } }
-
-    private fun placeItFrom(vararg on: ReleaseFlag): Boolean {
-        dropCachedSingles()
-        val koin = koinApplication {
-            modules(
-                miniSudokuUiModule,
-                module {
-                    single<DispatcherProvider> {
-                        object : DispatcherProvider {
-                            override val main = Dispatchers.Default
-                            override val io = Dispatchers.IO
-                            override val default = Dispatchers.Unconfined
-                        }
-                    }
-                    single<SudokuHighlightSettings> { InMemorySudokuHighlightSettings() }
-                    single<ReleaseFlags> { object : ReleaseFlags { override val enabled = MutableStateFlow(on.toSet()) } }
-                },
-            )
-        }.koin
-        val env = PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {})
-        return try {
-            (koin.get<GamePlayUi>(qualifier(SudokuGames.MINI.id.value)).createController(env) as SudokuPlayController).placeIt
-        } finally {
-            koin.close()
-        }
-    }
-
-    @Test
-    fun `Mini reads PlaceIt from the flags, off without it`() {
-        assertFalse(placeItFrom())
-        assertFalse(placeItFrom(ReleaseFlag.HintPolish))
-        assertTrue(placeItFrom(ReleaseFlag.PlaceIt))
     }
 
     private companion object {

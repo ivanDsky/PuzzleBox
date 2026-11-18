@@ -64,8 +64,6 @@ class QueensPlayController(
     private val hintMode: HintMode.Stepwise,
     /** Read once at creation like [hintMode]: the plain hint captions (HintPolish). */
     private val plainCaptions: Boolean = false,
-    /** Read once at creation like [hintMode]: the hint callout's "Place it" (PlaceIt). */
-    private val placeIt: Boolean = false,
 ) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback, PlayGuide {
 
     /** The live interaction holder, null until a session is adopted. */
@@ -154,7 +152,6 @@ class QueensPlayController(
             mode = hintMode,
             scope = env.scope,
             plainCaptions = plainCaptions,
-            placeIt = placeIt,
             onInput = env.onInput,
         )
     }

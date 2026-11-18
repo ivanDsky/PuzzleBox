@@ -20,8 +20,8 @@ import com.ivandsky.puzzlebox.model.GameId
 /**
  * One Sudoku game's play registration: both games share this class and differ by [definition].
  * [brand] is set at the registration line: both share the Sudoku glyph, the debug 9x9 stays
- * hueless while Mini reads teal. [plainCaptions] and [placeIt] are asked once per controller, so a flag flipped
- * mid-session changes the next board only; [placeIt] (PlaceIt) puts "Place it" in a single's or reveal's callout.
+ * hueless while Mini reads teal. [plainCaptions] is asked once per controller, so a flag flipped
+ * mid-session changes the next board only.
  */
 class SudokuPlayUi(
     private val definition: SudokuDefinition,
@@ -29,14 +29,13 @@ class SudokuPlayUi(
     override val brand: GameBrand = GameBrand.Neutral,
     private val hintMode: HintModeSource = HintModeSource { HintMode.Legacy },
     private val plainCaptions: () -> Boolean = { false },
-    private val placeIt: () -> Boolean = { false },
 ) : GamePlayUi {
     override val gameId: GameId get() = definition.id
 
     override fun createController(env: PlayEnvironment): GamePlayController =
         SudokuPlayController(
             definition, env, highlights,
-            hintMode = hintMode.current(), plainCaptions = plainCaptions(), placeIt = placeIt(),
+            hintMode = hintMode.current(), plainCaptions = plainCaptions(),
         )
 
     override val tutorial: List<TutorialStep> by lazy { sudokuTutorial(definition) }

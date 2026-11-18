@@ -7,7 +7,7 @@ import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.engine.step.TangoStep
 
 /**
- * The "Place it" action a Tango hint's callout carries (PlaceIt): one tap puts the explained mark on the board.
+ * The "Place it" action a Tango hint's callout carries: one tap puts the explained mark on the board.
  * A deduction and a reveal explain a cell and its value, so they get the action; a mistake names a wrong entry, not
  * a move to make (A3), so it never does. [place] is the controller's own placement entry, so the mark is the player's
  * own move. The returned Spotlight is [spotlight] itself when the step has no action.

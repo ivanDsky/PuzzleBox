@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.tangoui.hint
 
+import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
 import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightRole
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.gameui.hint.StepHints
@@ -56,9 +57,9 @@ class TangoStepGameTest {
         var session = TangoSession(ref = null, puzzle = board)
         var used = 0
         val game = if (solve == null) {
-            TangoStepGame(session = { session })
+            TangoStepGame(session = { session }, placeIt = { _, _ -> })
         } else {
-            TangoStepGame(session = { session }, solve = solve)
+            TangoStepGame(session = { session }, placeIt = { _, _ -> }, solve = solve)
         }
         val hints = StepHints(HintMode.Stepwise(compute), CoroutineScope(Dispatchers.Unconfined), game, { used }, { used = it })
 
@@ -72,7 +73,7 @@ class TangoStepGameTest {
             val shown = hints.spotlight
             val expected = TangoSpotlightMapper.keyOf(step)
                 ?.let { TangoSpotlightMapper.map(step, session.puzzle, session.grid(), shown?.playId ?: 0) }
-            assertEquals(expected, shown)
+            assertEquals(expected, shown?.withoutAction())
             return step
         }
 
@@ -87,6 +88,9 @@ class TangoStepGameTest {
             hints.inputMade()
         }
     }
+
+    /** The callout's Place it is the one thing the mapper does not draw, and a lambda has no equality. */
+    private fun Spotlight.withoutAction() = copy(callout = callout?.copy(action = null))
 
     private fun opposite(value: TangoCell) = if (value == TangoCell.SUN) TangoCell.MOON else TangoCell.SUN
 
@@ -263,7 +267,7 @@ class TangoStepGameTest {
 
         val spotlight = play.game.spotlight(step, 7)
 
-        assertEquals(TangoSpotlightMapper.map(step, puzzle, play.session.grid(), 7), spotlight)
+        assertEquals(TangoSpotlightMapper.map(step, puzzle, play.session.grid(), 7), spotlight.withoutAction())
         assertEquals(TangoSpotlightGlyphs(puzzle.n, mapOf(cell to opposite(solution[cell]))), spotlight.glyphs)
     }
 
