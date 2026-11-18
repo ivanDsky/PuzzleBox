@@ -142,7 +142,6 @@ private fun UpNext(next: HomeUiState.TodayRow?, loading: Boolean, allSolved: Boo
                 SkeletonLine(0.7f, LineSkeletonHeight, skeletonColor())
             }
             allSolved -> {
-                Eyebrow("TODAY")
                 UpNextLine { append("That's the whole set") }
             }
             next != null -> {
