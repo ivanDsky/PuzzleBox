@@ -50,7 +50,7 @@ private const val DISABLED_ALPHA = 0.38f
  * again. A tile calls [onPickGame]; the sheet closes through [onDismiss] (a swipe, the scrim) or when the caller drops it.
  *
  * With [solved] (Past you's sheet: how many puzzles of each game the player has solved) a tile says its count and is off
- * at zero, since nothing could be drawn; there is no [exactPuzzles] to split off then, so the tiles keep the whole sheet.
+ * at zero, since nothing could be drawn; [exactPuzzles] is then the search over those solved puzzles, split off the same way.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -61,9 +61,9 @@ internal fun AddPuzzleSheet(
     onPickGame: (GameId) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    filters: @Composable () -> Unit,
+    exactPuzzles: @Composable (filtersInline: Boolean) -> Unit,
     solved: Map<GameId, Int>? = null,
-    filters: @Composable () -> Unit = {},
-    exactPuzzles: (@Composable (filtersInline: Boolean) -> Unit)? = null,
 ) {
     val window = LocalWindowInfo.current.containerSize
     val twoPane = with(LocalDensity.current) { PanePolicy.isTwoPane(window.width.toDp(), window.height.toDp()) }
@@ -82,7 +82,7 @@ internal fun AddPuzzleSheet(
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            if (twoPane && exactPuzzles != null) {
+            if (twoPane) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
                     Column(Modifier.weight(TILES_PANE_WEIGHT), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                         GameTiles(games, solved, onPickGame)
@@ -92,7 +92,7 @@ internal fun AddPuzzleSheet(
                 }
             } else {
                 GameTiles(games, solved, onPickGame)
-                exactPuzzles?.invoke(true)
+                exactPuzzles(true)
             }
         }
     }

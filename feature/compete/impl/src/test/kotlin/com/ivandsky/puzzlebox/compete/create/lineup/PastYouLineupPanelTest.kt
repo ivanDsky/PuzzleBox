@@ -1,14 +1,11 @@
 package com.ivandsky.puzzlebox.compete.create.lineup
 
-import android.content.Context
-import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
@@ -16,7 +13,6 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.test.core.app.ApplicationProvider
 import com.ivandsky.puzzlebox.compete.create.DuelNotice
 import com.ivandsky.puzzlebox.compete.create.DuelPreset
 import com.ivandsky.puzzlebox.compete.create.GAMES
@@ -39,25 +35,20 @@ import com.ivandsky.puzzlebox.domain.lineup.AnyGame
 import com.ivandsky.puzzlebox.domain.lineup.LineupEntry
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
+import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-private const val TABLET = "w1280dp-h800dp-mdpi"
 private val SOLVED = mapOf(ZIP to 2, QUEENS to 1)
 
-/**
- * The lineup panel for Past you: Any rows over the player's solved puzzles, a sheet with only the game tiles and their
- * solved counts, and the Customize card in the sheet. Koin holds no add-puzzle search here, so a Past you panel that
- * reached for one would fail.
- */
+/** The lineup panel for Past you: Any rows over the player's solved puzzles, a sheet whose tiles say their solved counts, and the Customize card in the sheet. The search of the sheet is in [PastYouAddSheetTest]. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp-420dpi")
 class PastYouLineupPanelTest {
@@ -67,7 +58,12 @@ class PastYouLineupPanelTest {
 
     @Before
     fun startKoinWithBrands() {
-        startKoin { modules(module { single { newDuelBrands() } }) }
+        startKoin {
+            modules(module {
+                single { newDuelBrands() }
+                viewModel(PAST_YOU_PICKER) { AddPuzzleViewModel(pickerOf(SOLVED_ROWS), lookup = null, pastYou = true) }
+            })
+        }
     }
 
     @After
@@ -106,7 +102,7 @@ class PastYouLineupPanelTest {
 
         rule.onNodeWithTag("duel.lineup.header").assertTextEquals("Puzzles, in order · 3 of 10")
         rule.onNodeWithTag("duel.lineup.row.1").assertTextContains("A daily you've solved", substring = true)
-        rule.onNodeWithTag("duel.lineup.add").assertTextContains("Any solved puzzle of a game", substring = true)
+        rule.onNodeWithTag("duel.lineup.add").assertTextContains("A game, or a puzzle you've solved", substring = true)
     }
 
     @Test
@@ -114,17 +110,6 @@ class PastYouLineupPanelTest {
         panel(includeFriends = true)
 
         rule.onNodeWithTag("duel.lineup.row.2").assertTextContains("A daily or friend's puzzle you've solved", substring = true)
-    }
-
-    @Test
-    fun `the sheet has a tile per game with its solved count, no exact search, and a game with none solved is off`() {
-        editor = editor.openAdd()
-        panel()
-
-        rule.onNodeWithTag("duel.lineup.sheet").assertIsDisplayed()
-        rule.onNodeWithTag("duel.lineup.sheet.game.${ZIP.value}").assertTextContains("Zip · 2 solved", substring = true).assertIsEnabled()
-        rule.onNodeWithTag("duel.lineup.sheet.game.${TANGO.value}").assertTextContains("Tango · 0 solved", substring = true).assertIsNotEnabled()
-        rule.onNodeWithTag("duel.lineup.search").assertDoesNotExist()
     }
 
     @Test
@@ -150,18 +135,6 @@ class PastYouLineupPanelTest {
 
         assertEquals(AnyGame(QUEENS), editor.draft.entries.last())
         assertEquals(4, editor.draft.size)
-    }
-
-    @Test
-    @Config(qualifiers = TABLET)
-    fun `a tablet's Past you sheet is one pane, its tiles not squeezed into a left half beside a blank right one`() {
-        Settings.Global.putFloat(ApplicationProvider.getApplicationContext<Context>().contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
-        editor = editor.openAdd()
-        panel()
-
-        val sheet = rule.onNodeWithTag("duel.lineup.sheet").fetchSemanticsNode().boundsInRoot
-        val pairEnd = rule.onNodeWithTag("duel.lineup.sheet.game.${TANGO.value}").fetchSemanticsNode().boundsInRoot.right
-        assertTrue("a row of two tiles spans the sheet, ends at $pairEnd of ${sheet.right}", pairEnd > sheet.left + sheet.width * 3 / 4)
     }
 
     @Test

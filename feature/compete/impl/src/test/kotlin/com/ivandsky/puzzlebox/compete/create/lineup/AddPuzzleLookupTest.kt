@@ -42,7 +42,7 @@ class AddPuzzleLookupTest {
     @After
     fun resetMain() = Dispatchers.resetMain()
 
-    private fun vm() = AddPuzzleViewModel(pickerOf(rows)) { code -> asked += code; answer(code) }
+    private fun vm() = AddPuzzleViewModel(pickerOf(rows), lookup = { code -> asked += code; answer(code) })
 
     private fun titles(vm: AddPuzzleViewModel) = vm.state.value.rows.map { it.puzzle.entry.title }
 

@@ -40,10 +40,14 @@ internal const val LOOKUP_DEBOUNCE_MS = 400L
  * letters that matches nothing could as well be a word, so it is looked up only when the player [paste]s it or asks with
  * [lookUp]. The state says so while it runs, then holds the puzzle it found or the line of why there is none. The lookup is
  * keyed by the text, so a changed text drops the old one and [reset] leaves nothing of it.
+ *
+ * Past you's search has no [lookup] (null): what it lists is on the device, so a code that is no row is only an empty list,
+ * with no network, no "Looking up…" and no retry. [pastYou] tells the state so the sheet words it.
  */
 internal class AddPuzzleViewModel(
     observe: (Flow<PickerQuery>, Flow<Int>) -> Flow<PickerResult>,
-    lookup: suspend (String) -> CodeLookup,
+    lookup: (suspend (String) -> CodeLookup)?,
+    private val pastYou: Boolean = false,
 ) : ViewModel() {
 
     private val query = MutableStateFlow(NO_QUERY)
@@ -56,8 +60,8 @@ internal class AddPuzzleViewModel(
     private val asked = query.map { q -> ShareCode.fromLink(q.text.trim())?.let { q.copy(text = it.value) } ?: q }
 
     private val list: StateFlow<AddPuzzleState> = combine(query, observe(asked, archivePages), added) { shown, result, held ->
-        AddPuzzleState(shown, result.rows.map { PickerEntry(it, it.entry.ref in held) }, result.offline, result.moreDays, loaded = true)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), AddPuzzleState())
+        AddPuzzleState(shown, result.rows.map { PickerEntry(it, it.entry.ref in held) }, result.offline, result.moreDays, loaded = true, pastYou = pastYou)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), AddPuzzleState(pastYou = pastYou))
 
     /** What to look up: once the lists loaded and none of their rows answers the text, the code it announces or the player asked for. */
     private val wants: Flow<Want?> = combine(list, explicit) { base, request ->
@@ -71,7 +75,7 @@ internal class AddPuzzleViewModel(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val lookups: Flow<Lookup?> = wants.flatMapLatest { want ->
-        if (want == null) flowOf(null) else flow {
+        if (want == null || lookup == null) flowOf(null) else flow {
             emit(Lookup(want, outcome = null))
             delay(want.restMs)
             emit(Lookup(want, lookup(want.code.value)))
@@ -87,7 +91,7 @@ internal class AddPuzzleViewModel(
             lookup = current?.let { lookupLine(it.want.code, it.outcome) },
             canRetry = current?.outcome == CodeLookup.Offline,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), AddPuzzleState())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), AddPuzzleState(pastYou = pastYou))
 
     fun setText(text: String) {
         explicit.value = null
