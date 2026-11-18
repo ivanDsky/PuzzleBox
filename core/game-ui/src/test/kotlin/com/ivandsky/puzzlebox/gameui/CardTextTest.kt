@@ -18,6 +18,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.SHIMMER_TAG
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import org.junit.After
 import org.junit.Assert.assertEquals

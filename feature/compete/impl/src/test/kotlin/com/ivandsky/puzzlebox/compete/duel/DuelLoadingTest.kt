@@ -9,8 +9,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.SHIMMER_TAG
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -44,5 +46,12 @@ class DuelLoadingTest {
         rule.setContent { PuzzleBoxTheme { DuelLoading(PlayLayout.SinglePane) } }
 
         rule.onAllNodesWithTag("duel.legs.grid.skeleton").assertCountEquals(0)
+    }
+
+    @Test
+    fun `the two-pane skeleton's bars and blocks shimmer`() {
+        rule.setContent { PuzzleBoxTheme { DuelLoading(PlayLayout.TwoPane) } }
+
+        assertTrue(rule.onAllNodesWithTag(SHIMMER_TAG, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty())
     }
 }

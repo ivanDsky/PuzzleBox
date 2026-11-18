@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.skeleton
 import com.ivandsky.puzzlebox.gameui.hidden.HiddenBoardLoading
 
 /**
@@ -70,14 +71,14 @@ internal fun FriendGridSkeleton(paneHeight: Dp, modifier: Modifier = Modifier) {
 /** A bar one line of [style] high, with [vertical] padding as a chip has; silent to a screen reader. */
 @Composable
 private fun Bar(modifier: Modifier, style: TextStyle, shape: Shape = MaterialTheme.shapes.small, vertical: Dp = 0.dp) {
-    Box(modifier.clearAndSetSemantics {}.background(MaterialTheme.colorScheme.surfaceContainerHigh, shape).padding(vertical = vertical)) {
+    Box(modifier.skeleton(MaterialTheme.colorScheme.surfaceContainerHigh, shape).clearAndSetSemantics {}.padding(vertical = vertical)) {
         Text(" ", style = style)
     }
 }
 
 @Composable
 private fun Block(modifier: Modifier, shape: Shape) {
-    Box(modifier.clearAndSetSemantics {}.background(MaterialTheme.colorScheme.surfaceContainerHigh, shape))
+    Box(modifier.skeleton(MaterialTheme.colorScheme.surfaceContainerHigh, shape).clearAndSetSemantics {})
 }
 
 private val HEAD_HEIGHT = 48.dp

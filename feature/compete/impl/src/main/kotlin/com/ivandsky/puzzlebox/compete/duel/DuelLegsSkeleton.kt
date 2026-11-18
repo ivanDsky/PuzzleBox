@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.compete.duel
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -29,6 +28,7 @@ import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.HiddenBoardTokens
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.skeleton
 import com.ivandsky.puzzlebox.designsystem.TwoColumnMinWidth
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 
@@ -100,8 +100,8 @@ internal fun DuelLegsSkeleton(modifier: Modifier = Modifier) {
 private fun Bar(modifier: Modifier, style: TextStyle, shape: Shape = MaterialTheme.shapes.small, vertical: Dp = 0.dp) {
     Box(
         modifier
+            .skeleton(MaterialTheme.colorScheme.surfaceContainerHigh, shape)
             .clearAndSetSemantics {}
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh, shape)
             .padding(vertical = vertical),
     ) {
         Text(" ", style = style)
@@ -110,5 +110,5 @@ private fun Bar(modifier: Modifier, style: TextStyle, shape: Shape = MaterialThe
 
 @Composable
 private fun Block(modifier: Modifier, shape: Shape) {
-    Box(modifier.clearAndSetSemantics {}.background(MaterialTheme.colorScheme.surfaceContainerHigh, shape))
+    Box(modifier.skeleton(MaterialTheme.colorScheme.surfaceContainerHigh, shape).clearAndSetSemantics {})
 }

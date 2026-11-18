@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.create.published
 
+import android.content.Context
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
@@ -16,9 +18,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
+import androidx.test.core.app.ApplicationProvider
 import com.ivandsky.puzzlebox.create.GOLDEN_TABLET
 import com.ivandsky.puzzlebox.create.showGolden
 import com.ivandsky.puzzlebox.designsystem.HiddenBoardTokens
+import com.ivandsky.puzzlebox.designsystem.SHIMMER_TAG
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import java.util.concurrent.TimeUnit
@@ -121,8 +125,12 @@ class PublishedPageGridTest {
     fun `a tablet pane, loading draws the two-column skeleton and not a blank surface`() {
         val world = PublishedPlainWorld(PlainGame.QUEENS).apply { gate = CompletableDeferred() }
         showWorld(world, pane = 1200.dp, await = false)
+        // The golden harness freezes motion; the page's own skeleton runs on the system default.
+        Settings.Global.putFloat(ApplicationProvider.getApplicationContext<Context>().contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
+        rule.waitForIdle()
 
         assertEquals(1, count("$GRID.skeleton"))
+        assertTrue("the skeleton bars sweep a sheen", count(SHIMMER_TAG) > 0)
         assertEquals(1, count("$GRID.skeleton.right"))
         assertEquals(1, count(PLAIN_LOADING))
         assertEquals(0, count("create.published.ticket"))

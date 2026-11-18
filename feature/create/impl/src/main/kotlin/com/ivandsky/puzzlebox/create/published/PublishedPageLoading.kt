@@ -21,6 +21,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.skeleton
 import com.ivandsky.puzzlebox.gameui.hidden.HiddenBoardLoading
 
 /**
@@ -64,7 +65,7 @@ private fun Skeleton() {
 /** A bar one line of [style] high; silent to a screen reader. */
 @Composable
 private fun Bar(modifier: Modifier, style: TextStyle) {
-    Box(modifier.clearAndSetSemantics {}.background(MaterialTheme.colorScheme.surfaceContainerHigh, MaterialTheme.shapes.small)) {
+    Box(modifier.skeleton(MaterialTheme.colorScheme.surfaceContainerHigh, MaterialTheme.shapes.small).clearAndSetSemantics {}) {
         Text(" ", style = style)
     }
 }
@@ -72,7 +73,7 @@ private fun Bar(modifier: Modifier, style: TextStyle) {
 @Composable
 private fun Block(modifier: Modifier) {
     val shape: Shape = MaterialTheme.shapes.medium
-    Box(modifier.clearAndSetSemantics {}.background(MaterialTheme.colorScheme.surfaceContainerHigh, shape))
+    Box(modifier.skeleton(MaterialTheme.colorScheme.surfaceContainerHigh, shape).clearAndSetSemantics {})
 }
 
 private val TICKET_HEIGHT = 120.dp
