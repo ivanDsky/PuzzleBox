@@ -12,9 +12,16 @@ import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.TutorialStep
+import com.ivandsky.puzzlebox.domain.lineup.ObserveLegTitles
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 
 // The New duel sheet's states, shared by its goldens and its behaviour tests.
+
+/** Leg titles over empty repositories: the view model tests that never share an invite. */
+internal fun noLegTitles() = ObserveLegTitles(FakeReceivedPuzzleRepository(), FakePublishedPuzzleRepository(), FakeSharedPuzzleRepository())
 
 internal val ZIP = GameId("zip")
 internal val TANGO = GameId("tango")

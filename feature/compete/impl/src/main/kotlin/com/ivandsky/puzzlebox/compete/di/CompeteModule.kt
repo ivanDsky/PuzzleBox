@@ -42,6 +42,7 @@ val competeModule: Module = module {
             clock = { Instant.now() },
             zone = { ZoneId.systemDefault() },
             locale = { Locale.getDefault() },
+            legTitles = get(),
             releaseFlags = getOrNull(),
         )
     }

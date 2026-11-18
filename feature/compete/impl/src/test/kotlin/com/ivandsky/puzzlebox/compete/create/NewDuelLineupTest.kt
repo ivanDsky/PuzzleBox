@@ -126,6 +126,7 @@ class NewDuelLineupTest {
             clock = { NOW },
             zone = { ZoneOffset.UTC },
             locale = { Locale.US },
+            legTitles = noLegTitles(),
             releaseFlags = FakeReleaseFlags(*if (flagOn) arrayOf(ReleaseFlag.DuelLineup) else emptyArray()),
         ).also { backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { it.state.collect {} } }
 

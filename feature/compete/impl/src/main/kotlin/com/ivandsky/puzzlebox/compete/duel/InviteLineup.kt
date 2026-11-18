@@ -47,9 +47,6 @@ internal fun inviteLegs(legs: List<LegRef>, nameOf: (GameId) -> String, titles: 
         InviteLeg(leg.gameId, nameOf(leg.gameId), code, code?.let(titles::get))
     }
 
-internal fun List<InviteLeg>.titled(titles: Map<ShareCode, String>): List<InviteLeg> =
-    map { leg -> leg.code?.let(titles::get)?.let { leg.copy(title = it) } ?: leg }
-
 /** The codes of the custom legs: the ones a title may be read for. */
 internal fun List<LegRef>.customCodes(): List<ShareCode> = filterIsInstance<LegRef.Custom>().map { it.code }
 

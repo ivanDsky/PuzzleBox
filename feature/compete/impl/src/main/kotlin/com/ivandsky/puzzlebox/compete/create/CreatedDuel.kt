@@ -5,7 +5,8 @@ import com.ivandsky.puzzlebox.compete.duel.inviteLegs
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.domain.lineup.ObserveLegTitles
 import com.ivandsky.puzzlebox.model.ShareCode
-import kotlinx.coroutines.flow.last
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * A friend duel that was created: its [code], the game name of each puzzle in order ([puzzles]), and the [deadlineHours]
@@ -14,13 +15,18 @@ import kotlinx.coroutines.flow.last
  */
 internal data class CreatedDuel(val code: ShareCode, val puzzles: List<String>, val deadlineHours: Int, val legs: List<LegRef> = emptyList())
 
+/** How long the share sheet waits for public titles; a puzzle whose title is not in by then shows its code. */
+internal const val TITLES_WAIT_MS = 2_000L
+
 /**
  * What the invite text lists after "best of n": the games once each, or with the lineup on every puzzle in order, a
- * custom one by its title in quotes ([legTitles] reads it; without it, or when it cannot, "<Game> · <code>").
+ * custom one by its title in quotes ([legTitles] reads them, for at most [TITLES_WAIT_MS]; a title not known by then
+ * or unreadable shows "<Game> · <code>").
  */
-internal suspend fun CreatedDuel.inviteGames(legTitles: ObserveLegTitles?): List<String> {
+internal suspend fun CreatedDuel.inviteGames(legTitles: ObserveLegTitles): List<String> {
     if (legs.isEmpty()) return puzzles.distinct()
     val names = legs.map { it.gameId }.zip(puzzles).toMap()
-    val titles = legTitles?.invoke(legs.customCodes())?.last().orEmpty()
+    var titles = emptyMap<ShareCode, String>()
+    withTimeoutOrNull(TITLES_WAIT_MS) { legTitles(legs.customCodes()).collect { titles = it } }
     return inviteLegs(legs, names::getValue, titles).map { it.label }
 }

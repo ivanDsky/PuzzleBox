@@ -18,6 +18,7 @@ import com.ivandsky.puzzlebox.domain.CreateOutcome
 import com.ivandsky.puzzlebox.domain.CreateSelfDuel
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.lineup.AnyGame
+import com.ivandsky.puzzlebox.domain.lineup.ObserveLegTitles
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
@@ -66,6 +67,7 @@ internal class NewDuelViewModel(
     clock: () -> Instant,
     zone: () -> ZoneId,
     locale: () -> Locale,
+    private val legTitles: ObserveLegTitles,
     private val releaseFlags: ReleaseFlags? = null,
 ) : ViewModel() {
 
@@ -91,6 +93,9 @@ internal class NewDuelViewModel(
 
     /** The new duel, once, after Create succeeded: a duel created as the sheet closed waits here for the next opening. */
     val created: Flow<CreatedDuel> = createdCodes.receiveAsFlow()
+
+    /** The games [created]'s invite text lists; see [inviteGames]. */
+    suspend fun inviteGames(created: CreatedDuel): List<String> = created.inviteGames(legTitles)
 
     /** The code of a duel against Past you, once, after Create succeeded: the sheet opens that duel, the next opening's if it closed first. */
     val opened: Flow<ShareCode> = openedCodes.receiveAsFlow()
@@ -238,7 +243,9 @@ internal class NewDuelViewModel(
             }
             // The server write is done whatever the sheet did meanwhile, so its code must still reach the creator.
             if (outcome is CreateOutcome.Created) {
-                createdCodes.send(CreatedDuel(outcome.code, outcome.legs.map { registry.displayName(it.ref.gameId) }, start.draft.deadlineHours, outcome.legs.filter { releaseFlags?.isEnabled(ReleaseFlag.DuelLineup) == true }.map { it.ref }))
+                val lineup = releaseFlags?.isEnabled(ReleaseFlag.DuelLineup) == true
+                val games = outcome.legs.map { registry.displayName(it.ref.gameId) }
+                createdCodes.send(CreatedDuel(outcome.code, games, start.draft.deadlineHours, outcome.legs.filter { lineup }.map { it.ref }))
             }
         }
     }
