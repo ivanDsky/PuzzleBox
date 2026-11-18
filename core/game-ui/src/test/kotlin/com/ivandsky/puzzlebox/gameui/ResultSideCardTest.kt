@@ -19,7 +19,10 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.SIGN_IN_WITH_GOOGLE
 import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.domain.SpreadScope
+import com.ivandsky.puzzlebox.domain.timeSpread
 import com.ivandsky.puzzlebox.game.BestScore
+import com.ivandsky.puzzlebox.game.RankOrder
+import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Rule
@@ -201,6 +204,23 @@ class ResultSideCardTest {
         composeRule.onNodeWithTag("result.side.edge.0", useUnmergedTree = true).assertDoesNotExist()
         composeRule.onNodeWithTag("result.side.edge.${view(model).edges.lastIndex}", useUnmergedTree = true).assertDoesNotExist()
         composeRule.onNodeWithTag("result.side.edge.2", useUnmergedTree = true).assertTextEquals(view(model).edges[2])
+    }
+
+    @Test
+    fun `a slow solve puts the You pill and its count on the last bar`() {
+        val earlier = List(124) { BestScore((5 + it * 39 / 123) * 1_000L, 0) } + listOf(60, 80, 100, 120, 140, 70, 90, 110, 130).map { BestScore(it * 1_000L, 0) }
+        val current = BestScore(150_000L, 0)
+        val facts = heroSampleFacts(timeMs = 150_000L, earlier = earlier)
+        val spread = timeSpread(earlier, current, RankOrder.TimeThenHints, slowTail = true)
+        val model = resultHeroModel(facts.copy(insights = facts.insights!!.copy(spread = spread)), Locale.US)
+        setContent(model)
+
+        val last = view(model).bars.lastIndex
+        assertEquals(last, view(model).youBin)
+        composeRule.onNodeWithTag("result.side.bar.you", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("result.side.count.$last", useUnmergedTree = true).assertTextEquals("10")
+        composeRule.onNodeWithTag("result.side.you", useUnmergedTree = true).assertTextEquals("You")
+        composeRule.onNodeWithTag("result.side.edge.${last}", useUnmergedTree = true).assertTextEquals("0:45")
     }
 
     @Test

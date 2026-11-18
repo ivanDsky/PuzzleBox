@@ -197,6 +197,9 @@ internal fun heroWeekdayName(day: DayOfWeek, locale: Locale): String = day.getDi
 /** "1:00–1:30": one bin's time range, en dash. */
 internal fun heroBinRange(fromMs: Long, toMs: Long): String = "${formatDuration(fromMs)}–${formatDuration(toMs)}"
 
+/** "0:45+": the slow tail's label, its lower edge. */
+internal fun heroOpenBinRange(fromMs: Long): String = "${formatDuration(fromMs)}+"
+
 /** The chart's spoken description: "{heading}. {n} time ranges, counts per range. Today m:ss." */
 internal fun heroChartDescription(heading: String, bins: Int, timeMs: Long): String {
     val ranges = if (bins == 1) "1 time range" else "$bins time ranges"

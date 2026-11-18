@@ -625,4 +625,18 @@ class ResultHeroCopyTest {
         assertEquals("A very long game name · #918", model.title)
         assertEquals("Your 3 any day A very long game name times", model.spread!!.views.getValue(all).heading.text)
     }
+
+    @Test
+    fun `an open slow tail bar is labelled with its lower edge and plus`() {
+        val earlier = List(124) { BestScore((5 + it * 39 / 123) * 1_000L, 0) } + listOf(60, 80, 100, 120, 140, 70, 90, 110, 130).map { BestScore(it * 1_000L, 0) }
+        val current = BestScore(100_000L, 0)
+        val insights = heroSampleInsights(current, earlier).copy(spread = timeSpread(earlier, current, RankOrder.TimeThenHints, slowTail = true))
+        val view = model(facts(insights = insights)).spread!!.views.getValue(all)
+
+        assertEquals("0:45+", view.bars.last().range)
+        assertEquals(view.bars.size, view.edges.size)
+        assertEquals("0:45", view.edges.last())
+        assertEquals("0:05–0:10", view.bars.first().range)
+        assertEquals(view.bars.lastIndex, view.youBin)
+    }
 }
