@@ -28,9 +28,9 @@ internal fun FriendCreatePanel(state: NewDuelState, actions: NewDuelActions) {
     }
 }
 
-/** The invitee line and the Quick, Daily and Customize presets. */
+/** The invitee line and the Quick, Daily and Customize presets. [sheetPicker] false: the lineup shows no add sheet, the screen shows the picker. */
 @Composable
-internal fun FriendChoices(state: NewDuelState, actions: NewDuelActions) {
+internal fun FriendChoices(state: NewDuelState, actions: NewDuelActions, sheetPicker: Boolean = true) {
     var customizing by rememberSaveable { mutableStateOf(false) }
     val draft = state.draft
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
@@ -46,7 +46,7 @@ internal fun FriendChoices(state: NewDuelState, actions: NewDuelActions) {
         PresetCard("Daily duel", "Today's puzzles · 24 h", draft.preset == DuelPreset.Daily, actions.onDaily, "duel.preset.daily") {
             if (draft.preset == DuelPreset.Daily) {
                 if (draft.showsRows(state.lineup, state.games)) {
-                    LineupPanel(state.lineup, state.games, draft.includeFriends, actions.onEditLineup, fixed = true)
+                    LineupPanel(state.lineup, state.games, draft.includeFriends, actions.onEditLineup, fixed = true, sheetPicker = sheetPicker)
                 } else {
                     DailyGames(state.games, draft, actions.onToggle)
                 }
@@ -67,7 +67,7 @@ internal fun FriendChoices(state: NewDuelState, actions: NewDuelActions) {
             },
             tag = "duel.preset.custom",
             trailing = { Chevron(expanded = customizing) },
-        ) { CustomizeBody(customizing && !draft.showsRows(state.lineup, state.games)) { DuelCustomizePanel(state, actions, Modifier.padding(top = Spacing.sm)) } }
+        ) { CustomizeBody(customizing && !draft.showsRows(state.lineup, state.games)) { DuelCustomizePanel(state, actions, Modifier.padding(top = Spacing.sm), sheetPicker) } }
     }
 }
 

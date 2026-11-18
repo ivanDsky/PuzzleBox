@@ -21,12 +21,12 @@ import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import org.koin.compose.koinInject
 
-/** The Customize panel: the lineup's ordered puzzles, the deadline, and the friends' puzzles switch. Every edit goes through [actions]. */
+/** The Customize panel: the lineup's ordered puzzles, the deadline, and the friends' puzzles switch. Every edit goes through [actions]; [sheetPicker] is the lineup's. */
 @Composable
-internal fun DuelCustomizePanel(state: NewDuelState, actions: NewDuelActions, modifier: Modifier = Modifier) {
+internal fun DuelCustomizePanel(state: NewDuelState, actions: NewDuelActions, modifier: Modifier = Modifier, sheetPicker: Boolean = true) {
     val draft = state.draft
     Column(modifier.fillMaxWidth().testTag("duel.customize"), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        LineupPanel(state.lineup, state.games, draft.includeFriends, actions.onEditLineup)
+        LineupPanel(state.lineup, state.games, draft.includeFriends, actions.onEditLineup, sheetPicker = sheetPicker)
         Section("DEADLINE") {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Match.DEADLINE_CHOICES.forEach { hours ->
