@@ -7,7 +7,9 @@ build/
 .externalNativeBuild/
 .cxx/
 .scratch/
-PuzzleBox-*-debug.apk
+# Built apps live on GitHub releases, never in the repo.
+*.apk
+*.aab
 /PROFILE.local.md
 
 # Screenshot renders: review captures from -Proborazzi.record=true, never committed (ADR-0033).
