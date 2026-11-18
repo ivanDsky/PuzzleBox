@@ -30,7 +30,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * VirtualDuel off, as in release: the entries to a self duel are gone — the New duel sheet's Play against row, the
+ * VirtualDuel switched off (the debug override; release has it on): the entries to a self duel are gone — the New duel sheet's Play against row, the
  * Duels tab's "duel yourself" line, Settings' time-left row — while a self duel stored before the flag turned off
  * stays in My duels and plays on (the flag gates entries only).
  */
