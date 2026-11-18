@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.compete.create.lineup
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -35,10 +36,11 @@ import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 
 private val NUMBER_WIDTH = 24.dp
 private val ROW_MIN_HEIGHT = 56.dp
+private val LIFT_ELEVATION = 8.dp
 
 /**
  * One puzzle of the lineup: its [position] (from 1), glyph, title and subtitle, and a remove button that is off on the last
- * puzzle. A [flashed] row takes the primary container colour for a moment, and a [refused] one is outlined as an error.
+ * puzzle, and a grip to drag it by ([drag]). A [lifted] row is raised. A [flashed] row takes the primary container colour for a moment, and a [refused] one is outlined as an error.
  * Tapping the row opens its change sheet.
  */
 @Composable
@@ -49,6 +51,8 @@ internal fun LineupRow(
     canRemove: Boolean,
     flashed: Boolean,
     refused: Boolean,
+    lifted: Boolean,
+    drag: RowDrag,
     onClick: () -> Unit,
     onRemove: () -> Unit,
     modifier: Modifier = Modifier,
@@ -59,19 +63,26 @@ internal fun LineupRow(
         animationSpec = if (reduced) snap() else tween(MotionTokens.DurationMedium),
         label = "lineup row flash",
     )
+    val elevation by animateDpAsState(
+        targetValue = if (lifted) LIFT_ELEVATION else 0.dp,
+        animationSpec = if (reduced) snap() else tween(MotionTokens.DurationShort),
+        label = "lineup row lift",
+    )
     val outline = if (refused) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outlineVariant
     Surface(
         onClick = onClick,
         modifier = modifier.fillMaxWidth().heightIn(min = ROW_MIN_HEIGHT).testTag("duel.lineup.row.$position"),
         shape = MaterialTheme.shapes.medium,
         color = container,
+        shadowElevation = elevation,
         border = BorderStroke(if (refused) 2.dp else 1.dp, outline),
     ) {
         Row(
-            modifier = Modifier.padding(start = Spacing.md, top = Spacing.xs, bottom = Spacing.xs),
+            modifier = Modifier.padding(start = Spacing.xs, top = Spacing.xs, bottom = Spacing.xs),
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            LineupDragHandle(drag, Modifier.testTag("duel.lineup.handle.$position"))
             Text(
                 text = position.toString(),
                 style = MaterialTheme.typography.titleMedium.tabular(),

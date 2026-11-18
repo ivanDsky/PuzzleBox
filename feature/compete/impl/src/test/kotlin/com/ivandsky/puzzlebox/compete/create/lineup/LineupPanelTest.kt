@@ -3,7 +3,21 @@ package com.ivandsky.puzzlebox.compete.create.lineup
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.performTouchInput
+import com.ivandsky.puzzlebox.compete.create.QUEENS
+import java.time.Instant
+import java.time.ZoneOffset
+import java.util.Locale
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -100,5 +114,56 @@ class LineupPanelTest {
         rule.onNodeWithTag("duel.lineup.sheet.game.${TANGO.value}").performClick()
 
         assertEquals(AnyGame(TANGO), editor.draft.entries.last())
+    }
+
+    @Test
+    fun `dragging row 3 by its handle above row 1 makes the lineup read 3, 1, 2 and the summary follow`() {
+        var editor by mutableStateOf(LineupEditor.opening(GAMES))
+        val names = mapOf(ZIP to "Zip", TANGO to "Tango", QUEENS to "Queens")
+        rule.setContent {
+            PuzzleBoxTheme {
+                Column {
+                    Text(
+                        lineupSummary(editor.entries, 24, false, Instant.parse("2026-11-09T10:00:00Z"), ZoneOffset.UTC, Locale.US) { names.getValue(it) },
+                        Modifier.testTag("summary"),
+                    )
+                    LineupPanel(editor, GAMES, includeFriends = false, onEdit = { edit -> editor = edit(editor) })
+                }
+            }
+        }
+        rule.waitForIdle()
+        val rowHeight = rule.onNodeWithTag("duel.lineup.row.3").fetchSemanticsNode().size.height.toFloat()
+
+        rule.onNodeWithTag("duel.lineup.handle.3", useUnmergedTree = true).performTouchInput {
+            down(center)
+            repeat(DRAG_STEPS) { moveBy(Offset(0f, -rowHeight * 2.5f / DRAG_STEPS)) }
+            up()
+        }
+        rule.waitForIdle()
+
+        assertEquals(listOf(QUEENS, ZIP, TANGO), editor.entries.map { it.gameId })
+        rule.onNodeWithTag("duel.lineup.row.1").assertTextContains("Any Queens", substring = true)
+        rule.onNodeWithTag("duel.lineup.row.3").assertTextContains("Any Tango", substring = true)
+        rule.onNodeWithTag("summary").assertTextContains("Best of 3 · Queens, Zip, Tango", substring = true)
+    }
+
+    @Test
+    fun `a short drag that stays within its slot leaves the order as it was`() {
+        var editor by mutableStateOf(LineupEditor.opening(GAMES))
+        show(editor) { edit -> editor = edit(editor) }
+        val rowHeight = rule.onNodeWithTag("duel.lineup.row.1").fetchSemanticsNode().size.height.toFloat()
+
+        rule.onNodeWithTag("duel.lineup.handle.1", useUnmergedTree = true).performTouchInput {
+            down(center)
+            repeat(DRAG_STEPS) { moveBy(Offset(0f, rowHeight * 0.3f / DRAG_STEPS)) }
+            up()
+        }
+        rule.waitForIdle()
+
+        assertEquals(listOf(ZIP, TANGO, QUEENS), editor.entries.map { it.gameId })
+    }
+
+    private companion object {
+        const val DRAG_STEPS = 10
     }
 }

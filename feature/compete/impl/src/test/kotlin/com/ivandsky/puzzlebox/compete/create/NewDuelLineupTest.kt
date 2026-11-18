@@ -251,6 +251,48 @@ class NewDuelLineupTest {
     }
 
     @Test
+    fun `moving a row reorders the footer and what Create sends, and nothing else about the rows`() = runTest {
+        val vm = started()
+        vm.chooseCustom()
+        vm.editLineup { it.remove(2) }
+        vm.pick(beta)
+
+        vm.editLineup { it.moved(2, 0) }
+
+        assertEquals(listOf(beta, alpha, beta), vm.lineupGames())
+        assertEquals("Best of 3 · Beta, Alpha, Beta · ends Tue 10:00", vm.state.value.summary)
+        vm.create()
+        assertEquals(listOf(beta, alpha, beta), server.matches.getValue(vm.created.first().code).legs.map { it.ref.gameId })
+    }
+
+    @Test
+    fun `after a failed try the footer still names the games, not the drawn puzzles' ids`() = runTest {
+        val vm = started()
+        vm.chooseCustom()
+        vm.editLineup { it.remove(2) }
+        repo.offlineOnce = true
+
+        vm.create()
+
+        assertEquals(DuelNotice.Offline, vm.state.value.notice)
+        assertEquals("Best of 2 · Alpha, Beta · ends Tue 10:00", vm.state.value.summary)
+    }
+
+    @Test
+    fun `the marked row is cleared with its notice when the next try starts`() = runTest {
+        val vm = started()
+        vm.chooseCustom()
+        vm.pick(gamma, row = 1)
+        vm.create()
+        assertEquals(1, vm.state.value.lineup!!.marked)
+
+        vm.setDeadline(48)
+
+        assertNull(vm.state.value.notice)
+        assertNull(vm.state.value.lineup!!.marked)
+    }
+
+    @Test
     fun `a challenge opens with one Any row of its game`() = runTest {
         val vm = started()
 
