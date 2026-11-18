@@ -209,6 +209,27 @@ class CustomBodyNewPuzzleTest {
         assertEquals(listOf("draft-1"), openedDrafts)
     }
 
+    @Test
+    fun `size labels end at one x on a phone, with or without a chevron`() {
+        assertSizeLabelsAligned()
+    }
+
+    @Test
+    @Config(qualifiers = "w840dp-h1024dp")
+    fun `size labels end at one x on a tablet, with or without a chevron`() {
+        assertSizeLabelsAligned()
+    }
+
+    /** Queens and Alpha offer several sizes so show a chevron; Solo has one and shows none. */
+    private fun assertSizeLabelsAligned() {
+        composeRule.onNodeWithTag(NEW).performClick()
+        composeRule.onNodeWithTag(SHEET).assertExists()
+        val rights = listOf(queens, alpha, solo).map {
+            composeRule.onNodeWithTag("$DEFAULT${it.value}", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.right
+        }
+        assertEquals("size label right edges: $rights", 1, rights.toSet().size)
+    }
+
     private fun seed(): Draft = Draft(
         id = "seed",
         gameId = alpha,
