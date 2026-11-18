@@ -2,12 +2,14 @@ package com.ivandsky.puzzlebox.create
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
@@ -39,6 +41,9 @@ import com.ivandsky.puzzlebox.model.GameId
 /** Title plus a two-line rule, so every game row stands the same height. */
 private val GameRowMinHeight = 84.dp
 private const val RuleMaxLines = 2
+
+/** The chevron's rendered width; every row reserves it so the size labels share one right edge. */
+private val ChevronSlotSize = PuzzleIcons.Chevron.defaultWidth
 
 /** The first cloud restore's state (A34): the whole Custom list's, while it runs. */
 @Composable
@@ -160,8 +165,10 @@ internal fun GameStartRow(
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        if (chevron) {
-            Icon(PuzzleIcons.Chevron, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Box(Modifier.size(ChevronSlotSize), contentAlignment = Alignment.Center) {
+            if (chevron) {
+                Icon(PuzzleIcons.Chevron, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }
