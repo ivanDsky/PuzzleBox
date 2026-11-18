@@ -94,13 +94,16 @@ internal class LinkedInDaySync(
         val nowMs = clock()
         val read = source.board(request.profileId, request.typeId, todayNumber, request.delta)
         return settle(request, read) { board ->
+            // The wipe count is read first, under the store lock, so a disconnect cannot slip in before it.
+            val started = avatars.generation()
             val kept = ghosts.write(request.game, request.day, request.today, request.profileId, board, nowMs)
+            // Straight after the ghosts, not awaited: a slow or failed photo never holds them back, and no
+            // cancellable call sits between the stored board and the launch. A day left right here would
+            // otherwise lose its photos for good, since a logged past board is never read again.
+            avatars.downloadInBackground(kept, started, request.game, request.day)
             // A board read while its day is still running is partial; the outcome marks it for one more read.
             val outcome = if (request.delta == 0) LinkedInOutcome.BoardToday else LinkedInOutcome.Board
             log(request, LinkedInItem.Board, outcome, nowMs)
-            // After the ghosts and the log are stored, and not awaited: a slow or failed photo never holds them
-            // back. The wipe count is read here, under the store lock, so a disconnect cannot slip in before it.
-            avatars.downloadInBackground(kept, avatars.generation())
             null
         }
     }
