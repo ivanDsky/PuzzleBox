@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.create.editor
 
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc.Visibility
@@ -22,7 +21,6 @@ import com.ivandsky.puzzlebox.game.editor.GameEditor
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.model.GameId
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
@@ -39,8 +37,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The author's level on the published doc (96): with FinishForMe on, a Public doc stores the level the author chose, the
- * proposal when they chose none; link only still stores none; with the flag off the doc is today's, whatever was picked.
+ * The author's level on the published doc (96): a Public doc stores the level the author chose, the
+ * proposal when they chose none; link only still stores none.
  * The pick is handed to the draft's writer, comes back through `open`, and is frozen like the visibility once an attempt
  * falls short.
  */
@@ -88,19 +86,6 @@ class PublishLevelSessionTest {
         val doc = backend.docs.values.single()
         assertEquals(Visibility.LinkOnly, doc.visibility)
         assertNull(doc.difficulty)
-    }
-
-    @Test
-    fun `flag off, nothing is offered and the doc keeps the verdict's own label`() = runTest {
-        val session = session(finishForMe = false)
-
-        assertFalse(session.state.value.details.levelOffered)
-        session.pickLevel(Level.Easy, hard)
-        assertNull("a pick with no control changes nothing", session.state.value.details.level)
-        publish(session)
-
-        assertEquals(Level.Hard, backend.docs.values.single().difficulty)
-        assertTrue(stored.isEmpty())
     }
 
     @Test
@@ -215,9 +200,8 @@ class PublishLevelSessionTest {
         runCurrent()
     }
 
-    private suspend fun TestScope.session(finishForMe: Boolean = true): PublishSession {
+    private suspend fun TestScope.session(): PublishSession {
         drafts.upsert(row)
-        val flags = listOfNotNull(ReleaseFlag.FinishForMe.takeIf { finishForMe })
         return PublishSession(
             draftId = DRAFT_ID,
             createShared = CreateSharedPuzzle(
@@ -234,7 +218,6 @@ class PublishLevelSessionTest {
                 stored += level
                 row = row.copy(difficultyChoice = level)
             },
-            flags = FakeReleaseFlags(*flags.toTypedArray()),
         )
     }
 

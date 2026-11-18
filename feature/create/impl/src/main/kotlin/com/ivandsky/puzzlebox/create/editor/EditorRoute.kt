@@ -39,9 +39,8 @@ import org.koin.core.parameter.parametersOf
  * it too, then reports the draft's id to [onDelete], which leaves the Studio and deletes it with Undo.
  * The verdict card hosts the game's fix list over the draft's board blocks (`publishBlocks`);
  * a fix's Select closes the card so the selection shows. Test solve (Unique boards of games that
- * export puzzles) replaces the Studio with the [TestSolveHost] until it closes: the board-only
- * [TestSolveScreen] sandbox, or the game's regular play screen through [testSolvePlay] where the
- * view model says so. A board edit that invalidates the test shows the toast whose Undo brings
+ * export puzzles) replaces the Studio with the [TestSolveHost] until it closes: the game's regular play
+ * screen through [testSolvePlay], or the board-only [TestSolveScreen] sandbox without one. A board edit that invalidates the test shows the toast whose Undo brings
  * the board back to the tested layout. On a phone the passed test's publish details take the
  * tools' [ToolSlot] until Edit board, which holds until the author takes the details back (a passed
  * test that clears and comes back keeps it; a test solve finished from it opens the details); the
@@ -78,7 +77,6 @@ internal fun EditorRoute(
     val saving by viewModel.saving.collectAsStateWithLifecycle()
     val sandbox by viewModel.testSolve.sandbox.collectAsStateWithLifecycle()
     val passed by viewModel.testSolve.passed.collectAsStateWithLifecycle()
-    val regularTestSolve by viewModel.finish.regularTestSolve.collectAsStateWithLifecycle()
     val testCleared by viewModel.testSolve.cleared.collectAsStateWithLifecycle()
     val publish by viewModel.publish.state.collectAsStateWithLifecycle()
     val cardOpen by viewModel.verdictCard.open.collectAsStateWithLifecycle()
@@ -110,7 +108,7 @@ internal fun EditorRoute(
             LaunchedEffect(newPass) { if (newPass != null) editBoard = false }
             val detailsReady = detailsOpen(held, passed, publish)
             sandbox?.let { open ->
-                TestSolveHost(open, title, layout, regularTestSolve, testSolvePlay, viewModel.testSolve::close, routeModifier)
+                TestSolveHost(open, title, layout, testSolvePlay, viewModel.testSolve::close, routeModifier)
             } ?: StudioScreen(
                 title = title,
                 subtitle = ready.subtitle,

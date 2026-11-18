@@ -47,12 +47,6 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     HintPolish(label = "Calm hint button and plain hint captions", releaseDefault = false),
 
     /**
-     * Finish for me in the Studio (nav-rethink E1): a game whose editor has a `DraftCompleter` completes a half-built draft
-     * into a unique puzzle, keeping every piece the author placed. Read only in a ViewModel or a DI module (spec A2).
-     */
-    FinishForMe(label = "Finish for me in the Studio", releaseDefault = true),
-
-    /**
      * Fixed play controls and board size caps (nav-rethink B5, B6). Read only by the play-tuning source binding in the
      * game UI DI, which holds a non-null `PlayTuning` only while this is on (spec A2).
      */

@@ -21,7 +21,6 @@ import com.ivandsky.puzzlebox.game.editor.LadderRung
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.model.GameId
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
@@ -149,7 +148,6 @@ class PublishVisibilitySessionTest {
             reserved = { code -> row = row.copy(reservedCode = code) },
             storeDetails = { name, note -> row = row.copy(authorName = name, note = note) },
             storeLevel = {},
-            flags = FakeReleaseFlags(),
         )
     }
 

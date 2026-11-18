@@ -5,7 +5,6 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasTextExactly
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -17,7 +16,7 @@ import org.robolectric.ParameterizedRobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Test solve on the regular play screen (ticket 98), over the real shell with FinishForMe on, once per game: the
+ * Test solve on the regular play screen (ticket 98), over the real shell, once per game: the
  * Studio's Test solve opens the game's own play screen (its play top bar with the timer, its board area and its
  * controls) titled with the draft and "Test solve"; winning it through the board's input returns to the Studio with
  * the test stored on the draft, and nothing else: no Result, no record.
@@ -29,7 +28,7 @@ import org.robolectric.annotation.Config
 class TestSolveRegularPlayE2ETest(name: String) {
 
     private val game: FriendGame = GAMES.keys.single { it.toString() == name }
-    private val world = TestSolveWorld(ReleaseFlag.FinishForMe)
+    private val world = TestSolveWorld()
 
     @Test
     fun `Test solve opens the game's regular play screen and its solve returns to the Studio with the test stored`() =

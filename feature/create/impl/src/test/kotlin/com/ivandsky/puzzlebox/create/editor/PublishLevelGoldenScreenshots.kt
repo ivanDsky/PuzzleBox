@@ -25,7 +25,7 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * 96: the publish details with the level control, phone and tablet, light and dark: the proposal followed (Hard chosen,
  * "Proposed: Hard") and an author's own pick (Easy chosen over the same proposal). The details sit under the Public or
- * Link only picker, the way the Studio shows them with FinishForMe on. Goldens in
+ * Link only picker, the way the Studio shows them. Goldens in
  * `snapshots/publish-level/`; record with `-Proborazzi.record=true`, verify with `-Proborazzi.verify=true`.
  */
 @RunWith(RobolectricTestRunner::class)
