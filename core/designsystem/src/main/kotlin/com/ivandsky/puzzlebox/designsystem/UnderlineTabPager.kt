@@ -78,11 +78,13 @@ fun UnderlineTabPager(
     val settled by rememberUpdatedState(onPageSettled)
     // The page last reported, so a host that echoes it back as [selectedPage] is not asked to move there.
     var reported by remember { mutableIntStateOf(state.settledPage) }
-    val settle = if (reduced) {
-        tween<Float>(MotionTokens.ReducedFadeDuration, easing = MotionTokens.EasingLinear)
-    } else {
-        tween(MotionTokens.DurationLong, easing = MotionTokens.EasingEmphasizedDecelerate)
-    }
+    val settle = RestingSettle(
+        if (reduced) {
+            tween(MotionTokens.ReducedFadeDuration, easing = MotionTokens.EasingLinear)
+        } else {
+            tween(MotionTokens.DurationLong, easing = MotionTokens.EasingEmphasizedDecelerate)
+        },
+    )
     DisposableEffect(state, link) {
         link.pager = state
         onDispose { if (link.pager === state) link.pager = null }
