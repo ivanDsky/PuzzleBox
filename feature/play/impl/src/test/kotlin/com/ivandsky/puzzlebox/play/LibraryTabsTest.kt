@@ -18,6 +18,7 @@ import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
@@ -223,6 +224,23 @@ class LibraryTabsTest {
         composeRule.onNodeWithTag("library.tab.dailies").performClick()
         awaitTag("library.row.zip")
         awaitGone(DUELS_BODY)
+    }
+
+    @Test
+    fun theSubtitleNamesTheSelectedTab() {
+        setContent(slot)
+        awaitTag("library.row.zip")
+        composeRule.onNodeWithText("Every puzzle, back to #1").assertExists()
+
+        composeRule.onNodeWithTag("library.tab.duels").performClick()
+        awaitTag(DUELS_BODY)
+        awaitGone("library.row.zip")
+        composeRule.onNodeWithText("Head-to-head, same puzzle").assertExists()
+        composeRule.onNodeWithText("Every puzzle, back to #1").assertDoesNotExist()
+
+        composeRule.onNodeWithTag("library.tab.dailies").performClick()
+        awaitTag("library.row.zip")
+        composeRule.onNodeWithText("Every puzzle, back to #1").assertExists()
     }
 
     @Test
