@@ -7,7 +7,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -16,17 +15,28 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.text.AnnotatedString
 import com.ivandsky.puzzlebox.compete.create.GAMES
+import com.ivandsky.puzzlebox.compete.create.QUEENS
 import com.ivandsky.puzzlebox.compete.create.newDuelBrands
+import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.domain.lineup.ExactPuzzle
 import com.ivandsky.puzzlebox.domain.lineup.PickablePuzzle
+import com.ivandsky.puzzlebox.domain.lineup.PickerQuery
+import com.ivandsky.puzzlebox.domain.lineup.PickerResult
+import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
+import java.time.LocalDate
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -52,11 +62,16 @@ class ExactPuzzleSearchTest {
 
     private var editor by mutableStateOf(LineupEditor.opening(GAMES))
 
-    private fun show(rows: List<PickablePuzzle>, offline: Boolean = false, restoration: StateRestorationTester? = null) {
+    private fun show(
+        rows: List<PickablePuzzle>,
+        offline: Boolean = false,
+        restoration: StateRestorationTester? = null,
+        observe: (Flow<PickerQuery>, Flow<Int>) -> Flow<PickerResult> = pickerOf(rows, offline),
+    ) {
         startKoin {
             modules(module {
                 single { newDuelBrands() }
-                viewModel { AddPuzzleViewModel(pickerOf(rows, offline)) }
+                viewModel { AddPuzzleViewModel(observe) }
             })
         }
         val content: @Composable () -> Unit = {
@@ -159,6 +174,25 @@ class ExactPuzzleSearchTest {
     }
 
     @Test
+    fun `scrolling to the end of the list asks for the next page of the archive, and not before`() {
+        val days = List(60) { i ->
+            val ref = LegRef.Daily(QUEENS, LocalDate.of(2026, 11, 9).minusDays(i.toLong()), 100 - i)
+            PickablePuzzle(ExactPuzzle(ref, null, "Queens #${100 - i}", null, PuzzleSource.PastDay), isNew = false, played = false, meta = "Nov 9, 2026", code = null)
+        }
+        val asked = mutableListOf<Int>()
+        show(days, observe = { _, pages -> pages.map { n -> asked += n; PickerResult(days.take(PAGE * n), offline = false, moreDays = PAGE * n < days.size) } })
+        openSheet()
+        assertEquals(listOf(1), asked)
+
+        rule.onNode(hasScrollToIndexAction()).performScrollToIndex(PAGE - 1)
+        rule.waitForIdle()
+
+        assertEquals(listOf(1, 2), asked)
+        rule.onNode(hasScrollToIndexAction()).performScrollToIndex(PAGE)
+        rule.onNodeWithTag("duel.lineup.pick.${days[PAGE].entry.ref.wire}").assertExists()
+    }
+
+    @Test
     fun `closing the sheet clears the search for the next opening`() {
         show(listOf(CROWN_JEWELS, MY_GRID))
         openSheet()
@@ -173,3 +207,5 @@ class ExactPuzzleSearchTest {
         rule.onNodeWithTag("duel.lineup.count").assertTextEquals("Newest first")
     }
 }
+
+private const val PAGE = 30

@@ -7,23 +7,25 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 
 /**
- * The one list the add sheet picks an exact puzzle from: community, friends' and the player's own puzzles, newest
- * first, narrowed on the device by the query. The community is read once per call of [invoke], so changing the query
- * only refilters.
+ * The one list the add sheet picks an exact puzzle from: community, friends' and the player's own puzzles and the pages of
+ * the daily archive read so far, newest first, narrowed on the device by the query. The community is read once per call
+ * of [invoke], so changing the query only refilters.
  */
 class ObservePickablePuzzles internal constructor(
     private val completions: CompletionRepository,
     private val community: CommunitySource,
     private val friends: FriendSource,
     private val own: OwnSource,
+    private val archive: DailyArchiveSource,
 ) {
-    operator fun invoke(query: Flow<PickerQuery>): Flow<PickerResult> {
+    /** [archivePages] is how many pages of the daily archive the sheet has asked for so far. */
+    operator fun invoke(query: Flow<PickerQuery>, archivePages: Flow<Int>): Flow<PickerResult> {
         val played = completions.observeRecords().map { records -> records.mapTo(HashSet()) { PuzzleRefKeys.encode(it.puzzleRef) } }
-        return combine(query, community.observe(played), friends.observe(played), own.observe(played)) { q, c, f, o ->
+        return combine(query, community.observe(played), friends.observe(played), own.observe(played), archive.observe(played, archivePages)) { q, c, f, o, a ->
             // A friend's puzzle that is also public is one puzzle: the friend's row wins.
-            val rows = (f.rows + c.rows + o.rows).distinctBy { it.puzzle.entry.ref }
+            val rows = (f.rows + c.rows + o.rows + a.rows).distinctBy { it.puzzle.entry.ref }
                 .sortedByDescending { it.atMs }.map { it.puzzle }.filter { it.passes(q) }
-            PickerResult(rows, offline = c.offline)
+            PickerResult(rows, offline = c.offline, moreDays = a.moreDays)
         }
     }
 }

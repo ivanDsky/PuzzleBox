@@ -17,12 +17,15 @@ import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeHiddenPuzzles
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
+import com.ivandsky.puzzlebox.data.match.LegRef
 import java.time.Instant
+import java.time.LocalDate
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -47,6 +50,7 @@ class ObservePickablePuzzlesTest {
     private val received = FakeReceivedPuzzleRepository()
     private val published = FakePublishedPuzzleRepository()
     private val completions = FakeCompletionRepository()
+    private val dailyRepo = FakeDailyRepository()
     private val hiddenPuzzles = FakeHiddenPuzzles()
     private var listCalls = 0
     private var failList = false
@@ -65,6 +69,7 @@ class ObservePickablePuzzlesTest {
 
     private fun observe() = ObservePickablePuzzles(
         completions, communitySource, FriendSource(received, identity) { now }, OwnSource(published, identity),
+        DailyArchiveSource(dailyRepo, registry),
     )
 
     private fun query(
@@ -110,7 +115,7 @@ class ObservePickablePuzzlesTest {
     /** The list once the community read has settled. */
     private suspend fun TestScope.result(q: PickerQuery = query()): PickerResult {
         var latest: PickerResult? = null
-        val job = launch(UnconfinedTestDispatcher(testScheduler)) { observe().invoke(flowOf(q)).collect { latest = it } }
+        val job = launch(UnconfinedTestDispatcher(testScheduler)) { observe().invoke(flowOf(q), flowOf(1)).collect { latest = it } }
         advanceUntilIdle()
         job.cancel()
         return checkNotNull(latest)
@@ -174,13 +179,40 @@ class ObservePickablePuzzlesTest {
         community("K7Q2MX", alpha, title = "Crown")
         val queries = MutableStateFlow(query())
         var latest: PickerResult? = null
-        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { observe().invoke(queries).collect { latest = it } }
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { observe().invoke(queries, flowOf(1)).collect { latest = it } }
         assertEquals(1, latest?.rows?.size)
 
         queries.value = query(text = "nothing")
 
         assertEquals(emptyList<PickablePuzzle>(), latest?.rows)
         assertEquals(registry.all.size, listCalls)
+    }
+
+    @Test
+    fun `the Past days chip lists the archive newest first with solved days played, and a name search reads the pages loaded so far`() = runTest {
+        val today = LocalDate.of(2026, 11, 9)
+        dailyRepo.setArchiveRange(alpha, today.minusYears(3)..today)
+        dailyRepo.setPuzzleNumbers(alpha) { day -> (day.toEpochDay() % 10_000).toInt() + 1 }
+        community("K7Q2MX", alpha, title = "Community")
+        val solved = today.minusDays(1)
+        completions.setRecords(
+            listOf(
+                CompletionRecord(
+                    puzzleRef = TestGames.Ref(alpha, PuzzleKey.Daily(solved, (solved.toEpochDay() % 10_000).toInt() + 1)),
+                    time = 30_000L, hints = 0, stats = RecordStats(schemaVersion = 1, blob = "{}"), isRecord = true,
+                ),
+            ),
+        )
+
+        val days = result(query(sources = setOf(PuzzleSource.PastDay))).rows
+
+        assertEquals(30, days.size)
+        assertEquals(listOf(false, true, false), days.take(3).map { it.played })
+        assertEquals(today.minusDays(1), (days[1].entry.ref as LegRef.Daily).day)
+        assertEquals("Alpha #${(today.toEpochDay() % 10_000).toInt() + 1}", days.first().entry.title)
+        val old = (today.minusDays(30).toEpochDay() % 10_000).toInt() + 1
+        assertEquals(emptyList<PickablePuzzle>(), result(query(text = "#$old")).rows)
+        assertEquals(1, result(query(text = "#${(today.minusDays(29).toEpochDay() % 10_000).toInt() + 1}")).rows.size)
     }
 
     @Test
@@ -209,7 +241,7 @@ class ObservePickablePuzzlesTest {
         community("K7Q2MX", alpha, title = "Community")
         gate = CompletableDeferred()
         var latest: PickerResult? = null
-        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { observe().invoke(flowOf(query())).collect { latest = it } }
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { observe().invoke(flowOf(query()), flowOf(1)).collect { latest = it } }
         testScheduler.runCurrent()
 
         assertEquals(listOf("Friend", "Own"), latest?.rows?.map { it.entry.title })

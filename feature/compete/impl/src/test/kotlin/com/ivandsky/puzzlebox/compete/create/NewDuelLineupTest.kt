@@ -48,6 +48,7 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -231,6 +232,20 @@ class NewDuelLineupTest {
 
         assertEquals(listOf(today(alpha), today(beta)), vm.state.value.lineup!!.draft.entries)
         assertTrue(vm.state.value.draft.showsRows(vm.state.value.lineup, vm.state.value.games))
+    }
+
+    @Test
+    fun `a past day picked into the Daily rows is not today's, so the rows stop being the Daily duel's`() = runTest {
+        val vm = started()
+        vm.chooseDaily()
+        val past = today(alpha).copy(ref = LegRef.Daily(alpha, today.minusDays(3), 5), title = "Alpha #5")
+
+        vm.editLineup { it.openAdd() }
+        vm.editLineup { it.pick(past) }
+
+        assertEquals(listOf(today(alpha), today(beta), past), vm.state.value.lineup!!.draft.entries)
+        assertFalse(vm.state.value.lineup!!.draft.isToday(vm.state.value.games))
+        assertFalse(vm.state.value.draft.showsRows(vm.state.value.lineup, vm.state.value.games))
     }
 
     @Test

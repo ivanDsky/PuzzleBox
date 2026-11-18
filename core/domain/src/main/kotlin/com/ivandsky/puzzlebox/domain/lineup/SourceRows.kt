@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.domain.lineup
 
-/** What one source hands [ObservePickablePuzzles]: its rows with the time each was made, and whether they are stale for lack of a connection. */
-internal class SourceRows(val rows: List<Dated>, val offline: Boolean = false) {
+/** What one source hands [ObservePickablePuzzles]: its rows with the time each was made, whether they are stale for lack of a connection, and whether the daily archive has a page left. */
+internal class SourceRows(val rows: List<Dated>, val offline: Boolean = false, val moreDays: Boolean = false) {
 
     class Dated(val atMs: Long, val puzzle: PickablePuzzle)
 }
