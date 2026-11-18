@@ -83,7 +83,7 @@ class ZipEditorPathTest {
         rule.waitForIdle()
     }
 
-    private fun covered(controller: ZipEditorController) = ZipEditorHintState.of(controller.shown.value)
+    private fun covered(controller: ZipEditorController) = ZipEditorHintState.of(controller.shown.value, ZipEditorStep.Path)
 
     private fun board(draft: EditorDraft<*>) = draft.state.draft as ZipDraft
 
@@ -188,9 +188,11 @@ class ZipEditorPathTest {
 
     @Test
     fun `Reverse and Clear path on an empty path are no edit`() {
-        show()
-        tap("zip.editor.reverse")
-        tap("zip.editor.clearPath")
+        val controller = show()
+        rule.runOnIdle {
+            controller.reverse()
+            controller.clearPath()
+        }
 
         assertTrue(edits.isEmpty())
     }

@@ -44,7 +44,8 @@ import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
  * this verdict's witness on the board at once. The chip and the switch share a [FlowRow] with a
  * [Spacing.sm] gap, tight enough to keep one line on a 320 dp phone at default font size, so the
  * card still fits the half-open sheet; at a large font scale the switch wraps under the chip
- * instead of spilling past the card, and the sheet drags up. No motion: the selection swaps at once.
+ * instead of spilling past the card, and the sheet drags up. The one-line [legend]
+ * (`create.verdict.witness.legend`) under the segments says what A and B are and what the board marks. No motion: the selection swaps at once.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -53,6 +54,7 @@ internal fun VerdictWitness(
     autoShow: Boolean,
     onChange: (EditorOverlay) -> Unit,
     onAutoShow: (Boolean) -> Unit,
+    legend: String,
     modifier: Modifier = Modifier,
 ) {
     val accent = AccentSlot.Violet.colors()
@@ -69,6 +71,12 @@ internal fun VerdictWitness(
                 ) { Text("Solution ${witness.name}", maxLines = 1) }
             }
         }
+        Text(
+            legend,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.testTag("create.verdict.witness.legend"),
+        )
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             itemVerticalAlignment = Alignment.CenterVertically,
@@ -122,6 +130,7 @@ private fun VerdictWitnessPreview() {
                 autoShow = true,
                 onChange = {},
                 onAutoShow = {},
+                legend = "A and B differ in 6 cells, marked on the board",
                 modifier = Modifier.padding(Spacing.lg),
             )
         }

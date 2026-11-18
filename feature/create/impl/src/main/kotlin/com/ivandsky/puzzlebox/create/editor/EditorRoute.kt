@@ -206,6 +206,7 @@ internal fun EditorRoute(
                             onShowDetails = { editBoard = false }.takeIf { editBoard && (detailsReady || publish.outcome is PublishOutcome.Published) },
                             fieldCopy = ready.editor.publishFieldCopy,
                             compact = layout == PlayLayout.SinglePane,
+                            keepReadinessLine = ready.editor.keepsReadinessLine,
                         )
                     }
                 },
