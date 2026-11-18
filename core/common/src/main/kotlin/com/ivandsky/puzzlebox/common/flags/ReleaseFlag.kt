@@ -49,4 +49,10 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
      * blinks round it. Read only in feature/play's DI, which hands the Zip board one Boolean (ADR-0022 §3, spec A2).
      */
     ZipDotPulse(label = "Zip next number pulses itself", releaseDefault = true),
+
+    /**
+     * What's new screen (epic #1363): Settings' About gets a What's new row that opens the page of what each release brought.
+     * Read only in feature/profile's DI, which hands Settings one Boolean (ADR-0022 §3).
+     */
+    WhatsNew(label = "What's new screen", releaseDefault = false),
 }

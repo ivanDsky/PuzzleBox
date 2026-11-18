@@ -4,6 +4,9 @@ import android.webkit.CookieManager
 import android.webkit.WebSettings
 import com.ivandsky.puzzlebox.app.screens.ProfileViewModel
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
 import com.ivandsky.puzzlebox.data.cloud.OversizedDrafts
 import com.ivandsky.puzzlebox.data.cloud.SavedBoardsCloud
@@ -36,7 +39,8 @@ val profileModule: Module = module {
             savedBoardsCloud = get(),
         )
     }
-    // The parameter is the app's VisibilitySlot; without it Settings has no Visibility section.
+    // The parameter is the app's VisibilitySlot; without it Settings has no Visibility section. The WhatsNew flag is read
+    // here (ADR-0022 §3) and Settings gets one Boolean.
     viewModel { params ->
         SettingsViewModel(
             preferences = get(),
@@ -45,6 +49,7 @@ val profileModule: Module = module {
             identityService = get(),
             idTokenProvider = get(),
             visibility = params.getOrNull(),
+            whatsNew = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.WhatsNew) == true,
         )
     }
     viewModel { LinkedInLoginViewModel(createLink = get(), cookies = get()) }

@@ -15,6 +15,7 @@ import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -53,6 +54,7 @@ class SettingsScreenTest {
     private var backClicks = 0
     private var catalogClicks = 0
     private var signInClicks = 0
+    private var whatsNewClicks = 0
 
     private fun setContent(
         state: SettingsUiState = SettingsUiState(themeMode = ThemeMode.LIGHT, versionName = "1.4.0"),
@@ -73,6 +75,7 @@ class SettingsScreenTest {
                     onSetShowSelfDuelTimeLeft = { timeLeft += it },
                     onSignIn = { signInClicks++ },
                     onBack = { backClicks++ },
+                    onOpenWhatsNew = { whatsNewClicks++ },
                     onOpenCatalog = if (showCatalog) ({ catalogClicks++ }) else null,
                     debugSections = debugSections,
                 )
@@ -285,6 +288,24 @@ class SettingsScreenTest {
 
         composeRule.onNodeWithTag("settings.about").assertExists()
         composeRule.onNodeWithText("2.7.1").assertExists()
+    }
+
+    @Test
+    fun `about has a What's new row only with the flag, and a tap opens it`() {
+        setContent(SettingsUiState(themeMode = ThemeMode.SYSTEM, versionName = "1.4.0", whatsNew = true))
+
+        composeRule.onNodeWithTag("settings.whatsNew").performScrollTo().assertTextContains("What's new").performClick()
+
+        assertEquals(1, whatsNewClicks)
+        composeRule.assertTouchTargetsAtLeast48()
+    }
+
+    @Test
+    fun `without the flag about has no What's new row`() {
+        setContent()
+
+        composeRule.onNodeWithTag("settings.whatsNew").assertDoesNotExist()
+        composeRule.onNodeWithText("What's new").assertDoesNotExist()
     }
 
     @Test

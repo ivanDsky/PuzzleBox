@@ -18,6 +18,7 @@ import org.koin.core.parameter.parametersOf
 internal fun SettingsRoute(
     onBack: () -> Unit,
     onOpenCatalog: (() -> Unit)?,
+    onOpenWhatsNew: () -> Unit,
     modifier: Modifier = Modifier,
     debugSections: (@Composable () -> Unit)? = null,
     visibility: VisibilitySlot? = null,
@@ -39,6 +40,7 @@ internal fun SettingsRoute(
         onSignIn = { viewModel.onSignIn(context) },
         onBack = onBack,
         onOpenCatalog = onOpenCatalog.takeIf { debuggable },
+        onOpenWhatsNew = onOpenWhatsNew,
         debugSections = debugSections.takeIf { debuggable },
         modifier = modifier.testTag("route.settings"),
     )
