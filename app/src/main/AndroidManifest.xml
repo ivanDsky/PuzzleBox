@@ -3,6 +3,10 @@
 
     <!-- Lets the duel result poster see the network come back (ConnectivityManager default-network callback). -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Android 13+ runtime permission for the daily puzzle reminder; asked only from the Settings switch. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Normal permission: lets the reminder alarm be set again after a restart. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:name=".PuzzleBoxApplication"
@@ -54,6 +58,21 @@
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
+
+        <!-- The reminder alarm's own broadcast, sent by explicit intent: nothing else may reach it. -->
+        <receiver
+            android:name=".reminder.ReminderAlarmReceiver"
+            android:exported="false" />
+
+        <!-- The system sends boot-completed and package-replaced; the alarm is lost on both, so it is set again. -->
+        <receiver
+            android:name=".reminder.ReminderRebootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>
