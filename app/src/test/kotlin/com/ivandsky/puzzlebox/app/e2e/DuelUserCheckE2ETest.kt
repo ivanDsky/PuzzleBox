@@ -96,10 +96,11 @@ class DuelUserCheckE2ETest {
         assertFalse("nothing to play before a claim", shows(LEGS_TITLE))
 
         // Once a friend claims, the pill counts to the 24 h deadline, not closesAt (+6 h grace), and the header's
-        // "ends" is the same instant; the minutes depend on the wall clock.
+        // "ends" is the same instant. The pill reads the device clock, so the expected hours come from that clock.
         friendClaims(code)
         awaitTag(LEGS_TITLE)
-        rule.onNodeWithTag(TIME_LEFT).assert(hasText("Closes in 23 h ", substring = true))
+        val hoursLeft = Duration.between(Instant.now(), match.deadline).toHours()
+        rule.onNodeWithTag(TIME_LEFT).assert(hasText("Closes in $hoursLeft h ", substring = true))
         val ends = DateTimeFormatter.ofPattern("EEE HH:mm", Locale.getDefault()).format(match.deadline.atZone(ZoneId.systemDefault()))
         assertEquals("the deadline is a day after the create", Duration.ofHours(24), Duration.between(match.createdAt, match.deadline))
         rule.onNodeWithText("Best of ${match.legs.size} · ends $ends").assertExists()
