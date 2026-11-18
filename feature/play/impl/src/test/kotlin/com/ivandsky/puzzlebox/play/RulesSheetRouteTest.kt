@@ -5,6 +5,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.lifecycle.Lifecycle
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -118,6 +119,44 @@ class RulesSheetRouteTest(custom: Boolean) : GameTutorialFixture(custom, playFee
         composeRule.waitForIdle()
 
         assertTrue(sheetShown())
+    }
+
+    @Test
+    fun `a rotation's disposal under the sheet leaves the clock folded`() {
+        startSeen()
+        val controller = fakes[alpha].latest
+        composeRule.runOnIdle { controller.advance(5_000L) }
+        tapHowToPlay()
+        val folds = controller.folds
+
+        // A rotation pauses first (the chrome's own observer folds), then disposes the composition.
+        composeRule.activityRule.scenario.moveToState(Lifecycle.State.STARTED)
+        composeRule.runOnIdle { entry.intValue++ }
+        composeRule.waitForIdle()
+
+        assertNull(controller.clockWindow)
+        assertEquals(5_000L, controller.displayedElapsedMs())
+        assertEquals(folds, controller.folds)
+    }
+
+    @Test
+    fun `finishing the replayed tutorial returns to the board with the clock running`() {
+        startSeen()
+        val controller = fakes[alpha].latest
+        composeRule.runOnIdle { controller.advance(5_000L) }
+        tapHowToPlay()
+        tapInSheet("rules.replay")
+        composeRule.waitUntil { !sheetShown() }
+        composeRule.waitForIdle()
+
+        winLesson()
+        click("tutorial.skip")
+
+        composeRule.onNodeWithTag("tutorial.host").assertDoesNotExist()
+        composeRule.onNodeWithText("alpha board 0").assertExists()
+        assertNotNull(controller.clockWindow)
+        composeRule.runOnIdle { controller.advance(1_000L) }
+        assertEquals(6_000L, controller.displayedElapsedMs())
     }
 
     @Test

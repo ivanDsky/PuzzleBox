@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * One friend's or custom puzzle's board entry: opens the key's slot in the [PlaySessionStore] and, with
@@ -36,7 +37,7 @@ internal class CustomGameViewModel(
     }
 
     /** The rules sheet's copy while it shows; always null with PlayFeel off. */
-    val rules: StateFlow<RulesSheetCopy?> = gate?.rules ?: MutableStateFlow(null)
+    val rules: StateFlow<RulesSheetCopy?> = gate?.rules ?: MutableStateFlow<RulesSheetCopy?>(null).asStateFlow()
 
     fun dismissRules() {
         gate?.dismissRules()

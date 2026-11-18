@@ -44,11 +44,11 @@ internal class TutorialGateHolder(
 
     /**
      * With [howToPlayRules] on for a game that has rules copy, opens the rules sheet over the live play; otherwise (and for
-     * a game with no rules) the tutorial opens as before. A no-op without lessons or while the tutorial is already open.
+     * a game with no rules) the tutorial opens as before. A no-op without lessons or while the sheet or the tutorial is already open.
      */
     fun howToPlay() {
         val lessons = play?.ui?.tutorial ?: return
-        if (lessons.isEmpty() || _gate.value is TutorialGate.Open) return
+        if (lessons.isEmpty() || _gate.value is TutorialGate.Open || _rules.value != null) return
         touched = true
         val copy = howToPlayRules.copyFor(play.gameId)
         if (copy != null) _rules.value = copy else _gate.value = TutorialGate.Open(TutorialSession(lessons))
