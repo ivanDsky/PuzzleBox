@@ -22,7 +22,9 @@ import kotlin.math.ceil
  *    letter it passed through.
  *  - **target**: any other free neighbour, diagonals included, joins only once the travel has
  *    decided a heading toward it and the finger is inside its [StrandsBoardSpec.TargetHalf]
- *    square. The squares leave a channel at each corner, so a diagonal through the channel
+ *    square; a side letter's is wider across the finger's line ([StrandsBoardSpec.SideAcrossHalf]),
+ *    so a finger drifting toward a used neighbour, or off the line in a fast swipe, still joins it.
+ *    The squares leave a channel at each corner, so a diagonal through the channel
  *    between the side squares joins the corner letter and no side letter.
  *
  * A used or off-board target joins nothing: no side letter stands in for a diagonal. Only a
@@ -96,7 +98,15 @@ internal class StrandsTraceWalk(private val rows: Int, private val cols: Int, do
         val direction = TraceDirection.of(heading.x, heading.y)
         val next = Coord(anchor.row + direction.dRow, anchor.col + direction.dCol)
         if (next.row !in 0 until rows || next.col !in 0 until cols || next in path) return null
-        return next.takeIf { inSquare(point, next, StrandsBoardSpec.TargetHalf) }
+        val from = point - centreOf(next)
+        val half = StrandsBoardSpec.TargetHalf
+        val across = StrandsBoardSpec.SideAcrossHalf
+        val inside = when {
+            direction.isDiagonal -> abs(from.x) <= half && abs(from.y) <= half
+            direction.dRow == 0 -> abs(from.x) <= half && abs(from.y) <= across
+            else -> abs(from.y) <= half && abs(from.x) <= across
+        }
+        return next.takeIf { inside }
     }
 
     /**
