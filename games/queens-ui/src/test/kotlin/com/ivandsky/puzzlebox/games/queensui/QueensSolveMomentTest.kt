@@ -11,7 +11,6 @@ import com.ivandsky.puzzlebox.designsystem.CelebrationMotion
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.gameui.Adopt
-import com.ivandsky.puzzlebox.gameui.LocalPlayFeel
 import com.ivandsky.puzzlebox.gameui.LocalSolveRestOnBoard
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
@@ -48,7 +47,7 @@ class QueensSolveMomentTest {
     }
 
     /** The 8×8 daily, one queen short of solved, on the play screen. */
-    private fun oneQueenShort(playFeel: Boolean = false): QueensBoardState {
+    private fun oneQueenShort(): QueensBoardState {
         val controller = QueensPlayController(
             env = PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {}),
             settings = InMemoryQueensSettings(),
@@ -59,7 +58,6 @@ class QueensSolveMomentTest {
         rule.setContent {
             CompositionLocalProvider(
                 LocalSolveRestOnBoard provides true,
-                LocalPlayFeel provides playFeel,
                 LocalHapticFeedback provides haptics,
             ) {
                 PuzzleBoxTheme(darkTheme = false) {
@@ -121,8 +119,8 @@ class QueensSolveMomentTest {
     }
 
     @Test
-    fun `with PlayFeel the solving queen ticks, then the solve confirms once`() {
-        val board = oneQueenShort(playFeel = true)
+    fun `the solving queen ticks, then the solve confirms once`() {
+        val board = oneQueenShort()
 
         commit { board.place(QueensPlayFixtures.solution.last()) }
         advance(3_000)

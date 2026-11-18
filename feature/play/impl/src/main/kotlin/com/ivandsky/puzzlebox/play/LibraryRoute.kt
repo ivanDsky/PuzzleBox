@@ -162,7 +162,7 @@ internal fun LibraryRoute(
         val ui = open?.let { registry[it.game] }
         if (open != null && ui != null) {
             BackHandler { viewModel.closeLesson() }
-            PlayFeelHost {
+            PlayBoardHosts {
                 TutorialHost(
                     ui = ui,
                     session = open.session,

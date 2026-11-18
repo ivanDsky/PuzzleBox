@@ -32,7 +32,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** A11: the first applied hint says hints are counted on the result, once, under PlayFeel and a route that offers it. */
+/** A11: the first applied hint says hints are counted on the result, once, on a route that offers it. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34])
@@ -78,7 +78,6 @@ class HintCostLineTest {
     private fun gone(text: String) = text(text).assertCountEquals(0)
 
     private fun show(
-        feel: Boolean = true,
         offered: Boolean = true,
         enabled: Boolean = true,
         withActionBar: Boolean = false,
@@ -88,7 +87,6 @@ class HintCostLineTest {
         composeRule.setContent {
             val line = HintCostLine(seen = { seen }, inputs = { inputs }, markSeen = { marks++; seen = true })
             CompositionLocalProvider(
-                LocalPlayFeel provides feel,
                 LocalHintCostLine provides line.takeIf { offered },
                 LocalHintCooldown provides HINT_COOLDOWN.takeIf { cooldown },
             ) {
@@ -170,7 +168,7 @@ class HintCostLineTest {
         val restoration = StateRestorationTester(composeRule)
         restoration.setContent {
             val line = HintCostLine(seen = { seen }, inputs = { inputs }, markSeen = { marks++; seen = true })
-            CompositionLocalProvider(LocalPlayFeel provides true, LocalHintCostLine provides line) {
+            CompositionLocalProvider(LocalHintCostLine provides line) {
                 PuzzleBoxTheme(darkTheme = false) {
                     Column(Modifier.requiredSize(width = 360.dp, height = 400.dp)) { PlayChrome(clock = null, hints = hints) }
                 }
@@ -212,15 +210,6 @@ class HintCostLineTest {
         hints.applies = true
         composeRule.onNodeWithTag("play.hint").performClick() // inside the cooldown
         composeRule.mainClock.advanceTimeByFrame()
-        gone(HINT_COST_TEXT)
-        assertEquals(0, marks)
-    }
-
-    @Test
-    fun `PlayFeel off never shows it`() {
-        show(feel = false)
-        hints.applyHint("one")
-        composeRule.waitForIdle()
         gone(HINT_COST_TEXT)
         assertEquals(0, marks)
     }

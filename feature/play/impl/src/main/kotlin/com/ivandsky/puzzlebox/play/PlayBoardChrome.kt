@@ -62,7 +62,7 @@ internal fun PlayBoardChrome(
     onReplayTutorial: () -> Unit = {},
 ) {
     CompositionLocalProvider(LocalSolveRestOnBoard provides true) {
-        PlayFeelHost {
+        PlayBoardHosts {
             Column(modifier = modifier) {
                 val playing = tutorial == TutorialGate.Closed
                 // A game's clock opens the moment its puzzle is adopted, which can be behind the

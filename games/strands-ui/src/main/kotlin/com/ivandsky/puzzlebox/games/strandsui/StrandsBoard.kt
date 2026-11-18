@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
@@ -29,7 +28,6 @@ import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.solveFrame
 import com.ivandsky.puzzlebox.gameui.BoardGrid
-import com.ivandsky.puzzlebox.gameui.LocalPlayFeel
 import com.ivandsky.puzzlebox.gameui.MoveHapticsEffect
 import com.ivandsky.puzzlebox.gameui.replay.ReplayHintBadge
 import com.ivandsky.puzzlebox.games.strands.Coord
@@ -39,7 +37,6 @@ import com.ivandsky.puzzlebox.games.strandsui.board.StrandsConnectors
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsBoardSpec
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsDim
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsGestureLayer
-import com.ivandsky.puzzlebox.games.strandsui.board.StrandsHaptics
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsTraceEndConnector
 import com.ivandsky.puzzlebox.games.strandsui.board.altThemeCells
 import com.ivandsky.puzzlebox.games.strandsui.board.altThemeLinks
@@ -57,9 +54,8 @@ internal val LocalStrandsSolveStamp = staticCompositionLocalOf<(@Composable () -
 /**
  * Strands' one board, chrome-free ([com.ivandsky.puzzlebox.gameui.GamePlayUi.Board]): the
  * daily screen and the tutorial both draw it. Draws nothing until [controller] holds a
- * puzzle. Every step goes through the controller first; with PlayFeel off the buzz is read from
- * what it made of the step ([StrandsHaptics]), and with PlayFeel on [MoveHapticsEffect] reads
- * [moveSnapshot] instead. A found word is taken from the controller once and played
+ * puzzle. Every step goes through the controller first; [MoveHapticsEffect] reads
+ * [moveSnapshot] for the buzz. A found word is taken from the controller once and played
  * from local state, so a board composed afresh (rotation, re-entry) rests instead of showing it again.
  * Under [LocalStrandsSolveMoment] the grid pops and is framed with the moment, and the word that solves the board
  * settles inside it ([FoundEvent.inSolveMoment]).
@@ -68,8 +64,6 @@ internal val LocalStrandsSolveStamp = staticCompositionLocalOf<(@Composable () -
 internal fun StrandsBoard(controller: StrandsPlayController, modifier: Modifier = Modifier) {
     val model = controller.baseModel
     if (model.rows == 0) return
-    val haptics = LocalHapticFeedback.current
-    val playFeel = LocalPlayFeel.current
     var playing by remember { mutableStateOf<FoundEvent?>(null) }
     val pending = controller.lastFound
     LaunchedEffect(pending) {
@@ -88,15 +82,7 @@ internal fun StrandsBoard(controller: StrandsPlayController, modifier: Modifier 
         reduceMotion = rememberReducedMotion(),
         trace = { controller.trace },
         traceEnd = { controller.traceEnd },
-        onTrace = { step ->
-            val traceBefore = controller.trace
-            val slotBefore = controller.slot
-            controller.onTrace(step)
-            if (!playFeel) {
-                StrandsHaptics.forStep(step, traceBefore, controller.trace, slotBefore, controller.slot)
-                    ?.let(haptics::performHapticFeedback)
-            }
-        },
+        onTrace = { step -> controller.onTrace(step) },
         modifier = modifier,
         frame = remember(moment, accent) { moment?.let { Modifier.solveFrame(it, accent, RectangleShape) } ?: Modifier },
         stamp = LocalStrandsSolveStamp.current ?: {},

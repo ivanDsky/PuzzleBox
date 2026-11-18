@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.games.queensui
 
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.snapshots.Snapshot
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.games.queens.Cell
@@ -11,7 +10,6 @@ import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.gameui.LocalSolveRestOnBoard
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -213,22 +211,5 @@ class QueensMotionTest {
     fun `outside the solve moment the queens keep the 70 ms step whatever the board`() {
         for (n in listOf(1, 4, 8, 13, 40)) assertEquals("$n queens", QueensMotion.QUEEN_STEP_MS, QueensMotion.solveStepMs(n, inMoment = false))
         assertEquals(200L + 12 * 70 + 300, QueensMotion.solveTotalMs(13, QueensMotion.QUEEN_STEP_MS))
-    }
-
-    @Test
-    fun `queen taps buzz heavy, a cross tap ticks light, a no-op is silent`() {
-        val state = QueensPlayFixtures.boardState(QueensUiFixtures.session())
-        var before = state.session
-        state.onTap(0)
-        assertEquals(HapticFeedbackType.TextHandleMove, state.tapHaptic(before))
-        before = state.session
-        state.onTap(0)
-        assertEquals(HapticFeedbackType.LongPress, state.tapHaptic(before))
-        before = state.session
-        state.onTap(0)
-        assertEquals(HapticFeedbackType.LongPress, state.tapHaptic(before))
-        before = state.session
-        state.onTap(99) // off the board: nothing changed
-        assertNull(state.tapHaptic(before))
     }
 }

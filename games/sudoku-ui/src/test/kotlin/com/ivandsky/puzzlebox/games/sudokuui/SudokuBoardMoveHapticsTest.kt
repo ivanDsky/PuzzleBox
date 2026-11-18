@@ -14,7 +14,6 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzleRef
 import com.ivandsky.puzzlebox.games.sudoku.SudokuSession
 import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuCodec
 import com.ivandsky.puzzlebox.gameui.Adopt
-import com.ivandsky.puzzlebox.gameui.LocalPlayFeel
 import com.ivandsky.puzzlebox.gameui.LocalSolveRestOnBoard
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
@@ -61,7 +60,7 @@ class SudokuBoardMoveHapticsTest {
         input(digit)
     }
 
-    private fun setScreen(playFeel: Boolean) {
+    private fun setScreen() {
         controller = ui.createController(PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {})) as SudokuPlayController
         val envelope = Puzzle(ui.gameId, peanut450.variant.id, SudokuCodec.VERSION, SudokuCodec.encode(peanut450))
         assertEquals(Adopt.Adopted, controller.adoptToday(envelope, ref))
@@ -71,7 +70,6 @@ class SudokuBoardMoveHapticsTest {
                 CompositionLocalProvider(
                     LocalHapticFeedback provides haptics,
                     LocalSolveRestOnBoard provides false,
-                    LocalPlayFeel provides playFeel,
                 ) {
                     ui.Screen(
                         controller = controller,
@@ -91,7 +89,7 @@ class SudokuBoardMoveHapticsTest {
 
     @Test
     fun `a placed digit ticks once and undo plays nothing`() {
-        setScreen(playFeel = true)
+        setScreen()
         val state = board()
         composeRule.runOnIdle { state.place(0) }
         composeRule.runOnIdle { assertEquals(listOf(HapticFeedbackType.TextHandleMove), played) }
@@ -101,7 +99,7 @@ class SudokuBoardMoveHapticsTest {
 
     @Test
     fun `the solving entry plays only the solve confirm`() {
-        setScreen(playFeel = true)
+        setScreen()
         val state = board()
         composeRule.runOnIdle { openCells.dropLast(1).forEach { state.place(it) } }
         composeRule.runOnIdle { played.clear() }
@@ -118,7 +116,6 @@ class SudokuBoardMoveHapticsTest {
         composeRule.setContent {
             CompositionLocalProvider(
                 LocalHapticFeedback provides haptics,
-                LocalPlayFeel provides true,
             ) {
                 rememberSudokuMotion(restored)
             }
@@ -128,7 +125,7 @@ class SudokuBoardMoveHapticsTest {
 
     @Test
     fun `a refusal on a new board after play again buzzes again`() {
-        setScreen(playFeel = true)
+        setScreen()
         val first = board()
         composeRule.runOnIdle {
             first.select(2)
@@ -145,16 +142,5 @@ class SudokuBoardMoveHapticsTest {
             second.input(5)
         }
         composeRule.runOnIdle { assertEquals(listOf(HapticFeedbackType.Reject, HapticFeedbackType.Reject), played) }
-    }
-
-    @Test
-    fun `with PlayFeel off a refused tap does not buzz through the effect`() {
-        setScreen(playFeel = false)
-        val state = board()
-        composeRule.runOnIdle {
-            state.select(2)
-            state.input(5)
-        }
-        composeRule.runOnIdle { assertFalse(played.contains(HapticFeedbackType.Reject)) }
     }
 }

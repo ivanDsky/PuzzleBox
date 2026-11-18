@@ -23,12 +23,6 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     HintPolish(label = "Calm hint button and plain hint captions", releaseDefault = false),
 
     /**
-     * Same feel in every game (spec A19): one Boolean that every play board hands its games. Read only in feature/play's DI,
-     * which binds it once and provides it to the games as LocalPlayFeel (spec A2).
-     */
-    PlayFeel(label = "Same feel in every game", releaseDefault = true),
-
-    /**
      * Ranks shows when LinkedIn was last read (backlog #1357): a muted line under a game's Friends day board with when its
      * LinkedIn part was last read, and a pull on the board that also asks LinkedIn for that day, inside the read windows.
      * Read only in a ViewModel or a DI module (ADR-0022 §3).

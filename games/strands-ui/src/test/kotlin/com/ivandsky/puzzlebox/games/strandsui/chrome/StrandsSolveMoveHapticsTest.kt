@@ -16,7 +16,6 @@ import com.ivandsky.puzzlebox.games.strandsui.StrandsPlayController
 import com.ivandsky.puzzlebox.games.strandsui.StrandsPlayScreen
 import com.ivandsky.puzzlebox.games.strandsui.StrandsUiFixtures
 import com.ivandsky.puzzlebox.gameui.Adopt
-import com.ivandsky.puzzlebox.gameui.LocalPlayFeel
 import com.ivandsky.puzzlebox.gameui.LocalSolveRestOnBoard
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
@@ -32,7 +31,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * With PlayFeel on, the board's move haptics replace the legacy per-verdict buzzes: a word ticks
+ * The board's move haptics: a word ticks
  * per letter joined and once when found, a refused word buzzes once, and the solving lift buzzes
  * only the solve confirm from the rest.
  */
@@ -56,12 +55,11 @@ class StrandsSolveMoveHapticsTest {
         PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {}),
     ).also { assertEquals(Adopt.Adopted, it.adoptToday(StrandsUiFixtures.envelope(), StrandsUiFixtures.ref)) }
 
-    private fun show(controller: StrandsPlayController, playFeel: Boolean = true) {
+    private fun show(controller: StrandsPlayController) {
         rule.mainClock.autoAdvance = false
         rule.setContent {
             CompositionLocalProvider(
                 LocalSolveRestOnBoard provides true,
-                LocalPlayFeel provides playFeel,
                 LocalHapticFeedback provides haptics,
             ) {
                 PuzzleBoxTheme(darkTheme = false) {
@@ -108,7 +106,7 @@ class StrandsSolveMoveHapticsTest {
     private fun advance(ms: Long) = repeat((ms / STEP_MS).toInt()) { rule.mainClock.advanceTimeBy(STEP_MS) }
 
     @Test
-    fun `with PlayFeel on a drag that solves the board buzzes one confirm, on the lift`() {
+    fun `a drag that solves the board buzzes one confirm, on the lift`() {
         val controller = adopted()
         show(controller)
         (0 until 3).forEach { row -> drag(StrandsUiFixtures.row(row)) }
@@ -122,7 +120,7 @@ class StrandsSolveMoveHapticsTest {
     }
 
     @Test
-    fun `with PlayFeel on a word found buzzes a tick per join and one for the word`() {
+    fun `a word found buzzes a tick per join and one for the word`() {
         val controller = adopted()
         show(controller)
 
@@ -133,27 +131,13 @@ class StrandsSolveMoveHapticsTest {
     }
 
     @Test
-    fun `with PlayFeel on a rejected word buzzes a tick per join and one reject`() {
+    fun `a rejected word buzzes a tick per join and one reject`() {
         val controller = adopted()
         show(controller)
 
         drag(listOf(Coord(0, 0), Coord(0, 1), Coord(1, 2)))
 
         assertEquals(List(2) { HapticFeedbackType.TextHandleMove } + HapticFeedbackType.Reject, buzzes)
-    }
-
-    @Test
-    fun `with PlayFeel off the legacy buzzes play and the shared seam plays nothing`() {
-        val controller = adopted()
-        show(controller, playFeel = false)
-
-        drag(StrandsUiFixtures.row(1))
-        // Row 1 is the spangram: a tick per letter, then the legacy spangram buzz the seam never plays.
-        assertEquals(List(4) { HapticFeedbackType.TextHandleMove } + HapticFeedbackType.LongPress, buzzes)
-
-        buzzes.clear()
-        drag(listOf(Coord(0, 0), Coord(0, 1), Coord(1, 2)))
-        assertEquals(List(3) { HapticFeedbackType.TextHandleMove } + HapticFeedbackType.Reject, buzzes)
     }
 
     private companion object {

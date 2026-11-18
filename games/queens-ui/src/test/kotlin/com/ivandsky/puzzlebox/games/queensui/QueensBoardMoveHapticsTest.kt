@@ -14,7 +14,6 @@ import androidx.compose.ui.test.performTouchInput
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensSession
-import com.ivandsky.puzzlebox.gameui.LocalPlayFeel
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -24,8 +23,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * S2 on the real Queens board: with PlayFeel on, each board change plays through the classifier; with it off, the
- * legacy taps and drags play as before. Each row is real gesture input on the 4×4 fixture.
+ * S2 on the real Queens board: each board change plays through the classifier. Each row is real gesture input on
+ * the 4×4 fixture.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -43,10 +42,10 @@ class QueensBoardMoveHapticsTest {
         }
     }
 
-    private fun showBoard(state: QueensBoardState, playFeel: Boolean) {
+    private fun showBoard(state: QueensBoardState) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                CompositionLocalProvider(LocalHapticFeedback provides haptics, LocalPlayFeel provides playFeel) {
+                CompositionLocalProvider(LocalHapticFeedback provides haptics) {
                     QueensPlayBoard(state, Modifier.testTag(BoardTag))
                 }
             }
@@ -85,9 +84,9 @@ class QueensBoardMoveHapticsTest {
             .withQueenPlaced(Cell(3), QueensUiFixtures.T0)
 
     @Test
-    fun `with PlayFeel on a tap ticks each change and no tap buzzes`() {
+    fun `a tap ticks each change and no tap buzzes`() {
         val state = QueensPlayFixtures.boardState(QueensUiFixtures.session())
-        showBoard(state, playFeel = true)
+        showBoard(state)
 
         tapCell(0, 0) // empty → X
         assertEquals(listOf(HapticFeedbackType.TextHandleMove), played)
@@ -102,7 +101,7 @@ class QueensBoardMoveHapticsTest {
 
     @Test
     fun `a board that opens with marks on it plays nothing`() {
-        showBoard(QueensPlayFixtures.boardState(crossEmptyCrossQueen()), playFeel = true)
+        showBoard(QueensPlayFixtures.boardState(crossEmptyCrossQueen()))
 
         assertEquals(emptyList<HapticFeedbackType>(), played)
     }
@@ -110,7 +109,7 @@ class QueensBoardMoveHapticsTest {
     @Test
     fun `a paint drag over three empty cells ticks once per frame that marks cells`() {
         val state = QueensPlayFixtures.boardState(QueensUiFixtures.session())
-        showBoard(state, playFeel = true)
+        showBoard(state)
 
         dragRow(1, fromCol = 0, toCol = 2)
 
@@ -122,35 +121,13 @@ class QueensBoardMoveHapticsTest {
     @Test
     fun `an erase swipe ticks once per cross it lifts`() {
         val state = QueensPlayFixtures.boardState(crossEmptyCrossQueen())
-        showBoard(state, playFeel = true)
+        showBoard(state)
 
         dragRow(0, fromCol = 0, toCol = 3)
 
         assertEquals(null, state.session.markAt(Cell(0)))
         assertEquals(null, state.session.markAt(Cell(2)))
         assertEquals(listOf(HapticFeedbackType.TextHandleMove, HapticFeedbackType.TextHandleMove), played)
-    }
-
-    @Test
-    fun `with PlayFeel off a tap plays the legacy tick then long press`() {
-        val state = QueensPlayFixtures.boardState(QueensUiFixtures.session())
-        showBoard(state, playFeel = false)
-
-        tapCell(0, 0)
-        tapCell(0, 0)
-
-        assertEquals(listOf(HapticFeedbackType.TextHandleMove, HapticFeedbackType.LongPress), played)
-    }
-
-    @Test
-    fun `with PlayFeel off a drag plays the legacy drag ticks`() {
-        val state = QueensPlayFixtures.boardState(crossEmptyCrossQueen())
-        showBoard(state, playFeel = false)
-
-        dragRow(0, fromCol = 0, toCol = 3)
-
-        // Drag start, then one tick per entered cell (empty, cross, queen).
-        assertEquals(List(4) { HapticFeedbackType.TextHandleMove }, played)
     }
 
     private companion object {

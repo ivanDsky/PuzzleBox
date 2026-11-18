@@ -60,7 +60,7 @@ private val CurrentDotWidth = 24.dp
  * game's own [GamePlayUi.Board] on a sandboxed controller ([TutorialSandbox]) and the
  * shared caption slot docked under the board, under the same precedence as the play
  * chrome. Solving a lesson holds its board for a short beat while it sweeps in the game's
- * accent and [LessonCleared] stamps in under it, then moves on; with [LocalPlayFeel] the
+ * accent and [LessonCleared] stamps in under it, then moves on; the
  * solve also plays the success buzz, once, here: a lesson board never reaches the play
  * screen's solve frame, which plays it for a puzzle. After the last lesson a calm
  * "You're ready" hands back through [onFinished].
@@ -142,11 +142,9 @@ private fun ColumnScope.LessonPane(
     key(lesson.index) {
         val sweep = rememberSolveSweepState()
         val boardShape = remember(ui, controller) { ui.boardShape(controller) }
-        val playFeel = LocalPlayFeel.current
         val haptics = LocalHapticFeedback.current
-        // The play screen's solve confirm, never its rest: the beat above is the lesson's pause, and with the rest
-        // off PlayFeel alone decides the buzz, so a lesson without PlayFeel stays silent where the route rests solves.
-        val confirm = remember(playFeel, haptics) { SolveRestState(enabled = false, playFeel, haptics) }
+        // The play screen's solve confirm, never its rest: the beat above is the lesson's pause.
+        val confirm = remember(haptics) { SolveRestState(enabled = false, haptics) }
         // A lesson that comes back already solved (a rotation inside the beat) buzzed when it was solved.
         val seenOpen = remember { !lesson.solved }
         LaunchedEffect(lesson.solved) {
@@ -171,7 +169,7 @@ private fun ColumnScope.LessonPane(
                 // Lesson boards draw chrome-free, so the sweep follows the board's own outline.
                 Box(Modifier.solveSweep(sweep, ui.brand.accent.colors().accent, boardShape)) {
                     // The buzz above is the lesson's one; a board that confirms its own solve (Sudoku) would double it.
-                    CompositionLocalProvider(LocalSolveConfirmHosted provides playFeel) {
+                    CompositionLocalProvider(LocalSolveConfirmHosted provides true) {
                         ui.Board(controller, Modifier)
                     }
                 }

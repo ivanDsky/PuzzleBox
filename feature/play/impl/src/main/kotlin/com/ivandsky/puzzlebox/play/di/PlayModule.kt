@@ -18,7 +18,6 @@ import com.ivandsky.puzzlebox.play.MatchLegResultViewModel
 import com.ivandsky.puzzlebox.play.MatchLegViewModel
 import com.ivandsky.puzzlebox.play.HintPolish
 import com.ivandsky.puzzlebox.play.HowToPlayRules
-import com.ivandsky.puzzlebox.play.PlayFeel
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.PlayStatsViewModel
 import com.ivandsky.puzzlebox.play.ReplayCompareViewModel
@@ -97,7 +96,7 @@ val playModule = module {
         )
     }
     viewModel { (key: GameKey) -> GameViewModel(key, get(), get(), get(), get()) }
-    viewModel { (key: CustomGameKey) -> CustomGameViewModel(key, get(), get(), get(), get()) }
+    viewModel { (key: CustomGameKey) -> CustomGameViewModel(key, get(), get(), get()) }
     // Same flag-as-parameter rule as the library: a graph without LinkedIn bindings builds the rank row with it off.
     // The app always binds ObserveFriendDay.Binding.
     viewModel { params ->
@@ -113,8 +112,6 @@ val playModule = module {
             linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
         )
     }
-    // PlayFeel (spec A19) is read once per graph: every play board and the lessons host hand it down.
-    single { PlayFeel(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.PlayFeel) == true) }
     single { HintPolish(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.HintPolish) == true) }
     // ZipDotPulse (backlog #1151) too: the Zip board's next number pulses its own dot while it is on.
     single { ZipDotPulse(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.ZipDotPulse) == true) }

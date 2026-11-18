@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.app.e2e
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -27,8 +26,8 @@ class VibrationSwitchE2ETest {
         }
     }
 
-    private fun winZip(vibration: Boolean, playFeel: Boolean = false) {
-        val graph = if (playFeel) shellGraph(ReleaseFlag.PlayFeel) else shellGraph()
+    private fun winZip(vibration: Boolean) {
+        val graph = shellGraph()
         runBlocking { graph.preferences.setVibration(vibration) }
         shellRobot(tabAt(PlayKey), graph = graph, platformHaptics = recorder) {
             val win = with(DailySolve.Zip) { playToTheLastMove() }
@@ -39,27 +38,14 @@ class VibrationSwitchE2ETest {
     }
 
     @Test
-    fun `with the switch on a win buzzes the platform`() {
+    fun `with the switch on the moves and the win buzz the platform`() {
         winZip(vibration = true)
-        assertTrue("the win played no haptic at all: $platform", platform.isNotEmpty())
+        assertTrue("the moves and win played no haptic at all: $platform", platform.isNotEmpty())
     }
 
     @Test
-    fun `with the switch off a win reaches the platform with nothing`() {
+    fun `with the switch off the moves and the win reach the platform with nothing`() {
         winZip(vibration = false)
-        assertEquals(emptyList<HapticFeedbackType>(), platform)
-    }
-
-    @Test
-    fun `with PlayFeel on and the switch on the moves and the win buzz the platform`() {
-        winZip(vibration = true, playFeel = true)
-        // The control: the same run as the off case below, so its silence is the gate and not a dead harness.
-        assertTrue("PlayFeel's moves and win played no haptic at all: $platform", platform.isNotEmpty())
-    }
-
-    @Test
-    fun `with PlayFeel on and the switch off the moves and the win reach the platform with nothing`() {
-        winZip(vibration = false, playFeel = true)
         assertEquals(emptyList<HapticFeedbackType>(), platform)
     }
 }

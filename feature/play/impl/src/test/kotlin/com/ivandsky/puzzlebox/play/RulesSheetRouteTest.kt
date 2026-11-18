@@ -25,7 +25,7 @@ import org.robolectric.annotation.GraphicsMode
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34])
-class RulesSheetRouteTest(custom: Boolean) : GameTutorialFixture(custom, playFeel = true) {
+class RulesSheetRouteTest(custom: Boolean) : GameTutorialFixture(custom) {
 
     init {
         rulesCopy = RulesSheetCopy(listOf("Fill the grid"), listOf("Tap a cell"))

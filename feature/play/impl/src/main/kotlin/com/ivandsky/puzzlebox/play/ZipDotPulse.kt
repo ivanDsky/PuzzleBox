@@ -13,7 +13,7 @@ import org.koin.compose.currentKoinScope
 internal class ZipDotPulse(val enabled: Boolean)
 
 /**
- * Provides [LocalZipDotPulse] from the graph's [ZipDotPulse] around [content]: [PlayFeelHost] does for every play board
+ * Provides [LocalZipDotPulse] from the graph's [ZipDotPulse] around [content]: [PlayBoardHosts] does for every play board
  * and lesson, and the replay screens wrap themselves in it too. A graph that binds none reads as off.
  */
 @Composable

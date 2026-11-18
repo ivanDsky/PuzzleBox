@@ -2,15 +2,11 @@ package com.ivandsky.puzzlebox.games.strandsui.board
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.hapticfeedback.HapticFeedback
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsNodeInteraction
@@ -58,7 +54,7 @@ import org.robolectric.annotation.GraphicsMode
  * The board's own input on the real controller over the fixture board (A12): a drag spells
  * a word, taps spell and submit one, a diagonal through a corner skips the side letters,
  * TalkBack's double-tap is a tap and each letter is one stop (SC12), a touch beside the board
- * clears the trace, each outcome buzzes, and a found word settles once: a board composed
+ * clears the trace, and a found word settles once: a board composed
  * afresh rests (A33). A 400 × 300 dp host gives a 75 dp cell and gutters on both sides.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -69,8 +65,6 @@ class StrandsBoardGestureTest {
     @get:Rule
     val rule = createComposeRule()
 
-    private val buzzes = mutableListOf<HapticFeedbackType>()
-
     private val controller = StrandsPlayController(
         PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {}),
     ).also { assertEquals(Adopt.Adopted, it.adoptToday(StrandsUiFixtures.envelope(), StrandsUiFixtures.ref)) }
@@ -79,15 +73,8 @@ class StrandsBoardGestureTest {
     private var mounted by mutableStateOf(true)
 
     private fun show() = rule.setContent {
-        val haptics = object : HapticFeedback {
-            override fun performHapticFeedback(hapticFeedbackType: HapticFeedbackType) {
-                buzzes += hapticFeedbackType
-            }
-        }
         PuzzleBoxTheme(darkTheme = false) {
-            CompositionLocalProvider(LocalHapticFeedback provides haptics) {
-                Box(Modifier.size(400.dp, 300.dp).testTag("host")) { if (mounted) StrandsBoard(controller) }
-            }
+            Box(Modifier.size(400.dp, 300.dp).testTag("host")) { if (mounted) StrandsBoard(controller) }
         }
     }
 
@@ -114,8 +101,6 @@ class StrandsBoardGestureTest {
         rule.waitForIdle()
 
         StrandsUiFixtures.row(1).forEach { assertEquals(CellState.FoundSpangram, stateOf(it)) }
-        // A tick per letter joined, the drag's first included, then the spangram's buzz.
-        assertEquals(List(4) { HapticFeedbackType.TextHandleMove } + HapticFeedbackType.LongPress, buzzes)
     }
 
     @Test
@@ -130,7 +115,6 @@ class StrandsBoardGestureTest {
 
         StrandsUiFixtures.row(0).forEach { assertEquals(CellState.FoundTheme, stateOf(it)) }
         cell(Coord(0, 3)).assert(hasContentDescription("S, theme"))
-        assertEquals(HapticFeedbackType.Confirm, buzzes.last())
     }
 
     @Test
@@ -208,13 +192,12 @@ class StrandsBoardGestureTest {
     }
 
     @Test
-    fun `a word not on the board is rejected with its own buzz`() {
+    fun `a word not on the board is rejected and clears the trace`() {
         show()
         // P, I, then K below-right of I: adjacent, but PIK is no word.
         listOf(Coord(0, 0), Coord(0, 1), Coord(1, 2)).forEach { cell(it).performClick() }
         cell(Coord(1, 2)).performClick()
 
-        assertEquals(HapticFeedbackType.Reject, buzzes.last())
         assertEquals(emptyList<Coord>(), controller.trace.path)
     }
 

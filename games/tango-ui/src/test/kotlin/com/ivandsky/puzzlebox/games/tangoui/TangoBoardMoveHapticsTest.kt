@@ -13,7 +13,6 @@ import androidx.compose.ui.test.performTouchInput
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.gameui.Adopt
-import com.ivandsky.puzzlebox.gameui.LocalPlayFeel
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import java.time.LocalDate
@@ -28,7 +27,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** S2 on the real play board: with PlayFeel on a tapped cell ticks; with it off the board is as silent as before. */
+/** S2 on the real play board: a tapped cell ticks and undo is silent. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w360dp-h640dp-xxhdpi")
@@ -55,10 +54,10 @@ class TangoBoardMoveHapticsTest {
         assertEquals(Adopt.Adopted, it.adoptToday(TangoPlayFixture.envelope(), TangoPlayFixture.ref(LocalDate.parse("2026-11-16"))))
     }
 
-    private fun showBoard(playFeel: Boolean) {
+    private fun showBoard() {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                CompositionLocalProvider(LocalHapticFeedback provides haptics, LocalPlayFeel provides playFeel) {
+                CompositionLocalProvider(LocalHapticFeedback provides haptics) {
                     TangoPlayUi(HintMode.Stepwise(UnconfinedTestDispatcher())).Board(controller, Modifier.fillMaxWidth())
                 }
             }
@@ -72,8 +71,8 @@ class TangoBoardMoveHapticsTest {
     }
 
     @Test
-    fun `with PlayFeel on a tapped cell ticks and undo is silent`() {
-        showBoard(playFeel = true)
+    fun `a tapped cell ticks and undo is silent`() {
+        showBoard()
 
         tapCell()
         assertEquals(listOf(HapticFeedbackType.TextHandleMove), played)
@@ -87,18 +86,8 @@ class TangoBoardMoveHapticsTest {
     fun `a board that opens with marks on it plays nothing`() {
         controller.onPlacement(TangoPlacement(idx, TangoCell.MOON))
 
-        showBoard(playFeel = true)
+        showBoard()
 
-        assertEquals(emptyList<HapticFeedbackType>(), played)
-    }
-
-    @Test
-    fun `with PlayFeel off the board stays silent`() {
-        showBoard(playFeel = false)
-
-        tapCell()
-
-        assertEquals("the tap landed", TangoCell.SUN, composeRule.runOnIdle { controller.session!!.grid()[idx] })
         assertEquals(emptyList<HapticFeedbackType>(), played)
     }
 }

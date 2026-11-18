@@ -24,7 +24,6 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.platform.LocalHapticFeedback
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGeometry
 import com.ivandsky.puzzlebox.games.sudoku.SudokuSession
@@ -35,7 +34,6 @@ import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.rememberSolveMomentState
 import com.ivandsky.puzzlebox.designsystem.solveFrame
 import com.ivandsky.puzzlebox.gameui.GameBrand
-import com.ivandsky.puzzlebox.gameui.LocalPlayFeel
 import com.ivandsky.puzzlebox.gameui.MoveHapticsEffect
 import com.ivandsky.puzzlebox.gameui.SolveRestState
 import com.ivandsky.puzzlebox.gameui.SolveRestTapLayer
@@ -219,10 +217,10 @@ internal fun SudokuMotionHost(
 }
 
 /**
- * Plays each player commit's effect and haptic. The board as first seen (restore, rotation,
+ * Plays each player commit's effect. The board as first seen (restore, rotation,
  * play-again) is the baseline and plays nothing; a board already solved hands off at once. A solve
- * runs its sweep, then [onSolved]; the win record was written at commit. Its CONFIRM goes out as the sweep starts
- * when the [rest] confirms, and after the sweep otherwise. With the [rest] on, [onSolved] waits for the solve moment,
+ * runs its sweep, then [onSolved]; the win record was written at commit. Its CONFIRM goes out as the solve
+ * begins, through [rest]. With the [rest] on, [onSolved] waits for the solve moment,
  * counted from the solve, and [moment] plays on the same clock; a new board drops its frame.
  */
 @Composable
@@ -238,8 +236,6 @@ internal fun rememberSudokuMotion(
         MoveHapticsEffect({ SudokuMoveSnapshot(state.session, state.rejection) }, ::sudokuMoveHaptic)
     }
     val reduced = rememberReducedMotion()
-    val haptics = LocalHapticFeedback.current
-    val playFeel by rememberUpdatedState(LocalPlayFeel.current)
     val handOff by rememberUpdatedState(onSolved)
     val motion = remember(state) { SudokuMotionState(state.session.board.geometry.cellCount) }
     SideEffect { motion.reduced = reduced }
@@ -250,14 +246,10 @@ internal fun rememberSudokuMotion(
         snapshotFlow { state.session }.collect { next ->
             val event = sudokuPlayerEvent(previous, next)
             previous = next
-            // With PlayFeel on, MoveHapticsEffect owns the move ticks; this path would double them.
-            if (!playFeel) sudokuHapticFor(event)?.let(haptics::perform)
             val resting = if (event is SudokuPlayerEvent.Solved) rest.begin(this) else null
             // Not awaited: a tap hands off mid-motion, and the frame finishes closing behind it.
             if (resting != null && moment != null) launch { moment.play() }
             playSudokuEvent(motion, event, next.board.geometry) {
-                // When the rest confirms, the solve buzz went out as the sweep started; a second one would double it.
-                if (!rest.confirms) haptics.perform(SudokuHaptic.Confirm)
                 resting?.await()
                 handOff(state.session)
             }

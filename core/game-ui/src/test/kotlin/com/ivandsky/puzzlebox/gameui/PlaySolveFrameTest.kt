@@ -57,11 +57,10 @@ class PlaySolveFrameTest {
         Settings.Global.putFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, scale)
     }
 
-    private fun setFrame(playFeel: Boolean = false) {
+    private fun setFrame() {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
             CompositionLocalProvider(
-                LocalPlayFeel provides playFeel,
                 LocalHapticFeedback provides haptics,
             ) {
                 PuzzleBoxTheme(darkTheme = false) {
@@ -200,16 +199,8 @@ class PlaySolveFrameTest {
     }
 
     @Test
-    fun `a restored solved board does not buzz`() {
-        solved = Instant.ofEpochSecond(1)
+    fun `the solve confirms once and hands off`() {
         setFrame()
-        composeRule.mainClock.advanceTimeBy(5_000)
-        assertEquals(emptyList<HapticFeedbackType>(), buzzes)
-    }
-
-    @Test
-    fun `with PlayFeel on the solve confirms once`() {
-        setFrame(playFeel = true)
         solve(Instant.ofEpochSecond(1))
         composeRule.mainClock.advanceTimeBy(5_000)
         assertEquals(listOf(HapticFeedbackType.Confirm), buzzes)
@@ -217,9 +208,9 @@ class PlaySolveFrameTest {
     }
 
     @Test
-    fun `with PlayFeel on a restored solved board does not confirm`() {
+    fun `a restored solved board hands off without a confirm`() {
         solved = Instant.ofEpochSecond(1)
-        setFrame(playFeel = true)
+        setFrame()
         composeRule.mainClock.advanceTimeBy(5_000)
         assertEquals(emptyList<HapticFeedbackType>(), buzzes)
         assertEquals(1, handOffs)
