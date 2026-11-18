@@ -64,7 +64,7 @@ private fun previewRow(): LibraryRowModel = LibraryRowModel(
 )
 
 @Composable
-private fun PreviewCalendar(month: YearMonth, picked: LocalDate?, offline: Boolean, compact: Boolean) {
+private fun PreviewCalendar(month: YearMonth, picked: LocalDate?, offline: Boolean, compact: Boolean, random: Boolean = false) {
     ArchiveMonthCalendar(
         range = PreviewRange,
         month = month,
@@ -76,6 +76,7 @@ private fun PreviewCalendar(month: YearMonth, picked: LocalDate?, offline: Boole
         onMonth = {},
         onToday = {},
         onPick = {},
+        onRandom = if (random) ({}) else null,
     )
 }
 
@@ -89,6 +90,21 @@ internal fun ArchiveMonthCalendarPreview() {
         ) {
             PreviewCalendar(YearMonth.from(PreviewToday), picked = null, offline = false, compact = false)
             PreviewCalendar(YearMonth.of(2026, 10), picked = LocalDate.parse("2026-10-14"), offline = false, compact = true)
+        }
+    }
+}
+
+// Preview: the jump row ends with the accent-filled Random chip, on a phone's and a tablet's calendar.
+@PuzzleBoxPreviews
+@Composable
+internal fun ArchiveMonthCalendarRandomPreview() {
+    PuzzleBoxTheme {
+        Column(
+            Modifier.background(MaterialTheme.colorScheme.background).padding(Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg),
+        ) {
+            PreviewCalendar(YearMonth.from(PreviewToday), picked = null, offline = false, compact = true, random = true)
+            PreviewCalendar(YearMonth.of(2026, 10), picked = LocalDate.parse("2026-10-14"), offline = false, compact = false, random = true)
         }
     }
 }

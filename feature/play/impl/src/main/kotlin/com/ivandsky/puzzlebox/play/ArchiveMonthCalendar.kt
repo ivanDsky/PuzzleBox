@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.play
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,11 +34,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.GameAccent
-import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.designsystem.pressScale
-import com.ivandsky.puzzlebox.designsystem.pressTint
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.domain.ArchiveDay
@@ -54,7 +49,6 @@ private val MonthTitle = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.US)
 private val Weekdays = listOf("M", "T", "W", "T", "F", "S", "S")
 private const val DISABLED_ALPHA = 0.3f
 private const val WEEK = 7
-private val ChipGap = 6.dp
 private val Swatch = 12.dp
 
 /** The disc for a phone's ([compact]) or a tablet's layout; [archiveCellFor] sets the row around it. */
@@ -66,6 +60,7 @@ internal fun archiveDiscFor(compact: Boolean): Dp = if (compact) 42.dp else 46.d
  * from [days] (the month's archive days) and the legend. ‹ › and the "#1" jump call [onMonth]
  * inside [range] (#1 .. today); the "Today" jump calls [onToday]; a disc calls [onPick]. The ring
  * marks [picked], else today.
+ * A non-null [onRandom] ends the jump row with a Random chip in [accent]'s container.
  * [compact] is the phone's smaller disc and row. A month change fades the grid in.
  */
 @Composable
@@ -81,6 +76,7 @@ internal fun ArchiveMonthCalendar(
     onToday: () -> Unit,
     onPick: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
+    onRandom: (() -> Unit)? = null,
 ) {
     val nav = remember(range) { ArchiveMonthNav(range) }
     val reduced = rememberReducedMotion()
@@ -94,7 +90,7 @@ internal fun ArchiveMonthCalendar(
             .testTag("library.calendar"),
     ) {
         Header(nav, month, days, onMonth)
-        Jumps(nav, month, reduced, onMonth, onToday)
+        ArchiveMonthJumps(nav, month, accent, reduced, onMonth, onToday, onRandom)
         Row(Modifier.fillMaxWidth().height(20.dp), verticalAlignment = Alignment.CenterVertically) {
             Weekdays.forEach { letter ->
                 Text(
@@ -186,52 +182,6 @@ private fun StepButton(enabled: Boolean, tag: String, flip: Boolean, onClick: ()
             PuzzleIcons.Chevron,
             contentDescription = if (flip) "Previous month" else "Next month",
             modifier = if (flip) Modifier.rotate(180f) else Modifier,
-        )
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun Jumps(nav: ArchiveMonthNav, month: YearMonth, reduced: Boolean, onMonth: (YearMonth) -> Unit, onToday: () -> Unit) {
-    FlowRow(
-        modifier = Modifier.fillMaxWidth().padding(top = ChipGap, bottom = Spacing.sm),
-        horizontalArrangement = Arrangement.spacedBy(ChipGap),
-        verticalArrangement = Arrangement.spacedBy(ChipGap),
-    ) {
-        val jumps = nav.jumps(month)
-        jumps.forEachIndexed { index, jump ->
-            val name = when (index) {
-                0 -> "first"
-                jumps.lastIndex -> "today"
-                else -> jump.label
-            }
-            JumpChip(jump, "library.calendar.jump.$name", reduced) {
-                if (index == jumps.lastIndex) onToday() else onMonth(jump.month)
-            }
-        }
-    }
-}
-
-@Composable
-private fun JumpChip(jump: MonthJump, tag: String, reduced: Boolean, onClick: () -> Unit) {
-    val scheme = MaterialTheme.colorScheme
-    val interaction = remember { MutableInteractionSource() }
-    Box(
-        modifier = Modifier
-            .pressScale(interaction, reduced)
-            .height(36.dp)
-            .clip(PillShape)
-            .background(if (jump.selected) scheme.onSurface else scheme.surfaceContainerHighest)
-            .pressTint(interaction, PillShape, if (jump.selected) scheme.surface else scheme.onSurface)
-            .selectable(selected = jump.selected, interactionSource = interaction, indication = null, onClick = onClick)
-            .padding(horizontal = 14.dp)
-            .testTag(tag),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            jump.label,
-            style = MaterialTheme.typography.labelLarge.tabular(),
-            color = if (jump.selected) scheme.surface else scheme.onSurface,
         )
     }
 }

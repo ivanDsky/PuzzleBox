@@ -2,10 +2,13 @@ package com.ivandsky.puzzlebox.play
 
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
@@ -84,9 +87,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The library route's Random button on a game's page: opens the sheet with that game's chip chosen (Past puzzles,
+ * The library route's Random chip in a game page's calendar: opens the sheet with that game's chip chosen (Past puzzles,
  * Not solved yet on) and the pick plays that game's past day. One chip is pinned per test so no seed picks the game.
- * A game with no archive, and a graph without the holder or with it off, has no button on its page.
+ * A game with no archive, and a graph without the holder or with it off, has no chip on its page.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -191,11 +194,13 @@ class LibraryRandomPageRouteTest {
 
     private fun tap(tag: String) = composeRule.onNodeWithTag(tag).performClick()
 
+    private fun pageRandom() = composeRule.onNode(hasTestTag("library.page.random") and hasAnyAncestor(hasTestTag("library.calendar")))
+
     private fun pickFromPage(game: GameId) {
         start(RandomPuzzleEntry(true))
         openPage(game)
 
-        tap("library.page.random")
+        pageRandom().performScrollTo().performClick()
         awaitTag("random.sheet")
         composeRule.onNodeWithTag("random.game.${game.value}").assertIsSelected()
         composeRule.onNodeWithTag("random.unsolved").assertIsOn()
