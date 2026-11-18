@@ -48,19 +48,24 @@ class ObserveGameStats(
     }
 }
 
-/** A day that counts as a solve: its record row, on a numbered daily (practice never counts). */
-internal fun GameHistoryDay.isSolvedDaily(): Boolean =
+/**
+ * A day that counts as a solve: its record row, on a numbered daily (practice never counts).
+ * Public so feature `domain` packages share this one rule.
+ */
+fun GameHistoryDay.isSolvedDaily(): Boolean =
     record != null && PuzzleKey.Daily(day, puzzleNumber).isOfficialDaily()
 
 /**
  * The one "official daily" predicate: a numbered [PuzzleKey.Daily] (practice has no number; custom
- * is never daily), optionally pinned to [on] (a game's today).
+ * is never daily), optionally pinned to [on] (a game's today). Public so feature `domain`
+ * packages share this one rule.
  */
-internal fun PuzzleKey.isOfficialDaily(on: LocalDate? = null): Boolean =
+fun PuzzleKey.isOfficialDaily(on: LocalDate? = null): Boolean =
     this is PuzzleKey.Daily && puzzleNumber != null && (on == null || date == on)
 
 /**
  * A solve that moves a streak. Archived days count as solves but never as streak days, unless
- * a LinkedIn import covers the day: the player really solved it on its own day.
+ * a LinkedIn import covers the day: the player really solved it on its own day. Public so
+ * feature `domain` packages share this one rule.
  */
-internal fun GameHistoryDay.isStreakDay(): Boolean = isSolvedDaily() && (!archived || fromLinkedIn)
+fun GameHistoryDay.isStreakDay(): Boolean = isSolvedDaily() && (!archived || fromLinkedIn)
