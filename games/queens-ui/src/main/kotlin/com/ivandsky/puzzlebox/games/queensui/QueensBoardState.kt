@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.games.queens.QueensReplayMove
 import com.ivandsky.puzzlebox.games.queens.QueensSession
 import com.ivandsky.puzzlebox.games.queens.engine.hints.step.QueensStep
 import com.ivandsky.puzzlebox.games.queens.engine.solve.QueensSolver
+import com.ivandsky.puzzlebox.games.queensui.hint.QueensPlaceIt
 import com.ivandsky.puzzlebox.games.queensui.hint.QueensSpotlightMapper
 import com.ivandsky.puzzlebox.games.queensui.hint.QueensStepGame
 import kotlinx.coroutines.CoroutineScope
@@ -70,6 +71,8 @@ class QueensBoardState(
     mode: HintMode.Stepwise,
     scope: CoroutineScope,
     plainCaptions: Boolean = false,
+    /** Read once per board (PlaceIt): a hint that names a placement shows "Place it". */
+    placeIt: Boolean = false,
     /** Every player input, whether or not it changes the board (see [PlayEnvironment.onInput]). */
     private val onInput: () -> Unit = {},
 ) {
@@ -98,7 +101,13 @@ class QueensBoardState(
 
     internal val stepHints: StepHints<QueensStep, QueensSpotlightMapper.Key> =
         // A newly counted hint: no clearHint on the way, so the Spotlight stays.
-        StepHints(mode, scope, QueensStepGame({ session }, plainCaptions), { session.hintsUsed }, { commit(QueensReplayMove.Hint) })
+        StepHints(
+            mode,
+            scope,
+            QueensStepGame({ session }, plainCaptions, if (placeIt) QueensPlaceIt(::placeHintQueen, ::crossHintCells) else null),
+            { session.hintsUsed },
+            { commit(QueensReplayMove.Hint) },
+        )
 
     private var erasing = false
     private var eraseRunOpen = false
@@ -170,6 +179,27 @@ class QueensBoardState(
         }
         clearHint()
         commit(QueensReplayMove.Cross(cell))
+    }
+
+    /** The "Place it" of a last-queen step: a tap's queen at [idx], with its pop and haptic. A queen already there is a no-op. */
+    internal fun placeHintQueen(idx: Int) {
+        onInput()
+        if (session.isComplete || idx !in 0 until session.puzzle.cellCount) return
+        clearHint()
+        lastRemovedQueen = null
+        lastPlacedQueen = idx
+        commit(QueensReplayMove.Place(Cell(idx)))
+    }
+
+    /** The "Place it" of a cross-out or reveal step: one manual cross per square, so one Undo per cross. A square already
+     *  crossed or holding a queen is left as it is. */
+    internal fun crossHintCells(cells: List<Int>) {
+        onInput()
+        if (session.isComplete) return
+        clearHint()
+        lastRemovedQueen = null
+        lastPlacedQueen = null
+        cells.filter { it in 0 until session.puzzle.cellCount }.forEach { commit(QueensReplayMove.Cross(Cell(it))) }
     }
 
     private fun eraseCross(cell: Cell) {

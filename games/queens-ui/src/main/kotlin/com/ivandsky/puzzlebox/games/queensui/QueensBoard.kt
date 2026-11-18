@@ -81,6 +81,8 @@ private fun QueensPlayBoardContent(
     var pressedCell by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     var tracedCell by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     var downCell by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    // A finger that went down on the hint callout's "Place it" pill: its swipe is not the board's.
+    var downOnPill by remember { mutableStateOf(false) }
 
     fun cellOf(x: Float, y: Float, sidePx: Float): Pair<Int, Int> {
         // Edge-clamped resolution: a drag leaving the board ends on a boundary cell.
@@ -112,13 +114,15 @@ private fun QueensPlayBoardContent(
             .pointerInput(state, model.n) {
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
+                    downOnPill = down.isConsumed
                     downCell = cellOf(down.position.x, down.position.y, size.width.toFloat())
-                    pressedCell = downCell
+                    pressedCell = downCell.takeUnless { downOnPill }
                 }
             }
             .pointerInput(state, model.n, playFeel) {
                 detectDragGestures(
                     onDragStart = { offset ->
+                        if (downOnPill) return@detectDragGestures
                         val cell = downCell ?: cellOf(offset.x, offset.y, size.width.toFloat())
                         tracedCell = cell
                         pressedCell = cell
@@ -126,6 +130,7 @@ private fun QueensPlayBoardContent(
                         state.onDragStart(cell.first * model.n + cell.second)
                     },
                     onDrag = { change, _ ->
+                        if (downOnPill) return@detectDragGestures
                         val cell = cellOf(change.position.x, change.position.y, size.width.toFloat())
                         if (cell != tracedCell) {
                             tracedCell = cell

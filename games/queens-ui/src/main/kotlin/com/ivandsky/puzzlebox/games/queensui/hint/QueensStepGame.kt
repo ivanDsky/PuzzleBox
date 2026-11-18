@@ -20,11 +20,13 @@ import com.ivandsky.puzzlebox.games.queens.engine.hints.step.QueensStep
  * rule breaks and never reveals. A budget spent before a second solution turns up keeps the stored solution (null when
  * none is stored), so a hard board judges as it did before the search ran. Main-confined except the compute block,
  * which only reads the snapshot and the memo. [plainCaptions] picks the plain callout set (HintPolish), fixed for the board's life.
+ * [placeIt], when set (PlaceIt), puts a "Place it" action on the callout of a step that names something to place.
  * [solve] is a seam for tests.
  */
 internal class QueensStepGame(
     private val session: () -> QueensSession,
     private val plainCaptions: Boolean = false,
+    private val placeIt: QueensPlaceIt? = null,
     solve: (QueensPuzzle) -> Set<Cell>? = { QueensSessionStep.boundedSolution(it) },
 ) : StepHints.Game<QueensStep, QueensSpotlightMapper.Key> {
 
@@ -37,8 +39,10 @@ internal class QueensStepGame(
 
     override fun keyOf(step: QueensStep): QueensSpotlightMapper.Key? = QueensSpotlightMapper.keyOf(step)
 
-    override fun spotlight(step: QueensStep, playId: Int): Spotlight =
-        QueensSpotlightMapper.map(step, session().puzzle, playId, plainCaptions)
+    override fun spotlight(step: QueensStep, playId: Int): Spotlight {
+        val spotlight = QueensSpotlightMapper.map(step, session().puzzle, playId, plainCaptions)
+        return placeIt?.attach(spotlight, step) ?: spotlight
+    }
 
     private fun solutionOf(puzzle: QueensPuzzle): Set<Cell>? = solutions.get(puzzle)
 }
