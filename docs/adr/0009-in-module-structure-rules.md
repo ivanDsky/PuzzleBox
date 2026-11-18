@@ -530,8 +530,9 @@ and its Koin definition lives in that feature's module.
   violation when its consumers are exactly one feature.
 - **Why:** the code-quality review (item 7) found 112 of 200 `:core:domain` files used by one feature;
   the rule's own scan finds 116, because it also follows domain-internal references and counts other
-  modules' tests, which could not see the file after a move. `DomainModule.kt` had 67 commits in 14 days,
-  and every `:core:domain` edit retests the 14 modules that depend on it.
+  modules' tests, which could not see the file after a move. `DomainModule.kt` had about 70 commits in
+  14 days (architecture review, 2026-11-18), and every `:core:domain` edit retests the 14 modules that
+  depend on it. ADR-0008 decision 4 states the placement rule.
 - **Not judged:** a file with no consumer (dead code, such as `GetFeaturedGame`), a file that `:app`'s
   production code or any other module outside `:feature:*` uses (it stays), and the Koin definitions
   themselves. Tests in `:core:domain` and `:app` do not count as consumers: `:core:domain`'s tests move
