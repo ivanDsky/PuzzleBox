@@ -17,6 +17,7 @@ import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.designsystem.HiddenBoardTokens
+import com.ivandsky.puzzlebox.designsystem.SHIMMER_TAG
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
@@ -158,6 +159,7 @@ class FriendPuzzleGridTest {
         show(showUp = false, pane = 1200.dp)
 
         assertEquals(1, count("friend.card.grid.skeleton"))
+        assertTrue("the skeleton bars sweep a sheen", count(SHIMMER_TAG) > 0)
         assertEquals(1, count("friend.card.grid.skeleton.right"))
         assertEquals(1, count("friend.card.loading.board"))
         assertEquals(0, count("friend.card.loading"))

@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.designsystem.EmptyState
 import com.ivandsky.puzzlebox.designsystem.ErrorState
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.skeleton
 
 /**
  * Board-level async states (A7/A8): the copy stays game-agnostic — screens pass their own wording when
