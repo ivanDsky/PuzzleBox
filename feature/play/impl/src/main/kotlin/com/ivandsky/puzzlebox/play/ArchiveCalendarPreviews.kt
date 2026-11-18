@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.domain.ArchiveDay
 import com.ivandsky.puzzlebox.domain.ArchiveProgress
 import com.ivandsky.puzzlebox.domain.GameStats
@@ -70,7 +71,7 @@ private fun PreviewCalendar(month: YearMonth, picked: LocalDate?, offline: Boole
         days = previewDays(month),
         picked = picked,
         offline = offline,
-        accent = MaterialTheme.colorScheme.primary,
+        accent = AccentSlot.Blue.colors(),
         compact = compact,
         onMonth = {},
         onToday = {},
@@ -127,7 +128,7 @@ internal fun ArchiveDayDiscPreview() {
                     today = index == 0,
                     selected = index == 1,
                     offline = false,
-                    accent = MaterialTheme.colorScheme.primary,
+                    accent = AccentSlot.Blue.colors(),
                     cell = archiveCellFor(disc),
                     disc = disc,
                     reduced = true,

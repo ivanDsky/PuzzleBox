@@ -27,7 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ivandsky.puzzlebox.designsystem.LocalOnFill
+import com.ivandsky.puzzlebox.designsystem.GameAccent
 import com.ivandsky.puzzlebox.designsystem.pressScale
 import com.ivandsky.puzzlebox.designsystem.pressTint
 import com.ivandsky.puzzlebox.designsystem.tabular
@@ -128,7 +128,7 @@ internal fun ArchiveDayDisc(
     today: Boolean,
     selected: Boolean,
     offline: Boolean,
-    accent: Color,
+    accent: GameAccent,
     cell: Dp,
     disc: Dp,
     reduced: Boolean,
@@ -170,7 +170,7 @@ internal fun ArchiveDayDisc(
     ) {
         val dim = kind == DiscKind.NotOpened && offline
         val text = when (kind) {
-            DiscKind.Solved -> LocalOnFill.current
+            DiscKind.Solved -> accent.onAccent
             DiscKind.InProgress, DiscKind.Saved -> scheme.onSurface
             DiscKind.NotOpened -> scheme.onSurfaceVariant
             DiscKind.Outside -> scheme.onSurface.copy(alpha = OUTSIDE_ALPHA)
@@ -179,7 +179,7 @@ internal fun ArchiveDayDisc(
             modifier = Modifier
                 .size(disc)
                 .graphicsLayer { alpha = if (dim) OFFLINE_ALPHA else 1f }
-                .drawBehind { drawDisc(kind, accent, mark, ProgressRing, SavedRing) }
+                .drawBehind { drawDisc(kind, accent.accent, mark, ProgressRing, SavedRing) }
                 .pressTint(interaction, CircleShape, text),
             contentAlignment = Alignment.Center,
         ) {

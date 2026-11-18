@@ -25,7 +25,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ivandsky.puzzlebox.designsystem.AppShapes
-import com.ivandsky.puzzlebox.designsystem.LocalOnFill
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -43,7 +42,7 @@ internal fun HowToPlayCard(
     onOpenLesson: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val accent = row.card.brand.accent.colors().accent
+    val accent = row.card.brand.accent.colors()
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -55,11 +54,11 @@ internal fun HowToPlayCard(
         Eyebrow("HOW TO PLAY")
         row.rules.forEachIndexed { index, rule ->
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(28.dp).background(accent, CircleShape), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(28.dp).background(accent.accent, CircleShape), contentAlignment = Alignment.Center) {
                     Text(
                         "${index + 1}",
                         style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp, fontWeight = FontWeight.ExtraBold),
-                        color = LocalOnFill.current,
+                        color = accent.onAccent,
                     )
                 }
                 Spacer(Modifier.width(Spacing.md))

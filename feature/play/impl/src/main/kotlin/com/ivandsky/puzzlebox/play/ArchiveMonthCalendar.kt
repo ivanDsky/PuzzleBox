@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AppShapes
+import com.ivandsky.puzzlebox.designsystem.GameAccent
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -74,7 +75,7 @@ internal fun ArchiveMonthCalendar(
     days: List<ArchiveDay>,
     picked: LocalDate?,
     offline: Boolean,
-    accent: Color,
+    accent: GameAccent,
     compact: Boolean,
     onMonth: (YearMonth) -> Unit,
     onToday: () -> Unit,
@@ -136,7 +137,7 @@ internal fun ArchiveMonthCalendar(
             }
         }
         Spacer(Modifier.weight(1f, fill = false).height(10.dp))
-        Legend(accent, offline)
+        Legend(accent.accent, offline)
     }
 }
 

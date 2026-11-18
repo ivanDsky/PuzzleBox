@@ -14,8 +14,10 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.domain.ArchiveDay
 import com.ivandsky.puzzlebox.domain.PastDayStatus
 import java.time.LocalDate
@@ -73,7 +75,7 @@ class PressTintTest {
         today = false,
         selected = false,
         offline = false,
-        accent = Color(0xFF1B6EF3),
+        accent = AccentSlot.Blue.colors(),
         cell = 56.dp,
         disc = 46.dp,
         reduced = false,
@@ -87,7 +89,7 @@ class PressTintTest {
         today = false,
         selected = false,
         offline = false,
-        accent = Color(0xFF1B6EF3),
+        accent = AccentSlot.Blue.colors(),
         cell = 56.dp,
         disc = 46.dp,
         reduced = false,
@@ -101,7 +103,7 @@ class PressTintTest {
         days = emptyList(),
         picked = null,
         offline = false,
-        accent = Color(0xFF1B6EF3),
+        accent = AccentSlot.Blue.colors(),
         compact = true,
         onMonth = {},
         onToday = {},
