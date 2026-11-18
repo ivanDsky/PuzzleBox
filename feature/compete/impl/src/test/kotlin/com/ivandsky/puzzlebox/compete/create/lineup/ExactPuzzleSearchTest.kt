@@ -3,19 +3,26 @@ package com.ivandsky.puzzlebox.compete.create.lineup
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.text.AnnotatedString
 import com.ivandsky.puzzlebox.compete.create.GAMES
 import com.ivandsky.puzzlebox.compete.create.newDuelBrands
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -45,20 +52,21 @@ class ExactPuzzleSearchTest {
 
     private var editor by mutableStateOf(LineupEditor.opening(GAMES))
 
-    private fun show(rows: List<PickablePuzzle>, offline: Boolean = false) {
+    private fun show(rows: List<PickablePuzzle>, offline: Boolean = false, restoration: StateRestorationTester? = null) {
         startKoin {
             modules(module {
                 single { newDuelBrands() }
                 viewModel { AddPuzzleViewModel(pickerOf(rows, offline)) }
             })
         }
-        rule.setContent {
+        val content: @Composable () -> Unit = {
             PuzzleBoxTheme {
                 Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
                     LineupPanel(editor, GAMES, includeFriends = false, onEdit = { edit -> editor = edit(editor) })
                 }
             }
         }
+        if (restoration != null) restoration.setContent(content) else rule.setContent(content)
         rule.waitForIdle()
     }
 
@@ -85,7 +93,7 @@ class ExactPuzzleSearchTest {
 
         assertEquals(CROWN_JEWELS.entry, editor.draft.entries.last())
         rule.onNodeWithTag("duel.lineup.row.4").assertTextContains("Crown jewels", substring = true)
-        rule.onNodeWithTag("duel.lineup.row.4").assertTextContains("Queens · by Bo · From Bo", substring = true)
+        rule.onNodeWithTag("duel.lineup.row.4").assertTextContains("Queens · From Bo", substring = true)
 
         openSheet()
         rule.onNodeWithTag("duel.lineup.pick.add.$ref").assertTextEquals("Added").assertIsNotEnabled()
@@ -130,4 +138,38 @@ class ExactPuzzleSearchTest {
         rule.onNodeWithTag("duel.lineup.count").assertTextEquals("Newest first")
     }
 
+    @Test
+    fun `a rotation under the open sheet keeps the typed text, the filtered rows and the chips`() {
+        val restoration = StateRestorationTester(rule)
+        show(listOf(CROWN_JEWELS, CROWN_TANGO, OLD_CROWN, MY_GRID), restoration = restoration)
+        openSheet()
+        rule.onNodeWithTag("duel.lineup.search").performTextInput("crown")
+        rule.onNodeWithTag("duel.lineup.chip.new").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("2 found")
+
+        restoration.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("duel.lineup.search").assertTextContains("crown")
+        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("2 found")
+        rule.onNodeWithTag("duel.lineup.pick.${CROWN_JEWELS.entry.ref.wire}").assertExists()
+        rule.onNodeWithTag("duel.lineup.pick.${OLD_CROWN.entry.ref.wire}").assertDoesNotExist()
+        rule.onNodeWithTag("duel.lineup.chip.new").assertIsSelected()
+    }
+
+    @Test
+    fun `closing the sheet clears the search for the next opening`() {
+        show(listOf(CROWN_JEWELS, MY_GRID))
+        openSheet()
+        rule.onNodeWithTag("duel.lineup.search").performTextInput("grid")
+        rule.waitForIdle()
+
+        editor = editor.dismiss()
+        rule.waitForIdle()
+        openSheet()
+
+        rule.onNodeWithTag("duel.lineup.search").assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("")))
+        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("Newest first")
+    }
 }

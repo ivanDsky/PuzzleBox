@@ -12,12 +12,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -31,14 +27,14 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.lineup.ExactPuzzle
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
-import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 
 private val RESULTS_MAX_HEIGHT = 420.dp
 
 /**
  * "Or one exact puzzle": a field that searches name, author and code, chips that narrow it, and the puzzles that pass, newest
- * first. [added] is what the lineup already holds; Add calls [onAdd] with the puzzle. Leaving the sheet clears the search.
+ * first. [added] is what the lineup already holds; Add calls [onAdd] with the puzzle. The query lives in [viewModel], so the
+ * field, the rows and the chips all survive a rotation; the panel clears it when the sheet closes.
  */
 @Composable
 internal fun ExactPuzzleSearch(
@@ -46,24 +42,23 @@ internal fun ExactPuzzleSearch(
     added: Set<LegRef>,
     onAdd: (ExactPuzzle) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: AddPuzzleViewModel = koinViewModel(),
+    viewModel: AddPuzzleViewModel,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val registry = koinInject<GamePlayRegistry>()
-    var text by rememberSaveable { mutableStateOf(state.query.text) }
+    val text = state.query.text
     LaunchedEffect(viewModel, added) { viewModel.setAdded(added) }
-    DisposableEffect(viewModel) { onDispose(viewModel::reset) }
     Column(modifier.fillMaxWidth().testTag("duel.lineup.exact"), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text("Or one exact puzzle", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         OutlinedTextField(
             value = text,
-            onValueChange = { text = it; viewModel.setText(it) },
+            onValueChange = viewModel::setText,
             modifier = Modifier.fillMaxWidth().testTag("duel.lineup.search"),
             placeholder = { Text("Name, author or code (K7Q-X2M)", maxLines = 1, overflow = TextOverflow.Ellipsis) },
             trailingIcon = {
                 if (text.isNotEmpty()) {
                     IconButton(
-                        onClick = { text = ""; viewModel.setText("") },
+                        onClick = { viewModel.setText("") },
                         modifier = Modifier.semantics { contentDescription = "Clear search" }.testTag("duel.lineup.search.clear"),
                     ) { Icon(PuzzleIcons.Close, contentDescription = null) }
                 }
