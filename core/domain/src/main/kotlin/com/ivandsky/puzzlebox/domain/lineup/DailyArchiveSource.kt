@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.flow
 
 internal const val ARCHIVE_PAGE_SIZE = 30
 
-private val DAY_FORMAT = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.US)
+internal val DAY_FORMAT = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.US)
 
 /**
  * The daily archive of every game that has one, newest day first, read [ARCHIVE_PAGE_SIZE] rows at a time so a
