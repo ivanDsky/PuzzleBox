@@ -34,4 +34,10 @@ tasks.test {
             exclude(scannedExcludes)
         },
     ).withPropertyName("scannedSources").withPathSensitivity(PathSensitivity.RELATIVE)
+    // WhatsNewVersionTest reads these three non-Kotlin files; undeclared, editing only one would serve a stale green.
+    inputs.files(
+        rootProject.file("PROFILE.md"),
+        rootProject.file("feature/profile/impl/src/main/assets/whats_new.txt"),
+        rootProject.file("docs/release-history.md"),
+    ).withPropertyName("versionSources").withPathSensitivity(PathSensitivity.RELATIVE)
 }
