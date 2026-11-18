@@ -14,7 +14,7 @@ import com.ivandsky.puzzlebox.model.ShareCode
 
 /**
  * The phone Community's Friends tab: a list of its own on [listState] with no head (the tab names it), one card per
- * puzzle in [friends] ([friendRows]) or the hint that offers [onEnterCode]. While [offline] the saved puzzles sit
+ * puzzle in [friends] ([friendRows]), or the hint when there are none. While [offline] the saved puzzles sit
  * under the [OfflinePill]. A card opens through [onOpen]; its long-press menu removes through [onRemove].
  */
 @Composable
@@ -24,7 +24,6 @@ internal fun CommunityFriendsPage(
     listState: LazyListState,
     onOpen: (ShareCode) -> Unit,
     onRemove: (ShareCode) -> Unit,
-    onEnterCode: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val reduced = rememberReducedMotion()
@@ -38,6 +37,6 @@ internal fun CommunityFriendsPage(
                 OfflinePill(Modifier.padding(horizontal = Spacing.lg).padding(bottom = Spacing.md))
             }
         }
-        friendRows(friends, reduced, onOpen, onRemove, onEnterCode)
+        friendRows(friends, reduced, onOpen, onRemove)
     }
 }

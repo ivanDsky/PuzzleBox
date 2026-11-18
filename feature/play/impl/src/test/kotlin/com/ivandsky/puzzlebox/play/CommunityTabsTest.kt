@@ -14,12 +14,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -286,13 +288,14 @@ class CommunityTabsTest {
     }
 
     @Test
-    fun `with no friend puzzles Friends offers Enter code`() {
+    fun `with no friend puzzles Friends offers Enter code once, in the head`() {
         friends = emptyList()
         show()
 
         tap(TAB_FRIENDS)
 
-        rule.onNodeWithTag("library.friends.enter_code").assertIsDisplayed()
+        rule.onAllNodesWithText("Enter code").assertCountEquals(1)
+        rule.onNodeWithTag(ENTER_CODE).assertIsDisplayed()
         rule.onNodeWithTag("$TAB_FRIENDS.count", useUnmergedTree = true).assertDoesNotExist()
     }
 

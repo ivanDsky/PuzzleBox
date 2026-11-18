@@ -94,7 +94,7 @@ internal fun CommunityTabsEmptyPreview() = Tabs(Loaded.copy(phase = CommunityPha
 internal fun CommunityFriendsPageOfflinePreview() {
     PuzzleBoxTheme {
         Surface {
-            CommunityFriendsPage(FriendPreviewCards, offline = true, rememberLazyListState(), onOpen = {}, onRemove = {}, onEnterCode = {})
+            CommunityFriendsPage(FriendPreviewCards, offline = true, rememberLazyListState(), onOpen = {}, onRemove = {})
         }
     }
 }
