@@ -5,6 +5,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.gameui.PlayLayout
@@ -75,7 +76,7 @@ internal fun LibraryGamePage(
                     days = shown?.takeIf { it.month == shownMonth }?.days.orEmpty(),
                     picked = past?.date,
                     offline = unreachable,
-                    accent = libraryCardColors(row.card.brand).fill,
+                    accent = row.card.brand.accent.colors(),
                     compact = layout == PlayLayout.SinglePane,
                     onMonth = calendar.onShowMonth,
                     onToday = calendar.onBackToToday,

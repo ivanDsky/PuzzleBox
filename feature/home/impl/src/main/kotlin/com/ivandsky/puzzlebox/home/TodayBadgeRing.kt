@@ -14,13 +14,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.designsystem.LocalOnFill
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -114,12 +114,16 @@ internal fun TodayBadgeRing(
         Icon(
             imageVector = brand.glyph,
             contentDescription = null,
-            tint = when (status) {
-                TodayStatus.Offline -> MaterialTheme.colorScheme.onSurfaceVariant
-                is TodayStatus.Solved -> LocalOnFill.current
-                else -> accent
-            },
+            tint = glyphTint(brand, status),
             modifier = Modifier.size(size.ring * GLYPH_SHARE),
         )
     }
+}
+
+/** The glyph's ink: on the accent disc once solved, the accent itself on the bare track, muted offline. */
+@Composable
+internal fun glyphTint(brand: GameBrand, status: TodayStatus): Color = when (status) {
+    TodayStatus.Offline -> MaterialTheme.colorScheme.onSurfaceVariant
+    is TodayStatus.Solved -> brand.accent.colors().onAccent
+    else -> brand.accent.colors().accent
 }
