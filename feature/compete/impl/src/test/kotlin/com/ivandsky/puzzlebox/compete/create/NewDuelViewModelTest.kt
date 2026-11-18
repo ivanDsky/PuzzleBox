@@ -299,7 +299,7 @@ class NewDuelViewModelTest {
     }
 
     @Test
-    fun dismissingMidCreateDropsTheLateOutcomeAndLeavesAFreshDraft() = runTest {
+    fun dismissingMidCreateLeavesAFreshDraftButStillDeliversTheCreatedCode() = runTest {
         val gate = CompletableDeferred<Unit>()
         val held = CreateMatch(
             GatedMatchRepository(server, gate), local,
@@ -307,6 +307,7 @@ class NewDuelViewModelTest {
         )
         val vm = started(held)
         vm.setCount(7)
+        vm.setDeadline(48)
         vm.create()
         assertTrue(vm.state.value.creating)
 
@@ -315,6 +316,29 @@ class NewDuelViewModelTest {
 
         assertEquals(DuelDraft.quick(vm.state.value.games), vm.state.value.draft)
         assertFalse(vm.state.value.creating)
+        assertEquals(null, vm.state.value.notice)
+        val (code, puzzles, hours) = vm.created.first()
+        assertEquals(7, server.matches.getValue(code).legs.size)
+        assertEquals(7, puzzles.size)
+        // The reset draft is back to Quick's deadline, so the invite must carry the deadline the duel was made with.
+        assertEquals(48, hours)
+    }
+
+    @Test
+    fun dismissingMidCreateStaysSilentWhenTheCreateNeverReachedTheServer() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        val held = CreateMatch(
+            GatedMatchRepository(server, gate), local,
+            ComputeMatchLegs(registry, daily, calendar, history, received, Random(DRAW_SEED)), identity, Random(CODE_SEED),
+        )
+        val vm = started(held)
+        server.online = false
+        vm.create()
+
+        vm.reset()
+        gate.complete(Unit)
+
+        assertTrue(server.matches.isEmpty())
         assertEquals(null, vm.state.value.notice)
         assertEquals(null, withTimeoutOrNull(1) { vm.created.first() })
     }
@@ -406,7 +430,7 @@ class NewDuelViewModelTest {
         assertEquals(DuelDraft.single(beta), vm.state.value.draft)
         vm.create()
 
-        val match = server.matches.getValue(vm.created.first().first)
+        val match = server.matches.getValue(vm.created.first().code)
         assertEquals(SAM_IN_BETA.friendUid, match.invitedUid)
         assertEquals(listOf(beta), match.legs.map { it.ref.gameId })
     }
@@ -418,7 +442,7 @@ class NewDuelViewModelTest {
 
         vm.create()
 
-        assertEquals(null, server.matches.getValue(vm.created.first().first).invitedUid)
+        assertEquals(null, server.matches.getValue(vm.created.first().code).invitedUid)
     }
 
     @Test
@@ -431,7 +455,7 @@ class NewDuelViewModelTest {
         assertEquals(null, vm.state.value.invitee)
         assertEquals(DuelDraft.quick(vm.state.value.games), vm.state.value.draft)
         vm.create()
-        assertEquals(null, server.matches.getValue(vm.created.first().first).invitedUid)
+        assertEquals(null, server.matches.getValue(vm.created.first().code).invitedUid)
     }
 
     @Test

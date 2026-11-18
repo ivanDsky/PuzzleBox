@@ -117,7 +117,7 @@ internal class NewDuelViewModel(
     private val signInStep = DuelSignInStep(identity, idTokens)
     private val selfStep = SelfDuelStep(computeSolvedPool, createSelfDuel)
     private val working = MutableStateFlow(Working(DuelDraft.quick(emptyList())))
-    private val createdCodes = Channel<Pair<ShareCode, List<String>>>(Channel.BUFFERED)
+    private val createdCodes = Channel<CreatedDuel>(Channel.BUFFERED)
     private val openedCodes = Channel<ShareCode>(Channel.BUFFERED)
 
     private val games: StateFlow<List<DuelGame>> = todaySet().map { entries ->
@@ -132,8 +132,8 @@ internal class NewDuelViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    /** The new duel's code and its puzzles' game names, one per puzzle in order, once, after Create succeeded. */
-    val created: Flow<Pair<ShareCode, List<String>>> = createdCodes.receiveAsFlow()
+    /** The new duel, once, after Create succeeded: a duel created as the sheet closed waits here for the next opening. */
+    val created: Flow<CreatedDuel> = createdCodes.receiveAsFlow()
 
     /** The code of a duel against Past you, once, after Create succeeded: the sheet opens that duel. */
     val opened: Flow<ShareCode> = openedCodes.receiveAsFlow()
@@ -215,12 +215,12 @@ internal class NewDuelViewModel(
     /** The sheet opened: counts the puzzles solved since it last did. */
     fun refreshSolved() = sheetOpens.update { it + 1 }
 
-    /** Back to the Quick duel with nothing pending (no challenge either), as the sheet closes; a create still in flight is dropped. */
+    /** Back to the Quick duel with nothing pending (no challenge either), as the sheet closes; a create still in flight keeps its place in [created] but not the sheet. */
     fun reset() = working.update {
         Working(DuelDraft.quick(games.value), form = SelfDuelForm.quick(games.value), generation = it.generation + 1)
     }
 
-    /** Create duel, one at a time; a created duel stays `creating` until [reset]. An outcome from before a [reset] is dropped. */
+    /** Create duel, one at a time; a created duel stays `creating` until [reset]. A failure from before a [reset] is dropped; a created duel is not. */
     fun create() {
         val start = working.getAndUpdate { if (it.creating) it else it.copy(creating = true, notice = null) }
         if (start.creating) return
@@ -228,10 +228,8 @@ internal class NewDuelViewModel(
         if (start.draft.games.isEmpty()) return
         viewModelScope.launch {
             val outcome = createMatch(start.draft.toSettings(), invitedUid = start.challenge?.friendUid)
-            var current = false
             working.update { work ->
-                current = work.generation == start.generation
-                if (!current) return@update work
+                if (work.generation != start.generation) return@update work
                 when (outcome) {
                     is CreateOutcome.Created -> work
                     CreateOutcome.SignedOut -> work.copy(creating = false, signInRequired = true)
@@ -242,8 +240,9 @@ internal class NewDuelViewModel(
                     is CreateOutcome.EntryUndrawable -> work.copy(creating = false, notice = DuelNotice.Failed(null))
                 }
             }
-            if (current && outcome is CreateOutcome.Created) {
-                createdCodes.send(outcome.code to outcome.legs.map { registry.displayName(it.ref.gameId) })
+            // The server write is done whatever the sheet did meanwhile, so its code must still reach the creator.
+            if (outcome is CreateOutcome.Created) {
+                createdCodes.send(CreatedDuel(outcome.code, outcome.legs.map { registry.displayName(it.ref.gameId) }, start.draft.deadlineHours))
             }
         }
     }
