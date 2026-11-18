@@ -110,7 +110,7 @@ private fun foundEventOf(before: StrandsState?, after: StrandsState): FoundEvent
     val text = after.found.last()
     val spangram = text == puzzle.spangram.text
     val word = if (spangram) puzzle.spangram else puzzle.themeWords.firstOrNull { it.text == text } ?: return null
-    return FoundEvent(word.cells, spangram, seq = after.found.size)
+    return FoundEvent(after.pathOf(word), spangram, seq = after.found.size)
 }
 
 /**
