@@ -44,6 +44,7 @@ import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
 import com.ivandsky.puzzlebox.domain.lineup.CommunitySource
 import com.ivandsky.puzzlebox.domain.lineup.DailyArchiveSource
 import com.ivandsky.puzzlebox.domain.lineup.FriendSource
+import com.ivandsky.puzzlebox.domain.lineup.ObserveLegTitles
 import com.ivandsky.puzzlebox.domain.lineup.ObservePickablePuzzles
 import com.ivandsky.puzzlebox.domain.lineup.OwnSource
 import com.ivandsky.puzzlebox.domain.ReportPuzzle
@@ -225,6 +226,7 @@ val domainModule = module {
             archive = DailyArchiveSource(daily = get(), registry = get()),
         )
     }
+    factory { ObserveLegTitles(received = get(), published = get(), shared = get()) }
     factory { ReportPuzzle(shared = get(), hidden = get()) }
     factory {
         ObservePlayStats(

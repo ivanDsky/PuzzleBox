@@ -96,8 +96,9 @@ internal fun NewDuelSheet(
     val time by rememberUpdatedState(rememberCompeteTime())
     var shared by rememberSaveable(stateSaver = createdInviteSaver) { mutableStateOf<Pair<String, String>?>(null) }
     LaunchedEffect(viewModel) {
-        viewModel.created.collect { (code, puzzles, hours) ->
-            shared = createdInviteText(who, puzzles.size, puzzles.distinct(), hours, code, time) to code.matchLink
+        viewModel.created.collect { created ->
+            val games = viewModel.inviteGames(created)
+            shared = createdInviteText(who, created.puzzles.size, games, created.deadlineHours, created.code, time) to created.code.matchLink
         }
     }
     LaunchedEffect(viewModel) { viewModel.refreshSolved() }

@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
+import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -51,6 +52,7 @@ import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.domain.DeleteSelfDuel
 import com.ivandsky.puzzlebox.domain.ObserveDuel
 import com.ivandsky.puzzlebox.domain.ObserveMatch
+import com.ivandsky.puzzlebox.domain.lineup.ObserveLegTitles
 import com.ivandsky.puzzlebox.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.domain.UpdateMatchSeat
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
@@ -177,6 +179,7 @@ class DuelsTabPaneTest {
                         }
                     }
                     single { registry }
+                    single { ObserveLegTitles(received, FakePublishedPuzzleRepository(), FakeSharedPuzzleRepository()) }
                     single { GamePlayRegistry(emptyList()) }
                     single<DispatcherProvider> { DefaultDispatcherProvider() }
                     single { LoadLegPuzzle(daily = FakeDailyRepository(), received = received, loadShared = loadShared) }

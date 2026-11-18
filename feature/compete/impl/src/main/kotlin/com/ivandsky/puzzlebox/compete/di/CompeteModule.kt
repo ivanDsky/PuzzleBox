@@ -42,6 +42,7 @@ val competeModule: Module = module {
             clock = { Instant.now() },
             zone = { ZoneId.systemDefault() },
             locale = { Locale.getDefault() },
+            legTitles = get(),
             releaseFlags = getOrNull(),
         )
     }
@@ -60,6 +61,8 @@ val competeModule: Module = module {
             loadLegPuzzle = get(),
             plays = get(),
             dispatchers = get(),
+            legTitles = get(),
+            releaseFlags = getOrNull(),
         )
     }
     viewModel { (code: String, reducedMotion: Boolean, zone: ZoneId, locale: Locale) ->

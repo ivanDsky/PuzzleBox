@@ -131,9 +131,13 @@ private fun Facts(details: InviteDetails, modifier: Modifier) {
     val brands = koinInject<GamePlayRegistry>()
     val ends = rememberCompeteTime().ends(details.deadline)
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            details.games.forEach { game ->
-                GameChip(game, brands.brandOf(game.id))
+        if (details.lineup != null) {
+            InviteLineup(details.lineup, brands)
+        } else {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                details.games.forEach { game ->
+                    GameChip(game.name, brands.brandOf(game.id), "duel.invite.game.${game.id.value}")
+                }
             }
         }
         Text(
@@ -153,21 +157,21 @@ private fun Facts(details: InviteDetails, modifier: Modifier) {
     }
 }
 
-/** A game's name and glyph on its accent container, like the friend puzzle card's chip. */
+/** A game's glyph and [label] on its accent container, like the friend puzzle card's chip. */
 @Composable
-private fun GameChip(game: InviteGame, brand: GameBrand) {
+internal fun GameChip(label: String, brand: GameBrand, tag: String) {
     val accent = brand.accent.colors()
     Row(
         modifier = Modifier
             .background(accent.container, CircleShape)
             .padding(horizontal = Spacing.md, vertical = Spacing.xs)
-            .testTag("duel.invite.game.${game.id.value}"),
+            .testTag(tag),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
         GameGlyph(brand, GameGlyphSize.Inline)
         Text(
-            text = game.name,
+            text = label,
             style = MaterialTheme.typography.labelLarge,
             color = accent.onContainer,
             maxLines = 1,

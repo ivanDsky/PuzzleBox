@@ -132,6 +132,7 @@ class NewDuelViewModelTest {
         clock = { NOW },
         zone = { zone },
         locale = { locale },
+        legTitles = noLegTitles(),
     )
 
     private fun kotlinx.coroutines.test.TestScope.started(createMatch: CreateMatch = this@NewDuelViewModelTest.createMatch): NewDuelViewModel =

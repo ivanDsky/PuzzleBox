@@ -126,6 +126,7 @@ class NewDuelLineupTest {
             clock = { NOW },
             zone = { ZoneOffset.UTC },
             locale = { Locale.US },
+            legTitles = noLegTitles(),
             releaseFlags = FakeReleaseFlags(*if (flagOn) arrayOf(ReleaseFlag.DuelLineup) else emptyArray()),
         ).also { backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { it.state.collect {} } }
 
@@ -183,6 +184,22 @@ class NewDuelLineupTest {
     private fun today(game: GameId) = ExactPuzzle(
         LegRef.Daily(game, today, (today.toEpochDay() % 10_000).toInt() + 1), null, "${if (game == alpha) "Alpha" else "Beta"} #${(today.toEpochDay() % 10_000).toInt() + 1}", null, PuzzleSource.PastDay,
     )
+
+    @Test
+    fun `the created duel carries every leg in order with the flag on, none with it off`() = runTest {
+        val on = started()
+        on.pick(alpha)
+        on.pick(beta)
+        repeat(3) { on.editLineup { it.remove(0) } }
+        on.create()
+        val created = on.created.first()
+        assertEquals(server.matches.getValue(created.code).legs.map { it.ref }, created.legs)
+        assertEquals(created.puzzles.size, created.legs.size)
+
+        val off = started(flagOn = false)
+        off.create()
+        assertTrue(off.created.first().legs.isEmpty())
+    }
 
     @Test
     fun `Quick is untouched by the lineup, and its rows stay for Customize`() = runTest {

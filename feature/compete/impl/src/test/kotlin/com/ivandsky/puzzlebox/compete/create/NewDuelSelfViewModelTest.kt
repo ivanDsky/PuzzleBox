@@ -108,6 +108,7 @@ class NewDuelSelfViewModelTest {
             clock = { NOW },
             zone = { ZoneOffset.UTC },
             locale = { Locale.US },
+            legTitles = noLegTitles(),
         )
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.state.collect {} }
         return vm

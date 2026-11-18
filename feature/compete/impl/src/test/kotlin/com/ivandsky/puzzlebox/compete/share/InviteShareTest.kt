@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.compete.share
 
 import com.ivandsky.puzzlebox.compete.duel.CompeteTime
+import com.ivandsky.puzzlebox.compete.duel.InviteLeg
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Clock
 import java.time.Instant
@@ -68,5 +70,18 @@ class InviteShareTest {
         val challenge = createdInviteText("Ivan", 3, listOf("Zip"), deadlineHours = 24, code = code, time = time).lines().first()
 
         assertEquals("Ivan challenges you: best of 3 — Zip · ends Sat 18:00", challenge)
+    }
+
+    @Test
+    fun theLineupLabelsGoInLegOrderWithCustomTitlesQuoted() {
+        val legs = listOf(
+            InviteLeg(GameId("zip"), "Zip", code = null),
+            InviteLeg(GameId("queens"), "Queens", code, title = "Crown jewels"),
+            InviteLeg(GameId("queens"), "Queens", code),
+        )
+
+        val challenge = text(legs.map { it.label }).lines().first()
+
+        assertEquals("Ivan challenges you: best of 3 — Zip, \"Crown jewels\", Queens · ${code.display} · ends Sat 18:00", challenge)
     }
 }
