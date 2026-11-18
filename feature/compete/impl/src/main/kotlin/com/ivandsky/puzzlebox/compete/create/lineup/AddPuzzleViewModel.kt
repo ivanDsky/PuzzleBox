@@ -32,7 +32,7 @@ private const val STOP_TIMEOUT_MS = 5_000L
 internal const val LOOKUP_DEBOUNCE_MS = 400L
 
 /**
- * The add sheet's exact-puzzle search: the text and chips the player set, the pickable puzzles they narrow, and which of
+ * The add sheet's exact-puzzle search: the text and chips the player set (and whether the chips' panel is open, [toggleFilters]), the pickable puzzles they narrow, and which of
  * those the lineup already holds ([setAdded]). The list is read once while the sheet is on screen, however the query changes;
  * the daily archive comes a page at a time as [loadMore] asks.
  *
@@ -54,6 +54,7 @@ internal class AddPuzzleViewModel(
     private val added = MutableStateFlow<Set<LegRef>>(emptySet())
     private val archivePages = MutableStateFlow(1)
     private val explicit = MutableStateFlow<Explicit?>(null)
+    private val filtersOpen = MutableStateFlow(false)
     private var rounds = 0
 
     // A link searches as the code it holds: only the code is in the lists.
@@ -82,7 +83,7 @@ internal class AddPuzzleViewModel(
         }
     }
 
-    val state: StateFlow<AddPuzzleState> = combine(list, lookups, added) { base, looked, held ->
+    val state: StateFlow<AddPuzzleState> = combine(list, lookups, added, filtersOpen) { base, looked, held, open ->
         // A lookup of another text, or beside rows that now answer, is not this state's.
         val current = looked?.takeIf { base.rows.isEmpty() && it.want.text == base.query.text }
         val found = (current?.outcome as? CodeLookup.Found)?.puzzle
@@ -90,6 +91,7 @@ internal class AddPuzzleViewModel(
             rows = found?.let { listOf(PickerEntry(it, it.entry.ref in held)) } ?: base.rows,
             lookup = current?.let { lookupLine(it.want.code, it.outcome) },
             canRetry = current?.outcome == CodeLookup.Offline,
+            filtersOpen = open,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), AddPuzzleState(pastYou = pastYou))
 
@@ -113,6 +115,12 @@ internal class AddPuzzleViewModel(
     fun toggle(source: PuzzleSource) = query.update { it.copy(sources = it.sources.toggled(source)) }
     fun toggle(game: GameId) = query.update { it.copy(games = it.games.toggled(game)) }
 
+    /** The filter button was tapped: the chips open under the field, or close again. */
+    fun toggleFilters() = filtersOpen.update { !it }
+
+    /** Every chip off; the text stays. */
+    fun clearFilters() = query.update { it.copy(fresh = emptySet(), sources = emptySet(), games = emptySet()) }
+
     /** The puzzles the lineup holds now. */
     fun setAdded(refs: Set<LegRef>) {
         added.value = refs
@@ -126,6 +134,7 @@ internal class AddPuzzleViewModel(
     /** The next opening of the sheet starts clean. */
     fun reset() {
         explicit.value = null
+        filtersOpen.value = false
         query.value = NO_QUERY
         archivePages.value = 1
     }

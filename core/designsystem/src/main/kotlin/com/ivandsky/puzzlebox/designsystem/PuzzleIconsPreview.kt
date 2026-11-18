@@ -61,6 +61,7 @@ internal fun PuzzleIconsPreview() {
             "FailedCheck" to PuzzleIcons.FailedCheck,
             "Update" to PuzzleIcons.Update,
             "Close" to PuzzleIcons.Close,
+            "Filter" to PuzzleIcons.Filter,
             "Search" to PuzzleIcons.Search,
             "ExpandMore" to PuzzleIcons.ExpandMore,
             "StatusRing" to PuzzleIcons.StatusRing,

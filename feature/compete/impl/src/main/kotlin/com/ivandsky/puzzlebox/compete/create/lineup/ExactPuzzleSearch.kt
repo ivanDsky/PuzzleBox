@@ -41,18 +41,11 @@ import org.koin.compose.koinInject
 
 private val RESULTS_MAX_HEIGHT = 420.dp
 
-/** The chips that narrow [ExactPuzzleSearch], for a caller that draws them apart from it (`filtersInline = false`). */
-@Composable
-internal fun ExactPuzzleFilters(games: List<DuelGame>, viewModel: AddPuzzleViewModel, modifier: Modifier = Modifier) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
-    PickerFilters(state.query, games, viewModel, modifier, pastYou = state.pastYou)
-}
-
 /**
- * "Or one exact puzzle": a field that searches name, author and code, chips that narrow it (unless [filtersInline] is false,
- * and [ExactPuzzleFilters] draws them elsewhere), and the puzzles that pass, newest first (Past you's: the ones solved last first). [added] is what the lineup already
- * holds; Add calls [onAdd] with the puzzle. The query lives in [viewModel], so the field, the rows and the chips all survive a
- * rotation; the panel clears it when the sheet closes.
+ * "Or one exact puzzle": a field that searches name, author and code, a filter button right of it that opens the chips
+ * that narrow it under the field, and the puzzles that pass, newest first (Past you's: the ones solved last first). [added] is what the lineup already
+ * holds; Add calls [onAdd] with the puzzle. The query and whether the chips are open live in [viewModel], so the field, the rows and the chips all survive a
+ * rotation; the panel clears them when the sheet closes.
  */
 @Composable
 internal fun ExactPuzzleSearch(
@@ -61,7 +54,6 @@ internal fun ExactPuzzleSearch(
     onAdd: (ExactPuzzle) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: AddPuzzleViewModel,
-    filtersInline: Boolean = true,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val registry = koinInject<GamePlayRegistry>()
@@ -69,26 +61,31 @@ internal fun ExactPuzzleSearch(
     LaunchedEffect(viewModel, added) { viewModel.setAdded(added) }
     Column(modifier.fillMaxWidth().testTag("duel.lineup.exact"), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text("Or one exact puzzle", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        OutlinedTextField(
-            value = text,
-            onValueChange = viewModel::setText,
-            modifier = Modifier.fillMaxWidth().testTag("duel.lineup.search"),
-            placeholder = { Text("Name, author or code (K7Q-X2M)", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-            trailingIcon = {
-                if (text.isEmpty()) {
-                    PasteCodeButton(onPaste = viewModel::paste)
-                } else {
-                    IconButton(
-                        onClick = { viewModel.setText("") },
-                        modifier = Modifier.semantics { contentDescription = "Clear search" }.testTag("duel.lineup.search.clear"),
-                    ) { Icon(PuzzleIcons.Close, contentDescription = null) }
-                }
-            },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { viewModel.lookUp() }),
-        )
-        if (filtersInline) PickerFilters(state.query, games, viewModel, pastYou = state.pastYou)
+        Column {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = viewModel::setText,
+                    modifier = Modifier.weight(1f).testTag("duel.lineup.search"),
+                    placeholder = { Text("Name, author or code", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    trailingIcon = {
+                        if (text.isEmpty()) {
+                            PasteCodeButton(onPaste = viewModel::paste)
+                        } else {
+                            IconButton(
+                                onClick = { viewModel.setText("") },
+                                modifier = Modifier.semantics { contentDescription = "Clear search" }.testTag("duel.lineup.search.clear"),
+                            ) { Icon(PuzzleIcons.Close, contentDescription = null) }
+                        }
+                    },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { viewModel.lookUp() }),
+                )
+                PickerFilterButton(state.activeFilters, state.filtersOpen, onToggle = viewModel::toggleFilters)
+            }
+            PickerFilterPanel(state, games, viewModel)
+        }
         if (state.offline && state.lookup != OFFLINE_NOTE) {
             Text(OFFLINE_NOTE, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("duel.lineup.offline"))
         }

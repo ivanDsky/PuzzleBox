@@ -51,6 +51,10 @@ object PuzzleIcons {
     val Search: ImageVector = Icons.Rounded.Search
     val ExpandMore: ImageVector = Icons.Rounded.KeyboardArrowDown
 
+    /** Filters, the chips that narrow a list: `filter_list`, three bars each shorter than the one above. */
+    val Filter: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.ic_filter_list)
+
     /** A neutral notice: the circled "i" from the core set. */
     val Info: ImageVector = Icons.Rounded.Info
 

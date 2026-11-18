@@ -16,6 +16,9 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasScrollToIndexAction
@@ -103,6 +106,7 @@ class ExactPuzzleSearchTest {
         openSheet()
 
         rule.onNodeWithTag("duel.lineup.search").performTextInput("crown")
+        rule.openFilters()
         rule.onNodeWithTag("duel.lineup.chip.new").performClick()
         rule.onNodeWithTag("duel.lineup.chip.game.queens").performClick()
         rule.waitForIdle()
@@ -131,9 +135,52 @@ class ExactPuzzleSearchTest {
         rule.waitForIdle()
         rule.onNodeWithTag("duel.lineup.empty").assertTextEquals("Nothing matches \"zzz\". Try a code, or clear the filters.")
 
+        rule.openFilters()
         rule.onNodeWithTag("duel.lineup.chip.community").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("duel.lineup.empty").assertTextEquals("Nothing matches \"zzz\" with these filters. Try a code, or clear the filters.")
+    }
+
+    @Test
+    fun `the chips stay out of sight until the filter button opens them, and the button closes them again`() {
+        show(listOf(CROWN_JEWELS, MY_GRID))
+        openSheet()
+
+        rule.onNodeWithTag("duel.lineup.chip.new").assertDoesNotExist()
+        rule.onNodeWithTag("duel.lineup.filter.panel").assertDoesNotExist()
+        rule.onNodeWithTag("duel.lineup.filter").assertIsOff()
+
+        rule.openFilters()
+        listOf("new", "notplayed", "community", "friends", "pastdays", "mine").forEach { rule.onNodeWithTag("duel.lineup.chip.$it").assertExists() }
+        GAMES.forEach { rule.onNodeWithTag("duel.lineup.chip.game.${it.id.value}").assertExists() }
+        rule.onNodeWithTag("duel.lineup.filter").assertIsOn()
+
+        rule.openFilters()
+        rule.onNodeWithTag("duel.lineup.chip.new").assertDoesNotExist()
+        rule.onNodeWithTag("duel.lineup.filter").assertIsOff()
+    }
+
+    @Test
+    fun `the filter button counts the chips that are on, and Clear filters turns them all off and widens the list`() {
+        show(listOf(CROWN_JEWELS, CROWN_TANGO, OLD_CROWN, MY_GRID))
+        openSheet()
+        rule.onNodeWithTag("duel.lineup.filter.count", useUnmergedTree = true).assertDoesNotExist()
+
+        rule.openFilters()
+        rule.onNodeWithTag("duel.lineup.filter.clear").assertIsNotEnabled()
+        rule.onNodeWithTag("duel.lineup.chip.new").performClick()
+        rule.onNodeWithTag("duel.lineup.chip.game.queens").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("duel.lineup.filter.count", useUnmergedTree = true).assertTextEquals("2")
+        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("1 found")
+
+        rule.onNodeWithTag("duel.lineup.filter.clear").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("duel.lineup.filter.count", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithTag("duel.lineup.chip.new").assertIsNotSelected()
+        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("Newest first")
+        rule.onNodeWithTag("duel.lineup.filter.panel").assertExists()
     }
 
     @Test
@@ -166,6 +213,7 @@ class ExactPuzzleSearchTest {
         show(listOf(CROWN_JEWELS, CROWN_TANGO, OLD_CROWN, MY_GRID), restoration = restoration)
         openSheet()
         rule.onNodeWithTag("duel.lineup.search").performTextInput("crown")
+        rule.openFilters()
         rule.onNodeWithTag("duel.lineup.chip.new").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("duel.lineup.count").assertTextEquals("2 found")
@@ -177,6 +225,7 @@ class ExactPuzzleSearchTest {
         rule.onNodeWithTag("duel.lineup.count").assertTextEquals("2 found")
         rule.onNodeWithTag("duel.lineup.pick.${CROWN_JEWELS.entry.ref.wire}").assertExists()
         rule.onNodeWithTag("duel.lineup.pick.${OLD_CROWN.entry.ref.wire}").assertDoesNotExist()
+        rule.onNodeWithTag("duel.lineup.filter.count", useUnmergedTree = true).assertTextEquals("1")
         rule.onNodeWithTag("duel.lineup.chip.new").assertIsSelected()
     }
 
