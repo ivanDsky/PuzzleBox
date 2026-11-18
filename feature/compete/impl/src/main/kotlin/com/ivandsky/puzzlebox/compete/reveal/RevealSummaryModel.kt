@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.domain.LegVerdict
 import com.ivandsky.puzzlebox.domain.MatchVerdict
 import com.ivandsky.puzzlebox.domain.Outcome
 import com.ivandsky.puzzlebox.domain.SelfDuelSettings
+import com.ivandsky.puzzlebox.domain.lineup.rematchLineup
 import com.ivandsky.puzzlebox.gameui.DuelSideState
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.Instant
@@ -187,14 +188,18 @@ internal fun shareText(me: String, opponent: String, myWins: Int, theirWins: Int
     return "PuzzleBox · $me $myWins–$theirWins $opponent $squares · $link"
 }
 
-/** The same duel again with a fresh draw: same count, games, deadline and friends toggle; never today-only or pasted codes. */
-internal fun rematchSettings(match: Match) = DuelSettings(
+/**
+ * The same duel again with a fresh draw: same count, games, deadline and friends toggle; never today-only or pasted codes.
+ * With [lineup] (DuelLineup on) the draw also keeps the duel's game order, each puzzle an "Any" of its game.
+ */
+internal fun rematchSettings(match: Match, lineup: Boolean = false) = DuelSettings(
     count = match.legs.size,
     games = match.legs.mapTo(LinkedHashSet()) { it.ref.gameId },
     todayOnly = false,
     deadlineHours = match.deadlineHours,
     includeFriends = match.includeFriends,
     pastedCodes = emptyList(),
+    lineup = if (lineup) rematchLineup(match.legs) else null,
 )
 
 /** The self duel again: same count, games and friends toggle, with a fresh draw of solved puzzles. */

@@ -76,5 +76,5 @@ val competeModule: Module = module {
             identity = get(),
         )
     }
-    viewModel { (match: Match) -> RematchViewModel(match = match, createMatch = get(), createSelfDuel = get()) }
+    viewModel { (match: Match) -> RematchViewModel(match = match, createMatch = get(), createSelfDuel = get(), releaseFlags = getOrNull()) }
 }

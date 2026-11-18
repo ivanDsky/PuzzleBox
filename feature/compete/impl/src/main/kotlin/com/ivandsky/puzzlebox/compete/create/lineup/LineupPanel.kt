@@ -44,7 +44,7 @@ private val DASH = floatArrayOf(16f, 12f)
 /**
  * The Customize panel's puzzles: "Puzzles, in order · N of 10", one row per puzzle, then the dashed Add row, which at
  * the limit says so instead. Every change goes through [onEdit] as the edit to apply to the [editor]; the add sheet shows
- * while the editor has a target.
+ * while the editor has a target. A [fixed] panel is the Daily duel's: its rows can be reordered and removed, but not changed, and nothing can be added.
  */
 @Composable
 internal fun LineupPanel(
@@ -53,6 +53,7 @@ internal fun LineupPanel(
     includeFriends: Boolean,
     onEdit: ((LineupEditor) -> LineupEditor) -> Unit,
     modifier: Modifier = Modifier,
+    fixed: Boolean = false,
 ) {
     val registry = koinInject<GamePlayRegistry>()
     // Held here, not in the sheet, so a rotation that rebuilds the sheet keeps the search and only a close clears it.
@@ -104,21 +105,23 @@ internal fun LineupPanel(
                         },
                         onCancel = { drag = null },
                     ),
-                    onClick = { edit { it.openChange(index) } },
+                    onClick = if (fixed) null else ({ edit { it.openChange(index) } }),
                     onRemove = { edit { it.remove(index) } },
                     modifier = placed,
                 )
             }
         }
-        if (draft.canAdd) {
-            AddRow(position = draft.size + 1, onClick = { edit { it.openAdd() } })
-        } else {
-            Text(
-                text = "${Match.MAX_LEGS} puzzles is the most a duel holds. Remove one to add another.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(vertical = Spacing.sm).testTag("duel.lineup.max"),
-            )
+        if (!fixed) {
+            if (draft.canAdd) {
+                AddRow(position = draft.size + 1, onClick = { edit { it.openAdd() } })
+            } else {
+                Text(
+                    text = "${Match.MAX_LEGS} puzzles is the most a duel holds. Remove one to add another.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = Spacing.sm).testTag("duel.lineup.max"),
+                )
+            }
         }
     }
     editor.target?.let { row ->

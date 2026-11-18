@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.compete.reveal
 
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.log.FailureLog
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
@@ -22,6 +23,7 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
@@ -106,8 +108,23 @@ class RematchViewModelTest {
         }
     }
 
-    private fun viewModel(repo: MatchRepository = server) =
-        RematchViewModel(played, CreateMatch(repo, local, draw, identity, Random(CODE_SEED)), selfDuel)
+    private fun viewModel(repo: MatchRepository = server, match: Match = played, flags: FakeReleaseFlags? = null) =
+        RematchViewModel(match, CreateMatch(repo, local, draw, identity, Random(CODE_SEED)), selfDuel, releaseFlags = flags)
+
+    @Test
+    fun withTheLineupOnARematchKeepsTheDuelsGameOrder() = runTest {
+        val custom = LegRef.Custom(beta, ShareCode.parse("M3N4P5")!!)
+        val lineupDuel = played.copy(
+            legs = listOf(MatchLeg(custom, "bob"), MatchLeg(LegRef.Daily(alpha, today.minusDays(1), 101), null), MatchLeg(LegRef.Daily(beta, today.minusDays(1), 102), null)),
+        )
+        val on = viewModel(match = lineupDuel, flags = FakeReleaseFlags(ReleaseFlag.DuelLineup))
+
+        on.send()
+
+        val created = on.created.first()
+        assertEquals(listOf(beta, alpha, beta), server.matches.getValue(created.code).legs.map { it.ref.gameId })
+        assertTrue(server.matches.getValue(created.code).legs.none { it.ref == custom })
+    }
 
     @Test
     fun sendingShowsAsSendingThenHandsOverTheCreatedDuel() = runTest {

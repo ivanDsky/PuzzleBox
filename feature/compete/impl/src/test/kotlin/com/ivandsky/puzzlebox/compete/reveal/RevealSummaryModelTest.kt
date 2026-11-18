@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.domain.LegBasis
 import com.ivandsky.puzzlebox.domain.LegVerdict
 import com.ivandsky.puzzlebox.domain.MatchVerdict
 import com.ivandsky.puzzlebox.domain.Outcome
+import com.ivandsky.puzzlebox.domain.lineup.AnyGame
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.DuelSideState
 import com.ivandsky.puzzlebox.model.GameId
@@ -115,6 +116,14 @@ class RevealSummaryModelTest {
         assertFalse(settings.todayOnly)
         assertTrue(settings.pastedCodes.isEmpty())
         assertFalse(rematchSettings(match(refs = listOf(strands), deadlineHours = 24, includeFriends = false)).includeFriends)
+    }
+
+    @Test
+    fun aLineupRematchRedrawsEveryPuzzleAsAnyOfItsGameInOrder() {
+        val match = match(refs = listOf(queens, zip, queens), deadlineHours = 48, includeFriends = true)
+
+        assertEquals(listOf(AnyGame(queens), AnyGame(zip), AnyGame(queens)), rematchSettings(match, lineup = true).lineup)
+        assertNull(rematchSettings(match).lineup)
     }
 
     @Test

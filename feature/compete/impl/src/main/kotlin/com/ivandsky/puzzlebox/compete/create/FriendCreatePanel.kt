@@ -15,6 +15,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import com.ivandsky.puzzlebox.compete.create.lineup.LineupPanel
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
@@ -34,19 +35,31 @@ internal fun FriendCreatePanel(state: NewDuelState, actions: NewDuelActions) {
         }
         PresetCard("Quick duel", "Best of 3 · mixed past dailies · 24 h", draft.preset == DuelPreset.Quick, actions.onQuick, "duel.preset.quick")
         PresetCard("Daily duel", "Today's puzzles · 24 h", draft.preset == DuelPreset.Daily, actions.onDaily, "duel.preset.daily") {
-            if (draft.preset == DuelPreset.Daily) DailyGames(state.games, draft, actions.onToggle)
+            if (draft.preset == DuelPreset.Daily) {
+                val rows = state.lineup?.takeIf { draft.showsRows(it, state.games) }
+                if (rows != null) {
+                    LineupPanel(rows, state.games, draft.includeFriends, actions.onEditLineup, fixed = true)
+                } else {
+                    DailyGames(state.games, draft, actions.onToggle)
+                }
+            }
         }
         PresetCard(
             title = "Customize",
             subtitle = "Puzzles, games, deadline, friends' puzzles",
             selected = draft.preset == DuelPreset.Custom,
             onClick = {
-                if (!customizing && state.lineup != null) actions.onCustomize()
-                customizing = !customizing
+                // Daily's rows hide the Customize body, so tapping Customize then takes the preset and opens it rather than closing it.
+                if (state.lineup != null && (!customizing || draft.showsRows(state.lineup, state.games))) {
+                    actions.onCustomize()
+                    customizing = true
+                } else {
+                    customizing = !customizing
+                }
             },
             tag = "duel.preset.custom",
             trailing = { Chevron(expanded = customizing) },
-        ) { CustomizeBody(customizing) { DuelCustomizePanel(state, actions, Modifier.padding(top = Spacing.sm)) } }
+        ) { CustomizeBody(customizing && !draft.showsRows(state.lineup, state.games)) { DuelCustomizePanel(state, actions, Modifier.padding(top = Spacing.sm)) } }
         state.notice?.let { Notice(it) }
         Text(
             text = state.summary,

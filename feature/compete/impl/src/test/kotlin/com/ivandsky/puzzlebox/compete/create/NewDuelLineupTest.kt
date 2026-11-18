@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.compete.create.lineup.LineupEditor
 import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.CreateResult
 import com.ivandsky.puzzlebox.data.match.MatchDraft
 import com.ivandsky.puzzlebox.data.match.MatchRepository
@@ -18,6 +19,9 @@ import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.lineup.AnyGame
+import com.ivandsky.puzzlebox.domain.lineup.ExactPuzzle
+import com.ivandsky.puzzlebox.domain.lineup.LineupEntry
+import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
@@ -169,19 +173,98 @@ class NewDuelLineupTest {
         assertEquals(5, server.matches.getValue(code).legs.size)
     }
 
+    private fun today(game: GameId) = ExactPuzzle(
+        LegRef.Daily(game, today, (today.toEpochDay() % 10_000).toInt() + 1), null, "${if (game == alpha) "Alpha" else "Beta"} #${(today.toEpochDay() % 10_000).toInt() + 1}", null, PuzzleSource.PastDay,
+    )
+
     @Test
-    fun `Quick is untouched by the lineup, and Daily then Customize keeps the rows`() = runTest {
+    fun `Quick is untouched by the lineup, and its rows stay for Customize`() = runTest {
         val vm = started()
         val rows = vm.state.value.lineup!!.draft
 
         vm.chooseQuick()
         assertEquals(DuelPreset.Quick, vm.state.value.draft.preset)
         vm.pick(beta)
-        vm.chooseDaily()
         vm.chooseCustom()
 
         assertEquals(DuelPreset.Custom, vm.state.value.draft.preset)
         assertEquals(rows.entries + AnyGame(beta), vm.state.value.lineup!!.draft.entries)
+    }
+
+    @Test
+    fun `Daily shows today's unsolved puzzles as rows, removes down to one, and Customize keeps them`() = runTest {
+        val vm = started()
+
+        vm.chooseDaily()
+
+        assertEquals(DuelPreset.Daily, vm.state.value.draft.preset)
+        assertEquals(listOf(today(alpha), today(beta)), vm.state.value.lineup!!.draft.entries)
+        assertTrue(vm.state.value.draft.showsRows(vm.state.value.lineup, vm.state.value.games))
+
+        vm.editLineup { it.remove(0) }
+        assertEquals(listOf(today(beta)), vm.state.value.lineup!!.draft.entries)
+        vm.editLineup { it.remove(0) }
+        assertEquals(listOf(today(beta)), vm.state.value.lineup!!.draft.entries)
+        assertEquals(DuelPreset.Daily, vm.state.value.draft.preset)
+
+        vm.chooseDaily()
+        vm.chooseCustom()
+        assertEquals(DuelPreset.Custom, vm.state.value.draft.preset)
+        assertEquals(listOf(today(alpha), today(beta)), vm.state.value.lineup!!.draft.entries)
+        vm.chooseDaily()
+        assertEquals(DuelPreset.Daily, vm.state.value.draft.preset)
+        assertEquals(listOf(today(alpha), today(beta)), vm.state.value.lineup!!.draft.entries)
+    }
+
+    @Test
+    fun `a Daily puzzle of an earlier day is not today's, so Daily replaces its rows instead of keeping them`() = runTest {
+        val vm = started()
+        val old = today(alpha).copy(ref = LegRef.Daily(alpha, today.minusDays(1), 5), title = "Alpha #5")
+        vm.chooseCustom()
+        vm.editLineup { it.openChange(0) }
+        vm.editLineup { it.pick(old) }
+        vm.editLineup { it.remove(2) }
+        vm.editLineup { it.remove(1) }
+        assertEquals(listOf<LineupEntry>(old), vm.state.value.lineup!!.draft.entries)
+
+        vm.chooseDaily()
+
+        assertEquals(listOf(today(alpha), today(beta)), vm.state.value.lineup!!.draft.entries)
+        assertTrue(vm.state.value.draft.showsRows(vm.state.value.lineup, vm.state.value.games))
+    }
+
+    @Test
+    fun `Daily from Customize rows that are not today's replaces them with today's`() = runTest {
+        val vm = started()
+        vm.chooseCustom()
+        vm.pick(beta)
+
+        vm.chooseDaily()
+
+        assertEquals(listOf(today(alpha), today(beta)), vm.state.value.lineup!!.draft.entries)
+    }
+
+    @Test
+    fun `a reordered Daily creates the duel with today's puzzles in the rows' order`() = runTest {
+        val vm = started()
+        vm.chooseDaily()
+        vm.editLineup { it.moved(0, 1) }
+
+        vm.create()
+
+        val (code, _) = vm.created.first()
+        assertEquals(listOf(today(beta).ref, today(alpha).ref), server.matches.getValue(code).legs.map { it.ref })
+        assertEquals(DuelPreset.Daily, vm.state.value.draft.preset)
+    }
+
+    @Test
+    fun `with the flag off Daily has no rows and is today's draft`() = runTest {
+        val vm = started(flagOn = false)
+
+        vm.chooseDaily()
+
+        assertNull(vm.state.value.lineup)
+        assertEquals(DuelDraft.daily(vm.state.value.games), vm.state.value.draft)
     }
 
     @Test

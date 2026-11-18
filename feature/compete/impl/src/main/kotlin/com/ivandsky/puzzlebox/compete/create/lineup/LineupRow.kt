@@ -41,7 +41,7 @@ private val LIFT_ELEVATION = 8.dp
 /**
  * One puzzle of the lineup: its [position] (from 1), glyph, title and subtitle, and a remove button that is off on the last
  * puzzle, and a grip to drag it by ([drag]). A [lifted] row is raised. A [flashed] row takes the primary container colour for a moment, and a [refused] one is outlined as an error.
- * Tapping the row opens its change sheet.
+ * Tapping the row opens its change sheet; with no [onClick] the row is not tappable.
  */
 @Composable
 internal fun LineupRow(
@@ -53,7 +53,7 @@ internal fun LineupRow(
     refused: Boolean,
     lifted: Boolean,
     drag: RowDrag,
-    onClick: () -> Unit,
+    onClick: (() -> Unit)?,
     onRemove: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -70,7 +70,8 @@ internal fun LineupRow(
     )
     val outline = if (refused) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outlineVariant
     Surface(
-        onClick = onClick,
+        onClick = onClick ?: {},
+        enabled = onClick != null,
         modifier = modifier.fillMaxWidth().heightIn(min = ROW_MIN_HEIGHT).testTag("duel.lineup.row.$position"),
         shape = MaterialTheme.shapes.medium,
         color = container,
