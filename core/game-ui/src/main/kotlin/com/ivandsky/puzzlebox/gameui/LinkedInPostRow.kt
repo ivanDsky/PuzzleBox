@@ -90,11 +90,10 @@ private fun LinkedInPostRowState.look(pressed: Boolean): CircleLook {
 
 @Composable
 private fun LinkedInPostRowState.icon(): ImageVector = when (this) {
-    LinkedInPostRowState.Post -> PuzzleIcons.Upload
-    LinkedInPostRowState.Posting -> PuzzleIcons.Upload
+    LinkedInPostRowState.Post, LinkedInPostRowState.Posting, LinkedInPostRowState.Retry -> PuzzleIcons.Upload
     LinkedInPostRowState.Posted, LinkedInPostRowState.AlreadyOnLinkedIn -> PuzzleIcons.Check
     LinkedInPostRowState.Check -> PuzzleIcons.HowTo
-    LinkedInPostRowState.Retry -> PuzzleIcons.Retry
     LinkedInPostRowState.Paused -> PuzzleIcons.Hourglass
-    LinkedInPostRowState.NotToday, LinkedInPostRowState.Tutorial -> PuzzleIcons.Clock
+    LinkedInPostRowState.NotToday -> PuzzleIcons.Clock
+    LinkedInPostRowState.Tutorial -> PuzzleIcons.Info
 }
