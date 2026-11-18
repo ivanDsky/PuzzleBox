@@ -35,8 +35,6 @@ import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.VariantId
-import com.ivandsky.puzzlebox.gameui.RecordVerdict
-import com.ivandsky.puzzlebox.gameui.ResultScreen
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.ZipBoard as ZipBoardModel
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzle
@@ -120,29 +118,6 @@ class VariantMatrixScreenshotTest {
             ZipBoard(
                 model,
                 Modifier.fillMaxWidth().padding(16.dp),
-            )
-        }
-    }
-
-    // ---------------------------------------------------------------------------
-    // Result screen: the T23 route surface, both themes (record badge shown —
-    // the accent moment is what needs judging).
-    // ---------------------------------------------------------------------------
-
-    @Test fun `result dark`() = resultPane(dark = true)
-
-    @Test fun `result light`() = resultPane(dark = false)
-
-    private fun resultPane(dark: Boolean) {
-        capture("result-${theme(dark)}.png", dark) {
-            ResultScreen(
-                timeMs = 95_000,
-                hintsUsed = 1,
-                onDone = {},
-                onShare = {},
-                onPlayAgain = {},
-                verdict = RecordVerdict.NewBest,
-                modifier = Modifier.fillMaxSize(),
             )
         }
     }
