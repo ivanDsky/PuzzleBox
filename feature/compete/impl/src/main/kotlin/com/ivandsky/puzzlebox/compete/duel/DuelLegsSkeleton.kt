@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.PillShape
+import com.ivandsky.puzzlebox.designsystem.PrimaryButtonMinHeight
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.skeleton
 import com.ivandsky.puzzlebox.designsystem.TwoColumnMinWidth
@@ -35,7 +36,6 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 private val AvatarBlock = 40.dp
 private val CardBlockHeight = 104.dp
 private val HeroBlock = 64.dp
-private val ActionBlockHeight = 52.dp
 private const val SKELETON_CARDS = 3
 private const val TITLE_FRACTION = 0.7f
 
@@ -99,7 +99,7 @@ internal fun DuelLegsSkeleton(modifier: Modifier = Modifier) {
                         Bar(Modifier.width(160.dp), MaterialTheme.typography.bodyMedium)
                         Bar(Modifier.width(120.dp), MaterialTheme.typography.labelMedium, PillShape, Spacing.xs)
                         Bar(Modifier.width(200.dp), MaterialTheme.typography.bodyMedium)
-                        Block(Modifier.fillMaxWidth().height(ActionBlockHeight), AppShapes.large)
+                        Block(Modifier.fillMaxWidth().height(PrimaryButtonMinHeight), AppShapes.large)
                     }
                 },
             )
