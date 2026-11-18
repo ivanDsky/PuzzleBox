@@ -32,6 +32,7 @@ import com.ivandsky.puzzlebox.play.navigation.playEntry
 import com.ivandsky.puzzlebox.play.navigation.resultEntry
 import com.ivandsky.puzzlebox.profile.api.LinkedInLoginKey
 import com.ivandsky.puzzlebox.profile.api.SettingsKey
+import com.ivandsky.puzzlebox.profile.api.WhatsNewKey
 import com.ivandsky.puzzlebox.profile.navigation.profileEntry
 import com.ivandsky.puzzlebox.profile.settings.VisibilitySlot
 import java.time.LocalDate
@@ -120,6 +121,7 @@ internal fun puzzleBoxEntryProvider(
         onBack = back,
         onOpenSettings = { navigator.pushLayer(SettingsKey) },
         onOpenLinkedInLogin = { navigator.pushLayer(LinkedInLoginKey) },
+        onOpenWhatsNew = { navigator.pushLayer(WhatsNewKey) },
         debugSections = { DebugSettingsSlot(openGame = { navigator.pushOnce(GameKey(it)) }) },
         visibility = visibility,
     )

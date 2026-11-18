@@ -56,6 +56,18 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun `the What's new row follows the flag the module read`() = runTest(dispatcher) {
+        val on = SettingsViewModel(FakeUserPreferencesRepository(), FakeGameOptions(), appBuild, identity, tokens, whatsNew = true)
+        val off = SettingsViewModel(FakeUserPreferencesRepository(), FakeGameOptions(), appBuild, identity, tokens)
+        backgroundScope.launch { on.uiState.collect {} }
+        backgroundScope.launch { off.uiState.collect {} }
+        advanceUntilIdle()
+
+        assertEquals(true, on.uiState.value.whatsNew)
+        assertEquals(false, off.uiState.value.whatsNew)
+    }
+
+    @Test
     fun `each games switch writes its own stored value and leaves the others`() = runTest(dispatcher) {
         val games = FakeGameOptions()
         val vm = SettingsViewModel(FakeUserPreferencesRepository(), games, appBuild, identity, tokens)
