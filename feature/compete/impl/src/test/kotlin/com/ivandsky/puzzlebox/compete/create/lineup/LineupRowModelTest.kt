@@ -47,4 +47,16 @@ class LineupRowModelTest {
 
         assertEquals(LineupRowModel("Moon", "Zip · by Ana · Community"), exact.rowModel("Zip", includeFriends = false))
     }
+
+    @Test
+    fun `for Past you an Any row says it draws from what you've solved, friends' puzzles when they are in`() {
+        assertEquals(
+            LineupRowModel("Any Queens", "A daily you've solved"),
+            AnyGame(QUEENS).rowModel("Queens", includeFriends = false, pastYou = true),
+        )
+        assertEquals(
+            LineupRowModel("Any Queens", "A daily or friend's puzzle you've solved"),
+            AnyGame(QUEENS).rowModel("Queens", includeFriends = true, pastYou = true),
+        )
+    }
 }

@@ -158,12 +158,29 @@ internal class NewDuelViewModel(
     fun setDeadline(hours: Int) = edit(friend = { it.withDeadline(hours) })
     fun setFriends(included: Boolean) = edit(friend = { it.withFriends(included) }, self = { it.withFriends(included) })
 
-    /** Customize, with the lineup on, is a preset of its own: the duel is the lineup's puzzles. The rows are kept from before. */
-    fun chooseCustom() = working.update { if (it.draft.preset == DuelPreset.Custom) it else it.withoutNotice().copy(draft = it.draft.customized()) }
+    /**
+     * Customize, with the lineup on, is a preset of its own: the duel is the lineup's puzzles. The rows are kept from before.
+     * Past you's lineup is seeded with Any rows over what the player has solved once the counts are read, and only while it is empty; one with rows is never reseeded.
+     */
+    fun chooseCustom() = working.update { work ->
+        if (selfActive(work)) {
+            val opening = solved.value?.takeIf { work.selfLineup.draft.entries.isEmpty() }?.let { LineupDraft.openingSolved(games.value, it.byGame) }
+            val next = work.copy(form = work.form.customized(), selfLineup = if (opening == null) work.selfLineup else work.selfLineup.copy(draft = opening))
+            if (next == work) work else next.withoutNotice()
+        } else if (work.draft.preset == DuelPreset.Custom) {
+            work
+        } else {
+            work.withoutNotice().copy(draft = work.draft.customized())
+        }
+    }
 
-    /** Applies [edit] to the lineup; it is a Customize edit, so it leaves Quick and Daily, and it clears a refusal. */
+    /** Applies [edit] to the lineup on show (Past you's, or the friend duel's); it is a Customize edit, so it leaves Quick and Daily, and it clears a refusal. */
     fun editLineup(edit: (LineupEditor) -> LineupEditor) = working.update {
         val cleared = if (it.notice is DuelNotice.EntryUndrawable || it.notice is DuelNotice.EntryUnavailable) it.withoutNotice() else it
+        if (selfActive(it)) {
+            val next = edit(cleared.selfLineup)
+            return@update if (next == cleared.selfLineup) it else cleared.copy(selfLineup = next, form = it.form.customized())
+        }
         val next = edit(cleared.lineup)
         // Daily's rows can be reordered and removed without leaving Daily.
         if (next == cleared.lineup) it else cleared.copy(lineup = next, draft = if (it.draft.preset == DuelPreset.Daily) it.draft else it.draft.customized())
@@ -233,16 +250,9 @@ internal class NewDuelViewModel(
     /** Create against Past you: no account, no code to share; the new duel's code leaves through [opened]. */
     private fun createSelf(start: DuelWorking) {
         viewModelScope.launch {
-            val outcome = selfStep.create(start.form, solved.value)
-            working.update { work ->
-                if (work.generation != start.generation) return@update work
-                when (outcome) {
-                    is CreateOutcome.Created -> work
-                    null -> work.copy(creating = false)
-                    CreateOutcome.NoPuzzles -> work.copy(creating = false, notice = DuelNotice.NoPuzzles)
-                    else -> work.copy(creating = false, notice = DuelNotice.Failed(null))
-                }
-            }
+            val lineup = start.selfLineup.entries.takeIf { lineupEnabled() && start.form.preset == DuelPreset.Custom }
+            val outcome = selfStep.create(start.form, solved.value, lineup)
+            working.update { work -> if (work.generation == start.generation) work.afterSelf(outcome, registry::displayName) else work }
             // The duel is stored whatever the sheet did meanwhile, so its code must still reach the creator.
             if (outcome is CreateOutcome.Created) openedCodes.send(outcome.code)
         }

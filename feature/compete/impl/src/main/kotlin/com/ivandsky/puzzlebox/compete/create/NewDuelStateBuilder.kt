@@ -1,7 +1,9 @@
 package com.ivandsky.puzzlebox.compete.create
 
 import com.ivandsky.puzzlebox.compete.create.lineup.lineupSummary
+import com.ivandsky.puzzlebox.compete.create.lineup.pastYouLineupSummary
 import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.model.GameId
 import java.time.Instant
 import java.time.ZoneId
 import java.util.Locale
@@ -16,16 +18,22 @@ internal class NewDuelStateBuilder(
         val offered = work.challenge == null
         val opponent = if (offered) work.opponent else Opponent.Friend
         val self = SelfDuelView(work.form, counts, available)
-        val lineup = work.lineup.takeIf { lineupOn && opponent == Opponent.Friend }
+        val lineup = when {
+            !lineupOn -> null
+            opponent == Opponent.PastYou -> work.selfLineup
+            else -> work.lineup
+        }
+        val nameOf = { id: GameId -> available.firstOrNull { it.id == id }?.name ?: id.value }
         return NewDuelState(
             draft = work.draft,
             games = available,
             summary = when {
-                opponent == Opponent.PastYou -> self.summary
+                opponent == Opponent.PastYou ->
+                    if (lineup != null && work.form.preset == DuelPreset.Custom) pastYouLineupSummary(lineup.draft.entries, work.form.includeFriends, nameOf) else self.summary
                 // The draft, not what Create sends: after a failed try that is the drawn puzzles, which have no names.
                 lineup != null && (work.draft.preset == DuelPreset.Custom || work.draft.showsRows(lineup, available)) -> lineupSummary(
-                    lineup.draft.entries, work.draft.deadlineHours, work.draft.includeFriends, clock(), zone(), locale(),
-                ) { id -> available.firstOrNull { it.id == id }?.name ?: id.value }
+                    lineup.draft.entries, work.draft.deadlineHours, work.draft.includeFriends, clock(), zone(), locale(), nameOf,
+                )
                 else -> work.draft.summary(clock(), zone(), available, locale())
             },
             invitee = work.challenge?.friendName,

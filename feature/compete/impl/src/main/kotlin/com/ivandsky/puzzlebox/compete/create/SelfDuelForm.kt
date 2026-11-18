@@ -39,6 +39,9 @@ internal data class SelfDuelForm(
         return if (next.isEmpty()) this else edited().copy(games = next)
     }
 
+    /** Customize chosen: Quick becomes Custom, the form otherwise as it is. */
+    fun customized(): SelfDuelForm = edited()
+
     private fun edited(): SelfDuelForm = if (preset == DuelPreset.Quick) copy(preset = DuelPreset.Custom) else this
 
     companion object {

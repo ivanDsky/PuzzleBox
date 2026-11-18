@@ -22,3 +22,21 @@ internal fun DuelWorking.after(outcome: CreateOutcome, gameName: (GameId) -> Str
         lineup = lineup.refused(outcome.position),
     )
 }
+
+/** The same for the Past you duel: a refusal keeps the player's lineup, marks its row and says it in Past you's words; the only other outcomes are no puzzles, or a failure. */
+internal fun DuelWorking.afterSelf(outcome: CreateOutcome?, gameName: (GameId) -> String): DuelWorking = when (outcome) {
+    is CreateOutcome.Created -> this
+    null -> copy(creating = false)
+    CreateOutcome.NoPuzzles -> copy(creating = false, notice = DuelNotice.NoPuzzles)
+    is CreateOutcome.EntryUnavailable -> copy(
+        creating = false,
+        notice = DuelNotice.EntryUnavailable(outcome.position, pastYou = true),
+        selfLineup = selfLineup.refused(outcome.position),
+    )
+    is CreateOutcome.EntryUndrawable -> copy(
+        creating = false,
+        notice = DuelNotice.EntryUndrawable(outcome.position, gameName(outcome.gameId), pastYou = true),
+        selfLineup = selfLineup.refused(outcome.position),
+    )
+    else -> copy(creating = false, notice = DuelNotice.Failed(null))
+}

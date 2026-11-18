@@ -5,6 +5,8 @@ import com.ivandsky.puzzlebox.common.log.LogcatFailureLog
 import com.ivandsky.puzzlebox.domain.ComputeSolvedPool
 import com.ivandsky.puzzlebox.domain.CreateOutcome
 import com.ivandsky.puzzlebox.domain.CreateSelfDuel
+import com.ivandsky.puzzlebox.domain.SelfDuelSettings
+import com.ivandsky.puzzlebox.domain.lineup.LineupEntry
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -43,9 +45,15 @@ internal class SelfDuelStep(
                 }
             }
 
-    /** Creates the duel [form] describes over [counts]; null when there is nothing to draw (no read yet, or no solved puzzle). */
-    suspend fun create(form: SelfDuelForm, counts: SolvedCounts?): CreateOutcome? {
-        val settings = counts?.let(form::toSettings)?.takeIf { it.rounds > 0 } ?: return null
+    /**
+     * Creates the duel [form] describes over [counts], or, with [lineup], the duel of those puzzles in order (the lineup
+     * is sent as it stands, so no count is needed); null when there is nothing to draw (no read yet, no solved puzzle, an empty lineup).
+     */
+    suspend fun create(form: SelfDuelForm, counts: SolvedCounts?, lineup: List<LineupEntry>? = null): CreateOutcome? {
+        val settings = when {
+            lineup != null -> lineup.takeIf { it.isNotEmpty() }?.let { SelfDuelSettings(it.size, form.games, form.includeFriends, it) }
+            else -> counts?.let(form::toSettings)?.takeIf { it.rounds > 0 }
+        } ?: return null
         return try {
             createSelfDuel(settings)
         } catch (e: CancellationException) {

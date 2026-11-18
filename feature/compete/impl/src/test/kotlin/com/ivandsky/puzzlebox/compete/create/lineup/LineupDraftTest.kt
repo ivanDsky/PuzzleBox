@@ -105,4 +105,13 @@ class LineupDraftTest {
         assertSame(draft, draft.moved(0, 2))
         assertSame(draft, draft.moved(-1, 0))
     }
+
+    @Test
+    fun `Past you opens with up to three Any rows in turn, only of games with a solved puzzle and never more of a game than solved`() {
+        assertEquals(draftOf(listOf(ZIP, QUEENS, ZIP)), LineupDraft.openingSolved(GAMES, mapOf(ZIP to 2, TANGO to 0, QUEENS to 1)))
+        assertEquals(draftOf(listOf(ZIP, TANGO, QUEENS)), LineupDraft.openingSolved(GAMES, mapOf(ZIP to 9, TANGO to 9, QUEENS to 9, MINI to 9)))
+        assertEquals(draftOf(listOf(MINI, MINI)), LineupDraft.openingSolved(GAMES, mapOf(MINI to 2)))
+        assertTrue(LineupDraft.openingSolved(GAMES, mapOf(ZIP to 0)).entries.isEmpty())
+        assertTrue(LineupDraft.openingSolved(emptyList(), mapOf(ZIP to 3)).entries.isEmpty())
+    }
 }
