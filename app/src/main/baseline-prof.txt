@@ -25311,7 +25311,7 @@ SPLcom/ivandsky/puzzlebox/domain/di/DomainModuleKt$$ExternalSyntheticLambda8;-><
 PLcom/ivandsky/puzzlebox/domain/di/DomainModuleKt$$ExternalSyntheticLambda8;->invoke(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
 Lcom/ivandsky/puzzlebox/domain/di/DomainModuleKt$$ExternalSyntheticLambda9;
 SPLcom/ivandsky/puzzlebox/domain/di/DomainModuleKt$$ExternalSyntheticLambda9;-><init>()V
-Lcom/ivandsky/puzzlebox/domain/linkedin/CreateLinkedInLink;
+Lcom/ivandsky/puzzlebox/profile/domain/linkedin/CreateLinkedInLink;
 Lcom/ivandsky/puzzlebox/domain/linkedin/LinkedInBoardView;
 Lcom/ivandsky/puzzlebox/domain/linkedin/LinkedInBoardView$Hidden;
 SPLcom/ivandsky/puzzlebox/domain/linkedin/LinkedInBoardView$Hidden;-><clinit>()V
@@ -25340,7 +25340,7 @@ SPLcom/ivandsky/puzzlebox/domain/linkedin/LinkedInDayView;->getBoard()Lcom/ivand
 SPLcom/ivandsky/puzzlebox/domain/linkedin/LinkedInDayView;->getOwnScore()Lcom/ivandsky/puzzlebox/game/BestScore;
 SPLcom/ivandsky/puzzlebox/domain/linkedin/LinkedInDayView;->getOwner()Lcom/ivandsky/puzzlebox/data/linkedin/LinkedInOwner;
 SPLcom/ivandsky/puzzlebox/domain/linkedin/LinkedInDayView;->getStatus()Lcom/ivandsky/puzzlebox/domain/linkedin/LinkedInDayStatus;
-Lcom/ivandsky/puzzlebox/domain/linkedin/ObserveLinkedInAccount;
+Lcom/ivandsky/puzzlebox/profile/domain/linkedin/ObserveLinkedInAccount;
 Lcom/ivandsky/puzzlebox/domain/linkedin/ObserveLinkedInDay;
 SPLcom/ivandsky/puzzlebox/domain/linkedin/ObserveLinkedInDay;-><init>(Lcom/ivandsky/puzzlebox/data/linkedin/LinkedInDays;Lcom/ivandsky/puzzlebox/game/GameRegistry;)V
 SPLcom/ivandsky/puzzlebox/domain/linkedin/ObserveLinkedInDay;->access$getRegistry$p(Lcom/ivandsky/puzzlebox/domain/linkedin/ObserveLinkedInDay;)Lcom/ivandsky/puzzlebox/game/GameRegistry;
@@ -25430,7 +25430,7 @@ SPLcom/ivandsky/puzzlebox/domain/linkedin/SyncLinkedInDay;->invoke-cw8YBi0(Ljava
 Lcom/ivandsky/puzzlebox/domain/linkedin/SyncLinkedInDay$invoke$1;
 SPLcom/ivandsky/puzzlebox/domain/linkedin/SyncLinkedInDay$invoke$1;-><init>(Lcom/ivandsky/puzzlebox/domain/linkedin/SyncLinkedInDay;Lkotlin/coroutines/Continuation;)V
 SPLcom/ivandsky/puzzlebox/domain/linkedin/SyncLinkedInDay$invoke$1;->invokeSuspend(Ljava/lang/Object;)Ljava/lang/Object;
-Lcom/ivandsky/puzzlebox/domain/linkedin/UpdateLinkedInPosting;
+Lcom/ivandsky/puzzlebox/profile/domain/linkedin/UpdateLinkedInPosting;
 PLcom/ivandsky/puzzlebox/domain/ranks/FriendBoardsKt;->amongFriends$default(Lcom/ivandsky/puzzlebox/domain/ranks/RankWindowBoards;Ljava/util/Set;Ljava/util/Map;Ljava/lang/String;ILjava/lang/Object;)Lcom/ivandsky/puzzlebox/domain/ranks/RankWindowBoards;
 PLcom/ivandsky/puzzlebox/domain/ranks/FriendBoardsKt;->amongFriends(Lcom/ivandsky/puzzlebox/domain/ranks/RankWindowBoards;Ljava/util/Set;Ljava/util/Map;Ljava/lang/String;)Lcom/ivandsky/puzzlebox/domain/ranks/RankWindowBoards;
 Lcom/ivandsky/puzzlebox/domain/ranks/FriendDay;
