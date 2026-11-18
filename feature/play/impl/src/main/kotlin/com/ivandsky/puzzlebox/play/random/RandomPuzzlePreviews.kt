@@ -12,6 +12,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.play.community.DifficultyChoice
 
 private val Games = listOf(
     RandomGame(GameId("zip"), "Zip", GameBrand(AccentSlot.Blue, GameGlyphs.Zip)),
@@ -20,16 +21,22 @@ private val Games = listOf(
     RandomGame(GameId("sudoku"), "Sudoku", GameBrand(AccentSlot.Teal, GameGlyphs.Sudoku)),
 )
 
-private val Actions = RandomPuzzleActions(onGame = {}, onUnsolved = {}, onPick = {})
+private val Actions = RandomPuzzleActions(onSource = {}, onGame = {}, onUnsolved = {}, onDifficulty = {}, onPick = {})
 
-private fun state(phase: RandomPhase) =
-    RandomPuzzleState(RandomSource.Past, game = null, unsolvedOnly = true, difficulty = null, phase = phase)
+private fun state(phase: RandomPhase, source: RandomSource, difficulty: DifficultyChoice?) =
+    RandomPuzzleState(source, game = null, unsolvedOnly = true, difficulty = difficulty, phase = phase)
 
 @Composable
-private fun Body(phase: RandomPhase, layout: PlayLayout = PlayLayout.SinglePane, modifier: Modifier = Modifier) {
+private fun Body(
+    phase: RandomPhase,
+    layout: PlayLayout = PlayLayout.SinglePane,
+    modifier: Modifier = Modifier,
+    source: RandomSource = RandomSource.Past,
+    difficulty: DifficultyChoice? = null,
+) {
     PuzzleBoxTheme {
         Surface {
-            RandomPuzzleContent(state(phase), Games, layout, Actions, modifier)
+            RandomPuzzleContent(state(phase, source, difficulty), if (source == RandomSource.Past) Games else Games.take(3), layout, Actions, modifier)
         }
     }
 }
@@ -53,3 +60,14 @@ internal fun RandomPuzzlePhoneStatusPreview() = Body(RandomPhase.Said(RandomMess
 @PuzzleBoxPreviews
 @Composable
 internal fun RandomPuzzleTabletPreview() = Body(RandomPhase.Said(RandomMessage.Offline), PlayLayout.TwoPane, Modifier.width(640.dp))
+
+/** Phone on New today with Medium chosen: the community games and the Difficulty chips in place of "Not solved yet". */
+@PuzzleBoxPreviews
+@Composable
+internal fun RandomPuzzlePhoneNewTodayPreview() = Body(RandomPhase.Idle, source = RandomSource.Community, difficulty = DifficultyChoice.Medium)
+
+/** Tablet on New today: toggle and chips left, Difficulty and Pick right. */
+@PuzzleBoxPreviews
+@Composable
+internal fun RandomPuzzleTabletNewTodayPreview() =
+    Body(RandomPhase.Said(RandomMessage.NothingLeftCommunity), PlayLayout.TwoPane, Modifier.width(640.dp), RandomSource.Community)

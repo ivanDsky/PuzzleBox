@@ -83,7 +83,7 @@ class RandomPuzzleSheetTest {
         val viewModel = viewModel()
         composeRule.setContent {
             PuzzleBoxTheme {
-                RandomPuzzleSheet(null, games, layout, onOpen = { opened += it }, onDismiss = { dismissed++ }, viewModel = viewModel)
+                RandomPuzzleSheet(null, games, games, layout, onOpen = { opened += it }, onDismiss = { dismissed++ }, viewModel = viewModel)
             }
         }
     }
@@ -123,7 +123,7 @@ class RandomPuzzleSheetTest {
         composeRule.setContent {
             PuzzleBoxTheme {
                 if (show.value) {
-                    RandomPuzzleSheet(null, games, PlayLayout.SinglePane, onOpen = { opened += it }, onDismiss = {}, viewModel = viewModel)
+                    RandomPuzzleSheet(null, games, games, PlayLayout.SinglePane, onOpen = { opened += it }, onDismiss = {}, viewModel = viewModel)
                 }
             }
         }
@@ -185,7 +185,7 @@ class RandomPuzzleSheetTest {
     private fun show(state: RandomPuzzleState, layout: PlayLayout, onPick: () -> Unit = {}) {
         composeRule.setContent {
             PuzzleBoxTheme {
-                RandomPuzzleContent(state, games, layout, RandomPuzzleActions({}, {}, onPick))
+                RandomPuzzleContent(state, games, layout, RandomPuzzleActions({}, {}, {}, {}, onPick))
             }
         }
     }
