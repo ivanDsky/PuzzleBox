@@ -40,11 +40,11 @@ class DragTraceStrokeTest {
     private fun Pair<DragTraceStroke, MutableList<DragEvent>>.feed(point: Offset) = feed(listOf(point))
 
     @Test
-    fun `a refused cell grazed inside one pointer event does not swallow the cells after it`() {
-        // Tail (1, 0): the finger dips into the walled (1, 1), then goes on down into (2, 0).
+    fun `a walled cell the finger leans toward inside one pointer event does not swallow the cells after it`() {
+        // Tail (1, 0): the finger leans toward the walled (1, 1), then goes on down into (2, 0).
         val s = stroke(listOf(GridCell(0, 0), GridCell(1, 0)), centre(1, 0), blocked = setOf(GridCell(1, 1)))
-        s.feed(listOf(Offset(95f, 150f), Offset(110f, 170f), Offset(60f, 230f)))
-        assertEquals(listOf<DragEvent>(DragEvent.Refused(GridCell(1, 1)), DragEvent.Extend(GridCell(2, 0))), s.second)
+        s.feed(listOf(Offset(95f, 150f), Offset(105f, 155f), Offset(60f, 230f)))
+        assertEquals(listOf<DragEvent>(DragEvent.Extend(GridCell(2, 0))), s.second)
     }
 
     @Test
@@ -65,18 +65,18 @@ class DragTraceStrokeTest {
     }
 
     @Test
-    fun `a corner cut at a turn still finds the turn cell`() {
-        // (2,1) -> (2,2) -> (3,2): the finger leaves (2,1) for (3,2) straight along the diagonal.
+    fun `a diagonal drag out of a turn takes the side cell the finger leans toward first`() {
+        // (2,1) -> (3,1) -> (3,2): the finger leaves (2,1) for (3,2) straight along the diagonal.
         val s = stroke(listOf(GridCell(0, 0), GridCell(1, 0), GridCell(2, 0), GridCell(2, 1)), centre(2, 1))
         s.feed(segment(centre(2, 1), centre(3, 2), steps = 12))
-        assertEquals(listOf(GridCell(0, 0), GridCell(1, 0), GridCell(2, 0), GridCell(2, 1), GridCell(2, 2), GridCell(3, 2)), s.first.path)
+        assertEquals(listOf(GridCell(0, 0), GridCell(1, 0), GridCell(2, 0), GridCell(2, 1), GridCell(3, 1), GridCell(3, 2)), s.first.path)
     }
 
     @Test
-    fun `jitter across the boundary of a just-retracted cell does not extend it again`() {
+    fun `jitter across the boundary of the previous cell does not step back`() {
         val s = stroke(listOf(GridCell(0, 0), GridCell(0, 1), GridCell(0, 2)), centre(0, 2))
         for (x in listOf(195f, 205f, 195f, 205f, 195f)) s.feed(Offset(x, 50f))
-        assertEquals(listOf<DragEvent>(DragEvent.Retract(1)), s.second)
+        assertEquals(emptyList<DragEvent>(), s.second)
     }
 
     @Test
@@ -151,11 +151,11 @@ class DragTraceStrokeTest {
     }
 
     @Test
-    fun `a fast shallow diagonal stops at the first crossed cell the hooks refuse`() {
+    fun `a fast shallow diagonal steps around a cell the hooks refuse`() {
         val s = stroke(listOf(GridCell(0, 0)), centre(0, 0), blocked = setOf(GridCell(1, 2)))
         s.feed(centre(1, 4))
         assertEquals(
-            listOf(DragEvent.Extend(GridCell(0, 1)), DragEvent.Extend(GridCell(0, 2)), DragEvent.Refused(GridCell(1, 3))),
+            listOf(GridCell(0, 1), GridCell(0, 2), GridCell(0, 3), GridCell(1, 3), GridCell(1, 4)).map(DragEvent::Extend),
             s.second,
         )
     }
