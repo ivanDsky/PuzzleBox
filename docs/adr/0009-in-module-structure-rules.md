@@ -1,6 +1,6 @@
 # ADR-0009 — In-module structure rules (`:konsist`)
 
-Date: 2026-11-04 · Status: accepted · Source: structure-rules run (S0 S1 S2 S4 S5 P1–P7); P8 from the navigation-ux run (spec A5); P9 from the nav-ia run (ADR-0027); P10 from the LinkedIn account run (ADR-0028); S6 from the sudoku run (spec A12); S7 from the Queens app-theme fix; S8 from the consistency polish run (spec S1); S9 from the Vibration switch (P3-07); S10 from the sheet fling fix (#1510, #1535); S11 from the flaky-test quarantine (ADR-0023 amendment 2026-11-18); P11 from the ci-warnings run (#850); P12 and the P10 narrowing from the LinkedIn result post run (ADR-0032)
+Date: 2026-11-04 · Status: accepted · Source: structure-rules run (S0 S1 S2 S4 S5 P1–P7); P8 from the navigation-ux run (spec A5); P9 from the nav-ia run (ADR-0027); P10 from the LinkedIn account run (ADR-0028); S6 from the sudoku run (spec A12); S7 from the Queens app-theme fix; S8 from the consistency polish run (spec S1); S9 from the Vibration switch (P3-07); S10 from the sheet fling fix (#1510, #1535); S11 from the flaky-test quarantine (ADR-0023 amendment 2026-11-18); P11 from the ci-warnings run (#850); P12 and the P10 narrowing from the LinkedIn result post run (ADR-0032); P13 from the LinkedInPush flag that a rebase brought back with no reader (#1337, #1339)
 
 ## Context
 ADR-0008 guards the edges between modules. It says nothing about what is inside a module:
@@ -74,7 +74,7 @@ returns these findings:
   fixtures are protected files: a worker does not edit them to make a test pass.
 
 Entries on record at the time of writing: S1 64, S2 6, S4 25, S5 4, P1 6, P2 1, P5 4, P6 1.
-S0, S6, S7, S8, S9, S10, S11, P3, P4, P7, P8, P9, P10, P11 and P12 have none.
+S0, S6, S7, S8, S9, S10, S11, P3, P4, P7, P8, P9, P10, P11, P12 and P13 have none.
 
 ### Payload cross-reference
 The `design-architecture` payload (`references/rules-architecture.md`) states four of these as
@@ -86,7 +86,7 @@ prose rules; the tests are their mechanical form and add no stricter bar:
 - Rule 20, one public top-level type per file (private helpers, extensions, typealiases and
   previews excepted): S1.
 
-The other rules (S0, S4, S5, S6, S7, S8, S9, S10, S11, P1, P4–P12) have no payload twin. Dependency direction between
+The other rules (S0, S4, S5, S6, S7, S8, S9, S10, S11, P1, P4–P13) have no payload twin. Dependency direction between
 modules stays in ADR-0008.
 
 ### Adding a rule
@@ -478,6 +478,35 @@ App Robolectric tests run under `DrainTestApplication` (#850).
   `@Config` for its subclasses, and a `@Config` read from `robolectric.properties` are not judged.
 - **How to fix:** put `application = DrainTestApplication::class` in the class-level `@Config`
   (`import com.ivandsky.puzzlebox.app.DrainTestApplication`).
+
+## P13
+Every release flag entry that is not dark has a reader outside the file that declares it (ADR-0022 §4).
+
+- **Scope:** production files. Subjects: the flag enums, which are `ReleaseFlag` in package
+  `com.ivandsky.puzzlebox.common.flags` and every enum, top-level or nested, whose supertypes include
+  `ReleaseFlagKey` or `ReleaseFlag` (plain or qualified), so an entry that moves to an owner enum
+  (`PlayFlag`) stays judged. An enum named `ReleaseFlag` in another package is not a flag enum. A tree
+  with no flag enum fails with `P13: scope empty`. An entry with a named `releaseDefault = false`
+  argument is dark and needs no reader yet: a trunk feature's ticket 01 adds its flag before the first
+  gate. Every other entry needs one. Readers are the production files other than the enum's own, outside
+  source sets whose name starts with `debug` and outside `:core:testing`, whose main sources are
+  test-only support. Test source sets are not scanned. No allowlist: the real tree is clean.
+- **Detection:** in the file's code (comments and string contents removed), `<Enum>.<Entry>`, plain,
+  fully qualified or through an alias of the enum; or a bare `<Entry>` (or its alias) in a file that
+  imports the entry or `<Enum>.*`. The import line itself is not a read. One violation per declaring
+  file, naming every unread entry as `<Enum>.<Entry>`.
+- **Why:** #1337 deleted `LinkedInPush` once its feature shipped, and a rebase in #1339 put it back 24
+  minutes later with no reader. `ReleaseFlag.kt` is the most-edited file in the repo (24 of one day's
+  commits), so a stale entry slips through a rebase unseen, and it still shows a switch in the debug panel.
+- **Accepted misses:** the match is by name, with no type resolution: a bare name in a file that imports
+  the entry counts even when it resolves to another symbol, and two flag enums with one simple name share
+  their qualified reads. `valueOf("<Entry>")` and a read through a variable holding an entry are not seen.
+  Any reference counts, whether or not it gates a branch. Code that walks `entries` (the debug panel,
+  `ShippedReleaseFlags`) names no entry. A dark entry with no reader is never flagged; a deleted entry
+  comes back shipped, since cleanup follows the flip.
+- **How to fix:** delete the entry with its last gate (ADR-0022 §4 cleanup). A feature still in flight
+  gates its entry point on `<Enum>.<Entry>` before its flip PR sets `releaseDefault = true`, or names it
+  `releaseDefault = false` while it is still dark (a positional `false` does not count).
 
 ## Consequences
 - A structure regression fails `./gradlew :konsist:test` with the rule, the file, a fix hint and

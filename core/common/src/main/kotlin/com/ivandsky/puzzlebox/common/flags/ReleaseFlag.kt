@@ -10,9 +10,6 @@ package com.ivandsky.puzzlebox.common.flags
  * @property releaseDefault the value every release build uses; debug builds start from it too.
  */
 enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
-    /** Post a PuzzleBox solve of today's LinkedIn daily to the player's LinkedIn account (ADR-0032). Experimental. */
-    LinkedInPush(label = "Post results to LinkedIn", releaseDefault = true),
-
     /**
      * Result hero polish (backlog #1162, #1170, #1171): previous and best as two labelled columns, a signed-out sign-in line
      * under the time, and the day's total on the full-set moment. Read only in a ViewModel or a DI module (ADR-0022 §3).

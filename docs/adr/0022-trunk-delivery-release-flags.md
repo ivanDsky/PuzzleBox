@@ -41,7 +41,9 @@ to merge without being reachable in a release build.
    - User-check runs on a debug build from main with the flag forced on.
    - The **flip PR** sets `releaseDefault = true`, bumps the version and is the release.
    - A cleanup ticket right after the flip deletes the entry and the gated-off branch. A flag
-     still in the enum after its feature shipped is debt.
+     still in the enum after its feature shipped is debt. An entry without a named
+     `releaseDefault = false` that no production file outside its own file and `debug*` source
+     sets reads fails konsist P13 (ADR-0009), so a rebase cannot bring a deleted entry back unseen.
 5. **Gate the entry, not the internals.** Flag the place a user could reach the unfinished
    behavior (a navigation entry, a tile, a button, a DI registration). Code behind that point
    merges unflagged. Refactors, tests, additive unused APIs and plumbing need no flag.
