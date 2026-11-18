@@ -46,7 +46,6 @@ val competeModule: Module = module {
             zone = { ZoneId.systemDefault() },
             locale = { Locale.getDefault() },
             legTitles = get(),
-            releaseFlags = getOrNull(),
         )
     }
     viewModel { AddPuzzleViewModel(observe = get<ObservePickablePuzzles>()::invoke, lookup = get<LoadPuzzleByCode>()::invoke) }
@@ -68,7 +67,6 @@ val competeModule: Module = module {
             dispatchers = get(),
             legTitles = get(),
             saveDuelPuzzles = get(),
-            releaseFlags = getOrNull(),
         )
     }
     viewModel { (code: String, reducedMotion: Boolean, zone: ZoneId, locale: Locale) ->
@@ -85,5 +83,5 @@ val competeModule: Module = module {
             identity = get(),
         )
     }
-    viewModel { (match: Match) -> RematchViewModel(match = match, createMatch = get(), createSelfDuel = get(), releaseFlags = getOrNull()) }
+    viewModel { (match: Match) -> RematchViewModel(match = match, createMatch = get(), createSelfDuel = get()) }
 }

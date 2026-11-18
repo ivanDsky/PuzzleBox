@@ -5,7 +5,6 @@ import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.domain.MatchView
 import com.ivandsky.puzzlebox.domain.SeatAction
 import com.ivandsky.puzzlebox.domain.lineup.LegName
-import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Instant
 
@@ -21,25 +20,21 @@ internal sealed interface InviteNotice {
     data class Failed(override val action: SeatAction, val message: String?) : InviteNotice
 }
 
-/** One game of the duel, by id and name, for the card's chips. */
-internal data class InviteGame(val id: GameId, val name: String)
-
 /**
- * The card's facts about the duel: who [challenger] is, the [games] (one per game, in puzzle order), the [rounds] to
+ * The card's facts about the duel: who [challenger] is, the [rounds] to
  * play and when it ends. [viewerIsChallenger] is a duel the viewer opened; [declined] a rematch the invitee refused;
  * [solvedBefore] when the viewer already has a completion of one of the puzzles; [canDecline] when the invite is
- * addressed to the viewer. [lineup] is every puzzle in leg order (DuelLineup on), which the card lists in place of [games].
+ * addressed to the viewer. [lineup] is every puzzle in leg order, which the card lists.
  */
 internal data class InviteDetails(
     val challenger: Player,
-    val games: List<InviteGame>,
     val rounds: Int,
     val deadline: Instant,
     val viewerIsChallenger: Boolean,
     val declined: Boolean,
     val solvedBefore: Boolean,
     val canDecline: Boolean,
-    val lineup: List<InviteLeg>? = null,
+    val lineup: List<InviteLeg>,
 )
 
 /** What the duel screen draws. */
@@ -60,8 +55,8 @@ internal sealed interface DuelUiState {
      * The viewer holds a seat; the puzzles screen takes [view] and the saved plays' [elapsedMs], by puzzle index.
      * A self duel also takes [firstSolvedAt] (the day past you set each score, by the puzzle's wire key), [myName]
      * (the signed-in name, null signed out), [removeAsked] (the remove-confirm showing) and [timeLeftShown] (the Play
-     * setting: the leg timer counts down to past you's time). With the lineup on ([lineup]) a custom puzzle is titled by
-     * its [names] entry and the page explains a puzzle taken down or offline.
+     * setting: the leg timer counts down to past you's time). A custom puzzle is titled by its
+     * [names] entry and the page explains a puzzle taken down or offline.
      */
     data class Participant(
         val view: MatchView,
@@ -71,7 +66,6 @@ internal sealed interface DuelUiState {
         val removeAsked: Boolean = false,
         val timeLeftShown: Boolean = true,
         val names: Map<ShareCode, LegName> = emptyMap(),
-        val lineup: Boolean = false,
     ) : DuelUiState
 
     data object NotFound : DuelUiState

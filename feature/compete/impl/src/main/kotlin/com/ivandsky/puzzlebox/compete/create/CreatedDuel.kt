@@ -11,20 +11,18 @@ import kotlinx.coroutines.withTimeoutOrNull
 /**
  * A friend duel that was created: its [code], the game name of each puzzle in order ([puzzles]), and the [deadlineHours]
  * it was created with, which the invite text states. Carried whole because the sheet that shows it may have been reset since.
- * [legs] is every puzzle's reference in order when the invite lists the lineup (DuelLineup on), else empty.
+ * [legs] is every puzzle's reference in order, which the invite lists.
  */
-internal data class CreatedDuel(val code: ShareCode, val puzzles: List<String>, val deadlineHours: Int, val legs: List<LegRef> = emptyList())
+internal data class CreatedDuel(val code: ShareCode, val puzzles: List<String>, val deadlineHours: Int, val legs: List<LegRef>)
 
 /** How long the share sheet waits for public titles; a puzzle whose title is not in by then shows its code. */
 internal const val TITLES_WAIT_MS = 2_000L
 
 /**
- * What the invite text lists after "best of n": the games once each, or with the lineup on every puzzle in order, a
- * custom one by its title in quotes ([legTitles] reads them, for at most [TITLES_WAIT_MS]; a title not known by then
- * or unreadable shows "<Game> · <code>").
+ * What the invite text lists after "best of n": every puzzle in order, a custom one by its title in quotes
+ * ([legTitles] reads them, for at most [TITLES_WAIT_MS]; a title not known by then or unreadable shows "<Game> · <code>").
  */
 internal suspend fun CreatedDuel.inviteGames(legTitles: ObserveLegTitles): List<String> {
-    if (legs.isEmpty()) return puzzles.distinct()
     val names = legs.map { it.gameId }.zip(puzzles).toMap()
     var titles = emptyMap<ShareCode, String>()
     withTimeoutOrNull(TITLES_WAIT_MS) { legTitles(legs.customCodes()).collect { titles = it } }

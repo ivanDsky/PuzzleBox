@@ -55,7 +55,6 @@ import org.koin.androidx.compose.koinViewModel
 internal class NewDuelActions(
     val onQuick: () -> Unit,
     val onDaily: () -> Unit,
-    val onCount: (Int) -> Unit,
     val onToggle: (DuelGame) -> Unit,
     val onDeadline: (Int) -> Unit,
     val onFriends: (Boolean) -> Unit,
@@ -63,7 +62,7 @@ internal class NewDuelActions(
     val onCreate: () -> Unit,
     val onGoogle: () -> Unit,
     val onCancel: () -> Unit,
-    /** Customize was opened; with the lineup on, it becomes the chosen preset. */
+    /** Customize was opened; it becomes the chosen preset. */
     val onCustomize: () -> Unit = {},
     /** Applies an edit to the lineup the Customize panel shows. */
     val onEditLineup: ((LineupEditor) -> LineupEditor) -> Unit = {},
@@ -119,7 +118,6 @@ internal fun NewDuelSheet(
     val actions = NewDuelActions(
         onQuick = viewModel::chooseQuick,
         onDaily = viewModel::chooseDaily,
-        onCount = viewModel::setCount,
         onToggle = viewModel::toggle,
         onDeadline = viewModel::setDeadline,
         onFriends = viewModel::setFriends,

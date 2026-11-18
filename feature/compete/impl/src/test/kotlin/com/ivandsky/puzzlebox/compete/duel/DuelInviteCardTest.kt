@@ -20,7 +20,6 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
-import org.junit.Assert.assertFalse
 import java.time.Instant
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -37,7 +36,7 @@ import org.robolectric.annotation.Config
 
 /** Who the invite card says the duel belongs to: the challenger sees their own duel, everyone else an invitation. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+@Config(sdk = [34], qualifiers = "w411dp-h891dp-420dpi")
 class DuelInviteCardTest {
 
     @get:Rule
@@ -56,13 +55,13 @@ class DuelInviteCardTest {
 
     private fun details(viewerIsChallenger: Boolean) = InviteDetails(
         challenger = ann,
-        games = listOf(InviteGame(GameId("zip"), "Zip")),
         rounds = 3,
         deadline = Instant.parse("2026-11-10T10:00:00Z"),
         viewerIsChallenger = viewerIsChallenger,
         declined = false,
         solvedBefore = false,
         canDecline = false,
+        lineup = lineup,
     )
 
     private fun show(kind: InviteKind, details: InviteDetails?, onClose: () -> Unit = {}) {
@@ -169,25 +168,16 @@ class DuelInviteCardTest {
     }
 
     @Test
-    fun withTheLineupAnInviteeSeesZipThenTheQuotedTitleThenQueensAndItsCode() {
-        show(InviteKind.Open, details(viewerIsChallenger = false).copy(lineup = lineup))
-
-        assertLineupInOrder()
-    }
-
-    @Test
-    fun withTheLineupASignedOutViewerSeesTheSameOrder() {
-        show(InviteKind.SignedOut, details(viewerIsChallenger = false).copy(lineup = lineup))
-
-        assertLineupInOrder()
-    }
-
-    @Test
-    fun withoutTheLineupTheCardKeepsOneChipPerGame() {
+    fun anInviteeSeesZipThenTheQuotedTitleThenQueensAndItsCode() {
         show(InviteKind.Open, details(viewerIsChallenger = false))
 
-        assertChip("duel.invite.game.zip", "Zip")
-        assertFalse(rule.onAllNodesWithTag("duel.invite.leg.0").fetchSemanticsNodes().isNotEmpty())
-        assertShown("Best of 3")
+        assertLineupInOrder()
+    }
+
+    @Test
+    fun aSignedOutViewerSeesTheSameOrder() {
+        show(InviteKind.SignedOut, details(viewerIsChallenger = false))
+
+        assertLineupInOrder()
     }
 }

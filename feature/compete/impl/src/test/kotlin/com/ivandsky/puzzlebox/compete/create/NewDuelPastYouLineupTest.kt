@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.compete.create
 import android.content.Context
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
@@ -26,7 +25,6 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
@@ -63,7 +61,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** New duel against Past you with the DuelLineup flag: Customize is an ordered lineup of "Any" rows over what the player has solved, and Create sends it. */
+/** New duel against Past you: Customize is an ordered lineup of "Any" rows over what the player has solved, and Create sends it. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class NewDuelPastYouLineupTest {
@@ -100,7 +98,7 @@ class NewDuelPastYouLineupTest {
         override suspend fun idToken(activityContext: Context): GoogleIdToken = GoogleIdToken.Available("t")
     }
 
-    private fun TestScope.started(flagOn: Boolean = true): NewDuelViewModel =
+    private fun TestScope.started(): NewDuelViewModel =
         NewDuelViewModel(
             createMatch = CreateMatch(server, local, ComputeMatchLegs(registry, daily, calendar, history, received, Random(DRAW_SEED)), identity, Random(CODE_SEED), ValidateExactPuzzles(FakeSharedPuzzleRepository())),
             identity = identity,
@@ -115,7 +113,6 @@ class NewDuelPastYouLineupTest {
             zone = { ZoneOffset.UTC },
             locale = { Locale.US },
             legTitles = noLegTitles(),
-            releaseFlags = FakeReleaseFlags(*if (flagOn) arrayOf(ReleaseFlag.DuelLineup) else emptyArray()),
         ).also { backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { it.state.collect {} } }
 
     /** The player has solved [alphas] puzzles of Alpha and [betas] of Beta, each a daily of its own. */
@@ -132,7 +129,7 @@ class NewDuelPastYouLineupTest {
 
     private fun NewDuelViewModel.pastYou() = chooseOpponent(Opponent.PastYou)
 
-    private fun NewDuelViewModel.rows() = state.value.lineup!!.draft.entries
+    private fun NewDuelViewModel.rows() = state.value.lineup.draft.entries
 
     private fun NewDuelViewModel.add(game: GameId) {
         editLineup { it.openAdd() }
@@ -293,7 +290,7 @@ class NewDuelPastYouLineupTest {
 
         val state = vm.state.value
         assertEquals(DuelNotice.EntryUndrawable(3, "Alpha", pastYou = true), state.notice)
-        assertEquals(2, state.lineup!!.marked)
+        assertEquals(2, state.lineup.marked)
         assertEquals(rows, vm.rows())
         assertFalse(state.creating)
         assertTrue(self.observeAll().first().isEmpty())
@@ -301,7 +298,7 @@ class NewDuelPastYouLineupTest {
         vm.editLineup { it.remove(2) }
 
         assertNull(vm.state.value.notice)
-        assertNull(vm.state.value.lineup!!.marked)
+        assertNull(vm.state.value.lineup.marked)
         vm.create()
         vm.opened.first()
         assertEquals(2, self.observeAll().first().single().legs.size)
@@ -320,28 +317,12 @@ class NewDuelPastYouLineupTest {
         vm.create()
 
         assertEquals(DuelNotice.EntryUnavailable(2, pastYou = true), vm.state.value.notice)
-        assertEquals(1, vm.state.value.lineup!!.marked)
+        assertEquals(1, vm.state.value.lineup.marked)
         assertTrue(self.observeAll().first().isEmpty())
     }
 
     @Test
-    fun `with the flag off there is no lineup and Create draws by the count and games, even from rows left over`() = runTest {
-        solve(alphas = 3)
-        val vm = started(flagOn = false)
-        vm.pastYou()
-        assertNull(vm.state.value.lineup)
-        vm.chooseCustom()
-        vm.setCount(2)
-
-        vm.create()
-
-        vm.opened.first()
-        assertNull(vm.state.value.lineup)
-        assertEquals(2, self.observeAll().first().single().legs.size)
-    }
-
-    @Test
-    fun `Quick draws by the count with the flag on, whatever rows Customize holds`() = runTest {
+    fun `Quick draws by the count, whatever rows Customize holds`() = runTest {
         solve(alphas = 3)
         val vm = started()
         vm.pastYou()

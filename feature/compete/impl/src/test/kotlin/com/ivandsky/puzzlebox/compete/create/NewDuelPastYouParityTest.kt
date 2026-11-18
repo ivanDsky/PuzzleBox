@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.compete.create
 import android.content.Context
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.Match
@@ -27,7 +26,6 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
@@ -91,7 +89,7 @@ class NewDuelPastYouParityTest {
     }
 
     /** A new view model over a fresh self store and a fresh draw, so two runs of it can be compared. */
-    private fun TestScope.started(flagOn: Boolean = true): NewDuelViewModel {
+    private fun TestScope.started(): NewDuelViewModel {
         self = FakeSelfMatchRepository()
         return NewDuelViewModel(
             createMatch = CreateMatch(server, local, ComputeMatchLegs(registry, daily, calendar, history, received, Random(DRAW_SEED)), identity, Random(CODE_SEED), ValidateExactPuzzles(FakeSharedPuzzleRepository())),
@@ -107,7 +105,6 @@ class NewDuelPastYouParityTest {
             zone = { ZoneOffset.UTC },
             locale = { Locale.US },
             legTitles = noLegTitles(),
-            releaseFlags = FakeReleaseFlags(*if (flagOn) arrayOf(ReleaseFlag.DuelLineup) else emptyArray()),
         ).also { backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { it.state.collect {} } }
     }
 
@@ -122,7 +119,7 @@ class NewDuelPastYouParityTest {
 
     private fun NewDuelViewModel.pastYou() = chooseOpponent(Opponent.PastYou)
 
-    private fun NewDuelViewModel.rows() = state.value.lineup!!.draft.entries
+    private fun NewDuelViewModel.rows() = state.value.lineup.draft.entries
 
     private fun NewDuelViewModel.add(game: GameId) {
         editLineup { it.openAdd() }
@@ -135,14 +132,16 @@ class NewDuelPastYouParityTest {
     }
 
     @Test
-    fun `Quick draws the same puzzles with the flag on and off, whatever rows Customize holds`() = runTest {
+    fun `Quick draws the same puzzles whatever rows Customize holds`() = runTest {
         solve(alphas = 3, betas = 3)
-        val drawn = listOf(true, false).map { flagOn ->
-            val vm = started(flagOn)
+        val drawn = listOf(true, false).map { edited ->
+            val vm = started()
             vm.pastYou()
-            vm.chooseCustom()
-            vm.editLineup { it.moved(0, 2) }
-            vm.chooseQuick()
+            if (edited) {
+                vm.chooseCustom()
+                vm.editLineup { it.moved(0, 2) }
+                vm.chooseQuick()
+            }
             vm.create()
             vm.created().legs
         }
@@ -183,18 +182,18 @@ class NewDuelPastYouParityTest {
         vm.chooseCustom()
         vm.add(alpha)
         vm.create()
-        assertEquals(2, vm.state.value.lineup!!.marked)
+        assertEquals(2, vm.state.value.lineup.marked)
 
         vm.chooseOpponent(Opponent.Friend)
         assertNull(vm.state.value.notice)
-        assertNull(vm.state.value.lineup!!.marked)
+        assertNull(vm.state.value.lineup.marked)
         server.online = false
         vm.create()
         assertEquals(DuelNotice.Offline, vm.state.value.notice)
 
         vm.pastYou()
         assertNull(vm.state.value.notice)
-        assertNull(vm.state.value.lineup!!.marked)
+        assertNull(vm.state.value.lineup.marked)
         assertEquals(3, vm.rows().size)
     }
 
@@ -224,7 +223,7 @@ class NewDuelPastYouParityTest {
         vm.editLineup { it.openAdd() }
 
         assertEquals(Match.MAX_LEGS, vm.rows().size)
-        assertNull(vm.state.value.lineup!!.target)
+        assertNull(vm.state.value.lineup.target)
         vm.create()
         assertEquals(Match.MAX_LEGS, vm.created().legs.map { it.ref }.toSet().size)
     }
@@ -250,7 +249,7 @@ class NewDuelPastYouParityTest {
         vm.create()
 
         assertEquals(DuelNotice.EntryUnavailable(2, pastYou = true), vm.state.value.notice)
-        assertEquals(1, vm.state.value.lineup!!.marked)
+        assertEquals(1, vm.state.value.lineup.marked)
         assertTrue(self.observeAll().first().isEmpty())
         vm.editLineup { it.remove(1) }
         vm.create()
@@ -287,7 +286,7 @@ class NewDuelPastYouParityTest {
         vm.chooseCustom()
 
         assertEquals(opened, vm.rows())
-        assertFalse(vm.state.value.lineup!!.changing)
+        assertFalse(vm.state.value.lineup.changing)
     }
 
     private companion object {

@@ -138,7 +138,7 @@ class PastYouLineupPanelTest {
     }
 
     @Test
-    fun `Customize shows the lineup and the friends switch, with no stepper, no game chips and no cap line`() {
+    fun `Customize shows the lineup and the friends switch, with no game chips`() {
         content(pastYouState(SolvedCounts(SOLVED)))
 
         rule.onNodeWithTag("duel.preset.custom").performClick()
@@ -146,7 +146,6 @@ class PastYouLineupPanelTest {
 
         rule.onNodeWithTag("duel.lineup", useUnmergedTree = true).assertExists()
         rule.onNodeWithTag("duel.friends", useUnmergedTree = true).assertExists()
-        rule.onNodeWithTag("duel.self.cap", useUnmergedTree = true).assertDoesNotExist()
         rule.onNodeWithTag("duel.game.${ZIP.value}", useUnmergedTree = true).assertDoesNotExist()
         rule.onNodeWithTag("duel.summary").assertTextEquals("Best of 3 · Zip, Queens, Zip · against your first solves")
     }
@@ -195,7 +194,7 @@ class PastYouLineupPanelTest {
     }
 
     private fun actionsOnCustomize(onCustomize: () -> Unit) = NewDuelActions(
-        onQuick = {}, onDaily = {}, onCount = {}, onToggle = {}, onDeadline = {}, onFriends = {}, onOpponent = {},
+        onQuick = {}, onDaily = {}, onToggle = {}, onDeadline = {}, onFriends = {}, onOpponent = {},
         onCreate = {}, onGoogle = {}, onCancel = {}, onCustomize = onCustomize,
     )
 }

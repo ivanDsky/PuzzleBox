@@ -145,13 +145,9 @@ class NewDuelSelfViewModelTest {
         solve(alpha, 1, 2)
         val vm = started()
         vm.chooseOpponent(Opponent.PastYou)
-        vm.setCount(7)
-
         val view = vm.state.value.self
         assertEquals(2, view.cap)
         assertEquals(2, view.rounds)
-        assertTrue(view.capped)
-        assertEquals(2, view.solved(vm.state.value.games.first { it.id == alpha }))
         assertTrue(vm.state.value.summary, vm.state.value.summary.startsWith("Best of 2 · "))
 
         vm.create()
@@ -189,14 +185,11 @@ class NewDuelSelfViewModelTest {
     }
 
     @Test
-    fun `no solved puzzle of the chosen games turns Create off with its reason`() = runTest {
-        solve(alpha, 1, 2)
+    fun `no solved puzzle turns Create off with its reason`() = runTest {
         val vm = started()
         vm.chooseOpponent(Opponent.PastYou)
-        vm.state.value.games.filter { it.id != beta }.forEach(vm::toggle)
 
         val state = vm.state.value
-        assertEquals(setOf(beta), state.self.form.games)
         assertTrue(state.self.empty)
         assertEquals(0, state.self.rounds)
         assertFalse(state.canCreate)
@@ -239,17 +232,17 @@ class NewDuelSelfViewModelTest {
     fun `each opponent keeps its own choices, and Daily and deadline edits leave past you untouched`() = runTest {
         solve(alpha, 1, 2, 3, 4, 5)
         val vm = started()
-        vm.setCount(5)
+        val friendBefore = vm.state.value.draft
         vm.chooseOpponent(Opponent.PastYou)
         val before = vm.state.value.self.form
 
         vm.setDeadline(48)
         vm.chooseDaily()
-        vm.setCount(4)
+        vm.toggle(vm.state.value.games.first { it.id == alpha })
 
-        assertEquals(before.copy(preset = DuelPreset.Custom, count = 4), vm.state.value.self.form)
+        assertEquals(before, vm.state.value.self.form)
         vm.chooseOpponent(Opponent.Friend)
-        assertEquals(5, vm.state.value.draft.count)
+        assertEquals(friendBefore, vm.state.value.draft)
     }
 
     @Test

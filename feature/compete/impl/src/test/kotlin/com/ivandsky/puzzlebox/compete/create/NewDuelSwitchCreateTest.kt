@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.compete.create
 import android.content.Context
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.domain.ComputeMatchLegs
@@ -20,7 +19,6 @@ import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
@@ -111,7 +109,6 @@ class NewDuelSwitchCreateTest {
             zone = { ZoneOffset.UTC },
             locale = { Locale.US },
             legTitles = noLegTitles(),
-            releaseFlags = FakeReleaseFlags(ReleaseFlag.DuelLineup),
         ).also { backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { it.state.collect {} } }
 
     private fun solve(game: GameId, vararg days: Int) = completions.setRecords(
@@ -159,7 +156,7 @@ class NewDuelSwitchCreateTest {
         assertFalse(vm.state.value.creating)
         vm.chooseOpponent(Opponent.Friend)
         assertNull(vm.state.value.notice)
-        assertNull(vm.state.value.lineup!!.marked)
+        assertNull(vm.state.value.lineup.marked)
         assertTrue(server.matches.isEmpty())
     }
 

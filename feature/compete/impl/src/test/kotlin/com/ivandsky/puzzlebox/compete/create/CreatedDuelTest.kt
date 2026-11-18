@@ -78,11 +78,4 @@ class CreatedDuelTest {
         assertEquals(inOrder, games)
         assertEquals(TITLES_WAIT_MS, testScheduler.currentTime)
     }
-
-    @Test
-    fun `without a lineup the games are listed once each as before`() = runTest {
-        val flagOff = CreatedDuel(unreadable, listOf("Alpha", "Beta", "Alpha"), 24)
-
-        assertEquals(listOf("Alpha", "Beta"), flagOff.inviteGames(titles()))
-    }
 }

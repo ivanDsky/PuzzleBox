@@ -3,6 +3,15 @@ package com.ivandsky.puzzlebox.compete.create
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.ivandsky.puzzlebox.compete.create.lineup.LineupDraft
+import com.ivandsky.puzzlebox.compete.create.lineup.LineupEditor
+import com.ivandsky.puzzlebox.domain.lineup.AnyGame
+import com.ivandsky.puzzlebox.compete.create.lineup.AddPuzzleViewModel
+import com.ivandsky.puzzlebox.compete.create.lineup.PAST_YOU_PICKER
+import com.ivandsky.puzzlebox.compete.create.lineup.SOLVED_ROWS
+import com.ivandsky.puzzlebox.compete.create.lineup.pickerOf
+import org.koin.core.module.dsl.viewModel
+import org.koin.dsl.module
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayController
@@ -30,11 +39,11 @@ internal val MINI = GameId("mini-sudoku")
 internal val STRANDS = GameId("strands")
 
 internal val GAMES = listOf(
-    DuelGame(ZIP, "Zip", todayNumber = 7, solvedToday = false, hintsFirst = false),
-    DuelGame(TANGO, "Tango", todayNumber = 7, solvedToday = false, hintsFirst = false),
-    DuelGame(QUEENS, "Queens", todayNumber = 7, solvedToday = false, hintsFirst = false),
-    DuelGame(MINI, "Mini Sudoku", todayNumber = 7, solvedToday = false, hintsFirst = false),
-    DuelGame(STRANDS, "Strands", todayNumber = 7, solvedToday = false, hintsFirst = true),
+    DuelGame(ZIP, "Zip", todayNumber = 7, solvedToday = false),
+    DuelGame(TANGO, "Tango", todayNumber = 7, solvedToday = false),
+    DuelGame(QUEENS, "Queens", todayNumber = 7, solvedToday = false),
+    DuelGame(MINI, "Mini Sudoku", todayNumber = 7, solvedToday = false),
+    DuelGame(STRANDS, "Strands", todayNumber = 7, solvedToday = false),
 )
 
 internal val ALL_SOLVED = SolvedCounts(mapOf(ZIP to 17, TANGO to 11, QUEENS to 12, MINI to 6))
@@ -58,8 +67,9 @@ internal fun state(
     self = self,
 )
 
+/** Past you's state: Customize shows one "Any" row per chosen game. */
 internal fun selfState(form: SelfDuelForm, counts: SolvedCounts) =
-    SelfDuelView(form, counts, GAMES).let { state(Opponent.PastYou, it, it.summary) }
+    SelfDuelView(form, counts, GAMES).let { state(Opponent.PastYou, it, it.summary).copy(lineup = LineupEditor(LineupDraft(form.games.map(::AnyGame)))) }
 
 internal fun friend() = state(Opponent.Friend, SelfDuelView.initial(), "Best of 3 · mixed past dailies · ends Wed 18:00")
 
@@ -82,7 +92,7 @@ internal fun noneSolved() = selfState(
 
 /** Actions that do nothing, but [onCreate]. */
 internal fun actionsWith(onCreate: () -> Unit = {}) = NewDuelActions(
-    onQuick = {}, onDaily = {}, onCount = {}, onToggle = {}, onDeadline = {}, onFriends = {}, onOpponent = {},
+    onQuick = {}, onDaily = {}, onToggle = {}, onDeadline = {}, onFriends = {}, onOpponent = {},
     onCreate = onCreate, onGoogle = {}, onCancel = {},
 )
 
@@ -97,6 +107,12 @@ internal fun newDuelBrands(): GamePlayRegistry = GamePlayRegistry(
         BrandOnly(STRANDS, AccentSlot.Teal),
     ),
 )
+
+/** The brands and Past you's add-puzzle view model, which Customize's lineup panel resolves from Koin. */
+internal fun newDuelModule() = module {
+    single { newDuelBrands() }
+    viewModel(PAST_YOU_PICKER) { AddPuzzleViewModel(pickerOf(SOLVED_ROWS), lookup = null, pastYou = true) }
+}
 
 /** The games' accent hues without the games: only the brand is real, the play surface is never shown. */
 internal class BrandOnly(override val gameId: GameId, accent: AccentSlot) : GamePlayUi {

@@ -119,11 +119,10 @@ class RevealSummaryModelTest {
     }
 
     @Test
-    fun aLineupRematchRedrawsEveryPuzzleAsAnyOfItsGameInOrder() {
+    fun aRematchRedrawsEveryPuzzleAsAnyOfItsGameInOrder() {
         val match = match(refs = listOf(queens, zip, queens), deadlineHours = 48, includeFriends = true)
 
-        assertEquals(listOf(AnyGame(queens), AnyGame(zip), AnyGame(queens)), rematchSettings(match, lineup = true).lineup)
-        assertNull(rematchSettings(match).lineup)
+        assertEquals(listOf(AnyGame(queens), AnyGame(zip), AnyGame(queens)), rematchSettings(match).lineup)
     }
 
     @Test
@@ -136,12 +135,10 @@ class RevealSummaryModelTest {
     }
 
     @Test
-    fun aSelfDuelLineupRematchRedrawsEveryPuzzleAsAnyOfItsGameInOrder() {
+    fun aSelfDuelRematchRedrawsEveryPuzzleAsAnyOfItsGameInOrder() {
         val match = match(refs = listOf(zip, queens, zip), deadlineHours = 48, includeFriends = true)
 
-        assertEquals(listOf(AnyGame(zip), AnyGame(queens), AnyGame(zip)), selfRematchSettings(match, lineup = true).lineup)
-        assertNull(selfRematchSettings(match, lineup = false).lineup)
-        assertNull(selfRematchSettings(match).lineup)
+        assertEquals(listOf(AnyGame(zip), AnyGame(queens), AnyGame(zip)), selfRematchSettings(match).lineup)
     }
 
     @Test

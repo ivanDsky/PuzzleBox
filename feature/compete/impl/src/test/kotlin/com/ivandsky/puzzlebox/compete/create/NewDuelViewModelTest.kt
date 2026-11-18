@@ -7,7 +7,6 @@ import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.match.DAILY_MATCH_CAP
 import com.ivandsky.puzzlebox.data.match.CreateResult
-import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.data.match.MatchDraft
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.PuzzleCodeCheck
@@ -138,8 +137,11 @@ class NewDuelViewModelTest {
     private fun kotlinx.coroutines.test.TestScope.started(createMatch: CreateMatch = this@NewDuelViewModelTest.createMatch): NewDuelViewModel =
         viewModel(createMatch).also { backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { it.state.collect {} } }
 
+    /** Gamma has no puzzle in the fake archive, so the opening lineup's third row cannot be drawn; Create would be refused for it. */
+    private fun NewDuelViewModel.dropUndrawableRow() = editLineup { it.remove(2) }
+
     private fun game(id: GameId, solvedToday: Boolean = false) =
-        DuelGame(id, id.value.replaceFirstChar(Char::uppercase), todayNumber = 7, solvedToday = solvedToday, hintsFirst = false)
+        DuelGame(id, id.value.replaceFirstChar(Char::uppercase), todayNumber = 7, solvedToday = solvedToday)
 
     private fun solveToday(game: GameId) = completions.setRecords(
         listOf(
@@ -197,20 +199,10 @@ class NewDuelViewModelTest {
     }
 
     @Test
-    fun countIsClampedToOneThroughTen() {
-        val draft = DuelDraft.quick(listOf(game(alpha)))
-
-        assertEquals(1, draft.withCount(0).count)
-        assertEquals(1, draft.withCount(-4).count)
-        assertEquals(Match.MAX_LEGS, draft.withCount(Match.MAX_LEGS + 5).count)
-        listOf(3, 5, 7).forEach { assertEquals(it, draft.withCount(it).count) }
-    }
-
-    @Test
     fun toSettingsMapsCountGamesDeadlineAndFriendsToggle() {
-        val custom = DuelDraft.quick(listOf(game(alpha), game(beta))).withCount(5).withDeadline(48).withFriends(true)
+        val custom = DuelDraft.quick(listOf(game(alpha), game(beta))).withDeadline(48).withFriends(true)
         assertEquals(
-            DuelSettings(count = 5, games = setOf(alpha, beta), todayOnly = false, deadlineHours = 48, includeFriends = true, pastedCodes = emptyList()),
+            DuelSettings(count = 3, games = setOf(alpha, beta), todayOnly = false, deadlineHours = 48, includeFriends = true, pastedCodes = emptyList()),
             custom.toSettings(),
         )
 
@@ -224,12 +216,12 @@ class NewDuelViewModelTest {
     @Test
     fun summaryNamesCountGamesDeadlineAndFriendsClause() {
         val available = listOf(game(alpha), game(beta), game(gamma))
-        val draft = DuelDraft.quick(available).toggled(game(gamma)).withCount(5).withDeadline(48)
+        val draft = DuelDraft.quick(available).toggled(game(gamma)).withDeadline(48)
 
         val plain = draft.summary(NOW, ZoneOffset.UTC, available, Locale.US)
         val friends = draft.withFriends(true).summary(NOW, ZoneOffset.UTC, available, Locale.US)
 
-        assertTrue(plain, "5" in plain && "Alpha" in plain && "Beta" in plain && "Gamma" !in plain)
+        assertTrue(plain, "Best of 3" in plain && "Alpha" in plain && "Beta" in plain && "Gamma" !in plain)
         assertTrue(plain, "Wed 10:00" in plain)
         assertFalse(plain, "friends" in plain)
         assertTrue(friends, "friends" in friends)
@@ -265,8 +257,8 @@ class NewDuelViewModelTest {
     @Test
     fun aCreatedDuelEmitsItsCodeOnceAndStoresTheDraft() = runTest {
         val vm = started()
-        vm.setCount(5)
         vm.setDeadline(48)
+        vm.dropUndrawableRow()
 
         vm.create()
 
@@ -274,7 +266,7 @@ class NewDuelViewModelTest {
         val match = server.matches.getValue(code)
         assertEquals(48, match.deadlineHours)
         // One name per puzzle, in puzzle order, so the invite's "best of" and games match the duel that was drawn.
-        assertEquals(5, puzzles.size)
+        assertEquals(2, puzzles.size)
         assertEquals(match.legs.map { it.ref.gameId.value.replaceFirstChar(Char::uppercase) }, puzzles)
         assertEquals(1, server.matches.size)
         assertTrue(vm.state.value.creating)
@@ -290,7 +282,7 @@ class NewDuelViewModelTest {
     @Test
     fun theCreatedInviteListsTheDrawnPuzzlesNotTheWiderDraft() = runTest {
         val vm = started()
-        vm.setCount(2)
+        vm.dropUndrawableRow()
         val draftGames = vm.state.value.draft.games
 
         vm.create()
@@ -311,8 +303,8 @@ class NewDuelViewModelTest {
             ValidateExactPuzzles(FakeSharedPuzzleRepository()),
         )
         val vm = started(held)
-        vm.setCount(7)
         vm.setDeadline(48)
+        vm.dropUndrawableRow()
         vm.create()
         assertTrue(vm.state.value.creating)
 
@@ -323,8 +315,8 @@ class NewDuelViewModelTest {
         assertFalse(vm.state.value.creating)
         assertEquals(null, vm.state.value.notice)
         val (code, puzzles, hours) = vm.created.first()
-        assertEquals(7, server.matches.getValue(code).legs.size)
-        assertEquals(7, puzzles.size)
+        assertEquals(2, server.matches.getValue(code).legs.size)
+        assertEquals(2, puzzles.size)
         // The reset draft is back to Quick's deadline, so the invite must carry the deadline the duel was made with.
         assertEquals(48, hours)
     }
@@ -352,52 +344,57 @@ class NewDuelViewModelTest {
     @Test
     fun aSignedOutCreateSendsThePlayerToSignInAndKeepsTheDraft() = runTest {
         val vm = started()
-        vm.setCount(7)
+        vm.setDeadline(48)
+        vm.dropUndrawableRow()
         server.signedInUid = null
 
         vm.create()
 
         assertEquals(DuelStep.SignIn, vm.state.value.step)
-        assertEquals(7, vm.state.value.draft.count)
+        assertEquals(48, vm.state.value.draft.deadlineHours)
         assertTrue(server.matches.isEmpty())
     }
 
     @Test
     fun offlineKeepsTheDraftAndShowsItsOwnNotice() = runTest {
         val vm = started()
-        vm.setCount(5)
+        vm.setDeadline(48)
+        vm.dropUndrawableRow()
         server.online = false
 
         vm.create()
 
         assertEquals(DuelNotice.Offline, vm.state.value.notice)
         assertEquals(DuelStep.Create, vm.state.value.step)
-        assertEquals(5, vm.state.value.draft.count)
+        assertEquals(48, vm.state.value.draft.deadlineHours)
     }
 
     @Test
     fun theDailyCapIsBusyNotOffline() = runTest {
         val vm = started()
         repeat(DAILY_MATCH_CAP) { assertTrue(createMatch(vm.state.value.draft.toSettings()) is CreateOutcome.Created) }
-        vm.setCount(5)
+        vm.setDeadline(48)
+        vm.dropUndrawableRow()
 
         vm.create()
 
         assertEquals(DuelNotice.Busy, vm.state.value.notice)
-        assertEquals(5, vm.state.value.draft.count)
+        assertEquals(48, vm.state.value.draft.deadlineHours)
     }
 
     @Test
     fun noPuzzlesToDrawKeepsTheDraftAndShowsItsOwnNotice() = runTest {
-        val vm = started()
-        vm.toggle(vm.state.value.games.first { it.id == alpha })
-        vm.toggle(vm.state.value.games.first { it.id == beta })
-        assertEquals(setOf(gamma), vm.state.value.draft.games)
+        val noGames = CreateMatch(
+            server, local, ComputeMatchLegs(TestGames.registry(emptyList()), daily, calendar, history, received, Random(DRAW_SEED)), identity, Random(CODE_SEED),
+            ValidateExactPuzzles(FakeSharedPuzzleRepository()),
+        )
+        val vm = started(noGames)
+        val draft = vm.state.value.draft
 
         vm.create()
 
         assertEquals(DuelNotice.NoPuzzles, vm.state.value.notice)
-        assertEquals(setOf(gamma), vm.state.value.draft.games)
+        assertEquals(draft, vm.state.value.draft)
     }
 
     @Test
@@ -501,7 +498,7 @@ class NewDuelViewModelTest {
         vm.create()
         assertEquals(DuelNotice.Offline, vm.state.value.notice)
 
-        vm.setCount(9)
+        vm.setDeadline(48)
         assertEquals(null, vm.state.value.notice)
 
         vm.reset()
@@ -512,14 +509,14 @@ class NewDuelViewModelTest {
     fun signedOutUserSeesSignInFirstAndReturnsToCreateOnceSignedIn() = runTest {
         identity.currentIdentity = null
         val vm = started()
-        vm.setCount(7)
+        vm.setDeadline(48)
         assertEquals(DuelStep.SignIn, vm.state.value.step)
 
         vm.signIn(context)
 
         assertEquals(listOf("t"), identity.signInCalls)
         assertEquals(DuelStep.Create, vm.state.value.step)
-        assertEquals(7, vm.state.value.draft.count)
+        assertEquals(48, vm.state.value.draft.deadlineHours)
         assertEquals(DuelSignIn.Idle, vm.state.value.signIn)
     }
 

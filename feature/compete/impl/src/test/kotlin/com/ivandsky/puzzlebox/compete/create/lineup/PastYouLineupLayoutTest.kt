@@ -72,7 +72,7 @@ private val MIN_TARGET = 48.dp
 
 /**
  * Past you's lineup where the screen is not the usual one: turned under an open sheet, closed and opened again, on a narrow phone, a phone and
- * a tablet, at double font size with ten rows and with the sheet open, and with the flag off. The sheet's own structure is in [PastYouAddSheetTest].
+ * a tablet, and at double font size with ten rows and with the sheet open. The sheet's own structure is in [PastYouAddSheetTest].
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -259,17 +259,5 @@ class PastYouLineupLayoutTest {
 
         assertSheetControlsAreAtLeast48dp()
         assertNoTextIsClipped()
-    }
-
-    @Test
-    fun `with the lineup off Customize is still the old panel, no lineup and no sheet`() {
-        host(fontScale = 1f, restoration = null) { NewDuelContent(custom(), NO_ACTIONS) }
-        rule.onNodeWithTag("duel.preset.custom").performClick()
-        rule.waitForIdle()
-
-        rule.onNodeWithTag("duel.customize", useUnmergedTree = true).assertExists()
-        GAMES.take(4).forEach { rule.onNodeWithTag("duel.game.${it.id.value}", useUnmergedTree = true).assertExists() }
-        rule.onNodeWithTag("duel.lineup", useUnmergedTree = true).assertDoesNotExist()
-        rule.onNodeWithTag("duel.lineup.sheet", useUnmergedTree = true).assertDoesNotExist()
     }
 }

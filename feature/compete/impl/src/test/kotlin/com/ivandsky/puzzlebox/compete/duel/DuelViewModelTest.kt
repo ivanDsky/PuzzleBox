@@ -2,9 +2,6 @@ package com.ivandsky.puzzlebox.compete.duel
 
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.domain.OpenOutcome
 import com.ivandsky.puzzlebox.domain.lineup.LegName
 import com.ivandsky.puzzlebox.domain.lineup.ObserveLegTitles
@@ -121,7 +118,6 @@ class DuelViewModelTest {
     private fun viewModel(
         rawCode: String = code.value,
         plays: SavedPlayRepository = FakeSavedPlayRepository(),
-        flags: ReleaseFlags? = null,
     ) = DuelViewModel(
         code = rawCode,
         observeDuel = ObserveDuel(
@@ -152,7 +148,6 @@ class DuelViewModelTest {
         dispatchers = DefaultDispatcherProvider(),
         legTitles = ObserveLegTitles(received, published, sharedPuzzles),
         saveDuelPuzzles = SaveDuelPuzzles { savedOnAccept += it; OpenOutcome.NotFound },
-        releaseFlags = flags,
     )
 
     private fun TestScope.started(vm: DuelViewModel): DuelViewModel {
@@ -193,7 +188,7 @@ class DuelViewModelTest {
         val details = invite(vm).details!!
 
         assertEquals(ann, details.challenger)
-        assertEquals(listOf("Alpha", "Beta"), details.games.map { it.name })
+        assertEquals(listOf("Alpha", "Beta"), details.lineup.map { it.label })
         assertEquals(2, details.rounds)
         assertEquals(now.plusSeconds(24 * 3600), details.deadline)
         assertFalse(details.viewerIsChallenger)
@@ -231,26 +226,25 @@ class DuelViewModelTest {
         )
     }
 
-    private val lineupOn = FakeReleaseFlags(ReleaseFlag.DuelLineup)
     private val expectedMixed = listOf("Alpha", "\"Crown jewels\"", "Alpha · ${unreadable.display}")
 
     @Test
-    fun withTheLineupOnASignedInInviteeSeesEveryPuzzleInLegOrder() = runTest {
+    fun aSignedInInviteeSeesEveryPuzzleInLegOrder() = runTest {
         crownIsSavedByTheViewer()
         annChallenges(viewer = bob, lineup = mixedLineup)
-        val vm = started(viewModel(flags = lineupOn))
+        val vm = started(viewModel())
 
-        assertEquals(expectedMixed, invite(vm).details!!.lineup!!.map { it.label })
+        assertEquals(expectedMixed, invite(vm).details!!.lineup.map { it.label })
     }
 
     @Test
-    fun withTheLineupOnASignedOutViewerSeesTheSameLineupWithPublicTitles() = runTest {
+    fun aSignedOutViewerSeesTheSameLineupWithPublicTitles() = runTest {
         crownIsPublic()
         annChallenges(viewer = null, lineup = mixedLineup)
-        val vm = started(viewModel(flags = lineupOn))
+        val vm = started(viewModel())
 
         assertEquals(InviteKind.SignedOut, invite(vm).kind)
-        assertEquals(expectedMixed, invite(vm).details!!.lineup!!.map { it.label })
+        assertEquals(expectedMixed, invite(vm).details!!.lineup.map { it.label })
     }
 
     @Test
@@ -258,20 +252,9 @@ class DuelViewModelTest {
         crownIsPublic()
         annChallenges(viewer = null, lineup = mixedLineup)
         sharedPuzzles.online = false
-        val vm = started(viewModel(flags = lineupOn))
-
-        assertEquals(listOf("Alpha", "Beta · ${crown.display}", "Alpha · ${unreadable.display}"), invite(vm).details!!.lineup!!.map { it.label })
-    }
-
-    @Test
-    fun withTheLineupOffTheInviteKeepsTodaysGameChips() = runTest {
-        crownIsPublic()
-        annChallenges(viewer = bob, lineup = mixedLineup)
         val vm = started(viewModel())
 
-        val details = invite(vm).details!!
-        assertNull(details.lineup)
-        assertEquals(listOf("Alpha", "Beta"), details.games.map { it.name })
+        assertEquals(listOf("Alpha", "Beta · ${crown.display}", "Alpha · ${unreadable.display}"), invite(vm).details!!.lineup.map { it.label })
     }
 
     @Test
@@ -292,7 +275,7 @@ class DuelViewModelTest {
         assertEquals(InviteKind.Open, state.kind)
         val details = state.details!!
         assertEquals(ann, details.challenger)
-        assertEquals(listOf("Alpha", "Beta"), details.games.map { it.name })
+        assertEquals(listOf("Alpha", "Beta"), details.lineup.map { it.label })
         assertEquals(2, details.rounds)
         assertEquals(now.plusSeconds(24 * 3600), details.deadline)
         assertFalse(details.solvedBefore)
@@ -725,7 +708,7 @@ class DuelViewModelTest {
     @Test
     fun acceptSavesBothExactPuzzlesOfATwoCustomLegDuel() = runTest {
         annChallenges(viewer = bob, lineup = twoCustom)
-        val vm = started(viewModel(flags = lineupOn))
+        val vm = started(viewModel())
 
         vm.accept()
 
@@ -734,19 +717,9 @@ class DuelViewModelTest {
     }
 
     @Test
-    fun withTheLineupOffAcceptSavesNothing() = runTest {
-        annChallenges(viewer = bob, lineup = twoCustom)
-        val vm = started(viewModel())
-
-        vm.accept()
-
-        assertTrue(savedOnAccept.isEmpty())
-    }
-
-    @Test
     fun aDeclineSavesNothing() = runTest {
         annChallenges(viewer = bob, invited = bob.uid, lineup = twoCustom)
-        val vm = started(viewModel(flags = lineupOn))
+        val vm = started(viewModel())
 
         vm.decline()
 
@@ -754,27 +727,14 @@ class DuelViewModelTest {
     }
 
     @Test
-    fun aParticipantCarriesTheNamesOfItsCustomPuzzlesWhenTheLineupIsOn() = runTest {
-        crownIsSavedByTheViewer()
-        annChallenges(viewer = bob, claimedBy = bob, lineup = mixedLineup)
-        val vm = started(viewModel(flags = lineupOn))
-
-        val state = vm.state.value as DuelUiState.Participant
-
-        assertTrue(state.lineup)
-        assertEquals(mapOf(crown to LegName("Crown jewels", "Cleo")), state.names)
-    }
-
-    @Test
-    fun withTheLineupOffAParticipantCarriesNoNames() = runTest {
+    fun aParticipantCarriesTheNamesOfItsCustomPuzzles() = runTest {
         crownIsSavedByTheViewer()
         annChallenges(viewer = bob, claimedBy = bob, lineup = mixedLineup)
         val vm = started(viewModel())
 
         val state = vm.state.value as DuelUiState.Participant
 
-        assertFalse(state.lineup)
-        assertTrue(state.names.isEmpty())
+        assertEquals(mapOf(crown to LegName("Crown jewels", "Cleo")), state.names)
     }
 
     @Test
@@ -786,7 +746,7 @@ class DuelViewModelTest {
             ),
         )
         annChallenges(viewer = bob, claimedBy = bob, lineup = mixedLineup)
-        val vm = started(viewModel(flags = lineupOn))
+        val vm = started(viewModel())
 
         val state = vm.state.value as DuelUiState.Participant
 

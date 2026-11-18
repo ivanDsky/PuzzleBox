@@ -34,7 +34,7 @@ import org.koin.dsl.module
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** With the lineup on, a friend's puzzle shows its title and, when it cannot be started, why (A9, A16). */
+/** A friend's puzzle shows its title and, when it cannot be started, why (A9, A16). */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class DuelLegUnavailableTest {
@@ -62,8 +62,8 @@ class DuelLegUnavailableTest {
     @After
     fun stopKoinAgain() = stopKoin()
 
-    private fun show(lineup: Boolean = true, boards: LegBoards) {
-        val state = DuelPageFixtures.open(refs, doneLegs = emptySet()).copy(names = if (lineup) names else emptyMap(), lineup = lineup)
+    private fun show(boards: LegBoards) {
+        val state = DuelPageFixtures.open(refs, doneLegs = emptySet()).copy(names = names)
         rule.setContent {
             PuzzleBoxTheme {
                 DuelLegs(
@@ -120,16 +120,5 @@ class DuelLegUnavailableTest {
 
         rule.onNodeWithTag("duel.legs.action.1").assertIsNotEnabled()
         rule.onNodeWithTag("duel.legs.action.0").assertIsEnabled()
-    }
-
-    @Test
-    fun withTheLineupOffNothingIsReadAndTheTitleStaysTheGameAndCode() {
-        var asked = 0
-        show(lineup = false, boards = LegBoards { asked++; LegBoard.TakenDown })
-
-        rule.onAllNodesWithTag("duel.legs.subtitle.0").assertCountEquals(0)
-        rule.onAllNodesWithText("This puzzle was taken down by its author").assertCountEquals(0)
-        rule.onNodeWithTag("duel.legs.action.0").assertIsEnabled()
-        assert(asked == 0) { "asked $asked times" }
     }
 }

@@ -3,8 +3,6 @@ package com.ivandsky.puzzlebox.compete.duel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -125,21 +123,12 @@ private fun Headline(details: InviteDetails?, modifier: Modifier) {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Facts(details: InviteDetails, modifier: Modifier) {
     val brands = koinInject<GamePlayRegistry>()
     val ends = rememberCompeteTime().ends(details.deadline)
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        if (details.lineup != null) {
-            InviteLineup(details.lineup, brands)
-        } else {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                details.games.forEach { game ->
-                    GameChip(game.name, brands.brandOf(game.id), "duel.invite.game.${game.id.value}")
-                }
-            }
-        }
+        InviteLineup(details.lineup, brands)
         Text(
             text = "Best of ${details.rounds}",
             style = MaterialTheme.typography.titleMedium,

@@ -190,27 +190,24 @@ internal fun shareText(me: String, opponent: String, myWins: Int, theirWins: Int
 
 /**
  * The same duel again with a fresh draw: same count, games, deadline and friends toggle; never today-only or pasted codes.
- * With [lineup] (DuelLineup on) the draw also keeps the duel's game order, each puzzle an "Any" of its game.
+ * The draw also keeps the duel's game order, each puzzle an "Any" of its game.
  */
-internal fun rematchSettings(match: Match, lineup: Boolean = false) = DuelSettings(
+internal fun rematchSettings(match: Match) = DuelSettings(
     count = match.legs.size,
     games = match.legs.mapTo(LinkedHashSet()) { it.ref.gameId },
     todayOnly = false,
     deadlineHours = match.deadlineHours,
     includeFriends = match.includeFriends,
     pastedCodes = emptyList(),
-    lineup = if (lineup) rematchLineup(match.legs) else null,
+    lineup = rematchLineup(match.legs),
 )
 
-/**
- * The self duel again: same count, games and friends toggle, with a fresh draw of solved puzzles.
- * With [lineup] (DuelLineup on) the draw also keeps the duel's game order, each puzzle an "Any" of its game.
- */
-internal fun selfRematchSettings(match: Match, lineup: Boolean = false) = SelfDuelSettings(
+/** The self duel again: same count, games and friends toggle, with a fresh draw of solved puzzles that keeps the duel's game order, each puzzle an "Any" of its game. */
+internal fun selfRematchSettings(match: Match) = SelfDuelSettings(
     rounds = match.legs.size,
     games = match.legs.mapTo(LinkedHashSet()) { it.ref.gameId },
     includeFriends = match.includeFriends,
-    lineup = if (lineup) rematchLineup(match.legs) else null,
+    lineup = rematchLineup(match.legs),
 )
 
 /** The summary of [match] as the [plan] and the domain's [outcome] settled it. */
