@@ -30,14 +30,7 @@ internal data class SelfDuelForm(
 
     fun toSettings(counts: SolvedCounts) = SelfDuelSettings(rounds(counts), games, includeFriends)
 
-    fun withCount(value: Int): SelfDuelForm = edited().copy(count = value.coerceIn(DuelDraft.MIN_COUNT, Match.MAX_LEGS))
     fun withFriends(included: Boolean): SelfDuelForm = edited().copy(includeFriends = included)
-
-    /** Flips [game]; the last chosen game stays. */
-    fun toggled(game: GameId): SelfDuelForm {
-        val next = if (game in games) games - game else games + game
-        return if (next.isEmpty()) this else edited().copy(games = next)
-    }
 
     /** Customize chosen: Quick becomes Custom, the form otherwise as it is. */
     fun customized(): SelfDuelForm = edited()
@@ -73,16 +66,8 @@ internal data class SelfDuelView(
 
     val canCreate: Boolean get() = rounds > 0
 
-    /** The pool is read and has fewer puzzles than the chosen rounds. */
-    val capped: Boolean get() = cap > 0 && form.count > cap
-
     /** The pool is read and the chosen games have no solved puzzle. */
     val empty: Boolean get() = counts != null && cap == 0
-
-    fun solved(game: DuelGame): Int = counts?.of(game.id) ?: 0
-
-    /** The chosen game's name when it is just one; null for several, which a sentence then calls "these games". */
-    val soleGame: String? get() = chosen.singleOrNull()?.name
 
     /** "Best of 3 · mixed solved puzzles · against your first solves", plus " · incl. friends' puzzles" when friends are in. */
     val summary: String

@@ -14,24 +14,20 @@ internal class NewDuelStateBuilder(
     private val zone: () -> ZoneId,
     private val locale: () -> Locale,
 ) {
-    fun build(work: DuelWorking, available: List<DuelGame>, who: Identity?, counts: SolvedCounts?, lineupOn: Boolean): NewDuelState {
+    fun build(work: DuelWorking, available: List<DuelGame>, who: Identity?, counts: SolvedCounts?): NewDuelState {
         val offered = work.challenge == null
         val opponent = if (offered) work.opponent else Opponent.Friend
         val self = SelfDuelView(work.form, counts, available)
-        val lineup = when {
-            !lineupOn -> null
-            opponent == Opponent.PastYou -> work.selfLineup
-            else -> work.lineup
-        }
+        val lineup = if (opponent == Opponent.PastYou) work.selfLineup else work.lineup
         val nameOf = { id: GameId -> available.firstOrNull { it.id == id }?.name ?: id.value }
         return NewDuelState(
             draft = work.draft,
             games = available,
             summary = when {
                 opponent == Opponent.PastYou ->
-                    if (lineup != null && work.form.preset == DuelPreset.Custom) pastYouLineupSummary(lineup.draft.entries, work.form.includeFriends, nameOf) else self.summary
+                    if (work.form.preset == DuelPreset.Custom) pastYouLineupSummary(lineup.draft.entries, work.form.includeFriends, nameOf) else self.summary
                 // The draft, not what Create sends: after a failed try that is the drawn puzzles, which have no names.
-                lineup != null && (work.draft.preset == DuelPreset.Custom || work.draft.showsRows(lineup, available)) -> lineupSummary(
+                work.draft.preset == DuelPreset.Custom || work.draft.showsRows(lineup, available) -> lineupSummary(
                     lineup.draft.entries, work.draft.deadlineHours, work.draft.includeFriends, clock(), zone(), locale(), nameOf,
                 )
                 else -> work.draft.summary(clock(), zone(), available, locale())

@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.compete.create.lineup.LineupEditor
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.match.LegRef
@@ -27,7 +26,6 @@ import com.ivandsky.puzzlebox.domain.lineup.ValidateExactPuzzles
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
@@ -61,7 +59,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** New duel with the DuelLineup flag: Customize edits an ordered lineup and Create sends it; with the flag off nothing changes. */
+/** New duel: Customize edits an ordered lineup and Create sends it. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class NewDuelLineupTest {
@@ -112,7 +110,7 @@ class NewDuelLineupTest {
         }
     }
 
-    private fun TestScope.started(flagOn: Boolean = true): NewDuelViewModel =
+    private fun TestScope.started(): NewDuelViewModel =
         NewDuelViewModel(
             createMatch = createMatch,
             identity = identity,
@@ -127,10 +125,9 @@ class NewDuelLineupTest {
             zone = { ZoneOffset.UTC },
             locale = { Locale.US },
             legTitles = noLegTitles(),
-            releaseFlags = FakeReleaseFlags(*if (flagOn) arrayOf(ReleaseFlag.DuelLineup) else emptyArray()),
         ).also { backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { it.state.collect {} } }
 
-    private fun NewDuelViewModel.lineupGames(): List<GameId> = state.value.lineup!!.entries.map { it.gameId }
+    private fun NewDuelViewModel.lineupGames(): List<GameId> = state.value.lineup.entries.map { it.gameId }
 
     private fun NewDuelViewModel.pick(game: GameId, row: Int? = null) {
         editLineup { if (row == null) it.openAdd() else it.openChange(row) }
@@ -140,7 +137,7 @@ class NewDuelLineupTest {
     @Test
     fun `adding, changing and removing rows in the sheet creates the duel with exactly those puzzles in order`() = runTest {
         val vm = started()
-        assertEquals(3, vm.state.value.lineup!!.draft.size)
+        assertEquals(3, vm.state.value.lineup.draft.size)
         vm.pick(alpha)
         vm.pick(beta)
         vm.pick(beta)
@@ -168,25 +165,12 @@ class NewDuelLineupTest {
         assertEquals(DuelPreset.Custom, vm.state.value.draft.preset)
     }
 
-    @Test
-    fun `with the flag off the state has no lineup and Customize is today's draft`() = runTest {
-        val vm = started(flagOn = false)
-        vm.setCount(5)
-
-        assertNull(vm.state.value.lineup)
-        assertEquals(DuelDraft.quick(vm.state.value.games).withCount(5), vm.state.value.draft)
-        vm.create()
-        val (code, puzzles) = vm.created.first()
-        assertEquals(5, puzzles.size)
-        assertEquals(5, server.matches.getValue(code).legs.size)
-    }
-
     private fun today(game: GameId) = ExactPuzzle(
         LegRef.Daily(game, today, (today.toEpochDay() % 10_000).toInt() + 1), null, "${if (game == alpha) "Alpha" else "Beta"} #${(today.toEpochDay() % 10_000).toInt() + 1}", null, PuzzleSource.PastDay,
     )
 
     @Test
-    fun `the created duel carries every leg in order with the flag on, none with it off`() = runTest {
+    fun `the created duel carries every leg in order`() = runTest {
         val on = started()
         on.pick(alpha)
         on.pick(beta)
@@ -195,16 +179,12 @@ class NewDuelLineupTest {
         val created = on.created.first()
         assertEquals(server.matches.getValue(created.code).legs.map { it.ref }, created.legs)
         assertEquals(created.puzzles.size, created.legs.size)
-
-        val off = started(flagOn = false)
-        off.create()
-        assertTrue(off.created.first().legs.isEmpty())
     }
 
     @Test
     fun `Quick is untouched by the lineup, and its rows stay for Customize`() = runTest {
         val vm = started()
-        val rows = vm.state.value.lineup!!.draft
+        val rows = vm.state.value.lineup.draft
 
         vm.chooseQuick()
         assertEquals(DuelPreset.Quick, vm.state.value.draft.preset)
@@ -212,7 +192,7 @@ class NewDuelLineupTest {
         vm.chooseCustom()
 
         assertEquals(DuelPreset.Custom, vm.state.value.draft.preset)
-        assertEquals(rows.entries + AnyGame(beta), vm.state.value.lineup!!.draft.entries)
+        assertEquals(rows.entries + AnyGame(beta), vm.state.value.lineup.draft.entries)
     }
 
     @Test
@@ -222,22 +202,22 @@ class NewDuelLineupTest {
         vm.chooseDaily()
 
         assertEquals(DuelPreset.Daily, vm.state.value.draft.preset)
-        assertEquals(listOf(today(alpha), today(beta)), vm.state.value.lineup!!.draft.entries)
+        assertEquals(listOf(today(alpha), today(beta)), vm.state.value.lineup.draft.entries)
         assertTrue(vm.state.value.draft.showsRows(vm.state.value.lineup, vm.state.value.games))
 
         vm.editLineup { it.remove(0) }
-        assertEquals(listOf(today(beta)), vm.state.value.lineup!!.draft.entries)
+        assertEquals(listOf(today(beta)), vm.state.value.lineup.draft.entries)
         vm.editLineup { it.remove(0) }
-        assertEquals(listOf(today(beta)), vm.state.value.lineup!!.draft.entries)
+        assertEquals(listOf(today(beta)), vm.state.value.lineup.draft.entries)
         assertEquals(DuelPreset.Daily, vm.state.value.draft.preset)
 
         vm.chooseDaily()
         vm.chooseCustom()
         assertEquals(DuelPreset.Custom, vm.state.value.draft.preset)
-        assertEquals(listOf(today(alpha), today(beta)), vm.state.value.lineup!!.draft.entries)
+        assertEquals(listOf(today(alpha), today(beta)), vm.state.value.lineup.draft.entries)
         vm.chooseDaily()
         assertEquals(DuelPreset.Daily, vm.state.value.draft.preset)
-        assertEquals(listOf(today(alpha), today(beta)), vm.state.value.lineup!!.draft.entries)
+        assertEquals(listOf(today(alpha), today(beta)), vm.state.value.lineup.draft.entries)
     }
 
     @Test
@@ -249,11 +229,11 @@ class NewDuelLineupTest {
         vm.editLineup { it.pick(old) }
         vm.editLineup { it.remove(2) }
         vm.editLineup { it.remove(1) }
-        assertEquals(listOf<LineupEntry>(old), vm.state.value.lineup!!.draft.entries)
+        assertEquals(listOf<LineupEntry>(old), vm.state.value.lineup.draft.entries)
 
         vm.chooseDaily()
 
-        assertEquals(listOf(today(alpha), today(beta)), vm.state.value.lineup!!.draft.entries)
+        assertEquals(listOf(today(alpha), today(beta)), vm.state.value.lineup.draft.entries)
         assertTrue(vm.state.value.draft.showsRows(vm.state.value.lineup, vm.state.value.games))
     }
 
@@ -266,8 +246,8 @@ class NewDuelLineupTest {
         vm.editLineup { it.openAdd() }
         vm.editLineup { it.pick(past) }
 
-        assertEquals(listOf(today(alpha), today(beta), past), vm.state.value.lineup!!.draft.entries)
-        assertFalse(vm.state.value.lineup!!.draft.isToday(vm.state.value.games))
+        assertEquals(listOf(today(alpha), today(beta), past), vm.state.value.lineup.draft.entries)
+        assertFalse(vm.state.value.lineup.draft.isToday(vm.state.value.games))
         assertFalse(vm.state.value.draft.showsRows(vm.state.value.lineup, vm.state.value.games))
     }
 
@@ -279,7 +259,7 @@ class NewDuelLineupTest {
 
         vm.chooseDaily()
 
-        assertEquals(listOf(today(alpha), today(beta)), vm.state.value.lineup!!.draft.entries)
+        assertEquals(listOf(today(alpha), today(beta)), vm.state.value.lineup.draft.entries)
     }
 
     @Test
@@ -296,17 +276,7 @@ class NewDuelLineupTest {
     }
 
     @Test
-    fun `with the flag off Daily has no rows and is today's draft`() = runTest {
-        val vm = started(flagOn = false)
-
-        vm.chooseDaily()
-
-        assertNull(vm.state.value.lineup)
-        assertEquals(DuelDraft.daily(vm.state.value.games), vm.state.value.draft)
-    }
-
-    @Test
-    fun `Quick still draws three mixed puzzles with the flag on`() = runTest {
+    fun `Quick still draws three mixed puzzles`() = runTest {
         val vm = started()
 
         vm.create()
@@ -322,7 +292,7 @@ class NewDuelLineupTest {
         vm.chooseCustom()
         vm.editLineup { it.remove(2) }
         repeat(8) { vm.pick(alpha) }
-        assertEquals(10, vm.state.value.lineup!!.draft.size)
+        assertEquals(10, vm.state.value.lineup.draft.size)
         repo.offlineOnce = true
 
         vm.create()
@@ -342,12 +312,12 @@ class NewDuelLineupTest {
         vm.chooseCustom()
         repo.offlineOnce = true
         vm.create()
-        val before = vm.state.value.lineup!!.entries
+        val before = vm.state.value.lineup.entries
 
         vm.pick(beta)
 
-        assertEquals(vm.state.value.lineup!!.draft.entries, vm.state.value.lineup!!.entries)
-        assertTrue(before != vm.state.value.lineup!!.entries)
+        assertEquals(vm.state.value.lineup.draft.entries, vm.state.value.lineup.entries)
+        assertTrue(before != vm.state.value.lineup.entries)
     }
 
     @Test
@@ -360,13 +330,13 @@ class NewDuelLineupTest {
         vm.create()
 
         assertEquals(DuelNotice.EntryUndrawable(2, "Gamma"), vm.state.value.notice)
-        assertEquals(1, vm.state.value.lineup!!.marked)
+        assertEquals(1, vm.state.value.lineup.marked)
         assertTrue(server.matches.isEmpty())
 
         vm.pick(alpha, row = 1)
 
         assertNull(vm.state.value.notice)
-        assertNull(vm.state.value.lineup!!.marked)
+        assertNull(vm.state.value.lineup.marked)
         vm.create()
         assertEquals(2, server.matches.getValue(vm.created.first().code).legs.size)
     }
@@ -388,7 +358,7 @@ class NewDuelLineupTest {
         vm.create()
 
         assertEquals(DuelNotice.EntryUnavailable(2), vm.state.value.notice)
-        assertEquals(1, vm.state.value.lineup!!.marked)
+        assertEquals(1, vm.state.value.lineup.marked)
         assertTrue(server.matches.isEmpty())
         assertTrue(repo.drafts.isEmpty())
     }
@@ -436,12 +406,12 @@ class NewDuelLineupTest {
         vm.chooseCustom()
         vm.pick(gamma, row = 1)
         vm.create()
-        assertEquals(1, vm.state.value.lineup!!.marked)
+        assertEquals(1, vm.state.value.lineup.marked)
 
         vm.setDeadline(48)
 
         assertNull(vm.state.value.notice)
-        assertNull(vm.state.value.lineup!!.marked)
+        assertNull(vm.state.value.lineup.marked)
     }
 
     @Test
@@ -456,12 +426,12 @@ class NewDuelLineupTest {
             vm.chooseCustom()
             vm.pick(gamma, row = 1)
             vm.create()
-            assertEquals(1, vm.state.value.lineup!!.marked)
+            assertEquals(1, vm.state.value.lineup.marked)
 
             sequence.forEach { vm.editLineup(it) }
 
             assertNull(vm.state.value.notice)
-            assertNull(vm.state.value.lineup!!.marked)
+            assertNull(vm.state.value.lineup.marked)
         }
     }
 
@@ -482,7 +452,7 @@ class NewDuelLineupTest {
 
         vm.reset()
 
-        val editor: LineupEditor = vm.state.value.lineup!!
+        val editor: LineupEditor = vm.state.value.lineup
         assertEquals(3, editor.draft.size)
         assertNull(editor.target)
     }

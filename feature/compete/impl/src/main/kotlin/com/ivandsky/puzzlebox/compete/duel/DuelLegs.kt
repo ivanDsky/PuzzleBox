@@ -86,7 +86,7 @@ internal fun DuelLegs(
     }
     val legs = view.match.legs
     val board = remember<suspend (Int) -> LegBoard>(legs, boards) { { index -> boards.of(legs[index].ref) } }
-    val reads = rememberLegReads(if (state.lineup) model.rows.filter { it.custom }.map { it.legIndex } else emptyList(), board)
+    val reads = rememberLegReads(model.rows.filter { it.custom }.map { it.legIndex }, board)
     val content = LegsContent(model, view.match.deadline, time.ends(view.match.deadline), view.match.closesAt, view.match.code, now, actions, board, state.timeLeftShown, reads)
     BoxWithConstraints(modifier.fillMaxSize()) {
         val twoPane = layout == PlayLayout.TwoPane

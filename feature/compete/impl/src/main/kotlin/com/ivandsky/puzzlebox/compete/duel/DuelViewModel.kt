@@ -5,9 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.compete.create.DuelSignIn
 import com.ivandsky.puzzlebox.compete.create.DuelSignInStep
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -72,7 +69,6 @@ internal class DuelViewModel(
     dispatchers: DispatcherProvider,
     private val legTitles: ObserveLegTitles,
     private val saveDuelPuzzles: SaveDuelPuzzles,
-    private val releaseFlags: ReleaseFlags? = null,
 ) : ViewModel() {
 
     /** The boards of the duel's legs, for the tablet's detail column; kept while the screen is. */
@@ -115,7 +111,7 @@ internal class DuelViewModel(
         val duels = reloads.flatMapLatest { observeDuel(shareCode) }
             .shareIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), replay = 1)
         combine(
-            duels.combine(duels.legTitlesBy(legTitles, ::lineupOn)) { duel, titles -> duel to titles },
+            duels.combine(duels.legTitlesBy(legTitles)) { duel, titles -> duel to titles },
             working,
             identity.current,
             removal.step,
@@ -159,7 +155,6 @@ internal class DuelViewModel(
                 removeAsked = removeAsked,
                 timeLeftShown = timeLeftShown,
                 names = names,
-                lineup = lineupOn(),
             )
         }
         val kind = work.outcome ?: when {
@@ -175,17 +170,14 @@ internal class DuelViewModel(
     /** The card's facts; [me] is null signed out, when the viewer is neither challenger nor invitee. */
     private fun inviteDetails(match: Match, me: String?, solvedBefore: Boolean, names: Map<ShareCode, LegName>) = InviteDetails(
         challenger = match.challenger,
-        games = match.legs.map { it.ref.gameId }.distinct().map { InviteGame(it, registry.displayName(it)) },
         rounds = match.legs.size,
         deadline = match.deadline,
         viewerIsChallenger = match.challenger.uid == me,
         declined = match.declined,
         solvedBefore = solvedBefore,
         canDecline = me != null && match.invitedUid == me,
-        lineup = inviteLegs(match.legs.map { it.ref }, registry::displayName, names.mapValues { it.value.title }).takeIf { lineupOn() },
+        lineup = inviteLegs(match.legs.map { it.ref }, registry::displayName, names.mapValues { it.value.title }),
     )
-
-    private fun lineupOn() = releaseFlags?.isEnabled(ReleaseFlag.DuelLineup) == true
 
     /** Reads the duel again after an Offline. */
     fun retry() = reloads.update { it + 1 }
@@ -200,7 +192,7 @@ internal class DuelViewModel(
     private fun seat(action: SeatAction) {
         val code = shareCode ?: return
         if (working.getAndUpdate { if (it.seat == null) it.copy(seat = action, notice = null) else it }.seat != null) return
-        // Read before the call: once the seat is mine the card is gone. Only a DuelLineup-on card lists the puzzles.
+        // Read before the call: once the seat is mine the card is gone.
         val exact = (state.value as? DuelUiState.Invite)?.details?.lineup.orEmpty().mapNotNull { it.code }
         viewModelScope.launch {
             val result = updateSeat(code, action)

@@ -35,7 +35,7 @@ internal class LegReads(private val answers: Map<Int, LegBoard>, val retry: (Int
 
 /**
  * Reads the puzzle of every custom leg in [legs], each in its own effect, so one slow or offline puzzle never holds up the
- * others or the page. [retry] reads one leg again. Nothing is read for [legs] empty (DuelLineup off).
+ * others or the page. [retry] reads one leg again. Nothing is read for [legs] empty.
  */
 @Composable
 internal fun rememberLegReads(legs: List<Int>, board: suspend (Int) -> LegBoard): LegReads {

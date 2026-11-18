@@ -62,12 +62,12 @@ private fun DuelSnapshot.legRefs(): List<LegRef> = when (val state = match) {
 
 /**
  * The names (title and author) of the custom legs of the duel this flow shows, read once per set of codes, for at most
- * [TITLES_WAIT_MS] and keeping what came in by then; none while [lineupOn] is false. Starts with none, so the page draws
+ * [TITLES_WAIT_MS] and keeping what came in by then. Starts with none, so the page draws
  * the codes first and a slow read never holds it.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-internal fun Flow<DuelSnapshot>.legTitlesBy(titles: ObserveLegTitles, lineupOn: () -> Boolean): Flow<Map<ShareCode, LegName>> =
-    map { duel -> if (lineupOn()) duel.legRefs().customCodes() else emptyList() }
+internal fun Flow<DuelSnapshot>.legTitlesBy(titles: ObserveLegTitles): Flow<Map<ShareCode, LegName>> =
+    map { duel -> duel.legRefs().customCodes() }
         .distinctUntilChanged()
         .flatMapLatest { codes ->
             if (codes.isEmpty()) flowOf(emptyMap()) else channelFlow { withTimeoutOrNull(TITLES_WAIT_MS) { titles.names(codes).collect { send(it) } } }

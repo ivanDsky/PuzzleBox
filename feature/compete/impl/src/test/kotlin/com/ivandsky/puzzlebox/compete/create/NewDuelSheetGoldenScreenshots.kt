@@ -40,7 +40,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
-import org.koin.dsl.module
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
@@ -63,7 +62,7 @@ class NewDuelSheetGoldenScreenshots {
 
     @Before
     fun startKoinWithBrands() {
-        startKoin { modules(module { single { newDuelBrands() } }) }
+        startKoin { modules(newDuelModule()) }
     }
 
     @After

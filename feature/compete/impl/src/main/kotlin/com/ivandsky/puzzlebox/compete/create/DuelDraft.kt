@@ -16,14 +16,13 @@ internal enum class DuelPreset { Quick, Daily, Custom }
 
 /**
  * A game the sheet can offer: its [name], today's puzzle [todayNumber] (null when its source numbers none) and the
- * [todayDay] that is today for it, whether the player already [solvedToday] and whether it ranks [hintsFirst].
+ * [todayDay] that is today for it, and whether the player already [solvedToday].
  */
 internal data class DuelGame(
     val id: GameId,
     val name: String,
     val todayNumber: Int?,
     val solvedToday: Boolean,
-    val hintsFirst: Boolean,
     val todayDay: LocalDate? = null,
 )
 
@@ -66,7 +65,6 @@ internal data class DuelDraft(
         }
     }
 
-    fun withCount(value: Int): DuelDraft = edited().copy(count = value.coerceIn(MIN_COUNT, Match.MAX_LEGS))
     fun withDeadline(hours: Int): DuelDraft = edited().copy(deadlineHours = hours)
     fun withFriends(included: Boolean): DuelDraft = edited().copy(includeFriends = included)
 
@@ -82,8 +80,8 @@ internal data class DuelDraft(
     /** Customize as a preset of its own, which the lineup editor needs: neither Quick's nor Daily's rules apply any more. */
     fun customized(): DuelDraft = copy(preset = DuelPreset.Custom, todayOnly = false)
 
-    /** Daily with today's puzzles as lineup rows (DuelLineup on), which take the place of its game chips. */
-    fun showsRows(lineup: LineupEditor?, available: List<DuelGame>): Boolean = preset == DuelPreset.Daily && lineup?.draft?.isToday(available) == true
+    /** Daily with today's puzzles as lineup rows, which take the place of its game chips. */
+    fun showsRows(lineup: LineupEditor, available: List<DuelGame>): Boolean = preset == DuelPreset.Daily && lineup.draft.isToday(available)
 
     /** Quick leaves its preset on the first edit; the Daily duel stays today-only whatever else changes. */
     private fun edited(): DuelDraft = if (preset == DuelPreset.Quick) copy(preset = DuelPreset.Custom) else this

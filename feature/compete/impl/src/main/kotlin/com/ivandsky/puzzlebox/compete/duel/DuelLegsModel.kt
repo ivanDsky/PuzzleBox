@@ -47,7 +47,7 @@ internal enum class LegAction { Start, Resume }
 
 /**
  * One puzzle's card: [action] is null once it is done; [actionEnabled] is false for an unstarted puzzle of a settled duel.
- * A [custom] puzzle whose title is known (DuelLineup on) is titled by it, with the game, its author and the code as the
+ * A [custom] puzzle whose title is known is titled by it, with the game, its author and the code as the
  * [subtitle]; else the title is the game and code and there is no subtitle.
  */
 internal data class LegRowModel(

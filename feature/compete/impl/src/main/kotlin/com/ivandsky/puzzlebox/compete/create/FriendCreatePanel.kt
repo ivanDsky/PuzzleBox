@@ -36,9 +36,8 @@ internal fun FriendCreatePanel(state: NewDuelState, actions: NewDuelActions) {
         PresetCard("Quick duel", "Best of 3 · mixed past dailies · 24 h", draft.preset == DuelPreset.Quick, actions.onQuick, "duel.preset.quick")
         PresetCard("Daily duel", "Today's puzzles · 24 h", draft.preset == DuelPreset.Daily, actions.onDaily, "duel.preset.daily") {
             if (draft.preset == DuelPreset.Daily) {
-                val rows = state.lineup?.takeIf { draft.showsRows(it, state.games) }
-                if (rows != null) {
-                    LineupPanel(rows, state.games, draft.includeFriends, actions.onEditLineup, fixed = true)
+                if (draft.showsRows(state.lineup, state.games)) {
+                    LineupPanel(state.lineup, state.games, draft.includeFriends, actions.onEditLineup, fixed = true)
                 } else {
                     DailyGames(state.games, draft, actions.onToggle)
                 }
@@ -50,7 +49,7 @@ internal fun FriendCreatePanel(state: NewDuelState, actions: NewDuelActions) {
             selected = draft.preset == DuelPreset.Custom,
             onClick = {
                 // Daily's rows hide the Customize body, so tapping Customize then takes the preset and opens it rather than closing it.
-                if (state.lineup != null && (!customizing || draft.showsRows(state.lineup, state.games))) {
+                if (!customizing || draft.showsRows(state.lineup, state.games)) {
                     actions.onCustomize()
                     customizing = true
                 } else {

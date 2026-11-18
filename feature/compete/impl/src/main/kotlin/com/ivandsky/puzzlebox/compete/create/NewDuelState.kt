@@ -26,13 +26,13 @@ internal data class NewDuelState(
     /** The name Past you's avatar takes its initial from: the player's own, "You" while signed out. */
     val selfName: String = "You",
     val self: SelfDuelView = SelfDuelView.initial(),
-    /** The lineup editor Customize shows instead of the puzzle count and games; null with DuelLineup off. It is Past you's own rows while Past you is chosen. */
-    val lineup: LineupEditor? = null,
+    /** The lineup editor Customize shows; it is Past you's own rows while Past you is chosen. */
+    val lineup: LineupEditor = LineupEditor(),
 ) {
     val canCreate: Boolean
         get() = !creating && when (opponent) {
             Opponent.Friend -> draft.games.isNotEmpty()
             // Customize's lineup is sent as it stands, so it needs a row and a solved puzzle to draw from; Quick draws by count.
-            Opponent.PastYou -> if (lineup != null && self.form.preset == DuelPreset.Custom) lineup.draft.entries.isNotEmpty() && !self.empty else self.canCreate
+            Opponent.PastYou -> if (self.form.preset == DuelPreset.Custom) lineup.draft.entries.isNotEmpty() && !self.empty else self.canCreate
         }
 }

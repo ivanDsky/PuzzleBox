@@ -26,7 +26,7 @@ class DuelSignInPanelTest {
     private var taps = 0
 
     private fun show(signIn: DuelSignIn) {
-        val actions = NewDuelActions({}, {}, {}, {}, {}, {}, {}, {}, { taps++ }, {})
+        val actions = NewDuelActions({}, {}, {}, {}, {}, {}, {}, { taps++ }, {})
         composeRule.setContent { PuzzleBoxTheme { SignInPanel(friend().copy(signIn = signIn), actions) } }
     }
 

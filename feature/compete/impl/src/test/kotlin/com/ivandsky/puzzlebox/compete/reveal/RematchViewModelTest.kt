@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.compete.reveal
 
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.log.FailureLog
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
@@ -24,7 +23,6 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
@@ -110,16 +108,16 @@ class RematchViewModelTest {
         }
     }
 
-    private fun viewModel(repo: MatchRepository = server, match: Match = played, flags: FakeReleaseFlags? = null) =
-        RematchViewModel(match, CreateMatch(repo, local, draw, identity, Random(CODE_SEED), ValidateExactPuzzles(FakeSharedPuzzleRepository())), selfDuel, releaseFlags = flags)
+    private fun viewModel(repo: MatchRepository = server, match: Match = played) =
+        RematchViewModel(match, CreateMatch(repo, local, draw, identity, Random(CODE_SEED), ValidateExactPuzzles(FakeSharedPuzzleRepository())), selfDuel)
 
     @Test
-    fun withTheLineupOnARematchKeepsTheDuelsGameOrder() = runTest {
+    fun aRematchKeepsTheDuelsGameOrder() = runTest {
         val custom = LegRef.Custom(beta, ShareCode.parse("M3N4P5")!!)
         val lineupDuel = played.copy(
             legs = listOf(MatchLeg(custom, "bob"), MatchLeg(LegRef.Daily(alpha, today.minusDays(1), 101), null), MatchLeg(LegRef.Daily(beta, today.minusDays(1), 102), null)),
         )
-        val on = viewModel(match = lineupDuel, flags = FakeReleaseFlags(ReleaseFlag.DuelLineup))
+        val on = viewModel(match = lineupDuel)
 
         on.send()
 
@@ -252,13 +250,13 @@ class RematchViewModelTest {
         legs = games.mapIndexed { i, game -> MatchLeg(LegRef.Daily(game, today.minusDays(1), 100 + i), authorUid = null) },
     )
 
-    private fun selfViewModel(self: Match, flags: FakeReleaseFlags) =
-        RematchViewModel(self, CreateMatch(server, local, draw, identity, Random(CODE_SEED), ValidateExactPuzzles(FakeSharedPuzzleRepository())), selfDuel, releaseFlags = flags)
+    private fun selfViewModel(self: Match) =
+        RematchViewModel(self, CreateMatch(server, local, draw, identity, Random(CODE_SEED), ValidateExactPuzzles(FakeSharedPuzzleRepository())), selfDuel)
 
     @Test
-    fun withTheLineupOnASelfDuelRematchKeepsTheGameOrder() = runTest {
+    fun aSelfDuelRematchKeepsTheGameOrder() = runTest {
         completions.setRecords((1..5).flatMap { listOf(record(alpha, it), record(beta, it + 10)) })
-        val vm = selfViewModel(selfDuelOf(listOf(beta, alpha, beta, beta, alpha)), FakeReleaseFlags(ReleaseFlag.DuelLineup))
+        val vm = selfViewModel(selfDuelOf(listOf(beta, alpha, beta, beta, alpha)))
 
         vm.send()
 
@@ -268,35 +266,14 @@ class RematchViewModelTest {
     }
 
     @Test
-    fun withTheLineupOffASelfDuelRematchIsTheRandomDrawEvenWhenTheOrderCouldNotBeKept() = runTest {
-        completions.setRecords(listOf(record(alpha, 1)) + (1..4).map { record(beta, it + 10) })
-        val vm = selfViewModel(selfDuelOf(listOf(alpha, beta, alpha)), FakeReleaseFlags())
-
-        vm.send()
-
-        assertEquals(3, vm.created.first().legs.size)
-    }
-
-    @Test
     fun aRefusedSelfLineupRematchIsTheGenericInviteNote() = runTest {
         completions.setRecords(listOf(record(alpha, 1)) + (1..4).map { record(beta, it + 10) })
-        val vm = selfViewModel(selfDuelOf(listOf(alpha, beta, alpha)), FakeReleaseFlags(ReleaseFlag.DuelLineup))
+        val vm = selfViewModel(selfDuelOf(listOf(alpha, beta, alpha)))
 
         vm.send()
 
         assertEquals(RematchState(note = "Couldn't send the invite. Try again."), vm.state.value)
         assertTrue(selfMatches.observeAll().first().isEmpty())
-    }
-
-    @Test
-    fun aSelfDuelRematchWithNothingToDrawIsANote() = runTest {
-        val self = played.copy(challenger = Player(SelfSeats.ME, "You", null), opponent = Player(SelfSeats.PAST, SelfSeats.PAST_NAME, null))
-        val vm = RematchViewModel(self, CreateMatch(server, local, draw, identity, Random(CODE_SEED), ValidateExactPuzzles(FakeSharedPuzzleRepository())), selfDuel)
-
-        vm.send()
-
-        assertEquals("There are no puzzles left to draw. Try again later.", vm.state.value.note)
-        assertFalse(vm.state.value.sending)
     }
 
     @Test
