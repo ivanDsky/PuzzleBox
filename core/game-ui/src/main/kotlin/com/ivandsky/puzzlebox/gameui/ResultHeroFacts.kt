@@ -12,6 +12,7 @@ import com.ivandsky.puzzlebox.game.RankOrder
  * [challenge] (L4) is the friend the Challenge row names; both are empty for a page that has none (a duel leg's).
  * [samePuzzle] (M10) is what the player's earlier solves of this very puzzle say; null (a duel leg) keeps the line that
  * compares with the game's best, and any value, even [SamePuzzleSolves.None], draws that line larger.
+ * [signInLine] (Result hero polish) puts the sign-in invitation under the time of a signed-out player's counting solve.
  */
 data class ResultHeroFacts(
     val timeMs: Long,
@@ -32,4 +33,5 @@ data class ResultHeroFacts(
     val moments: List<Moment>,
     val challenge: ResultPrimaryAction.ChallengeFriend?,
     val samePuzzle: SamePuzzleSolves?,
+    val signInLine: Boolean = false,
 )

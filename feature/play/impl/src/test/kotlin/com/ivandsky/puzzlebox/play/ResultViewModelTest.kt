@@ -959,6 +959,15 @@ class ResultViewModelTest {
     }
 
     @Test
+    fun `the hero sign-in line is asked for only with Result hero polish on`() {
+        solveLive()
+
+        assertTrue(vm(flags = FakeReleaseFlags(ReleaseFlag.ResultHeroPolish)).heroSignInLine)
+        assertFalse(vm(flags = FakeReleaseFlags()).heroSignInLine)
+        assertFalse(vm(flags = null).heroSignInLine)
+    }
+
+    @Test
     fun `a hints-first game picks its best by hints`() {
         val hintsFirst = FakeGames(listOf(alpha, beta), hintsRanked = setOf(alpha))
         val hintsStore = store(hintsFirst.games, hintsFirst.registry)
