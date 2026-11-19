@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ivandsky.puzzlebox.domain.ObserveMyDuels
+import com.ivandsky.puzzlebox.compete.domain.ObserveMyDuels
 import kotlinx.coroutines.flow.map
 import org.koin.compose.koinInject
 

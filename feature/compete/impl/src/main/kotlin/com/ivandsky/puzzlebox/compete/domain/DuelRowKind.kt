@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain
+package com.ivandsky.puzzlebox.compete.domain
 
 /**
  * What a duel row asks of the player; the first three need them (see [MyDuels.needYou]). [Finished] asks nothing:

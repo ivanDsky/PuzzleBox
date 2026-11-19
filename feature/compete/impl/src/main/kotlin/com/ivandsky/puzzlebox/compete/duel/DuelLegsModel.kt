@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.compete.duel
 
+import com.ivandsky.puzzlebox.compete.domain.revealReady
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.match.ResultPostState
@@ -7,7 +8,6 @@ import com.ivandsky.puzzlebox.data.match.isSelf
 import com.ivandsky.puzzlebox.domain.LegSeen
 import com.ivandsky.puzzlebox.domain.MatchView
 import com.ivandsky.puzzlebox.domain.lineup.LegName
-import com.ivandsky.puzzlebox.domain.revealReady
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode

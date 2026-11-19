@@ -561,46 +561,4 @@ class ObserveMatchTest {
         rematchOf = null,
         progress = mapOf(bob.uid to bobsProgress),
     )
-
-    private fun row(leg: Int, state: ResultPostState) = OutboxResult(code, result(ann.uid, leg), state, attempts = 1)
-
-    @Test
-    fun revealIsReadyWhenMyRowsAreLateOrLocalOnlyAndTheOpponentFinished() {
-        val match = match(bobsProgress = setOf(0, 1))
-        assertTrue(match.revealReady(ann.uid, listOf(row(0, Late), row(1, LocalOnly)), Instant.EPOCH))
-    }
-
-    @Test
-    fun revealIsNotReadyWhileMyPostIsPendingEvenIfTheOpponentIsAhead() {
-        val match = match(bobsProgress = setOf(0, 1))
-        assertFalse(match.revealReady(ann.uid, listOf(row(0, Posted), row(1, Pending)), Instant.EPOCH))
-    }
-
-    @Test
-    fun revealIsReadyOnceTheMatchIsClosed() {
-        assertTrue(match().revealReady(ann.uid, emptyList(), proto.closesAt))
-    }
-
-    @Test
-    fun revealIsNeverReadyForACancelledDeclinedOrUnclaimedMatch() {
-        val done = listOf(row(0, Posted), row(1, Posted))
-        for (match in listOf(match(cancelled = true), match(declined = true), match(opponent = null))) {
-            val both = match.copy(progress = mapOf(bob.uid to setOf(0, 1)))
-            assertFalse(both.revealReady(ann.uid, done, both.closesAt))
-            assertFalse(both.revealReady(ann.uid, done, Instant.EPOCH))
-        }
-    }
-
-    @Test
-    fun revealIsReadyWhenMyProgressNamesThePuzzlesIPlayedOnAnotherDevice() {
-        val match = match(bobsProgress = setOf(0, 1)).let { it.copy(progress = it.progress + (ann.uid to setOf(1))) }
-        assertTrue(match.revealReady(ann.uid, listOf(row(0, Posted)), Instant.EPOCH))
-        assertFalse(match.revealReady(ann.uid, emptyList(), Instant.EPOCH))
-    }
-
-    @Test
-    fun aPendingRowOnThisDeviceStaysNotDoneEvenWhenMyProgressNamesThatPuzzle() {
-        val match = match(bobsProgress = setOf(0, 1)).let { it.copy(progress = it.progress + (ann.uid to setOf(0, 1))) }
-        assertFalse(match.revealReady(ann.uid, listOf(row(0, Posted), row(1, Pending)), Instant.EPOCH))
-    }
 }

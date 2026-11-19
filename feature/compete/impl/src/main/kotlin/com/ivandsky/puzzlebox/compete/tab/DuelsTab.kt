@@ -30,9 +30,9 @@ import com.ivandsky.puzzlebox.compete.api.NewDuelKey
 import com.ivandsky.puzzlebox.compete.create.DuelChallenge
 import com.ivandsky.puzzlebox.compete.create.DuelChallengeSaver
 import com.ivandsky.puzzlebox.compete.create.NewDuelSheet
+import com.ivandsky.puzzlebox.compete.domain.DuelRow
+import com.ivandsky.puzzlebox.compete.domain.DuelRowKind
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.domain.DuelRow
-import com.ivandsky.puzzlebox.domain.DuelRowKind
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Instant
 import org.koin.androidx.compose.koinViewModel

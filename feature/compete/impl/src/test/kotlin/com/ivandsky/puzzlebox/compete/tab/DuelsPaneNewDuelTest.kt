@@ -6,14 +6,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assert
-import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -29,6 +29,7 @@ import com.ivandsky.puzzlebox.compete.create.NewDuelHarness
 import com.ivandsky.puzzlebox.compete.create.Opponent
 import com.ivandsky.puzzlebox.compete.create.newDuelModule
 import com.ivandsky.puzzlebox.compete.di.competeModule
+import com.ivandsky.puzzlebox.compete.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.MatchDraft
@@ -42,7 +43,6 @@ import com.ivandsky.puzzlebox.domain.LoadLegPuzzle
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.domain.ObserveDuel
 import com.ivandsky.puzzlebox.domain.ObserveMatch
-import com.ivandsky.puzzlebox.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.domain.UpdateMatchSeat
 import com.ivandsky.puzzlebox.domain.lineup.ObserveLegTitles
 import com.ivandsky.puzzlebox.domain.lineup.SaveDuelPuzzles

@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.compete.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.create.CreateViewModel
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.editor.EditorViewModel
@@ -348,6 +349,8 @@ class DiGraphTest : KoinTest {
             // A duel leg's result into the outbox, and the match leg screen's target.
             assertNotNull(koin.get<FinishLeg>())
             assertNotNull(koin.get<ObserveLegTarget>())
+            // The Duels tab's rows and its badge count.
+            assertNotNull(koin.get<ObserveMyDuels>())
             // The tablet play side panel's stats and the board gate beneath them.
             assertNotNull(koin.get<ObserveLeaderboard>())
             assertNotNull(koin.get<ObserveResultInsights>())

@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.compete.tab
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.compete.create.DuelChallenge
+import com.ivandsky.puzzlebox.compete.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.match.ClaimResult
 import com.ivandsky.puzzlebox.data.match.LegRef
@@ -12,7 +13,6 @@ import com.ivandsky.puzzlebox.data.match.MatchLeg
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.match.WriteResult
-import com.ivandsky.puzzlebox.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.domain.UpdateMatchSeat
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
@@ -20,9 +20,9 @@ import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
-import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchResultOutbox
+import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Instant
 import java.time.LocalDate

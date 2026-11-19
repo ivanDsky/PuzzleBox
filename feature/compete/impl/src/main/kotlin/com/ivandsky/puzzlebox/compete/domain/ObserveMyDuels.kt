@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain
+package com.ivandsky.puzzlebox.compete.domain
 
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.match.LocalMatch
@@ -17,6 +17,7 @@ import java.time.Duration
 import java.time.Instant
 import kotlin.time.toKotlinDuration
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,7 +32,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.flow.transformWhile
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.coroutineScope
 
 /**
  * The read model behind the Duels tab rows and the Play-tab badge. One `observeMine` listener, one `observe(code)`

@@ -17,7 +17,7 @@ dependencies {
     implementation(projects.core.auth)
     // MatchRepository, MatchResultOutbox and the match models the Duels screens observe (30 onward).
     implementation(projects.core.data)
-    // ObserveMyDuels, ComputeMatchOutcome and the other use cases the view models call (30 onward).
+    // ComputeMatchOutcome, ObserveMatch and the other shared use cases the view models call (30 onward).
     implementation(projects.core.domain)
     // RankOrder in DuelCompare's public signature (19b) and the leg game ids (36).
     implementation(projects.core.game)
@@ -35,4 +35,6 @@ dependencies {
     implementation(libs.koin.android)
 
     testImplementation(projects.core.testing)
+    // The duels-list use-case tests collect their flows with Turbine.
+    testImplementation(libs.turbine)
 }
