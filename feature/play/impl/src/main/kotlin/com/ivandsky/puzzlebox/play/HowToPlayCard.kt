@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AppShapes
@@ -27,7 +28,7 @@ import com.ivandsky.puzzlebox.designsystem.colors
 /**
  * How to play (06-a §How-to-play card): the game's three [LibraryRowModel.rules], each on
  * a numbered accent disc, and "Open the lesson" ([onOpenLesson]) below them;
- * [hasLesson] false hides it.
+ * [hasLesson] false hides it. A non-null [onMakeOwn] ends the card with "Make your own <Game>" in the same pill.
  */
 @Composable
 internal fun HowToPlayCard(
@@ -35,6 +36,7 @@ internal fun HowToPlayCard(
     hasLesson: Boolean,
     onOpenLesson: () -> Unit,
     modifier: Modifier = Modifier,
+    onMakeOwn: (() -> Unit)? = null,
 ) {
     val accent = row.card.brand.accent.colors()
     Column(
@@ -47,20 +49,28 @@ internal fun HowToPlayCard(
     ) {
         Eyebrow("HOW TO PLAY")
         row.rules.forEachIndexed { index, rule -> NumberedRule(index + 1, rule, accent) }
-        if (hasLesson) {
-            FilledTonalButton(
-                onClick = onOpenLesson,
-                shape = PillShape,
-                colors = ButtonDefaults.filledTonalButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    contentColor = MaterialTheme.colorScheme.onSurface,
-                ),
-                modifier = Modifier.height(48.dp).testTag("library.howto.lesson"),
-            ) {
-                Icon(PuzzleIcons.HowTo, contentDescription = null, modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(Spacing.sm))
-                Text("Open the lesson", style = MaterialTheme.typography.labelLarge)
+        if (hasLesson || onMakeOwn != null) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                if (hasLesson) CardPill(PuzzleIcons.HowTo, "Open the lesson", onOpenLesson, "library.howto.lesson")
+                onMakeOwn?.let { make -> CardPill(PuzzleIcons.Create, "Make your own ${row.card.name}", make, "library.howto.makeOwn") }
             }
         }
+    }
+}
+
+@Composable
+private fun CardPill(icon: ImageVector, text: String, onClick: () -> Unit, tag: String) {
+    FilledTonalButton(
+        onClick = onClick,
+        shape = PillShape,
+        colors = ButtonDefaults.filledTonalButtonColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        ),
+        modifier = Modifier.height(48.dp).testTag(tag),
+    ) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(Spacing.sm))
+        Text(text, style = MaterialTheme.typography.labelLarge)
     }
 }

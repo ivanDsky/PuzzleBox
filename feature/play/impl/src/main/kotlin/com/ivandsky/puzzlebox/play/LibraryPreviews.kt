@@ -190,6 +190,50 @@ internal fun GamePageTabletPreview() {
     }
 }
 
+// Preview: the phone page with MakeOwnLink on: no Make one bar, How to play ends with "Make your own Strands".
+@Preview(name = "Make own link", widthDp = 360, heightDp = 1900, showBackground = true)
+@Composable
+internal fun GamePageMakeOwnPhonePreview() {
+    val row = previewState().rows[3]
+    PuzzleBoxTheme {
+        Surface(color = MaterialTheme.colorScheme.background) {
+            GamePage(
+                row = row,
+                layout = PlayLayout.SinglePane,
+                dayCard = { PreviewDayCard(row) },
+                calendar = {},
+                onBack = {},
+                onOpenLesson = {},
+                board = { PreviewBoard(row.card.name) },
+                onMakeOne = {},
+                makeOwnLink = true,
+            )
+        }
+    }
+}
+
+// Preview: the tablet page with MakeOwnLink on.
+@Preview(name = "Tablet make own link", widthDp = 1400, heightDp = 1200)
+@Composable
+internal fun GamePageMakeOwnTabletPreview() {
+    val row = previewState().rows[3]
+    PuzzleBoxTheme {
+        Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.padding(Spacing.lg)) {
+            GamePage(
+                row = row,
+                layout = PlayLayout.TwoPane,
+                dayCard = { PreviewDayCard(row) },
+                calendar = {},
+                onBack = null,
+                onOpenLesson = {},
+                board = { PreviewBoard(row.card.name) },
+                onMakeOne = {},
+                makeOwnLink = true,
+            )
+        }
+    }
+}
+
 @Composable
 private fun PreviewBoard(gameName: String) {
     DailyBoard(

@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.play
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -31,7 +32,8 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The game page's "Make one": shown only when the app hands in a handler, on the phone and the tablet,
- * and it reports the game whose page it is on.
+ * and it reports the game whose page it is on. With [LocalMakeOwnLink] (backlog #1567) the button gives way to
+ * "Make your own Zip" at the end of How to play, reporting the same game.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -70,24 +72,26 @@ class GamePageMakeOneTest {
         koin?.close()
     }
 
-    private fun show(layout: PlayLayout, onMakeOne: ((GameId) -> Unit)?) {
+    private fun show(layout: PlayLayout, makeOwnLink: Boolean = false, hasLesson: Boolean = false, onMakeOne: ((GameId) -> Unit)?) {
         composeRule.setContent {
             PuzzleBoxTheme {
-                LibraryGamePage(
-                    row = row,
-                    page = null,
-                    month = null,
-                    layout = layout,
-                    calendar = CalendarActions(),
-                    onPlay = { _, _ -> },
-                    onRetry = {},
-                    onOpenLesson = {},
-                    onBack = null,
-                    offline = false,
-                    hasLesson = false,
-                    onOpenRanks = { _, _ -> },
-                    onMakeOne = onMakeOne,
-                )
+                CompositionLocalProvider(LocalMakeOwnLink provides makeOwnLink) {
+                    LibraryGamePage(
+                        row = row,
+                        page = null,
+                        month = null,
+                        layout = layout,
+                        calendar = CalendarActions(),
+                        onPlay = { _, _ -> },
+                        onRetry = {},
+                        onOpenLesson = {},
+                        onBack = null,
+                        offline = false,
+                        hasLesson = hasLesson,
+                        onOpenRanks = { _, _ -> },
+                        onMakeOne = onMakeOne,
+                    )
+                }
             }
         }
     }
@@ -114,5 +118,36 @@ class GamePageMakeOneTest {
         show(PlayLayout.SinglePane, onMakeOne = null)
         composeRule.waitForIdle()
         composeRule.onNodeWithTag("library.page.makeOne").assertDoesNotExist()
+    }
+
+    /** Bug it catches: the flag on but the full-width bar still drawn, or the link missing on the phone. */
+    @Test
+    fun `with the link flag on the phone has no Make one bar and How to play ends with Make your own Zip`() {
+        val made = mutableListOf<GameId>()
+        show(PlayLayout.SinglePane, makeOwnLink = true) { made += it }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("library.page.makeOne").assertDoesNotExist()
+        composeRule.onNodeWithTag("library.howto.makeOwn").performScrollTo().assertTextEquals("Make your own Zip").assertHasClickAction()
+        composeRule.onNodeWithTag("library.howto.makeOwn").performClick()
+        composeRule.runOnIdle { assertEquals(listOf(GameId("zip")), made) }
+    }
+
+    /** Bug it catches: the link wired for the phone only, so the tablet's right pane lost its way to the Studio. */
+    @Test
+    fun `with the link flag on the tablet opens the Studio on this game from the link`() {
+        val made = mutableListOf<GameId>()
+        show(PlayLayout.TwoPane, makeOwnLink = true, hasLesson = true) { made += it }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("library.page.makeOne").assertDoesNotExist()
+        composeRule.onNodeWithTag("library.howto.lesson").assertExists()
+        composeRule.onNodeWithTag("library.howto.makeOwn").performScrollTo().performClick()
+        composeRule.runOnIdle { assertEquals(listOf(GameId("zip")), made) }
+    }
+
+    @Test
+    fun `with the link flag on and no handler there is no link either`() {
+        show(PlayLayout.SinglePane, makeOwnLink = true, onMakeOne = null)
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("library.howto.makeOwn").assertDoesNotExist()
     }
 }

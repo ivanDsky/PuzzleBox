@@ -181,6 +181,24 @@ class LibraryViewModelTest {
         assertTrue(observedVm(releaseFlags = FakeReleaseFlags(PlayFlag.ArchiveMonthSwipe)).monthSwipe.value)
     }
 
+    /** Bug it catches: a build with the flag off losing its Make one button, or the debug flag never turning the link on. */
+    @Test
+    fun `the game page offers the Make your own link only with its flag on, live`() {
+        val on = MutableStateFlow<Set<ReleaseFlagKey>>(emptySet())
+        val vm = observedVm(releaseFlags = object : ReleaseFlags { override val enabled = on })
+        screen.launch { vm.makeOwnLink.collect {} }
+        dispatcher.scheduler.runCurrent()
+        assertFalse(vm.makeOwnLink.value)
+
+        on.value = setOf(PlayFlag.MakeOwnLink)
+        dispatcher.scheduler.runCurrent()
+        assertTrue(vm.makeOwnLink.value)
+
+        on.value = emptySet()
+        dispatcher.scheduler.runCurrent()
+        assertFalse(vm.makeOwnLink.value)
+    }
+
     /** Bug it catches: the debug switch read once at start, so flipping it in Settings needed an app restart to show. */
     @Test
     fun `flipping the swipe flag changes the calendar without a new view model`() {
