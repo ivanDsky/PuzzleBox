@@ -65,7 +65,7 @@ abstract class FriendResultGoldenScreenshots(private val device: String) {
 
     private fun capture(name: String, state: CustomResultState, dark: Boolean) {
         rule.showGolden(dark) {
-            UnderUpBar { CustomResultScreen(state, onDone = {}, onShare = {}, onPlayAgain = {}, onSignIn = {}) }
+            UnderUpBar { CustomResultHeroScreen(state, onDone = {}, onShare = {}, onPlayAgain = {}, onSignIn = {}) }
         }
         rule.settleAndCapture("friend", name, device, dark)
     }

@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.play
 
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.ivandsky.puzzlebox.common.di.commonModule
@@ -37,12 +36,9 @@ import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
-import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GameRegistry
-import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
-import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
@@ -52,7 +48,6 @@ import com.ivandsky.puzzlebox.play.domain.ListCommunityPuzzles
 import com.ivandsky.puzzlebox.play.domain.ObserveResultInsights
 import com.ivandsky.puzzlebox.play.domain.nextthing.ObserveResultNextThing
 import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
-import com.ivandsky.puzzlebox.resultui.ResultScreen
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
@@ -88,11 +83,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The win-moment coverage. [ResultScreen] (a friend puzzle's result): the header, the time
- * and the Hints tile; the pill rides the in-memory verdict, absent while the write is in
- * flight; a play again names the best it left standing; Done, Share and "Play again" hand back.
- * Then the daily [ResultRoute] on the hero page: its slot's live play, the key's facts alone,
- * and Next for the next unsolved game. Assertions ride tags, never copy.
+ * The win-moment coverage of the daily [ResultRoute] on the hero page: its slot's live play, the key's
+ * facts alone, and Next for the next unsolved game. Assertions ride tags, never copy.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -104,107 +96,6 @@ class ResultScreenTest {
 
     private val game = TestGames.alpha
     private val day = TestGames.definition(game).cadence.today()
-
-    private fun setContent(
-        verdict: RecordVerdict? = null,
-        previousBestMs: Long? = null,
-        previousHints: Int = 0,
-        rankOrder: RankOrder = RankOrder.TimeThenHints,
-        onDone: () -> Unit = {},
-        onShare: () -> Unit = {},
-        onPlayAgain: (() -> Unit)? = {},
-    ) {
-        composeRule.setContent {
-            PuzzleBoxTheme(darkTheme = false) {
-                ResultScreen(
-                    timeMs = 95_000,
-                    hintsUsed = 1,
-                    onDone = onDone,
-                    onShare = onShare,
-                    onPlayAgain = onPlayAgain,
-                    game = "Alpha",
-                    verdict = verdict,
-                    previousBest = previousBestMs?.let { BestScore(it, previousHints) },
-                    rankOrder = rankOrder,
-                )
-            }
-        }
-    }
-
-    @Test
-    fun `shows the header, the time and the hints tile`() {
-        setContent()
-        listOf("result.screen", "result.stamp", "result.label", "result.time", "result.tile.hints")
-            .forEach { composeRule.onNodeWithTag(it).assertExists() }
-        composeRule.onNodeWithTag("result.tile.streak").assertDoesNotExist()
-        composeRule.onNodeWithTag("result.tile.today").assertDoesNotExist()
-    }
-
-    @Test
-    fun `a record shows the pill and no play-again line`() {
-        setContent(verdict = RecordVerdict.NewBest)
-        composeRule.onNodeWithTag("result.record_badge").assertExists()
-        composeRule.onNodeWithTag("result.previous_best").assertDoesNotExist()
-    }
-
-    @Test
-    fun `record pill absent while the write is still in flight`() {
-        setContent(verdict = null, previousBestMs = 80_000)
-        composeRule.onNodeWithTag("result.record_badge").assertDoesNotExist()
-        composeRule.onNodeWithTag("result.previous_best").assertDoesNotExist()
-    }
-
-    @Test
-    fun `a play again claims no pill and says it was a play again`() {
-        setContent(verdict = RecordVerdict.PlayAgain, previousBestMs = 80_000)
-        composeRule.onNodeWithTag("result.record_badge").assertDoesNotExist()
-        composeRule.onNodeWithTag("result.previous_best").assertExists()
-    }
-
-    @Test
-    fun `a hints-first play again leads its best line with the hints`() {
-        setContent(verdict = RecordVerdict.PlayAgain, previousBestMs = 102_000, rankOrder = RankOrder.HintsThenTime)
-        composeRule.onNodeWithText("Practice · Best Perfect · 1:42").assertExists()
-    }
-
-    @Test
-    fun `a time-first best line never shows hints`() {
-        setContent(verdict = RecordVerdict.PlayAgain, previousBestMs = 80_000, previousHints = 2)
-        composeRule.onNodeWithText("Practice · Best 1:20").assertExists()
-    }
-
-    @Test
-    fun `play again hands back to navigation`() {
-        var playedAgain = 0
-        setContent(onPlayAgain = { playedAgain++ })
-        composeRule.onNodeWithTag("result.playAgain").performClick()
-        composeRule.runOnIdle { assertEquals(1, playedAgain) }
-    }
-
-    @Test
-    fun `share hands back to the route`() {
-        var shared = 0
-        setContent(onShare = { shared++ })
-        composeRule.onNodeWithTag("result.share").performClick()
-        composeRule.runOnIdle { assertEquals(1, shared) }
-    }
-
-    @Test
-    fun `done hands back and is the only primary step`() {
-        var done = 0
-        setContent(onDone = { done++ })
-        composeRule.onNodeWithTag("result.next").assertDoesNotExist()
-        composeRule.onNodeWithTag("result.all_done").assertDoesNotExist()
-        composeRule.onNodeWithTag("result.done").performClick()
-        composeRule.runOnIdle { assertEquals(1, done) }
-    }
-
-    @Test
-    fun `no play again when none is handed in`() {
-        setContent(onPlayAgain = null)
-        composeRule.onNodeWithTag("result.playAgain").assertDoesNotExist()
-        composeRule.onNodeWithTag("result.share").assertExists()
-    }
 
     /**
      * The route wiring end-to-end on the store: the slot's solved live play stamps the

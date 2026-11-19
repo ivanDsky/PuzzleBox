@@ -157,7 +157,6 @@ private fun ColumnScope.HeroPage(
             moments = next.moments,
             challenge = next.challenge,
             samePuzzle = state.samePuzzle,
-            signInLine = viewModel.heroSignInLine,
         ),
         onSignIn = { viewModel.signIn(context) },
         signInNote = signInNote,

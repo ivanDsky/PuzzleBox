@@ -123,7 +123,7 @@ class StrandsPublishOpenLoopE2ETest {
                 rule.onAllNodesWithTag("route.custom_result", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
             }
             assertRoute("route.custom_result")
-            awaitTag("result.record_badge")
+            awaitTag("result.hero.pill")
 
             val keys = runBlocking { graph.records.observeRecords().first() }.map { it.puzzleRef.key }
             assertEquals("the win is one custom record", 1, keys.size)

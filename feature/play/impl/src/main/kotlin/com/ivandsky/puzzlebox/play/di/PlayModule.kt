@@ -66,8 +66,8 @@ import org.koin.dsl.module
  * included) and the calendar from :core:data's dataModule, and the shared use cases (today's
  * set, history, stats, the rollover) from :core:domain's domainModule. The result's insights
  * ([ObserveResultInsights]) and next thing ([ObserveResultNextThing]), both Play's own, are
- * defined here: their Boolean follows [PlayFlag.ResultHeroPolish], and :core:domain reads no
- * flag (ADR-0022). The tablet stats panel's identity and leaderboard come from the backend
+ * defined here, as :core:domain reads no flag (ADR-0022). The tablet stats panel's identity and
+ * leaderboard come from the backend
  * module. This module names no game; friend puzzles' wiring is [friendModule]. From friends'
  * [ObserveFriendPuzzles] and [DeleteReceivedPuzzle] are here, as are Play's own use cases: the
  * archive month and progress, the tablet stats panel's [ObservePlayStats], a duel leg's
@@ -181,7 +181,6 @@ val playModule = module {
             history = get(),
             computeStreak = get(),
             puzzleDay = get(),
-            slowTail = get<ReleaseFlags>().isEnabled(PlayFlag.ResultHeroPolish),
         )
     }
     factory {
@@ -198,7 +197,6 @@ val playModule = module {
             puzzleDay = get(),
             nextRollover = get(),
             communityPuzzles = get(),
-            showDayTotal = get<ReleaseFlags>().isEnabled(PlayFlag.ResultHeroPolish),
         )
     }
     // The flag-as-parameter rule again: with it off the result never touches LinkedIn. The Post button's flag is
@@ -221,7 +219,6 @@ val playModule = module {
             board = get(),
             completions = get(),
             loadReplay = get(),
-            releaseFlags = get(),
             observePost = if (linkedIn) get() else null,
             submitPost = if (linkedIn) get() else null,
             nextThing = inject(),

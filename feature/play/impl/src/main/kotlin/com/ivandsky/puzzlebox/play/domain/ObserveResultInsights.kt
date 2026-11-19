@@ -30,14 +30,13 @@ import kotlinx.coroutines.flow.map
  * moment included: it is shown only for the first counted solve of the day, so a second game's
  * solve of a day another game already solved, never repeats it.
  * Archived days (A23) count in the spread but never in the streak or week, as in
- * [ObserveGameStats]. [slowTail] gathers slow solves into one open last bin of each spread.
+ * [ObserveGameStats]. Each spread gathers slow solves into one open last bin ([timeSpread]).
  */
 class ObserveResultInsights(
     private val registry: GameRegistry,
     private val history: ObserveGameHistory,
     private val computeStreak: ComputeStreak,
     private val puzzleDay: GetPuzzleDay,
-    private val slowTail: Boolean = false,
 ) {
 
     /**
@@ -69,8 +68,8 @@ class ObserveResultInsights(
                 week = weekEnding(today).map { date ->
                     ResultDay(date, solved = date in streakDays, today = date == today, frozen = date in freezes.frozenDays)
                 },
-                spread = timeSpread(earlier.map { it.second }, solve, order, slowTail),
-                weekday = weekdaySpread(earlier, day, solve, order, slowTail),
+                spread = timeSpread(earlier.map { it.second }, solve, order),
+                weekday = weekdaySpread(earlier, day, solve, order),
                 freezes = freezes,
                 moment = moment,
             )
@@ -78,11 +77,11 @@ class ObserveResultInsights(
     }
 }
 
-private fun weekdaySpread(earlier: List<Pair<LocalDate, BestScore>>, day: LocalDate, solve: BestScore, order: RankOrder, slowTail: Boolean): WeekdaySpread {
+private fun weekdaySpread(earlier: List<Pair<LocalDate, BestScore>>, day: LocalDate, solve: BestScore, order: RankOrder): WeekdaySpread {
     val byWeekday = earlier.groupBy({ it.first.dayOfWeek }, { it.second })
     val mine = byWeekday[day.dayOfWeek].orEmpty()
     val averages = byWeekday.filterValues { it.size >= WEEKDAY_MIN_EARLIER }.mapValues { (_, times) -> times.sumOf { it.timeMs } / times.size }
     val own = averages[day.dayOfWeek]
     val fastest = own != null && averages.size > 1 && averages.all { (weekday, average) -> weekday == day.dayOfWeek || average > own }
-    return WeekdaySpread(day.dayOfWeek, timeSpread(mine, solve, order, slowTail), fastest)
+    return WeekdaySpread(day.dayOfWeek, timeSpread(mine, solve, order), fastest)
 }

@@ -3,8 +3,6 @@ package com.ivandsky.puzzlebox.play
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
@@ -33,7 +31,6 @@ import com.ivandsky.puzzlebox.play.domain.linkedin.ObserveLinkedInPost
 import com.ivandsky.puzzlebox.play.domain.linkedin.SubmitLinkedInResult
 import com.ivandsky.puzzlebox.play.domain.nextUnsolved
 import com.ivandsky.puzzlebox.play.domain.nextthing.ObserveResultNextThing
-import com.ivandsky.puzzlebox.play.flags.PlayFlag
 import com.ivandsky.puzzlebox.play.friend.FriendPuzzleBoard
 import com.ivandsky.puzzlebox.resultui.LinkedInPostRowState
 import com.ivandsky.puzzlebox.resultui.ResultPrimaryAction
@@ -100,7 +97,6 @@ class ResultViewModel internal constructor(
     private val board: FriendPuzzleBoard,
     completions: CompletionRepository,
     loadReplay: LoadSolveReplay,
-    releaseFlags: ReleaseFlags,
     observePost: ObserveLinkedInPost? = null,
     submitPost: SubmitLinkedInResult? = null,
     nextThing: Lazy<ObserveResultNextThing>,
@@ -113,7 +109,6 @@ class ResultViewModel internal constructor(
     private val names: Map<GameId, String> = store.playable.toMap()
     private val today: Boolean = calendar.today(slot.gameId) == slot.day
     private val replayRow = ResultReplayRow(completions, loadReplay, solve, live.takeIf { liveHoldsSolve })
-    private val columns = releaseFlags.isEnabled(PlayFlag.ResultHeroPolish)
     private val share = ResultShare(slot)
     private val samePuzzleRows = ResultSamePuzzle(completions, solve, live.takeIf { liveHoldsSolve }, games.rankOrderOf(slot.gameId))
 
@@ -148,10 +143,9 @@ class ResultViewModel internal constructor(
     private val replay: Flow<ResultReplay> = refOfDay
         .flatMapLatest { ref -> if (ref == null || playUi?.replayBoard == null) flowOf(ResultReplay(ReplaySectionState.Hidden)) else replayRow.of(ref) }
 
-    /** The player's earlier solves of this puzzle; None for a practice puzzle. With Result hero polish on they are drawn as two columns. */
+    /** The player's earlier solves of this puzzle; None for a practice puzzle. */
     private val samePuzzle: Flow<SamePuzzleSolves> =
         refOfDay.flatMapLatest { ref -> ref?.let(samePuzzleRows::of) ?: flowOf(SamePuzzleSolves.None) }
-            .map { it.copy(columns = columns) }
 
     val state: StateFlow<ResultUiState> = combine(
         record,
@@ -221,9 +215,6 @@ class ResultViewModel internal constructor(
     val heroRank: StateFlow<ResultRank> =
         rank(slot.gameId, slot.day, connections = linkedIn?.invoke(slot.gameId, slot.day))
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), ResultRank.Hidden)
-
-    /** Result hero polish: the signed-out hero carries the sign-in invitation under the time. */
-    val heroSignInLine: Boolean = releaseFlags.isEnabled(PlayFlag.ResultHeroPolish)
 
     private val post = ResultPostButton(viewModelScope, observePost, submitPost, slot.gameId, slot.day)
 

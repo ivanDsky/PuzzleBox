@@ -19,7 +19,7 @@ import com.ivandsky.puzzlebox.resultui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.resultui.replay.ReplaySection
 
 /**
- * A community puzzle's result as the daily's hero page (Result hero polish): the same hero card, chip row and action row,
+ * A community puzzle's result as the daily's hero page: the same hero card, chip row and action row,
  * and on a wide screen the two-pane layout, with the puzzle's ranks list ([CustomBoard]) as the side card's body. On a
  * phone the ranks sit under the hero. Daily-only parts (streak, spread, moments, Challenge) have no facts here and draw nothing.
  */
@@ -57,7 +57,6 @@ internal fun CustomResultHeroScreen(
                 signIn = state.signIn,
                 onSignIn = onSignIn,
                 closed = state.boardClosed,
-                framed = false,
             )
         },
         replay = replayUi?.let { ui ->

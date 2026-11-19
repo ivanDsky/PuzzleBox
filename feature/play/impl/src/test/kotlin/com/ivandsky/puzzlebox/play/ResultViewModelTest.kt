@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
@@ -53,7 +52,6 @@ import com.ivandsky.puzzlebox.play.domain.ObserveResultInsights
 import com.ivandsky.puzzlebox.play.domain.linkedin.ObserveLinkedInPost
 import com.ivandsky.puzzlebox.play.domain.linkedin.SubmitLinkedInResult
 import com.ivandsky.puzzlebox.play.domain.nextthing.ObserveResultNextThing
-import com.ivandsky.puzzlebox.play.flags.PlayFlag
 import com.ivandsky.puzzlebox.play.friend.signedOutBoard
 import com.ivandsky.puzzlebox.resultui.LinkedInPostRowState
 import com.ivandsky.puzzlebox.resultui.ResultPrimaryAction
@@ -63,7 +61,6 @@ import com.ivandsky.puzzlebox.resultui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.resultui.board.GhostRowModel
 import com.ivandsky.puzzlebox.resultui.board.rankWithGhosts
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInPosts
@@ -183,7 +180,6 @@ class ResultViewModelTest {
         store: PlaySessionStore = this.store,
         identity: Identity? = null,
         linkedIn: Boolean = false,
-        flags: ReleaseFlags = FakeReleaseFlags(),
         post: Boolean = false,
     ): ResultViewModel {
         val history = ObserveGameHistory(games, daily, completions)
@@ -200,7 +196,6 @@ class ResultViewModelTest {
             insights = ObserveResultInsights(games, history, ComputeStreak(GetPuzzleDay(games, clock)), GetPuzzleDay(games, clock)),
             rank = ObserveResultRank(observeBoard, games, friendDay = null), // no Friends/Global setting
             linkedIn = if (linkedIn) ObserveLinkedInDay(linkedInDays, games) else null,
-            releaseFlags = flags,
             observePost = if (post) ObserveLinkedInPost(countedPosts) else null,
             submitPost = if (post) SubmitLinkedInResult(linkedInPosts) else null,
             board = signedOutBoard(),
@@ -655,6 +650,9 @@ class ResultViewModelTest {
     private var nextThingsBuilt = 0
     private val ann = ResultPrimaryAction.ChallengeFriend("ann", "ann")
 
+    /** This solve and the other game's solve, each [FakeController.TIME_MS] and hint-free. */
+    private val fullSet = Moment.FullSetDone(Moment.FullSetDone.DayTotal(timeMs = 2 * FakeController.TIME_MS, hints = 0))
+
     /** The real next-thing use case over this test's fakes, signed in as [ME]; counted, since a past day's result must never ask for it. */
     private fun nextThing(games: GameRegistry): ObserveResultNextThing {
         nextThingsBuilt++
@@ -701,7 +699,7 @@ class ResultViewModelTest {
 
         val vm = vm().observed()
 
-        assertEquals(listOf(Moment.PersonalBest, Moment.FullSetDone()), vm.nextFacts.value.moments)
+        assertEquals(listOf(Moment.PersonalBest, fullSet), vm.nextFacts.value.moments)
         assertEquals(ann, vm.primary.value)
         assertEquals(ann, vm.nextFacts.value.challenge)
     }
@@ -724,7 +722,7 @@ class ResultViewModelTest {
 
         val vm = vm().observed()
 
-        assertEquals(listOf(Moment.FullSetDone()), vm.nextFacts.value.moments)
+        assertEquals(listOf(fullSet), vm.nextFacts.value.moments)
         assertEquals(ann, vm.primary.value)
     }
 
@@ -928,28 +926,6 @@ class ResultViewModelTest {
 
         assertEquals(SamePuzzleSolves.Unread, vm.state.value.samePuzzle)
         assertEquals(SamePuzzleSolves.None, vm.observed().state.value.samePuzzle)
-    }
-
-    @Test
-    fun `with Result hero polish on the same-puzzle facts ask for the two columns, with it off they do not`() {
-        val before = FakeController.TIME_MS + 12_000
-        completions.setRecords(listOf(solve(before)))
-        solveLive()
-
-        val polished = FakeReleaseFlags(PlayFlag.ResultHeroPolish)
-        assertEquals(
-            SamePuzzleSolves(BestScore(before, 0), best = BestScore(before, 0), columns = true),
-            samePuzzle(vm(flags = polished)),
-        )
-        assertFalse(samePuzzle(vm()).columns)
-    }
-
-    @Test
-    fun `the hero sign-in line is asked for only with Result hero polish on`() {
-        solveLive()
-
-        assertTrue(vm(flags = FakeReleaseFlags(PlayFlag.ResultHeroPolish)).heroSignInLine)
-        assertFalse(vm(flags = FakeReleaseFlags()).heroSignInLine)
     }
 
     @Test

@@ -15,12 +15,6 @@ enum class PlayFlag(override val label: String, override val releaseDefault: Boo
     ArchiveMonthSwipe(label = "Archive calendar swipes between months (off: crossfade)", releaseDefault = false),
 
     /**
-     * Result hero polish (backlog #1162, #1170, #1171): previous and best as two labelled columns, a signed-out sign-in line
-     * under the time, and the day's total on the full-set moment. Read only in a ViewModel or a DI module (ADR-0022 §3).
-     */
-    ResultHeroPolish(label = "Result hero polish", releaseDefault = true),
-
-    /**
      * Game page's Make one as a link (backlog #1567): no full-width button; How to play ends with "Make your own <Game>"
      * beside "Open the lesson". Read only in [com.ivandsky.puzzlebox.play.LibraryViewModel] (ADR-0022 §3).
      */

@@ -34,7 +34,6 @@ import com.ivandsky.puzzlebox.play.friend.signedOutBoard
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
@@ -137,7 +136,6 @@ class ResultReplaySectionTest {
             completions = completions,
             loadReplay = loadSolveReplay(games, daily, completions),
             nextThing = lazy { error("this test never reads the next thing") },
-            releaseFlags = FakeReleaseFlags(),
             daily = daily,
         ).also { viewModel ->
             screen.launch { viewModel.state.collect {} }

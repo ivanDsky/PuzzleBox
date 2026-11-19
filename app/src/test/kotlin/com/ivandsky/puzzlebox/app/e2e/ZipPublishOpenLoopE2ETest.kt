@@ -111,7 +111,7 @@ class ZipPublishOpenLoopE2ETest {
                 rule.onAllNodesWithTag("route.custom_result", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
             }
             assertRoute("route.custom_result")
-            awaitTag("result.record_badge")
+            awaitTag("result.hero.pill")
             val records = runBlocking { graph.records.observeRecords().first() }
             assertEquals("the win is the one record, on the friend's board", code.value, (records.single().puzzleRef.key as PuzzleKey.Custom).puzzleId)
 
