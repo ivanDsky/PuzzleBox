@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The cache sub-directory share images are written to; the only path the share FileProvider exposes. -->
+<paths>
+    <cache-path name="share" path="share/" />
+</paths>
