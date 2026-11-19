@@ -2,9 +2,12 @@ package com.ivandsky.puzzlebox.domain.ranks
 
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.identity.IdentityService
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
+import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
+import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -21,25 +24,32 @@ import kotlinx.coroutines.flow.mapNotNull
  * domain's one Friends pipeline ([amongFriends]), the same the entry points' place uses; without LinkedIn ([linkedIn]
  * null) no connection is counted. Both Friends Overall ([ObserveFriendsOverall]) and the Ranks hub run their window's
  * read through [among], then [invoke].
+ *
+ * A board is read to its page (A23), so a viewer who placed past it has no entry on it. Their own [completions] place
+ * them there ([beyondPageEntries], A11), so the Friends boards of those days still rank them among their friends.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ObserveFriendBoards(
     private val observeFriendUids: ObserveFriendUids,
     private val identity: IdentityService,
+    private val completions: CompletionRepository,
     private val linkedIn: ObserveLinkedInDayView?,
 ) {
 
-    /** A window's [boards] as read, with the [players] Friends ranks on them. */
-    data class Among(val boards: RankWindowBoards, val players: Set<String>)
+    /** A window's [boards] as read, with the [players] Friends ranks on them and the viewer's entry on the boards they placed [own] past the page of. */
+    data class Among(val boards: RankWindowBoards, val players: Set<String>, val own: Map<LeaderboardRef, LeaderboardEntry>)
 
     /**
      * A window's [boards] (null while none has answered), each with the players Friends ranks on it: the viewer's
      * friends and the viewer themselves, followed as they change.
      */
     fun among(boards: Flow<Pair<RankWindow, RankWindowBoards>?>): Flow<Pair<RankWindow, Among>?> =
-        combine(boards, observeFriendUids(), identity.current) { answered, friends, me ->
-            answered?.let { (window, read) -> window to Among(read, friends + setOfNotNull(me?.uid)) }
+        combine(boards, observeFriendUids(), identity.current, completions.observeRecords()) { answered, friends, me, records ->
+            answered?.let { (window, read) -> window to Among(read, friends + setOfNotNull(me?.uid), ownBeyondPage(read, me, records)) }
         }
+
+    private fun ownBeyondPage(read: RankWindowBoards, me: Identity?, records: List<CompletionRecord>): Map<LeaderboardRef, LeaderboardEntry> =
+        if (read is RankWindowBoards.Boards && me != null) beyondPageEntries(read.boards.filterIsInstance<BoardLoad.Loaded>(), me, records) else emptyMap()
 
     /**
      * [boards] (null while they have not answered) among their players, with their connections counted. The boards
@@ -73,8 +83,8 @@ class ObserveFriendBoards(
     }
 
     private fun Among.counted(days: Map<LeaderboardRef, LinkedInDayView>, viewer: Identity?): CountedBoards {
-        val plain = boards.amongFriends(players)
-        return CountedBoards(plain, if (days.isEmpty()) plain else boards.amongFriends(players, days, viewer), days)
+        val plain = boards.amongFriends(players, viewerEntries = own)
+        return CountedBoards(plain, if (days.isEmpty()) plain else boards.amongFriends(players, days, viewer, own), days)
     }
 
     private fun Among?.refs(): List<LeaderboardRef> = (this?.boards as? RankWindowBoards.Boards)?.boards.orEmpty().map { it.board }

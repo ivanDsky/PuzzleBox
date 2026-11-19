@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.domain.ranks
 
 import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.data.leaderboard.BoardPage
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.linkedin.LinkState
@@ -14,7 +15,10 @@ import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
+import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
@@ -59,15 +63,19 @@ class ObserveFriendsOverallTest {
         ),
     )
 
-    private fun observe(linkedIn: Boolean = true) = ObserveFriendsOverall(
-        ObserveRankWindow(identity, leaderboard, FakeFinalBoardStore(), registry, FakeGameCalendar(today), clock),
-        ObserveFriendBoards(
-            ObserveFriendUids(matches, identity),
-            identity,
-            ObserveLinkedInDayView(ObserveLinkedInDay(days, registry), SyncLinkedInDay(days, 500), FakeLinkedInLink(), days).takeIf { linkedIn },
-        ),
-        ObserveOverall(identity, FakeCompletionRepository()),
-    )
+    private fun observe(linkedIn: Boolean = true, records: List<CompletionRecord> = emptyList()): ObserveFriendsOverall {
+        val completions = FakeCompletionRepository(records)
+        return ObserveFriendsOverall(
+            ObserveRankWindow(identity, leaderboard, FakeFinalBoardStore(), registry, FakeGameCalendar(today), clock),
+            ObserveFriendBoards(
+                ObserveFriendUids(matches, identity),
+                identity,
+                completions,
+                ObserveLinkedInDayView(ObserveLinkedInDay(days, registry), SyncLinkedInDay(days, 500), FakeLinkedInLink(), days).takeIf { linkedIn },
+            ),
+            ObserveOverall(identity, completions),
+        )
+    }
 
     private suspend fun befriend(uid: String) {
         val code = checkNotNull(ShareCode.parse("AAAAA2"))
@@ -126,6 +134,24 @@ class ObserveFriendsOverallTest {
         identity.signOut()
 
         assertEquals(OverallState.SignedOut, observe().invoke(RankWindow.Day(today), games).first { it != OverallState.Loading })
+    }
+
+    @Test
+    fun `a viewer who placed past the full page of a board still counts on it among their friends`() = runTest {
+        befriend("maya")
+        val board = LeaderboardRef(zip.value, today)
+        // 99 strangers and Maya fill the read page; the viewer's slower time is on the board's other 300 places, not on the page.
+        leaderboard.setEntries(board, (1..BoardPage.PAGE_SIZE - 1).map { entry("p$it", "P$it", zip, it * 100L) } + entry("maya", "Maya", zip, 62_000))
+        leaderboard.setCount(board, 400)
+        val posted = CompletionRecord(
+            TestGames.Ref(zip, PuzzleKey.Daily(today, 1)), time = 75_000, hints = 0, stats = RecordStats(1, "{}"),
+            firstCompletedAt = Instant.parse("2026-11-13T08:00:00Z"), isRecord = true,
+        )
+
+        val standings = (observe(linkedIn = false, records = listOf(posted)).invoke(RankWindow.Day(today), listOf(zip)).first { it is OverallState.Complete } as OverallState.Complete).standings
+
+        assertEquals(listOf("maya" to 1, "u1" to 2), standings.rows.map { it.uid to it.place })
+        assertEquals(listOf(100.0, 50.0), standings.rows.map { it.total })
     }
 
     @Test

@@ -95,7 +95,7 @@ val domainModule = module {
     factory { ObserveFriendUids(matches = get(), identity = get()) }
     factory { ObserveRankWindow(identity = get(), leaderboard = get(), finalBoards = get(), registry = get(), calendar = get()) }
     factory { ObserveOverall(identity = get(), completions = get()) }
-    factory { ObserveFriendBoards(observeFriendUids = get(), identity = get(), linkedIn = get()) }
+    factory { ObserveFriendBoards(observeFriendUids = get(), identity = get(), completions = get(), linkedIn = get()) }
     factory { ObserveFriendsOverall(observeRankWindow = get(), friendBoards = get(), observeOverall = get()) }
     factory {
         SubmitDailyReplay(
