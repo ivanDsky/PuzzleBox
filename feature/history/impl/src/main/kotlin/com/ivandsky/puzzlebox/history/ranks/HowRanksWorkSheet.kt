@@ -24,11 +24,14 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 internal const val RANKS_RULE =
     "Each Ranks list scores you by place, 100 points for first and fewer the more players are ahead of you, and Overall adds those scores up."
 
-/** The lead word of each line, then what it says: how a board orders, what Overall sums, and the unofficial and 100+ cases. */
-private val Rules = listOf(
+/**
+ * The lead word of each line, then what it says: how a board orders, what Overall sums, and the unofficial and 100+ cases.
+ * With [weekMonthPoints] (WeekMonthPoints) a game's Week and Month add up its daily scores instead of averaging.
+ */
+private fun rules(weekMonthPoints: Boolean) = listOf(
     "Per game" to "fastest time wins and fewer hints break a tie. Strands ranks hints first.",
     "Overall" to "your scores from every game's Ranks in the window. Players with the same total share a place.",
-    "Week and Month" to "each game ranks the average of the days you played.",
+    "Week and Month" to if (weekMonthPoints) "each game adds up your daily scores in the window." else "each game ranks the average of the days you played.",
     "Top 100" to "past that you see 100+ with no exact place, and your Overall total shows as at least (≥).",
     "Unofficial" to "a solve posted after its day's submit window closed stays on this device. Only you see it, marked. It earns no points and takes no one's place.",
 )
@@ -36,21 +39,21 @@ private val Rules = listOf(
 /** "How ranks work": the rule and what it means for ties, windows, the cap and unofficial solves. [onDismiss] closes it. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun HowRanksWorkSheet(onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+internal fun HowRanksWorkSheet(onDismiss: () -> Unit, modifier: Modifier = Modifier, weekMonthPoints: Boolean = false) {
     AppModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier.testTag("ranks.how.sheet")) {
-        HowRanksWork()
+        HowRanksWork(weekMonthPoints)
     }
 }
 
 @Composable
-private fun HowRanksWork() {
+private fun HowRanksWork(weekMonthPoints: Boolean = false) {
     Column(
         Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.xl),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         Text("How ranks work", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
         Text(RANKS_RULE, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
-        Rules.forEach { (lead, rest) ->
+        rules(weekMonthPoints).forEach { (lead, rest) ->
             Text(
                 buildAnnotatedString {
                     withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)) { append(lead) }

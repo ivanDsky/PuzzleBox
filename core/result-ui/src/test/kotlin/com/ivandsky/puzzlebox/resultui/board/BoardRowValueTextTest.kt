@@ -75,6 +75,14 @@ class BoardRowValueTextTest {
     }
 
     @Test
+    fun `a game's week of daily points reads as points over the days it counts`() {
+        assertEquals("286 pts", text(BoardRowValue.DayPoints(286.0, days = 5, atLeast = false)))
+        assertEquals("≥286 pts", text(BoardRowValue.DayPoints(286.0, days = 5, atLeast = true), RankOrder.HintsThenTime))
+        assertEquals("5 days", boardRowValueDetail(BoardRowValue.DayPoints(286.0, days = 5, atLeast = false)))
+        assertEquals("1 day", boardRowValueDetail(BoardRowValue.DayPoints(100.0, days = 1, atLeast = false)))
+    }
+
+    @Test
     fun `a row with no value of its own keeps its time and hints`() {
         val row = DailyBoardRowModel(1, "Maya", 62_000L, 2, isSelf = false, playerId = "maya")
 

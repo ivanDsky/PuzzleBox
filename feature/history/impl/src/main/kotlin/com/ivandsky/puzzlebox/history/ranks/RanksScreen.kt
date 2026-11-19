@@ -86,7 +86,7 @@ internal fun RanksScreen(
         }
     }
     if (tuning && tuneDefaults != null) TuneSheet(tuneDefaults, onDismiss = { tuning = false })
-    if (howRanksWork) HowRanksWorkSheet(onDismiss = { howRanksWork = false })
+    if (howRanksWork) HowRanksWorkSheet(onDismiss = { howRanksWork = false }, weekMonthPoints = shown.weekMonthPoints)
     playerSheet?.let {
         PlayerSheet(
             it,

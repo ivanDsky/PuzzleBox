@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.history.ranks
 
 import com.ivandsky.puzzlebox.domain.ranks.BoardLoad
 import com.ivandsky.puzzlebox.domain.ranks.GameWindowStandings
+import com.ivandsky.puzzlebox.domain.ranks.OverallStandings
 import com.ivandsky.puzzlebox.domain.ranks.RankWindowBoards
 import com.ivandsky.puzzlebox.domain.ranks.RankedBoard
 import com.ivandsky.puzzlebox.domain.ranks.gameWindowStandings
@@ -20,10 +21,17 @@ import kotlin.math.roundToInt
 /**
  * One game's board out of the hub's shared window boards (null = no answer for this window yet),
  * so a swipe to a game reads nothing of its own. A day ranks that day's entries by [order]; a week
- * or month ranks each player by the average over the days they played. Rows are keyed by
+ * or month ranks each player by the average over the days they played, or with [points]
+ * (WeekMonthPoints) by the standings it gives for the game's loaded days. Rows are keyed by
  * player uid, so the same list re-ranks when the board changes.
  */
-internal fun RankWindowBoards?.toGameBoardState(game: GameId, order: RankOrder, kind: Window, selfUid: String?): DailyBoardState {
+internal fun RankWindowBoards?.toGameBoardState(
+    game: GameId,
+    order: RankOrder,
+    kind: Window,
+    selfUid: String?,
+    points: ((List<BoardLoad.Loaded>) -> OverallStandings)? = null,
+): DailyBoardState {
     val boards = when (this) {
         null -> return DailyBoardState.Loading
         RankWindowBoards.SignedOut -> return DailyBoardState.SignedOut
@@ -37,10 +45,11 @@ internal fun RankWindowBoards?.toGameBoardState(game: GameId, order: RankOrder, 
             else -> DailyBoardState.Ranked(emptyList())
         }
     }
-    val ranked = loaded.map { rankBoard(it.board, it.page.entries, it.order, it.page.count) }
-    val rows = when (kind) {
-        Window.Day -> ranked.flatMap(RankedBoard::rows).map { it.toRow(selfUid) }
-        Window.Week, Window.Month -> gameWindowStandings(ranked, order).rows.map { it.toRow(selfUid) }
+    fun ranked() = loaded.map { rankBoard(it.board, it.page.entries, it.order, it.page.count) }
+    val rows = when {
+        kind == Window.Day -> ranked().flatMap(RankedBoard::rows).map { it.toRow(selfUid) }
+        points != null -> points(loaded).pointRows(selfUid) { BoardRowValue.DayPoints(it.total, it.games, atLeast = it.truncated) }
+        else -> gameWindowStandings(ranked(), order).rows.map { it.toRow(selfUid) }
     }
     return DailyBoardState.Ranked(rows)
 }

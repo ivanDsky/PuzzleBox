@@ -223,7 +223,8 @@ internal fun DailyBoardLinkedInTimePreview() = Padded {
     }
 }
 
-// The row values: a day's time, a Week or Month average (and the Strands voice), points, a lower bound, and the marks.
+// The row values: a day's time, a Week or Month average (and the Strands voice), points, a lower bound, a game's
+// Week or Month points over its days, and the marks.
 @PuzzleBoxPreviews
 @Composable
 internal fun DailyBoardRowValuesPreview() = Padded {
@@ -235,6 +236,7 @@ internal fun DailyBoardRowValuesPreview() = Padded {
         DailyBoardRow(Rows[2].copy(value = average), RankOrder.HintsThenTime)
         DailyBoardRow(Rows[0].copy(value = points), RankOrder.TimeThenHints)
         DailyBoardRow(Rows[1].copy(value = points.copy(atLeast = true)), RankOrder.TimeThenHints)
+        DailyBoardRow(Rows[2].copy(value = BoardRowValue.DayPoints(286.0, days = 5, atLeast = false)), RankOrder.TimeThenHints)
     }
 }
 

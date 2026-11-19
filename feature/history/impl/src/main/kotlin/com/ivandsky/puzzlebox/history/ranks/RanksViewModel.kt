@@ -126,6 +126,9 @@ internal class RanksViewModel(
 
     /** The tab's hub on Today's large top bar (MainTabsLargeBar), read once like [tuneBoardOnly]. */
     private val largeBar = releaseFlags.isEnabled(TopBarFlag.MainTabsLargeBar)
+    /** A game's Week and Month add up its daily place points (WeekMonthPoints), read once the same way. */
+    private val weekMonthPoints = releaseFlags.isEnabled(HistoryFlag.WeekMonthPoints)
+
     // The LinkedIn part of the hub (the line, the pull's sync) exists only with RanksFreshness on and LinkedIn in the graph.
     private val freshLinkedIn = linkedIn.takeIf { releaseFlags.isEnabled(HistoryFlag.RanksFreshness) }
     private val freshness = freshLinkedIn?.let { RanksFreshness(clock) }
@@ -197,7 +200,7 @@ internal class RanksViewModel(
 
     private val local = combine(calendarState, stats, yourSolve, nudge, playThisDay, ::Local)
 
-    private val slices = RanksBoardSlices(boards, window, scopedBoards::of, observeOverall, viewer, history, calendar, registry, { daily.linkedInGameTypeId(it) != null }, BoardGhosts(linkedIn), freshness)
+    private val slices = RanksBoardSlices(boards, window, scopedBoards::of, observeOverall, viewer, history, calendar, registry, { daily.linkedInGameTypeId(it) != null }, BoardGhosts(linkedIn), freshness, weekMonthPoints)
 
     /**
      * Every board as its slot draws it in the picked scope, with that scope: the one a swipe scrubs to is already
@@ -217,11 +220,11 @@ internal class RanksViewModel(
     ) { (scope, slices), signIn, position, local, kind ->
         val slice = slices.getOrElse(position) { slices.first() }
         val places = boardPlaces(boards, registry, playRegistry::brandOf, slices)
-        RanksUiState(slice, signIn, position, boards.size, local.calendar, local.stats, local.yourSolve, scope, kind, places, local.nudge, slices, local.playThisDay, largeBar)
+        RanksUiState(slice, signIn, position, boards.size, local.calendar, local.stats, local.yourSolve, scope, kind, places, local.nudge, slices, local.playThisDay, largeBar, weekMonthPoints)
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
-        RanksUiState(overallSlice(RanksSelection.Window.Day, null, OverallState.Loading, null), largeBar = largeBar),
+        RanksUiState(overallSlice(RanksSelection.Window.Day, null, OverallState.Loading, null), largeBar = largeBar, weekMonthPoints = weekMonthPoints),
     )
 
     /** Applies one of [RanksSelection]'s transitions; the policy stays in the value. */
