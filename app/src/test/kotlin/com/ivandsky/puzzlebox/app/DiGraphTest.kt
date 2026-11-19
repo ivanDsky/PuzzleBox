@@ -46,6 +46,7 @@ import com.ivandsky.puzzlebox.data.visibility.HiddenPuzzles
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.domain.AppBuild
 import com.ivandsky.puzzlebox.domain.ComputeStreak
+import com.ivandsky.puzzlebox.domain.CreateSelfDuel
 import com.ivandsky.puzzlebox.domain.GetFeaturedGame
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.LoadSolveReplay
@@ -365,6 +366,8 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<RecordRevealSeen>())
             assertNotNull(koin.get<ObserveLegTitles>())
             assertNotNull(koin.get<SaveDuelPuzzles>())
+            // The New duel sheet's and the rematch sheet's self-duel create.
+            assertNotNull(koin.get<CreateSelfDuel>())
             // The tablet play side panel's stats and the board gate beneath them.
             assertNotNull(koin.get<ObserveLeaderboard>())
             assertNotNull(koin.get<ObserveResultInsights>())
