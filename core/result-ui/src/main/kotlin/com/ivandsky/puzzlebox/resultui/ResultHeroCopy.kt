@@ -73,6 +73,17 @@ internal fun heroBestLine(
     }
 }
 
+/**
+ * The hero's one line for a first solve of this puzzle that is not a new best, in place of the gap to the game's best:
+ * "2nd fastest of your 5 Zip", the same words as the chart's verdict. Null when [spread] has no rank to name
+ * (a first solve of the game, or the fastest of them).
+ */
+internal fun heroRankLine(order: RankOrder, spread: TimeSpread, game: String): String? =
+    if (spread.isFirstSolve || spread.best) null else "${ordinal(spread.rank)} ${rankQuality(order)} of your ${spread.solves} $game"
+
+/** A hints-first game says "best" for "fastest". */
+private fun rankQuality(order: RankOrder): String = if (order == RankOrder.TimeThenHints) "fastest" else "best"
+
 /** The streak card's title: "7 day streak". */
 internal fun heroStreakTitle(days: Int): String = "$days day streak"
 
@@ -149,7 +160,7 @@ internal fun heroSpreadVerdict(
         val lead = "First $weekday"
         return Emphasized("$lead — no earlier $weekday $game to compare with yet.$playAgainNote", lead.indices)
     }
-    val quality = if (order == RankOrder.TimeThenHints) "fastest" else "best"
+    val quality = rankQuality(order)
     val lead = when {
         spread.best && weekdayScope -> "${quality.replaceFirstChar { it.uppercase() }} $weekday"
         spread.best -> "${quality.replaceFirstChar { it.uppercase() }} ever"
