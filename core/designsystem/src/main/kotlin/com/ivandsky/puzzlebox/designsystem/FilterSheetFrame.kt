@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.designsystem
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -30,8 +29,8 @@ internal fun FilterSheetFrame(title: String, onDismiss: () -> Unit, modifier: Mo
     val scope = rememberCoroutineScope()
     AppModalBottomSheet(
         onDismissRequest = onDismiss,
+        // No height cap here: Material applies this modifier before its anchors, which would then take the cap as the full height and float the sheet. FilterOptionList caps itself.
         modifier = modifier
-            .heightIn(max = filterSheetMaxHeight())
             .semantics { paneTitle = title }
             .then(if (tag == null) Modifier else Modifier.testTag("$tag.sheet")),
         sheetState = sheetState,

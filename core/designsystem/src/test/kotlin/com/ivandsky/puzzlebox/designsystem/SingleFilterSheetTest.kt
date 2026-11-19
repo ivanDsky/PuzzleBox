@@ -34,6 +34,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onParent
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
@@ -151,6 +152,9 @@ class SingleFilterSheetTest {
 
     private fun top(tag: String) = node(tag).getUnclippedBoundsInRoot().top
 
+    // The tagged sheet node sits outside Material's offset, so its own bounds never move; the list is the sheet's last child and ends a Spacing.xl padding above where the sheet does.
+    private fun listBottom() = node("x.filter.game.all").onParent().getUnclippedBoundsInRoot().bottom
+
     private fun collapsed() = SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Collapsed")
 
     private fun expanded() = SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Expanded")
@@ -264,11 +268,23 @@ class SingleFilterSheetTest {
     }
 
     @Test
-    fun `a long list scrolls inside a sheet no taller than 92 percent of the window`() {
+    fun `a settled sheet touches the bottom of the window, short or long`() {
+        showSheet()
+        assertEquals(windowHeight.value, (listBottom() + Spacing.xl).value, 1f)
+    }
+
+    @Test
+    fun `a settled long sheet touches the bottom of the window`() {
+        showSheet(List(30) { option("r$it", "Row $it") })
+        assertEquals(windowHeight.value, (listBottom() + Spacing.xl).value, 1f)
+    }
+
+    @Test
+    fun `a long list scrolls inside a sheet shorter than the window`() {
         val many = List(30) { option("r$it", "Row $it") }
         showSheet(many)
 
-        assertTrue(node("x.filter.game.sheet").getUnclippedBoundsInRoot().height <= windowHeight * 0.92f + 0.5.dp)
+        assertTrue(node("x.filter.game.sheet").getUnclippedBoundsInRoot().height < windowHeight)
         node("opt.r29").assertIsNotDisplayed()
         composeRule.mainClock.autoAdvance = true
         node("opt.r29").performScrollTo().assertIsDisplayed()
