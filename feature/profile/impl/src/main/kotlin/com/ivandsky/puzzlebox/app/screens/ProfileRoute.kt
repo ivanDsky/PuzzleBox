@@ -12,7 +12,8 @@ import org.koin.core.parameter.parametersOf
 /**
  * Profile's DI-bound entry point. [onBack] and [onOpenSettings] are the top bar's back icon
  * and gear. A non-null [onConnectLinkedIn] (the shell's LinkedIn switch) opens the LinkedIn row and makes the
- * view model resolve the link; null resolves nothing LinkedIn.
+ * view model resolve the link; null resolves nothing LinkedIn. A non-null [onOpenInsights] (the shell's Insights
+ * switch) adds the Insights row; null draws none.
  */
 @Composable
 fun ProfileRoute(
@@ -20,6 +21,7 @@ fun ProfileRoute(
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
     onConnectLinkedIn: (() -> Unit)? = null,
+    onOpenInsights: (() -> Unit)? = null,
     viewModel: ProfileViewModel = koinViewModel(parameters = { parametersOf(onConnectLinkedIn != null) }),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -37,6 +39,7 @@ fun ProfileRoute(
         onOpenSettings = onOpenSettings,
         nowMs = nowMs,
         onConnectLinkedIn = onConnectLinkedIn,
+        onOpenInsights = onOpenInsights,
         onResumeLinkedIn = viewModel::onResumeLinkedIn,
         onDisconnectLinkedIn = viewModel::onDisconnectLinkedIn,
         onSetLinkedInPosting = viewModel::onSetLinkedInPosting,

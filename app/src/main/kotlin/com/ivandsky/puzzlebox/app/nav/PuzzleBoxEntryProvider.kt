@@ -20,6 +20,7 @@ import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.home.HomeSummaries
 import com.ivandsky.puzzlebox.home.navigation.homeEntry
+import com.ivandsky.puzzlebox.insights.api.InsightsRecapKey
 import com.ivandsky.puzzlebox.insights.navigation.insightsEntry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.Navigator
@@ -65,7 +66,8 @@ import java.time.LocalDate
  *
  * Today's day and streak summaries open the hub ([homeSummaries]), and the hub takes [tuneDefaults] for its Tune sheet.
  * Profile's own pages (Settings, the LinkedIn login, the catalog) stack on Profile inside the layer above the tabs
- * ([Navigator.pushLayer]).
+ * ([Navigator.pushLayer]). [onOpenInsights] (null: Insights is off, see [insightsOpener]) is Profile's Insights row;
+ * the hub opens a month's recap as a layer page too.
  */
 internal fun puzzleBoxEntryProvider(
     navigator: Navigator,
@@ -80,6 +82,7 @@ internal fun puzzleBoxEntryProvider(
     libraryRequests: LibraryRequests = LibraryRequests(),
     visibility: VisibilitySlot,
     tuneDefaults: RanksTuneDefaults,
+    onOpenInsights: (() -> Unit)? = null,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
     homeEntry(
         navigator,
@@ -123,11 +126,12 @@ internal fun puzzleBoxEntryProvider(
         onOpenSettings = { navigator.pushLayer(SettingsKey) },
         onOpenLinkedInLogin = { navigator.pushLayer(LinkedInLoginKey) },
         onOpenWhatsNew = { navigator.pushLayer(WhatsNewKey) },
+        onOpenInsights = onOpenInsights,
         debugSections = { DebugSettingsSlot(openGame = { navigator.pushOnce(GameKey(it)) }) },
         visibility = visibility,
     )
     competeEntry(navigator, playLayout)
-    insightsEntry()
+    insightsEntry(onBack = back, onOpenRecap = { period -> navigator.pushLayer(InsightsRecapKey(period)) })
     entry<CatalogKey> { CatalogScreen() }
 }
 

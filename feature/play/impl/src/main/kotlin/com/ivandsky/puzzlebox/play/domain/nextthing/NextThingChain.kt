@@ -2,12 +2,9 @@ package com.ivandsky.puzzlebox.play.domain.nextthing
 
 import com.ivandsky.puzzlebox.common.log.FailureLog
 import com.ivandsky.puzzlebox.common.log.LogcatFailureLog
-import kotlin.coroutines.cancellation.CancellationException
+import com.ivandsky.puzzlebox.domain.guardedAsk
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * The next-thing chain (L3): asks [providers] one at a time, lowest [NextThingProvider.order] first, and
@@ -30,16 +27,7 @@ internal class NextThingChain(
     }
 
     private suspend fun ask(provider: NextThingProvider, facts: NextThingFacts): NextThing? =
-        try {
-            withTimeoutOrNull(timeout) { provider.offer(facts) }
-        } catch (e: CancellationException) {
-            // The caller leaving cancels the chain; a provider whose own work was cancelled is only nothing.
-            currentCoroutineContext().ensureActive()
-            null
-        } catch (e: Exception) {
-            failures.warn(TAG, "next-thing provider ${provider::class.simpleName} failed", e)
-            null
-        }
+        guardedAsk(failures, TAG, "next-thing provider ${provider::class.simpleName}", timeout) { provider.offer(facts) }
 
     private companion object {
         const val TAG = "NextThingChain"
