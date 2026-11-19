@@ -1,7 +1,9 @@
 package com.ivandsky.puzzlebox.history.di
 
+import com.ivandsky.puzzlebox.common.di.flagSet
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.history.flags.HistoryFlag
 import com.ivandsky.puzzlebox.history.ranks.PlayerSheetViewModel
 import com.ivandsky.puzzlebox.history.ranks.RanksSelection
 import com.ivandsky.puzzlebox.history.ranks.RanksViewModel
@@ -15,9 +17,12 @@ import org.koin.dsl.module
  * [com.ivandsky.puzzlebox.game.GameRegistry] and the game brands
  * ([com.ivandsky.puzzlebox.gameui.GamePlayRegistry]) from the app's aggregation (ADR-0001);
  * [com.ivandsky.puzzlebox.data.cloud.CloudSync], which says whether history is still being restored, comes from the data graph.
- * The Ranks hub's [RanksViewModel] and its [PlayerSheetViewModel] and [ReplayOptInViewModel] are bound here.
+ * The Ranks hub's [RanksViewModel] and its [PlayerSheetViewModel] and [ReplayOptInViewModel] are bound here, and the
+ * feature's release flags ([HistoryFlag]) are declared here.
  */
 val historyModule = module {
+    flagSet("history", HistoryFlag.entries)
+
     // The LinkedIn flag and where the hub opens arrive as parameters, so a graph without LinkedIn bindings builds the hub with it off (ghosts read nothing).
     viewModel { params ->
         val opening = (params.getOrNull<RanksSelection>() ?: RanksSelection()).landing(rankBoards(get<GameRegistry>()), get<GameCalendar>()::today)

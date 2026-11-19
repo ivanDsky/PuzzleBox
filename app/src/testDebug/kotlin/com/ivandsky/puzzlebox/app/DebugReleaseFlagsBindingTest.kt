@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.app.debug.flags.DebugReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.DeclaredFlags
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.history.flags.HistoryFlag
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
@@ -42,7 +43,7 @@ class DebugReleaseFlagsBindingTest {
         }
     }
 
-    /** The Release flags section lists the app's declared flags; today that is the central enum, in its own order. */
+    /** The Release flags section lists the app's declared flags, set by set in owner order; the central enum keeps its own order. */
     @Test
     fun `debug graph declares the central flags in their enum order`() {
         val koin = startKoin {
@@ -50,8 +51,24 @@ class DebugReleaseFlagsBindingTest {
             modules(PuzzleBoxApplication.appModules)
         }.koin
         try {
-            assertEquals(ReleaseFlag.entries, koin.get<DeclaredFlags>().all)
-            assertEquals(ReleaseFlag.entries, koin.get<DebugReleaseFlags>().declared)
+            val declared = koin.get<DeclaredFlags>().all
+            assertEquals(ReleaseFlag.entries, declared.filterIsInstance<ReleaseFlag>())
+            assertEquals(declared, koin.get<DebugReleaseFlags>().declared)
+        } finally {
+            stopKoin()
+        }
+    }
+
+    /** An owner enum whose set the graph never registers reads as off even where its default is on; this catches it. */
+    @Test
+    fun `debug graph declares every owner enum's flags`() {
+        val koin = startKoin {
+            androidContext(RuntimeEnvironment.getApplication())
+            modules(PuzzleBoxApplication.appModules)
+        }.koin
+        try {
+            val keys = koin.get<DeclaredFlags>().all.map { it.key }
+            assertTrue(keys.containsAll(HistoryFlag.entries.map { it.key }))
         } finally {
             stopKoin()
         }

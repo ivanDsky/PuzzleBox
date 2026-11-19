@@ -19,7 +19,7 @@ object P15FlagSetRegistered : Rule {
      * The central entries on the day it froze. It only shrinks: a name the enum no longer has is stale, and an entry
      * that is not here is added.
      */
-    private val FROZEN = setOf("ResultHeroPolish", "HintPolish", "RanksFreshness", "ZipDotPulse", "SheetScreens")
+    private val FROZEN = setOf("ResultHeroPolish", "HintPolish", "ZipDotPulse", "SheetScreens")
 
     /** The one module that may register another module's flags: the app wires a module with no Koin (core:game-ui). */
     private const val APP = ":app"
