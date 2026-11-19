@@ -23,6 +23,13 @@ enum class HistoryFlag(override val label: String, override val releaseDefault: 
      * module (ADR-0022 §3).
      */
     GamesFilter(label = "Ranks Games filter (All games or LinkedIn games)", releaseDefault = false),
+
+    /**
+     * Settings' Ranks block gets a "LinkedIn games only" switch, the default the hub opens on (backlog #1770; the Tune
+     * sheet that used to set it is gone). The hub lands on it only while [GamesFilter] is on too. Read only in a DI
+     * module (ADR-0022 §3): the app binds the profile feature's `RanksLinkedInRow` from it.
+     */
+    RanksLinkedInDefault(label = "Settings: Ranks LinkedIn games default row", releaseDefault = false),
     ;
 
     /** The entry's own name: the stored override's key in `release_flags`. Never change it. */
