@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.play
 
+import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyAncestor
@@ -34,11 +35,15 @@ import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
+import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.community.ALPHA
 import com.ivandsky.puzzlebox.play.community.CommunityFixture
 import com.ivandsky.puzzlebox.play.community.HOUR
@@ -101,6 +106,7 @@ class LibraryRandomPageRouteTest {
     private val alpha = TestGames.alpha
     private val bare = GameId("bare")
     private val today = LocalDate.parse("2026-11-04")
+    private val completions = FakeCompletionRepository()
     private val played = mutableListOf<Pair<GameId, LocalDate?>>()
     private val opened = mutableListOf<ShareCode>()
     private var koin: KoinApplication? = null
@@ -124,7 +130,7 @@ class LibraryRandomPageRouteTest {
                 module {
                     single<CoroutineScope> { CoroutineScope(SupervisorJob() + get<DispatcherProvider>().main) }
                     single<DailyRepository> { daily }
-                    single<CompletionRepository> { FakeCompletionRepository() }
+                    single<CompletionRepository> { completions }
                     single<GameRegistry> { fakes.games }
                     single<GamePlayRegistry> { fakes.registry }
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
@@ -153,7 +159,7 @@ class LibraryRandomPageRouteTest {
                         val random = Random(1)
                         val registry = get<GameRegistry>()
                         LoadRandomPuzzle(
-                            LoadRandomDay(daily, FakeCompletionRepository(), LoadPastDay(daily, registry), registry, random),
+                            LoadRandomDay(daily, completions, LoadPastDay(daily, registry), registry, random),
                             LoadRandomShared(ListCommunityPuzzles(community.shared, community.hidden, identity) { NOW }, random),
                         )
                     }
@@ -237,6 +243,29 @@ class LibraryRandomPageRouteTest {
 
         assertEquals("AAA111", opened.single().value)
         assertTrue(played.isEmpty())
+    }
+
+    @Test
+    fun `a solved day picked with Not solved yet off opens its board to play again, not its result`() {
+        // Every past day is solved, so the pick can only land on a solved one.
+        completions.setRecords(
+            (1L..5L).map { back ->
+                CompletionRecord(TestGames.Ref(alpha, PuzzleKey.Daily(today.minusDays(back), 100)), 61_000L, 0, RecordStats(1, "{}"), isRecord = true)
+            },
+        )
+        start()
+        openPage(alpha)
+
+        pageRandom().performScrollTo().performClick()
+        awaitTag("random.sheet")
+        tap("random.unsolved")
+        composeRule.onNodeWithTag("random.unsolved").assertIsOff()
+        tap("random.pick")
+        composeRule.waitUntil(TIMEOUT_MS) { played.isNotEmpty() }
+
+        val (game, day) = played.single()
+        val store = checkNotNull(koin).koin.get<PlaySessionStore>()
+        assertEquals(OpenDecision.Open, store.decide(GameKey(game.value, day.toString())))
     }
 
     @Test
