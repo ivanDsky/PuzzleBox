@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.data.cloud.kinds.PublishedKind
 import com.ivandsky.puzzlebox.data.cloud.kinds.RoomOversizedDrafts
 import com.ivandsky.puzzlebox.data.cloud.kinds.ReceivedKind
 import com.ivandsky.puzzlebox.data.cloud.kinds.ReplaysKind
+import com.ivandsky.puzzlebox.data.cloud.kinds.RevealsKind
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.network.NetworkStatus
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
@@ -84,6 +85,10 @@ val cloudSyncModule = module {
     single<SyncedKind>(named("cloud.kind.replays")) {
         val db = get<PuzzleBoxDatabase>()
         ReplaysKind(db, db.completionReplayDao())
+    }
+    single<SyncedKind>(named("cloud.kind.reveals")) {
+        val db = get<PuzzleBoxDatabase>()
+        RevealsKind(db, db.matchLocalDao())
     }
 }
 

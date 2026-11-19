@@ -498,7 +498,7 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<OversizedDrafts>())
             assertTrue(koin.get<OwnerScope>() is SignedInOwnerScope)
             assertEquals(
-                listOf("boards", "completions", "drafts", "published", "received", "replays"),
+                listOf("boards", "completions", "drafts", "published", "received", "replays", "reveals"),
                 koin.getAll<SyncedKind>().map { it.kind }.sorted(),
             )
             assertNotNull(koin.get<SavedBoardsCloud>())

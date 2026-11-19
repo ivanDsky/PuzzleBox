@@ -10,6 +10,9 @@ import androidx.room.PrimaryKey
  * the reveal was seen. [revealMyScore] and [revealTheirScore] are the puzzles each side won as the
  * reveal showed them, written together with [revealSeenAt] and null for a reveal seen before they were kept.
  * [dismissed] hides the duel from the list; it defaults to false.
+ * Schema v16 (#1542): [ownerUid] is the account the reveal was seen under, stamped with [revealSeenAt] (null while
+ * nobody was signed in, until an account claims it), and [revealUploaded] says the reveal is in that account's cloud
+ * space, so the account's other devices treat it as seen.
  */
 @Entity(tableName = "matches_local")
 data class MatchLocalEntity(
@@ -21,4 +24,6 @@ data class MatchLocalEntity(
     @ColumnInfo(defaultValue = "0") val dismissed: Boolean = false,
     val revealMyScore: Int? = null,
     val revealTheirScore: Int? = null,
+    val ownerUid: String? = null,
+    @ColumnInfo(defaultValue = "0") val revealUploaded: Boolean = false,
 )

@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.data.cloud.CloudResult
 import com.ivandsky.puzzlebox.data.cloud.CloudSpaceKinds
 import com.ivandsky.puzzlebox.data.cloud.RestoreSummary
 import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.PublishedPuzzle
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
@@ -63,6 +64,7 @@ class CloudSyncEraseE2ETest {
             runBlocking {
                 phoneA.graph.koin.get<PublishedPuzzleRepository>().upsert(published())
                 phoneA.graph.koin.get<ReceivedPuzzleRepository>().upsert(received())
+                phoneA.graph.koin.get<MatchLocalRepository>().markRevealSeen(code("D7Q2MX"), Instant.parse("2026-11-10T20:00:00Z"), 2, 1)
             }
             phoneA.signIn(ada)
             awaitCloud("every kind in A's space") {
