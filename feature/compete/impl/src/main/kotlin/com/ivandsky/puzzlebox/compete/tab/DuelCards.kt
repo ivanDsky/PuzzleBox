@@ -43,7 +43,7 @@ internal fun duelCardColors(): GameCardColors {
 }
 
 /**
- * "Challenge a friend" with the sub line, or "Sign in to duel friends, or duel yourself now" while [signedIn] is false.
+ * "New duel" with the sub line, or "Sign in to duel friends, or duel Past you now" while [signedIn] is false.
  */
 @Composable
 internal fun DuelChallengeCard(signedIn: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
@@ -67,13 +67,13 @@ internal fun DuelChallengeCard(signedIn: Boolean, onClick: () -> Unit, modifier:
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             Column(Modifier.weight(1f)) {
-                Text("Challenge a friend", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("New duel", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Icon(PuzzleIcons.Trophy, contentDescription = null, modifier = Modifier.size(14.dp), tint = colors.fg2)
                     Text(
                         text = when {
-                            signedIn -> "Best of 3 · same puzzles, your own time"
-                            else -> "Sign in to duel friends, or duel yourself now"
+                            signedIn -> "A friend or Past you · same puzzles, your own time"
+                            else -> "Sign in to duel friends, or duel Past you now"
                         },
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.fg2,
