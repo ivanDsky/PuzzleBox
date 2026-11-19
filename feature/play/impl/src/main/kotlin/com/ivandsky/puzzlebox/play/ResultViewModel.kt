@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.play
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
@@ -113,7 +112,7 @@ class ResultViewModel internal constructor(
     private val names: Map<GameId, String> = store.playable.toMap()
     private val today: Boolean = calendar.today(slot.gameId) == slot.day
     private val replayRow = ResultReplayRow(completions, loadReplay, solve, live.takeIf { liveHoldsSolve })
-    private val columns = releaseFlags?.isEnabled(ReleaseFlag.ResultHeroPolish) == true
+    private val columns = releaseFlags?.isEnabled(PlayFlag.ResultHeroPolish) == true
     private val share = ResultShare(slot)
     private val samePuzzleRows = ResultSamePuzzle(completions, solve, live.takeIf { liveHoldsSolve }, games.rankOrderOf(slot.gameId))
 
@@ -223,7 +222,7 @@ class ResultViewModel internal constructor(
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), ResultRank.Hidden)
 
     /** Result hero polish: the signed-out hero carries the sign-in invitation under the time. */
-    val heroSignInLine: Boolean = releaseFlags?.isEnabled(ReleaseFlag.ResultHeroPolish) == true
+    val heroSignInLine: Boolean = releaseFlags?.isEnabled(PlayFlag.ResultHeroPolish) == true
 
     private val post = ResultPostButton(viewModelScope, observePost, submitPost, slot.gameId, slot.day)
 

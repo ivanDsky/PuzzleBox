@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.play.friend
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
@@ -30,6 +29,7 @@ import com.ivandsky.puzzlebox.play.ResultSamePuzzle
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.api.CustomResultKey
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
+import com.ivandsky.puzzlebox.play.PlayFlag
 import com.ivandsky.puzzlebox.resultui.SamePuzzleSolves
 import com.ivandsky.puzzlebox.resultui.replay.ReplaySectionState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -113,7 +113,7 @@ internal class CustomResultViewModel(
 
     private val slot = PlaySlot.Custom(GameId(key.gameId), key.puzzleId)
 
-    private val heroPolish = releaseFlags?.isEnabled(ReleaseFlag.ResultHeroPolish) == true
+    private val heroPolish = releaseFlags?.isEnabled(PlayFlag.ResultHeroPolish) == true
 
     private val gameName = games.displayName(slot.gameId)
 

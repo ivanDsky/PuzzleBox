@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.play.di
 
 import com.ivandsky.puzzlebox.common.di.flagSet
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
@@ -61,13 +60,14 @@ import org.koin.dsl.module
  * (ADR-0001: one registration per game); the repositories (the tutorial-seen preferences
  * included) and the calendar from :core:data's dataModule, and the shared use cases (today's
  * set, history, stats, the rollover) from :core:domain's domainModule. The result's insights
- * and next thing are :core:domain use cases defined here: their Boolean follows play's
- * ResultHeroPolish flag, and :core:domain reads no flag (ADR-0022). The tablet stats
+ * and next thing are :core:domain use cases defined here: their Boolean follows
+ * [PlayFlag.ResultHeroPolish], and :core:domain reads no flag (ADR-0022). The tablet stats
  * panel's identity and leaderboard come from the backend module. This module names no game;
  * friend puzzles' wiring is [friendModule], From friends' [ObserveFriendPuzzles] and
  * [DeleteReceivedPuzzle] are here, as are Play's own use cases: the archive month and progress,
  * the tablet stats panel's [ObservePlayStats], a duel leg's [FinishLeg] and [ObserveLegTarget],
- * Report's [ReportPuzzle], and the result's LinkedIn post ([ObserveLinkedInPost], [SubmitLinkedInResult]).
+ * Report's [ReportPuzzle], and the result's LinkedIn post ([ObserveLinkedInPost], [SubmitLinkedInResult]). The
+ * feature's release flags ([PlayFlag]) are declared here.
  *
  * [PlaySessionStore] is a single so live plays outlive their entries' compositions. Its
  * slot opening and every slot's writer share ONE [WriteLane], so a released slot's final
@@ -148,7 +148,7 @@ val playModule = module {
     }
     single { HintPolish(enabled = getOrNull<ReleaseFlags>()?.isEnabled(GameUiFlag.HintPolish) == true) }
     // ZipDotPulse (backlog #1151) too: the Zip board's next number pulses its own dot while it is on.
-    single { ZipDotPulse(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.ZipDotPulse) == true) }
+    single { ZipDotPulse(enabled = getOrNull<ReleaseFlags>()?.isEnabled(PlayFlag.ZipDotPulse) == true) }
     // The memory forgets the last pick with the process.
     single { RandomPickMemory() }
     // The preset game is the one parameter: the page whose Random opened the sheet.
@@ -161,7 +161,7 @@ val playModule = module {
             history = get(),
             computeStreak = get(),
             puzzleDay = get(),
-            slowTail = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.ResultHeroPolish) == true,
+            slowTail = getOrNull<ReleaseFlags>()?.isEnabled(PlayFlag.ResultHeroPolish) == true,
         )
     }
     factory {
@@ -178,7 +178,7 @@ val playModule = module {
             puzzleDay = get(),
             nextRollover = get(),
             communityPuzzles = get(),
-            showDayTotal = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.ResultHeroPolish) == true,
+            showDayTotal = getOrNull<ReleaseFlags>()?.isEnabled(PlayFlag.ResultHeroPolish) == true,
         )
     }
     // The flag-as-parameter rule again: with it off the result never touches LinkedIn. The Post button's flag is
