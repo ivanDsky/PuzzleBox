@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.sudokuui.hint
 
+import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.games.sudoku.SudokuBoard
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGeometry
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
@@ -7,58 +8,131 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuUnit
 import com.ivandsky.puzzlebox.games.sudoku.UnitKind
 import com.ivandsky.puzzlebox.games.sudoku.engine.hints.SudokuTechnique
 import com.ivandsky.puzzlebox.games.sudoku.engine.hints.step.SudokuStep
+import com.ivandsky.puzzlebox.games.sudoku.engine.trainer.SudokuTechniqueIds
 
 /**
  * The callout line for a [SudokuStep] (catalog `sudoku-deductions.md`): one line naming what the Spotlight draws.
- * Keyed by technique, so no `when` over
- * techniques exists to hide a missing entry; the last-cell single has its own entry because it has no technique.
- * [board] must be the board the step was computed from, or the digits named may be stale.
+ * Keyed by [TechniqueId], so no `when` over techniques exists to hide a missing entry; the last-cell single has
+ * its own entry because it has no technique. [board] must be the board the step was computed from, or the digits
+ * named may be stale.
  *
  * Every line explains the step in a sentence and keeps the technique only as a trailing parenthetical
  * (`... (hidden single)`); none opens with a technique name.
+ *
+ * One template per technique serves two readers: the hint fills it with a step's own facts ([text]) and the
+ * Trainer's technique list fills it with generic words ([technique]), so a copy edit shows in both (A1: no third
+ * copy set).
  */
 internal object SudokuStepCopy {
 
-    private val singles: Map<SudokuTechnique, (SudokuStep.Single, SudokuBoard) -> String> = mapOf(
-        SudokuTechnique.HIDDEN_SINGLE_BOX to { step, _ ->
-            "In this box only this cell can take ${step.place.digit} (hidden single)"
-        },
-        SudokuTechnique.HIDDEN_SINGLE_LINE to { step, _ ->
-            "In ${unitName(requireNotNull(step.place.unit))} only this cell can take ${step.place.digit} (hidden single)"
-        },
-        SudokuTechnique.NAKED_SINGLE to { step, board ->
-            "${nakedReason(step, board).replaceFirstChar(Char::uppercase)}, so it is ${step.place.digit} (naked single)"
-        },
+    /**
+     * The words a template names. A step supplies its own and the technique list generic ones; each is read only by
+     * the templates that name it, so a step that lacks one (a naked single has no unit) never computes it. The
+     * second mention of a digit or a line ([again], [lineAgain]) is a field of its own because a generic sentence
+     * says "it" and "that line" where a step's sentence repeats the digit and the line.
+     */
+    private class Facts(
+        /** The unit the step names: `row 1`. */
+        val unit: () -> String = missing,
+        /** The digit the step places or a hidden single owns: `4`. */
+        val digit: () -> String = missing,
+        /** The digit a naked single comes to: `4`. */
+        val answer: () -> String = missing,
+        /** What a naked single's cell sees and has ruled out, as a clause: `it sees 1, 3 and has 2 ruled out`. */
+        val reason: () -> String = missing,
+        /** The digit an elimination's unit holds in one place, after "its". */
+        val own: () -> String = missing,
+        /** That digit again, after "can't take". */
+        val again: () -> String = missing,
+        /** The row or column a pointing step's box puts its digit in. */
+        val line: () -> String = missing,
+        /** That line again, after "the rest of". */
+        val lineAgain: () -> String = missing,
+        /** The digits of a pair, as a list: `2 and 5`. */
+        val digits: () -> String = missing,
     )
 
-    private val eliminations: Map<SudokuTechnique, (SudokuStep.Elimination, SudokuPuzzle) -> String> = mapOf(
-        SudokuTechnique.POINTING to { step, puzzle ->
-            val line = sharedLine(step, puzzle.geometry)
-            val digit = digitsOf(step.group).single()
-            "This box puts its $digit in $line, so the rest of $line can't take $digit (pointing)"
+    private val templates: Map<TechniqueId, (Facts) -> String> = mapOf(
+        SudokuTechniqueIds.lastCell to { facts ->
+            "${facts.unit().sentence()} has one cell left, and it needs ${facts.digit()}"
         },
-        SudokuTechnique.CLAIMING to { step, _ ->
-            val unit = unitName(requireNotNull(step.unit)).replaceFirstChar(Char::uppercase)
-            val digit = digitsOf(step.group).single()
-            "$unit puts its $digit in this box, so the rest of the box can't take $digit (claiming)"
+        idOf(SudokuTechnique.HIDDEN_SINGLE_BOX) to { facts ->
+            "In this box only this cell can take ${facts.digit()} (hidden single)"
         },
-        SudokuTechnique.NAKED_PAIR to { step, _ ->
-            "These two cells only take ${digitList(step.group)}, so the rest of ${unitName(requireNotNull(step.unit))} loses both (naked pair)"
+        idOf(SudokuTechnique.HIDDEN_SINGLE_LINE) to { facts ->
+            "In ${facts.unit()} only this cell can take ${facts.digit()} (hidden single)"
         },
-        SudokuTechnique.HIDDEN_PAIR to { step, _ ->
-            "${digitList(step.group)} only fit these two cells, so they take nothing else (hidden pair)"
+        idOf(SudokuTechnique.NAKED_SINGLE) to { facts ->
+            "${facts.reason().sentence()}, so it is ${facts.answer()} (naked single)"
+        },
+        idOf(SudokuTechnique.POINTING) to { facts ->
+            "This box puts its ${facts.own()} in ${facts.line()}, so the rest of ${facts.lineAgain()} can't take ${facts.again()} (pointing)"
+        },
+        idOf(SudokuTechnique.CLAIMING) to { facts ->
+            "${facts.unit().sentence()} puts its ${facts.own()} in this box, so the rest of the box can't take ${facts.again()} (claiming)"
+        },
+        idOf(SudokuTechnique.NAKED_PAIR) to { facts ->
+            "These two cells only take ${facts.digits()}, so the rest of ${facts.unit()} loses both (naked pair)"
+        },
+        idOf(SudokuTechnique.HIDDEN_PAIR) to { facts ->
+            "${facts.digits().sentence()} only fit these two cells, so they take nothing else (hidden pair)"
         },
     )
 
     /** The line for [step]. */
     fun text(step: SudokuStep, puzzle: SudokuPuzzle, board: SudokuBoard): String = when (step) {
-        is SudokuStep.Single -> step.lastCell?.let { "${unitName(it).replaceFirstChar(Char::uppercase)} has one cell left, and it needs ${step.place.digit}" }
-            ?: checkNotNull(singles[step.place.technique]) { "no copy for ${step.place.technique}" }(step, board)
-        is SudokuStep.Elimination ->
-            checkNotNull(eliminations[step.technique]) { "no copy for ${step.technique}" }(step, puzzle)
-        is SudokuStep.Reveal -> "${cellName(step.cell, puzzle.geometry).replaceFirstChar(Char::uppercase)} is ${step.digit} — no simple step here"
+        is SudokuStep.Single -> templateOf(step)(singleFacts(step, board))
+        is SudokuStep.Elimination -> templateOf(step)(eliminationFacts(step, puzzle.geometry))
+        is SudokuStep.Reveal -> "${cellName(step.cell, puzzle.geometry).sentence()} is ${step.digit} — no simple step here"
         is SudokuStep.Mistake -> mistake(step, puzzle.geometry)
         SudokuStep.Solved -> error("a solved board has no callout")
+    }
+
+    /**
+     * The sentence of [id] for a technique with no step in hand (the Trainer's technique list): the same template the
+     * hint fills, with generic words: a line for a row or column, "a certain digit" for the one a step names.
+     */
+    fun technique(id: TechniqueId): String = templates.getValue(id)(generic)
+
+    private val generic = Facts(
+        unit = { "this line" },
+        digit = { "a certain digit" },
+        answer = { "the one left" },
+        reason = { "it sees every other digit" },
+        own = { "digit" },
+        again = { "it" },
+        line = { "a line" },
+        lineAgain = { "that line" },
+        digits = { "two digits" },
+    )
+
+    private fun idOf(technique: SudokuTechnique): TechniqueId = SudokuTechniqueIds.byTechnique.getValue(technique)
+
+    private fun templateOf(step: SudokuStep): (Facts) -> String =
+        templates.getValue(checkNotNull(SudokuTechniqueIds.of(step)) { "no copy for $step" })
+
+    private fun singleFacts(step: SudokuStep.Single, board: SudokuBoard): Facts {
+        val digit = { step.place.digit.toString() }
+        return Facts(
+            // A last cell names the unit it completes, a hidden single in a line the line it sits in.
+            unit = { unitName(requireNotNull(step.lastCell ?: step.place.unit)) },
+            digit = digit,
+            answer = digit,
+            reason = { nakedReason(step, board) },
+        )
+    }
+
+    private fun eliminationFacts(step: SudokuStep.Elimination, geometry: SudokuGeometry): Facts {
+        val digit = { digitsOf(step.group).single().toString() }
+        val line = { sharedLine(step, geometry) }
+        return Facts(
+            unit = { unitName(requireNotNull(step.unit)) },
+            own = digit,
+            again = digit,
+            line = line,
+            lineAgain = line,
+            digits = { digitList(step.group) },
+        )
     }
 
     /** What a naked single's cell sees and has ruled out, as a clause: `it sees 1, 3 and has 2 ruled out`. */
@@ -111,4 +185,8 @@ internal object SudokuStepCopy {
 
     /** The digits of [mask] ascending, bit `d-1` being digit `d` (as `SudokuCandidates` stores them). */
     fun digitsOf(mask: Int): List<Int> = (1..Int.SIZE_BITS).filter { mask and (1 shl (it - 1)) != 0 }
+
+    private fun String.sentence(): String = replaceFirstChar(Char::uppercase)
 }
+
+private val missing: () -> String = { error("this step has no such fact") }

@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CollectionInfo
 import androidx.compose.ui.semantics.collectionInfo
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
@@ -103,14 +104,25 @@ fun SudokuGrid(model: SudokuBoardModel, onSelect: ((Int) -> Unit)?, modifier: Mo
 @Composable
 private fun BoxScope.SpotlightLayer(spotlight: Spotlight, size: Int, frame: Dp) {
     BoxWithConstraints(Modifier.matchParentSize().padding(frame)) {
-        val grid = gridMetrics(min(maxWidth, maxHeight), size)
-        val cell = grid.cell
-        val digitStyle = grid.digitStyle
-        val cellPx = with(LocalDensity.current) { cell.toPx() }
-        val measurer = rememberTextMeasurer()
-        val shown = remember(spotlight, digitStyle, cellPx, measurer) { spotlight.withDigitStyle(measurer, digitStyle, cellPx) }
+        val digits = rememberGridDigits(min(maxWidth, maxHeight), size)
+        val shown = remember(spotlight, digits) { spotlight.withDigitStyle(digits.measurer, digits.style, digits.cellPx) }
         SpotlightOverlay(shown, Modifier.testTag(SPOTLIGHT_TAG))
     }
+}
+
+/** What a Spotlight needs to draw Sudoku digits where the grid draws them: the [measurer], the cell's digit [style], and the cell pitch [cellPx]. */
+internal class GridDigits(val measurer: TextMeasurer, val style: TextStyle, val cellPx: Float)
+
+/**
+ * The digit look of a grid of [size] cells a side in a square [side] wide. The grid's own Spotlight layer and the
+ * Trainer's reveal both read it, so a glyph sits exactly where the grid draws that digit.
+ */
+@Composable
+internal fun rememberGridDigits(side: Dp, size: Int): GridDigits {
+    val grid = gridMetrics(side, size)
+    val cellPx = with(LocalDensity.current) { grid.cell.toPx() }
+    val measurer = rememberTextMeasurer()
+    return remember(grid.digitStyle, cellPx, measurer) { GridDigits(measurer, grid.digitStyle, cellPx) }
 }
 
 /** The grid's cell pitch and digit style; the base cells and the Spotlight layer both read them, so they cannot drift. */
