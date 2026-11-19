@@ -53,7 +53,7 @@ import org.koin.compose.koinInject
  * A [ReplayKey] draws that solve's replay and a [ReplayCompareKey] two solves' replays side by side; Up pops.
  * A non-null [onReconnectLinkedIn] turns the LinkedIn lines on the game page's day card on and is what its Reconnect opens.
  * [onOpenRanks] also opens the Ranks hub from the Result's rank chip, and the marks of the play side panel's times
- * draw as chips beside the name, as the hub's boards do. [onMakeOne] adds "Make one" to each game page.
+ * draw as chips beside the name, as the hub's boards do. [onMakeOne] adds "Make one" to each game page; a non-null [onOpenStats] adds "See all stats" to each game page's stats card.
  * The friend puzzles and Custom's list live on the app's Community tab ([communityEntry]): Games shows Dailies and
  * Duels, and Train with a [train] slot.
  */
@@ -69,6 +69,7 @@ fun EntryProviderScope<NavKey>.playEntry(
     onLibraryRequestTaken: () -> Unit = {},
     onReconnectLinkedIn: (() -> Unit)? = null,
     onMakeOne: (GameId) -> Unit,
+    onOpenStats: ((GameId) -> Unit)? = null,
 ) {
     entry<PlayKey> {
         LibraryRoute(
@@ -85,6 +86,7 @@ fun EntryProviderScope<NavKey>.playEntry(
             onReconnectLinkedIn = onReconnectLinkedIn,
             onOpenRanks = onOpenRanks,
             onMakeOne = onMakeOne,
+            onOpenStats = onOpenStats,
         )
     }
     entry<FriendPuzzleKey> { key ->

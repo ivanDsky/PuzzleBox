@@ -8,15 +8,12 @@ import java.time.YearMonth
  * The calendar span a recap covers: one month or one year of puzzle days (A2, A3). A day belongs to a period by its
  * puzzle day, never by the instant its result was recorded or imported.
  */
-internal sealed interface RecapPeriod {
+internal sealed interface RecapPeriod : DaySpan {
     /** `YYYY-MM` for a month, `YYYY` for a year: the id the recap's navigation key carries and [parse] reads back. */
     val id: String
 
     /** The Ranks window a friends read of this period uses; null for a year, which reads the kept weekly history (A12). */
     val rankWindow: RankWindow?
-
-    /** Whether the puzzle [day] falls inside the period. */
-    operator fun contains(day: LocalDate): Boolean
 
     data class Month(val month: YearMonth) : RecapPeriod {
         override val id: String get() = month.toString()

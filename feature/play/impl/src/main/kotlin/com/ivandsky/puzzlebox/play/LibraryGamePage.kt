@@ -24,6 +24,7 @@ import kotlinx.coroutines.launch
  * the day the page shows (the picked day, else the card's own).
  * A non-null [linkedIn] puts the LinkedIn sync chip on the day card, which collects its state while it is shown.
  * A non-null [onMakeOne] puts a "Make one" button on the page, handing back this page's game.
+ * A non-null [onOpenStats] puts "See all stats" on the stats card, handing back this page's game.
  * A non-null [onRandom] puts a "Random" chip at the right edge of the calendar's jump row for a game with an archive, handing back this page's game.
  */
 @Composable
@@ -43,6 +44,7 @@ internal fun LibraryGamePage(
     linkedIn: LinkedInCardState? = null,
     onMakeOne: ((GameId) -> Unit)? = null,
     onRandom: ((GameId) -> Unit)? = null,
+    onOpenStats: ((GameId) -> Unit)? = null,
 ) {
     val game = row.card.game
     val linkedInCard = linkedIn?.takeIf { row.linkedInGame }
@@ -114,5 +116,6 @@ internal fun LibraryGamePage(
             )
         },
         onMakeOne = onMakeOne?.let { make -> { make(game) } },
+        onSeeAllStats = onOpenStats?.let { open -> { open(game) } },
     )
 }

@@ -9,7 +9,9 @@ import com.ivandsky.puzzlebox.history.HistoryLayout
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.insights.api.InsightsKey
 import com.ivandsky.puzzlebox.insights.api.InsightsRecapKey
+import com.ivandsky.puzzlebox.insights.api.InsightsStatsKey
 import com.ivandsky.puzzlebox.insights.flags.InsightsFlag
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.ReplayKey
@@ -27,7 +29,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** The Insights way in: Profile's row behind the MonthlyRecap flag, the hub, and a month's recap above it. */
+/** The Insights way in: Profile's row behind the MonthlyRecap flag, the hub, a month's recap above it, and the stats page behind its own flag. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = DrainTestApplication::class)
 class InsightsNavTest {
@@ -97,6 +99,42 @@ class InsightsNavTest {
         openRecapReplay(navigator)(replay)
 
         assertEquals(listOf<NavKey>(PlayKey, replay), navigator.state.currentStack)
+    }
+
+    @Test
+    fun `with the stats flag off nothing opens the stats page, whatever the recap flag says`() {
+        assertNull(statsOpener(FakeReleaseFlags().enabled.value, navigator))
+        assertNull(statsOpener(FakeReleaseFlags(InsightsFlag.MonthlyRecap).enabled.value, navigator))
+    }
+
+    @Test
+    fun `with the stats flag on a game opens its stats page as a layer page and null opens every game`() {
+        val open = statsOpener(FakeReleaseFlags(InsightsFlag.StatsPage).enabled.value, navigator)
+        assertNotNull(open)
+
+        open!!(GameId("zip"))
+        assertEquals(listOf<NavKey>(InsightsStatsKey("zip")), navigator.state.layer)
+
+        assertTrue(navigator.pop())
+        open(null)
+        assertEquals(listOf<NavKey>(InsightsStatsKey(null)), navigator.state.layer)
+    }
+
+    @Test
+    fun `the stats key resolves, with and without the stats way in`() {
+        val entries = puzzleBoxEntryProvider(
+            navigator = navigator,
+            homeLayout = HomeLayout.SinglePane,
+            playLayout = PlayLayout.SinglePane,
+            historyLayout = HistoryLayout.SinglePane,
+            custom = testCustomSlot(),
+            makeOne = testMakeOne(navigator),
+            visibility = VisibilitySlot(flowOf(OwnTier.Unset)) {},
+            onOpenStats = { },
+        )
+
+        val key = InsightsStatsKey("zip")
+        assertTrue(entries(key).contentKey.toString().contains(key.toString()))
     }
 
     @Test

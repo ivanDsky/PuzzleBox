@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.domain.moments.Moment
 import com.ivandsky.puzzlebox.domain.moments.detectMoments
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.CompletionSource
+import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.model.GameId
 
 /**
@@ -25,22 +26,26 @@ import com.ivandsky.puzzlebox.model.GameId
 internal class ComputePeriodFacts(
     private val computeStreak: ComputeStreak,
     private val replaySolveFacts: ReplaySolveFacts,
+    private val registry: GameRegistry,
 ) {
 
-    operator fun invoke(history: List<GameHistoryDay>, period: RecapPeriod, scope: GameId? = null): PeriodFacts {
+    operator fun invoke(history: List<GameHistoryDay>, period: DaySpan, scope: GameId? = null): PeriodFacts {
         val inScope = history.filter { scope == null || it.gameId == scope }
         val counted = inScope.filter { it.isSolvedDaily() && it.day in period }
         val streakDays = inScope.filter { it.isStreakDay() }.map { it.day }
         val streaks = StreakRuns.of(streakDays, computeStreak(streakDays).freezes).within(period)
+        val longestStreak = streaks.maxByOrNull { it.days }
         return PeriodFacts(
             period = period,
             scope = scope,
             solved = counted.size,
             solvedByGame = counted.groupingBy { it.gameId }.eachCount(),
             fastestByGame = counted.groupBy { it.gameId }.mapValues { (_, days) -> fastest(days) },
-            longestStreak = streaks.maxByOrNull { it.days },
+            longestStreak = longestStreak,
+            longestStreakSolve = longestStreak?.let { lastSolveOf(it, counted) },
             freezesSpent = streaks.sumOf { it.frozen.size },
             hintFree = counted.count { it.solve.hints == 0 },
+            longestHintFreeRun = HintFreeRun.longestOf(counted, registry.all.map { it.definition.id }),
             totalTimeMs = counted.sumOf { it.solve.time },
             moments = momentsOf(history, period, scope),
         )
@@ -50,10 +55,17 @@ internal class ComputePeriodFacts(
      * The Moments of the period's solves, from the replay of the whole history: all games feed a streak or a set, and
      * only then is the scope applied to what is read out.
      */
-    private fun momentsOf(history: List<GameHistoryDay>, period: RecapPeriod, scope: GameId?): List<Moment> =
+    private fun momentsOf(history: List<GameHistoryDay>, period: DaySpan, scope: GameId?): List<Moment> =
         replaySolveFacts(history)
             .filter { it.day in period && (scope == null || it.game == scope) }
             .flatMap { detectMoments(it.facts) }
+
+    /** The quickest of the counted solves of [run]'s last day that has one: a frozen day has none, and a streak day beyond the scope's counted solves is skipped. */
+    private fun lastSolveOf(run: StreakRun, counted: List<GameHistoryDay>): SolveRef? {
+        val last = counted.filter { it.day in run.start..run.end }.maxOfOrNull { it.day } ?: return null
+        val quickest = counted.filter { it.day == last }.minWith(compareBy<GameHistoryDay>({ it.solve.time }, { it.gameId.value }))
+        return SolveRef.of(quickest)
+    }
 
     private fun fastest(days: List<GameHistoryDay>): FastestSolve {
         val best = days.minWith(compareBy<GameHistoryDay>({ it.solve.time }, { it.solve.hints }, { it.day }))

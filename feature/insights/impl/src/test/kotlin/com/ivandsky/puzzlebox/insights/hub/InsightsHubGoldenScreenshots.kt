@@ -51,7 +51,7 @@ class InsightsHubGoldenScreenshots {
     @Test fun `empty phone light`() = capture("empty", "phone", dark = false, state = InsightsHubUiState.Empty)
 
     private fun capture(name: String, device: String, dark: Boolean, state: InsightsHubUiState = InsightsHubUiState.Ready(months)) {
-        rule.showGolden(dark = dark) { InsightsHubScreen(state, onOpen = {}, onBack = {}) }
+        rule.showGolden(dark = dark) { InsightsHubScreen(state, onOpen = {}, onBack = {}, onOpenStats = {}) }
         rule.settleAndCapture("hub", name, device, dark)
     }
 }

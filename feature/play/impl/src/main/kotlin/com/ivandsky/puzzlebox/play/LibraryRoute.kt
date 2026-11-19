@@ -49,7 +49,8 @@ import org.koin.core.parameter.parametersOf
  * ([onCodeDraftTaken]); a [request] opens a game's page or a tab, then is taken ([onRequestTaken]).
  * The game page shows its rank as a summary row that calls [onOpenRanks].
  * With [linkedIn] the day card shows the LinkedIn lines, and [onReconnectLinkedIn] opens its login.
- * [onMakeOne] puts "Make one" on each game page. The friend puzzles and Custom's list are the app's Community
+ * [onMakeOne] puts "Make one" on each game page; a non-null [onOpenStats] puts "See all stats" on each stats card,
+ * handing back its game. The friend puzzles and Custom's list are the app's Community
  * tab ([CommunityRoute]); Games shows Dailies and Duels, and Train with a [train] slot.
  * Each game page's calendar has Random: it opens the random sheet for that game, and its
  * pick plays a past day through [onPlay], as a fresh play again when it is already solved, or opens a New today puzzle's card through [onOpenCode], the sheet closing first.
@@ -70,6 +71,7 @@ internal fun LibraryRoute(
     linkedIn: Boolean = false,
     onReconnectLinkedIn: (() -> Unit)? = null,
     onMakeOne: (GameId) -> Unit,
+    onOpenStats: ((GameId) -> Unit)? = null,
 ) {
     val viewModel: LibraryViewModel = koinViewModel(parameters = { parametersOf(linkedIn) })
     val registry: GamePlayRegistry = koinInject()
@@ -129,6 +131,7 @@ internal fun LibraryRoute(
                 linkedIn = linkedInCard,
                 onOpenRanks = onOpenRanks,
                 onMakeOne = onMakeOne,
+                onOpenStats = onOpenStats,
                 largeBar = rememberMainTabsLargeBar(),
             )
         }
