@@ -58,8 +58,8 @@ class ZipEditorPathTest {
         rule.setContent {
             PuzzleBoxTheme {
                 Column(Modifier.fillMaxSize()) {
-                    ZipEditorUi.ToolHint(controller, Modifier.fillMaxWidth())
-                    ZipEditorUi.Board(controller, Verdict.Checking, PlayLayout.SinglePane, Modifier.fillMaxWidth().weight(1f))
+                    ZipEditorUi().ToolHint(controller, Modifier.fillMaxWidth())
+                    ZipEditorUi().Board(controller, Verdict.Checking, PlayLayout.SinglePane, Modifier.fillMaxWidth().weight(1f))
                 }
             }
         }
