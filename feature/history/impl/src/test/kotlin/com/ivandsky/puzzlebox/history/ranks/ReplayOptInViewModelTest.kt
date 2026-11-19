@@ -27,7 +27,7 @@ class ReplayOptInViewModelTest {
     val main = MainDispatcherRule()
 
     private val visibility = FakeVisibilityRepository()
-    private var flags: ReleaseFlags? = null
+    private var flags: ReleaseFlags = FakeReleaseFlags()
     private val viewModel by lazy { ReplayOptInViewModel(visibility, flags) }
 
     private fun TestScope.collecting() {

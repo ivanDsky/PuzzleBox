@@ -29,11 +29,11 @@ val historyModule = module {
         RanksViewModel(
             get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
             linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
-            releaseFlags = getOrNull(),
+            releaseFlags = get(),
             savedState = get(),
             opening = opening,
         )
     }
     viewModel { PlayerSheetViewModel(get(), get(), get(), get()) }
-    viewModel { ReplayOptInViewModel(get(), releaseFlags = getOrNull()) }
+    viewModel { ReplayOptInViewModel(get(), releaseFlags = get()) }
 }

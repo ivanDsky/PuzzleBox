@@ -80,7 +80,7 @@ internal class RanksViewModel(
     private val daily: DailyRepository,
     private val clock: Clock = Clock.systemUTC(),
     linkedIn: ObserveLinkedInDayView? = null,
-    releaseFlags: ReleaseFlags? = null,
+    releaseFlags: ReleaseFlags,
     savedState: SavedStateHandle = SavedStateHandle(),
     opening: RanksSelection = RanksSelection(),
 ) : ViewModel() {
@@ -121,7 +121,7 @@ internal class RanksViewModel(
     private val scopedBoards = RanksScopedBoards(reads.boards, observeFriendUids, viewer, viewModelScope)
 
     // The LinkedIn part of the hub (the line, the pull's sync) exists only with RanksFreshness on and LinkedIn in the graph.
-    private val freshLinkedIn = linkedIn.takeIf { releaseFlags?.isEnabled(HistoryFlag.RanksFreshness) == true }
+    private val freshLinkedIn = linkedIn.takeIf { releaseFlags.isEnabled(HistoryFlag.RanksFreshness) }
     private val freshness = freshLinkedIn?.let { RanksFreshness(clock) }
     private val pullSync = freshLinkedIn?.let { RanksPullSync(it, viewModelScope, ::shownLinkedInDay) }
 
