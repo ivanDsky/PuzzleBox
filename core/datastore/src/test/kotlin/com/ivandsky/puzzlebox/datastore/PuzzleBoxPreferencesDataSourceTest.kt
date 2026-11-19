@@ -268,4 +268,25 @@ class PuzzleBoxPreferencesDataSourceTest {
         assertFalse(restarted.gameFlag(GameId("a"), "aid", true).first())
         assertTrue(restarted.gameFlag(GameId("b"), "aid", true).first())
     }
+
+    @Test
+    fun `no recap is dismissed until one is`() = runTest {
+        assertEquals(emptySet<String>(), newDataSource(tempFile()).recapsDismissed.first())
+    }
+
+    @Test
+    fun `dismissed recaps persist across a restart and accumulate`() = runTest {
+        val file = tempFile()
+        val firstScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + SupervisorJob())
+        val firstProcess = PuzzleBoxPreferencesDataSource(
+            PreferenceDataStoreFactory.create(scope = firstScope) { file },
+        )
+
+        firstProcess.dismissRecap("2026-10")
+        firstProcess.dismissRecap("2026-11")
+        firstProcess.dismissRecap("2026-10")
+        firstScope.cancel()
+
+        assertEquals(setOf("2026-10", "2026-11"), newDataSource(file).recapsDismissed.first())
+    }
 }

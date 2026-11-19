@@ -79,6 +79,7 @@ internal fun PuzzleBoxNavShell(
     val visibility = rememberVisibilitySlot(koinInject())
     val releaseFlags by koinInject<ReleaseFlags>().enabled.collectAsStateWithLifecycle()
     val tuneDefaults = rememberRanksTuneDefaults(koinInject(), koinInject())
+    val recap = rememberRecapSlot(releaseFlags, navigator, koinInject(), koinInject())
     val reduceMotion = rememberReducedMotion()
     val layoutDirection = LocalLayoutDirection.current
     val form = if (homeLayout == HomeLayout.TwoPane) NavForm.Tablet else NavForm.Phone
@@ -104,6 +105,7 @@ internal fun PuzzleBoxNavShell(
             visibility = visibility,
             tuneDefaults = tuneDefaults,
             onOpenInsights = insightsOpener(releaseFlags, navigator),
+            recap = recap,
         ).withHintCooldown(),
         shellChrome = shellChrome,
     )

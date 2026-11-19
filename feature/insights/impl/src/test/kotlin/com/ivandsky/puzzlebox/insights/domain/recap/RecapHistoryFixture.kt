@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
+import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.Ref
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
@@ -26,6 +27,11 @@ internal class RecapHistoryFixture {
     val registry = GameRegistry(listOf(TestGames.plugin(alpha), TestGames.plugin(beta)))
     val completions = FakeCompletionRepository()
     val observeHistory = ObserveGameHistory(registry, FakeDailyRepository(), completions)
+
+    /** The puzzle day every game reads; move it with `setAll`. */
+    val calendar = FakeGameCalendar(LocalDate.of(2026, 11, 20))
+
+    fun availability() = ObserveRecapAvailability(observeHistory, calendar, registry)
 
     /** Replaces every stored row. */
     fun store(vararg records: CompletionRecord) = completions.setRecords(records.toList())

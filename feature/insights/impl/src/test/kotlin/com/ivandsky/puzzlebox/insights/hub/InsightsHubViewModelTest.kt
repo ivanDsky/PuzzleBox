@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.insights.hub
 
 import app.cash.turbine.test
 import com.ivandsky.puzzlebox.data.cloud.CloudSyncState
-import com.ivandsky.puzzlebox.insights.domain.recap.ObserveRecapAvailability
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapHistoryFixture
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapPeriod
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
@@ -27,7 +26,7 @@ class InsightsHubViewModelTest {
     private val fixture = RecapHistoryFixture()
     private val cloudSync = FakeCloudSync()
 
-    private fun viewModel() = InsightsHubViewModel(ObserveRecapAvailability(fixture.observeHistory), cloudSync)
+    private fun viewModel() = InsightsHubViewModel(fixture.availability(), cloudSync)
 
     private fun month(year: Int, month: Int) = RecapPeriod.Month(YearMonth.of(year, month))
 
