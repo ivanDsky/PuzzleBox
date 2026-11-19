@@ -1,7 +1,11 @@
 package com.ivandsky.puzzlebox.games.tango
 
+import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.VariantId
+import com.ivandsky.puzzlebox.games.tango.codec.LotkaWireParser
 import com.ivandsky.puzzlebox.games.tango.engine.TangoState
+import com.ivandsky.puzzlebox.games.tango.feed.TangoGameExtractor
+import java.time.LocalDate
 
 /** Shared test support: the bundled 6x6 sample and its known unique solution. */
 object TangoTestSupport {
@@ -52,4 +56,12 @@ object TangoTestSupport {
     /** Empty player grid over [puzzle]'s givens. */
     fun gridOf(puzzle: TangoPuzzle = sample): List<TangoCell?> =
         List(puzzle.cellCount) { idx -> puzzle.givens[idx] }
+
+    /** The daily puzzle of the bundled fixture [name] (a LinkedIn page or Lotka payload under /fixtures). */
+    fun dailyOf(name: String): TangoPuzzle {
+        val text = requireNotNull(TangoTestSupport::class.java.getResource("/fixtures/$name")) { name }.readText()
+        val match = requireNotNull(TangoGameExtractor.extract(text)) { name }
+        val parsed = LotkaWireParser.parse(match.lotkaGamePuzzleJson, LocalDate.of(2026, 11, 5), match.editionText)
+        return (parsed as DecodeResult.Ok).value.puzzle
+    }
 }
