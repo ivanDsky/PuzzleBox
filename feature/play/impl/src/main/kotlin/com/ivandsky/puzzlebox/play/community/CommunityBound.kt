@@ -2,41 +2,17 @@ package com.ivandsky.puzzlebox.play.community
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.model.ShareCode
-import org.koin.androidx.compose.koinViewModel
-
-/**
- * Hosts Custom's New today (nav-rethink C2). Called as `CommunityHost(onOpen) { community -> ... }`:
- * the content draws the Custom list and gets the section to add to it. The snackbar and the sign-in dialog sit over
- * the content, outside its scrolling list. `onOpen` opens a row's puzzle by its code, the way a friend's puzzle opens.
- *
- * It is an object, not a top-level composable, because it binds the Koin view model and so has no preview of its
- * own; the section it adds is previewed in `CommunityPreviews.kt`.
- */
-object CommunityHost {
-
-    @Composable
-    operator fun invoke(onOpen: (code: String) -> Unit, content: @Composable (community: LazyListScope.() -> Unit) -> Unit) {
-        val viewModel: CommunityViewModel = koinViewModel()
-        val state by viewModel.state.collectAsStateWithLifecycle()
-        CommunityBound(viewModel, state, onOpen = { code -> onOpen(code.value) }) { actions ->
-            content { communitySection(state, actions) }
-        }
-    }
-}
 
 /**
  * New today's actions bound to [viewModel], handed to [content]; the snackbar and the sign-in dialog sit over it,

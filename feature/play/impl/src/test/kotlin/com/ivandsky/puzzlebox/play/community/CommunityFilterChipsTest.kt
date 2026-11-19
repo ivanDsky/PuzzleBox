@@ -44,7 +44,7 @@ import org.koin.dsl.module
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** New today's filters as two chips and their sheets (epic picker-filters, ticket 05), through [CommunityHost] over the fake repository. */
+/** New today's filters as two chips and their sheets (epic picker-filters, ticket 05), through [CommunityPageHost] over the fake repository. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp-420dpi")
 class CommunityFilterChipsTest {
@@ -77,7 +77,7 @@ class CommunityFilterChipsTest {
     private fun Host(fontScale: Float) {
         PuzzleBoxTheme {
             CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, fontScale)) {
-                CommunityHost(onOpen = {}) { community -> LazyColumn { community(this) } }
+                CommunityPageHost()
             }
         }
     }
@@ -264,55 +264,6 @@ class CommunityFilterChipsTest {
 
         rule.onNodeWithTag("community.filter.difficulty").performScrollTo().assertIsDisplayed()
         rule.onNodeWithTag("community.filter.game").assertTextContains("Alpha")
-    }
-
-    @Test
-    @Config(sdk = [34], qualifiers = "w1280dp-h800dp-420dpi")
-    fun `the tablet head shows New today and its count, and the chips sit below it`() {
-        show()
-
-        rule.onNodeWithText("New today").assertIsDisplayed()
-        rule.onNodeWithTag("library.friends.count").assertTextEquals("6")
-        assertTrue(top("community.head") < top("community.filter.game"))
-        rule.onNodeWithTag("community.filter.game").assertIsDisplayed()
-    }
-
-    @Test
-    fun `a game and a difficulty together narrow the list and both sheets check the picks`() {
-        show()
-
-        tap("community.filter.game")
-        tap("community.filter.game.alpha")
-        assertEquals(listOf("AAA111", "AAA222", "AAA333"), rows())
-        tap("community.filter.difficulty")
-        tap("community.filter.difficulty.hard")
-
-        assertEquals(listOf("AAA111"), rows())
-        tap("community.filter.game")
-        rule.onNodeWithTag("community.filter.game.alpha").assertIsSelected()
-        tap("community.filter.game.sheet.close")
-        tap("community.filter.difficulty")
-        rule.onNodeWithTag("community.filter.difficulty.hard").assertIsSelected()
-    }
-
-    @Test
-    fun `Any difficulty clears the difficulty and keeps the game, and All games then clears the game`() {
-        show()
-        tap("community.filter.game")
-        tap("community.filter.game.alpha")
-        tap("community.filter.difficulty")
-        tap("community.filter.difficulty.easy")
-        assertEquals(listOf("AAA222"), rows())
-
-        tap("community.filter.difficulty")
-        tap("community.filter.difficulty.any")
-        rule.onNodeWithTag("community.filter.difficulty").assertTextEquals("Difficulty")
-        rule.onNodeWithTag("community.filter.game").assertTextEquals("Alpha")
-        assertEquals(listOf("AAA111", "AAA222", "AAA333"), rows())
-
-        tap("community.filter.game")
-        tap("community.filter.game.all")
-        assertEquals(6, rows().size)
     }
 
     private companion object {

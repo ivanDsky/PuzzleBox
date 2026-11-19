@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.play.community
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
@@ -13,28 +12,6 @@ import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.EmptyState
 import com.ivandsky.puzzlebox.designsystem.ErrorState
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.play.FriendsSectionHead
-
-/**
- * New today as rows of a list that is someone else's (the tablet Community tab's): the head with its count, then
- * [communityFilterHead] and [communityBody]. Every row pads its own sides, so the list needs no padding of its own;
- * the keys start with `community:`.
- */
-internal fun LazyListScope.communitySection(state: CommunityState, actions: CommunityActions) {
-    val loaded = state.phase as? CommunityPhase.Loaded
-    item(key = "community:head", contentType = "community.head") {
-        Row(
-            Modifier.padding(horizontal = Spacing.lg)
-                .padding(top = Spacing.sm)
-                .testTag("community.head"),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            FriendsSectionHead(title = "New today", count = loaded?.rows?.size?.takeIf { it > 0 }, modifier = Modifier.weight(1f))
-        }
-    }
-    communityFilterHead(state, actions)
-    communityBody(state, actions)
-}
 
 /**
  * The rows for [state]'s phase: a spinner while loading, one full-width [CommunityRow] per puzzle, or the empty,

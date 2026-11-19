@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.play.community
 
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
@@ -26,10 +25,10 @@ import org.koin.dsl.module
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** [CommunityHost] around a stand-in Custom list: what the section adds, what a row, its menu and the sign-in prompt do. */
+/** New today's page in [CommunityBound]: what a row, its menu, the notice and the sign-in prompt do. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp-420dpi")
-class CommunityHostTest {
+class CommunityBoundTest {
 
     @get:Rule
     val rule = createAndroidComposeRule<ComponentActivity>()
@@ -44,7 +43,7 @@ class CommunityHostTest {
         startKoin { modules(module { viewModel { fixture.viewModel() } }) }
         rule.setContent {
             PuzzleBoxTheme {
-                CommunityHost(onOpen = { opened += it }) { community -> LazyColumn { community(this) } }
+                CommunityPageHost(onOpen = { opened += it })
             }
         }
         rule.waitForIdle()
@@ -55,7 +54,6 @@ class CommunityHostTest {
         val fixture = CommunityFixture().also { runBlocking { it.publish("AAA111", NOW - HOUR, difficulty = Level.Hard) } }
         show(fixture)
 
-        rule.onNodeWithText("New today").assertIsDisplayed()
         rule.onNodeWithTag("community.row.AAA111").performClick()
 
         assertEquals(listOf("AAA111"), opened)

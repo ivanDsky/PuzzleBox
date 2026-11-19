@@ -60,7 +60,9 @@ abstract class CommunityFilterGoldenScreenshots(private val device: String) {
     private fun capture(name: String, state: CommunityState, dark: Boolean, openChip: String? = null) {
         rule.showGolden(dark) {
             LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(top = Spacing.sm, bottom = Spacing.xl)) {
-                communitySection(state, CommunityActions(onOpen = {}, onReport = {}, onGame = {}, onDifficulty = {}, onClearFilters = {}, onRetry = {}))
+                val actions = CommunityActions(onOpen = {}, onReport = {}, onGame = {}, onDifficulty = {}, onClearFilters = {}, onRetry = {})
+                communityFilterHead(state, actions)
+                communityBody(state, actions)
             }
         }
         if (openChip != null) {
