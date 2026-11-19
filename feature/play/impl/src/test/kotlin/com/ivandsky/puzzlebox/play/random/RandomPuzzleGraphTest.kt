@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.play.domain.random.LoadRandomShared
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.play.testDispatchers
+import com.ivandsky.puzzlebox.play.flagsOff
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -33,6 +34,7 @@ class RandomPuzzleGraphTest {
     private fun graph() = startKoin {
         modules(
             playModule,
+            flagsOff,
             module {
                 val registry = TestGames.registry(listOf(TestGames.alpha))
                 val daily = FakeDailyRepository()

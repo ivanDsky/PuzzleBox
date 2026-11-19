@@ -29,7 +29,7 @@ internal class RandomPuzzleViewModel(
     private val load: LoadRandomPuzzle,
     private val memory: RandomPickMemory,
     private val dispatchers: DispatcherProvider,
-    releaseFlags: ReleaseFlags? = null,
+    releaseFlags: ReleaseFlags,
 ) : ViewModel() {
     private val current = MutableStateFlow(
         RandomPuzzleState(RandomSource.Past, game, unsolvedOnly = true, difficulty = null, phase = RandomPhase.Idle),
@@ -39,7 +39,7 @@ internal class RandomPuzzleViewModel(
     val state: StateFlow<RandomPuzzleState> = current.asStateFlow()
 
     /** Game and Difficulty are chips with an option page inside the sheet, not two labelled chip rows. Read once: the sheet shows one look while it is up. */
-    val filterSheets: Boolean = releaseFlags?.isEnabled(FilterFlag.FilterSheets) == true
+    val filterSheets: Boolean = releaseFlags.isEnabled(FilterFlag.FilterSheets)
 
     fun chooseSource(source: RandomSource) = change { it.copy(source = source) }
 

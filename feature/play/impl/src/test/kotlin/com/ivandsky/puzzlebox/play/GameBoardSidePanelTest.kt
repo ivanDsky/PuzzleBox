@@ -103,6 +103,7 @@ class GameBoardSidePanelTest {
                 // After playModule, whose own FinishLeg would replace this one.
                 module { factory { FinishLeg(FakeMatchResultOutbox(), FakeSelfMatchRepository(), identity) { Instant.EPOCH } } },
                 hubOffFriendDay,
+                flagsOff,
                 // The stats panel's view model over fakes; a self leg must never ask for it.
                 module {
                     viewModel { params ->

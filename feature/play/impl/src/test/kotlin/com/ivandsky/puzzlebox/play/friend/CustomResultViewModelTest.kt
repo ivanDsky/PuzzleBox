@@ -81,7 +81,7 @@ import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.playNavKeys
 import com.ivandsky.puzzlebox.play.di.playModule
-import com.ivandsky.puzzlebox.play.PlayFlag
+import com.ivandsky.puzzlebox.play.flags.PlayFlag
 import com.ivandsky.puzzlebox.play.hubOffFriendDay
 import com.ivandsky.puzzlebox.play.navigation.playEntry
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
@@ -222,7 +222,7 @@ class CustomResultViewModelTest {
     private fun row(timeMs: Long, hints: Int = 0, isRecord: Boolean = false) =
         CompletionRecord(ref, timeMs, hints, RecordStats(1, "{}"), isRecord = isRecord)
 
-    private fun observed(key: CustomResultKey, flags: ReleaseFlags? = null): CustomResultViewModel {
+    private fun observed(key: CustomResultKey, flags: ReleaseFlags = FakeReleaseFlags()): CustomResultViewModel {
         val koin = checkNotNull(koin).koin
         val viewModel = CustomResultViewModel(
             key, completions, received, fakes.games, fakes.registry, koin.get(), koin.get(), koin.get(), loadReplay(fakes.games),
@@ -269,7 +269,7 @@ class CustomResultViewModelTest {
         val viewModel = CustomResultViewModel(
             CustomResultKey(fixture.value, code.value, timeMs, 0), completions, received, fixtureGames,
             GamePlayRegistry(listOf(fixtureUi)),
-            koin.get(), store, koin.get(), loadReplay(fixtureGames, dispatchers),
+            koin.get(), store, koin.get(), loadReplay(fixtureGames, dispatchers), FakeReleaseFlags(),
         )
         screen.launch { viewModel.state.collect {} }
         main.testDispatcher.scheduler.runCurrent()

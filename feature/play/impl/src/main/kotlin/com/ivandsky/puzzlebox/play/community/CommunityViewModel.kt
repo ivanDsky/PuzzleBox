@@ -41,7 +41,7 @@ internal class CommunityViewModel(
     private val identity: IdentityService,
     idTokens: GoogleIdTokenProvider,
     private val clock: () -> Long,
-    releaseFlags: ReleaseFlags? = null,
+    releaseFlags: ReleaseFlags,
 ) : ViewModel() {
 
     private val choices = games.all.filter { it.editor != null }.map {
@@ -55,7 +55,7 @@ internal class CommunityViewModel(
     private var noticeCount = 0
 
     private val current = MutableStateFlow(
-        CommunityState(games = choices, filterSheets = releaseFlags?.isEnabled(FilterFlag.FilterSheets) == true),
+        CommunityState(games = choices, filterSheets = releaseFlags.isEnabled(FilterFlag.FilterSheets)),
     )
 
     val state: StateFlow<CommunityState> = current.asStateFlow()

@@ -39,6 +39,7 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.play.flags.PlayFlag
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
@@ -142,7 +143,7 @@ class LibraryViewModelTest {
     private fun observedVm(
         delete: DeleteReceivedPuzzle = DeleteReceivedPuzzle(received, saved),
         linkedIn: ObserveLinkedInDayView? = null,
-        releaseFlags: ReleaseFlags? = null,
+        releaseFlags: ReleaseFlags = FakeReleaseFlags(),
     ): LibraryViewModel {
         val history = ObserveGameHistory(fakes.games, daily, GatedCompletionRepository(completions, historyOpen))
         return LibraryViewModel(

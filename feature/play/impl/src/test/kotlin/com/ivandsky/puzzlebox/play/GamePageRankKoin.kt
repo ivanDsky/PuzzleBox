@@ -4,6 +4,8 @@ import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
@@ -46,4 +48,9 @@ internal fun startGamePageRankKoin(ids: List<GameId>, today: LocalDate = LocalDa
 /** The hub-off binding a play test graph needs when it loads [playModule]: the root's answer is no friend day. */
 internal val hubOffFriendDay = module {
     single { ObserveFriendDay.Binding(reader = null) } // no Friends/Global setting
+}
+
+/** The release flags a play test graph needs when it loads [playModule]: every flag off. */
+internal val flagsOff = module {
+    single<ReleaseFlags> { FakeReleaseFlags() }
 }

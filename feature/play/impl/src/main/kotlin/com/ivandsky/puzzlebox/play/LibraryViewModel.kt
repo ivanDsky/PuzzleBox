@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.play.domain.ArchiveProgress
 import com.ivandsky.puzzlebox.play.domain.DeleteReceivedPuzzle
 import com.ivandsky.puzzlebox.domain.FriendPuzzleRow
+import com.ivandsky.puzzlebox.play.flags.PlayFlag
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.play.domain.ObserveArchiveMonth
 import com.ivandsky.puzzlebox.play.domain.ObserveArchiveProgress
@@ -121,7 +122,7 @@ class LibraryViewModel(
     appScope: CoroutineScope,
     internal val linkedIn: ObserveLinkedInDayView?,
     private val identity: IdentityService,
-    releaseFlags: ReleaseFlags? = null,
+    releaseFlags: ReleaseFlags,
 ) : ViewModel() {
 
     // Held rows reset when this changes: a sign-in as someone else never shows the first account's.
@@ -206,7 +207,7 @@ class LibraryViewModel(
         )
 
     // Live, so the debug flag's switch applies without a restart.
-    private val swipe: Flow<Boolean> = releaseFlags?.enabled?.map(::swipeOf)?.distinctUntilChanged() ?: flowOf(false)
+    private val swipe: Flow<Boolean> = releaseFlags.enabled.map(::swipeOf).distinctUntilChanged()
 
     @OptIn(ExperimentalCoroutinesApi::class)
     internal val page: StateFlow<ArchivePageState?> =
@@ -220,7 +221,7 @@ class LibraryViewModel(
      * month change is #1551's crossfade.
      */
     internal val monthSwipe: StateFlow<Boolean> =
-        swipe.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), releaseFlags?.let { swipeOf(it.enabled.value) } ?: false)
+        swipe.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), swipeOf(releaseFlags.enabled.value))
 
     /** The day card's LinkedIn view; no stop grace, so a sync still in its debounce dies with the card. */
     internal val linkedInView: StateFlow<LinkedInDayView?> = linkedIn

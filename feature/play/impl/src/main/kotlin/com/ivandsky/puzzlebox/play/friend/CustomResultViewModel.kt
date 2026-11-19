@@ -29,7 +29,7 @@ import com.ivandsky.puzzlebox.play.ResultSamePuzzle
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.api.CustomResultKey
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
-import com.ivandsky.puzzlebox.play.PlayFlag
+import com.ivandsky.puzzlebox.play.flags.PlayFlag
 import com.ivandsky.puzzlebox.resultui.SamePuzzleSolves
 import com.ivandsky.puzzlebox.resultui.replay.ReplaySectionState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -108,12 +108,12 @@ internal class CustomResultViewModel(
     private val store: PlaySessionStore,
     private val board: FriendPuzzleBoard,
     private val loadReplay: LoadSolveReplay,
-    releaseFlags: ReleaseFlags? = null,
+    releaseFlags: ReleaseFlags,
 ) : ViewModel() {
 
     private val slot = PlaySlot.Custom(GameId(key.gameId), key.puzzleId)
 
-    private val heroPolish = releaseFlags?.isEnabled(PlayFlag.ResultHeroPolish) == true
+    private val heroPolish = releaseFlags.isEnabled(PlayFlag.ResultHeroPolish)
 
     private val gameName = games.displayName(slot.gameId)
 

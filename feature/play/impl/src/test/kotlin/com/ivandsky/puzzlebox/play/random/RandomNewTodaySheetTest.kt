@@ -27,6 +27,7 @@ import com.ivandsky.puzzlebox.play.community.HOUR
 import com.ivandsky.puzzlebox.play.community.NOW
 import com.ivandsky.puzzlebox.play.community.code
 import com.ivandsky.puzzlebox.play.testDispatchers
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -77,7 +78,7 @@ class RandomNewTodaySheetTest {
             LoadRandomDay(daily, FakeCompletionRepository(), LoadPastDay(daily, registry), registry, random),
             LoadRandomShared(ListCommunityPuzzles(fixture.shared, fixture.hidden, identity) { NOW }, random),
         )
-        val viewModel = RandomPuzzleViewModel(preset, load, RandomPickMemory(), testDispatchers())
+        val viewModel = RandomPuzzleViewModel(preset, load, RandomPickMemory(), testDispatchers(), FakeReleaseFlags())
         composeRule.setContent {
             PuzzleBoxTheme {
                 RandomPuzzleSheet(preset, past.value, newToday.value, PlayLayout.SinglePane, onOpen = { opened += it }, onDismiss = {}, viewModel = viewModel)

@@ -22,6 +22,7 @@ import com.ivandsky.puzzlebox.play.domain.random.LoadRandomShared
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.play.testDispatchers
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
@@ -75,7 +76,7 @@ class RandomPuzzleSheetScrollTest {
             LoadRandomDay(daily, FakeCompletionRepository(), LoadPastDay(daily, registry), registry, random),
             LoadRandomShared(ListCommunityPuzzles(FakeSharedPuzzleRepository(), FakeHiddenPuzzles(), FakeIdentityService(Identity("me", "Me", null))) { 0L }, random),
         )
-        val viewModel = RandomPuzzleViewModel(alpha, load, RandomPickMemory(), testDispatchers())
+        val viewModel = RandomPuzzleViewModel(alpha, load, RandomPickMemory(), testDispatchers(), FakeReleaseFlags())
         rule.setContent {
             PuzzleBoxTheme {
                 RandomPuzzleSheet(alpha, games, games, PlayLayout.SinglePane, onOpen = {}, onDismiss = {}, viewModel = viewModel)

@@ -61,6 +61,7 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
+import com.ivandsky.puzzlebox.play.flags.PlayFlag
 import com.ivandsky.puzzlebox.play.friend.signedOutBoard
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
@@ -183,7 +184,7 @@ class ResultViewModelTest {
         store: PlaySessionStore = this.store,
         identity: Identity? = null,
         linkedIn: Boolean = false,
-        flags: ReleaseFlags? = null,
+        flags: ReleaseFlags = FakeReleaseFlags(),
         post: Boolean = false,
     ): ResultViewModel {
         val history = ObserveGameHistory(games, daily, completions)
@@ -950,7 +951,6 @@ class ResultViewModelTest {
 
         assertTrue(vm(flags = FakeReleaseFlags(PlayFlag.ResultHeroPolish)).heroSignInLine)
         assertFalse(vm(flags = FakeReleaseFlags()).heroSignInLine)
-        assertFalse(vm(flags = null).heroSignInLine)
     }
 
     @Test

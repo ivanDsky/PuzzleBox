@@ -216,6 +216,7 @@ class ResultChallengeRowTest {
                     }
                 },
                 hubOffFriendDay,
+                flagsOff,
             )
         }
     }

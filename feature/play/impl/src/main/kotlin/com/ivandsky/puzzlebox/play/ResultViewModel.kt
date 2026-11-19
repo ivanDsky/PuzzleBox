@@ -34,6 +34,7 @@ import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.play.friend.FriendPuzzleBoard
+import com.ivandsky.puzzlebox.play.flags.PlayFlag
 import com.ivandsky.puzzlebox.resultui.LinkedInPostRowState
 import com.ivandsky.puzzlebox.resultui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.resultui.SamePuzzleSolves
@@ -99,7 +100,7 @@ class ResultViewModel internal constructor(
     private val board: FriendPuzzleBoard,
     completions: CompletionRepository,
     loadReplay: LoadSolveReplay,
-    releaseFlags: ReleaseFlags? = null,
+    releaseFlags: ReleaseFlags,
     observePost: ObserveLinkedInPost? = null,
     submitPost: SubmitLinkedInResult? = null,
     nextThing: Lazy<ObserveResultNextThing>,
@@ -112,7 +113,7 @@ class ResultViewModel internal constructor(
     private val names: Map<GameId, String> = store.playable.toMap()
     private val today: Boolean = calendar.today(slot.gameId) == slot.day
     private val replayRow = ResultReplayRow(completions, loadReplay, solve, live.takeIf { liveHoldsSolve })
-    private val columns = releaseFlags?.isEnabled(PlayFlag.ResultHeroPolish) == true
+    private val columns = releaseFlags.isEnabled(PlayFlag.ResultHeroPolish)
     private val share = ResultShare(slot)
     private val samePuzzleRows = ResultSamePuzzle(completions, solve, live.takeIf { liveHoldsSolve }, games.rankOrderOf(slot.gameId))
 
@@ -222,7 +223,7 @@ class ResultViewModel internal constructor(
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), ResultRank.Hidden)
 
     /** Result hero polish: the signed-out hero carries the sign-in invitation under the time. */
-    val heroSignInLine: Boolean = releaseFlags?.isEnabled(PlayFlag.ResultHeroPolish) == true
+    val heroSignInLine: Boolean = releaseFlags.isEnabled(PlayFlag.ResultHeroPolish)
 
     private val post = ResultPostButton(viewModelScope, observePost, submitPost, slot.gameId, slot.day)
 

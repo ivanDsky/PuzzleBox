@@ -206,6 +206,7 @@ class MatchLegRouteTest {
                 // After playModule, whose own FinishLeg would replace this one.
                 module { factory { FinishLeg(get(), FakeSelfMatchRepository(), get()) { Instant.EPOCH } } },
                 hubOffFriendDay,
+                flagsOff,
             )
         }.koin.get()
     }

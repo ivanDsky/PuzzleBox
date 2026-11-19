@@ -145,6 +145,7 @@ class LibraryTabsTest {
                 // After playModule, whose own FinishLeg would replace this one.
                 module { factory { FinishLeg(FakeMatchResultOutbox(), FakeSelfMatchRepository(), FakeIdentityService()) { Instant.EPOCH } } },
                 hubOffFriendDay,
+                flagsOff,
             )
         }
     }
