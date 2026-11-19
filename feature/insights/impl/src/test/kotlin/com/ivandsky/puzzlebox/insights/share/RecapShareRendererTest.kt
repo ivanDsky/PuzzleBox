@@ -37,7 +37,7 @@ class RecapShareRendererTest {
 
     @Test
     fun `a render writes a decodable png under the share directory`() = runTest(dispatcher) {
-        val file = renderer.render(image(), "recap-2026-11")
+        val file = renderer.render(image(), "2026-11")
 
         assertEquals(File(shareDirectory, "recap-2026-11.png"), file)
         val decoded = BitmapFactory.decodeFile(file.path)
@@ -47,9 +47,9 @@ class RecapShareRendererTest {
 
     @Test
     fun `the next render deletes the previous image`() = runTest(dispatcher) {
-        val first = renderer.render(image(), "recap-2026-10")
+        val first = renderer.render(image(), "2026-10")
 
-        val second = renderer.render(image(), "recap-2026-11")
+        val second = renderer.render(image(), "2026-11")
 
         assertFalse(first.exists())
         assertTrue(second.exists())
@@ -59,7 +59,7 @@ class RecapShareRendererTest {
     @Test
     fun `clear deletes what a share left and is harmless without a directory`() = runTest(dispatcher) {
         renderer.clear()
-        val file = renderer.render(image(), "recap-2026-11")
+        val file = renderer.render(image(), "2026-11")
 
         renderer.clear()
 
@@ -67,8 +67,20 @@ class RecapShareRendererTest {
     }
 
     @Test
+    fun `a file another share flow keeps in the directory survives a render and a clear`() = runTest(dispatcher) {
+        val foreign = File(shareDirectory, "match-result.png").apply { parentFile!!.mkdirs(); writeBytes(byteArrayOf(1)) }
+
+        renderer.render(image(), "2026-10")
+        renderer.render(image(), "2026-11")
+        renderer.clear()
+
+        assertTrue(foreign.exists())
+        assertEquals(listOf("match-result.png"), shareDirectory.list()!!.toList())
+    }
+
+    @Test
     fun `starting the cleaner deletes the previous image`() = runTest(dispatcher) {
-        val file = renderer.render(image(), "recap-2026-11")
+        val file = renderer.render(image(), "2026-11")
 
         RecapShareCleaner(renderer, this).start()
         testScheduler.advanceUntilIdle()

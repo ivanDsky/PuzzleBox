@@ -56,7 +56,7 @@ internal class RecapShareViewModel(
             if (cloudSync.restoring.first()) return@launch
             attempt.value = Attempt.Sharing
             attempt.value = try {
-                val file = renderer.render(image, "recap-${period.id}")
+                val file = renderer.render(image, period.id)
                 chooser.send(RecapShareIntent.create(uriOf(file), content.shareText()))
                 Attempt.Idle
             } catch (_: IOException) {
