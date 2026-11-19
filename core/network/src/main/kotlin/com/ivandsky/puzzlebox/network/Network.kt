@@ -12,8 +12,8 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 
-/** Placeholder base URL; Retrofit requires one at build time. Phase 1 finalizes the real hosts. */
-internal const val LINKEDIN_BASE_URL = "https://www.linkedin.com/"
+/** Placeholder base URL; Retrofit requires one at build time. Phase 1 finalizes the real hosts. Public: the puzzle-cli index pass builds the same transport `networkModule` does (ADR-0021). */
+const val LINKEDIN_BASE_URL = "https://www.linkedin.com/"
 
 /** NYT's public game JSON host (ADR-0014); paths are relative to it. */
 internal const val NYT_BASE_URL = "https://www.nytimes.com/"
