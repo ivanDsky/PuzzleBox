@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.queens.engine.hints.step
 
 import com.ivandsky.puzzlebox.game.editor.Difficulty
+import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensBoard
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
@@ -253,6 +254,7 @@ class QueensStepperTest {
     private class FakeRung(override val id: String, proofs: (QueensRung) -> List<Pair<QueensDeduction, Set<Int>>>) : QueensRung {
         override val level: Difficulty.Level = Difficulty.Level.Easy
         override val captionKey: String = id
+        override val trainerId: TechniqueId? = null
         private val proofs = proofs(this).map { (d, evidence) -> QueensProof(d, evidence) }
         override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> = proofs.asSequence()
         override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? = proofs.firstOrNull()?.deduction

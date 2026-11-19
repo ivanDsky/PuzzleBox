@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.queens.engine.hints.ladder
 
 import com.ivandsky.puzzlebox.game.editor.Difficulty
+import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 
 /**
@@ -15,6 +16,7 @@ class ShortLookAheadRung(private val cheap: List<QueensRung>) : QueensRung {
     override val id: String = "short-look-ahead"
     override val level: Difficulty.Level = Difficulty.Level.Expert
     override val captionKey: String = "queens.hint.rung.short-look-ahead"
+    override val trainerId: TechniqueId = TechniqueId("short-look-ahead")
 
     // Lazy: step() stops at the first break, often a round-0 one, without probing the other cells.
     override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> =

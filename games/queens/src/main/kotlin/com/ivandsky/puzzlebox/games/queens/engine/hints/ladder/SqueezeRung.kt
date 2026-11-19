@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.queens.engine.hints.ladder
 
 import com.ivandsky.puzzlebox.game.editor.Difficulty
+import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 
 /**
@@ -16,6 +17,7 @@ object SqueezeRung : QueensRung {
     override val id: String = "squeeze"
     override val level: Difficulty.Level = Difficulty.Level.Hard
     override val captionKey: String = "queens.hint.rung.squeeze"
+    override val trainerId: TechniqueId = TechniqueId("squeeze")
 
     override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> =
         found(puzzle, candidates).map(Found<QueensDeduction.Exclude>::proof)

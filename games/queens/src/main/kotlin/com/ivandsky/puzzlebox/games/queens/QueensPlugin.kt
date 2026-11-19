@@ -18,6 +18,7 @@ import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHints
 import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensRuleId
 import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensRules as EngineQueensRules
 import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensVerifier
+import com.ivandsky.puzzlebox.games.queens.engine.trainer.QueensTechniqueWalker
 import com.ivandsky.puzzlebox.games.queens.render.QueensRendererModel
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.ZoneId
@@ -175,6 +176,7 @@ val queensPlugin: GamePlugin<QueensState, QueensSession, QueensRendererModel> =
         editor = QueensEditor,
         replay = QueensReplay,
         linkedInPlay = QueensLinkedInPlay::encode,
+        techniqueWalker = QueensTechniqueWalker,
     )
 
 /**

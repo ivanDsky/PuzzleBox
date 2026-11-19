@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.queens.engine.hints.ladder
 
 import com.ivandsky.puzzlebox.game.editor.Difficulty
+import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 
 /**
@@ -18,6 +19,7 @@ object LineGroupPigeonholeRung : QueensRung {
     override val id: String = "line-group-pigeonhole"
     override val level: Difficulty.Level = Difficulty.Level.Hard
     override val captionKey: String = "queens.hint.rung.line-group-pigeonhole"
+    override val trainerId: TechniqueId = TechniqueId("pigeonhole-lines")
 
     override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> =
         found(puzzle, candidates).proofs(order)

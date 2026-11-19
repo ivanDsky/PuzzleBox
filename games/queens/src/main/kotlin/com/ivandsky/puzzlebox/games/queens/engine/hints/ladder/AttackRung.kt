@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.queens.engine.hints.ladder
 
 import com.ivandsky.puzzlebox.game.editor.Difficulty
+import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 
 /**
@@ -16,6 +17,7 @@ object AttackRung : QueensRung {
     override val id: String = "attack"
     override val level: Difficulty.Level = Difficulty.Level.Easy
     override val captionKey: String = "queens.hint.rung.attack"
+    override val trainerId: TechniqueId? = null
 
     /** Lazy: one queen at a time, so [step] stops at the first. */
     override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> {

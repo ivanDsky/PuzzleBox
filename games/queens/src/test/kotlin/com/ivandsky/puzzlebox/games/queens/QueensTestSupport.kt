@@ -1,7 +1,11 @@
 package com.ivandsky.puzzlebox.games.queens
 
+import com.ivandsky.puzzlebox.game.DecodeResult
+import com.ivandsky.puzzlebox.games.queens.codec.QueensWireParser
 import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensRules
 import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensRulesVerdict
+import com.ivandsky.puzzlebox.games.queens.feed.QueensGameExtractor
+import java.time.LocalDate
 
 /** Hand-verifiable boards and builders shared by the solver/generator test suite. */
 object QueensTestSupport {
@@ -122,4 +126,14 @@ object QueensTestSupport {
         QueensVariant(queensVariantId(size), size, queensPerUnit)
 
     fun path(vararg idx: Int): List<Cell> = idx.map { Cell(it) }
+
+    /** A daily fixture under `/fixtures/`, a LinkedIn page body or bare wire JSON, decoded with its solution. */
+    fun daily(name: String): QueensPuzzle {
+        val body = QueensTestSupport::class.java.getResourceAsStream("/fixtures/$name")!!.readBytes().decodeToString()
+        val wire = QueensGameExtractor.extract(body)?.queensGamePuzzleJson ?: body
+        return when (val r = QueensWireParser.parse(wire, LocalDate.of(2026, 11, 2))) {
+            is DecodeResult.Ok -> r.value.puzzle
+            is DecodeResult.Err -> throw AssertionError("$name parse failed: ${r.error}")
+        }
+    }
 }
