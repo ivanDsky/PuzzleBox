@@ -1,6 +1,6 @@
 # ADR-0009 — In-module structure rules (`:konsist`)
 
-Date: 2026-11-04 · Status: accepted · Source: structure-rules run (S0 S1 S2 S4 S5 P1–P7); P8 from the navigation-ux run (spec A5); P9 from the nav-ia run (ADR-0027); P10 from the LinkedIn account run (ADR-0028); S6 from the sudoku run (spec A12); S7 from the Queens app-theme fix; S8 from the consistency polish run (spec S1); S9 from the Vibration switch (P3-07); S10 from the sheet fling fix (#1510, #1535); S11 from the flaky-test quarantine (ADR-0023 amendment 2026-11-18); P11 from the ci-warnings run (#850); P12 and the P10 narrowing from the LinkedIn result post run (ADR-0032); P13 from the LinkedInPush flag that a rebase brought back with no reader (#1337, #1339)
+Date: 2026-11-04 · Status: accepted · Source: structure-rules run (S0 S1 S2 S4 S5 P1–P7); P8 from the navigation-ux run (spec A5); P9 from the nav-ia run (ADR-0027); P10 from the LinkedIn account run (ADR-0028); S6 from the sudoku run (spec A12); S7 from the Queens app-theme fix; S8 from the consistency polish run (spec S1); S9 from the Vibration switch (P3-07); S10 from the sheet fling fix (#1510, #1535); S11 from the flaky-test quarantine (ADR-0023 amendment 2026-11-18); P11 from the ci-warnings run (#850); P12 and the P10 narrowing from the LinkedIn result post run (ADR-0032); P13 from the LinkedInPush flag that a rebase brought back with no reader (#1337, #1339); P14 and the P4 widening from the code-quality review (item 7, single-feature use cases leave `:core:domain`)
 
 ## Context
 ADR-0008 guards the edges between modules. It says nothing about what is inside a module:
@@ -73,7 +73,7 @@ returns these findings:
 - **Worker contract.** Fix a violation by splitting or moving code. Rules, allowlists and
   fixtures are protected files: a worker does not edit them to make a test pass.
 
-Entries on record at the time of writing: S1 64, S2 6, S4 25, S5 4, P1 6, P2 1, P5 4, P6 1.
+Entries on record at the time of writing: S1 64, S2 6, S4 25, S5 4, P1 6, P2 1, P5 4, P6 1, P14 107.
 S0, S6, S7, S8, S9, S10, S11, P3, P4, P7, P8, P9, P10, P11, P12 and P13 have none.
 
 ### Payload cross-reference
@@ -86,7 +86,7 @@ prose rules; the tests are their mechanical form and add no stricter bar:
 - Rule 20, one public top-level type per file (private helpers, extensions, typealiases and
   previews excepted): S1.
 
-The other rules (S0, S4, S5, S6, S7, S8, S9, S10, S11, P1, P4–P13) have no payload twin. Dependency direction between
+The other rules (S0, S4, S5, S6, S7, S8, S9, S10, S11, P1, P4–P13, P14) have no payload twin. Dependency direction between
 modules stays in ADR-0008.
 
 ### Adding a rule
@@ -307,11 +307,15 @@ ViewModels are named `*ViewModel`, live in `:feature:<x>:impl`, and expose no pu
 - **How to fix:** keep the `Mutable*` private and expose a read-only type; rename or move the class.
 
 ## P4
-Use cases in `:core:domain` start with a verb and have one public `operator fun invoke`.
+Use cases in `:core:domain` and in feature `domain` packages start with a verb and have one public
+`operator fun invoke`.
 
-- **Scope:** production, module `:core:domain`, top-level public or default-visibility classes and
-  objects, except data classes, data objects, enum classes, sealed classes and declarations in a
-  `di` package.
+- **Scope:** production files of module `:core:domain`, and of the `domain` package and its
+  sub-packages (`<package root>.domain`, `<package root>.domain.<sub>`) of every `:feature:<x>:impl`,
+  where P14 sends a use case that only one feature uses. Subjects: top-level public or
+  default-visibility classes and objects, except data classes, data objects, enum classes, sealed
+  classes and declarations in a `di` package. P7 is not widened with it: a feature `domain` package
+  sits in an Android module and is not checked for Android references.
 - **Detection:** the name must start with one of Get, Observe, Compute, Submit, Save, Load, Delete,
   Update, Create, Sync, Validate, Record, Start, Finish, Import, List, Report, followed by an uppercase letter. The
   declaration must have exactly one public function named `invoke`, and that function must be an
@@ -507,6 +511,43 @@ Every release flag entry that is not dark has a reader outside the file that dec
 - **How to fix:** delete the entry with its last gate (ADR-0022 §4 cleanup). A feature still in flight
   gates its entry point on `<Enum>.<Entry>` before its flip PR sets `releaseDefault = true`, or names it
   `releaseDefault = false` while it is still dark (a positional `false` does not count).
+
+## P14
+A `:core:domain` file that only one feature uses lives in that feature's `:impl`, in a `domain` package,
+and its Koin definition lives in that feature's module.
+
+- **Scope:** production files of module `:core:domain` outside `di` packages that have at least one
+  top-level declaration that is not `private` (class, interface, object, function, property or
+  typealias). One presence violation per file.
+- **Detection:** a file's consumers are the files that name one of its declarations in code (comments
+  and string contents removed): by qualified name (an import, an aliased import, an inline use, or a
+  nested or member name such as `X.Binding`), or by simple name in a file of the same package or a file
+  that star-imports it. Consumer files are the production files of every other module and the test files
+  of every module except `:core:domain` and `:app`. `:feature:<x>:api` and `:feature:<x>:impl` count as
+  one consumer, `:feature:<x>`; every other module counts as itself. Inside `:core:domain`, a file that
+  names another passes its consumers on to it, repeated until nothing changes, so a helper used only by a
+  single-feature use case is reported with it. `di` files are neither subjects nor consumers. A file is a
+  violation when its consumers are exactly one feature.
+- **Why:** the code-quality review (item 7) found 112 of 200 `:core:domain` files used by one feature;
+  the rule's own scan finds 116, because it also follows domain-internal references and counts other
+  modules' tests, which could not see the file after a move. `DomainModule.kt` had about 70 commits in
+  14 days (architecture review, 2026-11-18), and every `:core:domain` edit retests the 14 modules that
+  depend on it. ADR-0008 decision 4 states the placement rule.
+- **Not judged:** a file with no consumer (dead code, such as `GetFeaturedGame`), a file that `:app`'s
+  production code or any other module outside `:feature:*` uses (it stays), and the Koin definitions
+  themselves. Tests in `:core:domain` and `:app` do not count as consumers: `:core:domain`'s tests move
+  with the file, and `:app` sees every `:impl`.
+- **Accepted misses:** the match is by name, with no type resolution. A simple name in the same package
+  counts even when it resolves to a different symbol: that keeps a file in `:core:domain` that could
+  move, and, inside `:core:domain`, can hand one feature's consumers to a file nobody else names, which
+  is then reported. A reference by reflection, by a string-built name or through a typealias declared in
+  another file is not seen.
+- **Allowlist:** Ruling (code-quality review item 7, 2026-11-18): the files that violated when P14 landed
+  are frozen in `allowlists/P14.txt`. The item-7 move PRs delete each entry as they move its file.
+- **How to fix:** move the file to `:feature:<x>:impl`, package `<package root>.domain` (sub-packages
+  kept, `com.ivandsky.puzzlebox.play.domain.random`), move its Koin definition from `domainModule` to the
+  feature's Koin module, and delete its allowlist entry. P4 judges it there. When a second feature needs
+  a feature's use case, move it back to `:core:domain`.
 
 ## Consequences
 - A structure regression fails `./gradlew :konsist:test` with the rule, the file, a fix hint and

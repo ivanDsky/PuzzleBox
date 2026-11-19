@@ -28,10 +28,31 @@ the build instead of a review.
    binds exactly one `GamePlayUi` under its id qualifier; `app` builds
    `GamePlayRegistry(getAll())` once (a duplicate id throws). `feature:play:impl` drives any
    game through `GamePlayController` (ADR-0007).
-4. **Cross-feature business logic lives in `core:domain`** as use cases (`domainModule`):
-   `ComputeStreak`, `GetFeaturedGame`, `LoadPastDay`, `ObserveGameHistory`, `ObserveLeaderboard`,
-   `ObservePlayStats`, `ObserveTodaySet`. Features call use cases or `core:data` repositories, never
+4. **Cross-feature business logic lives in `core:domain`** as use cases (`domainModule`), for
+   example `ComputeStreak`, `ObserveGameHistory`, `ObserveLeaderboard`, `ObserveTodaySet`.
+   **A use case with a single feature consumer lives in that feature's `impl`**, in the package
+   `com.ivandsky.puzzlebox.<feature>.domain` (sub-packages kept), and is registered in that
+   feature's Koin module; `domainModule` loses each registration that moves. A use case moves to
+   `core:domain` when a second feature, or any module outside `:feature:*`, needs it, and moves
+   back out when only one feature remains. Consumers are counted as
+   [ADR-0009 P14](0009-in-module-structure-rules.md#p14) counts them: another `core:domain` use
+   case that calls one (a composite) hands its own consumers on to it, and the tests of other
+   modules (not `:core:domain` or `:app`) count too. So `ComputeStreak` and `ObserveLeaderboard`
+   stay: composites such as `ObserveGameStats` and `ObserveResultRank` that call them serve
+   several features, and other features' tests use them. A helper moves along with its only
+   caller. P14 reports every file with exactly one feature consumer, and
+   [ADR-0009 P4](0009-in-module-structure-rules.md#p4) judges the use-case shape in the
+   `<feature>.domain` packages as well as in `core:domain`. P7 is not extended: feature `impl`
+   modules are Android libraries, so a `domain` package inside one is not checked for Android
+   imports; that is an accepted gap. Features call use cases or `core:data` repositories, never
    each other's ViewModels.
+   *(Amended 2026-11-18, ADR-0009 P14: before this amendment `core:domain` held every use case.
+   The architecture review (2026-11-18) found 112 of its 200 main files had exactly one feature
+   consumer by direct imports; P14, which also follows composites and counts foreign-feature
+   tests, finds 116. `DomainModule.kt` had about 70 commits in 14 days (architecture review,
+   2026-11-18), and each `core:domain` edit retests 14 modules. Single-consumer logic now sits
+   next to its only caller; the stale examples `GetFeaturedGame`, `LoadPastDay` and
+   `ObservePlayStats` are dropped from this decision.)*
 5. **Navigation is api/impl.** `feature:<name>:api` holds only the feature's `@Serializable`
    NavKeys and a `<name>NavKeys()` polymorphic registration (`core:navigation`'s
    `navKeySavedStateConfiguration`); `feature:<name>:impl` holds screens, ViewModels, Koin
