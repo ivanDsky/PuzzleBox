@@ -21,5 +21,7 @@ internal fun StatsSectionSlot(
         is StatsSection.TimeTrend -> TrendSection(section.state, modifier)
         is StatsSection.Records -> RecordsSection(section.state, gameName, onOpenSolve, modifier)
         is StatsSection.HintFreeRate -> HintFreeSection(section.state, modifier)
+        is StatsSection.Weekday -> WeekdaySection(section.state, modifier)
+        is StatsSection.VsFriends -> VsFriendsSection(section.state, gameName, modifier)
     }
 }

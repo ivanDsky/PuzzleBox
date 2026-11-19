@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.testing.game.TestGames.beta
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -42,6 +43,7 @@ class StatsViewModelTest {
             fixture.computePeriodFacts,
             fixture.calendar,
             fixture.registry,
+            vsFriends = { flowOf(null) },
             failures = FailureLog { _, _, _ -> },
         ),
         registry = fixture.registry,

@@ -10,8 +10,12 @@ import com.ivandsky.puzzlebox.insights.domain.stats.StatsGranularity
 import com.ivandsky.puzzlebox.insights.domain.stats.StatsRange
 import com.ivandsky.puzzlebox.insights.domain.stats.StatsRecords
 import com.ivandsky.puzzlebox.insights.domain.stats.StatsSection
+import com.ivandsky.puzzlebox.insights.domain.stats.GameStanding
 import com.ivandsky.puzzlebox.insights.domain.stats.TimeTrendSeries
+import com.ivandsky.puzzlebox.insights.domain.stats.VsFriendsStanding
+import com.ivandsky.puzzlebox.insights.domain.stats.WeekdayPattern
 import com.ivandsky.puzzlebox.model.GameId
+import java.time.DayOfWeek
 import java.time.LocalDate
 
 /** A stats page's states for the screen tests and the goldens: three games, one of them with an imported fastest solve. */
@@ -63,12 +67,26 @@ internal object StatsFixtures {
         listOf(2, 3, 3, 5).mapIndexed { index, free -> HintFreeRateSeries.Point(weeks[index], hintFree = free, solved = 5) },
     )
 
-    /** Every section that is local, in the page's order: trend, Records, hint-free rate. */
+    /** A week of average times with Sunday missing: no solve was made on a Sunday, so it has no bar. */
+    val weekday = WeekdayPattern(
+        listOf(95_000L, 88_000L, 102_000L, 76_000L, 71_000L, 64_000L).mapIndexed { index, ms ->
+            WeekdayPattern.Day(DayOfWeek.of(index + 1), ms, solved = 4)
+        },
+    )
+
+    /** Zip is the viewer's best game among friends, Tango the weakest. */
+    val vsFriends = VsFriendsStanding.Ranked(
+        best = GameStanding(zip, points = 1_340.0, place = 1, players = 6),
+        weakest = GameStanding(tango, points = 212.0, place = 4, players = 5),
+    )
+
+    /** Every section the page has so far, in its order: trend, Records, hint-free rate, weekday, vs friends. */
     fun readyWithLines(
         range: StatsRange = StatsRange.Month,
         game: GameId? = null,
         trend: TimeTrendSeries = this.trend,
         hintFree: HintFreeRateSeries = hintFreeRate,
+        vsFriends: SectionState<VsFriendsStanding> = SectionState.Ready(this.vsFriends),
     ) = StatsUiState(
         range,
         game,
@@ -77,6 +95,8 @@ internal object StatsFixtures {
                 StatsSection.TimeTrend(SectionState.Ready(trend)),
                 StatsSection.Records(SectionState.Ready(records)),
                 StatsSection.HintFreeRate(SectionState.Ready(hintFree)),
+                StatsSection.Weekday(SectionState.Ready(weekday)),
+                StatsSection.VsFriends(vsFriends),
             ),
         ),
     )

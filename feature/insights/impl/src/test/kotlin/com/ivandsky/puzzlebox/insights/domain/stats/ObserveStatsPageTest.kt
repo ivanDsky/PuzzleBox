@@ -22,11 +22,14 @@ class ObserveStatsPageTest {
 
     private fun day(dayOfMonth: Int, month: Int = 11) = LocalDate.of(2026, month, dayOfMonth)
 
-    private fun observe(providers: List<StatsSectionProvider> = StatsSectionProviders) = ObserveStatsPage(
+    private val noFriends = StatsSectionProvider { flowOf(null) }
+
+    private fun observe(providers: List<StatsSectionProvider> = statsSectionProviders(noFriends)) = ObserveStatsPage(
         observeGameHistory = fixture.observeHistory,
         computePeriodFacts = fixture.computePeriodFacts,
         calendar = fixture.calendar,
         registry = fixture.registry,
+        vsFriends = noFriends,
         providers = providers,
         failures = failures,
     )

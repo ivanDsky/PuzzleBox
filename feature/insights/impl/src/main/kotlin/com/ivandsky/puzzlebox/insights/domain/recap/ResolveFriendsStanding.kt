@@ -6,16 +6,12 @@ import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.rankhistory.RankHistoryStore
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.guardedAsk
-import com.ivandsky.puzzlebox.domain.ranks.OverallStandings
 import com.ivandsky.puzzlebox.domain.ranks.OverallState
 import com.ivandsky.puzzlebox.domain.ranks.RankWindow
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.YearMonth
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 
@@ -51,7 +47,7 @@ import kotlinx.coroutines.flow.first
  */
 internal class ResolveFriendsStanding(
     private val identity: IdentityService,
-    private val friendsOverall: (RankWindow, List<GameId>) -> Flow<OverallState>,
+    private val friendsOverall: FriendsOverallRead,
     private val rankHistory: (GameId) -> Flow<List<RankHistoryStore.Week>>,
     private val puzzleDay: GetPuzzleDay,
     private val failures: FailureLog = LogcatFailureLog,
@@ -84,7 +80,7 @@ internal class ResolveFriendsStanding(
 
     /** The answer from the reads; a [settling] month keeps its state unless the reads find no friends, as no number is needed. */
     private suspend fun answer(window: RankWindow, viewer: String, played: List<GameId>, settling: FriendsStanding.Settling?): FriendsStanding {
-        val reads = coroutineScope { played.map { game -> async { game to settled(window, game) } }.awaitAll() }
+        val reads = friendsOverall.settledEach(window, played)
         val states = reads.map { it.second }
         return when {
             OverallState.SignedOut in states -> FriendsStanding.NotApplicable
@@ -111,12 +107,6 @@ internal class ResolveFriendsStanding(
         val justEnded = YearMonth.from(today).minusMonths(1)
         return FriendsStanding.Settling(month.plusMonths(1).atDay(SETTLE_DAY)).takeIf { month == justEnded && today.dayOfMonth < SETTLE_DAY }
     }
-
-    /** [game]'s read once it has answered for good: no longer loading, and not a half answer that more boards could change. */
-    private suspend fun settled(window: RankWindow, game: GameId): OverallState =
-        friendsOverall(window, listOf(game)).first { it != OverallState.Loading && it !is OverallState.Partial }
-
-    private fun OverallState.rows(): List<OverallStandings.Row> = (this as? OverallState.Complete)?.standings?.rows.orEmpty()
 
     private fun best(reads: List<Pair<GameId, OverallState>>, viewer: String): FriendsStanding {
         val mine = reads.mapNotNull { (game, state) ->

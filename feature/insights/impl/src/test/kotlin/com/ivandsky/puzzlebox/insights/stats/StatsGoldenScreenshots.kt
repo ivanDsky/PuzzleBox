@@ -4,11 +4,16 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import com.ivandsky.puzzlebox.insights.GOLDEN_PHONE
 import com.ivandsky.puzzlebox.insights.GOLDEN_TABLET
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.performScrollToNode
+import com.ivandsky.puzzlebox.insights.domain.stats.GameStanding
 import com.ivandsky.puzzlebox.insights.domain.stats.HintFreeRateSeries
 import com.ivandsky.puzzlebox.insights.domain.stats.SectionState
 import com.ivandsky.puzzlebox.insights.domain.stats.StatsGranularity
 import com.ivandsky.puzzlebox.insights.domain.stats.StatsRange
 import com.ivandsky.puzzlebox.insights.domain.stats.TimeTrendSeries
+import com.ivandsky.puzzlebox.insights.domain.stats.VsFriendsStanding
 import com.ivandsky.puzzlebox.insights.settleAndCapture
 import com.ivandsky.puzzlebox.insights.showGolden
 import org.junit.Rule
@@ -65,6 +70,34 @@ class StatsGoldenScreenshots {
     )
 
     @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `weekday and friends phone light`() = capture("weekday-friends", "phone", dark = false, state = StatsFixtures.readyWithLines(), scrollTo = "stats.weekday")
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `weekday and friends phone dark`() = capture("weekday-friends", "phone", dark = true, state = StatsFixtures.readyWithLines(), scrollTo = "stats.weekday")
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `friends signed out phone light`() = capture(
+        "friends-signed-out", "phone", dark = false, scrollTo = "stats.vsFriends.locked",
+        state = StatsFixtures.readyWithLines(vsFriends = SectionState.Ready(VsFriendsStanding.Locked(VsFriendsStanding.Unlock.SignIn))),
+    )
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `friends unavailable phone dark`() = capture(
+        "friends-unavailable", "phone", dark = true, scrollTo = "stats.vsFriends",
+        state = StatsFixtures.readyWithLines(vsFriends = SectionState.Unavailable),
+    )
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `friends one game phone light`() = capture(
+        "friends-one-game", "phone", dark = false, scrollTo = "stats.vsFriends",
+        state = StatsFixtures.readyWithLines(
+            range = StatsRange.Week,
+            game = StatsFixtures.queens,
+            vsFriends = SectionState.Ready(VsFriendsStanding.Ranked(GameStanding(StatsFixtures.queens, 90.0, place = 2, players = 3), weakest = null)),
+        ),
+    )
+
+    @Config(qualifiers = GOLDEN_PHONE)
     @Test fun `unavailable phone light`() = capture("unavailable", "phone", dark = false, state = StatsFixtures.ready(state = SectionState.Unavailable))
 
     @Config(qualifiers = GOLDEN_PHONE)
@@ -73,7 +106,7 @@ class StatsGoldenScreenshots {
     @Config(qualifiers = GOLDEN_PHONE)
     @Test fun `restoring phone dark`() = capture("restoring", "phone", dark = true, state = StatsUiState(StatsRange.Month, null, StatsBody.Restoring))
 
-    private fun capture(name: String, device: String, dark: Boolean, state: StatsUiState = StatsFixtures.ready()) {
+    private fun capture(name: String, device: String, dark: Boolean, state: StatsUiState = StatsFixtures.ready(), scrollTo: String? = null) {
         rule.showGolden(dark = dark) {
             StatsScreen(
                 state = state,
@@ -84,6 +117,11 @@ class StatsGoldenScreenshots {
                 onOpenSolve = {},
                 onBack = {},
             )
+        }
+        if (scrollTo != null) {
+            // The clock is frozen for the capture; scrolling needs it running.
+            rule.mainClock.autoAdvance = true
+            rule.onNodeWithTag("stats.sections").performScrollToNode(hasTestTag(scrollTo))
         }
         rule.settleAndCapture("stats", name, device, dark)
     }

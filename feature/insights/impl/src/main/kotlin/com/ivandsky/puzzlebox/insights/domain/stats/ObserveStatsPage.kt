@@ -34,7 +34,8 @@ internal class ObserveStatsPage(
     private val computePeriodFacts: ComputePeriodFacts,
     private val calendar: GameCalendar,
     private val registry: GameRegistry,
-    private val providers: List<StatsSectionProvider> = StatsSectionProviders,
+    vsFriends: StatsSectionProvider,
+    private val providers: List<StatsSectionProvider> = statsSectionProviders(vsFriends),
     private val failures: FailureLog = LogcatFailureLog,
 ) {
 
@@ -44,7 +45,7 @@ internal class ObserveStatsPage(
         val games = registry.all.map { it.definition.id }
         return combine(observeGameHistory(), calendar.observeToday(clockGame)) { history, today ->
             val firstSolve = history.filter { it.isSolvedDaily() && (scope == null || it.gameId == scope) }.minOfOrNull { it.day }
-            StatsInput(range, computePeriodFacts(history, range.span(today, firstSolve), scope), games)
+            StatsInput(range, computePeriodFacts(history, range.span(today, firstSolve), scope), games, today)
         }.flatMapLatest { input ->
             if (providers.isEmpty()) {
                 flowOf(StatsPage(scope, range, emptyList()))
