@@ -75,19 +75,29 @@ user, the PR is a place to read the change, not a test gate.
    because main moved in 85.2% of batches. Over 3 days it logged 119 requeues; 57% of suites
    tested a single ticket, and the median suite took 4.0 minutes. Pushes to main ran at a median
    of 7/h, p90 14/h, peak 36/h.
-   - **Rerun rule kept.** A suite reruns only when main moved in a module the batch touches.
+   - **Rerun rule.** A suite reruns only when main moved a batch module, the shared build setup
+     or the `structure:` rules. A moved dependency or dependent gets a compile check. Anything
+     else merges as is.
    - **One lane.** There is one lane per repository, shared by every session and worktree. Its
      state lives in `<git-common-dir>/agent-builds/lane/`.
-   - **Batches.** A batch holds at most 5 tickets. Two batches are pipelined across the two
-     remote build slots: B runs on A's top while A settles, and B is thrown away if A goes red.
-   - **Final outcomes.** A lasting merge refusal and a user-closed PR are final. A ticket
-     requeued 6 times for its own reasons ends `stuck`.
-   - **Base race.** "Base branch was modified" right after the batch's own squash is retried.
-     A real main move reruns the main-moved step.
-   - **Commands.** `merge_lane.py enqueue --who <slug> --nn <NN>`, then
+   - **Batches.** A batch holds at most 5 tickets. Both suites start together across the two
+     remote build slots, B stacked on A's top. B's green run stands if main equals A's top after
+     A merges; otherwise the rerun rule applies. If A goes red, B is discarded and requeued.
+   - **Final outcomes.** Each ends with a next step:
+     - `refused` (lasting merge refusal): fix, then re-enqueue.
+     - `closed` (user closed the PR): back to the user.
+     - `stuck` (requeued 6 times for its own reasons): re-enqueue, count reset.
+
+     A requeue caused by a ticket stacked below never counts toward the 6.
+   - **Base race.** "Base branch was modified" right after the batch's own squash, with
+     `origin/main` unchanged in tree, is retried up to 3 times. A real main move gets the rerun,
+     compile or push verdict.
+   - **Commands.** `merge_lane.py enqueue --who <slug> --nn <NN>` (plus
+     `--worktree --title --body-file`; see ship-to-trunk `merge-loop.md`), then
      `merge_lane.py wait --who <slug> --nn <NN>`. The old `--queue` is removed.
    - **Consequences.**
-     - Capacity is about 30 suites/h, and the expected rerun trigger falls to about 35%.
+     - Capacity is about 30 suites/h, and the projected rerun trigger falls to about 35%. The
+       35% comes from replaying the 3-day log; it is not a measurement.
      - B's suite is wasted when A is red.
      - Merges can land out of order across batches. That is accepted.
      - Scratch worktrees live under `.git/agent-builds/lane/wt`; IDEs and backups should
