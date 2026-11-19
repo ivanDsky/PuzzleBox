@@ -40,7 +40,8 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
  * offline pill; [hasLesson] false hides "Open the lesson" ([onOpenLesson]). [scroll] is
  * the phone column's, so picking a day can bring the day card back into view. The [board]
  * (the game's rank row) goes under the stats card, before how to play. The tablet's right column scrolls as one so how to play keeps
- * its place under them. A non-null [onMakeOne] adds a "Make one" button (`library.page.makeOne`) between the board and how to play.
+ * its place under them. A non-null [onMakeOne] adds a "Make one" button (`library.page.makeOne`) between the board and how to play,
+ * or with [makeOwnLink] (backlog #1567, [LocalMakeOwnLink]) a "Make your own <Game>" pill ending how to play instead.
  */
 @Composable
 internal fun GamePage(
@@ -56,6 +57,7 @@ internal fun GamePage(
     hasLesson: Boolean = true,
     scroll: ScrollState = rememberScrollState(),
     onMakeOne: (() -> Unit)? = null,
+    makeOwnLink: Boolean = LocalMakeOwnLink.current,
 ) {
     val reduced = rememberReducedMotion()
     val tag = "library.page.${row.card.game.value}"
@@ -76,7 +78,7 @@ internal fun GamePage(
                 ) {
                     EnterFade(2, reduced) { GameStatsCard(row) }
                     // The right column scrolls as one: stats, board, then how to play at its own height.
-                    EnterFade(3, reduced) { PageTail(Spacing.lg, board, row, hasLesson, onOpenLesson, onMakeOne) }
+                    EnterFade(3, reduced) { PageTail(Spacing.lg, board, row, hasLesson, onOpenLesson, onMakeOne, makeOwnLink) }
                 }
             }
         }
@@ -101,12 +103,12 @@ internal fun GamePage(
             EnterFade(0, reduced) { dayCard() }
             EnterFade(1, reduced) { calendar() }
             EnterFade(2, reduced) { GameStatsCard(row) }
-            EnterFade(3, reduced) { PageTail(Spacing.md, board, row, hasLesson, onOpenLesson, onMakeOne) }
+            EnterFade(3, reduced) { PageTail(Spacing.md, board, row, hasLesson, onOpenLesson, onMakeOne, makeOwnLink) }
         }
     }
 }
 
-/** The board, Make one and how to play, which enter as one beat. */
+/** The board, Make one (or its link inside how to play) and how to play, which enter as one beat. */
 @Composable
 private fun PageTail(
     spacing: Dp,
@@ -115,13 +117,16 @@ private fun PageTail(
     hasLesson: Boolean,
     onOpenLesson: () -> Unit,
     onMakeOne: (() -> Unit)?,
+    makeOwnLink: Boolean,
 ) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(spacing)) {
         board()
-        onMakeOne?.let { make ->
-            SecondaryButton(text = "Make one", onClick = make, modifier = Modifier.fillMaxWidth().testTag("library.page.makeOne"))
+        if (!makeOwnLink) {
+            onMakeOne?.let { make ->
+                SecondaryButton(text = "Make one", onClick = make, modifier = Modifier.fillMaxWidth().testTag("library.page.makeOne"))
+            }
         }
-        HowToPlayCard(row, hasLesson, onOpenLesson)
+        HowToPlayCard(row, hasLesson, onOpenLesson, onMakeOwn = onMakeOne.takeIf { makeOwnLink })
     }
 }
 
