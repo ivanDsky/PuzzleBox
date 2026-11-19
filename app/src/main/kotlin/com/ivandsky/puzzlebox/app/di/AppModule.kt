@@ -23,6 +23,7 @@ import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.gameui.flags.GameUiFlag
+import com.ivandsky.puzzlebox.history.flags.HistoryFlag
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -43,6 +44,7 @@ import com.ivandsky.puzzlebox.games.queensui.QueensSettings
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuHighlightSettings
 import com.ivandsky.puzzlebox.navigation.FirstScreenReady
 import com.ivandsky.puzzlebox.profile.settings.GameOptions
+import com.ivandsky.puzzlebox.profile.settings.RanksLinkedInRow
 import com.ivandsky.puzzlebox.data.visibility.SkippedPosts
 import com.ivandsky.puzzlebox.data.visibility.VisibilityRepository
 import kotlinx.coroutines.CoroutineScope
@@ -132,6 +134,8 @@ val appModule = module {
     single { MainTabBars(largeBar = get<ReleaseFlags>().isEnabled(TopBarFlag.MainTabsLargeBar)) }
     // Declared in core:game-ui, which has no Koin, so registered here too.
     flagSet("game-ui", GameUiFlag.entries)
+    // Settings' Ranks LinkedIn games switch (backlog #1770): a factory, so Settings reads the flag each time it opens.
+    factory { RanksLinkedInRow(shown = get<ReleaseFlags>().isEnabled(HistoryFlag.RanksLinkedInDefault)) }
 
     // The installed build GetAppUpdate compares against; debug never checks.
     single {

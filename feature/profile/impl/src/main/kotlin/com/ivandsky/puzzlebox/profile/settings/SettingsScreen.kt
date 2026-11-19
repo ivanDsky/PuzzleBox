@@ -46,6 +46,7 @@ internal fun SettingsScreen(
     debugSections: (@Composable () -> Unit)? = null,
     onSelectVisibility: (VisibilityTier) -> Unit = {},
     onSetRanksFriendsDefault: (Boolean) -> Unit = {},
+    onSetRanksLinkedInDefault: (Boolean) -> Unit = {},
     onSetVibration: (Boolean) -> Unit = {},
     onSetShowSelfDuelTimeLeft: (Boolean) -> Unit = {},
     onSignIn: () -> Unit = {},
@@ -86,7 +87,12 @@ internal fun SettingsScreen(
             reminders?.invoke()
             state.visibility?.let {
                 VisibilitySection(own = it, onSelect = onSelectVisibility, onSignIn = onSignIn, signIn = SignInPrompt(state.signingIn, state.signInMessage).takeIf { !state.signedIn })
-                RanksScopeSection(friends = state.ranksFriendsDefault, onSelect = onSetRanksFriendsDefault)
+                RanksScopeSection(
+                    friends = state.ranksFriendsDefault,
+                    onSelect = onSetRanksFriendsDefault,
+                    linkedIn = state.ranksLinkedInDefault,
+                    onSetLinkedIn = onSetRanksLinkedInDefault,
+                )
             }
             Column(
                 modifier = Modifier.fillMaxWidth().testTag("settings.about"),

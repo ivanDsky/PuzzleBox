@@ -35,6 +35,7 @@ internal fun SettingsRoute(
         onSetSudokuSameDigitHighlight = viewModel::onSetSudokuSameDigitHighlight,
         onSelectVisibility = viewModel::onSelectVisibility,
         onSetRanksFriendsDefault = viewModel::onSetRanksFriendsDefault,
+        onSetRanksLinkedInDefault = viewModel::onSetRanksLinkedInDefault,
         onSetVibration = viewModel::onSetVibration,
         onSetShowSelfDuelTimeLeft = viewModel::onSetShowSelfDuelTimeLeft,
         onSignIn = { viewModel.onSignIn(context) },

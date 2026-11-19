@@ -152,6 +152,35 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun `the ranks LinkedIn games switch follows the stored default and a flip writes it`() = runTest(dispatcher) {
+        val preferences = FakeUserPreferencesRepository()
+        val vm = SettingsViewModel(preferences, FakeGameOptions(), appBuild, identity, tokens, showRanksLinkedIn = true)
+        backgroundScope.launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals(false, vm.uiState.value.ranksLinkedInDefault)
+
+        vm.onSetRanksLinkedInDefault(true)
+        advanceUntilIdle()
+
+        assertEquals(true, preferences.ranksLinkedInDefault.first())
+        assertEquals(true, vm.uiState.value.ranksLinkedInDefault)
+    }
+
+    @Test
+    fun `with the flag off the ranks LinkedIn games switch is absent and a flip writes nothing`() = runTest(dispatcher) {
+        val preferences = FakeUserPreferencesRepository()
+        val vm = SettingsViewModel(preferences, FakeGameOptions(), appBuild, identity, tokens)
+        backgroundScope.launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        vm.onSetRanksLinkedInDefault(true)
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.ranksLinkedInDefault)
+        assertEquals(false, preferences.ranksLinkedInDefault.first())
+    }
+
+    @Test
     fun `vibration follows the stored switch and a flip writes it`() = runTest(dispatcher) {
         val preferences = FakeUserPreferencesRepository()
         val vm = SettingsViewModel(preferences, FakeGameOptions(), appBuild, identity, tokens)
