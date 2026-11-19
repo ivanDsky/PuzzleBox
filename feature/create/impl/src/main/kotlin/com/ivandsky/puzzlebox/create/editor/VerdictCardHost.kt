@@ -22,9 +22,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import com.ivandsky.puzzlebox.designsystem.AppModalBottomSheet
+import com.ivandsky.puzzlebox.designsystem.AppPopup
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -101,7 +101,7 @@ private fun VerdictCardPopover(onDismiss: () -> Unit, card: @Composable (Modifie
     val reducedMotion = rememberReducedMotion()
     val shown = remember { MutableTransitionState(false).apply { targetState = true } }
     val margin = with(LocalDensity.current) { Spacing.lg.roundToPx() }
-    Popup(
+    AppPopup(
         popupPositionProvider = remember(margin) { WindowClamped.overTopEnd(margin) },
         onDismissRequest = onDismiss,
         properties = PopupProperties(focusable = true),

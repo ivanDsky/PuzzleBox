@@ -7,6 +7,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -17,7 +21,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * A dialog and a bottom sheet compose in their own window, which brings its own platform haptics. The app's gate must
+ * A dialog, a bottom sheet, a popup and a dropdown menu compose in their own window, which brings its own platform haptics. The app's gate must
  * still be what a buzz inside them reaches, so Vibration off stays silent there too.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -56,6 +60,22 @@ class WindowHapticsGateTest {
         AppDialog(title = "Delete board?", onDismissRequest = {}, content = { body() })
     }
 
+    private val popup: @Composable (@Composable () -> Unit) -> Unit = { body ->
+        val origin = object : PopupPositionProvider {
+            override fun calculatePosition(
+                anchorBounds: IntRect,
+                windowSize: IntSize,
+                layoutDirection: LayoutDirection,
+                popupContentSize: IntSize,
+            ) = anchorBounds.topLeft
+        }
+        AppPopup(popupPositionProvider = origin, onDismissRequest = {}) { body() }
+    }
+
+    private val menu: @Composable (@Composable () -> Unit) -> Unit = { body ->
+        AppDropdownMenu(expanded = true, onDismissRequest = {}) { body() }
+    }
+
     @Test
     fun `a sheet with Vibration off plays nothing`() {
         vibrationOn.value = false
@@ -88,6 +108,44 @@ class WindowHapticsGateTest {
     @Test
     fun `a dialog with Vibration on plays the buzz`() {
         show(dialog)
+
+        insideWindow.performHapticFeedback(HapticFeedbackType.Confirm)
+
+        assertEquals(listOf(HapticFeedbackType.Confirm), calls)
+    }
+
+    @Test
+    fun `a popup with Vibration off plays nothing`() {
+        vibrationOn.value = false
+        show(popup)
+
+        insideWindow.performHapticFeedback(HapticFeedbackType.Confirm)
+
+        assertEquals(emptyList<HapticFeedbackType>(), calls)
+    }
+
+    @Test
+    fun `a popup with Vibration on plays the buzz`() {
+        show(popup)
+
+        insideWindow.performHapticFeedback(HapticFeedbackType.Confirm)
+
+        assertEquals(listOf(HapticFeedbackType.Confirm), calls)
+    }
+
+    @Test
+    fun `a dropdown menu with Vibration off plays nothing`() {
+        vibrationOn.value = false
+        show(menu)
+
+        insideWindow.performHapticFeedback(HapticFeedbackType.Confirm)
+
+        assertEquals(emptyList<HapticFeedbackType>(), calls)
+    }
+
+    @Test
+    fun `a dropdown menu with Vibration on plays the buzz`() {
+        show(menu)
 
         insideWindow.performHapticFeedback(HapticFeedbackType.Confirm)
 
