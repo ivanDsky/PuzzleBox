@@ -1,13 +1,17 @@
 package com.ivandsky.puzzlebox.history.domain.ranks
 
+import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.BoardPage
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
+import com.ivandsky.puzzlebox.domain.ranks.BoardLoad
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.game.TestGames
+import java.time.Instant
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -70,5 +74,34 @@ class ViewerStandingTest {
     fun `no solve or no account is none`() {
         assertEquals(ViewerStanding.None, viewerStanding(null, inWindow = false, sudoku, "nora", order))
         assertEquals(ViewerStanding.None, viewerStanding(solve(95), inWindow = false, sudoku, null, order))
+    }
+
+    @Test
+    fun `a window's unofficial days are its solved days off their boards, past the window and not placed past a full page`() {
+        fun on(offset: Long) = day.plusDays(offset)
+        fun load(of: LocalDate, vararg entries: LeaderboardEntry, count: Int = entries.size) =
+            BoardLoad.Loaded(LeaderboardRef("sudoku", of), order, BoardPage(entries.toList(), count), final = true)
+        fun official(of: LocalDate) = CompletionRecord(
+            puzzleRef = TestGames.Ref(GameId("sudoku"), PuzzleKey.Daily(of, 1)),
+            time = 400,
+            hints = 0,
+            stats = RecordStats(1, "{}"),
+            firstCompletedAt = Instant.parse("2026-11-19T08:00:00Z"),
+            isRecord = true,
+        )
+        val full = (1..BoardPage.PAGE_SIZE).map { entry("p$it", it.toLong()) }.toTypedArray()
+        val boards = listOf(
+            load(on(0)), // solved, and nobody posted: unofficial
+            load(on(1), entry("lia", 250)), // solved, not on it: unofficial
+            load(on(2), entry("nora", 300)), // on it: official
+            load(on(3), *full, count = 400), // past a full page (A11): counted on the row
+            load(on(4), entry("lia", 250)), // not solved
+            load(on(5), entry("lia", 250)), // inside the window: still posting
+        )
+        val solved = listOf(0L, 1L, 2L, 3L, 5L).map { official(on(it)) }
+        val inWindow = { board: LeaderboardRef -> board.day == on(5) }
+
+        assertEquals(2, unofficialDays(boards, Identity("nora", "Nora", null), solved, inWindow))
+        assertEquals(0, unofficialDays(boards, null, solved, inWindow))
     }
 }

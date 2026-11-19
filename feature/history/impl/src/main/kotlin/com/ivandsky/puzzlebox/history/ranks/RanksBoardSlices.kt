@@ -11,6 +11,8 @@ import com.ivandsky.puzzlebox.history.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.domain.ranks.RankWindow
 import com.ivandsky.puzzlebox.domain.ranks.RankWindowBoards
 import com.ivandsky.puzzlebox.history.domain.ranks.windowStandings
+import com.ivandsky.puzzlebox.history.domain.ranks.unofficialDays
+import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.history.HistoryDayRow
@@ -40,7 +42,8 @@ internal const val WEEK_MONTH_POINTS_CAPTION = "Points from each day's Ranks. Hi
  * to a neighbouring board reads nothing. Every slice of one list answers the same scope: in Friends each game and
  * Overall rank friends among themselves, with the LinkedIn connections ([ghosts]) counted on every one. With [freshness]
  * a game's Friends Day board also says when its LinkedIn part was last read, and the boards are drawn again each minute to keep it current.
- * With [weekMonthPoints] a game's Week and Month rank by its daily place points summed, as Overall sums every game's.
+ * With [weekMonthPoints] a game's Week and Month rank by its daily place points summed, as Overall sums every game's,
+ * and say how many of the viewer's solved days are unofficial there, so add no day and no points to their row.
  * Under [RanksSelection.Games.LinkedIn] the list holds only the LinkedIn games ([isLinkedInGame]) and Overall sums only
  * their boards; each game's own board is the same, and nothing is read that the shared window boards do not already hold.
  */
@@ -103,14 +106,14 @@ internal class RanksBoardSlices(
         val friends = scope == RankScope.Friends
         val oneDay = kind == RanksSelection.Window.Day
         val photos = if (friends) inWindow?.photos().orEmpty() else emptyMap()
-        val points = if (weekMonthPoints && !oneDay) pointsOf(me, rows) else null
+        val records = if (weekMonthPoints && !oneDay) rows.mapNotNull { it.record } else null
         // Leaderboard rows carry no photo: every slice's own row joins the signed-in account's, after the connections' pictures.
         return boards.listed(games, isLinkedInGame).map { board ->
             when (board) {
                 RanksBoard.Overall -> overallSlice(kind, day, overall, me?.uid, if (games == RanksSelection.Games.LinkedIn) LINKEDIN_OVERALL_CAPTION else OVERALL_CAPTION)
                     .let { if (friends) it.inFriendsCounted(photos) else it }
                 is RanksBoard.Game -> {
-                    val slice = game(board.id, kind, day, if (oneDay) inWindow?.plain else inWindow?.counted, me, rows, points)
+                    val slice = game(board.id, kind, day, if (oneDay) inWindow?.plain else inWindow?.counted, me, rows, records)
                     when {
                         !friends -> slice
                         oneDay -> slice.inFriends(inWindow, board.id, me?.uid).copy(freshness = inWindow?.boardRead(board.id)?.let { freshness?.line(it) })
@@ -121,6 +124,7 @@ internal class RanksBoardSlices(
         }.map { it.copy(state = it.state.withOwnPhoto(me?.photoUrl)) }
     }
 
+    /** With [records] (WeekMonthPoints on a Week or Month) the board ranks by points and says which of the viewer's solved days earn none. */
     private fun game(
         game: GameId,
         kind: RanksSelection.Window,
@@ -128,24 +132,30 @@ internal class RanksBoardSlices(
         inWindow: RankWindowBoards?,
         me: Identity?,
         rows: List<HistoryDayRow>,
-        points: ((List<BoardLoad.Loaded>) -> OverallStandings)?,
+        records: List<CompletionRecord>?,
     ): RanksBoardSlice {
         val order = registry.rankOrderOf(game)
         val unofficial = inWindow.unofficialRow(game, order, me, rows) { calendar.inSubmitWindow(game, it) }.takeIf { kind == RanksSelection.Window.Day }
+        val points = records?.let { pointsOf(me, it) }
+        val notes = listOfNotNull(inWindow.gameBoardNote(game, kind), records?.let { unofficialNote(game, inWindow, me, it) })
         return RanksBoardSlice(
             title = boardTitle(registry.displayName(game), kind, day),
             order = order,
             state = inWindow.toGameBoardState(game, order, kind, me?.uid, points).withUnofficialRow(unofficial),
             caption = WEEK_MONTH_POINTS_CAPTION.takeIf { points != null },
-            note = inWindow.gameBoardNote(game, kind),
+            note = notes.joinToString(" · ").ifEmpty { null },
             linkedIn = isLinkedInGame(game),
         )
     }
 
-    /** Overall's points over one game's days; the viewer's own [rows] say which boards they solved officially past a full page (A11). */
-    private fun pointsOf(me: Identity?, rows: List<HistoryDayRow>): (List<BoardLoad.Loaded>) -> OverallStandings {
-        val records = rows.mapNotNull { it.record }
-        return { loaded -> windowStandings(loaded, me, records) }
+    /** Overall's points over one game's days; the viewer's own [records] say which boards they solved officially past a full page (A11). */
+    private fun pointsOf(me: Identity?, records: List<CompletionRecord>): (List<BoardLoad.Loaded>) -> OverallStandings =
+        { loaded -> windowStandings(loaded, me, records) }
+
+    /** The viewer's solved days of [game] that its points leave out, said: the days its Day board marks unofficial. */
+    private fun unofficialNote(game: GameId, inWindow: RankWindowBoards?, me: Identity?, records: List<CompletionRecord>): String? {
+        val loaded = (inWindow as? RankWindowBoards.Boards)?.boards.orEmpty().filterIsInstance<BoardLoad.Loaded>().filter { it.board.gameId == game.value }
+        return unofficialDaysNote(unofficialDays(loaded, me, records) { calendar.inSubmitWindow(game, it.day) })
     }
 }
 

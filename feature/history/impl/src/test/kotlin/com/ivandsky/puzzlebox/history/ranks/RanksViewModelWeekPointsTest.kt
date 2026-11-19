@@ -2,7 +2,11 @@ package com.ivandsky.puzzlebox.history.ranks
 
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
+import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
+import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO
+import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO_PUZZLE_NUMBER
+import com.ivandsky.puzzlebox.history.HistoryTestSupport.tangoRecord
 import com.ivandsky.puzzlebox.history.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.history.flags.HistoryFlag
 import com.ivandsky.puzzlebox.history.ranks.RanksSelection.Window
@@ -11,6 +15,7 @@ import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
+import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -103,5 +108,61 @@ class RanksViewModelWeekPointsTest {
         assertTrue(rowsOf(week.board).all { it.scoreValue is BoardRowValue.Average })
         assertNull(week.board.caption)
         assertFalse(week.weekMonthPoints)
+    }
+
+    // #1743: Ann solved Tango every day from the 1st to today, the 13th, but is on only 9 of its boards. Nobody posted on
+    // the 1st and 2nd, which she imported from LinkedIn days later; she played the 5th from the archive; today's solve
+    // has not posted yet. Bea posted the 3rd to the 13th.
+    private val nov1 = LocalDate.of(2026, 11, 1)
+
+    private fun tangoEntry(day: Int, uid: String, name: String, timeMs: Long) =
+        LeaderboardEntry(uid, name, "${TANGO.value}/${nov1.plusDays(day - 1L)}/$TANGO_PUZZLE_NUMBER", timeMs, 0, 1_700_000_000_000)
+
+    private val annOn = setOf(3, 4, 6, 7, 8, 9, 10, 11, 12)
+
+    private val month: Map<LeaderboardRef, List<LeaderboardEntry>> = (1..13).associate { day ->
+        LeaderboardRef(TANGO.value, nov1.plusDays(day - 1L)) to listOfNotNull(
+            tangoEntry(day, "u1", "Ann", 50_000).takeIf { day in annOn },
+            tangoEntry(day, "bea", "Bea", 60_000).takeIf { day >= 3 },
+        )
+    }
+
+    private fun annSolves() = (1..13).map { day ->
+        tangoRecord(nov1.plusDays(day - 1L)).copy(firstCompletedAt = Instant.parse("2026-11-13T08:00:00Z"), isRecord = true)
+            .let { if (day <= 2) it.copy(source = CompletionSource.LinkedIn) else it }
+    }
+
+    private suspend fun RanksViewModel.tangoMonth(scope: RankScope): RanksUiState {
+        select { it.pickBoard(RanksBoard.Game(TANGO)).setWindow(Window.Month).setScope(scope) }
+        // Every day in: no "k of 13 days" while boards load.
+        return uiState.first { state ->
+            state.window == Window.Month && state.scope == scope && rowsOf(state.board).size == 2 && state.board.note?.contains("of 13 days") != true
+        }
+    }
+
+    @Test
+    fun `flag on, a month counts only the days on the boards and says the viewer's other solved days earn no points, Global and Friends`() = runTest {
+        val h = RanksTestHub(FakeLeaderboardRepository(month))
+        h.completions.setRecords(annSolves())
+        h.befriend("bea")
+        val viewModel = h.viewModel(releaseFlags = FakeReleaseFlags(HistoryFlag.WeekMonthPoints))
+
+        for (scope in listOf(RankScope.Global, RankScope.Friends)) {
+            val board = viewModel.tangoMonth(scope).board
+
+            val days = rowsOf(board).associate { it.name to (it.scoreValue as BoardRowValue.DayPoints).days }
+            assertEquals("$scope", mapOf("Ann" to 9, "Bea" to 11), days)
+            // The 1st, 2nd and 5th can never post; today's is still on its way, so it is not one of them.
+            assertEquals("$scope", "3 solved days are unofficial and earn no points", board.note)
+        }
+    }
+
+    @Test
+    fun `flag off, the month's averages say nothing of unofficial days`() = runTest {
+        val h = RanksTestHub(FakeLeaderboardRepository(month))
+        h.completions.setRecords(annSolves())
+        val viewModel = h.viewModel(releaseFlags = FakeReleaseFlags())
+
+        assertNull(viewModel.tangoMonth(RankScope.Global).board.note)
     }
 }
