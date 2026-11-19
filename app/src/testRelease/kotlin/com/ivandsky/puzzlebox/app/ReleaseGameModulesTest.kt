@@ -32,7 +32,7 @@ class ReleaseGameModulesTest {
         try {
             // GameRegistry's definition runs requireEveryGamePlayable; resolving it is the check.
             val games = koin.get<GameRegistry>().all.map { it.definition.id.value }
-            assertEquals(listOf("zip", "tango", "queens", "strands", "minisudoku"), games)
+            assertEquals(listOf("zip", "tango", "queens", "minisudoku", "strands"), games)
             val sources = koin.getAll<DailySource>().map { it.gameId }.toSet()
             assertTrue(GameId("minisudoku") in sources)
             assertTrue(GameId("sudoku") !in sources)

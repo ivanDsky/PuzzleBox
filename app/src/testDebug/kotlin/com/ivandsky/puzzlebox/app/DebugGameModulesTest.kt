@@ -26,7 +26,7 @@ class DebugGameModulesTest {
         try {
             // GameRegistry's definition runs requireEveryGamePlayable; resolving it is the check.
             val games = koin.get<GameRegistry>()
-            assertEquals(listOf("zip", "tango", "queens", "strands", "minisudoku"), games.all.map { it.definition.id.value })
+            assertEquals(listOf("zip", "tango", "queens", "minisudoku", "strands"), games.all.map { it.definition.id.value })
             assertEquals(listOf("sudoku"), games.unlisted.map { it.definition.id.value })
             assertEquals(GameId("sudoku"), games[GameId("sudoku")]?.definition?.id)
         } finally {
