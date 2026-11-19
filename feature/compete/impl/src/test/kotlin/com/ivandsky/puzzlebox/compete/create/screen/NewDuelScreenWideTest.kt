@@ -52,7 +52,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 private const val SLACK = 1f
-private const val FORM_SHARE = 2f / 5f
+private const val FORM_SHARE = 1f / 2f
 
 /** The New duel screen at 840 dp and wider: the picker opens beside the form, which stays live; under it the page swap stays. */
 @RunWith(RobolectricTestRunner::class)
@@ -124,7 +124,7 @@ class NewDuelScreenWideTest {
         rule.onNodeWithText("New duel").assertIsDisplayed()
         header("Add puzzle 3").assertCountEquals(1)
         rule.onNodeWithTag("duel.lineup.picker.back").assertDoesNotExist()
-        assertEquals("the form takes two fifths", 900 * FORM_SHARE, tagged("duel.new.form").width.value, SLACK)
+        assertEquals("the form takes half", 900 * FORM_SHARE, tagged("duel.new.form").width.value, SLACK)
         assertEquals("the picker takes the rest", 900 * (1 - FORM_SHARE), tagged("duel.lineup.picker").width.value, SLACK + 1)
     }
 
