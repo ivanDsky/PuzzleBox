@@ -21,6 +21,9 @@ import com.ivandsky.puzzlebox.compete.domain.lineup.ObserveSolvedPuzzles
 import com.ivandsky.puzzlebox.compete.domain.lineup.SaveDuelPuzzles
 import com.ivandsky.puzzlebox.create.CreateViewModel
 import com.ivandsky.puzzlebox.create.api.EditorKey
+import com.ivandsky.puzzlebox.create.domain.CreateDraftCopy
+import com.ivandsky.puzzlebox.create.domain.ImportDraftFromText
+import com.ivandsky.puzzlebox.create.domain.ValidatePublish
 import com.ivandsky.puzzlebox.create.editor.EditorViewModel
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
@@ -379,6 +382,10 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<LoadPuzzleByCode>())
             // The solved pool behind the self-duel create, Past you's search and the New duel sheet's self-duel counts.
             assertNotNull(koin.get<ComputeSolvedPool>())
+            // Create's draft copy, its text import and the editor's publish check.
+            assertNotNull(koin.get<CreateDraftCopy>())
+            assertNotNull(koin.get<ImportDraftFromText>())
+            assertNotNull(koin.get<ValidatePublish>())
             // The tablet play side panel's stats and the board gate beneath them.
             assertNotNull(koin.get<ObserveLeaderboard>())
             assertNotNull(koin.get<ObserveResultInsights>())

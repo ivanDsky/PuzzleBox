@@ -17,24 +17,25 @@ import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.ivandsky.puzzlebox.app.DrainTestApplication
+import com.ivandsky.puzzlebox.create.domain.ValidatePublish
 import com.ivandsky.puzzlebox.create.editor.ActionArea
 import com.ivandsky.puzzlebox.create.editor.StudioScreen
 import com.ivandsky.puzzlebox.create.editor.ToolStrip
 import com.ivandsky.puzzlebox.create.editor.VerdictCardState
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.ValidatePublish
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import com.ivandsky.puzzlebox.game.editor.Verdict
-import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraftAnalyzer
 import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
 import com.ivandsky.puzzlebox.games.queensui.editor.QueensEditorController
 import com.ivandsky.puzzlebox.games.queensui.editor.QueensEditorMode
 import com.ivandsky.puzzlebox.games.queensui.editor.QueensEditorUi
+import com.ivandsky.puzzlebox.gameui.PlayLayout
+import java.io.File
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -42,7 +43,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
-import java.io.File
 
 /**
  * 29: the real Queens editor inside the Studio chrome (spec S15), the one place both meet:

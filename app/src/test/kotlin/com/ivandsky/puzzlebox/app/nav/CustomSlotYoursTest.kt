@@ -10,11 +10,11 @@ import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.rememberCustomSlot
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
 import com.ivandsky.puzzlebox.create.CreateViewModel
+import com.ivandsky.puzzlebox.create.domain.CreateDraftCopy
+import com.ivandsky.puzzlebox.create.domain.SyncSolvesCounts
 import com.ivandsky.puzzlebox.data.model.PublishedPuzzle
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.CreateDraft
-import com.ivandsky.puzzlebox.domain.CreateDraftCopy
-import com.ivandsky.puzzlebox.domain.SyncSolvesCounts
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor

@@ -1,17 +1,17 @@
 package com.ivandsky.puzzlebox.create.editor
 
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.semantics.SemanticsProperties
 import com.ivandsky.puzzlebox.create.FakeGameEditor
+import com.ivandsky.puzzlebox.create.domain.ValidatePublish
+import com.ivandsky.puzzlebox.create.domain.ValidatePublishDetails
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.ValidatePublish
-import com.ivandsky.puzzlebox.domain.ValidatePublishDetails
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import org.junit.Rule
 import org.junit.Test

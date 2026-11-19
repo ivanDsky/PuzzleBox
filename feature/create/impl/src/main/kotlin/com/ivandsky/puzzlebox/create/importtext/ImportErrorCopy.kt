@@ -9,9 +9,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import com.ivandsky.puzzlebox.create.domain.ImportResult
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.ImportResult
 import com.ivandsky.puzzlebox.game.editor.NotationText
 
 private const val BYTES_PER_KB = 1024

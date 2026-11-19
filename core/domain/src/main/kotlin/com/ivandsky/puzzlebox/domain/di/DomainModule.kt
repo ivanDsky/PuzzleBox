@@ -4,12 +4,10 @@ import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
 import com.ivandsky.puzzlebox.domain.ComputeMatchLegs
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.CreateDraft
-import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.domain.CreateMatch
 import com.ivandsky.puzzlebox.domain.GetFeaturedGame
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
-import com.ivandsky.puzzlebox.domain.ImportDraftFromText
 import com.ivandsky.puzzlebox.domain.LoadCustomReplay
 import com.ivandsky.puzzlebox.domain.LoadDailyReplay
 import com.ivandsky.puzzlebox.domain.LoadLegPuzzle
@@ -23,7 +21,6 @@ import com.ivandsky.puzzlebox.domain.ObserveMatch
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
-import com.ivandsky.puzzlebox.domain.ValidatePublish
 import com.ivandsky.puzzlebox.domain.lineup.ValidateExactPuzzles
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
@@ -40,7 +37,7 @@ import org.koin.dsl.module
  * Use-case wiring: stateless factories over :core:data's repositories and the app's
  * [com.ivandsky.puzzlebox.game.GameRegistry], except [SyncTodayPuzzles] — a single, so
  * every surface reads the same failed fetches. Today's leaderboard day is the device's
- * local date, read when the board (re)starts. A new draft's id (blank or copied) is a random
+ * local date, read when the board (re)starts. A blank draft's id is a random
  * UUID and its timestamp the wall clock. A duel's draw shuffles with [Random.Default].
  */
 val domainModule = module {
@@ -79,7 +76,6 @@ val domainModule = module {
             clock = { Instant.now() },
         )
     }
-    factory { CreateDraftCopy(drafts = get(), newId = { UUID.randomUUID().toString() }, clock = { Instant.now() }) }
     factory {
         ObserveMatch(
             repo = get(),
@@ -104,8 +100,6 @@ val domainModule = module {
     }
     factory { ValidateExactPuzzles(shared = get()) }
     factory { CreateMatch(repo = get(), local = get(), draw = get(), identity = get(), random = Random.Default, validateExact = get()) }
-    factory { ImportDraftFromText(registry = get(), createDraft = get(), drafts = get(), dispatchers = get()) }
-    factory { ValidatePublish() }
     factory {
         ComputeMatchLegs(
             registry = get(),

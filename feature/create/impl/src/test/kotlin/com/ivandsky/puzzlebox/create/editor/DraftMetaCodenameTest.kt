@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.create.editor
 
+import com.ivandsky.puzzlebox.create.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.domain.ComputeCodename
-import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import java.time.Instant
 import kotlin.random.Random

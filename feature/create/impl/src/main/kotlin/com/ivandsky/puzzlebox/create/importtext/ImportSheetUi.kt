@@ -1,6 +1,6 @@
 package com.ivandsky.puzzlebox.create.importtext
 
-import com.ivandsky.puzzlebox.domain.ImportResult
+import com.ivandsky.puzzlebox.create.domain.ImportResult
 
 /**
  * The Import from text sheet's state (spec A23): whether it shows, the box's text, whether an

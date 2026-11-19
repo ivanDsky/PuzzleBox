@@ -15,11 +15,11 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
+import com.ivandsky.puzzlebox.create.domain.CreateDraftCopy
+import com.ivandsky.puzzlebox.create.domain.ImportResult
+import com.ivandsky.puzzlebox.create.domain.SyncSolvesCounts
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.CreateDraft
-import com.ivandsky.puzzlebox.domain.CreateDraftCopy
-import com.ivandsky.puzzlebox.domain.ImportResult
-import com.ivandsky.puzzlebox.domain.SyncSolvesCounts
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.editor.EditorNotation

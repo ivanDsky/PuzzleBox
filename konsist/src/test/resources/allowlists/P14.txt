@@ -1,9 +1,0 @@
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/CreateDraftCopy.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/CreateSharedPuzzle.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ImportDraftFromText.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ImportResult.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/PublishOutcome.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/SyncSolvesCounts.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/UpdatePublishState.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ValidatePublish.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ValidatePublishDetails.kt  # P14

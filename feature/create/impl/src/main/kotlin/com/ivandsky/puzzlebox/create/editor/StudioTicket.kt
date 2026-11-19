@@ -1,8 +1,8 @@
 package com.ivandsky.puzzlebox.create.editor
 
+import com.ivandsky.puzzlebox.create.domain.PublishOutcome
 import com.ivandsky.puzzlebox.data.model.TestSolve
 import com.ivandsky.puzzlebox.data.repository.PublishedPuzzleRepository
-import com.ivandsky.puzzlebox.domain.PublishOutcome
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import kotlinx.coroutines.CoroutineScope

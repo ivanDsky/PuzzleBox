@@ -21,6 +21,7 @@ import com.ivandsky.puzzlebox.create.GOLDEN_PHONE
 import com.ivandsky.puzzlebox.create.GOLDEN_TABLET
 import com.ivandsky.puzzlebox.create.NewPuzzleSheet
 import com.ivandsky.puzzlebox.create.PreviewGames
+import com.ivandsky.puzzlebox.create.domain.ImportResult
 import com.ivandsky.puzzlebox.create.editor.ActionArea
 import com.ivandsky.puzzlebox.create.editor.StudioScreen
 import com.ivandsky.puzzlebox.create.editor.ToolStrip
@@ -28,7 +29,6 @@ import com.ivandsky.puzzlebox.create.importtext.ImportSheetUi.ClipboardNotation
 import com.ivandsky.puzzlebox.create.settleAndCapture
 import com.ivandsky.puzzlebox.create.showGolden
 import com.ivandsky.puzzlebox.designsystem.AppShapes
-import com.ivandsky.puzzlebox.domain.ImportResult
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import com.ivandsky.puzzlebox.game.editor.Solution

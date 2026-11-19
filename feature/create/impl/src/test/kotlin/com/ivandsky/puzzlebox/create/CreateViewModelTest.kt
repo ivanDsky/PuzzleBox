@@ -1,12 +1,12 @@
 package com.ivandsky.puzzlebox.create
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.create.domain.CreateDraftCopy
+import com.ivandsky.puzzlebox.create.domain.SyncSolvesCounts
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.model.TestSolve
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.domain.CreateDraft
-import com.ivandsky.puzzlebox.domain.CreateDraftCopy
-import com.ivandsky.puzzlebox.domain.SyncSolvesCounts
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.VariantId

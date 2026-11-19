@@ -1,8 +1,8 @@
 package com.ivandsky.puzzlebox.create.editor
 
+import com.ivandsky.puzzlebox.create.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.domain.ComputeCodename
-import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import kotlin.random.Random
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow

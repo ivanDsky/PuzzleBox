@@ -16,13 +16,13 @@ import androidx.compose.ui.test.performTouchInput
 import com.ivandsky.puzzlebox.create.GOLDEN_PHONE
 import com.ivandsky.puzzlebox.create.GOLDEN_PHONE_360
 import com.ivandsky.puzzlebox.create.GOLDEN_TABLET
+import com.ivandsky.puzzlebox.create.domain.PublishOutcome
 import com.ivandsky.puzzlebox.create.settleAndCapture
 import com.ivandsky.puzzlebox.create.showGolden
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc.Visibility
 import com.ivandsky.puzzlebox.data.model.TestSolve
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.AppShapes
-import com.ivandsky.puzzlebox.domain.PublishOutcome
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict

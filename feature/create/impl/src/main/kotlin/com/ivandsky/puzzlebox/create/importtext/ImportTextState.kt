@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.create.importtext
 
-import com.ivandsky.puzzlebox.domain.ImportDraftFromText
-import com.ivandsky.puzzlebox.domain.ImportResult
+import com.ivandsky.puzzlebox.create.domain.ImportDraftFromText
+import com.ivandsky.puzzlebox.create.domain.ImportResult
 import com.ivandsky.puzzlebox.game.editor.NotationHeader
 import com.ivandsky.puzzlebox.game.editor.NotationText
 import kotlinx.coroutines.CoroutineScope

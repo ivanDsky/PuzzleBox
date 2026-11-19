@@ -1,12 +1,12 @@
 package com.ivandsky.puzzlebox.create.editor
 
+import com.ivandsky.puzzlebox.create.domain.CreateSharedPuzzle
+import com.ivandsky.puzzlebox.create.domain.PublishOutcome
+import com.ivandsky.puzzlebox.create.domain.ValidatePublish
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc.Visibility
 import com.ivandsky.puzzlebox.data.model.TestSolve
-import com.ivandsky.puzzlebox.domain.CreateSharedPuzzle
-import com.ivandsky.puzzlebox.domain.PublishOutcome
-import com.ivandsky.puzzlebox.domain.ValidatePublish
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.VariantId
