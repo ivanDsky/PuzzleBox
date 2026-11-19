@@ -63,6 +63,44 @@ class TrainerRegistryGatingTest {
         }
     }
 
+    @Test
+    fun `with TrainTango on the registry holds the Tango trainer`() {
+        withGraph(FakeReleaseFlags(GameUiFlag.TrainTango)) { koin ->
+            val registry = koin.get<TrainerRegistry>()
+
+            assertEquals(listOf(GameId("tango")), registry.all.map { it.gameId })
+            assertEquals(9, registry[GameId("tango")]!!.catalog().size)
+            assertNull("Queens' flag is off", registry[GameId("queens")])
+        }
+    }
+
+    @Test
+    fun `with TrainTango off the registry has no Tango trainer though the game binds a holder`() {
+        withGraph(FakeReleaseFlags(GameUiFlag.TrainQueens)) { koin ->
+            val bindings = koin.getAll<TrainerGame.Binding>()
+
+            assertNull(koin.get<TrainerRegistry>()[GameId("tango")])
+            assertEquals("only Queens' holder holds a trainer", listOf(GameId("queens")), bindings.mapNotNull { it.game?.gameId })
+            assertTrue("Tango binds an empty holder", bindings.any { it.game == null })
+        }
+    }
+
+    @Test
+    fun `another game's Train flag leaves the Tango trainer out`() {
+        val others: Array<ReleaseFlagKey> = GameUiFlag.entries.filter { it != GameUiFlag.TrainTango }.toTypedArray()
+
+        withGraph(FakeReleaseFlags(*others)) { koin ->
+            assertNull(koin.get<TrainerRegistry>()[GameId("tango")])
+        }
+    }
+
+    @Test
+    fun `Queens and Tango both on list in the registry's game order`() {
+        withGraph(FakeReleaseFlags(GameUiFlag.TrainTango, GameUiFlag.TrainQueens)) { koin ->
+            assertEquals(listOf(GameId("queens"), GameId("tango")), koin.get<TrainerRegistry>().all.map { it.gameId })
+        }
+    }
+
     private fun withGraph(flags: ReleaseFlags, check: (Koin) -> Unit) {
         val koin = startKoin {
             androidContext(RuntimeEnvironment.getApplication())
