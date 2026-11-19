@@ -75,6 +75,7 @@ returns these findings:
 
 Entries on record at the time of writing: S1 64, S2 6, S4 25, S5 4, S9 1, P1 6, P2 1, P5 4, P6 1, P14 107.
 S0, S6, S7, S8, S10, S11, S12, P3, P4, P7, P8, P9, P10, P11, P12, P13, P15 and P16 have none.
+*Amendment 2026-11-19 (#1740):* the item-7 move PRs (#1649 through #1740) moved every P14 file, and `allowlists/P14.txt` is empty.
 
 ### Payload cross-reference
 The `design-architecture` payload (`references/rules-architecture.md`) states four of these as
@@ -557,7 +558,8 @@ and its Koin definition lives in that feature's module.
   is then reported. A reference by reflection, by a string-built name or through a typealias declared in
   another file is not seen.
 - **Allowlist:** Ruling (code-quality review item 7, 2026-11-18): the files that violated when P14 landed
-  are frozen in `allowlists/P14.txt`. The item-7 move PRs delete each entry as they move its file.
+  are frozen in `allowlists/P14.txt`. The item-7 move PRs delete each entry as they move its file; the last
+  went in #1740, and the file is empty.
 - **How to fix:** move the file to `:feature:<x>:impl`, package `<package root>.domain` (sub-packages
   kept, `com.ivandsky.puzzlebox.play.domain.random`), move its Koin definition from `domainModule` to the
   feature's Koin module, and delete its allowlist entry. P4 judges it there. When a second feature needs
@@ -580,9 +582,10 @@ its frozen set only shrinks (ADR-0022 amendment 2026-11-18).
   - A well-formed call is `flagSet("<owner>", <Enum>.entries)`, named arguments allowed, with a plain
     string literal owner. Any other `flagSet(` call fails, since its owner cannot be checked. Two
     well-formed production calls with one owner both fail.
-  - The central `ReleaseFlag` holds only the five entries it froze with (ResultHeroPolish, HintPolish,
-    RanksFreshness, ZipDotPulse, SheetScreens), kept as `FROZEN` in the rule. Any other entry fails. The
-    set only shrinks, like an allowlist: a `FROZEN` name the enum no longer has is stale and fails too.
+  - The central `ReleaseFlag` holds only the names kept as `FROZEN` in the rule. It froze with five
+    (ResultHeroPolish, HintPolish, RanksFreshness, ZipDotPulse, SheetScreens); since the move slices (#1670,
+    #1677, #1689) `FROZEN` is `SheetScreens` alone. Any other entry fails. The set only shrinks, like an
+    allowlist: a `FROZEN` name the enum no longer has is stale and fails too.
 - **Why:** a flag enum that is never registered reads as off in every build, even with
   `releaseDefault = true`, and shows no switch in the debug panel. Koin keeps the last of two sets with
   one owner and drops the other silently, so `DeclaredFlags` cannot catch it. The central enum was edited
