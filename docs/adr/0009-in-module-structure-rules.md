@@ -75,7 +75,7 @@ returns these findings:
 
 Entries on record at the time of writing: S1 64, S2 6, S4 25, S5 4, S9 1, P1 6, P2 1, P5 4, P6 1, P14 107.
 S0, S6, S7, S8, S10, S11, S12, P3, P4, P7, P8, P9, P10, P11, P12, P13, P15 and P16 have none.
-*Update 2026-11-19:* the item-7 move PRs (#1649 through #1740) moved every P14 file, and `allowlists/P14.txt` is empty.
+*Amendment 2026-11-19 (#1740):* the item-7 move PRs (#1649 through #1740) moved every P14 file, and `allowlists/P14.txt` is empty.
 
 ### Payload cross-reference
 The `design-architecture` payload (`references/rules-architecture.md`) states four of these as

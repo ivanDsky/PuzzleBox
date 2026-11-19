@@ -108,7 +108,7 @@ UI flag `ResultHeroPolish` to choose a use-case parameter.
    same PR, its name from P15's frozen list, which only shrinks. A move slice moves only the
    entries left at its rebase.
 
-   *Update 2026-11-19:* the move slices took four entries to their owners: RanksFreshness to
+   *Amendment 2026-11-19 (#1670, #1677, #1689):* the move slices took four entries to their owners: RanksFreshness to
    `HistoryFlag` (#1670), HintPolish to `GameUiFlag` (#1677), ResultHeroPolish and ZipDotPulse to
    `PlayFlag` (#1689). `ReleaseFlag` and P15's `FROZEN` now hold `SheetScreens` alone.
 
