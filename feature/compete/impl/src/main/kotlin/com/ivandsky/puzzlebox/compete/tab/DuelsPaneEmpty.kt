@@ -31,7 +31,7 @@ internal fun DuelsPaneEmpty(onNewDuel: () -> Unit, modifier: Modifier = Modifier
             textAlign = TextAlign.Center,
         )
         Text(
-            text = "Challenge a friend to the same puzzles, each on your own time. Times stay sealed until both finish.",
+            text = "Duel a friend or Past you on the same puzzles, each on your own time. Times stay sealed until both finish.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,

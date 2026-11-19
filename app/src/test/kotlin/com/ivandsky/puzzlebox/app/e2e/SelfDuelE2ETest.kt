@@ -113,6 +113,6 @@ class SelfDuelE2ETest {
     private companion object {
         const val SIZE = 5
         const val TIMEOUT_MS = 5_000L
-        const val SIGNED_OUT_LINE = "Sign in to duel friends, or duel yourself now"
+        const val SIGNED_OUT_LINE = "Sign in to duel friends, or duel Past you now"
     }
 }
