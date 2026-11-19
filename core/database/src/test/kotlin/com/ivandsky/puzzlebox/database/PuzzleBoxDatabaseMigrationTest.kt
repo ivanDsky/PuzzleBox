@@ -833,8 +833,8 @@ class PuzzleBoxDatabaseMigrationTest {
     }
 
     @Test
-    fun `fresh v17 database is created by the normal builder path`() {
-        val dbName = "puzzlebox-fresh-v17.db"
+    fun `fresh v18 database is created by the normal builder path`() {
+        val dbName = "puzzlebox-fresh-v18.db"
         val context = RuntimeEnvironment.getApplication()
         context.deleteDatabase(dbName)
         val database = Room.databaseBuilder(context, PuzzleBoxDatabase::class.java, dbName)
@@ -843,7 +843,7 @@ class PuzzleBoxDatabaseMigrationTest {
             .build()
         try {
             val db = database.openHelper.writableDatabase
-            assertEquals(17, db.version)
+            assertEquals(18, db.version)
 
             // replay is omitted: a leg queued without one reads NULL.
             db.execSQL(
