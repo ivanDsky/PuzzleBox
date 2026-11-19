@@ -1,8 +1,5 @@
 package com.ivandsky.puzzlebox.domain.di
 
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
 import com.ivandsky.puzzlebox.domain.ComputeMatchLegs
 import com.ivandsky.puzzlebox.domain.ImportDraftFromText
@@ -29,7 +26,6 @@ import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObserveMatch
 import com.ivandsky.puzzlebox.domain.ObserveMyDuels
-import com.ivandsky.puzzlebox.domain.ObserveResultInsights
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.RecordRevealSeen
@@ -51,7 +47,6 @@ import com.ivandsky.puzzlebox.domain.lineup.ValidateExactPuzzles
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
-import com.ivandsky.puzzlebox.domain.nextthing.ObserveResultNextThing
 import com.ivandsky.puzzlebox.domain.random.LoadRandomDay
 import com.ivandsky.puzzlebox.domain.random.LoadRandomPuzzle
 import com.ivandsky.puzzlebox.domain.random.LoadRandomShared
@@ -88,15 +83,6 @@ val domainModule = module {
     factory { GetNextRollover(registry = get()) }
     factory { ComputeStreak(puzzleDay = get()) }
     factory { ObserveGameStats(registry = get(), observeGameHistory = get(), computeStreak = get()) }
-    factory {
-        ObserveResultInsights(
-            registry = get(),
-            history = get(),
-            computeStreak = get(),
-            puzzleDay = get(),
-            slowTail = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.ResultHeroPolish) == true,
-        )
-    }
     factory { LoadPastDay(daily = get(), registry = get()) }
     factory {
         LoadRandomDay(
@@ -127,23 +113,6 @@ val domainModule = module {
     factory { ObserveWindowRefresh(network = get()) }
     // The app decides whether there is a Friends/Global setting to follow; with none the rank is Global.
     factory { ObserveResultRank(leaderboard = get(), registry = get(), friendDay = get<ObserveFriendDay.Binding>().reader) }
-    factory {
-        ObserveResultNextThing(
-            registry = get(),
-            identity = get(),
-            history = get(),
-            todaySet = get(),
-            friendPuzzles = get(),
-            friendUids = get(),
-            leaderboard = get(),
-            visibility = get(),
-            computeStreak = get(),
-            puzzleDay = get(),
-            nextRollover = get(),
-            communityPuzzles = get(),
-            showDayTotal = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.ResultHeroPolish) == true,
-        )
-    }
     factory {
         CreateDraft(
             registry = get(),

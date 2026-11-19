@@ -240,15 +240,7 @@ class RealGamesResultRouteTest {
                     single<GoogleIdTokenProvider> { DismissedGoogleIdTokenProvider }
                     factory { ObserveLeaderboard(get(), get(), get(), get()) }
                     factory { ObserveResultRank(get(), get(), friendDay = null) } // no Friends/Global setting
-                    factory { ObserveResultInsights(get(), get(), get(), get()) }
                     factory { ObserveFriendUids(get(), get()) }
-                    factory {
-                        ObserveResultNextThing(
-                            registry = get(), identity = get(), history = get(), todaySet = get(), friendPuzzles = get(),
-                            friendUids = get(), leaderboard = get(), visibility = get(), computeStreak = get(),
-                            puzzleDay = get(), nextRollover = get(), communityPuzzles = ListCommunityPuzzles(get(), get(), get()) { 0L },
-                        )
-                    }
                     // Tutorial seen: this path is about the result; the lessons have their own tests.
                     single<UserPreferencesRepository> {
                         FakeUserPreferencesRepository(seen = setOf(ZipDefinition.id))
@@ -256,10 +248,18 @@ class RealGamesResultRouteTest {
                 },
                 module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
-                // After playModule, whose own FinishLeg and ObserveLegTarget would replace these.
+                // After playModule: Koin keeps the later definition, so these replace playModule's.
                 module {
                     factory { FinishLeg(FakeMatchResultOutbox(), FakeSelfMatchRepository(), FakeIdentityService()) { Instant.EPOCH } }
                     factory { ObserveLegTarget(FakeSelfMatchRepository(), FakeUserPreferencesRepository()) }
+                    factory { ObserveResultInsights(get(), get(), get(), get()) }
+                    factory {
+                        ObserveResultNextThing(
+                            registry = get(), identity = get(), history = get(), todaySet = get(), friendPuzzles = get(),
+                            friendUids = get(), leaderboard = get(), visibility = get(), computeStreak = get(),
+                            puzzleDay = get(), nextRollover = get(), communityPuzzles = ListCommunityPuzzles(get(), get(), get()) { 0L },
+                        )
+                    }
                 },
                 module { single { ObserveFriendDay.Binding(reader = null) } }, // no Friends/Global setting
             )

@@ -98,8 +98,9 @@ UI flag `ResultHeroPolish` to choose a use-case parameter.
 5. konsist P15 (ADR-0009) fails on a flag enum not registered with `flagSet` in `main` sources of
    its own module or `:app` (`:app` may register a module that has no Koin), on a repeated owner,
    on a new entry in the central enum and on a frozen name the central enum no longer has. P13
-   still fails on a shipped entry with no reader, in any flag enum. Later slices add rules for a
-   domain import of the flags package and for a nullable or `getOrNull` flag read.
+   still fails on a shipped entry with no reader, in any flag enum. P16 fails on any name in the
+   flags package in `:core:domain` production sources. A later slice adds a rule for a nullable or
+   `getOrNull` flag read.
 6. Migration, until the central enum is deleted: `ReleaseFlag` is frozen at its five entries
    (ResultHeroPolish, HintPolish, RanksFreshness, ZipDotPulse, SheetScreens) and `:app`
    registers it as the `common` set. A new flag goes to its owner's enum; a flip of an entry

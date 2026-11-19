@@ -201,8 +201,14 @@ class ResultChallengeRowTest {
                     single { dismissedGoogleSignIn }
                     factory { ObserveLeaderboard(get(), get(), get(), get()) }
                     factory { ObserveResultRank(get(), get(), friendDay = null) } // no Friends/Global setting
-                    factory { ObserveResultInsights(get(), get(), get(), get()) }
                     factory { ObserveFriendUids(get(), get()) }
+                },
+                module { single<CloudSync> { FakeCloudSync() } },
+                playModule,
+                // After playModule: Koin keeps the later definition, so these replace playModule's.
+                module {
+                    factory { FinishLeg(FakeMatchResultOutbox(), FakeSelfMatchRepository(), FakeIdentityService()) { Instant.EPOCH } }
+                    factory { ObserveResultInsights(get(), get(), get(), get()) }
                     factory {
                         ObserveResultNextThing(
                             registry = get(), identity = get(), history = get(), todaySet = get(), friendPuzzles = get(),
@@ -211,10 +217,6 @@ class ResultChallengeRowTest {
                         )
                     }
                 },
-                module { single<CloudSync> { FakeCloudSync() } },
-                playModule,
-                // After playModule, whose own FinishLeg would replace this one.
-                module { factory { FinishLeg(FakeMatchResultOutbox(), FakeSelfMatchRepository(), FakeIdentityService()) { Instant.EPOCH } } },
                 hubOffFriendDay,
             )
         }

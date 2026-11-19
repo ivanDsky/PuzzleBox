@@ -7,6 +7,8 @@ import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.play.domain.DeleteReceivedPuzzle
 import com.ivandsky.puzzlebox.domain.ObserveFriendPuzzles
+import com.ivandsky.puzzlebox.domain.ObserveResultInsights
+import com.ivandsky.puzzlebox.domain.nextthing.ObserveResultNextThing
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.gameui.flags.GameUiFlag
 import com.ivandsky.puzzlebox.model.GameId
@@ -56,7 +58,9 @@ import org.koin.dsl.module
  * [com.ivandsky.puzzlebox.gameui.GamePlayRegistry] come from the app's aggregation
  * (ADR-0001: one registration per game); the repositories (the tutorial-seen preferences
  * included) and the calendar from :core:data's dataModule, and the shared use cases (today's
- * set, history, stats, the rollover) from :core:domain's domainModule. The tablet stats
+ * set, history, stats, the rollover) from :core:domain's domainModule. The result's insights
+ * and next thing are :core:domain use cases defined here: their Boolean follows play's
+ * ResultHeroPolish flag, and :core:domain reads no flag (ADR-0022). The tablet stats
  * panel's identity and leaderboard come from the backend module. This module names no game;
  * friend puzzles' wiring is [friendModule], From friends' [ObserveFriendPuzzles] and
  * [DeleteReceivedPuzzle] are here, as are Play's own use cases: the archive month and progress,
@@ -147,6 +151,32 @@ val playModule = module {
     viewModel { params -> RandomPuzzleViewModel(params.get<GameId>(), get(), get(), get()) }
     // How to play opens the rules sheet over the live play for a game with rules copy.
     single { HowToPlayRules() }
+    factory {
+        ObserveResultInsights(
+            registry = get(),
+            history = get(),
+            computeStreak = get(),
+            puzzleDay = get(),
+            slowTail = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.ResultHeroPolish) == true,
+        )
+    }
+    factory {
+        ObserveResultNextThing(
+            registry = get(),
+            identity = get(),
+            history = get(),
+            todaySet = get(),
+            friendPuzzles = get(),
+            friendUids = get(),
+            leaderboard = get(),
+            visibility = get(),
+            computeStreak = get(),
+            puzzleDay = get(),
+            nextRollover = get(),
+            communityPuzzles = get(),
+            showDayTotal = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.ResultHeroPolish) == true,
+        )
+    }
     // The flag-as-parameter rule again: with it off the result never touches LinkedIn. The Post button's flag is
     // read inside the view model (the release flag), so its bindings resolve only on the same parameter.
     // The next-thing use case is resolved only when the view model first asks for it (today's solve).
