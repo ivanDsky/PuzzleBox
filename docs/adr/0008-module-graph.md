@@ -71,7 +71,8 @@ the build instead of a review.
    configuration. `check`, Android `preBuild` and JVM `classes` depend on it, so
    `./gradlew check`, `assembleDebug` and `testDebugUnitTest` all fail on a violation.
    Forbidden:
-   - anything → `:app` (the composition root, which may depend on everything);
+   - anything → `:app` (the composition root, which may depend on everything except storage
+     outside its test configurations);
    - `:core:testing` from a non-test configuration;
    - `core:*` → any non-`core` module (so `core:testing` depends on `core:*` only);
    - `feature:*` → `games:*`;
@@ -85,12 +86,19 @@ the build instead of a review.
      `:benchmark` (the Macrobenchmark module drives the installed benchmark APK);
    - any module outside `tools:*` → `tools:*`;
    - `tools:*` → anything but `:core:game`, non-UI `games:*`, and `:core:testing` from test
-     configurations.
+     configurations;
+   - `:core:game-ui` and `games:*` → `:core:domain`, `:core:data` or `:core:result-ui` (ADR-0034);
+   - anything but `:core:data` → `:core:database` / `:core:datastore` / `:core:network`, except
+     `:app` test configurations (ADR-0034);
+   - `:core:designsystem` → any module (ADR-0034).
 
    `:konsist` is a verification-only family (ADR-0009, [in-module structure rules](0009-in-module-structure-rules.md)):
    it reads sources as files and has zero edges, so it never joins the app's graph. Two arms of
    `forbiddenEdgeReason` guard it, placed before the `:core:testing` test-configuration exemption.
-   `:backend:*` is otherwise unconstrained (it implements `core:data` seams).
+   `:backend:*` is otherwise unconstrained (it implements `core:data` seams), except for the
+   storage arm (ADR-0034).
+   *(Amended 2026-11-18, ADR-0034: the last three bullets order the layers inside core. They sit
+   after every older arm, so an edge an older arm forbids keeps its older reason.)*
 
 ## Adding a game
 1. `settings.gradle.kts`: `include(":games:<id>")` and `include(":games:<id>-ui")`.
@@ -99,7 +107,8 @@ the build instead of a review.
    binding the plugin under `qualifier(<Id>Definition.id.value)` plus
    `single { … } bind DailySource::class`.
 3. `games/<id>-ui` (`puzzlebox.android.library.compose`, on `games:<id>`, `core:game`,
-   `core:game-ui`, `core:designsystem`): one `GamePlayController`, one `GamePlayUi`, and a
+   `core:game-ui`, `core:designsystem`; never `core:result-ui`, `core:domain` or `core:data`,
+   ADR-0034): one `GamePlayController`, one `GamePlayUi`, and a
    `<id>UiModule` with `single<GamePlayUi>(qualifier = qualifier(<Id>Definition.id.value))`.
 4. `app/build.gradle.kts`: `implementation(projects.games.<id>)` and
    `implementation(projects.games.<id>Ui)`.
@@ -112,7 +121,8 @@ No `core:*` or `feature:*` module changes; `checkModuleGraph` rejects any shortc
 - A new edge that breaks the layering fails locally on the first build, with the rule that
   forbids it, before review.
 - The guard reads declared project dependencies, not the resolved graph: transitive `api`
-  exposure is allowed by design (e.g. `core:domain` re-exporting `core:data`).
+  exposure is allowed by design (e.g. `core:domain` re-exporting `core:data`, kept on purpose,
+  with a revisit trigger: ADR-0034 §4).
 - New module families need a rule in `forbiddenEdgeReason` and an update here.
 - What is inside a module (file size, one type per file, package and naming rules) is guarded by
   the `:konsist` suite, not by this task: see ADR-0009.
@@ -120,3 +130,5 @@ No `core:*` or `feature:*` module changes; `checkModuleGraph` rejects any shortc
 *(Amended 2026-11-06 by ADR-0019: `GamePlugin.editor` plus a single-owner `GameEditorRegistry` in `core:game-ui`; and by ADR-0021: the `tools:*` family and its two `forbiddenEdgeReason` arms.)*
 
 *(Amended 2026-11-12, ADR-0030: the replay types live in `core:game` (`game/replay`) and the player and compare chrome in `core:game-ui` (`gameui/replay`). A game implements `GamePlugin.replay` (`GameReplay`) and `GamePlayUi.replayBoard` (`GameReplayBoard`), both optional and null by default, so adding a game still edits no core or feature module.)*
+
+*(Amended 2026-11-18 by ADR-0034: `core:game-ui` is the play kit; result, stats, daily-board and the replay player/compare chrome live in `core:result-ui` (`resultui`, `resultui/board`, `resultui/replay`); layer arms in `forbiddenEdgeReason`; `core:domain → core:data` kept with a revisit trigger.)*

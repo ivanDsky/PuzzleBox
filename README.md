@@ -112,6 +112,7 @@ graph TD
         database[":core:database"]
         network[":core:network"]
         datastore[":core:datastore"]
+        resultui[":core:result-ui<br/>result, stats, replay chrome"]
         coregameui[":core:game-ui<br/>GamePlayRegistry"]
         coregame[":core:game<br/>GameRegistry, contracts"]
         designsystem[":core:designsystem"]
@@ -122,7 +123,7 @@ graph TD
     app --> impl & api & gameui & game & backend & auth
     backend --> data
     impl --> api
-    impl --> auth & navigation & domain & data & coregame & coregameui
+    impl --> auth & navigation & domain & data & coregame & coregameui & resultui
     api --> navigation
     gameui --> game
     gameui --> coregameui & designsystem
@@ -131,7 +132,8 @@ graph TD
     data --> database & network & datastore & coregame & common & model
     network --> coregame
     datastore --> common & model
-    coregameui --> coregame & designsystem & domain & common & model
+    resultui --> coregameui & coregame & designsystem & domain & common
+    coregameui --> coregame & designsystem & common & model
     coregame --> model
 ```
 
