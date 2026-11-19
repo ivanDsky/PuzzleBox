@@ -30,13 +30,19 @@ class ObserveLinkedInDay(private val days: LinkedInDays, private val registry: G
         days.observeRange(game, from, to).map { byDay -> byDay.mapValues { (_, day) -> day.toView(game, registry) } }
 }
 
-private fun LinkedInDayData.toView(game: GameId, registry: GameRegistry): LinkedInDayView =
-    LinkedInDayView(status(), board(registry.rankOrderOf(game).comparator), owner, boardFetchedAtMs?.let { LinkedInBoardRead(it, boardComplete) })
+private fun LinkedInDayData.toView(game: GameId, registry: GameRegistry): LinkedInDayView = LinkedInDayView(
+    status(),
+    board(registry.rankOrderOf(game).comparator),
+    owner,
+    boardFetchedAtMs?.let { LinkedInBoardRead(it, boardComplete) },
+    ownScore = (own as? LinkedInOwnState.Imported)?.let { BestScore(it.record.time, it.record.hints) },
+)
 
 private fun LinkedInDayData.status(): LinkedInDayStatus = when (val linked = link) {
     LinkState.NotConnected -> LinkedInDayStatus.NotConnected
     // A pause outranks an imported result: the status line is where the player finds Resume or
-    // Reconnect, and the import still shows through the card's own completion state.
+    // Reconnect. The import still counts on the boards ([LinkedInDayView.ownScore]) and shows through the card's
+    // own completion state.
     is LinkState.Paused -> when (linked.kind) {
         LinkedInRead.Rejected.Kind.SessionExpired -> LinkedInDayStatus.SessionExpired
         else -> LinkedInDayStatus.Paused(linked.kind)

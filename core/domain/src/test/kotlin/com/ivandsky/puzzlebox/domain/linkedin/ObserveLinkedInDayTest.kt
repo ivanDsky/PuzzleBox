@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwner
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInSync
+import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.game.RecordStats
@@ -83,7 +84,7 @@ class ObserveLinkedInDayTest {
         viewOf(data).board as LinkedInBoardView.Shown
 
     @Test
-    fun `not connected shows NotConnected and the board that was saved before the disconnect`() = observing {
+    fun `not connected shows NotConnected, the board and the import that were kept through the disconnect`() = observing {
         val view = viewOf(
             data(link = LinkState.NotConnected, own = imported(60_000), ghosts = listOf(ghost(1, 50_000))),
         )
@@ -93,6 +94,7 @@ class ObserveLinkedInDayTest {
                 LinkedInDayStatus.NotConnected,
                 LinkedInBoardView.Shown(listOf(ghost(1, 50_000))),
                 boardRead = LinkedInBoardRead(fetchedAtMs, complete = false),
+                ownScore = BestScore(60_000, 0),
             ),
             view,
         )
