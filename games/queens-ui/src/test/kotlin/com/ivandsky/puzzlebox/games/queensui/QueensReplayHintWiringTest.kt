@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.games.queensui
 
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.replay.GameReplay
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
@@ -8,10 +10,12 @@ import com.ivandsky.puzzlebox.games.queens.QueensSession
 import com.ivandsky.puzzlebox.games.queens.QueensSessionStep
 import com.ivandsky.puzzlebox.games.queens.engine.hints.step.QueensStep
 import com.ivandsky.puzzlebox.games.queens.queensModule
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.koin.core.qualifier.qualifier
 import org.koin.dsl.koinApplication
+import org.koin.dsl.module
 
 /** With the Queens UI module and the Queens module in one graph, the plugin the registry collects replays a recorded hint with the cells a live press shows. */
 class QueensReplayHintWiringTest {
@@ -29,7 +33,10 @@ class QueensReplayHintWiringTest {
 
     @Test
     fun `the registered plugin replays a recorded hint with the cells a live press shows`() {
-        val koin = koinApplication { modules(queensModule, queensUiModule) }.koin
+        val flags = object : ReleaseFlags {
+            override val enabled = MutableStateFlow(emptySet<ReleaseFlagKey>())
+        }
+        val koin = koinApplication { modules(queensModule, queensUiModule, module { single<ReleaseFlags> { flags } }) }.koin
         val plugin = koin.get<GamePlugin<*, *, *>>(qualifier(QueensDefinition.id.value))
         @Suppress("UNCHECKED_CAST")
         val replay = checkNotNull(plugin.replay) as GameReplay<QueensSession>

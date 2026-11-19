@@ -12,6 +12,7 @@ dependencies {
     // GameId appears in GamePlayRegistry's/GamePlayUi's public lookup API.
     api(projects.core.model)
     implementation(projects.core.designsystem)
+    // GameUiFlag implements common's ReleaseFlagKey.
     implementation(projects.core.common)
     // TodayStatus: todayStatusLine is the one status copy Home and the library share.
     implementation(projects.core.domain)

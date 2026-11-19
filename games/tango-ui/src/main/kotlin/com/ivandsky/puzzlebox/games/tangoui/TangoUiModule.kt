@@ -30,4 +30,4 @@ val tangoUiModule: Module = module {
 }
 
 /** Whether Tango's hint callouts use the plain sentence set (HintPolish); the one place Tango reads that flag. */
-internal fun tangoPlainCaptions(flags: ReleaseFlags?): Boolean = flags?.isEnabled(GameUiFlag.HintPolish) == true
+internal fun tangoPlainCaptions(flags: ReleaseFlags): Boolean = flags.isEnabled(GameUiFlag.HintPolish)
