@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.domain.ranks.RankedBoard
 import com.ivandsky.puzzlebox.history.domain.ranks.gameWindowStandings
 import com.ivandsky.puzzlebox.domain.ranks.connectionUid
 import com.ivandsky.puzzlebox.domain.ranks.rankBoard
+import com.ivandsky.puzzlebox.domain.ranks.withConnectionsAsFriends
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.history.ranks.RanksSelection.Window
 import com.ivandsky.puzzlebox.model.GameId
@@ -23,7 +24,8 @@ import kotlin.math.roundToInt
  * One game's board out of the hub's shared window boards (null = no answer for this window yet),
  * so a swipe to a game reads nothing of its own. A day ranks that day's entries by [order]; a week
  * or month ranks each player by the average over the days they played, or with [points]
- * (WeekMonthPoints) by the standings it gives for the game's loaded days. Rows are keyed by
+ * (WeekMonthPoints) by the standings it gives for the game's loaded days. Either way a friend's
+ * connection is the friend ([withConnectionsAsFriends]), so a friend is one row. Rows are keyed by
  * player uid, so the same list re-ranks when the board changes.
  */
 internal fun RankWindowBoards?.toGameBoardState(
@@ -46,11 +48,11 @@ internal fun RankWindowBoards?.toGameBoardState(
             else -> DailyBoardState.Ranked(emptyList())
         }
     }
-    fun ranked() = loaded.map { rankBoard(it.board, it.page.entries, it.order, it.page.count) }
+    fun ranked(of: List<BoardLoad.Loaded>) = of.map { rankBoard(it.board, it.page.entries, it.order, it.page.count) }
     val rows = when {
-        kind == Window.Day -> ranked().flatMap(RankedBoard::rows).map { it.toRow(selfUid) }
+        kind == Window.Day -> ranked(loaded).flatMap(RankedBoard::rows).map { it.toRow(selfUid) }
         points != null -> points(loaded).pointRows(selfUid) { BoardRowValue.DayPoints(it.total, it.games, atLeast = it.truncated) }
-        else -> gameWindowStandings(ranked(), order).rows.map { it.toRow(selfUid) }
+        else -> gameWindowStandings(ranked(loaded.withConnectionsAsFriends(selfUid)), order).rows.map { it.toRow(selfUid) }
     }
     return DailyBoardState.Ranked(rows)
 }

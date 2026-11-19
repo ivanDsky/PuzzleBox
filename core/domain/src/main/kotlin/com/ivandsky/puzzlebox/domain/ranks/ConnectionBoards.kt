@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInBoardView
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
 import com.ivandsky.puzzlebox.game.BestScore
+import com.ivandsky.puzzlebox.game.linkedin.linkKey
 import com.ivandsky.puzzlebox.game.linkedin.linkedInScore
 import com.ivandsky.puzzlebox.game.linkedin.linkedInTimeWins
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInTimeWins
@@ -18,6 +19,34 @@ private const val CONNECTION_UID = "linkedin:"
  * and day, so a connection is one player across a window. The prefix keeps it apart from every PuzzleBox uid.
  */
 fun connectionUid(memberRef: String): String = CONNECTION_UID + memberRef
+
+private fun LeaderboardEntry.isConnection() = uid.startsWith(CONNECTION_UID)
+
+/**
+ * A window's [loaded] boards with each connection counted as the friend it is, so the days a friend played only on
+ * LinkedIn add to their PuzzleBox row and are not listed as a second one. A day merges a connection into a friend
+ * only when both are on that day ([withConnections]); across a window the same rule, the name (`linkKey`), says a
+ * connection is the friend named like it on any of these boards. A name that is nobody's or is two friends' links
+ * nobody, and the [viewerUid]'s own name links none either, as on a day: that connection stays its own row, and so
+ * does a second connection of a name on a board that already counts the friend. Only for a window's totals: a
+ * board's own rows keep their connections, since a Day board draws them as connections.
+ */
+fun List<BoardLoad.Loaded>.withConnectionsAsFriends(viewerUid: String?): List<BoardLoad.Loaded> {
+    if (none { load -> load.page.entries.any { it.isConnection() } }) return this
+    val friendsByName = flatMap { it.page.entries }
+        .filter { !it.isConnection() && it.uid != viewerUid }
+        .groupBy { linkKey(it.displayName) }
+        .mapNotNull { (name, named) -> name?.let { key -> named.distinctBy { it.uid }.singleOrNull()?.let { key to it } } }
+        .toMap()
+    return map { load ->
+        val counted = load.page.entries.mapTo(HashSet()) { it.uid }
+        val entries = load.page.entries.map { entry ->
+            val friend = entry.takeIf { it.isConnection() }?.let { linkKey(it.displayName) }?.let(friendsByName::get)
+            if (friend != null && counted.add(friend.uid)) entry.copy(uid = friend.uid, displayName = friend.displayName) else entry
+        }
+        load.copy(page = load.page.copy(entries = entries))
+    }
+}
 
 /**
  * One board's entries with a LinkedIn [day] merged in by the rule of the Day board (`linkedInTimeWins`): a connection

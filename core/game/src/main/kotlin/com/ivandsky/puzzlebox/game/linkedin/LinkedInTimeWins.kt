@@ -17,9 +17,13 @@ data class LinkedInTimeWins(
 
 private val Spaces = Regex("\\s+")
 
-// The name is the only link the app has between a PuzzleBox player and a LinkedIn connection, so it is compared
-// loosely: case, outer spaces and runs of spaces do not tell two people apart. A blank name links nobody.
-private fun linkKey(name: String): String? =
+/**
+ * The key a PuzzleBox player and a LinkedIn connection are the same person by, null for a blank name. The name is the
+ * only link the app has between them, so it is compared loosely: case, outer spaces and runs of spaces do not tell two
+ * people apart. [linkedInTimeWins] merges a board with it, and a window's rows are merged by it too, so one rule says
+ * who is who.
+ */
+fun linkKey(name: String): String? =
     name.trim().lowercase(Locale.ROOT).replace(Spaces, " ").ifEmpty { null }
 
 /**
