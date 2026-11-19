@@ -17,7 +17,6 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.ui.NavDisplay
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.IdentityService
-import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.LocalNavLift
 import com.ivandsky.puzzlebox.designsystem.NavLift
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -25,7 +24,6 @@ import com.ivandsky.puzzlebox.gameui.HINT_COOLDOWN
 import com.ivandsky.puzzlebox.gameui.LocalHintCooldown
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.history.HistoryLayout
-import com.ivandsky.puzzlebox.history.RanksTuneDefaults
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.CustomSlot
@@ -78,7 +76,6 @@ internal fun PuzzleBoxNavShell(
 ) {
     val visibility = rememberVisibilitySlot(koinInject())
     val releaseFlags by koinInject<ReleaseFlags>().enabled.collectAsStateWithLifecycle()
-    val tuneDefaults = rememberRanksTuneDefaults(koinInject(), koinInject())
     val recap = rememberRecapSlot(releaseFlags, navigator, koinInject(), koinInject())
     val reduceMotion = rememberReducedMotion()
     val layoutDirection = LocalLayoutDirection.current
@@ -103,7 +100,6 @@ internal fun PuzzleBoxNavShell(
             makeOne = makeOne,
             libraryRequests = libraryRequests,
             visibility = visibility,
-            tuneDefaults = tuneDefaults,
             onOpenInsights = insightsOpener(releaseFlags, navigator),
             recap = recap,
         ).withHintCooldown(),
@@ -168,16 +164,3 @@ internal fun ((NavKey) -> NavEntry<NavKey>).withHintCooldown(): (NavKey) -> NavE
 @Composable
 private fun rememberVisibilitySlot(repository: VisibilityRepository): VisibilitySlot =
     remember(repository) { VisibilitySlot(repository.ownTier, repository::setOwnTier) }
-
-@Composable
-private fun rememberRanksTuneDefaults(visibility: VisibilityRepository, preferences: UserPreferencesRepository): RanksTuneDefaults =
-    remember(visibility, preferences) {
-        RanksTuneDefaults(
-            visibility.ownTier,
-            visibility::setOwnTier,
-            preferences.ranksFriendsDefault,
-            preferences::setRanksFriendsDefault,
-            preferences.ranksLinkedInDefault,
-            preferences::setRanksLinkedInDefault,
-        )
-    }

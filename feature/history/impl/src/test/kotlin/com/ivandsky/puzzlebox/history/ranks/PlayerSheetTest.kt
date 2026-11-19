@@ -75,7 +75,6 @@ class PlayerSheetTest {
                         onClosePlayer = { events += "close" },
                     ),
                     playerSheet = sheet,
-                    tuneDefaults = previewTuneDefaults(),
                 )
             }
         }

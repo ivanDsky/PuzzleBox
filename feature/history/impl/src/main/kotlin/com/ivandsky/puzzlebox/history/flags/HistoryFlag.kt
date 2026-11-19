@@ -12,12 +12,6 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
  */
 enum class HistoryFlag(override val label: String, override val releaseDefault: Boolean) : ReleaseFlagKey {
     /**
-     * The Ranks filter sheet holds only the board's own choices (backlog #1547): Who and When, without the Defaults block
-     * ("Opens on", "Who can see you"), which stay in Settings. Read only in a ViewModel or a DI module (ADR-0022 §3).
-     */
-    RanksTuneBoardOnly(label = "Ranks filter sheet without Defaults", releaseDefault = true),
-
-    /**
      * A game's Week and Month boards rank by the sum of its daily place points, as Overall does across games, not by the
      * average of the days played (backlog #1698). Read only in a ViewModel or a DI module (ADR-0022 §3).
      */

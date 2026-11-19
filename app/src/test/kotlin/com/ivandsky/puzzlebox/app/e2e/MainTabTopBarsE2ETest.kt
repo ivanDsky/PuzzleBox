@@ -23,7 +23,7 @@ import org.robolectric.annotation.Config
 /**
  * MainTabsLargeBar over the real shell (#1597): Today, Games, Community and Ranks share Today's large top bar, so
  * the title, the bar's bottom and the first content sit at the same heights on every tab; the phone's avatar rides in
- * every tab's bar, and the tablet keeps it on the rail. Ranks' board menu and tune still open from the new bar.
+ * every tab's bar, and the tablet keeps it on the rail. Ranks' board menu still opens from the new bar.
  */
 @RunWith(RobolectricTestRunner::class)
 // DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -54,20 +54,6 @@ abstract class MainTabTopBarsE2ETest(private val phone: Boolean) {
             assertEquals("$key bar bottom", today.bar.bottom, tab.bar.bottom, TOLERANCE_PX)
             assertEquals("$key first content top", today.content.top, tab.content.top, TOLERANCE_PX)
         }
-    }
-
-    @Test
-    fun `the Ranks tune icon opens tune`() = shellRobot(graph = largeBarGraph()) {
-        tapTab(HistoryRootKey)
-        tap("ranks.tune")
-        awaitTag("ranks.tune.sheet")
-    }
-
-    @Test
-    fun `the Ranks scope line opens tune`() = shellRobot(graph = largeBarGraph()) {
-        tapTab(HistoryRootKey)
-        tap("ranks.tune.label")
-        awaitTag("ranks.tune.sheet")
     }
 
     private class Bars(val title: Rect, val bar: Rect, val content: Rect)

@@ -69,7 +69,7 @@ class RanksGamesFilterScreenTest {
     private val actions = RanksActions(onSignIn = {}, onSwipe = {}, onGames = { picks += it; state = state.copy(games = it) })
 
     private fun show(layout: HistoryLayout = HistoryLayout.SinglePane) {
-        composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, actions, layout = layout, tuneDefaults = previewTuneDefaults()) } }
+        composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, actions, layout = layout) } }
     }
 
     private fun node(tag: String) = composeRule.onNodeWithTag(tag)

@@ -54,7 +54,7 @@ abstract class RanksFilterGoldenScreenshots(private val device: String, private 
 
     internal fun capture(name: String, state: RanksUiState, dark: Boolean, open: String? = null) {
         rule.showGolden(dark) {
-            RanksScreen(state, RanksActions(onSignIn = {}, onSwipe = {}), layout = layout, tuneDefaults = previewTuneDefaults())
+            RanksScreen(state, RanksActions(onSignIn = {}, onSwipe = {}), layout = layout)
         }
         open?.let { rule.onNodeWithTag(it).performClick() }
         rule.settleAndCapture("ranks-filters", name, device, dark)

@@ -86,7 +86,7 @@ internal class RanksViewModel(
     private val saver = RanksSelectionSaver(savedState)
     private val boards = rankBoards(registry)
 
-    /** The Games filter (GamesFilter), read once like [tuneBoardOnly]: off, the hub counts All games whatever was saved or stored. */
+    /** The Games filter (GamesFilter), read once: off, the hub counts All games whatever was saved or stored. */
     private val gamesFilter = releaseFlags.isEnabled(HistoryFlag.GamesFilter)
 
     /** The games LinkedIn feeds: the ones the LinkedIn games pick keeps. */
@@ -125,10 +125,7 @@ internal class RanksViewModel(
     private val reads = RanksWindowReads(observeRankWindow, observeWindowRefresh, window, games, viewModelScope)
     private val scopedBoards = RanksScopedBoards(reads.boards, friendBoards, viewModelScope)
 
-    /** The Tune sheet shows the board's choices only: the Defaults block stays in Settings (RanksTuneBoardOnly). */
-    val tuneBoardOnly: Boolean = releaseFlags.isEnabled(HistoryFlag.RanksTuneBoardOnly)
-
-    /** The tab's hub on Today's large top bar (MainTabsLargeBar), read once like [tuneBoardOnly]. */
+    /** The tab's hub on Today's large top bar (MainTabsLargeBar), read once. */
     private val largeBar = releaseFlags.isEnabled(TopBarFlag.MainTabsLargeBar)
     /** A game's Week and Month add up its daily place points (WeekMonthPoints), read once the same way. */
     private val weekMonthPoints = releaseFlags.isEnabled(HistoryFlag.WeekMonthPoints)
@@ -211,12 +208,12 @@ internal class RanksViewModel(
         select { it.reset(landing.scope.value, landing.games.value) }
     }
 
-    /** The tune sheet's scope pick. */
+    /** The Who chip's pick. */
     fun setScope(scope: RankScope) {
         select { it.setScope(scope) }
     }
 
-    /** The tune sheet's window pick: Week and Month anchor at the picked day, else today. */
+    /** The When chip's pick: Week and Month anchor at the picked day, else today. */
     fun setWindow(window: RanksSelection.Window) {
         select { it.setWindow(window) }
     }

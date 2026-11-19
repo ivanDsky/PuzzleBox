@@ -48,7 +48,7 @@ private fun Hub(slice: RanksBoardSlice, signIn: RanksSignIn = RanksSignIn.Idle) 
 @Composable
 private fun Hub(state: RanksUiState) {
     RanksPreviewHost {
-        RanksScreen(state, RanksActions(onSignIn = {}, onSwipe = {}), tuneDefaults = previewTuneDefaults())
+        RanksScreen(state, RanksActions(onSignIn = {}, onSwipe = {}))
     }
 }
 
@@ -174,7 +174,7 @@ private val TabletPlaces = listOf(
 @Composable
 private fun Tablet(state: RanksUiState) {
     RanksPreviewHost(Modifier.fillMaxSize()) {
-        RanksScreen(state, RanksActions(onSignIn = {}, onSwipe = {}), layout = HistoryLayout.TwoPane, tuneDefaults = previewTuneDefaults())
+        RanksScreen(state, RanksActions(onSignIn = {}, onSwipe = {}), layout = HistoryLayout.TwoPane)
     }
 }
 

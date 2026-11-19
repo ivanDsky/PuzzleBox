@@ -43,7 +43,7 @@ class RanksWeekPointsScreenTest {
             places = listOf(BoardPlace(RanksBoard.Overall, "Overall", Standing.Place(1))),
             weekMonthPoints = weekMonthPoints,
         )
-        composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, RanksActions(onSignIn = {}, onSwipe = {}), tuneDefaults = previewTuneDefaults()) } }
+        composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, RanksActions(onSignIn = {}, onSwipe = {})) } }
     }
 
     private fun openHowRanksWork() {

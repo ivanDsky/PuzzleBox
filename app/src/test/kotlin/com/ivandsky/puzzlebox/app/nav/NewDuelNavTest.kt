@@ -33,7 +33,6 @@ class NewDuelNavTest {
             custom = testCustomSlot(),
             makeOne = testMakeOne(navigator),
             visibility = VisibilitySlot(flowOf(OwnTier.Unset)) {},
-            tuneDefaults = testTuneDefaults(),
         ).invoke(key)
         assertTrue("got ${entry.contentKey}", entry.contentKey.toString().contains(key.toString()))
     }

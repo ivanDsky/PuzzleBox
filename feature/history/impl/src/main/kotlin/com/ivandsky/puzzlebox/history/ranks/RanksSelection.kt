@@ -34,7 +34,7 @@ internal data class RanksSelection(
         }
     }
 
-    /** The games the hub counts and lists: every game, or only the LinkedIn games (GamesFilter), which leaves Strands out. [label] is how the chip and the Tune default name it. */
+    /** The games the hub counts and lists: every game, or only the LinkedIn games (GamesFilter), which leaves Strands out. [label] is how the chip and the large bar's sub line name it. */
     enum class Games(val label: String) {
         All("All games"),
         LinkedIn("LinkedIn games"),

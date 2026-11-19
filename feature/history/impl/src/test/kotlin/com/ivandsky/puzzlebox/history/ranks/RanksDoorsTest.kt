@@ -36,8 +36,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The Ranks hub's doors (nav rethink N2, N3, N6): the Tune icon opens the Tune sheet, the hero card jumps to the
- * viewer's row, and a game's unplayed day offers Play this day.
+ * The Ranks hub's doors (nav rethink N3, N6): the hero card jumps to the viewer's row, and a game's unplayed day offers
+ * Play this day.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -105,34 +105,10 @@ class RanksDoorsTest {
     )
 
     private fun show(state: RanksUiState, actions: RanksActions, layout: HistoryLayout = HistoryLayout.SinglePane) {
-        composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, actions, layout = layout, tuneDefaults = previewTuneDefaults()) } }
+        composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, actions, layout = layout) } }
     }
 
     private val actions = RanksActions(onSignIn = {}, onSwipe = {})
-
-    // --- Tune icon (N6) ---
-
-    @Test
-    fun `the Tune icon opens the Tune sheet and is a 48 dp button`() {
-        show(state(), actions)
-
-        composeRule.onNodeWithTag("ranks.tune").assertHasClickAction()
-        // The icon's layout box is under 48 dp; its tap target is the 48 dp Material asks for.
-        assertTrue(composeRule.onNodeWithTag("ranks.tune").fetchSemanticsNode().touchBoundsInRoot.height >= 48 * composeRule.density.density)
-        composeRule.onNodeWithTag("ranks.tune").performClick()
-
-        composeRule.onNodeWithTag("ranks.tune.sheet").assertIsDisplayed()
-    }
-
-    @Test
-    @Config(qualifiers = TWO_PANE)
-    fun `on the tablet the Tune icon opens the Tune sheet too`() {
-        show(state(), actions, HistoryLayout.TwoPane)
-
-        composeRule.onNodeWithTag("ranks.tune").performClick()
-
-        composeRule.onNodeWithTag("ranks.tune.sheet").assertIsDisplayed()
-    }
 
     // --- Hero card (N6) ---
 

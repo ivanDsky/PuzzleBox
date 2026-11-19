@@ -28,7 +28,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The share-replays question beside the hub's other sheets, on the real [ReplayOptInViewModel] wired as the route wires
- * it: with SheetScreens on it never lands on top of Tune or How ranks work and shows once they close; off, as before.
+ * it: with SheetScreens on it never lands on top of a filter sheet or How ranks work and shows once they close; off, as before.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -55,48 +55,17 @@ class RanksSheetHoldTest {
                     hub,
                     RanksActions(onSignIn = {}, onSwipe = {}, onSheetOpen = viewModel::hold),
                     replayOptIn = ask,
-                    tuneDefaults = previewTuneDefaults(),
                 )
             }
         }
     }
 
-    private fun openTune() {
-        composeRule.onNodeWithTag("ranks.tune").performClick()
-        composeRule.onNodeWithTag("ranks.tune.sheet").assertIsDisplayed()
-    }
-
-    private fun closeTune() {
+    private fun closeSheet() {
         composeRule.onNode(SemanticsMatcher.keyIsDefined(SemanticsActions.Dismiss)).performSemanticsAction(SemanticsActions.Dismiss)
         composeRule.waitForIdle()
     }
 
     private fun questionCount() = composeRule.onAllNodesWithTag("ranks.optin.sheet").fetchSemanticsNodes().size
-
-    @Test
-    fun `with SheetScreens on, the question that turns up over Tune waits and shows when Tune closes`() {
-        show(FakeReleaseFlags(ReleaseFlag.SheetScreens))
-        openTune()
-
-        visibility.emitOwn(OwnTier.Unset)
-        composeRule.waitForIdle()
-        assertEquals(0, questionCount())
-
-        closeTune()
-        composeRule.onNodeWithTag("ranks.optin.sheet").assertIsDisplayed()
-    }
-
-    @Test
-    fun `with SheetScreens off, the question shows over Tune as today`() {
-        show(FakeReleaseFlags())
-        openTune()
-
-        visibility.emitOwn(OwnTier.Unset)
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithTag("ranks.optin.sheet").assertIsDisplayed()
-        composeRule.onNodeWithTag("ranks.tune.sheet").assertIsDisplayed()
-    }
 
     @Test
     fun `with SheetScreens on, the question that turns up over the Who sheet waits and shows when it closes`() {
@@ -108,7 +77,7 @@ class RanksSheetHoldTest {
         composeRule.waitForIdle()
         assertEquals(0, questionCount())
 
-        closeTune()
+        closeSheet()
         composeRule.onNodeWithTag("ranks.optin.sheet").assertIsDisplayed()
     }
 }

@@ -57,7 +57,7 @@ abstract class MainTabTopBarsGoldenScreenshots(private val device: String) {
                 rule.waitForIdle()
                 captureScreenRoboImage(out(name, dark))
             }
-            // The longest board name on the Ranks bar: the title shrinks or ellipsizes, tune and avatar stay whole.
+            // The longest board name on the Ranks bar: the title shrinks or ellipsizes, the avatar stays whole.
             if (device == "phone") {
                 tap("ranks.title")
                 rule.onNode(hasText("Mini Sudoku") and hasAnyAncestor(hasTestTag("ranks.menu"))).performClick()

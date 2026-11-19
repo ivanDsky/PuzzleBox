@@ -73,7 +73,6 @@ class InsightsNavTest {
             custom = testCustomSlot(),
             makeOne = testMakeOne(navigator),
             visibility = VisibilitySlot(flowOf(OwnTier.Unset)) {},
-            tuneDefaults = testTuneDefaults(),
         )
 
         listOf(InsightsKey, InsightsRecapKey("2026-11")).forEach { key ->

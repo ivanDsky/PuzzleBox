@@ -68,7 +68,7 @@ class RanksScreenRowTapTest {
         composeRule.setContent {
             PuzzleBoxTheme {
                 val open by sheet.state.collectAsState()
-                RanksScreen(state, RanksActions({}, {}, onOpenPlayer = sheet::open), playerSheet = open, tuneDefaults = previewTuneDefaults())
+                RanksScreen(state, RanksActions({}, {}, onOpenPlayer = sheet::open), playerSheet = open)
             }
         }
 
@@ -91,7 +91,7 @@ class RanksScreenRowTapTest {
         composeRule.setContent {
             PuzzleBoxTheme {
                 val open by sheet.state.collectAsState()
-                RanksScreen(state, RanksActions({}, {}, onOpenPlayer = sheet::open), playerSheet = open, tuneDefaults = previewTuneDefaults())
+                RanksScreen(state, RanksActions({}, {}, onOpenPlayer = sheet::open), playerSheet = open)
             }
         }
         composeRule.mainClock.autoAdvance = false
@@ -108,7 +108,7 @@ class RanksScreenRowTapTest {
 
     @Test
     fun `a board whose rows cannot open a player gives its rows no click action`() {
-        composeRule.setContent { PuzzleBoxTheme { RanksScreen(drawn, RanksActions({}, {}), tuneDefaults = previewTuneDefaults()) } }
+        composeRule.setContent { PuzzleBoxTheme { RanksScreen(drawn, RanksActions({}, {})) } }
 
         composeRule.onNodeWithTag("daily_board.row").assertHasNoClickAction()
     }
@@ -119,7 +119,7 @@ class RanksScreenRowTapTest {
         composeRule.setContent {
             PuzzleBoxTheme {
                 val open by sheet.state.collectAsState()
-                RanksScreen(drawn, RanksActions({}, onSwipe = {}, onOpenPlayer = sheet::open), playerSheet = open, tuneDefaults = previewTuneDefaults())
+                RanksScreen(drawn, RanksActions({}, onSwipe = {}, onOpenPlayer = sheet::open), playerSheet = open)
             }
         }
 

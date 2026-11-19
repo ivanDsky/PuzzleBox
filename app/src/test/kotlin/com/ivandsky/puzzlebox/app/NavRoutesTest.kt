@@ -15,7 +15,6 @@ import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.history.HistoryLayout
 import com.ivandsky.puzzlebox.home.HomeLayout
-import com.ivandsky.puzzlebox.app.nav.testTuneDefaults
 import com.ivandsky.puzzlebox.navigation.Navigator
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
@@ -50,7 +49,6 @@ class NavRoutesTest {
             custom = testCustomSlot(),
             makeOne = testMakeOne(navigator),
             visibility = VisibilitySlot(flowOf(OwnTier.Unset)) {},
-            tuneDefaults = testTuneDefaults(),
         )
     }
 

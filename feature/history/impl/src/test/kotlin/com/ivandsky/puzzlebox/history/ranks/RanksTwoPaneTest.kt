@@ -111,7 +111,6 @@ class RanksTwoPaneTest {
                     state,
                     RanksActions(onSignIn = {}, onSwipe = { steps += it }, onPickBoard = onPickBoard, onShowCalendar = onShowCalendar),
                     layout = HistoryLayout.TwoPane,
-                    tuneDefaults = previewTuneDefaults(),
                 )
             }
         }
@@ -143,7 +142,6 @@ class RanksTwoPaneTest {
         composeRule.onNodeWithTag("ranks.list.item.0").assertIsDisplayed()
         composeRule.onNodeWithTag("ranks.list.item.2").assertIsDisplayed()
         composeRule.onNodeWithTag("ranks.board").assertIsDisplayed()
-        composeRule.onNodeWithTag("ranks.tune").assertIsDisplayed()
         composeRule.onAllNodesWithTag("ranks.title").assertCountEquals(0)
         composeRule.onAllNodesWithTag("ranks.dots").assertCountEquals(0)
     }
@@ -197,15 +195,6 @@ class RanksTwoPaneTest {
         composeRule.onNodeWithTag("ranks.list.how").performClick()
 
         composeRule.onNodeWithTag("ranks.how.sheet").assertIsDisplayed()
-    }
-
-    @Test
-    fun `tune opens the tune sheet`() {
-        show()
-
-        composeRule.onNodeWithTag("ranks.tune").performClick()
-
-        composeRule.onNodeWithTag("ranks.tune.sheet").assertIsDisplayed()
     }
 
     @Test

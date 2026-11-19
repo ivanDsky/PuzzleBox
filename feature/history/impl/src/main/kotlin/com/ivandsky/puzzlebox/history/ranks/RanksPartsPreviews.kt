@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -37,18 +36,6 @@ import com.ivandsky.puzzlebox.history.ReplaySolve
 import com.ivandsky.puzzlebox.model.GameId
 
 // Previews of the hub's parts, the states the screen previews do not reach: each part on its own, light and dark.
-
-@PuzzleBoxPreviews
-@Composable
-private fun RanksTopBarPreview() {
-    RanksPreviewHost {
-        Box(Modifier.padding(Spacing.lg)) {
-            RanksTopBar(onTune = {}) {
-                Text("Zip", style = MaterialTheme.typography.titleLarge)
-            }
-        }
-    }
-}
 
 @PuzzleBoxPreviews
 @Composable
