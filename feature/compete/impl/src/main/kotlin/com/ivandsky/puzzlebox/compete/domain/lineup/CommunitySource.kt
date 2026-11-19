@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain.lineup
+package com.ivandsky.puzzlebox.compete.domain.lineup
 
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.match.LegRef
@@ -8,6 +8,9 @@ import com.ivandsky.puzzlebox.data.repository.CommunityFilter
 import com.ivandsky.puzzlebox.data.repository.CommunityListResult
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
 import com.ivandsky.puzzlebox.data.visibility.HiddenPuzzles
+import com.ivandsky.puzzlebox.domain.lineup.ExactPuzzle
+import com.ivandsky.puzzlebox.domain.lineup.PickablePuzzle
+import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import java.util.concurrent.ConcurrentHashMap

@@ -16,7 +16,6 @@ import com.ivandsky.puzzlebox.domain.LoadDailyReplay
 import com.ivandsky.puzzlebox.domain.LoadLegPuzzle
 import com.ivandsky.puzzlebox.domain.LoadLegReplay
 import com.ivandsky.puzzlebox.domain.LoadPlayerReplay
-import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.domain.LoadSolveReplay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
@@ -26,13 +25,6 @@ import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.ValidatePublish
-import com.ivandsky.puzzlebox.domain.lineup.CommunitySource
-import com.ivandsky.puzzlebox.domain.lineup.DailyArchiveSource
-import com.ivandsky.puzzlebox.domain.lineup.FriendSource
-import com.ivandsky.puzzlebox.domain.lineup.LoadPuzzleByCode
-import com.ivandsky.puzzlebox.domain.lineup.ObservePickablePuzzles
-import com.ivandsky.puzzlebox.domain.lineup.ObserveSolvedPuzzles
-import com.ivandsky.puzzlebox.domain.lineup.OwnSource
 import com.ivandsky.puzzlebox.domain.lineup.ValidateExactPuzzles
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
@@ -122,22 +114,10 @@ val domainModule = module {
         )
     }
     factory { ValidateExactPuzzles(shared = get()) }
-    factory { LoadPuzzleByCode(load = get<LoadSharedPuzzle>()::invoke, dispatchers = get()) }
     factory { CreateMatch(repo = get(), local = get(), draw = get(), identity = get(), random = Random.Default, validateExact = get()) }
     factory { ComputeSolvedPool(registry = get(), completions = get(), received = get()) }
     factory { ImportDraftFromText(registry = get(), createDraft = get(), drafts = get(), dispatchers = get()) }
     factory { ValidatePublish() }
-    single { CommunitySource(shared = get(), hidden = get(), identity = get(), registry = get(), clock = System::currentTimeMillis) }
-    factory {
-        ObservePickablePuzzles(
-            completions = get(),
-            community = get(),
-            friends = FriendSource(received = get(), identity = get(), clock = System::currentTimeMillis),
-            own = OwnSource(published = get(), identity = get()),
-            archive = DailyArchiveSource(daily = get(), registry = get()),
-        )
-    }
-    factory { ObserveSolvedPuzzles(registry = get(), pool = get(), completions = get(), received = get()) }
     factory {
         ComputeMatchLegs(
             registry = get(),

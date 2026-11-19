@@ -1,9 +1,14 @@
-package com.ivandsky.puzzlebox.domain.lineup
+package com.ivandsky.puzzlebox.compete.domain.lineup
 
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.domain.ComputeSolvedPool
+import com.ivandsky.puzzlebox.domain.lineup.ExactPuzzle
+import com.ivandsky.puzzlebox.domain.lineup.PickablePuzzle
+import com.ivandsky.puzzlebox.domain.lineup.PickerQuery
+import com.ivandsky.puzzlebox.domain.lineup.PickerResult
+import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.model.PuzzleKey

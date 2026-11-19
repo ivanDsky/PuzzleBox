@@ -11,7 +11,14 @@ import com.ivandsky.puzzlebox.compete.domain.ObserveDuel
 import com.ivandsky.puzzlebox.compete.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.compete.domain.RecordRevealSeen
 import com.ivandsky.puzzlebox.compete.domain.UpdateMatchSeat
+import com.ivandsky.puzzlebox.compete.domain.lineup.CommunitySource
+import com.ivandsky.puzzlebox.compete.domain.lineup.DailyArchiveSource
+import com.ivandsky.puzzlebox.compete.domain.lineup.FriendSource
+import com.ivandsky.puzzlebox.compete.domain.lineup.LoadPuzzleByCode
 import com.ivandsky.puzzlebox.compete.domain.lineup.ObserveLegTitles
+import com.ivandsky.puzzlebox.compete.domain.lineup.ObservePickablePuzzles
+import com.ivandsky.puzzlebox.compete.domain.lineup.ObserveSolvedPuzzles
+import com.ivandsky.puzzlebox.compete.domain.lineup.OwnSource
 import com.ivandsky.puzzlebox.compete.domain.lineup.SaveDuelPuzzles
 import com.ivandsky.puzzlebox.compete.duel.DuelViewModel
 import com.ivandsky.puzzlebox.compete.reveal.RematchViewModel
@@ -21,9 +28,6 @@ import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.domain.ObserveMatch
-import com.ivandsky.puzzlebox.domain.lineup.LoadPuzzleByCode
-import com.ivandsky.puzzlebox.domain.lineup.ObservePickablePuzzles
-import com.ivandsky.puzzlebox.domain.lineup.ObserveSolvedPuzzles
 import java.time.Instant
 import java.time.ZoneId
 import java.util.Locale
@@ -37,12 +41,14 @@ import org.koin.dsl.module
  * service from the app's aggregation. Compete's own use cases are defined here: the Duels tab's rows
  * ([ObserveMyDuels]), the duel page ([ObserveDuel]), its seat moves ([UpdateMatchSeat]) and self-duel removal
  * ([DeleteSelfDuel]), the reveal's seen mark ([RecordRevealSeen]), the leg titles and saved duel puzzles
- * ([ObserveLegTitles], [SaveDuelPuzzles]), and the self-duel create ([CreateSelfDuel]). The Duels tab's, the New
- * duel sheet's, the add-puzzle searches' (a friend's, and Past you's under its own qualifier), the duel screen's,
- * the reveal's and the rematch sheet's view models are bound here (the duel screen's by its code; the reveal's by
- * its code and the screen's reduced motion, zone and locale; the rematch's by the duel it repeats). The result sync
- * comes from the app, which binds it to the result poster. The feature's release flags ([CompeteFlag]) are declared
- * here; the view models that read them take the app's ReleaseFlags.
+ * ([ObserveLegTitles], [SaveDuelPuzzles]), the self-duel create ([CreateSelfDuel]), and the add-puzzle searches and
+ * code lookup ([ObservePickablePuzzles] over the community, friend, own and daily-archive sources,
+ * [ObserveSolvedPuzzles], [LoadPuzzleByCode]). The Duels tab's, the New duel sheet's, the add-puzzle searches' (a
+ * friend's, and Past you's under its own qualifier), the duel screen's, the reveal's and the rematch sheet's view
+ * models are bound here (the duel screen's by its code; the reveal's by its code and the screen's reduced motion,
+ * zone and locale; the rematch's by the duel it repeats). The result sync comes from the app, which binds it to the
+ * result poster. The feature's release flags ([CompeteFlag]) are declared here; the view models that read them take
+ * the app's ReleaseFlags.
  */
 val competeModule: Module = module {
     flagSet("compete", CompeteFlag.entries)
@@ -66,6 +72,18 @@ val competeModule: Module = module {
             random = Random.Default,
         )
     }
+    factory { LoadPuzzleByCode(load = get<LoadSharedPuzzle>()::invoke, dispatchers = get()) }
+    single { CommunitySource(shared = get(), hidden = get(), identity = get(), registry = get(), clock = System::currentTimeMillis) }
+    factory {
+        ObservePickablePuzzles(
+            completions = get(),
+            community = get(),
+            friends = FriendSource(received = get(), identity = get(), clock = System::currentTimeMillis),
+            own = OwnSource(published = get(), identity = get()),
+            archive = DailyArchiveSource(daily = get(), registry = get()),
+        )
+    }
+    factory { ObserveSolvedPuzzles(registry = get(), pool = get(), completions = get(), received = get()) }
     viewModel {
         DuelsTabViewModel(observeMyDuels = get(), updateSeat = get(), identity = get(), clock = { Instant.now() }, releaseFlags = get())
     }

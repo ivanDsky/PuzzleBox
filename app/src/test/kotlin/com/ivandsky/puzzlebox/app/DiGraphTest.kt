@@ -13,7 +13,10 @@ import com.ivandsky.puzzlebox.compete.domain.ObserveDuel
 import com.ivandsky.puzzlebox.compete.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.compete.domain.RecordRevealSeen
 import com.ivandsky.puzzlebox.compete.domain.UpdateMatchSeat
+import com.ivandsky.puzzlebox.compete.domain.lineup.LoadPuzzleByCode
 import com.ivandsky.puzzlebox.compete.domain.lineup.ObserveLegTitles
+import com.ivandsky.puzzlebox.compete.domain.lineup.ObservePickablePuzzles
+import com.ivandsky.puzzlebox.compete.domain.lineup.ObserveSolvedPuzzles
 import com.ivandsky.puzzlebox.compete.domain.lineup.SaveDuelPuzzles
 import com.ivandsky.puzzlebox.create.CreateViewModel
 import com.ivandsky.puzzlebox.create.api.EditorKey
@@ -368,6 +371,10 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<SaveDuelPuzzles>())
             // The New duel sheet's and the rematch sheet's self-duel create.
             assertNotNull(koin.get<CreateSelfDuel>())
+            // The add-puzzle sheet's searches (a friend's and Past you's) and its code lookup.
+            assertNotNull(koin.get<ObservePickablePuzzles>())
+            assertNotNull(koin.get<ObserveSolvedPuzzles>())
+            assertNotNull(koin.get<LoadPuzzleByCode>())
             // The tablet play side panel's stats and the board gate beneath them.
             assertNotNull(koin.get<ObserveLeaderboard>())
             assertNotNull(koin.get<ObserveResultInsights>())
