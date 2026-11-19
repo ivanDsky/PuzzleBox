@@ -28,7 +28,7 @@ internal data class HintFreeRateSeries(val granularity: StatsGranularity, val po
             val granularity = StatsGranularity.of(range)
             return HintFreeRateSeries(
                 granularity,
-                StatsBucket.of(facts.dayTallies, granularity).map { Point(it.start, it.hintFree, it.solved) },
+                StatsBucket.of(facts.dayTallies, granularity, facts.period.first).map { Point(it.start, it.hintFree, it.solved) },
             )
         }
     }

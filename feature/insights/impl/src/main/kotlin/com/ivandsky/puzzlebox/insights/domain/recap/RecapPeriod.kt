@@ -17,12 +17,14 @@ internal sealed interface RecapPeriod : DaySpan {
 
     data class Month(val month: YearMonth) : RecapPeriod {
         override val id: String get() = month.toString()
+        override val first: LocalDate get() = month.atDay(1)
         override val rankWindow: RankWindow get() = RankWindow.Month(month.atDay(1))
         override fun contains(day: LocalDate): Boolean = YearMonth.from(day) == month
     }
 
     data class Year(val year: Int) : RecapPeriod {
         override val id: String get() = year.toString().padStart(4, '0')
+        override val first: LocalDate get() = LocalDate.of(year, 1, 1)
         override val rankWindow: RankWindow? get() = null
         override fun contains(day: LocalDate): Boolean = day.year == year
     }

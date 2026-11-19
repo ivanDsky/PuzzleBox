@@ -23,14 +23,17 @@ internal enum class StatsGranularity {
     }
 }
 
-/** The counted solves of the puzzle days from [start] to the end of the bucket (only the days inside the range): [solved] of them, [timeMs] of play, [hintFree] with no hint. */
+/** The counted solves of the puzzle days from [start] to the end of the bucket (only the days inside the range, so the first week of a range starts on the range's first day): [solved] of them, [timeMs] of play, [hintFree] with no hint. */
 internal data class StatsBucket(val start: LocalDate, val solved: Int, val timeMs: Long, val hintFree: Int) {
 
     companion object {
-        /** [tallies] summed per bucket of [granularity], oldest first; a bucket with no solve is absent. */
-        fun of(tallies: List<DayTally>, granularity: StatsGranularity): List<StatsBucket> =
+        /**
+         * [tallies] summed per bucket of [granularity], oldest first; a bucket with no solve is absent. A week that
+         * begins before the range's [first] day starts there instead, so a bucket never names days outside the range.
+         */
+        fun of(tallies: List<DayTally>, granularity: StatsGranularity, first: LocalDate): List<StatsBucket> =
             tallies
-                .groupBy { granularity.bucketStart(it.day) }
+                .groupBy { maxOf(granularity.bucketStart(it.day), first) }
                 .map { (start, days) ->
                     StatsBucket(start, days.sumOf { it.solved }, days.sumOf { it.timeMs }, days.sumOf { it.hintFree })
                 }

@@ -16,7 +16,7 @@ class TimeTrendSeriesTest {
     private val f = StatsSeriesFixture()
 
     @Test
-    fun `the Month range averages each Mon-Sun week, a Sunday closing the week before it`() = runTest {
+    fun `the Month range averages each Mon-Sun week, its first bucket starting on the 1st when that is not a Monday`() = runTest {
         f.history.store(
             f.history.solve(alpha, f.day(1), time = 40_000),
             f.history.solve(alpha, f.day(2), time = 60_000),
@@ -29,7 +29,7 @@ class TimeTrendSeriesTest {
         assertEquals(StatsGranularity.Week, series.granularity)
         assertEquals(
             listOf(
-                Point(f.day(26, month = 10), averageMs = 40_000, solved = 1),
+                Point(f.day(1), averageMs = 40_000, solved = 1),
                 Point(f.day(2), averageMs = 80_000, solved = 2),
                 Point(f.day(9), averageMs = 50_000, solved = 1),
             ),
@@ -61,7 +61,7 @@ class TimeTrendSeriesTest {
 
         val series = TimeTrendSeries.of(f.facts(StatsRange.All), StatsRange.All)
 
-        assertEquals(listOf(f.day(28, month = 9), f.day(16)), series.points.map { it.start })
+        assertEquals(listOf(f.day(30, month = 9), f.day(16)), series.points.map { it.start })
     }
 
     @Test

@@ -24,7 +24,7 @@ internal data class TimeTrendSeries(val granularity: StatsGranularity, val point
             val granularity = StatsGranularity.of(range)
             return TimeTrendSeries(
                 granularity,
-                StatsBucket.of(facts.dayTallies, granularity).map { Point(it.start, it.timeMs / it.solved, it.solved) },
+                StatsBucket.of(facts.dayTallies, granularity, facts.period.first).map { Point(it.start, it.timeMs / it.solved, it.solved) },
             )
         }
     }

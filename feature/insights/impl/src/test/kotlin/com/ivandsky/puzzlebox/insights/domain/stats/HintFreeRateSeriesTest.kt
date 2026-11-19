@@ -34,6 +34,15 @@ class HintFreeRateSeriesTest {
     }
 
     @Test
+    fun `the first bucket of a Month range starts on the 1st, not the Monday before it`() = runTest {
+        f.history.store(f.history.solve(alpha, f.day(1)), f.history.solve(alpha, f.day(3)))
+
+        val series = HintFreeRateSeries.of(f.facts(StatsRange.Month), StatsRange.Month)
+
+        assertEquals(listOf(f.day(1), f.day(2)), series.points.map { it.start })
+    }
+
+    @Test
     fun `the Week range has one point per day`() = runTest {
         f.history.store(
             f.history.solve(alpha, f.day(18)),
