@@ -98,17 +98,15 @@ class PuzzlePickerPageScrollTest {
     private fun rowTag(index: Int) = "duel.lineup.pick.${rows[index].entry.ref.wire}"
 
     @Test
-    fun `the page has one vertical scroller, with the filter panel open too`() {
+    fun `the page has one vertical scroller`() {
         show()
         val vertical = SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange)
 
         rule.onAllNodes(vertical).assertCountEquals(1)
-        rule.openFilters()
-        rule.onAllNodes(vertical).assertCountEquals(1)
     }
 
     @Test
-    fun `after thirty rows the search field is still at the top and the tiles have scrolled away`() {
+    fun `after thirty rows the search field and the chips are still at the top and the tiles have scrolled away`() {
         show()
         rule.onNodeWithTag("duel.lineup.sheet.game.${ZIP.value}").assertIsDisplayed()
         val top = bounds("duel.lineup.picker").top
@@ -117,6 +115,7 @@ class PuzzlePickerPageScrollTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("duel.lineup.search").assertIsDisplayed()
+        listOf(PickerFilterPage.Freshness, PickerFilterPage.Source, PickerFilterPage.Games).forEach { rule.onNodeWithTag(it.tag).assertIsDisplayed() }
         assertEquals("the field sits at the top of the list", top.value, bounds("duel.lineup.exact").top.value, 0.5f)
         GAMES.forEach { rule.onAllNodesWithTag("duel.lineup.sheet.game.${it.id.value}").assertCountEquals(0) }
     }
@@ -134,34 +133,16 @@ class PuzzlePickerPageScrollTest {
     }
 
     @Test
-    fun `every control on the page is at least 48 dp, filters open`() {
+    fun `every control on the page is at least 48 dp`() {
         show()
-        rule.openFilters()
 
         rule.assertTouchTargetsAtLeast48()
     }
 
     @Test
     @Config(qualifiers = "w360dp-h640dp-420dpi")
-    fun `on a small phone opening the filters under the keyboard shows the whole panel below the search field, with rows left to see`() {
+    fun `with the chips under the field and rows scrolled, the rows get at least two rows of room above the keyboard`() {
         show()
-        openKeyboard(KEYBOARD)
-
-        rule.openFilters()
-
-        val keyboardTop = rule.onRoot().getUnclippedBoundsInRoot().bottom - KEYBOARD
-        val header = bounds("duel.lineup.exact")
-        val panel = bounds("duel.lineup.filter.panel")
-        assertTrue("the panel starts at ${panel.top}, behind the search field that ends at ${header.bottom}", panel.top >= header.bottom - 1.dp)
-        assertTrue("the panel ends at ${panel.bottom}, under the keyboard at $keyboardTop", panel.bottom <= keyboardTop + 1.dp)
-        assertTrue("the field is pinned over only ${header.bottom - header.top}", header.bottom - header.top <= KEYBOARD / 2)
-    }
-
-    @Test
-    @Config(qualifiers = "w360dp-h640dp-420dpi")
-    fun `with the panel open and rows scrolled, the rows get at least two rows of room above the keyboard`() {
-        show()
-        rule.openFilters()
         openKeyboard(KEYBOARD)
         scrollTo(10)
         rule.waitForIdle()
@@ -169,19 +150,5 @@ class PuzzlePickerPageScrollTest {
         val keyboardTop = rule.onRoot().getUnclippedBoundsInRoot().bottom - KEYBOARD
         val room = keyboardTop - bounds("duel.lineup.exact").bottom
         assertTrue("only $room is left for rows between the search field and the keyboard", room >= ONE_ROW * 2)
-    }
-
-    @Test
-    fun `opening the filters from far down the list brings the panel to rest under the search field`() {
-        show()
-        scrollTo(30)
-        rule.waitForIdle()
-
-        rule.openFilters()
-        rule.waitForIdle()
-
-        val header = bounds("duel.lineup.exact")
-        rule.onNodeWithTag("duel.lineup.filter.panel").assertIsDisplayed()
-        assertTrue("the panel is behind the search field", bounds("duel.lineup.filter.panel").top >= header.bottom - 1.dp)
     }
 }

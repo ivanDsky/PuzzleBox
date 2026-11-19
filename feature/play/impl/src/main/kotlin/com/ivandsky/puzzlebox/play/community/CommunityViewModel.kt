@@ -4,9 +4,6 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
-import com.ivandsky.puzzlebox.common.flags.FilterFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.repository.CommunityFilter
 import com.ivandsky.puzzlebox.data.repository.CommunityListResult
@@ -27,7 +24,7 @@ import kotlinx.coroutines.launch
 
 /**
  * New today (nav-rethink C2): the community puzzles of the last day through [list], newest first, narrowed by a
- * game and a difficulty picked in the filter menu (All, then each game that has an editor; Any, then Easy to Hard).
+ * game and a difficulty picked in the filter chips (All, then each game that has an editor; Any, then Easy to Hard).
  * Picking reloads the list; the difficulty picked again is dropped, and [clearFilters] drops both. Report
  * ([report]) hides a puzzle at once on this device and says so in a notice; signed out it opens the sign-in prompt instead and the player taps Report again.
  *
@@ -41,7 +38,6 @@ internal class CommunityViewModel(
     private val identity: IdentityService,
     idTokens: GoogleIdTokenProvider,
     private val clock: () -> Long,
-    releaseFlags: ReleaseFlags,
 ) : ViewModel() {
 
     private val choices = games.all.filter { it.editor != null }.map {
@@ -54,9 +50,7 @@ internal class CommunityViewModel(
     private var loading: Job? = null
     private var noticeCount = 0
 
-    private val current = MutableStateFlow(
-        CommunityState(games = choices, filterSheets = releaseFlags.isEnabled(FilterFlag.FilterSheets)),
-    )
+    private val current = MutableStateFlow(CommunityState(games = choices))
 
     val state: StateFlow<CommunityState> = current.asStateFlow()
 

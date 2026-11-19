@@ -48,8 +48,21 @@ internal fun pickerOf(rows: List<PickablePuzzle>, offline: Boolean = false): (Fl
     }
 }
 
-/** Taps the filter button beside the search field, which opens the chips under it. */
-internal fun ComposeTestRule.openFilters() {
-    onNodeWithTag("duel.lineup.filter").performClick()
+/** Opens the chip of [page] as a page of the Add puzzle sheet, taps its option [rows], and goes back to the picker. */
+internal fun ComposeTestRule.pickInPage(page: PickerFilterPage, vararg rows: String) {
+    tapAndSettle(page.tag)
+    rows.forEach { tapAndSettle(it) }
+    tapAndSettle("${page.tag}.page.back")
+}
+
+/** Opens the chip of [page] as its own sheet over the page, taps its option [rows], and closes the sheet. */
+internal fun ComposeTestRule.pickInSheet(page: PickerFilterPage, vararg rows: String) {
+    tapAndSettle(page.tag)
+    rows.forEach { tapAndSettle(it) }
+    tapAndSettle("${page.tag}.sheet.close")
+}
+
+private fun ComposeTestRule.tapAndSettle(tag: String) {
+    onNodeWithTag(tag).performClick()
     waitForIdle()
 }

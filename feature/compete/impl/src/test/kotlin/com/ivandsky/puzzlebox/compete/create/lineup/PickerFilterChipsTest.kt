@@ -18,12 +18,10 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
-import com.ivandsky.puzzlebox.common.flags.FilterFlag
 import com.ivandsky.puzzlebox.compete.create.GAMES
 import com.ivandsky.puzzlebox.compete.create.newDuelBrands
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.lineup.PickablePuzzle
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -45,7 +43,7 @@ private const val GAMES_CHIP = "duel.lineup.filter.games"
 private const val CLEAR = "duel.lineup.filter.clear"
 private val ROWS = listOf(CROWN_JEWELS, CROWN_TANGO, OLD_CROWN, MY_GRID)
 
-/** The Add puzzle page with FilterSheets on: three "Pick several" chips that each open a sheet, and Clear. Flag off is the other picker tests, unchanged. */
+/** The Add puzzle page's filters: three "Pick several" chips that each open a sheet, and Clear. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp-420dpi")
 class PickerFilterChipsTest {
@@ -66,7 +64,7 @@ class PickerFilterChipsTest {
             modules(module {
                 single { newDuelBrands() }
                 viewModel {
-                    AddPuzzleViewModel(pickerOf(rows), if (pastYou) null else NO_LOOKUP, pastYou = pastYou, releaseFlags = FakeReleaseFlags(FilterFlag.FilterSheets))
+                    AddPuzzleViewModel(pickerOf(rows), if (pastYou) null else NO_LOOKUP, pastYou = pastYou)
                 }
             })
         }
@@ -107,12 +105,10 @@ class PickerFilterChipsTest {
     }
 
     @Test
-    fun `the three chips replace the filter button and its panel, and Clear is not there until a row is picked`() {
+    fun `the three chips are on the page, and Clear is not there until a row is picked`() {
         show()
 
         listOf(FRESHNESS, SOURCE, GAMES_CHIP).forEach { rule.onNodeWithTag(it).assertIsDisplayed() }
-        assertTrue("no filter button", !exists("duel.lineup.filter"))
-        assertTrue("no panel", !exists("duel.lineup.filter.panel"))
         assertTrue("no Clear with nothing picked", !exists(CLEAR))
         rule.onNodeWithTag("duel.lineup.count").assertTextEquals("4 puzzles · Newest first")
     }

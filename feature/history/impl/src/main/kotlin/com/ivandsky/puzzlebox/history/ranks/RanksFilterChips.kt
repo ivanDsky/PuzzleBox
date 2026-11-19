@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.history.ranks
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.FilterChipRow
 import com.ivandsky.puzzlebox.designsystem.FilterOption
 import com.ivandsky.puzzlebox.designsystem.SingleFilterChip
@@ -17,7 +18,7 @@ private val WindowOptions = listOf(Window.Week, Window.Month).map { FilterOption
 /** Who and When as single-pick chips. [onOpenChange] hears each sheet open and close so the screen can hold other sheets back. */
 @Composable
 internal fun RanksFilterChips(state: RanksUiState, actions: RanksActions, onOpenChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
-    FilterChipRow(modifier.padding(top = Spacing.sm)) {
+    FilterChipRow(modifier.testTag("ranks.filters").padding(top = Spacing.sm)) {
         SingleFilterChip(
             name = "Who",
             allLabel = "Global",

@@ -1,7 +1,5 @@
 package com.ivandsky.puzzlebox.play.random
 
-import com.ivandsky.puzzlebox.common.flags.FilterFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
 import com.ivandsky.puzzlebox.data.repository.CommunityFilter
@@ -25,7 +23,6 @@ import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeHiddenPuzzles
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.LocalDate
@@ -33,7 +30,6 @@ import kotlin.random.Random
 import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -55,7 +51,7 @@ class RandomPuzzleViewModelTest {
     private val gate = CompletableDeferred<Unit>()
 
     /** New today's list waits at [gate] when [held]; every other call is the fake's own. */
-    private fun viewModel(seed: Int = 1, held: Boolean = false, flags: ReleaseFlags = FakeReleaseFlags()): RandomPuzzleViewModel {
+    private fun viewModel(seed: Int = 1, held: Boolean = false): RandomPuzzleViewModel {
         val registry = TestGames.registry(listOf(alpha, beta))
         val repository = if (held) {
             object : SharedPuzzleRepository by shared {
@@ -73,7 +69,7 @@ class RandomPuzzleViewModelTest {
             LoadRandomDay(daily, FakeCompletionRepository(), LoadPastDay(daily, registry), registry, random),
             LoadRandomShared(list, random),
         )
-        return RandomPuzzleViewModel(alpha, load, memory, testDispatchers(main.testDispatcher), releaseFlags = flags)
+        return RandomPuzzleViewModel(alpha, load, memory, testDispatchers(main.testDispatcher))
     }
 
     private suspend fun publish(code: String) {
@@ -207,14 +203,8 @@ class RandomPuzzleViewModelTest {
     }
 
     @Test
-    fun `filterSheets follows the FilterSheets flag`() {
-        assertTrue(viewModel(flags = FakeReleaseFlags(FilterFlag.FilterSheets)).filterSheets)
-        assertFalse(viewModel(flags = FakeReleaseFlags()).filterSheets)
-    }
-
-    @Test
-    fun `with the flag on filters and a pick behave as with it off`() {
-        val vm = viewModel(flags = FakeReleaseFlags(FilterFlag.FilterSheets))
+    fun `switching back to Past after a Community difficulty still picks a Past day`() {
+        val vm = viewModel()
         vm.chooseSource(RandomSource.Community)
         vm.chooseDifficulty(DifficultyChoice.Hard)
         assertEquals(RandomSource.Community, vm.state.value.source)

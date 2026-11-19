@@ -5,12 +5,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -19,7 +17,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.LocalTabFadeLink
@@ -30,7 +27,6 @@ import com.ivandsky.puzzlebox.designsystem.UnderlineTab
 import com.ivandsky.puzzlebox.designsystem.UnderlineTabPager
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.community.CommunityActions
-import com.ivandsky.puzzlebox.play.community.CommunityFilterMenu
 import com.ivandsky.puzzlebox.play.community.CommunityPhase
 import com.ivandsky.puzzlebox.play.community.CommunityState
 import kotlinx.coroutines.launch
@@ -39,9 +35,8 @@ import kotlinx.coroutines.launch
  * The phone's Community (nav-rethink M12-4): the head, then New today, Friends and Yours as underline tabs over a pager
  * the user can swipe. Each tab is a list of its own with its own scroll position, kept across swipes and a restore; a
  * tap on the selected tab, or a reselect of the bottom bar's tab, scrolls only that list to its top. The head keeps
- * Enter code ([onEnterCode]) on every tab; the filter ⋮ is New today's alone and leaves its slot empty elsewhere, so
- * the head does not shift. With [CommunityState.filterSheets] there is no ⋮: the filters are chips in New today's
- * list. "Make a puzzle" on an empty New today goes to Yours.
+ * Enter code ([onEnterCode]) on every tab; the filters are chips in New today's list. "Make a puzzle" on an empty
+ * New today goes to Yours.
  *
  * [state] and [actions] are New today's; [friends] open through [onOpen] and remove through [onRemove]; Yours is
  * [custom]'s own list ([CustomSlot.yours]) and its count. While New today is offline the other two say their saved
@@ -116,16 +111,10 @@ internal fun CommunityTabs(
         UnderlineTab("Yours", "community.tab.yours", count = custom.yoursSummary().count),
     ).take(pages.size)
     Column(modifier) {
-        val trailing: (@Composable () -> Unit)? =
-            if (state.filterSheets) null else ({ FilterSlot(link = link, state = state, actions = actions) })
         if (largeBar) {
-            CommunityLargeHeader(onEnterCode, phone = picks == null, trailing = trailing)
+            CommunityLargeHeader(onEnterCode, phone = picks == null)
         } else {
-            CommunityHeader(
-                onEnterCode,
-                Modifier.padding(start = Spacing.lg, end = if (state.filterSheets) Spacing.lg else Spacing.sm),
-                trailing = trailing,
-            )
+            CommunityHeader(onEnterCode, Modifier.padding(horizontal = Spacing.lg))
         }
         UnderlineTabPager(
             tabs = tabs,
@@ -176,22 +165,6 @@ private fun ForTab(picks: CommunityTabPicks?, tab: CommunityTab, content: @Compo
 private fun CommunityActions.opening(open: (ShareCode) -> Unit) =
     CommunityActions(open, onReport, onGame, onDifficulty, onClearFilters, onRetry)
 
-/**
- * The filter ⋮ in a slot that keeps its size on the tabs that have none. It is New today's, so it fades with that page
- * on the tab change's [link] ([TabFadeLink.shown]): gone at half way, and in the tree only while any of it shows.
- */
-@Composable
-private fun FilterSlot(link: TabFadeLink, state: CommunityState, actions: CommunityActions) {
-    val showing by remember(link) { derivedStateOf { link.shown(0) > 0f } }
-    Box(Modifier.size(FilterSlotSize)) {
-        if (showing) {
-            Box(Modifier.graphicsLayer { alpha = link.shown(0) }) {
-                CommunityFilterMenu(state.games, state.game, state.difficulty, actions.onGame, actions.onDifficulty)
-            }
-        }
-    }
-}
-
 /** Your own puzzles ([yours], the app's list on [listState]) under the [OfflinePill] while [offline]. */
 @Composable
 private fun YoursPage(yours: @Composable (LazyListState) -> Unit, offline: Boolean, listState: LazyListState) {
@@ -200,5 +173,3 @@ private fun YoursPage(yours: @Composable (LazyListState) -> Unit, offline: Boole
         Box(Modifier.weight(1f).fillMaxWidth()) { yours(listState) }
     }
 }
-
-private val FilterSlotSize = 48.dp

@@ -55,7 +55,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The phone's Community (nav-rethink M12-4, ticket 123): New today, Friends and Yours as three swipeable tabs under the
- * head. Each tab holds only its own rows on its own list; the filter ⋮ is New today's alone.
+ * head. Each tab holds only its own rows on its own list; the filter chips are New today's alone.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -120,7 +120,7 @@ class CommunityTabsTest {
     private fun friendRow(index: Int) = "library.friends.row.${friendCode(index).value}"
 
     @Test
-    fun `the filter menu shows only while New today is the current tab`() {
+    fun `the filter chips show only while New today is the current tab`() {
         show()
         rule.onNodeWithTag(FILTER).assertIsDisplayed()
         val enterCodeAt = rule.onNodeWithTag(ENTER_CODE).getUnclippedBoundsInRoot().left
@@ -128,7 +128,7 @@ class CommunityTabsTest {
         tap(TAB_FRIENDS)
         rule.onNodeWithTag(FILTER).assertDoesNotExist()
         rule.onNodeWithTag(ENTER_CODE).assertIsDisplayed()
-        assertEquals("the head must not shift when the filter leaves", enterCodeAt, rule.onNodeWithTag(ENTER_CODE).getUnclippedBoundsInRoot().left)
+        assertEquals("the head must not shift when the chips leave", enterCodeAt, rule.onNodeWithTag(ENTER_CODE).getUnclippedBoundsInRoot().left)
 
         tap(TAB_YOURS)
         rule.onNodeWithTag(FILTER).assertDoesNotExist()
@@ -351,7 +351,7 @@ class CommunityTabsTest {
         const val PAGE_NEW = "community.page.new"
         const val PAGE_FRIENDS = "community.page.friends"
         const val PAGER = "underline.pager"
-        const val FILTER = "community.filter.menu"
+        const val FILTER = "community.filter.game"
         const val ENTER_CODE = "community.enterCode"
         const val OFFLINE_PILL = "library.offline"
 

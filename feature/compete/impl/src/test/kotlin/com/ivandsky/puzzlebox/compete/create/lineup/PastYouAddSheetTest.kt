@@ -48,6 +48,8 @@ import org.robolectric.annotation.Config
 
 private const val TABLET = "w1280dp-h800dp-mdpi"
 private val MIN_TARGET = 48.dp
+private const val SOURCE = "duel.lineup.filter.source"
+private const val GAMES_CHIP = "duel.lineup.filter.games"
 private val SOLVED_COUNTS = mapOf(ZIP to 2, TANGO to 1, QUEENS to 1)
 
 /** The Past you add sheet through the lineup panel: solved puzzles only, found by name, author or code on the device, with no lookup and no connection note. */
@@ -100,17 +102,27 @@ class PastYouAddSheetTest {
     private fun addTag(puzzle: PickablePuzzle) = "duel.lineup.pick.add.${puzzle.entry.ref.wire}"
 
     @Test
-    fun `the sheet has tiles with their counts, only the Past days and From friends chips and the games, and the solved list`() {
+    fun `the sheet has tiles with their counts, the Source chip with only Past days and From friends, the Games chip, and the solved list`() {
         show()
         openSheet()
 
         rule.onNodeWithTag("duel.lineup.sheet.game.${ZIP.value}").assertTextContains("Zip · 2 solved", substring = true).assertIsEnabled()
         rule.onNodeWithTag("duel.lineup.sheet.game.${MINI.value}").assertTextContains("Mini Sudoku · 0 solved", substring = true).assertIsNotEnabled()
-        listOf("pastdays", "friends").plus(GAMES.map { "game.${it.id.value}" }).forEach { rule.onNodeWithTag("duel.lineup.chip.$it").assertDoesNotExist() }
-        rule.openFilters()
-        (listOf("pastdays", "friends") + GAMES.map { "game.${it.id.value}" }).forEach { rule.onNodeWithTag("duel.lineup.chip.$it").assertExists() }
+        rule.onNodeWithTag(PickerFilterPage.Freshness.tag).assertDoesNotExist()
+        rule.onNodeWithTag(SOURCE).assertExists()
+        rule.onNodeWithTag(GAMES_CHIP).assertExists()
+        rule.onNodeWithTag(SOURCE).performClick()
+        rule.waitForIdle()
+        listOf("pastdays", "friends").forEach { rule.onNodeWithTag("duel.lineup.chip.$it").assertExists() }
         listOf("new", "notplayed", "community", "mine").forEach { rule.onNodeWithTag("duel.lineup.chip.$it").assertDoesNotExist() }
-        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("Recently solved first")
+        rule.onNodeWithTag("$SOURCE.page.back").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag(GAMES_CHIP).performClick()
+        rule.waitForIdle()
+        GAMES.forEach { rule.onNodeWithTag("duel.lineup.chip.game.${it.id.value}").assertExists() }
+        rule.onNodeWithTag("$GAMES_CHIP.page.back").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("${SOLVED_ROWS.size} puzzles · Recently solved first")
         SOLVED_ROWS.forEach { rule.onNodeWithTag("duel.lineup.pick.${it.entry.ref.wire}").assertExists() }
         rule.onNodeWithTag("duel.lineup.offline").assertDoesNotExist()
         rule.onNodeWithTag("duel.lineup.lookup").assertDoesNotExist()
@@ -162,7 +174,7 @@ class PastYouAddSheetTest {
 
         rule.onNodeWithTag("duel.lineup.search").performTextInput("tango")
         rule.waitForIdle()
-        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("1 found")
+        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("1 puzzle")
         rule.onNodeWithTag(addTag(FRIEND_TANGO)).assertExists()
         rule.onNodeWithTag(addTag(ZIP_DAILY)).assertDoesNotExist()
 
@@ -175,49 +187,46 @@ class PastYouAddSheetTest {
     }
 
     @Test
-    fun `Past you's filter button counts its chips, which narrow the solved list, and Clear filters brings every puzzle back`() {
+    fun `Past you's chips narrow the solved list, and Clear brings every puzzle back`() {
         show()
         openSheet()
-        rule.openFilters()
 
-        rule.onNodeWithTag("duel.lineup.chip.pastdays").performClick()
-        rule.onNodeWithTag("duel.lineup.chip.game.${ZIP.value}").performClick()
-        rule.waitForIdle()
-        rule.onNodeWithTag("duel.lineup.filter.count", useUnmergedTree = true).assertTextEquals("2")
-        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("1 found")
+        rule.pickInPage(PickerFilterPage.Source, "duel.lineup.chip.pastdays")
+        rule.pickInPage(PickerFilterPage.Games, "duel.lineup.chip.game.${ZIP.value}")
+        rule.onNodeWithTag(SOURCE).assertTextContains("Past days")
+        rule.onNodeWithTag(GAMES_CHIP).assertTextContains("Zip")
+        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("1 puzzle")
         rule.onNodeWithTag(addTag(ZIP_DAILY)).assertExists()
         rule.onNodeWithTag(addTag(FRIEND_TANGO)).assertDoesNotExist()
 
         rule.onNodeWithTag("duel.lineup.filter.clear").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("duel.lineup.filter.count", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithTag("duel.lineup.filter.clear").assertDoesNotExist()
+        rule.onNodeWithTag(SOURCE).assertTextEquals("Source")
         SOLVED_ROWS.forEach { rule.onNodeWithTag(addTag(it)).assertExists() }
     }
 
     @Test
-    fun `a phone's sheet is one column, tiles then field then the filter panel, every control at least 48 dp`() {
+    fun `a phone's sheet is one column, tiles then field then the chips, every control at least 48 dp`() {
         show()
         openSheet()
 
         assertTrue("the field is under the tiles", bounds("duel.lineup.search").top >= bounds("duel.lineup.sheet.game.${STRANDS.value}").bottom)
-        rule.openFilters()
-        assertTrue("the filter button is right of the field", bounds("duel.lineup.filter").left >= bounds("duel.lineup.search").right)
-        assertTrue("the chips are under the field", bounds("duel.lineup.chip.pastdays").top >= bounds("duel.lineup.search").bottom)
+        assertTrue("the chips are under the field", bounds(SOURCE).top >= bounds("duel.lineup.search").bottom)
         assertEveryControlIsAtLeast48dp()
     }
 
     @Test
     @Config(qualifiers = TABLET)
-    fun `a tablet splits the sheet, the tiles on the left, the field, its filter button and the chips on the right`() {
+    fun `a tablet splits the sheet, the tiles on the left, the field and the chips on the right`() {
         show()
         openSheet()
 
-        rule.openFilters()
         val left = listOf(bounds("duel.lineup.sheet.game.${ZIP.value}"))
-        val right = listOf(bounds("duel.lineup.search"), bounds("duel.lineup.filter"), bounds("duel.lineup.chip.pastdays"), bounds("duel.lineup.chip.game.${STRANDS.value}"), bounds(addTag(ZIP_DAILY)))
+        val right = listOf(bounds("duel.lineup.search"), bounds(SOURCE), bounds(GAMES_CHIP), bounds(addTag(ZIP_DAILY)))
         assertTrue("every left control ends before the right pane starts", left.maxOf { it.right } <= right.minOf { it.left })
-        assertTrue("the chips are under the field", bounds("duel.lineup.chip.pastdays").top >= bounds("duel.lineup.search").bottom)
+        assertTrue("the chips are under the field", bounds(SOURCE).top >= bounds("duel.lineup.search").bottom)
         assertEveryControlIsAtLeast48dp()
     }
 
@@ -240,8 +249,7 @@ class PastYouAddSheetTest {
 
     private fun assertEveryControlIsAtLeast48dp() {
         val minPx = with(rule.density) { MIN_TARGET.toPx() }
-        val tags = GAMES.flatMap { listOf("duel.lineup.sheet.game.${it.id.value}", "duel.lineup.chip.game.${it.id.value}") } +
-            listOf("duel.lineup.filter", "duel.lineup.chip.pastdays", "duel.lineup.chip.friends", "duel.lineup.search", "duel.lineup.search.paste") + SOLVED_ROWS.map(::addTag)
+        val tags = GAMES.map { "duel.lineup.sheet.game.${it.id.value}" } + listOf(SOURCE, GAMES_CHIP, "duel.lineup.search", "duel.lineup.search.paste") + SOLVED_ROWS.map(::addTag)
         for (tag in tags) {
             val target = touch(tag)
             assertTrue("$tag is ${target.width}x${target.height} px", target.width >= minPx - 1 && target.height >= minPx - 1)

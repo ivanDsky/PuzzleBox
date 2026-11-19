@@ -5,10 +5,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
-import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -27,8 +24,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The community New today section, phone and tablet, light and dark: loaded (menu closed, nothing filtered, rows
- * with and without a difficulty), filtered (the active line), menu open, empty, and offline. Goldens in
+ * The community New today section, phone and tablet, light and dark: loaded (the chips, nothing filtered, rows with
+ * and without a difficulty), filtered (the chips reading the picks), empty, and offline. Goldens in
  * `snapshots/community/`.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -52,25 +49,17 @@ abstract class CommunityGoldenScreenshots(private val device: String) {
     @Test fun `filtered light`() = capture("filtered", FILTERED, dark = false)
     @Test fun `filtered dark`() = capture("filtered", FILTERED, dark = true)
 
-    @Test fun `menu open light`() = capture("menu-open", FILTERED, dark = false, menuOpen = true)
-    @Test fun `menu open dark`() = capture("menu-open", FILTERED, dark = true, menuOpen = true)
-
     @Test fun `empty light`() = capture("empty", EMPTY, dark = false)
     @Test fun `empty dark`() = capture("empty", EMPTY, dark = true)
 
     @Test fun `offline light`() = capture("offline", OFFLINE, dark = false)
     @Test fun `offline dark`() = capture("offline", OFFLINE, dark = true)
 
-    private fun capture(name: String, state: CommunityState, dark: Boolean, menuOpen: Boolean = false) {
+    private fun capture(name: String, state: CommunityState, dark: Boolean) {
         rule.showGolden(dark) {
             LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(top = Spacing.sm, bottom = Spacing.xl)) {
                 communitySection(state, CommunityActions(onOpen = {}, onReport = {}, onGame = {}, onDifficulty = {}, onClearFilters = {}, onRetry = {}))
             }
-        }
-        if (menuOpen) {
-            rule.onNodeWithTag("community.filter.menu").performClick()
-            rule.mainClock.advanceTimeBy(500)
-            rule.onNodeWithTag("community.filter.game.all").assertIsDisplayed()
         }
         rule.settleAndCapture("community", name, device, dark)
     }
@@ -81,9 +70,9 @@ abstract class CommunityGoldenScreenshots(private val device: String) {
         val QUEENS = GameBrand(AccentSlot.Violet, GameGlyphs.Queens)
 
         val GAMES = listOf(
-            GameChoice(GameId("zip"), "Zip"),
-            GameChoice(GameId("tango"), "Tango"),
-            GameChoice(GameId("queens"), "Queens"),
+            GameChoice(GameId("zip"), "Zip", ZIP),
+            GameChoice(GameId("tango"), "Tango", TANGO),
+            GameChoice(GameId("queens"), "Queens", QUEENS),
         )
 
         fun row(code: String, game: String, brand: GameBrand, title: String, level: Difficulty.Level?, age: String) =

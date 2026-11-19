@@ -5,7 +5,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
-import com.ivandsky.puzzlebox.common.flags.FilterFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.TopBarFlag
 import com.ivandsky.puzzlebox.common.flags.isEnabled
@@ -125,11 +124,8 @@ internal class RanksViewModel(
     /** The Tune sheet shows the board's choices only: the Defaults block stays in Settings (RanksTuneBoardOnly). */
     val tuneBoardOnly: Boolean = releaseFlags.isEnabled(HistoryFlag.RanksTuneBoardOnly)
 
-    /** Who and When are filter chips (FilterSheets), read once like [tuneBoardOnly]. */
-    private val filterSheets = releaseFlags.isEnabled(FilterFlag.FilterSheets)
-    /** The tab's hub on Today's large top bar (MainTabsLargeBar), read once the same way. */
+    /** The tab's hub on Today's large top bar (MainTabsLargeBar), read once like [tuneBoardOnly]. */
     private val largeBar = releaseFlags.isEnabled(TopBarFlag.MainTabsLargeBar)
-
     // The LinkedIn part of the hub (the line, the pull's sync) exists only with RanksFreshness on and LinkedIn in the graph.
     private val freshLinkedIn = linkedIn.takeIf { releaseFlags.isEnabled(HistoryFlag.RanksFreshness) }
     private val freshness = freshLinkedIn?.let { RanksFreshness(clock) }
@@ -221,11 +217,11 @@ internal class RanksViewModel(
     ) { (scope, slices), signIn, position, local, kind ->
         val slice = slices.getOrElse(position) { slices.first() }
         val places = boardPlaces(boards, registry, playRegistry::brandOf, slices)
-        RanksUiState(slice, signIn, position, boards.size, local.calendar, local.stats, local.yourSolve, scope, kind, places, local.nudge, slices, local.playThisDay, filterSheets, largeBar)
+        RanksUiState(slice, signIn, position, boards.size, local.calendar, local.stats, local.yourSolve, scope, kind, places, local.nudge, slices, local.playThisDay, largeBar)
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
-        RanksUiState(overallSlice(RanksSelection.Window.Day, null, OverallState.Loading, null), filterSheets = filterSheets, largeBar = largeBar),
+        RanksUiState(overallSlice(RanksSelection.Window.Day, null, OverallState.Loading, null), largeBar = largeBar),
     )
 
     /** Applies one of [RanksSelection]'s transitions; the policy stays in the value. */

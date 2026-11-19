@@ -32,7 +32,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The Random sheet's filters as two chips with the option page swapped in place (epic picker-filters, ticket 06), through the real
- * sheet and view model with the flag on ([RandomFilterSheetFixture]); the busy and tablet cases are in [RandomFilterBodyTest].
+ * sheet and view model ([RandomFilterSheetFixture]); the busy and tablet cases are in [RandomFilterBodyTest].
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

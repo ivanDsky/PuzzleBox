@@ -19,14 +19,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
@@ -39,18 +34,14 @@ import kotlinx.coroutines.flow.filter
 import org.koin.compose.koinInject
 
 private const val TILES_PER_ROW = 2
-private const val PANEL_INDEX = 2
 
 /**
  * The Add / Change puzzle page of the New duel screen: one lazy list that fills the height. The game tiles lead it; the
- * exact-puzzle field and its filter button stay at the top once the tiles have scrolled away; the filter panel follows
- * them in the list, and opening it scrolls it into view, so on a small phone with the keyboard up it never pins the
- * rows out of sight. Then come the status lines and the puzzles that pass the search. A tile or an Add calls [onPick] with what it picks; the caller
+ * exact-puzzle field and the filter chips under it stay at the top once the tiles have scrolled away, each chip opening its own sheet over the page. Then come the status lines and the puzzles that pass the search. A tile or an Add calls [onPick] with what it picks; the caller
  * closes the page. [viewModel] is the search over what a friend could be asked to play, or, for Past you, over what the
- * player has solved; it keeps the query and the open panel, and the caller resets it when the page closes.
+ * player has solved; it keeps the query, and the caller resets it when the page closes.
  * The list pads for the keyboard, so the last row can be reached with it up. A non-null [onClose] is for a page that
  * sits beside the form: it adds a line over the list with the row's title and a Close button.
- * With FilterSheets on, the filter chips sit under the field in that header instead, each opening its own sheet over the page, and there is no panel.
  */
 @Composable
 internal fun PuzzlePickerPage(
@@ -63,14 +54,7 @@ internal fun PuzzlePickerPage(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val registry = koinInject<GamePlayRegistry>()
     val listState = rememberLazyListState()
-    var headerPx by remember { mutableIntStateOf(0) }
-    var panelOpen by remember { mutableStateOf(state.filtersOpen) }
     LaunchedEffect(viewModel, picker.added) { viewModel.setAdded(picker.added) }
-    // Opening the panel brings it to rest just under the header, not behind it. A page that restores already open stays where it was.
-    LaunchedEffect(listState, state.filtersOpen) {
-        if (state.filtersOpen && !state.filterSheets && !panelOpen) listState.animateScrollToItem(PANEL_INDEX, scrollOffset = -headerPx)
-        panelOpen = state.filtersOpen
-    }
     // Only once the player has scrolled, so a list that fits never pulls pages the player did not ask for.
     LaunchedEffect(listState, viewModel) {
         snapshotFlow { listState.canScrollBackward && !listState.canScrollForward }.distinctUntilChanged().filter { it }.collect { viewModel.loadMore() }
@@ -91,16 +75,15 @@ internal fun PuzzlePickerPage(
             stickyHeader(key = "search") {
                 // Opaque, so the rows that scroll under it do not show through.
                 Column(
-                    Modifier.fillMaxWidth().testTag("duel.lineup.exact").onSizeChanged { headerPx = it.height }
+                    Modifier.fillMaxWidth().testTag("duel.lineup.exact")
                         .background(MaterialTheme.colorScheme.surfaceContainerLow).padding(vertical = Spacing.sm),
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
                     Text("Or one exact puzzle", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     PickerSearchRow(state, viewModel)
-                    if (state.filterSheets) PickerFilterChips(state, picker.games, viewModel)
+                    PickerFilterChips(state, picker.games, viewModel)
                 }
             }
-            if (state.filtersOpen && !state.filterSheets) item(key = "filters") { PickerFilterPanel(state, picker.games, viewModel) }
             item(key = "status") {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) { PickerStatusLines(state, onRetry = viewModel::lookUp, onClearFilters = viewModel::clearFilters) }
             }

@@ -12,10 +12,6 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.assertIsNotSelected
-import androidx.compose.ui.test.assertIsOff
-import androidx.compose.ui.test.assertIsOn
-import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasScrollToIndexAction
@@ -59,6 +55,7 @@ import org.robolectric.annotation.Config
 
 private const val PAGE = 30
 private const val LEADING_ITEMS = 3
+private const val CLEAR = "duel.lineup.filter.clear"
 
 /** The Add puzzle page's friend search, shown on its own: the tiles, the exact-puzzle field, its filters, its lines and its rows. */
 @RunWith(RobolectricTestRunner::class)
@@ -116,12 +113,10 @@ class PuzzlePickerPageTest {
         show(listOf(CROWN_JEWELS, CROWN_TANGO, OLD_CROWN, MY_GRID))
 
         rule.onNodeWithTag("duel.lineup.search").performTextInput("crown")
-        rule.openFilters()
-        rule.onNodeWithTag("duel.lineup.chip.new").performClick()
-        rule.onNodeWithTag("duel.lineup.chip.game.queens").performClick()
-        rule.waitForIdle()
+        rule.pickInSheet(PickerFilterPage.Freshness, "duel.lineup.chip.new")
+        rule.pickInSheet(PickerFilterPage.Games, "duel.lineup.chip.game.queens")
 
-        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("1 found")
+        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("1 puzzle")
         rule.onNodeWithTag(addTag(CROWN_JEWELS)).assertTextEquals("Add").assertIsEnabled().performClick()
 
         assertEquals(listOf<LineupEntry>(CROWN_JEWELS.entry), picked)
@@ -143,48 +138,28 @@ class PuzzlePickerPageTest {
         rule.waitForIdle()
         rule.onNodeWithTag("duel.lineup.empty").assertTextEquals("Nothing matches \"zzz\". Try a code, or clear the filters.")
 
-        rule.openFilters()
-        rule.onNodeWithTag("duel.lineup.chip.community").performClick()
-        rule.waitForIdle()
+        rule.pickInSheet(PickerFilterPage.Source, "duel.lineup.chip.community")
         rule.onNodeWithTag("duel.lineup.empty").assertTextEquals("Nothing matches \"zzz\" with these filters. Try a code, or clear the filters.")
     }
 
     @Test
-    fun `the chips stay out of sight until the filter button opens them, and the button closes them again`() {
-        show(listOf(CROWN_JEWELS, MY_GRID))
-
-        rule.onNodeWithTag("duel.lineup.filter.panel").assertDoesNotExist()
-        rule.onNodeWithTag("duel.lineup.filter").assertIsOff()
-
-        rule.openFilters()
-        listOf("new", "notplayed", "community", "friends", "pastdays", "mine").forEach { rule.onNodeWithTag("duel.lineup.chip.$it").assertExists() }
-        GAMES.forEach { rule.onNodeWithTag("duel.lineup.chip.game.${it.id.value}").assertExists() }
-        rule.onNodeWithTag("duel.lineup.filter").assertIsOn()
-
-        rule.openFilters()
-        rule.onNodeWithTag("duel.lineup.filter.panel").assertDoesNotExist()
-        rule.onNodeWithTag("duel.lineup.filter").assertIsOff()
-    }
-
-    @Test
-    fun `the filter button counts the chips that are on, and Clear filters turns them all off and widens the list`() {
+    fun `Clear turns every chip off and widens the list, and is not there while none is on`() {
         show(listOf(CROWN_JEWELS, CROWN_TANGO, OLD_CROWN, MY_GRID))
-        rule.onNodeWithTag("duel.lineup.filter.count", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithTag(CLEAR).assertDoesNotExist()
 
-        rule.openFilters()
-        rule.onNodeWithTag("duel.lineup.filter.clear").assertIsNotEnabled()
-        rule.onNodeWithTag("duel.lineup.chip.new").performClick()
-        rule.onNodeWithTag("duel.lineup.chip.game.queens").performClick()
-        rule.waitForIdle()
-        rule.onNodeWithTag("duel.lineup.filter.count", useUnmergedTree = true).assertTextEquals("2")
-        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("1 found")
+        rule.pickInSheet(PickerFilterPage.Freshness, "duel.lineup.chip.new")
+        rule.pickInSheet(PickerFilterPage.Games, "duel.lineup.chip.game.queens")
+        rule.onNodeWithTag(PickerFilterPage.Freshness.tag).assertTextContains("New")
+        rule.onNodeWithTag(PickerFilterPage.Games.tag).assertTextContains("Queens")
+        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("1 puzzle")
 
-        rule.onNodeWithTag("duel.lineup.filter.clear").performClick()
+        rule.onNodeWithTag(CLEAR).performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("duel.lineup.filter.count", useUnmergedTree = true).assertDoesNotExist()
-        rule.onNodeWithTag("duel.lineup.chip.new").assertIsNotSelected()
-        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("Newest first")
+        rule.onNodeWithTag(CLEAR).assertDoesNotExist()
+        rule.onNodeWithTag(PickerFilterPage.Freshness.tag).assertTextEquals("Freshness")
+        rule.onNodeWithTag(PickerFilterPage.Games.tag).assertTextEquals("Games")
+        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("4 puzzles · Newest first")
     }
 
     @Test
@@ -200,12 +175,12 @@ class PuzzlePickerPageTest {
         show(listOf(CROWN_JEWELS, MY_GRID))
         rule.onNodeWithTag("duel.lineup.search").performTextInput("grid")
         rule.waitForIdle()
-        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("1 found")
+        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("1 puzzle")
 
         rule.onNodeWithTag("duel.lineup.search.clear").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("Newest first")
+        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("2 puzzles · Newest first")
     }
 
     @Test
@@ -218,7 +193,7 @@ class PuzzlePickerPageTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("duel.lineup.search").assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("r6s7t8")))
-        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("1 found")
+        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("1 puzzle")
         rule.onNodeWithTag("duel.lineup.pick.${OLD_CROWN.entry.ref.wire}").assertExists()
         rule.onNodeWithTag("duel.lineup.search.paste").assertDoesNotExist()
         rule.onNodeWithTag("duel.lineup.search.clear").assertExists()
@@ -276,19 +251,16 @@ class PuzzlePickerPageTest {
         val restoration = StateRestorationTester(rule)
         show(listOf(CROWN_JEWELS, CROWN_TANGO, OLD_CROWN, MY_GRID), restoration = restoration)
         rule.onNodeWithTag("duel.lineup.search").performTextInput("crown")
-        rule.openFilters()
-        rule.onNodeWithTag("duel.lineup.chip.new").performClick()
-        rule.waitForIdle()
-        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("2 found")
+        rule.pickInSheet(PickerFilterPage.Freshness, "duel.lineup.chip.new")
+        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("2 puzzles")
 
         restoration.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
         rule.onNodeWithTag("duel.lineup.search").assertTextContains("crown")
-        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("2 found")
+        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("2 puzzles")
         rule.onNodeWithTag("duel.lineup.pick.${CROWN_JEWELS.entry.ref.wire}").assertExists()
         rule.onNodeWithTag("duel.lineup.pick.${OLD_CROWN.entry.ref.wire}").assertDoesNotExist()
-        rule.onNodeWithTag("duel.lineup.filter.count", useUnmergedTree = true).assertTextEquals("1")
-        rule.onNodeWithTag("duel.lineup.chip.new").assertIsSelected()
+        rule.onNodeWithTag(PickerFilterPage.Freshness.tag).assertTextContains("New")
     }
 }

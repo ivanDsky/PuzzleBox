@@ -57,7 +57,7 @@ class AddPuzzleSheetLayoutTest {
 
     private val rows = listOf(CROWN_JEWELS, CROWN_TANGO, OLD_CROWN, MY_GRID)
 
-    private fun open(render: String, filtersOpen: Boolean = true) {
+    private fun open(render: String? = null) {
         Settings.Global.putFloat(ApplicationProvider.getApplicationContext<Context>().contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
         startKoin { modules(module { single { newDuelBrands() }; viewModel { AddPuzzleViewModel(pickerOf(rows), NO_LOOKUP) } }) }
         rule.setContent {
@@ -69,8 +69,7 @@ class AddPuzzleSheetLayoutTest {
         }
         rule.onNodeWithTag("duel.lineup.add").performClick()
         rule.waitForIdle()
-        if (filtersOpen) rule.openFilters()
-        capture(render)
+        if (render != null) capture(render)
     }
 
     @OptIn(ExperimentalRoborazziApi::class)
@@ -86,17 +85,15 @@ class AddPuzzleSheetLayoutTest {
 
     private val tile = "duel.lineup.sheet.game.queens"
     private val lastTile = "duel.lineup.sheet.game.strands"
-    private val chip = "duel.lineup.chip.new"
-    private val lastChip = "duel.lineup.chip.game.strands"
+    private val chip = PickerFilterPage.Freshness.tag
+    private val lastChip = PickerFilterPage.Games.tag
     private val search = "duel.lineup.search"
 
     /** The phone's sheet opens half-expanded and its results sit under the fold, so there only what is above it is measured. */
     private fun controls(resultsVisible: Boolean) = buildList {
-        GAMES.forEach { add("duel.lineup.sheet.game.${it.id.value}"); add("duel.lineup.chip.game.${it.id.value}") }
-        listOf("new", "notplayed", "community", "friends", "pastdays", "mine").forEach { add("duel.lineup.chip.$it") }
+        GAMES.forEach { add("duel.lineup.sheet.game.${it.id.value}") }
+        PickerFilterPage.entries.forEach { add(it.tag) }
         add(search)
-        add("duel.lineup.filter")
-        add("duel.lineup.filter.clear")
         add("duel.lineup.search.paste")
         if (resultsVisible) rows.forEach { add("duel.lineup.pick.add.${it.entry.ref.wire}") }
     }
@@ -135,11 +132,11 @@ class AddPuzzleSheetLayoutTest {
 
     @Test
     @Config(qualifiers = TABLET)
-    fun `a tablet splits the sheet, the tiles on the left, the field, its filter button, the chips and results on the right`() {
+    fun `a tablet splits the sheet, the tiles on the left, the field, the chips and results on the right`() {
         open("add-sheet-1280x800")
 
         val left = listOf(bounds(tile), bounds(lastTile))
-        val right = listOf(bounds(search), bounds("duel.lineup.filter"), bounds(chip), bounds(lastChip), bounds("duel.lineup.pick.add.${CROWN_JEWELS.entry.ref.wire}"))
+        val right = listOf(bounds(search), bounds(chip), bounds(lastChip), bounds("duel.lineup.pick.add.${CROWN_JEWELS.entry.ref.wire}"))
         assertTrue("every left control ends before the right pane starts", left.maxOf { it.right } <= right.minOf { it.left })
         assertTrue("the chips open under the field", bounds(search).top < bounds(chip).top)
         assertTrue("the sheet is wider than a phone sheet", bounds("duel.lineup.sheet").width > with(rule.density) { 640.dp.toPx() })
@@ -149,10 +146,12 @@ class AddPuzzleSheetLayoutTest {
     @Test
     @Config(qualifiers = TABLET)
     fun `on a tablet neither pane leaves a large empty space under the other`() {
-        open("add-sheet-1280x800-filters-closed", filtersOpen = false)
+        open()
 
         val leftBottom = bounds(lastTile).bottom
-        val rightBottom = bounds("duel.lineup.pick.add.${MY_GRID.entry.ref.wire}").bottom
+        // The chip row is the right pane's own header (the old closed filter button took none of its height), so it is not the empty space measured.
+        val chipRow = bounds(lastChip).bottom - bounds(chip).top
+        val rightBottom = bounds("duel.lineup.pick.add.${MY_GRID.entry.ref.wire}").bottom - chipRow
         val slack = with(rule.density) { PANE_HEIGHT_SLACK.toPx() }
         assertTrue("panes end $leftBottom and $rightBottom", abs(leftBottom - rightBottom) <= slack)
     }

@@ -23,12 +23,10 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 
 /**
- * The random sheet's body: its title, the source toggle, the Game chips of the source ([games]), that source's option
- * ("Not solved yet" for Past puzzles, the Difficulty chips for New today) and the Pick button with the status line.
- * One column on a phone; on [PlayLayout.TwoPane] two: the toggle and the Game chips on the left, the option, Pick and
- * the status on the right. Every control is off while a pick runs or its puzzle opens.
- * With [filterSheets] the chips are one row of dropdown chips (Game, and Difficulty for New today) that call [onOpenFilter],
- * and the Difficulty chips leave the right pane; the two panes sit a step further apart.
+ * The random sheet's body: its title, the source toggle, one row of dropdown chips (Game, and Difficulty for New today)
+ * that call [onOpenFilter] with the source's [games], "Not solved yet" for Past puzzles, and the Pick button with the
+ * status line. One column on a phone; on [PlayLayout.TwoPane] two: the toggle and the chips on the left, the option,
+ * Pick and the status on the right. Every control is off while a pick runs or its puzzle opens.
  */
 @Composable
 internal fun RandomPuzzleContent(
@@ -37,19 +35,12 @@ internal fun RandomPuzzleContent(
     layout: PlayLayout,
     actions: RandomPuzzleActions,
     modifier: Modifier = Modifier,
-    filterSheets: Boolean = false,
     onOpenFilter: (RandomFilterPage) -> Unit = {},
 ) {
     val busy = state.phase is RandomPhase.Picking || state.phase is RandomPhase.Opened
     val source: @Composable (Modifier) -> Unit = { RandomSourceToggle(state.source, !busy, actions.onSource, it.fillMaxWidth()) }
-    val chips: @Composable (Modifier) -> Unit = {
-        if (filterSheets) {
-            RandomFilterChips(state, games, !busy, actions, onOpenFilter, it)
-        } else {
-            RandomGameChips(state.game, games, !busy, actions.onGame, it)
-        }
-    }
-    val pick: @Composable (Modifier) -> Unit = { RandomPickControls(state, busy, filterSheets, actions, it) }
+    val chips: @Composable (Modifier) -> Unit = { RandomFilterChips(state, games, !busy, actions, onOpenFilter, it) }
+    val pick: @Composable (Modifier) -> Unit = { RandomPickControls(state, busy, actions, it) }
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -59,7 +50,7 @@ internal fun RandomPuzzleContent(
     ) {
         Text("Random puzzle", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
         if (layout == PlayLayout.TwoPane) {
-            Row(horizontalArrangement = Arrangement.spacedBy(if (filterSheets) Spacing.xxl else Spacing.xl)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xxl)) {
                 Column(Modifier.weight(1f).testTag("random.left"), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     source(Modifier)
                     chips(Modifier)
@@ -74,14 +65,12 @@ internal fun RandomPuzzleContent(
     }
 }
 
-/** The source's option, the Pick button and the status line, one under the other. With [filterSheets] New today's option is a chip in the chip row, so it has none here. */
+/** The Pick button and the status line, one under the other, under "Not solved yet" for Past puzzles; New today's option is a chip in the chip row. */
 @Composable
-private fun RandomPickControls(state: RandomPuzzleState, busy: Boolean, filterSheets: Boolean, actions: RandomPuzzleActions, modifier: Modifier) {
+private fun RandomPickControls(state: RandomPuzzleState, busy: Boolean, actions: RandomPuzzleActions, modifier: Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         if (state.source == RandomSource.Past) {
             RandomUnsolvedRow(state.unsolvedOnly, !busy, actions.onUnsolved)
-        } else if (!filterSheets) {
-            RandomDifficultyChips(state.difficulty, !busy, actions.onDifficulty)
         }
         PrimaryButton(
             text = "Pick one for me",

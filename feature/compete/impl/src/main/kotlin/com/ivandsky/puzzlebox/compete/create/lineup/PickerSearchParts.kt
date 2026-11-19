@@ -22,7 +22,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
-/** The exact-puzzle field (paste when empty, clear otherwise; the keyboard's Search looks the code up) with the filter button beside it. */
+/** The exact-puzzle field (paste when empty, clear otherwise; the keyboard's Search looks the code up) */
 @Composable
 internal fun PickerSearchRow(state: AddPuzzleState, viewModel: AddPuzzleViewModel, modifier: Modifier = Modifier) {
     val text = state.query.text
@@ -46,13 +46,12 @@ internal fun PickerSearchRow(state: AddPuzzleState, viewModel: AddPuzzleViewMode
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { viewModel.lookUp() }),
         )
-        if (!state.filterSheets) PickerFilterButton(state.activeFilters, state.filtersOpen, onToggle = viewModel::toggleFilters)
     }
 }
 
 /**
  * The offline note, the code lookup's line (with Retry when it can be tried again) and, once the list has loaded, the
- * empty line (with Clear filters under it while a chip is on and the filters are chips) or the count. Inline, with no column of its own: the caller's arrangement spaces them.
+ * empty line (with Clear filters under it while a chip is on) or the count. Inline, with no column of its own: the caller's arrangement spaces them.
  */
 @Composable
 internal fun PickerStatusLines(state: AddPuzzleState, onRetry: () -> Unit, onClearFilters: () -> Unit = {}) {
@@ -70,11 +69,11 @@ internal fun PickerStatusLines(state: AddPuzzleState, onRetry: () -> Unit, onCle
         // A lookup's own line says why there is nothing, better than "Nothing matches".
         if (state.lookup == null) {
             Text(emptyLine(state.query, state.pastYou), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.testTag("duel.lineup.empty"))
-            if (state.filterSheets && state.activeFilters > 0) {
+            if (state.activeFilters > 0) {
                 FilledTonalButton(onClick = onClearFilters, modifier = Modifier.testTag("duel.lineup.empty.clear")) { Text("Clear filters") }
             }
         }
     } else {
-        Text(resultsLine(state.query, state.rows.size, state.pastYou, state.filterSheets), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.testTag("duel.lineup.count"))
+        Text(resultsLine(state.query, state.rows.size, state.pastYou), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.testTag("duel.lineup.count"))
     }
 }

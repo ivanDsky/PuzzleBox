@@ -5,8 +5,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasContentDescription
-import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
@@ -22,7 +22,6 @@ import com.ivandsky.puzzlebox.play.domain.random.LoadRandomShared
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.play.testDispatchers
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
@@ -76,7 +75,7 @@ class RandomPuzzleSheetScrollTest {
             LoadRandomDay(daily, FakeCompletionRepository(), LoadPastDay(daily, registry), registry, random),
             LoadRandomShared(ListCommunityPuzzles(FakeSharedPuzzleRepository(), FakeHiddenPuzzles(), FakeIdentityService(Identity("me", "Me", null))) { 0L }, random),
         )
-        val viewModel = RandomPuzzleViewModel(alpha, load, RandomPickMemory(), testDispatchers(), FakeReleaseFlags())
+        val viewModel = RandomPuzzleViewModel(alpha, load, RandomPickMemory(), testDispatchers())
         rule.setContent {
             PuzzleBoxTheme {
                 RandomPuzzleSheet(alpha, games, games, PlayLayout.SinglePane, onOpen = {}, onDismiss = {}, viewModel = viewModel)
@@ -90,7 +89,8 @@ class RandomPuzzleSheetScrollTest {
     /** The sheet's position is its drag handle's: the sheet's own tag sits outside the offset the drag applies. */
     private fun sheetTop() = rule.onNode(hasContentDescription("Drag handle")).fetchSemanticsNode().boundsInRoot.top
 
-    private fun bodyScroll() = rule.onNode(hasScrollAction()).fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value()
+    // The chips row scrolls sideways, so "has a scroll action" is no longer one node.
+    private fun bodyScroll() = rule.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange)).fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value()
 
     private fun worstDrift(rest: Float): Float {
         var worst = 0f

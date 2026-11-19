@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.history.ranks
 
-import com.ivandsky.puzzlebox.common.flags.FilterFlag
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
@@ -14,14 +13,12 @@ import com.ivandsky.puzzlebox.resultui.board.BoardRowValue
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import java.time.LocalDate
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
 
@@ -57,17 +54,6 @@ class RanksViewModelTest {
         assertEquals(RanksSelection(), viewModel.selection.value)
         assertEquals(DailyBoardState.Loading, viewModel.uiState.value.board.state)
         assertEquals("Overall · today", viewModel.uiState.value.board.title)
-    }
-
-    @Test
-    fun `filterSheets follows FilterSheets, in the initial value and after the first combine`() = runTest {
-        val on = hub().viewModel(releaseFlags = FakeReleaseFlags(FilterFlag.FilterSheets))
-        val off = hub().viewModel(releaseFlags = FakeReleaseFlags())
-
-        assertTrue(on.uiState.value.filterSheets)
-        assertFalse(off.uiState.value.filterSheets)
-        assertTrue(on.uiState.first { it.board.state != DailyBoardState.Loading }.filterSheets)
-        assertFalse(off.uiState.first { it.board.state != DailyBoardState.Loading }.filterSheets)
     }
 
     @Test

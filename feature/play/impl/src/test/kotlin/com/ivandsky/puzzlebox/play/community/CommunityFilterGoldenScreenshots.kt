@@ -87,7 +87,7 @@ abstract class CommunityFilterGoldenScreenshots(private val device: String) {
 
         val ZIP_ROW = row("K7Q2MX", "Zip", ZIP, "Spiral staircase", Difficulty.Level.Hard, "5 min ago")
 
-        val BASE = CommunityState(games = GAMES, filterSheets = true)
+        val BASE = CommunityState(games = GAMES)
 
         val LOADED = BASE.copy(
             phase = CommunityPhase.Loaded(

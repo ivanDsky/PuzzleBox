@@ -16,7 +16,6 @@ import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
  * title menu; [nudge] says the one-time swipe hint has not been shown yet. [boards] is every board's
  * slice in swipe order ([board] is the one at [position]), there for a swipe to scrub to; empty when only [board] is known.
  * [playThisDay] is what the button where Your solve would be opens: set for a game's day the viewer has not played.
- * [filterSheets] (FilterSheets on) says Who and When are the filter chips, not the tune sheet's toggles and the top bar's label.
  * [largeBar] (MainTabsLargeBar on) puts the tab's hub on Today's large top bar ([RanksLargeBar]).
  */
 internal data class RanksUiState(
@@ -33,7 +32,6 @@ internal data class RanksUiState(
     val nudge: Boolean = false,
     val boards: List<RanksBoardSlice> = emptyList(),
     val playThisDay: PlayThisDay? = null,
-    val filterSheets: Boolean = false,
     val largeBar: Boolean = false,
 )
 

@@ -34,7 +34,6 @@ private fun Body(
     source: RandomSource = RandomSource.Past,
     difficulty: DifficultyChoice? = null,
     game: GameId? = null,
-    filterSheets: Boolean = false,
 ) {
     PuzzleBoxTheme {
         Surface {
@@ -44,7 +43,6 @@ private fun Body(
                 layout,
                 Actions,
                 modifier,
-                filterSheets = filterSheets,
             )
         }
     }
@@ -59,7 +57,7 @@ private fun Page(page: RandomFilterPage, game: GameId? = null, difficulty: Diffi
     }
 }
 
-/** Phone, nothing picked yet: Any is on, "Not solved yet" is on. */
+/** Phone, nothing picked yet: the Game chip, "Not solved yet" on and Pick. */
 @PuzzleBoxPreviews
 @Composable
 internal fun RandomPuzzlePhoneIdlePreview() = Body(RandomPhase.Idle)
@@ -74,48 +72,32 @@ internal fun RandomPuzzlePhonePickingPreview() = Body(RandomPhase.Picking)
 @Composable
 internal fun RandomPuzzlePhoneStatusPreview() = Body(RandomPhase.Said(RandomMessage.NothingLeftPast))
 
-/** Tablet at the sheet's width: chips left, "Not solved yet", Pick and the status right. */
+/** Tablet at the sheet's width: toggle and chip left, "Not solved yet", Pick and the status right. */
 @PuzzleBoxPreviews
 @Composable
 internal fun RandomPuzzleTabletPreview() = Body(RandomPhase.Said(RandomMessage.Offline), PlayLayout.TwoPane, Modifier.width(640.dp))
 
-/** Phone on New today with Medium chosen: the community games and the Difficulty chips in place of "Not solved yet". */
+/** Phone on New today with Medium chosen: the Game and Difficulty chips in one row. */
 @PuzzleBoxPreviews
 @Composable
 internal fun RandomPuzzlePhoneNewTodayPreview() = Body(RandomPhase.Idle, source = RandomSource.Community, difficulty = DifficultyChoice.Medium)
 
-/** Tablet on New today: toggle and chips left, Difficulty and Pick right. */
+/** Tablet on New today: toggle and chips left, Pick and the status right. */
 @PuzzleBoxPreviews
 @Composable
 internal fun RandomPuzzleTabletNewTodayPreview() =
     Body(RandomPhase.Said(RandomMessage.NothingLeftCommunity), PlayLayout.TwoPane, Modifier.width(640.dp), RandomSource.Community)
 
-/** Filters as chips, Past puzzles: the Game chip, then "Not solved yet" and Pick. */
-@PuzzleBoxPreviews
-@Composable
-internal fun RandomPuzzleChipsPastPreview() = Body(RandomPhase.Idle, filterSheets = true)
-
-/** Filters as chips, New today: Game and Difficulty in one row. */
-@PuzzleBoxPreviews
-@Composable
-internal fun RandomPuzzleChipsNewTodayPreview() = Body(RandomPhase.Idle, source = RandomSource.Community, filterSheets = true)
-
-/** Filters as chips with Zip and Hard picked: both chips read the pick. */
+/** Zip and Hard picked: both chips read the pick. */
 @PuzzleBoxPreviews
 @Composable
 internal fun RandomPuzzleChipsPickedPreview() =
-    Body(RandomPhase.Idle, source = RandomSource.Community, difficulty = DifficultyChoice.Hard, game = GameId("zip"), filterSheets = true)
+    Body(RandomPhase.Idle, source = RandomSource.Community, difficulty = DifficultyChoice.Hard, game = GameId("zip"))
 
-/** Filters as chips with a pick running: chips, toggle and button off. */
+/** New today with a pick running: chips, toggle and button off. */
 @PuzzleBoxPreviews
 @Composable
-internal fun RandomPuzzleChipsBusyPreview() = Body(RandomPhase.Picking, source = RandomSource.Community, filterSheets = true)
-
-/** Filters as chips on the tablet: toggle and chips left, Pick and the status right, 32dp apart. */
-@PuzzleBoxPreviews
-@Composable
-internal fun RandomPuzzleChipsTabletPreview() =
-    Body(RandomPhase.Said(RandomMessage.NothingLeftCommunity), PlayLayout.TwoPane, Modifier.width(640.dp), RandomSource.Community, filterSheets = true)
+internal fun RandomPuzzleChipsBusyPreview() = Body(RandomPhase.Picking, source = RandomSource.Community)
 
 /** The Game option page that replaces the sheet's content, Zip picked. */
 @PuzzleBoxPreviews

@@ -11,7 +11,6 @@ import com.ivandsky.puzzlebox.app.nav.MainTabBars
 import com.ivandsky.puzzlebox.common.di.flagSet
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.DeclaredFlags
-import com.ivandsky.puzzlebox.common.flags.FilterFlag
 import com.ivandsky.puzzlebox.common.flags.FlagSet
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
@@ -125,8 +124,6 @@ val appModule = module {
     // The frozen central enum, until its last entry moves to its owner. Not in commonModule: its verify() rejects
     // FlagSet's String and List parameters.
     flagSet("common", ReleaseFlag.entries)
-    // Declared in core:common, registered here for the same reason.
-    flagSet("filters", FilterFlag.entries)
     // Declared in core:common, registered here for the same reason.
     flagSet("top-bars", TopBarFlag.entries)
     single { MainTabBars(largeBar = get<ReleaseFlags>().isEnabled(TopBarFlag.MainTabsLargeBar)) }

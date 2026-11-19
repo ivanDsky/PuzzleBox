@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.app.e2e
 
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.common.flags.FilterFlag
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
@@ -20,7 +19,7 @@ import org.robolectric.annotation.Config
 
 /**
  * The phone's Community over the real shell (M12-4): three tabs under the
- * head, the filter ⋮ on New today only, and Yours holding create's own list, whose draft opens its Studio and comes
+ * head, the filter chips on New today only, and Yours holding create's own list, whose draft opens its Studio and comes
  * back to Yours.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -41,12 +40,12 @@ class CommunityTabsE2ETest {
             assertRoute(COMMUNITY)
             awaitTag(TAB_NEW)
             awaitTag(TAB_FRIENDS)
-            assertTrue("the filter on New today", shows(FILTER))
+            assertTrue("the filter chips on New today", shows(FILTER))
             assertFalse("a draft outside Yours", shows(DRAFT_ROW))
 
             tap(TAB_YOURS)
             awaitTag(DRAFT_ROW)
-            assertFalse("the filter on Yours", shows(FILTER))
+            assertFalse("the filter chips on Yours", shows(FILTER))
 
             tap(DRAFT_ROW)
             assertRoute(EDITOR)
@@ -54,12 +53,12 @@ class CommunityTabsE2ETest {
             back()
             assertRoute(COMMUNITY)
             awaitTag(DRAFT_ROW)
-            assertFalse("the filter on Yours", shows(FILTER))
+            assertFalse("the filter chips on Yours", shows(FILTER))
         }
 
     @Test
-    fun `with filter sheets on New today has chips, a game pick narrows the list and there is no filter menu`() {
-        val world = FriendWorld(listOf(FilterFlag.FilterSheets))
+    fun `New today has filter chips and a game pick narrows the list`() {
+        val world = FriendWorld()
         try {
             runBlocking {
                 publish(world, QUEENS_CODE, "queens")
@@ -67,12 +66,11 @@ class CommunityTabsE2ETest {
             }
             shellRobot(graph = world.graph) {
                 tapTab(CommunityKey)
-                awaitTag("community.filter.game")
+                awaitTag(FILTER)
                 awaitTag("community.row.$QUEENS_CODE")
                 assertTrue("a zip row too", shows("community.row.$ZIP_CODE"))
-                assertFalse("no filter menu", shows(FILTER))
 
-                tap("community.filter.game")
+                tap(FILTER)
                 awaitTag("community.filter.game.zip")
                 tap("community.filter.game.zip")
 
@@ -105,7 +103,7 @@ class CommunityTabsE2ETest {
         const val TAB_NEW = "community.tab.new"
         const val TAB_FRIENDS = "community.tab.friends"
         const val TAB_YOURS = "community.tab.yours"
-        const val FILTER = "community.filter.menu"
+        const val FILTER = "community.filter.game"
         const val DRAFT_ROW = "create.draft.row"
     }
 }

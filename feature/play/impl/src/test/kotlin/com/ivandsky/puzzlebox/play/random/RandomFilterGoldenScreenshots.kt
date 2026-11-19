@@ -27,7 +27,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The Random sheet's body with the filter chips on, phone and tablet, light and dark: New today, a Zip and Hard pick, Past puzzles,
+ * The Random sheet's body, phone and tablet, light and dark: New today, a Zip and Hard pick, Past puzzles,
  * a pick running, New today at font scale 1.3, and the Game page that replaces the body. Record-only, in `snapshots/random-filters/`.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -68,7 +68,7 @@ abstract class RandomFilterGoldenScreenshots(private val device: String, private
             CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, fontScale)) {
                 Surface(Modifier.widthIn(max = SHEET_WIDTH)) {
                     if (page == null) {
-                        RandomPuzzleContent(state, GAMES, layout, ACTIONS, filterSheets = true)
+                        RandomPuzzleContent(state, GAMES, layout, ACTIONS)
                     } else {
                         RandomFilterPageContent(page, state, GAMES, ACTIONS, onBack = {})
                     }

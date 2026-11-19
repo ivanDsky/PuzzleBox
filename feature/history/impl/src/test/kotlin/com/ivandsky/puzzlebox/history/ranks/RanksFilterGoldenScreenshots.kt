@@ -19,7 +19,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Ranks with the Who and When chips on, light and dark: at the defaults, tuned to Friends and Week, and (phone) with the Who sheet open.
+ * Ranks with the Who and When chips, light and dark: at the defaults, tuned to Friends and Week, and (phone) with the Who sheet open.
  * Record-only review captures in `snapshots/ranks-filters/`.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -61,7 +61,7 @@ abstract class RanksFilterGoldenScreenshots(private val device: String, private 
     }
 
     internal companion object {
-        val Default = RanksGoldenScreenshots.FriendsDay.copy(scope = RankScope.Global, window = Window.Day, filterSheets = true)
+        val Default = RanksGoldenScreenshots.FriendsDay.copy(scope = RankScope.Global, window = Window.Day)
         val Tuned = Default.copy(scope = RankScope.Friends, window = Window.Week)
     }
 }
