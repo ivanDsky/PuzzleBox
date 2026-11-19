@@ -29,16 +29,20 @@ internal class VibratorHapticFeedback(
 }
 
 /**
- * One UI's effect per kind (#1686): plain on/off timings, lightest to heaviest. On the Tab S9 Ultra the prebaked TICK,
- * CLICK and HEAVY_CLICK played nothing, while DOUBLE_CLICK, which AOSP backs with a plain 30-100-30 ms pattern where the
- * HAL lacks it, buzzed hard: the motor plays timings, not the maker's prebaked clicks. Amplitude control makes the
- * ladder rise in strength too; without it the lengths still rise. Reject stays a double, shorter and softer than that buzz.
+ * One UI's effect per kind (#1686): plain on/off timings, lightest to heaviest. On the Tab S9 Ultra (SM-X910) the
+ * prebaked effects and primitives play nothing and amplitude is ignored, so duration is the only lever on this motor,
+ * floor ~30 ms, measured on SM-X910: 10 and 20 ms one-shots play nothing, 30 ms and up play at one medium strength.
+ * Every pulse sits above that floor; reject is a double buzz like AOSP's 30-100-30 ms double click, which it plays.
  */
 internal fun timingEffect(type: HapticFeedbackType): VibrationEffect? = when (type) {
-    HapticFeedbackType.TextHandleMove -> VibrationEffect.createOneShot(20, 100)
-    HapticFeedbackType.Confirm -> VibrationEffect.createOneShot(30, 150)
-    HapticFeedbackType.LongPress -> VibrationEffect.createOneShot(45, 230)
-    HapticFeedbackType.Reject -> VibrationEffect.createWaveform(longArrayOf(20, 80, 20), intArrayOf(150, 0, 150), -1)
+    HapticFeedbackType.TextHandleMove -> VibrationEffect.createOneShot(35, VibrationEffect.DEFAULT_AMPLITUDE)
+    HapticFeedbackType.Confirm -> VibrationEffect.createOneShot(45, VibrationEffect.DEFAULT_AMPLITUDE)
+    HapticFeedbackType.LongPress -> VibrationEffect.createOneShot(60, VibrationEffect.DEFAULT_AMPLITUDE)
+    HapticFeedbackType.Reject -> VibrationEffect.createWaveform(
+        longArrayOf(35, 90, 35),
+        intArrayOf(VibrationEffect.DEFAULT_AMPLITUDE, 0, VibrationEffect.DEFAULT_AMPLITUDE),
+        -1,
+    )
     else -> null
 }
 

@@ -67,7 +67,7 @@ private fun primitiveGroup(vibrator: Vibrator): HapticsLabGroup {
 
 private fun oneShotGroup(vibrator: Vibrator) = HapticsLabGroup(
     title = "One-shot · touch · ms-amplitude",
-    rows = listOf(10L, 20L, 30L, 50L).flatMap { ms ->
+    rows = listOf(10L, 20L, 30L, 35L, 45L, 50L).flatMap { ms ->
         listOf(60, 120, 255).map { amplitude ->
             HapticsLabRow("O-$ms-$amplitude") { vibrator.playAsTouch(VibrationEffect.createOneShot(ms, amplitude)) }
         }

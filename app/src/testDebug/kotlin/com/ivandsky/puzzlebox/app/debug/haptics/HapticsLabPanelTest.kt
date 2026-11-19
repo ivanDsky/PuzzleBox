@@ -51,7 +51,7 @@ class HapticsLabPanelTest {
         shadowOf(vibrator).setSupportedPrimitives(listOf(VibrationEffect.Composition.PRIMITIVE_CLICK))
         open()
 
-        listOf("P-TICK-T", "P-DOUBLE", "C-CLICK-0.6", "O-20-120", "W-30-100-30", "M-REJECT", "V-CLOCK_TICK", "V-KEYBOARD_TAP", "V-GESTURE_END")
+        listOf("P-TICK-T", "P-DOUBLE", "C-CLICK-0.6", "O-20-120", "O-35-120", "O-45-120", "W-30-100-30", "M-REJECT", "V-CLOCK_TICK", "V-KEYBOARD_TAP", "V-GESTURE_END")
             .forEach { composeRule.onNodeWithTag("debug.haptics.$it").assertExists() }
         composeRule.onNodeWithTag("debug.haptics.C-THUD-0.6").assertDoesNotExist()
         composeRule.onNodeWithText("hasAmplitudeControl", substring = true).assertExists()
