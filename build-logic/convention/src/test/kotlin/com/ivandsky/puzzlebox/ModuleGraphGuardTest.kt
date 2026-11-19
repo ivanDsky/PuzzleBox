@@ -5,6 +5,10 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
+private const val TOOLS_REASON =
+    "tools may depend on :core:game, non-UI games:*, :core:network and test-only :core:testing (ADR-0021)"
+private const val STORAGE_REASON = "storage and network modules are declared only by :core:data (ADR-0034)"
+
 /** Table-driven cases for every arm of [forbiddenEdgeReason], including the ADR-0021 `tools:*` arms. */
 class ModuleGraphGuardTest {
     @Test
@@ -26,33 +30,48 @@ class ModuleGraphGuardTest {
     }
 
     @Test
+    fun toolMayDependOnCoreNetwork() {
+        // The technique-index pass fetches the LinkedIn archive (ADR-0021 amended 2026-11-19).
+        assertNull(forbiddenEdgeReason(":tools:puzzle-cli", ":core:network", "implementation"))
+        assertNull(forbiddenEdgeReason(":tools:puzzle-cli", ":core:network", "testImplementation"))
+    }
+
+    @Test
+    fun theNetworkExceptionIsToolsOnly() {
+        assertEquals(STORAGE_REASON, forbiddenEdgeReason(":core:domain", ":core:network", "implementation"))
+        assertEquals(STORAGE_REASON, forbiddenEdgeReason(":feature:train:impl", ":core:network", "implementation"))
+        assertEquals(STORAGE_REASON, forbiddenEdgeReason(":backend:firebase", ":core:network", "implementation"))
+        assertEquals(STORAGE_REASON, forbiddenEdgeReason(":app", ":core:network", "implementation"))
+    }
+
+    @Test
     fun toolRejectsEveryOtherModuleFamily() {
         assertEquals(
-            "tools may depend on :core:game, non-UI games:* and test-only :core:testing (ADR-0021)",
+            TOOLS_REASON,
             forbiddenEdgeReason(":tools:puzzle-cli", ":games:zip-ui", "implementation"),
         )
         assertEquals(
-            "tools may depend on :core:game, non-UI games:* and test-only :core:testing (ADR-0021)",
+            TOOLS_REASON,
             forbiddenEdgeReason(":tools:puzzle-cli", ":core:data", "implementation"),
         )
         assertEquals(
-            "tools may depend on :core:game, non-UI games:* and test-only :core:testing (ADR-0021)",
+            TOOLS_REASON,
             forbiddenEdgeReason(":tools:puzzle-cli", ":core:game-ui", "implementation"),
         )
         assertEquals(
-            "tools may depend on :core:game, non-UI games:* and test-only :core:testing (ADR-0021)",
+            TOOLS_REASON,
             forbiddenEdgeReason(":tools:puzzle-cli", ":core:designsystem", "implementation"),
         )
         assertEquals(
-            "tools may depend on :core:game, non-UI games:* and test-only :core:testing (ADR-0021)",
+            TOOLS_REASON,
             forbiddenEdgeReason(":tools:puzzle-cli", ":feature:create:impl", "implementation"),
         )
         assertEquals(
-            "tools may depend on :core:game, non-UI games:* and test-only :core:testing (ADR-0021)",
+            TOOLS_REASON,
             forbiddenEdgeReason(":tools:puzzle-cli", ":backend:firebase", "implementation"),
         )
         assertEquals(
-            "tools may depend on :core:game, non-UI games:* and test-only :core:testing (ADR-0021)",
+            TOOLS_REASON,
             forbiddenEdgeReason(":tools:puzzle-cli", ":app", "implementation"),
         )
     }
@@ -181,16 +200,15 @@ class ModuleGraphGuardTest {
 
     @Test
     fun onlyCoreDataDeclaresStorage() {
-        val reason = "storage and network modules are declared only by :core:data (ADR-0034)"
         for (to in listOf(":core:database", ":core:datastore", ":core:network")) {
             assertNull(forbiddenEdgeReason(":core:data", to, "implementation"))
             assertNull(forbiddenEdgeReason(":app", to, "testImplementation"))
             assertNull(forbiddenEdgeReason(":app", to, "androidTestImplementation"))
-            assertEquals(reason, forbiddenEdgeReason(":app", to, "debugImplementation"))
-            assertEquals(reason, forbiddenEdgeReason(":app", to, "implementation"))
-            assertEquals(reason, forbiddenEdgeReason(":core:domain", to, "implementation"))
-            assertEquals(reason, forbiddenEdgeReason(":feature:play:impl", to, "testImplementation"))
-            assertEquals(reason, forbiddenEdgeReason(":backend:firebase", to, "implementation"))
+            assertEquals(STORAGE_REASON, forbiddenEdgeReason(":app", to, "debugImplementation"))
+            assertEquals(STORAGE_REASON, forbiddenEdgeReason(":app", to, "implementation"))
+            assertEquals(STORAGE_REASON, forbiddenEdgeReason(":core:domain", to, "implementation"))
+            assertEquals(STORAGE_REASON, forbiddenEdgeReason(":feature:play:impl", to, "testImplementation"))
+            assertEquals(STORAGE_REASON, forbiddenEdgeReason(":backend:firebase", to, "implementation"))
         }
     }
 
@@ -208,10 +226,9 @@ class ModuleGraphGuardTest {
             "nothing may depend on the composition root :app",
             forbiddenEdgeReason(":core:designsystem", ":app", "implementation"),
         )
-        assertEquals(
-            "tools may depend on :core:game, non-UI games:* and test-only :core:testing (ADR-0021)",
-            forbiddenEdgeReason(":tools:puzzle-cli", ":core:database", "implementation"),
-        )
+        for (storage in listOf(":core:database", ":core:datastore")) {
+            assertEquals(TOOLS_REASON, forbiddenEdgeReason(":tools:puzzle-cli", storage, "implementation"))
+        }
         assertEquals(
             "feature api modules may depend on :core:navigation and :core:model only",
             forbiddenEdgeReason(":feature:play:api", ":core:network", "implementation"),

@@ -85,11 +85,11 @@ the build instead of a review.
    - `:benchmark` → anything but `:app` through AGP's `testedApks` configuration, and any module →
      `:benchmark` (the Macrobenchmark module drives the installed benchmark APK);
    - any module outside `tools:*` → `tools:*`;
-   - `tools:*` → anything but `:core:game`, non-UI `games:*`, and `:core:testing` from test
-     configurations;
+   - `tools:*` → anything but `:core:game`, non-UI `games:*`, `:core:network` (ADR-0021
+     amendment 2026-11-19) and `:core:testing` from test configurations;
    - `:core:game-ui` and `games:*` → `:core:domain`, `:core:data` or `:core:result-ui` (ADR-0034);
    - anything but `:core:data` → `:core:database` / `:core:datastore` / `:core:network`, except
-     `:app` test configurations (ADR-0034);
+     `:app` test configurations (ADR-0034) and `tools:*` → `:core:network` (ADR-0021);
    - `:core:designsystem` → any module (ADR-0034).
 
    `:konsist` is a verification-only family (ADR-0009, [in-module structure rules](0009-in-module-structure-rules.md)):

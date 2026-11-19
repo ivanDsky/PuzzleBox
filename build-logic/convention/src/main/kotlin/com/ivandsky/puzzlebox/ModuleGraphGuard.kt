@@ -50,6 +50,8 @@ private val GUARDED_TASKS = setOf("check", "preBuild", "classes")
  * may not declare storage; `:backend:*` is unconstrained except for the storage arm.
  * The `:konsist` verification family has zero edges in either direction, test configurations
  * included, so its arms sit before the `:core:testing` test-configuration exemption.
+ * `tools:* -> :core:network` is the one edge into storage from outside `:core:data` and `:app`'s
+ * tests (ADR-0021 as amended 2026-11-19): the tools arm allows it and the storage arm exempts it.
  */
 internal fun forbiddenEdgeReason(from: String, to: String, configuration: String): String? {
     if (from == to) return null
@@ -68,13 +70,15 @@ internal fun forbiddenEdgeReason(from: String, to: String, configuration: String
 
         toPath[0] == "konsist" -> "nothing may depend on the verification module :konsist"
 
-        // tools:* (ADR-0021): runnable pure-JVM developer tools that ship nowhere.
+        // tools:* (ADR-0021): runnable pure-JVM developer tools that ship nowhere. :core:network
+        // carries the technique-index pass's throttled archive fetch (ADR-0021 amended 2026-11-19).
         toPath[0] == "tools" && fromPath[0] != "tools" ->
             "nothing may depend on a tools:* module (ADR-0021)"
         fromPath[0] == "tools" && !(to == ":core:game" ||
             (toPath[0] == "games" && !toPath[1].endsWith("-ui")) ||
+            to == ":core:network" ||
             (to == ":core:testing" && configuration.contains("test", ignoreCase = true))) ->
-            "tools may depend on :core:game, non-UI games:* and test-only :core:testing (ADR-0021)"
+            "tools may depend on :core:game, non-UI games:*, :core:network and test-only :core:testing (ADR-0021)"
 
         to == ":app" -> "nothing may depend on the composition root :app"
 
@@ -105,8 +109,11 @@ internal fun forbiddenEdgeReason(from: String, to: String, configuration: String
         (from == ":core:game-ui" || fromPath[0] == "games") && to in OFF_LIMITS_TO_PLAY_KIT ->
             "the play kit and games:* declare no edge to :core:domain, :core:data or :core:result-ui (ADR-0034)"
 
+        // tools:* -> :core:network passes the tools arm above and is exempt here; the tools arm has
+        // already rejected tools:* -> :core:database / :core:datastore with its own reason.
         to in STORAGE_MODULES && from != ":core:data" &&
-            !(from == ":app" && configuration.contains("test", ignoreCase = true)) ->
+            !(from == ":app" && configuration.contains("test", ignoreCase = true)) &&
+            !(fromPath[0] == "tools" && to == ":core:network") ->
             "storage and network modules are declared only by :core:data (ADR-0034)"
 
         from == ":core:designsystem" -> ":core:designsystem is the leaf; it depends on no module (ADR-0034)"
