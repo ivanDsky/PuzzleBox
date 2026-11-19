@@ -67,6 +67,7 @@ import com.ivandsky.puzzlebox.domain.ranks.GetPlayerActions
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
 import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
+import com.ivandsky.puzzlebox.domain.ranks.ObserveWindowRefresh
 import com.ivandsky.puzzlebox.game.DailySource
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
@@ -453,6 +454,7 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.viewModel("history.ranks.ReplayOptInViewModel"))
             assertNotNull(koin.viewModel("play.GamePageRankViewModel", GameId("zip")))
             assertNotNull(koin.get<ObserveRankWindow>())
+            assertNotNull(koin.get<ObserveWindowRefresh>())
             assertNotNull(koin.get<ObserveOverall>())
             assertNotNull(koin.get<GetPlayerActions>())
             assertNotNull(koin.get<ObserveResultRank>())
