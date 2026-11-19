@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.game.replay.GameReplay
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInPlay
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSolve
 import com.ivandsky.puzzlebox.game.replay.Timeline
+import com.ivandsky.puzzlebox.game.trainer.TechniqueWalker
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.SolveReplay
 
@@ -36,6 +37,7 @@ interface RendererModel
  *
  * [replay] is the game's optional solve-replay adapter (ADR-0008); null hides every replay surface.
  * [linkedInPlay] is the game's optional LinkedIn play encoder; null means no LinkedIn post for this game.
+ * [techniqueWalker] is the game's optional technique walker (the Trainer's per-puzzle technique counts); null = the game has no trainer.
  *
  * @param P the game's rules state (input to [rules] and [rendererModel])
  * @param S the game's persisted session type
@@ -54,10 +56,11 @@ class GamePlugin<P, S : GameSession, M : RendererModel>(
     val editor: GameEditor<*>? = null,
     val replay: GameReplay<S>? = null,
     val linkedInPlay: ((solve: LinkedInSolve<S>) -> LinkedInPlay?)? = null,
+    val techniqueWalker: TechniqueWalker? = null,
 ) {
     /** This plugin with [replay] in place of its own; every other member is shared, so a graph can bind a replay that asks a source. */
     fun withReplay(replay: GameReplay<S>?): GamePlugin<P, S, M> = GamePlugin(
-        definition, rules, session, score, stateOf, initialSession, refOf, playAgainSession, rendererModel, editor, replay, linkedInPlay,
+        definition, rules, session, score, stateOf, initialSession, refOf, playAgainSession, rendererModel, editor, replay, linkedInPlay, techniqueWalker,
     )
 
     /**

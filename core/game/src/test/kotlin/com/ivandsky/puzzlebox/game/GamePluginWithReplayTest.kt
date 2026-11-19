@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.game
 
 import com.ivandsky.puzzlebox.game.replay.CountingReplayGame
 import com.ivandsky.puzzlebox.game.replay.CountingReplayGame.Session
+import com.ivandsky.puzzlebox.game.trainer.TechniqueWalker
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Test
@@ -10,6 +11,7 @@ class GamePluginWithReplayTest {
 
     private val own = CountingReplayGame(goal = 3)
     private val other = CountingReplayGame(goal = 5)
+    private val walker = TechniqueWalker { emptyMap() }
 
     private val plugin: GamePlugin<TestGame.State, Session, TestGame.Model> = GamePlugin(
         TestGame.Definition,
@@ -27,6 +29,7 @@ class GamePluginWithReplayTest {
         playAgainSession = { cached, _ -> DecodeResult.Ok(cached.payload) },
         rendererModel = { state, _, lastVerdict -> TestGame.Model(state.solved, lastVerdict) },
         replay = own,
+        techniqueWalker = walker,
     )
 
     @Test
@@ -46,6 +49,13 @@ class GamePluginWithReplayTest {
         assertSame(plugin.rendererModel, swapped.rendererModel)
         assertSame(plugin.editor, swapped.editor)
         assertSame(plugin.linkedInPlay, swapped.linkedInPlay)
+        assertSame(plugin.techniqueWalker, swapped.techniqueWalker)
+    }
+
+    @Test
+    fun `withReplay keeps the technique walker`() {
+        assertSame(walker, plugin.withReplay(other).techniqueWalker)
+        assertSame(walker, plugin.withReplay(null).techniqueWalker)
     }
 
     @Test
