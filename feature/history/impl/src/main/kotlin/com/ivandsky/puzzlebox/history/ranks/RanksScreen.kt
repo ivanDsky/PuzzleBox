@@ -12,6 +12,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,8 +33,8 @@ import com.ivandsky.puzzlebox.resultui.board.DailyBoardRowModel
  * On [HistoryLayout.TwoPane] the hub is [RanksTwoPane] around the same stack, with no title menu, week strip or dots.
  * A day or window pick keeps the held board on screen until the next one answers ([rememberHeldBoard]); a held board's
  * rows open against the day and window it was picked from, not the new pick.
- * [tuneDefaults] is handed to the Tune sheet; null leaves its Defaults block out. The Tune and How ranks work sheets are owned here, so [RanksActions.onSheetOpen]
- * hears whether any Ranks sheet (those two or the [playerSheet]) is up.
+ * [tuneDefaults] is handed to the Tune sheet; null leaves its Defaults block out, and with the filter chips on ([RanksUiState.filterSheets]) the tune icon too.
+ * The Tune and How ranks work sheets are owned here, so [RanksActions.onSheetOpen] hears whether any Ranks sheet (those two, a filter chip's or the [playerSheet]) is up.
  * The whole hub sits in the shown board's world ([RanksWorld]), which blends to the next board's as the hub moves to it.
  */
 @Composable
@@ -50,7 +51,12 @@ internal fun RanksScreen(
     val shown = rememberHeldBoard(state)
     var tuning by rememberSaveable { mutableStateOf(false) }
     var howRanksWork by rememberSaveable { mutableStateOf(false) }
-    val sheetOpen = tuning || howRanksWork
+    // The filter chips' sheets are counted, not flagged: Who and When can each be up on their own.
+    var filterSheetsOpen by remember { mutableIntStateOf(0) }
+    val onFilterOpenChange = { open: Boolean -> filterSheetsOpen += if (open) 1 else -1 }
+    val sheetOpen = tuning || howRanksWork || filterSheetsOpen > 0
+    // With the chips on and no Defaults block, Tune would be an empty sheet: the chips are all of the tuning.
+    val onTune = { tuning = true }.takeUnless { state.filterSheets && tuneDefaults == null }
     val anySheetOpen = sheetOpen || playerSheet != null
     LaunchedEffect(anySheetOpen) { actions.onSheetOpen(anySheetOpen) }
     val source = remember(shown.board) { state }
@@ -68,14 +74,16 @@ internal fun RanksScreen(
             }
             Box(Modifier.weight(1f)) {
                 if (twoPane) {
-                    RanksTwoPane(shown, actions, scrub, leftScroll, scroll, onRowClick, refreshing, onTune = { tuning = true }, onHowRanksWork = { howRanksWork = true })
+                    RanksTwoPane(shown, actions, scrub, leftScroll, scroll, onRowClick, refreshing, onTune, onFilterOpenChange, onHowRanksWork = { howRanksWork = true })
                 } else {
-                    RanksPhone(shown, actions, scrub, scroll, onRowClick, refreshing, sheetOpen, onTune = { tuning = true }, onHowRanksWork = { howRanksWork = true })
+                    RanksPhone(shown, actions, scrub, scroll, onRowClick, refreshing, sheetOpen, onTune, onFilterOpenChange, onHowRanksWork = { howRanksWork = true })
                 }
             }
         }
     }
-    if (tuning) TuneSheet(shown.scope, shown.window, actions.onScope, actions.onWindow, onDismiss = { tuning = false }, defaults = tuneDefaults)
+    if (tuning) {
+        TuneSheet(shown.scope, shown.window, actions.onScope, actions.onWindow, onDismiss = { tuning = false }, defaults = tuneDefaults, filterSheets = shown.filterSheets)
+    }
     if (howRanksWork) HowRanksWorkSheet(onDismiss = { howRanksWork = false })
     playerSheet?.let {
         PlayerSheet(
@@ -109,7 +117,8 @@ private fun RanksPhone(
     onRowClick: ((DailyBoardRowModel) -> Unit)?,
     refreshing: Boolean,
     sheetOpen: Boolean,
-    onTune: () -> Unit,
+    onTune: (() -> Unit)?,
+    onFilterOpenChange: (Boolean) -> Unit,
     onHowRanksWork: () -> Unit,
 ) {
     val current = state.places.getOrNull(state.position)
@@ -118,9 +127,10 @@ private fun RanksPhone(
         Box(Modifier.fillMaxSize()) {
             FillRemainingColumn(Modifier.fillMaxSize().testTag("route.ranks").verticalScroll(scroll)) {
                 Column(Modifier.padding(start = Spacing.lg, top = Spacing.lg, end = Spacing.lg)) {
-                    RanksTopBar(tuneLabel(state.scope, state.window), onTune = onTune) {
+                    RanksTopBar(state.topBarLabel(), onTune = onTune) {
                         RanksTitleMenu(current?.name ?: "Ranks", state.places, current?.board, actions.onPickBoard, onHowRanksWork = onHowRanksWork, scrub = scrub)
                     }
+                    if (state.filterSheets) RanksFilterChips(state, actions, onFilterOpenChange)
                     RanksCalendar(state.calendar, state.stats, actions.onShowCalendar, actions.onSelectDay)
                 }
                 // The swipe area: everything under the calendar, and whatever is left of the screen below the board.

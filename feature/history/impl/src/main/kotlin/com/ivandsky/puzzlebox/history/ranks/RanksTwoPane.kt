@@ -46,7 +46,8 @@ private const val BOARD_WEIGHT = 0.6f
  * the same [RanksBoardStack]), so there is no title menu, week strip or dots here. The
  * calendar is always the month: the shared calendar's fold-to-week is turned back into a month at the door
  * ([RanksActions.onShowCalendar] only ever hears `expanded = true`). The hero card wears the shown board's accent; it,
- * the board's title and the board itself go to the next board's with the [scrub].
+ * the board's title and the board itself go to the next board's with the [scrub]. With [RanksUiState.filterSheets] the Who and When
+ * chips sit under the top bar, and [onFilterOpenChange] hears their sheets open and close; a null [onTune] leaves the tune icon out.
  */
 @Composable
 internal fun RanksTwoPane(
@@ -57,7 +58,8 @@ internal fun RanksTwoPane(
     rightScroll: ScrollState,
     onRowClick: ((DailyBoardRowModel) -> Unit)?,
     refreshing: Boolean,
-    onTune: () -> Unit,
+    onTune: (() -> Unit)?,
+    onFilterOpenChange: (Boolean) -> Unit,
     onHowRanksWork: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -86,7 +88,7 @@ internal fun RanksTwoPane(
         }
         RanksPullToRefresh(refreshing, actions.onRefresh, Modifier.weight(BOARD_WEIGHT).fillMaxHeight().padding(bottom = Spacing.lg)) {
             FillRemainingColumn(Modifier.fillMaxSize().verticalScroll(rightScroll).testTag("ranks.rightpane")) {
-                RanksTopBar(tuneLabel(state.scope, state.window), onTune = onTune) {
+                RanksTopBar(state.topBarLabel(), onTune = onTune) {
                     BoardScrubCell(scrub, state.position, state.board.title, Modifier.padding(start = Spacing.sm), at = { state.sliceAt(it)?.title }) { title ->
                         Text(
                             title,
@@ -96,6 +98,7 @@ internal fun RanksTwoPane(
                         )
                     }
                 }
+                if (state.filterSheets) RanksFilterChips(state, actions, onFilterOpenChange)
                 RanksBoardStack(state, scrub, actions, onRowClick) { jump ->
                     // The pane's one gap between its parts: Your solve brings its own under it, and is nothing when there is none.
                     RanksHeroCard(
