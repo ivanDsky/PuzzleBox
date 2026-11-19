@@ -14,6 +14,7 @@ import androidx.compose.ui.test.performTouchInput
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensSession
+import java.time.Duration
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -21,10 +22,11 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import org.robolectric.shadows.ShadowSystemClock
 
 /**
  * S2 on the real Queens board: each board change plays through the classifier. Each row is real gesture input on
- * the 4×4 fixture.
+ * the 4×4 fixture, a step slower than the shared tick gap (#1686), so every change that ticks is heard.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -54,6 +56,7 @@ class QueensBoardMoveHapticsTest {
     }
 
     private fun tapCell(row: Int, col: Int) {
+        ShadowSystemClock.advanceBy(PACE)
         composeRule.onNodeWithTag(BoardTag).performTouchInput {
             click(Offset(width * (col + 0.5f) / n, height * (row + 0.5f) / n))
         }
@@ -67,6 +70,7 @@ class QueensBoardMoveHapticsTest {
         val step = if (toCol >= fromCol) 1 else -1
         for (col in fromCol + step..toCol step step) {
             // One move per frame: the effect reads the session once per frame, as a finger does.
+            ShadowSystemClock.advanceBy(PACE)
             composeRule.onNodeWithTag(BoardTag).performTouchInput {
                 moveTo(Offset(width * (col + 0.5f) / n, height * (row + 0.5f) / n))
             }
@@ -132,5 +136,6 @@ class QueensBoardMoveHapticsTest {
 
     private companion object {
         const val BoardTag = "queens.haptics.board"
+        val PACE: Duration = Duration.ofMillis(100)
     }
 }
