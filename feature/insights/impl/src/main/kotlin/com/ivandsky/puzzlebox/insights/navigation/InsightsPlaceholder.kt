@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
-/** An empty page: the Insights hub, recap and stats routes show it until their screens land. Nothing opens them yet. */
+/** An empty page: the Insights stats route shows it until its screen lands. Nothing opens it yet. */
 @Composable
 internal fun InsightsPlaceholder() {
     Box(Modifier.fillMaxSize())

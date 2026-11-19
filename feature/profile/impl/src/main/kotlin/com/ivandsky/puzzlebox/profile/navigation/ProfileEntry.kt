@@ -20,7 +20,8 @@ import com.ivandsky.puzzlebox.profile.whatsnew.WhatsNewRoute
  * [onOpenWhatsNew] is Settings' What's new row. Settings uses [onOpenCatalog], the component catalog, an app-owned deep page, and [debugSections], the app's debug tools
  * (shown only in debuggable builds).
  * [visibility] (null: none) adds Settings' Visibility section.
- * [onOpenLinkedInLogin] opens the LinkedIn login; null hides Profile's LinkedIn row.
+ * [onOpenLinkedInLogin] opens the LinkedIn login; null hides Profile's LinkedIn row. [onOpenInsights] opens Insights; null
+ * hides Profile's Insights row.
  */
 fun EntryProviderScope<NavKey>.profileEntry(
     onOpenCatalog: () -> Unit,
@@ -28,11 +29,17 @@ fun EntryProviderScope<NavKey>.profileEntry(
     onOpenSettings: () -> Unit,
     onOpenWhatsNew: () -> Unit,
     onOpenLinkedInLogin: (() -> Unit)? = null,
+    onOpenInsights: (() -> Unit)? = null,
     debugSections: (@Composable () -> Unit)? = null,
     visibility: VisibilitySlot? = null,
 ) {
     entry<ProfileKey> {
-        ProfileRoute(onBack = onBack, onOpenSettings = onOpenSettings, onConnectLinkedIn = onOpenLinkedInLogin)
+        ProfileRoute(
+            onBack = onBack,
+            onOpenSettings = onOpenSettings,
+            onConnectLinkedIn = onOpenLinkedInLogin,
+            onOpenInsights = onOpenInsights,
+        )
     }
     entry<SettingsKey> {
         SettingsRoute(

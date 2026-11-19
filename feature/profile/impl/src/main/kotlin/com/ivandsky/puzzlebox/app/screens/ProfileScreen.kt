@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.profile.InsightsRow
 import com.ivandsky.puzzlebox.profile.ProfileAvatar
 import com.ivandsky.puzzlebox.profile.ProfileHeader
 import com.ivandsky.puzzlebox.profile.accounts.AccountsSection
@@ -26,7 +27,8 @@ import com.ivandsky.puzzlebox.profile.accounts.LinkedInActions
 /**
  * Profile (A20): the top bar (back icon at the left, [onOpenSettings] gear at the right),
  * then the header (avatar, name and "Playing since") and the Accounts card: the Google row, and the
- * LinkedIn row when [onConnectLinkedIn] is given (the feature is on). [nowMs] phrases the LinkedIn and sync update times.
+ * LinkedIn row when [onConnectLinkedIn] is given (the feature is on), then the Insights row when [onOpenInsights] is
+ * given. [nowMs] phrases the LinkedIn and sync update times.
  */
 @Composable
 internal fun ProfileContent(
@@ -41,6 +43,7 @@ internal fun ProfileContent(
     onDeleteSavedBoards: () -> Unit,
     modifier: Modifier = Modifier,
     onConnectLinkedIn: (() -> Unit)? = null,
+    onOpenInsights: (() -> Unit)? = null,
     onResumeLinkedIn: () -> Unit = {},
     onDisconnectLinkedIn: () -> Unit = {},
     onSetLinkedInPosting: (Boolean) -> Unit = {},
@@ -81,6 +84,7 @@ internal fun ProfileContent(
                 google = GoogleActions(onSignIn, onSignOut, onSyncNow, onDeleteCloudData),
                 linkedInActions = LinkedInActions(onConnectLinkedIn, onResumeLinkedIn, onDisconnectLinkedIn, onDeleteSavedBoards, onSetLinkedInPosting),
             )
+            if (onOpenInsights != null) InsightsRow(onClick = onOpenInsights)
         }
     }
 }
