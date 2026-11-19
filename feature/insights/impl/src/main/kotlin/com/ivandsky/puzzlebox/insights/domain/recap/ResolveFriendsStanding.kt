@@ -32,9 +32,11 @@ import kotlinx.coroutines.flow.first
  * - A year is [FriendsStanding.NotApplicable]: its branch reads the kept weekly rank history and arrives with the
  *   yearly recap (#1611).
  * - Signed out, or nothing played in the period: [FriendsStanding.NotApplicable] (A12), known locally.
- * - On days 1–3 of the month after the period's, the month just ended is still taking late results, so the state is
- *   [FriendsStanding.Settling] with the 4th straight away, and no board is read (A21). It matches the rule that makes a
- *   board final three UTC days after its puzzle day.
+ * - On days 1–3 of the month after the period's, the month just ended is still taking late results, so [start] is
+ *   [FriendsStanding.Settling] with the 4th straight away, with no wait (A21). It matches the rule that makes a board
+ *   final three UTC days after its puzzle day. The card needs no number to say that, but it still needs a friend to say
+ *   it to: the same read runs after, and a read that shows nobody but the viewer drops the card. A read that fails,
+ *   goes offline or times out leaves Settling as it is.
  * - Otherwise [FriendsStanding.Reading], and each game the viewer solved in the period is read through [friendsOverall]
  *   over the period's [RecapPeriod.rankWindow], one read per game, together. If no board shows anyone but the viewer
  *   the answer is [FriendsStanding.NotApplicable]. Else the best game is the one with the most points for the viewer; a
@@ -52,7 +54,8 @@ internal class ResolveFriendsStanding(
 
     /**
      * The state the story opens with for [period], from what the phone knows: [FriendsStanding.Reading] when [invoke]
-     * has a read to make, [FriendsStanding.Settling] or [FriendsStanding.NotApplicable] when it has not.
+     * has a read to make, [FriendsStanding.Settling] when the month is settling (the read then only checks for friends), or
+     * [FriendsStanding.NotApplicable] when the card does not apply.
      */
     fun start(period: RecapPeriod, played: List<GameId>): FriendsStanding {
         if (period.rankWindow == null || identity.current.value == null || played.isEmpty()) return FriendsStanding.NotApplicable
@@ -62,20 +65,24 @@ internal class ResolveFriendsStanding(
     /** The settled state for [period], reading the boards of the [played] games: those the viewer solved in it, in the app's game order. */
     suspend operator fun invoke(period: RecapPeriod, played: List<GameId>): FriendsStanding {
         val begun = start(period, played)
-        if (begun != FriendsStanding.Reading) return begun
+        if (begun == FriendsStanding.NotApplicable) return begun
         val window = period.rankWindow ?: return FriendsStanding.NotApplicable
         val viewer = identity.current.value?.uid ?: return FriendsStanding.NotApplicable
-        return guardedAsk(failures, TAG, "friends standing", timeout) { answer(window, viewer, played) } ?: FriendsStanding.Unavailable
+        val settling = begun as? FriendsStanding.Settling
+        return guardedAsk(failures, TAG, "friends standing", timeout) { answer(window, viewer, played, settling) }
+            ?: settling
+            ?: FriendsStanding.Unavailable
     }
 
-    private suspend fun answer(window: RankWindow, viewer: String, played: List<GameId>): FriendsStanding {
+    /** The answer from the reads; a [settling] month keeps its state unless the reads find no friends, as no number is needed. */
+    private suspend fun answer(window: RankWindow, viewer: String, played: List<GameId>, settling: FriendsStanding.Settling?): FriendsStanding {
         val reads = coroutineScope { played.map { game -> async { game to settled(window, game) } }.awaitAll() }
         val states = reads.map { it.second }
         return when {
             OverallState.SignedOut in states -> FriendsStanding.NotApplicable
-            states.any { it !is OverallState.Complete && it != OverallState.Empty } -> FriendsStanding.Unavailable
+            states.any { it !is OverallState.Complete && it != OverallState.Empty } -> settling ?: FriendsStanding.Unavailable
             states.none { state -> state.rows().any { it.uid != viewer } } -> FriendsStanding.NotApplicable
-            else -> best(reads, viewer)
+            else -> settling ?: best(reads, viewer)
         }
     }
 

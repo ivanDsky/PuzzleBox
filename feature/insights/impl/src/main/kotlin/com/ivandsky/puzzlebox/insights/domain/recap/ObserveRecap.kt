@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.flow
  *
  * The one network fact, the friends standing, is resolved outside those providers ([ResolveFriendsStanding]). The
  * first emission is the whole local story, out as soon as the history is read, with the friends card already in its
- * slot as [FriendsStanding.Reading] when it applies, so the story has the length it will keep. When the read answers, a
+ * slot as [FriendsStanding.Reading] (or [FriendsStanding.Settling]) when it applies, so the story has the length it will keep. When the read answers, a
  * second emission is the same story with that card settled in place; it is left out when nothing changed. Only an
  * answer that finds no friends takes the card out again.
  */
@@ -40,7 +40,7 @@ internal class ObserveRecap(
         val begun = resolveFriends.start(period, played)
         val localStory = story(local.copy(friends = begun))
         emit(localStory)
-        if (begun != FriendsStanding.Reading) return@flow
+        if (begun == FriendsStanding.NotApplicable) return@flow
         val settledStory = story(local.copy(friends = resolveFriends(period, played)))
         if (settledStory != localStory) emit(settledStory)
     }

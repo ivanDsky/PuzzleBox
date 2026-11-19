@@ -98,21 +98,30 @@ class ResolveFriendsStandingTest {
     }
 
     @Test
-    fun `on day 2 of the next month the answer is Settling on the 4th, with nothing read`() = runTest {
-        val answer = resolve(emptyMap(), today = "2026-12-02T12:00:00Z")(november, listOf(alpha))
+    fun `days 1 to 3 keep Settling while friends are on the boards, whatever their points, a LinkedIn-only friend included`() = runTest {
+        val answers = mapOf(alpha to flowOf(standings("me" to 250.0, "linkedin-friend" to 80.0)))
 
-        assertEquals(FriendsStanding.Settling(LocalDate.of(2026, 12, 4)), answer)
-        assertEquals(emptyList<Pair<RankWindow, List<GameId>>>(), reads)
-    }
-
-    @Test
-    fun `days 1 to 3 settle and the 4th shows the final result`() = runTest {
-        val answers = mapOf(alpha to flowOf(standings("me" to 250.0)))
-
-        listOf("2026-12-01T12:00:00Z", "2026-12-03T12:00:00Z").forEach { day ->
+        listOf("2026-12-01T12:00:00Z", "2026-12-02T12:00:00Z", "2026-12-03T12:00:00Z").forEach { day ->
             assertEquals(FriendsStanding.Settling(LocalDate.of(2026, 12, 4)), resolve(answers, today = day)(november, listOf(alpha)))
         }
         assertEquals(FriendsStanding.Loaded(alpha, 250.0), resolve(answers, today = "2026-12-04T12:00:00Z")(november, listOf(alpha)))
+    }
+
+    @Test
+    fun `days 1 to 3 with nobody but the viewer on the boards drop the card`() = runTest {
+        val answers = mapOf(alpha to flowOf(onlyMe(250.0)))
+
+        assertEquals(FriendsStanding.NotApplicable, resolve(answers, today = "2026-12-02T12:00:00Z")(november, listOf(alpha)))
+    }
+
+    @Test
+    fun `days 1 to 3 keep Settling when the read goes offline, fails or never answers`() = runTest {
+        val settling = FriendsStanding.Settling(LocalDate.of(2026, 12, 4))
+        val day = "2026-12-02T12:00:00Z"
+
+        assertEquals(settling, resolve(mapOf(alpha to flowOf(OverallState.Offline(standings = null))), today = day)(november, listOf(alpha)))
+        assertEquals(settling, resolve(mapOf(alpha to flow { throw IOException("boom") }), today = day)(november, listOf(alpha)))
+        assertEquals(settling, resolve(mapOf(alpha to flow { awaitCancellation() }), today = day, timeout = 1.seconds)(november, listOf(alpha)))
     }
 
     @Test

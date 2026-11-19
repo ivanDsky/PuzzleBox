@@ -250,13 +250,32 @@ class ObserveRecapTest {
     }
 
     @Test
-    fun `on day 2 of the next month the card says results settle on the 4th at once, with nothing read`() = runTest {
+    fun `on day 2 of the next month the card says results settle on the 4th at once and stays while friends are there`() = runTest {
         storeNovember()
-        val recap = friendsRecap(today = "2026-12-02T12:00:00Z") { error("a settling month reads no board") }
+        val gate = CompletableDeferred<Unit>()
+        val recap = friendsRecap(today = "2026-12-02T12:00:00Z") { flow { gate.await(); emit(standings(100.0)) } }
+        val settling = RecapCard.Friends(FriendsStanding.Settling(LocalDate.of(2026, 12, 4)))
 
         recap(november).test {
-            val story = awaitItem()
-            assertEquals(RecapCard.Friends(FriendsStanding.Settling(LocalDate.of(2026, 12, 4))), story[5])
+            assertEquals(settling, awaitItem()[5])
+            gate.complete(Unit)
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun `on day 2 of the next month a read that finds no friends takes the settling card out`() = runTest {
+        storeNovember()
+        val onlyMe = OverallState.Complete(
+            OverallStandings(listOf(OverallStandings.Row("me", "Me", place = 1, total = 50.0, games = 9, truncated = false))),
+        )
+        val recap = friendsRecap(today = "2026-12-02T12:00:00Z") { flowOf(onlyMe) }
+
+        recap(november).test {
+            val local = awaitItem()
+            assertEquals(RecapCard.Friends(FriendsStanding.Settling(LocalDate.of(2026, 12, 4))), local[5])
+            val settled = awaitItem()
+            assertEquals(local.filterNot { it is RecapCard.Friends }, settled)
             awaitComplete()
         }
     }
