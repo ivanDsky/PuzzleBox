@@ -4,9 +4,9 @@ import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.match.OutboxResult
 import com.ivandsky.puzzlebox.data.match.ResultPostState
-import com.ivandsky.puzzlebox.domain.FinishLeg
-import com.ivandsky.puzzlebox.domain.FinishResult
-import com.ivandsky.puzzlebox.domain.LegFinish
+import com.ivandsky.puzzlebox.play.domain.FinishLeg
+import com.ivandsky.puzzlebox.play.domain.FinishResult
+import com.ivandsky.puzzlebox.play.domain.LegFinish
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.game.CompletionRecord

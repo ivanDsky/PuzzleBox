@@ -20,8 +20,8 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
-import com.ivandsky.puzzlebox.domain.AuthorPin
-import com.ivandsky.puzzlebox.domain.CustomBoardView
+import com.ivandsky.puzzlebox.play.domain.AuthorPin
+import com.ivandsky.puzzlebox.play.domain.CustomBoardView
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
 

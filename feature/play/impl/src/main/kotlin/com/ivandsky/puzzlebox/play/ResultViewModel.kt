@@ -20,8 +20,8 @@ import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.domain.TodayEntry
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
-import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInPost
-import com.ivandsky.puzzlebox.domain.linkedin.SubmitLinkedInResult
+import com.ivandsky.puzzlebox.play.domain.linkedin.ObserveLinkedInPost
+import com.ivandsky.puzzlebox.play.domain.linkedin.SubmitLinkedInResult
 import com.ivandsky.puzzlebox.domain.nextthing.ObserveResultNextThing
 import com.ivandsky.puzzlebox.domain.nextUnsolved
 import com.ivandsky.puzzlebox.game.BestScore

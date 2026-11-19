@@ -5,9 +5,9 @@ import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
-import com.ivandsky.puzzlebox.domain.AuthorPin
-import com.ivandsky.puzzlebox.domain.ComputeCustomBoard
-import com.ivandsky.puzzlebox.domain.CustomBoardView
+import com.ivandsky.puzzlebox.play.domain.AuthorPin
+import com.ivandsky.puzzlebox.play.domain.ComputeCustomBoard
+import com.ivandsky.puzzlebox.play.domain.CustomBoardView
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
 import com.ivandsky.puzzlebox.play.board.BoardSignInHolder

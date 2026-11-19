@@ -10,9 +10,9 @@ import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
-import com.ivandsky.puzzlebox.domain.FinishLeg
+import com.ivandsky.puzzlebox.play.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.LoadPastDay
-import com.ivandsky.puzzlebox.domain.ObserveLegTarget
+import com.ivandsky.puzzlebox.play.domain.ObserveLegTarget
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.gameui.GamePlayController
@@ -78,8 +78,6 @@ class TangoCompeteLoopTest {
             single<ReceivedPuzzleRepository> { FakeReceivedPuzzleRepository() }
             single<SharedPuzzleRepository> { FakeSharedPuzzleRepository() }
             single<MatchRepository> { FakeMatchRepository() }
-            factory { FinishLeg(FakeMatchResultOutbox(), FakeSelfMatchRepository(), FakeIdentityService()) { Instant.EPOCH } }
-            factory { ObserveLegTarget(FakeSelfMatchRepository(), FakeUserPreferencesRepository()) }
             single<SavedPlayRepository> { FakeSavedPlayRepository() }
             single<GameCalendar> { FakeGameCalendar(TangoDefinition.cadence.today()) }
             single<DispatcherProvider> {
@@ -98,7 +96,12 @@ class TangoCompeteLoopTest {
                 com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository(seen = setOf(TangoDefinition.id))
             }
         }
-        val store = koinApplication { modules(fakes, playModule) }.koin.get<PlaySessionStore>()
+        // After playModule, whose own FinishLeg and ObserveLegTarget would replace these.
+        val legs = module {
+            factory { FinishLeg(FakeMatchResultOutbox(), FakeSelfMatchRepository(), FakeIdentityService()) { Instant.EPOCH } }
+            factory { ObserveLegTarget(FakeSelfMatchRepository(), FakeUserPreferencesRepository()) }
+        }
+        val store = koinApplication { modules(fakes, playModule, legs) }.koin.get<PlaySessionStore>()
         val play = store.open(GameKey(TangoDefinition.id.value))!!
         val s = play.controller as TangoPlayController
 

@@ -32,13 +32,13 @@ import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.ComputeStreak
-import com.ivandsky.puzzlebox.domain.FinishLeg
+import com.ivandsky.puzzlebox.play.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
-import com.ivandsky.puzzlebox.domain.ObserveLegTarget
+import com.ivandsky.puzzlebox.play.domain.ObserveLegTarget
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
@@ -139,8 +139,6 @@ class PlayBoardPositionTest {
                     single<ReceivedPuzzleRepository> { FakeReceivedPuzzleRepository() }
                     single<SharedPuzzleRepository> { FakeSharedPuzzleRepository() }
                     single<MatchRepository> { FakeMatchRepository() }
-                    factory { FinishLeg(FakeMatchResultOutbox(), FakeSelfMatchRepository(), FakeIdentityService()) { Instant.EPOCH } }
-                    factory { ObserveLegTarget(FakeSelfMatchRepository(), FakeUserPreferencesRepository()) }
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
                     single<ReleaseFlags> { FakeReleaseFlags() }
                     single<GameCalendar> { FakeGameCalendar(cadenceToday) }
@@ -160,6 +158,11 @@ class PlayBoardPositionTest {
                 },
                 module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
+                // After playModule, whose own FinishLeg and ObserveLegTarget would replace these.
+                module {
+                    factory { FinishLeg(FakeMatchResultOutbox(), FakeSelfMatchRepository(), FakeIdentityService()) { Instant.EPOCH } }
+                    factory { ObserveLegTarget(FakeSelfMatchRepository(), FakeUserPreferencesRepository()) }
+                },
                 module { single { ObserveFriendDay.Binding(reader = null) } }, // no Friends/Global setting
             )
         }

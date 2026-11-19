@@ -1,8 +1,8 @@
 package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
-import com.ivandsky.puzzlebox.domain.FinishLeg
-import com.ivandsky.puzzlebox.domain.LegFinish
+import com.ivandsky.puzzlebox.play.domain.FinishLeg
+import com.ivandsky.puzzlebox.play.domain.LegFinish
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.ShareCode

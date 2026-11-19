@@ -2,8 +2,8 @@ package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInPostState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInPostView
-import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInPost
-import com.ivandsky.puzzlebox.domain.linkedin.SubmitLinkedInResult
+import com.ivandsky.puzzlebox.play.domain.linkedin.ObserveLinkedInPost
+import com.ivandsky.puzzlebox.play.domain.linkedin.SubmitLinkedInResult
 import com.ivandsky.puzzlebox.gameui.LinkedInPostRowState
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate

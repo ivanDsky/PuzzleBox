@@ -12,8 +12,8 @@ import com.ivandsky.puzzlebox.data.match.SelfSeats
 import com.ivandsky.puzzlebox.data.match.isSelf
 import com.ivandsky.puzzlebox.data.match.mySeat
 import com.ivandsky.puzzlebox.data.match.seatFor
-import com.ivandsky.puzzlebox.domain.FinishResult
-import com.ivandsky.puzzlebox.domain.ObserveLegTarget
+import com.ivandsky.puzzlebox.play.domain.FinishResult
+import com.ivandsky.puzzlebox.play.domain.ObserveLegTarget
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.MatchLegKey
 import com.ivandsky.puzzlebox.play.api.MatchLegResultKey

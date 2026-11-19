@@ -1,6 +1,6 @@
 package com.ivandsky.puzzlebox.play
 
-import com.ivandsky.puzzlebox.domain.DeleteReceivedPuzzle
+import com.ivandsky.puzzlebox.play.domain.DeleteReceivedPuzzle
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.ShareCode

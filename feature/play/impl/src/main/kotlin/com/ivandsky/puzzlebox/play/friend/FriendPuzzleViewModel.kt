@@ -9,11 +9,11 @@ import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.ReportResult
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
-import com.ivandsky.puzzlebox.domain.CustomBoardView
+import com.ivandsky.puzzlebox.play.domain.CustomBoardView
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.domain.OpenOutcome
-import com.ivandsky.puzzlebox.domain.ReportPuzzle
-import com.ivandsky.puzzlebox.domain.SyncReceivedStatus
+import com.ivandsky.puzzlebox.play.domain.ReportPuzzle
+import com.ivandsky.puzzlebox.play.domain.SyncReceivedStatus
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry

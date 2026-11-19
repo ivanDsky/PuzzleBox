@@ -21,7 +21,7 @@ import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
 
 import com.ivandsky.puzzlebox.domain.ComputeStreak
-import com.ivandsky.puzzlebox.domain.FinishLeg
+import com.ivandsky.puzzlebox.play.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
@@ -35,8 +35,8 @@ import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
-import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInPost
-import com.ivandsky.puzzlebox.domain.linkedin.SubmitLinkedInResult
+import com.ivandsky.puzzlebox.play.domain.linkedin.ObserveLinkedInPost
+import com.ivandsky.puzzlebox.play.domain.linkedin.SubmitLinkedInResult
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.gameui.SamePuzzleSolves

@@ -9,7 +9,7 @@ import com.ivandsky.puzzlebox.data.repository.CommunityFilter
 import com.ivandsky.puzzlebox.data.repository.CommunityListResult
 import com.ivandsky.puzzlebox.data.repository.ReportResult
 import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
-import com.ivandsky.puzzlebox.domain.ReportPuzzle
+import com.ivandsky.puzzlebox.play.domain.ReportPuzzle
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId

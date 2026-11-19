@@ -15,8 +15,8 @@ import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
-import com.ivandsky.puzzlebox.domain.ReportPuzzle
-import com.ivandsky.puzzlebox.domain.SyncReceivedStatus
+import com.ivandsky.puzzlebox.play.domain.ReportPuzzle
+import com.ivandsky.puzzlebox.play.domain.SyncReceivedStatus
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry

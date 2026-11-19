@@ -4,9 +4,9 @@ import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
-import com.ivandsky.puzzlebox.domain.FinishLeg
-import com.ivandsky.puzzlebox.domain.FinishResult
-import com.ivandsky.puzzlebox.domain.LegFinish
+import com.ivandsky.puzzlebox.play.domain.FinishLeg
+import com.ivandsky.puzzlebox.play.domain.FinishResult
+import com.ivandsky.puzzlebox.play.domain.LegFinish
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.game.replay.MoveLog
