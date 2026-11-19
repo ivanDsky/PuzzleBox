@@ -7,14 +7,3 @@ core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/SyncSolvesCounts.kt  #
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/UpdatePublishState.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ValidatePublish.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ValidatePublishDetails.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ranks/GameWindowStandings.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ranks/GetPlayerActions.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ranks/ObserveOverall.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ranks/ObserveRankWindow.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ranks/ObserveWindowRefresh.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ranks/OverallStandings.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ranks/OverallState.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ranks/PlayerActions.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ranks/RankScope.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ranks/UnofficialPlace.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ranks/ViewerStanding.kt  # P14

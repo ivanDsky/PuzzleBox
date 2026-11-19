@@ -25,9 +25,9 @@ import com.ivandsky.puzzlebox.designsystem.AppModalBottomSheet
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.domain.ranks.PlayerActions
-import com.ivandsky.puzzlebox.domain.ranks.PlayerActions.Challenge
-import com.ivandsky.puzzlebox.domain.ranks.PlayerActions.Watch
+import com.ivandsky.puzzlebox.history.domain.ranks.PlayerActions
+import com.ivandsky.puzzlebox.history.domain.ranks.PlayerActions.Challenge
+import com.ivandsky.puzzlebox.history.domain.ranks.PlayerActions.Watch
 import com.ivandsky.puzzlebox.history.ranks.PlayerSheetViewModel.Challenge as ChallengeStatus
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate

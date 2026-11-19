@@ -1,4 +1,6 @@
-package com.ivandsky.puzzlebox.domain.ranks
+package com.ivandsky.puzzlebox.history.domain.ranks
+
+import com.ivandsky.puzzlebox.domain.ranks.amongFriends
 
 /**
  * Whom a board ranks. [Global] is everyone on it. [Friends] ranks the viewer and their friends among themselves

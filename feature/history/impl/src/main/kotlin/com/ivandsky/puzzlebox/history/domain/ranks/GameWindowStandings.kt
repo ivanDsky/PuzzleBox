@@ -1,5 +1,6 @@
-package com.ivandsky.puzzlebox.domain.ranks
+package com.ivandsky.puzzlebox.history.domain.ranks
 
+import com.ivandsky.puzzlebox.domain.ranks.RankedBoard
 import com.ivandsky.puzzlebox.game.RankOrder
 
 /** Players ranked on one game over a window by their average solve (A36). */

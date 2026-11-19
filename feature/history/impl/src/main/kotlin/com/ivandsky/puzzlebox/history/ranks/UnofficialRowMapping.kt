@@ -3,10 +3,10 @@ package com.ivandsky.puzzlebox.history.ranks
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.domain.ranks.BoardLoad
 import com.ivandsky.puzzlebox.domain.ranks.RankWindowBoards
-import com.ivandsky.puzzlebox.domain.ranks.ViewerStanding
-import com.ivandsky.puzzlebox.domain.ranks.viewerStanding
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.history.HistoryDayRow
+import com.ivandsky.puzzlebox.history.domain.ranks.ViewerStanding
+import com.ivandsky.puzzlebox.history.domain.ranks.viewerStanding
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardLine
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardRowModel

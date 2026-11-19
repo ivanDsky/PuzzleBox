@@ -8,9 +8,9 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.ranks.PlayerActions
-import com.ivandsky.puzzlebox.domain.ranks.PlayerActions.Challenge
-import com.ivandsky.puzzlebox.domain.ranks.PlayerActions.Watch
+import com.ivandsky.puzzlebox.history.domain.ranks.PlayerActions
+import com.ivandsky.puzzlebox.history.domain.ranks.PlayerActions.Challenge
+import com.ivandsky.puzzlebox.history.domain.ranks.PlayerActions.Watch
 import com.ivandsky.puzzlebox.history.ranks.PlayerSheetViewModel.Challenge as ChallengeStatus
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate

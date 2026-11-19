@@ -35,7 +35,7 @@ fun rankFriendBoard(
 /**
  * These boards as the Friends scope ranks them (F18, F21): every loaded board is its [friendBoard] among [players],
  * with the LinkedIn day the phone has saved for it in [days] counted on it; a board without a saved day counts
- * friends only. Ranking the result with [rankBoard], [overall] or [gameWindowStandings] then gives places 1..n among
+ * friends only. Ranking the result with [rankBoard], `overall` or `gameWindowStandings` then gives places 1..n among
  * them, with N those who played, so percentile points and Overall are the friends' own.
  */
 fun RankWindowBoards.amongFriends(

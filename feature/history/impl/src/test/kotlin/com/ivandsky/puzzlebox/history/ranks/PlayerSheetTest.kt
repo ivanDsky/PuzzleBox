@@ -13,10 +13,10 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
-import com.ivandsky.puzzlebox.domain.ranks.PlayerActions
-import com.ivandsky.puzzlebox.domain.ranks.PlayerActions.Challenge
-import com.ivandsky.puzzlebox.domain.ranks.PlayerActions.Watch
 import com.ivandsky.puzzlebox.game.RankOrder
+import com.ivandsky.puzzlebox.history.domain.ranks.PlayerActions
+import com.ivandsky.puzzlebox.history.domain.ranks.PlayerActions.Challenge
+import com.ivandsky.puzzlebox.history.domain.ranks.PlayerActions.Watch
 import com.ivandsky.puzzlebox.history.ranks.PlayerSheetViewModel.Challenge as ChallengeStatus
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardState

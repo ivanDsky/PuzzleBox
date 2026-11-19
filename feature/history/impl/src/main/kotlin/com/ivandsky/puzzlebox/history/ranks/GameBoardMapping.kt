@@ -1,11 +1,11 @@
 package com.ivandsky.puzzlebox.history.ranks
 
 import com.ivandsky.puzzlebox.domain.ranks.BoardLoad
-import com.ivandsky.puzzlebox.domain.ranks.GameWindowStandings
-import com.ivandsky.puzzlebox.domain.ranks.OverallStandings
+import com.ivandsky.puzzlebox.history.domain.ranks.GameWindowStandings
+import com.ivandsky.puzzlebox.history.domain.ranks.OverallStandings
 import com.ivandsky.puzzlebox.domain.ranks.RankWindowBoards
 import com.ivandsky.puzzlebox.domain.ranks.RankedBoard
-import com.ivandsky.puzzlebox.domain.ranks.gameWindowStandings
+import com.ivandsky.puzzlebox.history.domain.ranks.gameWindowStandings
 import com.ivandsky.puzzlebox.domain.ranks.connectionUid
 import com.ivandsky.puzzlebox.domain.ranks.rankBoard
 import com.ivandsky.puzzlebox.game.RankOrder

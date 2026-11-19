@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.history.ranks
 
 import androidx.lifecycle.SavedStateHandle
-import com.ivandsky.puzzlebox.domain.ranks.RankScope
+import com.ivandsky.puzzlebox.history.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 

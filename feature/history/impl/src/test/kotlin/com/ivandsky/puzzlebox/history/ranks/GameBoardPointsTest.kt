@@ -15,11 +15,11 @@ import com.ivandsky.puzzlebox.domain.ranks.connectionUid
 import com.ivandsky.puzzlebox.domain.ranks.percentilePoints
 import com.ivandsky.puzzlebox.domain.ranks.pointsBeyondPage
 import com.ivandsky.puzzlebox.domain.ranks.rankBoard
-import com.ivandsky.puzzlebox.domain.ranks.windowStandings
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.history.HistoryTestSupport
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
+import com.ivandsky.puzzlebox.history.domain.ranks.windowStandings
 import com.ivandsky.puzzlebox.history.ranks.RanksSelection.Window
 import com.ivandsky.puzzlebox.resultui.board.BoardRowValue
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardRowModel

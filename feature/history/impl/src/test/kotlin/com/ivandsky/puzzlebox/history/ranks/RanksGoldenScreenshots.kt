@@ -2,9 +2,9 @@ package com.ivandsky.puzzlebox.history.ranks
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
-import com.ivandsky.puzzlebox.domain.ranks.OverallStandings
-import com.ivandsky.puzzlebox.domain.ranks.OverallState
-import com.ivandsky.puzzlebox.domain.ranks.RankScope
+import com.ivandsky.puzzlebox.history.domain.ranks.OverallStandings
+import com.ivandsky.puzzlebox.history.domain.ranks.OverallState
+import com.ivandsky.puzzlebox.history.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.history.CalendarState
