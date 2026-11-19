@@ -296,6 +296,24 @@ class ComputePeriodFactsTest {
     }
 
     @Test
+    fun `a frozen streak from the 28th of last month to the 3rd counts three days and only this month's freeze`() = runTest {
+        // Oct 28-Nov 3 is one streak with Oct 30 and Nov 2 frozen; November holds Nov 1-3 and the Nov 2 freeze.
+        fixture.store(
+            fixture.solve(alpha, day(10, 28)),
+            fixture.solve(alpha, day(10, 29)),
+            fixture.solve(alpha, day(10, 31)),
+            fixture.solve(alpha, day(11, 1)),
+            fixture.solve(alpha, day(11, 3)),
+        )
+
+        val facts = facts(november)
+
+        assertEquals(StreakRun(day(11, 1), day(11, 3), setOf(day(11, 2))), facts.longestStreak)
+        assertEquals(3, facts.longestStreak?.days)
+        assertEquals(1, facts.freezesSpent)
+    }
+
+    @Test
     fun `a late import changes the frozen days`() = runTest {
         fixture.store(fixture.solve(alpha, day(11, 1)), fixture.solve(alpha, day(11, 3)))
         assertEquals(1, facts(november).freezesSpent)

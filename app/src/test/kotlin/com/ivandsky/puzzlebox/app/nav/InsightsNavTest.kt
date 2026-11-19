@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.app.nav
 
+import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.visibility.OwnTier
@@ -10,6 +11,8 @@ import com.ivandsky.puzzlebox.insights.api.InsightsKey
 import com.ivandsky.puzzlebox.insights.api.InsightsRecapKey
 import com.ivandsky.puzzlebox.insights.flags.InsightsFlag
 import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.play.api.PlayKey
+import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import com.ivandsky.puzzlebox.profile.settings.VisibilitySlot
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
@@ -61,6 +64,39 @@ class InsightsNavTest {
 
         assertTrue(navigator.pop())
         assertEquals(listOf(ProfileKey, InsightsKey), navigator.state.layer)
+    }
+
+    @Test
+    fun `a recap's replay opens on the Games tab by its placement and closes the layer`() {
+        val origin = navigator.state.tab
+        navigator.pushLayer(ProfileKey)
+        navigator.pushLayer(InsightsKey)
+        navigator.pushLayer(InsightsRecapKey("2026-11"))
+        val replay = ReplayKey.daily("zip", "2026-11-03", puzzleNumber = 12, latest = false)
+
+        openRecapReplay(navigator)(replay)
+
+        assertEquals(Placement(Home.PushedOn(Tab.Games), Chrome.Immersive), placementOf(replay))
+        assertEquals(PlayKey, navigator.state.tab)
+        assertEquals(listOf<NavKey>(PlayKey, replay), navigator.state.currentStack)
+        assertEquals(emptyList<NavKey>(), navigator.state.layer)
+        assertEquals(replay, navigator.state.visibleKeys.last())
+
+        assertTrue(navigator.pop())
+        assertEquals(origin, navigator.state.tab)
+        assertEquals(emptyList<NavKey>(), navigator.state.layer)
+        assertEquals(listOf<NavKey>(PlayKey, replay), navigator.state.stackOf(PlayKey))
+    }
+
+    @Test
+    fun `opening the same replay twice leaves one replay on the stack`() {
+        navigator.pushLayer(InsightsRecapKey("2026-11"))
+        val replay = ReplayKey.daily("zip", "2026-11-03", puzzleNumber = 12, latest = false)
+
+        openRecapReplay(navigator)(replay)
+        openRecapReplay(navigator)(replay)
+
+        assertEquals(listOf<NavKey>(PlayKey, replay), navigator.state.currentStack)
     }
 
     @Test
