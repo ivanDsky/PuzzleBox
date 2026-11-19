@@ -11,7 +11,7 @@ import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.LoadSolveReplay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
-import com.ivandsky.puzzlebox.domain.ObserveResultInsights
+import com.ivandsky.puzzlebox.play.domain.ObserveResultInsights
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.ResultInsights

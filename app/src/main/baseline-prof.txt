@@ -24977,7 +24977,7 @@ SPLcom/ivandsky/puzzlebox/domain/ObserveMyDuels$invoke$$inlined$map$1$2;->emit(L
 Lcom/ivandsky/puzzlebox/domain/ObserveMyDuels$invoke$$inlined$map$1$2$1;
 SPLcom/ivandsky/puzzlebox/domain/ObserveMyDuels$invoke$$inlined$map$1$2$1;-><init>(Lcom/ivandsky/puzzlebox/domain/ObserveMyDuels$invoke$$inlined$map$1$2;Lkotlin/coroutines/Continuation;)V
 Lcom/ivandsky/puzzlebox/play/domain/ObservePlayStats;
-Lcom/ivandsky/puzzlebox/domain/ObserveResultInsights;
+Lcom/ivandsky/puzzlebox/play/domain/ObserveResultInsights;
 Lcom/ivandsky/puzzlebox/domain/ObserveResultRank;
 SPLcom/ivandsky/puzzlebox/domain/ObserveResultRank;-><init>(Lcom/ivandsky/puzzlebox/domain/ObserveLeaderboard;Lcom/ivandsky/puzzlebox/game/GameRegistry;Lcom/ivandsky/puzzlebox/domain/ranks/ObserveFriendDay;)V
 Lcom/ivandsky/puzzlebox/domain/ObserveTodaySet;

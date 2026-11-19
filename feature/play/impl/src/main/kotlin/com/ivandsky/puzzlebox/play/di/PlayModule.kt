@@ -7,7 +7,7 @@ import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.play.domain.DeleteReceivedPuzzle
 import com.ivandsky.puzzlebox.domain.ObserveFriendPuzzles
-import com.ivandsky.puzzlebox.domain.ObserveResultInsights
+import com.ivandsky.puzzlebox.play.domain.ObserveResultInsights
 import com.ivandsky.puzzlebox.domain.nextthing.ObserveResultNextThing
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.gameui.flags.GameUiFlag
@@ -65,10 +65,10 @@ import org.koin.dsl.module
  * (ADR-0001: one registration per game); the repositories (the tutorial-seen preferences
  * included) and the calendar from :core:data's dataModule, and the shared use cases (today's
  * set, history, stats, the rollover) from :core:domain's domainModule. The result's insights
- * and next thing are :core:domain use cases defined here: their Boolean follows
- * [PlayFlag.ResultHeroPolish], and :core:domain reads no flag (ADR-0022). The tablet stats
- * panel's identity and leaderboard come from the backend module. This module names no game;
- * friend puzzles' wiring is [friendModule], From friends' [ObserveFriendPuzzles] and
+ * ([ObserveResultInsights], Play's own) and next thing (a :core:domain use case) are defined
+ * here: their Boolean follows [PlayFlag.ResultHeroPolish], and :core:domain reads no flag
+ * (ADR-0022). The tablet stats panel's identity and leaderboard come from the backend module.
+ * This module names no game; friend puzzles' wiring is [friendModule], From friends' [ObserveFriendPuzzles] and
  * [DeleteReceivedPuzzle] are here, as are Play's own use cases: the archive month and progress,
  * the tablet stats panel's [ObservePlayStats], a duel leg's [FinishLeg] and [ObserveLegTarget],
  * Report's [ReportPuzzle], the result's LinkedIn post ([ObserveLinkedInPost], [SubmitLinkedInResult]),

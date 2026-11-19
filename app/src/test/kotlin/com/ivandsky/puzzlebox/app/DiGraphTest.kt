@@ -41,7 +41,7 @@ import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.play.domain.ObserveLegTarget
 import com.ivandsky.puzzlebox.play.domain.ObservePlayStats
-import com.ivandsky.puzzlebox.domain.ObserveResultInsights
+import com.ivandsky.puzzlebox.play.domain.ObserveResultInsights
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.play.domain.ReportPuzzle
