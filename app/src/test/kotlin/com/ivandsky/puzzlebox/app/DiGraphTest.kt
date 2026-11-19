@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.app
 
 import androidx.lifecycle.SavedStateHandle
+import com.ivandsky.puzzlebox.app.insights.RankHistoryStarter
 import com.ivandsky.puzzlebox.app.leaderboard.DailyReplayPublisher
 import com.ivandsky.puzzlebox.app.screens.ProfileViewModel
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
@@ -63,6 +64,8 @@ import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
+import com.ivandsky.puzzlebox.domain.insights.rankhistory.ObserveRankHistory
+import com.ivandsky.puzzlebox.domain.insights.rankhistory.SyncRankHistory
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
@@ -470,6 +473,28 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<GetPlayerActions>())
             assertNotNull(koin.get<ObserveResultRank>())
             assertNotNull(koin.get<ObserveResultNextThing>())
+        } finally {
+            stopKoin()
+        }
+    }
+
+    /** The rank history filler and its reader are domain bindings; the starter is the app's own. */
+    @Test
+    fun `the rank history filler resolves off the real graph`() {
+        val koinApp = startKoin {
+            androidContext(RuntimeEnvironment.getApplication())
+            modules(
+                PuzzleBoxApplication.appModules + module {
+                    single<IdentityService> { FakeIdentityService() }
+                    single<ReleaseFlags> { FakeReleaseFlags() }
+                },
+            )
+        }
+        try {
+            val koin = koinApp.koin
+            assertNotNull(koin.get<SyncRankHistory>())
+            assertNotNull(koin.get<ObserveRankHistory>())
+            assertNotNull(koin.get<RankHistoryStarter>())
         } finally {
             stopKoin()
         }

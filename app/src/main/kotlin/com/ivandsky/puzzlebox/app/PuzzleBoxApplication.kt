@@ -4,6 +4,7 @@ import android.app.Application
 import com.ivandsky.puzzlebox.app.di.appModule
 import com.ivandsky.puzzlebox.app.di.buildTypeReleaseFlagsModule
 import com.ivandsky.puzzlebox.app.di.reminderModule
+import com.ivandsky.puzzlebox.app.insights.RankHistoryStarter
 import com.ivandsky.puzzlebox.app.leaderboard.CustomBoardSubmitter
 import com.ivandsky.puzzlebox.app.leaderboard.DailyReplayPublisher
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
@@ -66,6 +67,8 @@ class PuzzleBoxApplication : Application() {
         koin.get<MatchResultPoster>().start()
         // Daily replays: an accepted solve's replay goes public only on the Replays tier.
         koin.get<DailyReplayPublisher>().start()
+        // The weekly rank history (Insights): filled only while the stats page or the year recap is on.
+        koin.get<RankHistoryStarter>().start()
         // Cloud sync: the one place that starts runs besides "Sync now".
         koin.get<CloudSyncRunner>().start()
         // The daily reminder: follows the stored choice and the foreground.
