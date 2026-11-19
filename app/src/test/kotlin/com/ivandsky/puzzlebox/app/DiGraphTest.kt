@@ -34,7 +34,9 @@ import com.ivandsky.puzzlebox.data.cloud.OwnerScope
 import com.ivandsky.puzzlebox.data.cloud.SavedBoardsCloud
 import com.ivandsky.puzzlebox.data.cloud.SignedInOwnerScope
 import com.ivandsky.puzzlebox.data.cloud.SyncStateStore
+import com.ivandsky.puzzlebox.gameui.flags.GameUiFlag
 import com.ivandsky.puzzlebox.data.cloud.SyncedKind
+import com.ivandsky.puzzlebox.data.cloud.SyncedKinds
 import com.ivandsky.puzzlebox.data.di.MatchRemote
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -569,7 +571,10 @@ class DiGraphTest : KoinTest {
         }
     }
 
-    /** The five app-database kinds and the boards kind are bound, and saved boards can be deleted everywhere. */
+    /**
+     * The five app-database kinds and the boards kind are bound, and saved boards can be deleted everywhere. With every
+     * Train flag off the trainer kind is not among them: the plain definition is not a `SyncedKind` of its own accord.
+     */
     @Test
     fun `the boards kind and saved-board deletion are bound`() {
         val koinApp = startCloud()
@@ -582,6 +587,10 @@ class DiGraphTest : KoinTest {
                 listOf("boards", "completions", "drafts", "published", "received", "replays", "reveals"),
                 koin.getAll<SyncedKind>().map { it.kind }.sorted(),
             )
+            assertEquals(
+                listOf("boards", "completions", "drafts", "published", "received", "replays", "reveals"),
+                koin.get<SyncedKinds>().all.map { it.kind }.sorted(),
+            )
             assertNotNull(koin.get<SavedBoardsCloud>())
             assertNotNull(koin.get<LinkedInDays>())
             assertNotNull(koin.get<LinkedInAccount>())
@@ -590,6 +599,27 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<CloudSyncRunner>())
         } finally {
             stopKoin()
+        }
+    }
+
+    /** Any one Train flag puts the trainer kind in the list the engine, the runner and the erase share. */
+    @Test
+    fun `the trainer kind joins the sync graph while any Train flag is on`() {
+        for (flag in listOf(GameUiFlag.TrainQueens, GameUiFlag.TrainTango, GameUiFlag.TrainSudoku)) {
+            val koinApp = startCloud(flags = FakeReleaseFlags(flag))
+            try {
+                val koin = koinApp.koin
+                PuzzleBoxApplication.prepareCloudSync(koin)
+                assertEquals(
+                    "$flag",
+                    listOf("boards", "completions", "drafts", "published", "received", "replays", "reveals", "trainer"),
+                    koin.get<SyncedKinds>().all.map { it.kind }.sorted(),
+                )
+                assertNotNull(koin.get<CloudSync>())
+                assertNotNull(koin.get<CloudSyncRunner>())
+            } finally {
+                stopKoin()
+            }
         }
     }
 
@@ -608,12 +638,15 @@ class DiGraphTest : KoinTest {
         }
     }
 
-    private fun startCloud(identity: FakeIdentityService = FakeIdentityService()) = startKoin {
+    private fun startCloud(
+        identity: FakeIdentityService = FakeIdentityService(),
+        flags: ReleaseFlags = FakeReleaseFlags(),
+    ) = startKoin {
         androidContext(RuntimeEnvironment.getApplication())
         modules(
             PuzzleBoxApplication.appModules + module {
                 single<IdentityService> { identity }
-                single<ReleaseFlags> { FakeReleaseFlags() }
+                single<ReleaseFlags> { flags }
             },
         )
     }

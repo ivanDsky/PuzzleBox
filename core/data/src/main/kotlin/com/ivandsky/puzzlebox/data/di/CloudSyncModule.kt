@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.data.cloud.OwnerScope
 import com.ivandsky.puzzlebox.data.cloud.SignedInOwnerScope
 import com.ivandsky.puzzlebox.data.cloud.SyncStateStore
 import com.ivandsky.puzzlebox.data.cloud.SyncedKind
+import com.ivandsky.puzzlebox.data.cloud.SyncedKinds
 import com.ivandsky.puzzlebox.data.cloud.SyncedKindsCloudSync
 import com.ivandsky.puzzlebox.data.cloud.kinds.CompletionsKind
 import com.ivandsky.puzzlebox.data.cloud.kinds.DraftsKind
@@ -17,6 +18,7 @@ import com.ivandsky.puzzlebox.data.cloud.kinds.RoomOversizedDrafts
 import com.ivandsky.puzzlebox.data.cloud.kinds.ReceivedKind
 import com.ivandsky.puzzlebox.data.cloud.kinds.ReplaysKind
 import com.ivandsky.puzzlebox.data.cloud.kinds.RevealsKind
+import com.ivandsky.puzzlebox.data.cloud.kinds.TrainerProgressKind
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.network.NetworkStatus
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
@@ -34,17 +36,24 @@ import org.koin.dsl.module
  * Every kind is a `SyncedKind` under its own qualifier: Koin keys a definition by type and qualifier, so unqualified
  * lines would replace one another, and `getAll<SyncedKind>()` still collects them all. `linkedInCloudSyncModule` adds
  * the boards kind to the same list, so the engine, the erase and the runner always see one list.
+ *
+ * The trainer kind is the exception: it is a plain definition of its own type, not a `SyncedKind` under a qualifier, and
+ * joins the list through the `TrainerProgressKind.Binding` the app binds while a Train flag is on (`core:data` cannot
+ * read the game UI flags). [SyncedKinds] gathers both once, so the three consumers share one list.
  */
 val cloudSyncModule = module {
     single<SyncStateStore> { DataStoreSyncStateStore(get()) }
     // Collects from construction and is the only writer of the last uid; the app creates it before any starter runs.
     single<OwnerScope> { SignedInOwnerScope(get<IdentityService>(), get(), get<CoroutineScope>()) }
     single {
-        CloudErase(space = get(), kinds = getAll<SyncedKind>(), store = get(), identity = get<IdentityService>())
+        SyncedKinds(inSyncOrder(getAll<SyncedKind>() + getAll<TrainerProgressKind.Binding>().mapNotNull { it.kind }))
+    }
+    single {
+        CloudErase(space = get(), kinds = get<SyncedKinds>().all, store = get(), identity = get<IdentityService>())
     }
     single<CloudSync> {
         SyncedKindsCloudSync(
-            kinds = inSyncOrder(getAll<SyncedKind>()),
+            kinds = get<SyncedKinds>().all,
             space = get(),
             store = get(),
             identity = get<IdentityService>(),
@@ -58,7 +67,7 @@ val cloudSyncModule = module {
     single {
         CloudSyncRunner(
             engine = get<CloudSync>(),
-            kinds = getAll<SyncedKind>(),
+            kinds = get<SyncedKinds>().all,
             identity = get<IdentityService>(),
             network = get<NetworkStatus>(),
             scope = get<CoroutineScope>(),
@@ -89,6 +98,10 @@ val cloudSyncModule = module {
     single<SyncedKind>(named("cloud.kind.reveals")) {
         val db = get<PuzzleBoxDatabase>()
         RevealsKind(db, db.matchLocalDao())
+    }
+    single {
+        val db = get<PuzzleBoxDatabase>()
+        TrainerProgressKind(db, db.trainerProgressDao())
     }
 }
 
