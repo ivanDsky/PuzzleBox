@@ -56,6 +56,9 @@ import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
+import com.ivandsky.puzzlebox.domain.lineup.LoadPuzzleByCode
+import com.ivandsky.puzzlebox.domain.lineup.ObservePickablePuzzles
+import com.ivandsky.puzzlebox.domain.lineup.ObserveSolvedPuzzles
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
@@ -368,6 +371,10 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<SaveDuelPuzzles>())
             // The New duel sheet's and the rematch sheet's self-duel create.
             assertNotNull(koin.get<CreateSelfDuel>())
+            // The add-puzzle sheet's searches (a friend's and Past you's) and its code lookup.
+            assertNotNull(koin.get<ObservePickablePuzzles>())
+            assertNotNull(koin.get<ObserveSolvedPuzzles>())
+            assertNotNull(koin.get<LoadPuzzleByCode>())
             // The tablet play side panel's stats and the board gate beneath them.
             assertNotNull(koin.get<ObserveLeaderboard>())
             assertNotNull(koin.get<ObserveResultInsights>())
