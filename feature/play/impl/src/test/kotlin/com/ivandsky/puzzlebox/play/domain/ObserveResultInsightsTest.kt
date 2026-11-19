@@ -1,6 +1,11 @@
-package com.ivandsky.puzzlebox.domain
+package com.ivandsky.puzzlebox.play.domain
 
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
+import com.ivandsky.puzzlebox.domain.ComputeStreak
+import com.ivandsky.puzzlebox.domain.GetPuzzleDay
+import com.ivandsky.puzzlebox.domain.ObserveGameHistory
+import com.ivandsky.puzzlebox.domain.SpreadScope
+import com.ivandsky.puzzlebox.domain.StreakFreezes
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GamePlugin
@@ -31,7 +36,7 @@ import org.junit.Test
 
 /**
  * The Results page's streak, week, average and spread for one solve. The test games' zone is
- * UTC, so the puzzle day at the fixed clock is Nov 10 (the same setup as [ObserveGameStatsTest]).
+ * UTC, so the puzzle day at the fixed clock is Nov 10 (the same setup as :core:domain's `ObserveGameStatsTest`).
  */
 class ObserveResultInsightsTest {
 

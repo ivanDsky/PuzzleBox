@@ -16,7 +16,6 @@ core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/NextUnsolved.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ObserveDuel.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ObserveFriendPuzzles.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ObserveMyDuels.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ObserveResultInsights.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/PublishOutcome.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/RecordRevealSeen.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/RevealReady.kt  # P14

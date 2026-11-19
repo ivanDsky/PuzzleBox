@@ -28,7 +28,7 @@ import com.ivandsky.puzzlebox.play.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
-import com.ivandsky.puzzlebox.domain.ObserveResultInsights
+import com.ivandsky.puzzlebox.play.domain.ObserveResultInsights
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet

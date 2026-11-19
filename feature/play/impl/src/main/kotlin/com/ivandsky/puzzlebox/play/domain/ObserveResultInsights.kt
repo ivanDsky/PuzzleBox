@@ -1,5 +1,17 @@
-package com.ivandsky.puzzlebox.domain
+package com.ivandsky.puzzlebox.play.domain
 
+import com.ivandsky.puzzlebox.domain.ComputeStreak
+import com.ivandsky.puzzlebox.domain.GetPuzzleDay
+import com.ivandsky.puzzlebox.domain.ObserveGameHistory
+import com.ivandsky.puzzlebox.domain.ObserveGameStats
+import com.ivandsky.puzzlebox.domain.ResultDay
+import com.ivandsky.puzzlebox.domain.ResultInsights
+import com.ivandsky.puzzlebox.domain.WEEKDAY_MIN_EARLIER
+import com.ivandsky.puzzlebox.domain.WeekdaySpread
+import com.ivandsky.puzzlebox.domain.isSolvedDaily
+import com.ivandsky.puzzlebox.domain.isStreakDay
+import com.ivandsky.puzzlebox.domain.timeSpread
+import com.ivandsky.puzzlebox.domain.weekEnding
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
