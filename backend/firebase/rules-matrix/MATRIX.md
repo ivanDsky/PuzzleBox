@@ -533,7 +533,7 @@ existing `results (create)` row):
 
 ## account space
 
-`users/{uid}/{kind}/{docId}` (ADR-0029): owner-only, closed over seven kinds, `updatedAt` must be the server time,
+`users/{uid}/{kind}/{docId}` (ADR-0029): owner-only, closed over eight kinds, `updatedAt` must be the server time,
 per-kind key lists and size caps. Request time is `2026-11-07T12:00:00Z`; no other document is read, so no mocks.
 Drafts, received puzzles and replays carry bytes (`blob`, `bytes`, `replay`), which the Rules Test API's JSON cannot express, so their
 live shapes are covered only on the deny side (a string where bytes belong); their allow side, the 64 KiB,
@@ -541,6 +541,9 @@ live shapes are covered only on the deny side (a string where bytes belong); the
 Tombstones (`deleted`, `deletedAtMs`) stand for the draft and received kinds in the allow and name-cap cases.
 A reveal doc (#1542) is write-once: an update passes only when it repeats the stored `seenAtMs` and scores (a retried
 upload), so the update rows carry the stored doc as `resource`.
+A trainer doc (#1634) is plain overwrite: the client merges per technique and re-puts the whole doc. The rules check the
+doc id, the key list and the `techniques` map's size (at most 32) and, through a join, its keys (`[a-z0-9-]`); a
+technique's value (`mark`, `inRow`, `answeredAtMs`) is not checked, as with a completions record's value.
 
 | Expect | Method | Path | Auth | Case |
 |---|---|---|---|---|
@@ -618,6 +621,22 @@ upload), so the update rows carry the stored doc as `resource`.
 | deny | update | `users/alice/reveals/K7Q2MX` | alice | reveal update that moves seenAtMs |
 | deny | update | `users/alice/reveals/K7Q2MX` | alice | reveal update that changes a score |
 | deny | update | `users/alice/reveals/K7Q2MX` | alice | reveal update that adds scores to a reveal without them |
+| allow | create | `users/alice/trainer/zip` | alice | owner creates a trainer doc |
+| allow | create | `users/alice/trainer/zip` | alice | trainer doc with 32 techniques |
+| allow | create | `users/alice/trainer/zip` | alice | trainer doc with an empty techniques map |
+| allow | update | `users/alice/trainer/zip` | alice | owner re-puts a trainer doc |
+| allow | get | `users/alice/trainer/zip` | alice | owner gets a trainer doc |
+| allow | delete | `users/alice/trainer/zip` | alice | owner deletes a trainer doc |
+| deny | create | `users/alice/trainer/zip` | bob | other uid creates a trainer doc |
+| deny | get | `users/alice/trainer/zip` | bob | other uid gets a trainer doc |
+| deny | create | `users/alice/trainer/Zip` | alice | trainer doc under an uppercase game id |
+| deny | create | `users/alice/trainer/zip_2` | alice | trainer doc under a game id with an underscore |
+| deny | create | `users/alice/trainer/zip` | alice | trainer doc with an extra key |
+| deny | create | `users/alice/trainer/zip` | alice | trainer doc without techniques |
+| deny | create | `users/alice/trainer/zip` | alice | trainer doc whose techniques is a list |
+| deny | create | `users/alice/trainer/zip` | alice | trainer doc with 33 techniques |
+| deny | create | `users/alice/trainer/zip` | alice | trainer doc with an uppercase technique key |
+| deny | create | `users/alice/trainer/zip` | alice | trainer doc with a technique key holding a space |
 | deny | delete | `users/alice/drafts/3f2b8c1e-5d4a-4b7e-9c1d-0a1b2c3d4e5f` | bob | other uid deletes a draft |
 | deny | delete | `users/alice/boards/zip_2026-11-07_0123456789abcdef` | bob | other uid deletes a board |
 | deny | delete | `users/alice/drafts/3f2b8c1e-5d4a-4b7e-9c1d-0a1b2c3d4e5f` | — | signed-out delete |
@@ -709,6 +728,12 @@ a row's keys and the caps, and a completions record's key, and nothing more.
 | deny | get | `puzzles/K7Q2MX/comments/c1` | bob | signed-in read of a puzzle's unknown subcollection |
 
 ## Last run
+
+2026-11-19, local `firestore.rules` with the trainer kind (#1634; not deployed; the run uses the local source on the
+Rules Test API), three batches: **484 cases, 484/484 passed**, exit 0. The 468 cases of the 2026-11-18 run are
+unchanged and all pass. The 16 new `account space` trainer rows cover the per-game progress doc. A technique key
+holding a comma passes (the join cannot tell it from two keys), as does an empty key; both are harmless and are not
+covered.
 
 2026-11-18, local `firestore.rules` with the reveals kind (#1542; not deployed; the run uses the local source on the
 Rules Test API), three batches: **468 cases, 468/468 passed**, exit 0. The 449 cases of the 2026-11-16 run are
@@ -1135,6 +1160,22 @@ PASS  DENY  [account space] reveal doc with a negative score
 PASS  DENY  [account space] reveal update that moves seenAtMs
 PASS  DENY  [account space] reveal update that changes a score
 PASS  DENY  [account space] reveal update that adds scores to a reveal without them
+PASS  ALLOW  [account space] owner creates a trainer doc
+PASS  ALLOW  [account space] trainer doc with 32 techniques
+PASS  ALLOW  [account space] trainer doc with an empty techniques map
+PASS  ALLOW  [account space] owner re-puts a trainer doc
+PASS  ALLOW  [account space] owner gets a trainer doc
+PASS  ALLOW  [account space] owner deletes a trainer doc
+PASS  DENY  [account space] other uid creates a trainer doc
+PASS  DENY  [account space] other uid gets a trainer doc
+PASS  DENY  [account space] trainer doc under an uppercase game id
+PASS  DENY  [account space] trainer doc under a game id with an underscore
+PASS  DENY  [account space] trainer doc with an extra key
+PASS  DENY  [account space] trainer doc without techniques
+PASS  DENY  [account space] trainer doc whose techniques is a list
+PASS  DENY  [account space] trainer doc with 33 techniques
+PASS  DENY  [account space] trainer doc with an uppercase technique key
+PASS  DENY  [account space] trainer doc with a technique key holding a space
 PASS  DENY  [account space] other uid deletes a draft
 PASS  DENY  [account space] other uid deletes a board
 PASS  DENY  [account space] signed-out delete
@@ -1205,5 +1246,5 @@ PASS  DENY  [account space (hardening)] published doc with an unlisted extra key
 PASS  DENY  [deny-all] signed-in read of an unmatched path
 PASS  DENY  [deny-all] signed-in write of an unmatched path
 PASS  DENY  [deny-all] signed-in read of a puzzle's unknown subcollection
-468/468 passed
+484/484 passed
 ```

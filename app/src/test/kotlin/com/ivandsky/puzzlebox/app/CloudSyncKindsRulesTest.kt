@@ -21,8 +21,8 @@ import org.robolectric.annotation.Config
 /**
  * ADR-0029 §5: the rules accept an account's cloud doc only for the kinds in `isSpaceKind()` of
  * `backend/firebase/firestore.rules`, so a kind bound in the sync graph without its rules entry would see every write
- * denied. `replays` is the one name the rules list ahead of its kind (a later ticket binds it); every other rules name
- * must be bound, and every bound name must be in the rules.
+ * denied. `replays` and `trainer` are the names the rules list ahead of their kinds (later tickets bind them; `trainer`
+ * is #1635); every other rules name must be bound, and every bound name must be in the rules.
  */
 @RunWith(RobolectricTestRunner::class)
 // DrainTestApplication (plain Application + looper drain) for DiGraphTest's reason: the real one would startKoin on its own.
@@ -53,7 +53,7 @@ class CloudSyncKindsRulesTest {
             assertEquals(
                 "kinds in firestore.rules that no SyncedKind is bound for",
                 emptyList<String>(),
-                inRules.filter { it !in bound && it != AHEAD_OF_ITS_KIND },
+                inRules.filter { it !in bound && it !in AHEAD_OF_THEIR_KIND },
             )
         } finally {
             stopKoin() // close() alone leaves the JVM-global context registered for later tests
@@ -70,6 +70,6 @@ class CloudSyncKindsRulesTest {
     }
 
     private companion object {
-        const val AHEAD_OF_ITS_KIND = "replays"
+        val AHEAD_OF_THEIR_KIND = setOf("replays", "trainer")
     }
 }

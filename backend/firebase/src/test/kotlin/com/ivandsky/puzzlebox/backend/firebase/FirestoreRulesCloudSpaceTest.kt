@@ -86,7 +86,7 @@ class FirestoreRulesCloudSpaceTest {
         )
         assertEquals("only the two allow lines", 2, Regex("""\ballow """).findAll(block).count())
         assertEquals(
-            setOf("completions", "drafts", "published", "received", "boards", "replays", "reveals"),
+            setOf("completions", "drafts", "published", "received", "boards", "replays", "reveals", "trainer"),
             quoted(Regex("""return kind in \[(.*?)];""").find(block)!!.groupValues[1]),
         )
         assertTrue(block.contains("d.updatedAt == request.time"))

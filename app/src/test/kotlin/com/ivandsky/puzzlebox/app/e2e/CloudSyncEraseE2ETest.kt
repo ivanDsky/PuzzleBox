@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.app.e2e
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodesWithText
 import com.ivandsky.puzzlebox.app.DrainTestApplication
+import com.ivandsky.puzzlebox.data.cloud.CloudDoc
 import com.ivandsky.puzzlebox.data.cloud.CloudResult
 import com.ivandsky.puzzlebox.data.cloud.CloudSpaceKinds
 import com.ivandsky.puzzlebox.data.cloud.RestoreSummary
@@ -67,6 +68,9 @@ class CloudSyncEraseE2ETest {
                 phoneA.graph.koin.get<MatchLocalRepository>().markRevealSeen(code("D7Q2MX"), Instant.parse("2026-11-10T20:00:00Z"), 2, 1)
             }
             phoneA.signIn(ada)
+            // No device writes the trainer kind yet (#1635 binds it): put one doc straight into the space, so the erase
+            // is shown to clear that kind too.
+            runBlocking { world.space.put(ada.uid, "trainer", listOf(CloudDoc("queens", mapOf("formatVersion" to 1L)))) }
             awaitCloud("every kind in A's space") {
                 CloudSpaceKinds.ALL.all { world.space.docs(ada.uid, it).isNotEmpty() } && phoneA.uploaded(ada.uid) && phoneA.synced()
             }
