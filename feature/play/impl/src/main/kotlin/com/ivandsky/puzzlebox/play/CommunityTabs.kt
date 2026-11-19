@@ -40,7 +40,8 @@ import kotlinx.coroutines.launch
  * the user can swipe. Each tab is a list of its own with its own scroll position, kept across swipes and a restore; a
  * tap on the selected tab, or a reselect of the bottom bar's tab, scrolls only that list to its top. The head keeps
  * Enter code ([onEnterCode]) on every tab; the filter ⋮ is New today's alone and leaves its slot empty elsewhere, so
- * the head does not shift. "Make a puzzle" on an empty New today goes to Yours.
+ * the head does not shift. With [CommunityState.filterSheets] there is no ⋮: the filters are chips in New today's
+ * list. "Make a puzzle" on an empty New today goes to Yours.
  *
  * [state] and [actions] are New today's; [friends] open through [onOpen] and remove through [onRemove]; Yours is
  * [custom]'s own list ([CustomSlot.yours]) and its count. While New today is offline the other two say their saved
@@ -111,9 +112,11 @@ internal fun CommunityTabs(
         UnderlineTab("Yours", "community.tab.yours", count = custom.yoursSummary().count),
     ).take(pages.size)
     Column(modifier) {
-        CommunityHeader(onEnterCode, Modifier.padding(start = Spacing.lg, end = Spacing.sm)) {
-            FilterSlot(link = link, state = state, actions = actions)
-        }
+        CommunityHeader(
+            onEnterCode,
+            Modifier.padding(start = Spacing.lg, end = if (state.filterSheets) Spacing.lg else Spacing.sm),
+            trailing = if (state.filterSheets) null else ({ FilterSlot(link = link, state = state, actions = actions) }),
+        )
         UnderlineTabPager(
             tabs = tabs,
             onReselect = { index -> scope.launch { listFor(pages[index]).animateScrollToItem(0) } },

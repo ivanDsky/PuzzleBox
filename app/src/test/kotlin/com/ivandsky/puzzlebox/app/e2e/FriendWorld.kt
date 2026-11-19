@@ -5,7 +5,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTextInput
 import com.ivandsky.puzzlebox.app.leaderboard.CustomBoardSubmitter
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
 import com.ivandsky.puzzlebox.data.di.dataModule
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.play.api.PlayKey
@@ -64,7 +64,7 @@ internal const val FRIEND_TIMEOUT_MS = 10_000L
  * started [CustomBoardSubmitter] posts the win to [boards] and [LeaderboardSubmitWatcher] posts
  * the dailies to the graph's daily board. [close] after the run.
  */
-internal class FriendWorld(flags: List<ReleaseFlag> = emptyList()) {
+internal class FriendWorld(flags: List<ReleaseFlagKey> = emptyList()) {
 
     val drafts = FakeDraftRepository()
     val shared = FakeSharedPuzzleRepository()

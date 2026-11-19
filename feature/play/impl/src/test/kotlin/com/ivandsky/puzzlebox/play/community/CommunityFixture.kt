@@ -15,6 +15,8 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.AlphaShareEditor
 import com.ivandsky.puzzlebox.play.FakeGames
 import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeHiddenPuzzles
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
@@ -96,7 +98,8 @@ internal class CommunityFixture(signedIn: Boolean = true) {
         shared.signedInUid = before
     }
 
-    fun viewModel() = CommunityViewModel(
+    /** With [flags] on, the view model reads them: `FilterFlag.FilterSheets` turns the chips on. */
+    fun viewModel(vararg flags: ReleaseFlagKey) = CommunityViewModel(
         list = ListCommunityPuzzles(recording, hidden, identity, clock = { NOW }),
         reportPuzzle = ReportPuzzle(recording, hidden),
         games = games,
@@ -104,6 +107,7 @@ internal class CommunityFixture(signedIn: Boolean = true) {
         identity = identity,
         idTokens = dismissedGoogleSignIn,
         clock = { NOW },
+        releaseFlags = FakeReleaseFlags(*flags),
     )
 
     companion object {

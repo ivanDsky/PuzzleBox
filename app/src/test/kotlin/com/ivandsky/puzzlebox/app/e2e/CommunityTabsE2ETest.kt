@@ -1,9 +1,12 @@
 package com.ivandsky.puzzlebox.app.e2e
 
 import com.ivandsky.puzzlebox.app.DrainTestApplication
+import com.ivandsky.puzzlebox.common.flags.FilterFlag
+import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
+import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import kotlinx.coroutines.runBlocking
@@ -54,7 +57,49 @@ class CommunityTabsE2ETest {
             assertFalse("the filter on Yours", shows(FILTER))
         }
 
+    @Test
+    fun `with filter sheets on New today has chips, a game pick narrows the list and there is no filter menu`() {
+        val world = FriendWorld(listOf(FilterFlag.FilterSheets))
+        try {
+            runBlocking {
+                publish(world, QUEENS_CODE, "queens")
+                publish(world, ZIP_CODE, "zip")
+            }
+            shellRobot(graph = world.graph) {
+                tapTab(CommunityKey)
+                awaitTag("community.filter.game")
+                awaitTag("community.row.$QUEENS_CODE")
+                assertTrue("a zip row too", shows("community.row.$ZIP_CODE"))
+                assertFalse("no filter menu", shows(FILTER))
+
+                tap("community.filter.game")
+                awaitTag("community.filter.game.zip")
+                tap("community.filter.game.zip")
+
+                awaitTag("community.row.$ZIP_CODE")
+                assertFalse("the queens row is filtered out", shows("community.row.$QUEENS_CODE"))
+            }
+        } finally {
+            world.close()
+        }
+    }
+
+    private suspend fun publish(world: FriendWorld, code: String, game: String) {
+        world.shared.signedInUid = "other"
+        world.shared.publishesToday = 0
+        world.shared.publish(
+            SharedPuzzleDoc(
+                code = checkNotNull(ShareCode.parse(code)), formatVersion = SharedPuzzleDoc.FORMAT_VERSION, gameId = game,
+                variant = "$game/v1", shareCodecVersion = 1, payload = byteArrayOf(1), title = "Puzzle $code", authorName = "Other",
+                note = "", authorUid = "other", authorTimeMs = 1_000L, authorHints = 0, createdAtMs = System.currentTimeMillis(),
+                unpublished = false, visibility = SharedPuzzleDoc.Visibility.Public,
+            ),
+        )
+    }
+
     private companion object {
+        const val QUEENS_CODE = "K7Q2MX"
+        const val ZIP_CODE = "P4R8NT"
         const val COMMUNITY = "route.community"
         const val EDITOR = "route.editor"
         const val TAB_NEW = "community.tab.new"

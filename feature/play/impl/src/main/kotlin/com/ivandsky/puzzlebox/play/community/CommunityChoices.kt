@@ -1,10 +1,11 @@
 package com.ivandsky.puzzlebox.play.community
 
 import com.ivandsky.puzzlebox.game.editor.Difficulty
+import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.model.GameId
 
-/** One game in the filter menu: a game that has an editor, so a puzzle of it can be made and shared. */
-internal data class GameChoice(val id: GameId, val name: String)
+/** One game in the filter menu: a game that has an editor, so a puzzle of it can be made and shared. [brand] is the glyph its sheet row wears. */
+internal data class GameChoice(val id: GameId, val name: String, val brand: GameBrand = GameBrand.Neutral)
 
 /**
  * The difficulty menu items. Hard also asks for Expert: the analyser's ladder has four levels and the

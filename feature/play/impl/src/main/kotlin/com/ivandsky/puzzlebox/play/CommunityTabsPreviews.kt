@@ -26,6 +26,7 @@ import com.ivandsky.puzzlebox.play.community.CommunityActions
 import com.ivandsky.puzzlebox.play.community.CommunityPhase
 import com.ivandsky.puzzlebox.play.community.CommunityRowModel
 import com.ivandsky.puzzlebox.play.community.CommunityState
+import com.ivandsky.puzzlebox.play.community.DifficultyChoice
 import com.ivandsky.puzzlebox.play.community.GameChoice
 
 private val Zip = GameBrand(AccentSlot.Blue, GameGlyphs.Zip)
@@ -37,7 +38,7 @@ private fun row(code: String, game: String, brand: GameBrand, title: String, lev
     CommunityRowModel(checkNotNull(ShareCode.parse(code)), game, brand, title, author = "Maya", difficulty = level, age = age)
 
 private val Loaded = CommunityState(
-    games = listOf(GameChoice(GameId("zip"), "Zip"), GameChoice(GameId("tango"), "Tango")),
+    games = listOf(GameChoice(GameId("zip"), "Zip", Zip), GameChoice(GameId("tango"), "Tango", Tango)),
     phase = CommunityPhase.Loaded(
         listOf(
             row("P4R8NT", "Zip", Zip, "Spiral staircase", Difficulty.Level.Hard, "5 min ago"),
@@ -85,6 +86,15 @@ internal fun CommunityTabsPreview() = Tabs(Loaded, FriendPreviewCards, yours = 3
 @PuzzleBoxPreviews
 @Composable
 internal fun CommunityTabsFilteredPreview() = Tabs(Loaded.copy(game = GameId("zip")), FriendPreviewCards, yours = 3)
+
+@PuzzleBoxPreviews
+@Composable
+internal fun CommunityTabsChipsPreview() = Tabs(Loaded.copy(filterSheets = true), FriendPreviewCards, yours = 3)
+
+@PuzzleBoxPreviews
+@Composable
+internal fun CommunityTabsChipsFilteredPreview() =
+    Tabs(Loaded.copy(filterSheets = true, game = GameId("zip"), difficulty = DifficultyChoice.Hard), FriendPreviewCards, yours = 3)
 
 @PuzzleBoxPreviews
 @Composable
