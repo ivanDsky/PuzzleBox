@@ -240,7 +240,7 @@ class LibraryUnderlineTabsTest {
     }
 }
 
-private val standInTrain = TrainSlot { Text("train stand-in") }
+private val standInTrain = TrainSlot(content = { Text("train stand-in") }, pane = { modifier -> Text("train pane stand-in", modifier) })
 
 private val standInDuels: (() -> Int) -> DuelsSlot = { needYou ->
     DuelsSlot(

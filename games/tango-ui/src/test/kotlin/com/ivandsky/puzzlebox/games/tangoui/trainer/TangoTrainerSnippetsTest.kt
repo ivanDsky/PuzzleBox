@@ -79,9 +79,19 @@ class TangoTrainerSnippetsTest {
     }
 
     @Test
+    fun `a snippet's prompt names its technique and whether to place a sun or a moon`() {
+        for (snippet in TangoTrainerFixtures.snippets) {
+            val name = trainer.catalog().first { it.id == snippet.technique }.name
+            val kind = if (snippet.value == TangoCell.SUN) "sun" else "moon"
+            assertEquals("Place a $kind that $name proves", snippet.prompt)
+        }
+    }
+
+    @Test
     fun `a snippet of another game is refused`() {
         val foreign = object : Snippet {
             override val technique = TechniqueId("sign")
+            override val prompt = "foreign"
         }
 
         assertThrows(IllegalStateException::class.java) { trainer.spotlight(foreign) }

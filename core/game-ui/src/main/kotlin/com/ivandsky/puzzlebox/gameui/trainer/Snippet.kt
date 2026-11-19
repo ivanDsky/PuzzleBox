@@ -10,4 +10,7 @@ import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 interface Snippet {
     /** The technique the step this snippet stops before belongs to. */
     val technique: TechniqueId
+
+    /** The one line the round shows above the board: what the player is asked to find, naming [technique]. */
+    val prompt: String
 }

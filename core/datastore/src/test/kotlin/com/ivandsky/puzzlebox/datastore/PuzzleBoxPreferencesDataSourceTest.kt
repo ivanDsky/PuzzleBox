@@ -15,6 +15,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -194,6 +195,21 @@ class PuzzleBoxPreferencesDataSourceTest {
         firstScope.cancel()
 
         assertFalse(newDataSource(file).preferences.first().showSelfDuelTimeLeft)
+    }
+
+    @Test
+    fun `the last Train game is none until picked and a pick survives a new data source over the same file`() = runTest {
+        val file = tempFile()
+        val firstScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + SupervisorJob())
+        val firstProcess = PuzzleBoxPreferencesDataSource(
+            PreferenceDataStoreFactory.create(scope = firstScope) { file },
+        )
+        assertNull(firstProcess.preferences.first().lastTrainGame)
+
+        firstProcess.setLastTrainGame(GameId("tango"))
+        firstScope.cancel()
+
+        assertEquals(GameId("tango"), newDataSource(file).preferences.first().lastTrainGame)
     }
 
     /** The file as the build that shipped the camelCase key left it: [legacy] under it, or nothing at all. */

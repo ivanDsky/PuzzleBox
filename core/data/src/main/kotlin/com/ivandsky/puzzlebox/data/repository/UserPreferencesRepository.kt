@@ -52,4 +52,9 @@ interface UserPreferencesRepository {
     val showSelfDuelTimeLeft: Flow<Boolean>
 
     suspend fun setShowSelfDuelTimeLeft(on: Boolean)
+
+    /** The game the Train tab last had picked; null until the player picks one. */
+    val lastTrainGame: Flow<GameId?>
+
+    suspend fun setLastTrainGame(game: GameId)
 }

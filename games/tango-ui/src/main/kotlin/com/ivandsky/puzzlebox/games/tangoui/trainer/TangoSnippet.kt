@@ -21,4 +21,7 @@ internal data class TangoSnippet(
 
     /** The kind of cell the target step fills in, the one a tap places: a sun or a moon. */
     val value: TangoCell get() = cut.step.value
+
+    override val prompt: String
+        get() = "Place a ${if (value == TangoCell.SUN) "sun" else "moon"} that ${TangoTrainerCatalog.name(technique)} proves"
 }
