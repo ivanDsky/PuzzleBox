@@ -73,8 +73,8 @@ returns these findings:
 - **Worker contract.** Fix a violation by splitting or moving code. Rules, allowlists and
   fixtures are protected files: a worker does not edit them to make a test pass.
 
-Entries on record at the time of writing: S1 64, S2 6, S4 25, S5 4, P1 6, P2 1, P5 4, P6 1, P14 107.
-S0, S6, S7, S8, S9, S10, S11, S12, P3, P4, P7, P8, P9, P10, P11, P12, P13, P15 and P16 have none.
+Entries on record at the time of writing: S1 64, S2 6, S4 25, S5 4, S9 1, P1 6, P2 1, P5 4, P6 1, P14 107.
+S0, S6, S7, S8, S10, S11, S12, P3, P4, P7, P8, P9, P10, P11, P12, P13, P15 and P16 have none.
 
 ### Payload cross-reference
 The `design-architecture` payload (`references/rules-architecture.md`) states four of these as
@@ -238,6 +238,10 @@ Every haptic goes through `LocalHapticFeedback`, the one choke point the Vibrati
   The violation is the file. Test source sets are not scanned.
 - **Accepted misses:** a View reached under another name, a `Vibrator` or `VibrationEffect` used directly, and a call
   whose number comes from a named constant are not seen.
+- **Allowlist:** Ruling (#1686, 2026-11-19): the debug-only Haptics lab's `HapticsLabPlatformRows.kt` plays the
+  platform constants on the View, past the gate on purpose. Release compiles none of it, and the constants
+  (`CLOCK_TICK`, `KEYBOARD_TAP`, `VIRTUAL_KEY`) are the evidence the lab exists to collect. Every platform call stays in
+  that one file.
 - **How to fix:** take `LocalHapticFeedback.current` and call `performHapticFeedback(HapticFeedbackType.…)`.
 
 ## S10

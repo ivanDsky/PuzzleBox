@@ -9,16 +9,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.app.debug.flags.ReleaseFlagsPanel
+import com.ivandsky.puzzlebox.app.debug.haptics.HapticsLabPanel
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
 /**
- * The debug tools Settings shows flat in debuggable builds: Release flags
+ * The debug tools Settings shows flat in debuggable builds: Release flags, the Haptics lab
  * and Debug games, each under its own title like the screen's other sections. [openGame]
  * opens a game by id. Debug only: release compiles none of this.
  */
 @Composable
 internal fun DebugSettingsSections(openGame: (String) -> Unit) {
     DebugSection(title = "Release flags", tag = "settings.debug.flags") { ReleaseFlagsPanel() }
+    DebugSection(title = "Haptics lab", tag = "settings.debug.haptics") { HapticsLabPanel() }
     DebugSection(title = "Debug games", tag = "settings.debug.games") { DebugGamesSection(openGame) }
 }
 

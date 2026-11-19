@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.app
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.VibrationAttributes
-import android.os.VibrationEffect
 import android.os.Vibrator
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -20,8 +19,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowBuild
 
 /**
- * One UI drops the touch-feedback kinds the app plays (#1686): there each kind plays a predefined Vibrator effect. Where
- * the system drops only the light tick (#1701), only that kind does.
+ * One UI drops the touch-feedback kinds the app plays and the Tab S9 Ultra drops its prebaked Vibrator effects too
+ * (#1686): there each kind plays plain timings on the Vibrator. Where the system drops only the light tick (#1701), only
+ * that kind does.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = DrainTestApplication::class)
@@ -37,25 +37,49 @@ class VibratorHapticFeedbackTest {
     }
 
     @Test
-    fun `each app kind maps to the effect AOSP plays for it, lightest to heaviest`() {
-        assertEquals(VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK), touchEffect(HapticFeedbackType.TextHandleMove))
-        assertEquals(VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK), touchEffect(HapticFeedbackType.Confirm))
-        assertEquals(VibrationEffect.createPredefined(VibrationEffect.EFFECT_DOUBLE_CLICK), touchEffect(HapticFeedbackType.Reject))
-        assertEquals(VibrationEffect.createPredefined(VibrationEffect.EFFECT_HEAVY_CLICK), touchEffect(HapticFeedbackType.LongPress))
-    }
+    fun `on One UI every kind plays plain timings as touch feedback, never a prebaked effect the Tab drops`() {
+        ShadowBuild.setManufacturer("samsung")
+        val haptics = deviceHaptics(context, platform)
 
-    @Test
-    fun `a mapped kind plays on the vibrator as touch feedback, never on the platform`() {
-        VibratorHapticFeedback(vibrator, platform, ::touchEffect).performHapticFeedback(HapticFeedbackType.Reject)
+        appKinds.forEach { kind ->
+            haptics.performHapticFeedback(kind)
 
-        val attributes = shadowOf(vibrator).vibrationAttributesFromLastVibration as VibrationAttributes
-        assertEquals("touch usage, so the system touch-feedback switch still silences it", VibrationAttributes.USAGE_TOUCH, attributes.usage)
+            val timings = shadowOf(vibrator).pattern
+            assertTrue("$kind played a prebaked effect, which has no timings", timings.isNotEmpty() && timings.all { it > 0 })
+            val attributes = shadowOf(vibrator).vibrationAttributesFromLastVibration as VibrationAttributes
+            assertEquals("$kind: touch usage, so the system touch-feedback switch still silences it", VibrationAttributes.USAGE_TOUCH, attributes.usage)
+        }
         assertEquals(emptyList<HapticFeedbackType>(), calls)
     }
 
     @Test
+    fun `on One UI the tick, confirm and long press rise in length, lightest to heaviest`() {
+        ShadowBuild.setManufacturer("samsung")
+        val haptics = deviceHaptics(context, platform)
+
+        val lengths = listOf(HapticFeedbackType.TextHandleMove, HapticFeedbackType.Confirm, HapticFeedbackType.LongPress).map {
+            haptics.performHapticFeedback(it)
+            shadowOf(vibrator).pattern.sum()
+        }
+
+        assertEquals(lengths.sorted().distinct(), lengths)
+    }
+
+    @Test
+    fun `on One UI reject is a double whose pulses are shorter than the 30 ms double click that buzzed hard on the Tab`() {
+        ShadowBuild.setManufacturer("samsung")
+
+        deviceHaptics(context, platform).performHapticFeedback(HapticFeedbackType.Reject)
+
+        val timings = shadowOf(vibrator).pattern
+        val pulses = timings.filterIndexed { index, _ -> index % 2 == 0 }
+        assertEquals("on, off, on", 3, timings.size)
+        assertTrue("pulses ${pulses.toList()}", pulses.all { it < 30 })
+    }
+
+    @Test
     fun `a kind with no mapped effect stays on the platform`() {
-        VibratorHapticFeedback(vibrator, platform, ::touchEffect).performHapticFeedback(HapticFeedbackType.SegmentTick)
+        VibratorHapticFeedback(vibrator, platform, ::timingEffect).performHapticFeedback(HapticFeedbackType.SegmentTick)
 
         assertEquals(listOf(HapticFeedbackType.SegmentTick), calls)
         assertNull(shadowOf(vibrator).vibrationAttributesFromLastVibration)
@@ -91,5 +115,14 @@ class VibratorHapticFeedbackTest {
     fun `VIBRATE is declared, or the vibrator throws on a real device`() {
         val requested = context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_PERMISSIONS).requestedPermissions.orEmpty()
         assertTrue("android.permission.VIBRATE" in requested)
+    }
+
+    private companion object {
+        val appKinds = listOf(
+            HapticFeedbackType.TextHandleMove,
+            HapticFeedbackType.LongPress,
+            HapticFeedbackType.Confirm,
+            HapticFeedbackType.Reject,
+        )
     }
 }

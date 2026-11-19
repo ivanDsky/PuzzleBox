@@ -1,0 +1,1 @@
+app/src/debug/kotlin/com/ivandsky/puzzlebox/app/debug/haptics/HapticsLabPlatformRows.kt  # S9 Ruling #1686, 2026-11-19: debug-only haptics diagnostic; release compiles none of it; the platform constants (CLOCK_TICK, KEYBOARD_TAP, VIRTUAL_KEY) are the evidence the lab exists to collect
