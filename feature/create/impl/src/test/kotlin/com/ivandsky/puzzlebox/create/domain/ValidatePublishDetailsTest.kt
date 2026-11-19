@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain
+package com.ivandsky.puzzlebox.create.domain
 
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.game.editor.PublishBlock

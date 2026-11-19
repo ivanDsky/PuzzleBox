@@ -96,7 +96,7 @@ internal fun CapSupport(length: Int, max: Int, tooLong: Boolean, tag: String) {
     }
 }
 
-/** Characters as the caps count them ([com.ivandsky.puzzlebox.domain.ValidatePublishDetails]): code points, once trimmed. */
+/** Characters as the caps count them ([com.ivandsky.puzzlebox.create.domain.ValidatePublishDetails]): code points, once trimmed. */
 internal fun String.trimmedLength(): Int = trim().let { it.codePointCount(0, it.length) }
 
 private const val NOTE_LINES = 3

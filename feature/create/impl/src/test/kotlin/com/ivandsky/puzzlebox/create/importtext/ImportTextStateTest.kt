@@ -1,10 +1,10 @@
 package com.ivandsky.puzzlebox.create.importtext
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.create.domain.ImportDraftFromText
+import com.ivandsky.puzzlebox.create.domain.ImportResult
 import com.ivandsky.puzzlebox.create.importtext.ImportSheetUi.ClipboardNotation
 import com.ivandsky.puzzlebox.domain.CreateDraft
-import com.ivandsky.puzzlebox.domain.ImportDraftFromText
-import com.ivandsky.puzzlebox.domain.ImportResult
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry

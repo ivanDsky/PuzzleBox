@@ -3,18 +3,19 @@ package com.ivandsky.puzzlebox.create.editor
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.runtime.remember
 import androidx.compose.ui.text.style.TextOverflow
+import com.ivandsky.puzzlebox.create.domain.ValidatePublishDetails
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.model.TestSolve
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
@@ -23,9 +24,8 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.formatDuration
-import com.ivandsky.puzzlebox.domain.ValidatePublishDetails
+import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
 
 /**
@@ -144,8 +144,8 @@ private fun readinessOf(blocks: List<PublishBlock>, fieldCopy: Map<String, Strin
 private const val BOARD_TAG = "board"
 
 /**
- * Copy for every id in [com.ivandsky.puzzlebox.domain.ValidatePublish.blockIds] and
- * [com.ivandsky.puzzlebox.domain.ValidatePublishDetails.blockIds] (ReadinessCopyTest), plus the
+ * Copy for every id in [com.ivandsky.puzzlebox.create.domain.ValidatePublish.blockIds] and
+ * [com.ivandsky.puzzlebox.create.domain.ValidatePublishDetails.blockIds] (ReadinessCopyTest), plus the
  * Studio's own day's-cap block.
  */
 private val DOMAIN_COPY: Map<String, String> = mapOf(

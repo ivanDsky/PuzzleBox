@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain
+package com.ivandsky.puzzlebox.create.domain
 
 /**
  * The outcome of [ImportDraftFromText]: [Imported] or one failure per way whole text can

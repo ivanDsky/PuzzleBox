@@ -4,13 +4,17 @@ import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.create.CreateViewModel
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
+import com.ivandsky.puzzlebox.create.domain.CreateDraftCopy
+import com.ivandsky.puzzlebox.create.domain.CreateSharedPuzzle
+import com.ivandsky.puzzlebox.create.domain.ImportDraftFromText
+import com.ivandsky.puzzlebox.create.domain.SyncSolvesCounts
+import com.ivandsky.puzzlebox.create.domain.UpdatePublishState
+import com.ivandsky.puzzlebox.create.domain.ValidatePublish
 import com.ivandsky.puzzlebox.create.editor.EditorViewModel
 import com.ivandsky.puzzlebox.create.editor.FinishLevelChoice
 import com.ivandsky.puzzlebox.create.published.PublishedPuzzleViewModel
-import com.ivandsky.puzzlebox.domain.CreateSharedPuzzle
-import com.ivandsky.puzzlebox.domain.SyncSolvesCounts
-import com.ivandsky.puzzlebox.domain.UpdatePublishState
 import java.time.Instant
+import java.util.UUID
 import kotlin.random.Random
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -28,8 +32,10 @@ private val DraftSaves = named("create.draftSaves")
  * domainModule; the [com.ivandsky.puzzlebox.game.GameRegistry], the
  * [com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry] and the
  * [com.ivandsky.puzzlebox.gameui.GamePlayRegistry] from the app's aggregation (ADR-0001).
- * Publishing ([CreateSharedPuzzle]), unpublishing ([UpdatePublishState]) and the Published
- * rows' solve counts ([SyncSolvesCounts]) are bound here, their only consumer. The
+ * Publishing ([CreateSharedPuzzle]) and its check ([ValidatePublish]), unpublishing
+ * ([UpdatePublishState]), the Published rows' solve counts ([SyncSolvesCounts]), a draft's copy
+ * ([CreateDraftCopy], a random UUID and the wall clock) and the text import
+ * ([ImportDraftFromText]) are bound here, their only consumer. The
  * [com.ivandsky.puzzlebox.data.cloud.CloudSync], which says whether the lists are still being restored, comes from the data graph.
  */
 val createModule: Module = module {
@@ -51,6 +57,9 @@ val createModule: Module = module {
         )
     }
     factory { UpdatePublishState(shared = get(), published = get()) }
+    factory { CreateDraftCopy(drafts = get(), newId = { UUID.randomUUID().toString() }, clock = { Instant.now() }) }
+    factory { ImportDraftFromText(registry = get(), createDraft = get(), drafts = get(), dispatchers = get()) }
+    factory { ValidatePublish() }
     viewModel { (key: EditorKey) ->
         EditorViewModel(
             key, get(), get(), get(), get(), get(), get(),

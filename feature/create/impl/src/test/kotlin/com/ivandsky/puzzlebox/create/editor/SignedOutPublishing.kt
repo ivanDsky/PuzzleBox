@@ -3,11 +3,11 @@ package com.ivandsky.puzzlebox.create.editor
 import android.content.Context
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
+import com.ivandsky.puzzlebox.create.domain.CreateSharedPuzzle
+import com.ivandsky.puzzlebox.create.domain.UpdatePublishState
+import com.ivandsky.puzzlebox.create.domain.ValidatePublish
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
-import com.ivandsky.puzzlebox.domain.CreateSharedPuzzle
-import com.ivandsky.puzzlebox.domain.UpdatePublishState
-import com.ivandsky.puzzlebox.domain.ValidatePublish
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository

@@ -18,6 +18,12 @@ import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
 import com.ivandsky.puzzlebox.create.api.createNavKeys
+import com.ivandsky.puzzlebox.create.domain.CreateDraftCopy
+import com.ivandsky.puzzlebox.create.domain.CreateSharedPuzzle
+import com.ivandsky.puzzlebox.create.domain.PublishOutcome
+import com.ivandsky.puzzlebox.create.domain.SyncSolvesCounts
+import com.ivandsky.puzzlebox.create.domain.UpdatePublishState
+import com.ivandsky.puzzlebox.create.domain.ValidatePublish
 import com.ivandsky.puzzlebox.create.editor.EditorViewModel
 import com.ivandsky.puzzlebox.create.editor.StudioRootKey
 import com.ivandsky.puzzlebox.create.editor.noGoogleAccount
@@ -31,12 +37,6 @@ import com.ivandsky.puzzlebox.data.model.TestSolve
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.domain.CreateDraft
-import com.ivandsky.puzzlebox.domain.CreateDraftCopy
-import com.ivandsky.puzzlebox.domain.CreateSharedPuzzle
-import com.ivandsky.puzzlebox.domain.PublishOutcome
-import com.ivandsky.puzzlebox.domain.SyncSolvesCounts
-import com.ivandsky.puzzlebox.domain.UpdatePublishState
-import com.ivandsky.puzzlebox.domain.ValidatePublish
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry

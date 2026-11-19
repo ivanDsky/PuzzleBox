@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.create.published
 
+import com.ivandsky.puzzlebox.create.domain.UpdatePublishState
 import com.ivandsky.puzzlebox.data.repository.UnpublishResult
-import com.ivandsky.puzzlebox.domain.UpdatePublishState
 import com.ivandsky.puzzlebox.model.ShareCode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
