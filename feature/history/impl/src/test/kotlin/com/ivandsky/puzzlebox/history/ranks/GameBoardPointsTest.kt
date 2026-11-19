@@ -120,7 +120,7 @@ class GameBoardPointsTest {
         )
         val cal = LinkedInGhost("ref-cal", "Cal", 70_000, hintFree = true, flawless = false)
         val saved = mapOf(ref(1) to LinkedInDayView(LinkedInDayStatus.Idle, LinkedInBoardView.Shown(listOf(cal))))
-        val friends = global.amongFriends(setOf("u1", "maya"), saved, ann.uid)
+        val friends = global.amongFriends(setOf("u1", "maya"), saved, ann)
 
         for (window in listOf(global, friends)) {
             val sums = dayBoardSums(window)

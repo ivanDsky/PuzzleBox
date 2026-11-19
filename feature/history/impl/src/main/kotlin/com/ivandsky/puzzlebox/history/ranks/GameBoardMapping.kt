@@ -76,8 +76,9 @@ private const val WITH_LINKEDIN = "with LinkedIn connections"
  * A game's Day board in Friends scope: the viewer and their friends ranked among themselves. Every line's place is the
  * one the same day has on [boards]' counted board, which the domain's Friends pipeline built (`friendBoard`) and
  * [toGameBoardState] ranks, so it is the place an entry point shows. A connection is a ghost line (a shared place, no
- * PuzzleBox rank, no actions); a friend keeps the rank they have among friends. The viewer's unofficial row stays out
- * of that ranking and keeps its own place, taking none from anyone.
+ * PuzzleBox rank, no actions); a friend keeps the rank they have among friends. A day the viewer played only on
+ * LinkedIn is counted with their LinkedIn time, so they take that place on a LinkedIn row and have no unofficial row;
+ * otherwise the viewer's unofficial row stays out of that ranking and keeps its own place, taking none from anyone.
  * [RanksBoardSlice.friendsAlone] marks a list of the viewer alone.
  */
 internal fun RanksBoardSlice.inFriends(boards: CountedBoards?, game: GameId, selfUid: String?): RanksBoardSlice =
@@ -91,12 +92,16 @@ private fun RanksBoardSlice.withGhosts(boards: CountedBoards?, game: GameId, sel
     val (unofficial, official) = ranked.rows.partition { it.unofficial }
     val friends = official.associateBy { it.playerId }
     val ghosts = input.ghosts.associateBy { connectionUid(it.memberRef) }
-    // The viewer's LinkedIn picture and import mark go only on a row they really have; off the board it is the unofficial row's business.
+    // The viewer's LinkedIn picture and import mark join a row they really have; a row the counted board made of their import is LinkedIn's.
     val you = input.you.takeIf { official.any { it.isSelf } }
     val placed: List<DailyBoardLine> = counted.rows.mapNotNull { row ->
-        friends[row.playerId]?.let { DailyBoardLine.Real(it.shownAs(row, you), row.rank) } ?: ghosts[row.playerId]?.let { DailyBoardLine.Ghost(it, row.rank) }
+        friends[row.playerId]?.let { DailyBoardLine.Real(it.shownAs(row, you), row.rank) }
+            ?: ghosts[row.playerId]?.let { DailyBoardLine.Ghost(it, row.rank) }
+            ?: row.takeIf { it.isSelf }?.let { DailyBoardLine.Real(it.ownLinkedIn(input.you), row.rank) }
     }
-    val lines = unofficial.fold(placed + input.unplaced.map { DailyBoardLine.Ghost(it, null) }) { merged, row -> merged.withUnofficialLine(row) }
+    // Placed by their own LinkedIn result, the viewer would be drawn twice with their device-only row too.
+    val offBoard = unofficial.takeIf { placed.none { it is DailyBoardLine.Real && it.row.isSelf } }.orEmpty()
+    val lines = offBoard.fold(placed + input.unplaced.map { DailyBoardLine.Ghost(it, null) }) { merged, row -> merged.withUnofficialLine(row) }
     val merged = DailyBoardState.Ranked(rows = lines.filterIsInstance<DailyBoardLine.Real>().map { it.row }, lines = lines)
     return copy(state = merged, note = WITH_LINKEDIN.takeIf { input.ghosts.isNotEmpty() })
 }
@@ -111,6 +116,9 @@ private fun DailyBoardRowModel.shownAs(counted: DailyBoardRowModel, you: LinkedI
         photo = own?.photo ?: photo,
     )
 }
+
+/** The viewer's row the counted board made of their own LinkedIn result: LinkedIn's, like the result screen's own LinkedIn row, with [you]'s picture. */
+private fun DailyBoardRowModel.ownLinkedIn(you: LinkedInYou?) = copy(fromLinkedIn = true, timeFromLinkedIn = true, photo = you?.photo ?: photo)
 
 /**
  * A Friends board whose rows already rank the connections among the friends: a game's Week or Month, and

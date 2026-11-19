@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.domain.ranks
 
+import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.BoardPage
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
@@ -16,11 +17,12 @@ data class FriendDay(val board: LeaderboardRef, val friends: Set<String>, val co
     data class Standing(val place: Int, val count: Int)
 
     /**
-     * Where [viewerUid] stands on the day's [entries] as the hub's Friends board ranks them ([rankFriendBoard], the
-     * pipeline the hub's boards are built through). Null when the viewer has no entry on the board.
+     * Where [viewer] stands on the day's [entries] as the hub's Friends board ranks them ([rankFriendBoard], the
+     * pipeline the hub's boards are built through). Null when the viewer is not ranked on the day: no entry on the
+     * board and no LinkedIn result of their own for it.
      */
-    fun standing(entries: List<LeaderboardEntry>, viewerUid: String, order: RankOrder): Standing? {
-        val ranked = rankFriendBoard(board, BoardPage(entries, entries.size), order, friends + viewerUid, connections, viewerUid)
-        return ranked.rows.firstOrNull { it.entry.uid == viewerUid }?.let { Standing(it.rank, ranked.n) }
+    fun standing(entries: List<LeaderboardEntry>, viewer: Identity, order: RankOrder): Standing? {
+        val ranked = rankFriendBoard(board, BoardPage(entries, entries.size), order, friends + viewer.uid, connections, viewer)
+        return ranked.rows.firstOrNull { it.entry.uid == viewer.uid }?.let { Standing(it.rank, ranked.n) }
     }
 }

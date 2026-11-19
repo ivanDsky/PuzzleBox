@@ -36,7 +36,8 @@ fun viewerStanding(local: CompletionRecord?, inWindow: Boolean, board: BoardPage
 /**
  * How many of [loaded]'s days the viewer solved ([records]) but stands [ViewerStanding.Unofficial] on, as each day's
  * board marks them: the days a game's Week or Month leaves out of their points (ADR-0031 §11). [inWindow] is the
- * client's one submit-window rule. A board A11 places them past the page on counts for them, so it is not one of these.
+ * client's one submit-window rule. A board A11 places them past the page on counts for them, so it is not one of these;
+ * nor is a Friends board their own LinkedIn result put them on (`friendBoard`).
  */
 fun unofficialDays(loaded: List<BoardLoad.Loaded>, me: Identity?, records: List<CompletionRecord>, inWindow: (LeaderboardRef) -> Boolean): Int {
     if (me == null) return 0

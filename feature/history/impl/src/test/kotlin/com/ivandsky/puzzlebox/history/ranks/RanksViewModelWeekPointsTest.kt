@@ -2,6 +2,9 @@ package com.ivandsky.puzzlebox.history.ranks
 
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
+import com.ivandsky.puzzlebox.data.linkedin.LinkState
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInDayData
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
 import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO
@@ -134,9 +137,9 @@ class RanksViewModelWeekPointsTest {
 
     private suspend fun RanksViewModel.tangoMonth(scope: RankScope): RanksUiState {
         select { it.pickBoard(RanksBoard.Game(TANGO)).setWindow(Window.Month).setScope(scope) }
-        // Every day in: no "k of 13 days" while boards load.
+        // Every day in: no "k of n days" while boards load.
         return uiState.first { state ->
-            state.window == Window.Month && state.scope == scope && rowsOf(state.board).size == 2 && state.board.note?.contains("of 13 days") != true
+            state.window == Window.Month && state.scope == scope && rowsOf(state.board).size == 2 && state.board.note?.contains(" of ") != true
         }
     }
 
@@ -164,5 +167,62 @@ class RanksViewModelWeekPointsTest {
         val viewModel = h.viewModel(releaseFlags = FakeReleaseFlags())
 
         assertNull(viewModel.tangoMonth(RankScope.Global).board.note)
+    }
+
+    // #1743, second pass: Ann solved Tango on all 19 days to today, 6 of them only on LinkedIn, so no board has her on
+    // those. Bea posted every day, slower.
+    private val linkedInOnly = setOf(1, 2, 5, 8, 11, 14)
+
+    private fun annOnLinkedIn(): RanksTestHub {
+        val boards = (1..19).associate { day ->
+            LeaderboardRef(TANGO.value, nov1.plusDays(day - 1L)) to listOfNotNull(
+                tangoEntry(day, "u1", "Ann", 50_000).takeIf { day !in linkedInOnly },
+                tangoEntry(day, "bea", "Bea", 60_000),
+            )
+        }
+        val h = RanksTestHub(FakeLeaderboardRepository(boards), today = nov1.plusDays(18))
+        val solves = (1..19).associate { day ->
+            val record = tangoRecord(nov1.plusDays(day - 1L), timeMs = 50_000).copy(firstCompletedAt = Instant.parse("2026-11-19T08:00:00Z"), isRecord = true)
+            day to if (day in linkedInOnly) record.copy(source = CompletionSource.LinkedIn) else record
+        }
+        h.completions.setRecords(solves.values.toList())
+        for (day in linkedInOnly) {
+            val imported = LinkedInOwnState.Imported(solves.getValue(day))
+            val data = LinkedInDayData(LinkState.Connected("ref-ann"), delta = 0, boardInWindow = false, inFlight = false, lastSync = null, own = imported, ghosts = emptyList(), boardFetchedAtMs = null)
+            h.linkedInDays.emit(TANGO, nov1.plusDays(day - 1L), data)
+        }
+        return h
+    }
+
+    private fun RanksBoardSlice.points() = rowsOf(this).associate { row ->
+        when (val value = row.scoreValue) {
+            is BoardRowValue.DayPoints -> row.name to (value.total to value.days)
+            is BoardRowValue.Points -> row.name to (value.total to value.games)
+            else -> error("$value")
+        }
+    }
+
+    @Test
+    fun `flag on, Friends counts the viewer's LinkedIn-only days like a connection's, in the month and Overall, Global as before`() = runTest {
+        val h = annOnLinkedIn()
+        h.befriend("bea")
+        val viewModel = h.viewModel(linkedIn = true, releaseFlags = FakeReleaseFlags(HistoryFlag.WeekMonthPoints))
+
+        // First of two every day: 100 points a day to Bea's 50, and nothing left unofficial.
+        val friends = viewModel.tangoMonth(RankScope.Friends).board
+        assertEquals(mapOf("Ann" to (1900.0 to 19), "Bea" to (950.0 to 19)), friends.points())
+        assertNull(friends.note)
+
+        viewModel.select { it.pickBoard(RanksBoard.Overall).setWindow(Window.Month).setScope(RankScope.Friends) }
+        // Bea is on every Tango board, so her 19 days say they are all in; the other games' notes don't matter here.
+        val overall = viewModel.uiState.first {
+            it.board.title.startsWith("Overall") && it.scope == RankScope.Friends && rowsOf(it.board).size == 2 && it.board.points()["Bea"]?.second == 19
+        }
+        assertEquals(mapOf("Ann" to (1900.0 to 19), "Bea" to (950.0 to 19)), overall.board.points())
+
+        // LinkedIn times count for nobody in Global: Bea alone on the 6 days.
+        val global = viewModel.tangoMonth(RankScope.Global).board
+        assertEquals(mapOf("Ann" to (1300.0 to 13), "Bea" to (1250.0 to 19)), global.points())
+        assertEquals("6 solved days are unofficial and earn no points", global.note)
     }
 }

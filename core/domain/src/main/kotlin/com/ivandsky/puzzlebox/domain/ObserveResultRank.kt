@@ -57,7 +57,7 @@ class ObserveResultRank(
         val entries = (signedIn.board as? TodayLeaderboard.Board.Loaded)?.snapshot?.entries ?: return ResultRank.Hidden
         val uid = signedIn.identity.uid
         // In Friends the place already counts the connections, so there is no second place to carry.
-        if (friends != null) return friends.standing(entries, uid, order)?.let { ranked(it.place, it.count, null, amongFriends = true) } ?: ResultRank.Hidden
+        if (friends != null) return friends.standing(entries, signedIn.identity, order)?.let { ranked(it.place, it.count, null, amongFriends = true) } ?: ResultRank.Hidden
         val index = entries.indexOfFirst { it.uid == uid }
         return if (index < 0) ResultRank.Hidden else ranked(index + 1, entries.size, withConnections(entries, index, view, order.comparator))
     }
