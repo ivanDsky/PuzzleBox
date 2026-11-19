@@ -91,6 +91,7 @@ fun ZipEditorBoard(
                 ZipEditorStep.Path -> Box(Modifier.matchParentSize().strokeGestures(controller, board.n))
                 ZipEditorStep.Numbers -> Box(Modifier.matchParentSize().tapGestures(controller, board.n))
                 ZipEditorStep.Walls -> Box(Modifier.matchParentSize().edgeGestures(controller, board.n))
+                ZipEditorStep.NumbersAndWalls -> Box(Modifier.matchParentSize().numbersAndWallsGestures(controller, board.n))
             }
         }
         ZipEditorTools(controller)
@@ -172,6 +173,19 @@ private fun Modifier.edgeGestures(controller: ZipEditorController, n: Int): Modi
         }
     }
 
+/**
+ * A tap near the line between two cells toggles the wall there, as in Walls; any other tap numbers the cell it lands on, as in
+ * Numbers. On the board's outer border there is no wall, so the tap numbers the cell.
+ */
+private fun Modifier.numbersAndWallsGestures(controller: ZipEditorController, n: Int): Modifier =
+    pointerInput(controller, n) {
+        val geometry = GridGeometry(n, n, size.width.toFloat(), size.height.toFloat())
+        detectTapGestures {
+            val edge = geometry.edgeAt(it, ZipEditorDefaults.COMBINED_EDGE_BAND, ZipEditorDefaults.EDGE_INSET)
+            if (edge != null) controller.tapEdge(edge) else controller.tapNumber(cellOf(geometry, it, n))
+        }
+    }
+
 /** The board as the play board draws it: [shown], when there is one, in place of the draft's path. */
 internal fun rendererModel(board: ZipDraft, shown: List<Int> = emptyList()): ZipRendererModel {
     val cells = board.waypoints.map(::Cell)
@@ -229,8 +243,17 @@ private fun ZipEditorBoardEmptyPreview() {
     PuzzleBoxTheme { ZipEditorBoard(previewController(path = emptyList()), Modifier.fillMaxSize()) }
 }
 
-private fun previewController(path: List<Int>): ZipEditorController {
+@PuzzleBoxPreviews
+@Preview(name = "Zip editor, Numbers & walls", widthDp = 360, heightDp = 420, showBackground = true)
+@Composable
+private fun ZipEditorBoardNumbersAndWallsPreview() {
+    val controller = previewController(path = listOf(0, 1, 2, 7, 12, 11, 10), combined = true)
+    controller.select(ZipEditorStep.NumbersAndWalls)
+    PuzzleBoxTheme { ZipEditorBoard(controller, Modifier.fillMaxSize()) }
+}
+
+private fun previewController(path: List<Int>, combined: Boolean = false): ZipEditorController {
     val blank = EditorDraft.fresh(ZipEditor, ZipEditor.variants.first())
     val drawn = blank.state.draft.copy(path = path, waypoints = listOfNotNull(path.firstOrNull(), path.lastOrNull()))
-    return ZipEditorController(EditorDraft(ZipEditor, blank.state.copy(draft = drawn))) {}
+    return ZipEditorController(EditorDraft(ZipEditor, blank.state.copy(draft = drawn)), combined) {}
 }

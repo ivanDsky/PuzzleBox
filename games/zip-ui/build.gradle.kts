@@ -15,6 +15,7 @@ dependencies {
     implementation(projects.games.zip)
     implementation(projects.core.game)
     implementation(projects.core.gameUi)
+    implementation(projects.core.common)
     implementation(projects.core.designsystem)
 
     implementation(libs.kotlinx.coroutines.core)

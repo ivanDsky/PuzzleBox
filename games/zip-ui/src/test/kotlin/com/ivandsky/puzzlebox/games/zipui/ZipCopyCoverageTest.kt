@@ -76,7 +76,7 @@ class ZipCopyCoverageTest {
     private fun showIssues() {
         rule.setContent {
             PuzzleBoxTheme {
-                ZipEditorUi.Issues(
+                ZipEditorUi().Issues(
                     controller,
                     verdict,
                     emptyList(),
