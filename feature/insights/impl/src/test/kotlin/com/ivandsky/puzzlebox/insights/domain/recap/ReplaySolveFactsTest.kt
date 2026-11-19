@@ -144,14 +144,41 @@ class ReplaySolveFactsTest {
     }
 
     @Test
-    fun `an archive solve earns nothing but still sets a time to beat`() = runTest {
-        fixture.store(fixture.solve(alpha, day(11, 2), time = 380_000), fixture.solve(alpha, day(11, 4), time = 390_000))
-        fixture.captureArchived(alpha, day(11, 2))
+    fun `an archive first solve is a counted solve and earns what Result gives it, a personal best included`() = runTest {
+        fixture.store(fixture.solve(alpha, day(11, 2), time = 390_000), fixture.solve(alpha, day(11, 4), time = 380_000))
+        fixture.captureArchived(alpha, day(11, 4))
 
-        assertTrue(factsOf(alpha, day(11, 2)).playAgain)
-        assertEquals(emptyList<Moment>(), detectMoments(factsOf(alpha, day(11, 2))))
-        // Nov 4 is slower than the archive day's time, so it is no best.
-        assertFalse(factsOf(alpha, day(11, 4)).newBest)
+        val archive = factsOf(alpha, day(11, 4))
+
+        assertFalse(archive.playAgain)
+        assertTrue(archive.newBest)
+        assertEquals(listOf<Moment>(Moment.PersonalBest), detectMoments(archive))
+        // The walk and the solved count agree: both rows are counted solves.
+        assertEquals(2, replayed().size)
+        assertEquals(2, fixture.computePeriodFacts(fixture.history(), RecapPeriod.Month(java.time.YearMonth.of(2026, 11))).solved)
+    }
+
+    @Test
+    fun `an archive solve sets a time to beat like any other`() = runTest {
+        fixture.store(fixture.solve(alpha, day(11, 2), time = 390_000), fixture.solve(alpha, day(11, 4), time = 380_000), fixture.solve(alpha, day(11, 6), time = 385_000))
+        fixture.captureArchived(alpha, day(11, 4))
+
+        assertFalse(factsOf(alpha, day(11, 6)).newBest)
+    }
+
+    @Test
+    fun `an archive day earns no streak moment unless it joins runs the way Result reads it`() = runTest {
+        // Seven days Nov 14..20 held by alpha, and an archive solve of beta on Nov 9: it joins nothing.
+        fixture.store(
+            *(14..20).map { fixture.solve(alpha, day(11, it), puzzleNumber = 100 + it) }.toTypedArray(),
+            fixture.solve(beta, day(11, 9)),
+        )
+        fixture.captureArchived(beta, day(11, 9))
+
+        val archive = factsOf(beta, day(11, 9))
+
+        assertEquals(archive.streakBefore, archive.streak)
+        assertTrue(detectMoments(archive).none { it is Moment.Streak })
     }
 
     @Test

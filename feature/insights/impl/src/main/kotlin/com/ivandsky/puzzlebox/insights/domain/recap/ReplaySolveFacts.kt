@@ -28,8 +28,10 @@ import com.ivandsky.puzzlebox.model.GameId
  *   solve moves it, so a streak Moment is earned once a day.
  * - the set is every listed game; the solves of a day are taken in the order they were completed (an import has the
  *   instant it was imported, so game order breaks the tie), and the last of them finishes the set.
- * - a solve of a day that is no streak day (an archive puzzle opened later) is a play again to the detector and earns
- *   nothing, though its time still counts as a best to beat.
+ * - a solve of a day that is no streak day (an archive puzzle opened later) is still a counted solve, so it is no play
+ *   again: it earns what Result gives a first solve of an archive puzzle. Result reads its streak as the current streak
+ *   without and with that day ([ComputeStreak]), so an archive day moves the streak only when it joins runs, and the
+ *   streak Moment comes only then.
  */
 internal class ReplaySolveFacts(
     private val computeStreak: ComputeStreak,
@@ -39,7 +41,9 @@ internal class ReplaySolveFacts(
     operator fun invoke(history: List<GameHistoryDay>): List<ReplayedSolve> {
         val counted = history.filter { it.isSolvedDaily() }
         val streakDays = counted.filter { it.isStreakDay() }.map { it.day }
-        val streaks = StreakRuns.of(streakDays, computeStreak(streakDays).freezes)
+        val ledger = computeStreak(streakDays)
+        val streaks = StreakRuns.of(streakDays, ledger.freezes)
+        val streakDaySet = streakDays.toSet()
         val games = registry.all.map { it.definition.id }
         val best = mutableMapOf<GameId, BestScore>()
         val bestHintFree = mutableMapOf<GameId, Long>()
@@ -47,7 +51,7 @@ internal class ReplaySolveFacts(
 
         for ((day, solves) in counted.groupBy { it.day }.toSortedMap()) {
             val inOrder = solves.sortedWith(compareBy<GameHistoryDay>({ it.record?.firstCompletedAt }, { games.indexOf(it.gameId) }))
-            val streak = streaks.lengthAt(day)
+            val runStreak = streaks.lengthAt(day)
             var done = 0
             var timeMs = 0L
             var hints = 0
@@ -61,20 +65,30 @@ internal class ReplaySolveFacts(
                 hints += record.hints
                 val movesStreak = solve.isStreakDay() && !streakMoved
                 streakMoved = streakMoved || movesStreak
+                // An archive day is read as Result reads it: the current streak without the day and with it.
+                val streakBefore: Int
+                val streak: Int
+                if (solve.isStreakDay()) {
+                    streak = runStreak
+                    streakBefore = if (movesStreak) runStreak - 1 else runStreak
+                } else {
+                    streakBefore = ledger.current
+                    streak = if (day in streakDaySet) ledger.current else computeStreak(streakDaySet + day).current
+                }
                 replayed += ReplayedSolve(
                     game = game,
                     day = day,
                     facts = SolveFacts(
                         timeMs = record.time,
                         hints = record.hints,
-                        playAgain = !solve.isStreakDay(),
+                        playAgain = false,
                         practice = false,
                         newBest = RecordVerdict.of(best[game], record.time, record.hints, playAgain = false, order = order) == RecordVerdict.NewBest,
                         bestHintFreeMs = bestHintFree[game],
                         doneToday = done,
                         totalToday = games.size,
                         dayTotal = Moment.FullSetDone.DayTotal(timeMs, hints),
-                        streakBefore = if (movesStreak) streak - 1 else streak,
+                        streakBefore = streakBefore,
                         streak = streak,
                     ),
                 )
