@@ -11,4 +11,11 @@ import kotlinx.coroutines.flow.Flow
 internal fun interface StatsSectionProvider {
 
     fun section(input: StatsInput): Flow<StatsSection?>
+
+    /**
+     * What this section's answer depends on. The page asks [section] again only when the key changes, so a section
+     * that reads the network keys on what it asks for and is not re-read, nor flashes loading, when only the local
+     * facts change. A local section depends on the whole [input].
+     */
+    fun readKey(input: StatsInput): Any = input
 }

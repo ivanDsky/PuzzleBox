@@ -3,7 +3,9 @@ package com.ivandsky.puzzlebox.insights.domain.stats
 import com.ivandsky.puzzlebox.domain.ranks.RankWindow
 import com.ivandsky.puzzlebox.insights.domain.recap.DaySpan
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapPeriod
+import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.temporal.TemporalAdjusters
 import java.time.YearMonth
 
 /**
@@ -33,11 +35,12 @@ internal enum class StatsRange {
 
     /**
      * The Ranks window the vs friends read uses on the puzzle day [today]: the Mon–Sun week for [Week], the calendar
-     * month for [Month] and for [All], as Ranks has no all-time window (A15).
+     * month for [Month] and for [All], as Ranks has no all-time window (A15). The anchor is the window's first day, so the
+     * same window is equal on every day it holds.
      */
     fun friendsWindow(today: LocalDate): RankWindow = when (this) {
-        Week -> RankWindow.Week(today)
-        Month, All -> RankWindow.Month(today)
+        Week -> RankWindow.Week(today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)))
+        Month, All -> RankWindow.Month(today.withDayOfMonth(1))
     }
 
     companion object {

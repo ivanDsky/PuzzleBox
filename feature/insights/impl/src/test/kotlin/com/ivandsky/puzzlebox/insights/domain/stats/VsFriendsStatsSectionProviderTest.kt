@@ -118,7 +118,7 @@ class VsFriendsStatsSectionProviderTest {
     }
 
     @Test
-    fun `the window is the current week for Week, the current month for Month and All`() = runTest {
+    fun `the window is the current week (from its Monday) for Week, the current month (from its first) for Month and All`() = runTest {
         val answers = mapOf(alpha to flowOf(standings("me" to 1.0, "maya" to 2.0)))
 
         listOf(StatsRange.Week, StatsRange.Month, StatsRange.All).forEach { range ->
@@ -126,7 +126,7 @@ class VsFriendsStatsSectionProviderTest {
             provider(answers).settled(solved(range))
             assertEquals(
                 "$range",
-                listOf(if (range == StatsRange.Week) RankWindow.Week(LocalDate.of(2026, 11, 20)) else RankWindow.Month(LocalDate.of(2026, 11, 20))),
+                listOf(if (range == StatsRange.Week) RankWindow.Week(LocalDate.of(2026, 11, 16)) else RankWindow.Month(LocalDate.of(2026, 11, 1))),
                 reads.map { it.first }.distinct(),
             )
         }

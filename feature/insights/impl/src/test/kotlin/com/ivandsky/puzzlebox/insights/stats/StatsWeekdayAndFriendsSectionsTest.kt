@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.insights.domain.stats.GameStanding
 import com.ivandsky.puzzlebox.insights.domain.stats.SectionState
 import com.ivandsky.puzzlebox.insights.domain.stats.VsFriendsStanding
+import com.ivandsky.puzzlebox.model.GameId
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -50,8 +51,8 @@ class StatsWeekdayAndFriendsSectionsTest {
         rule.onNodeWithTag("stats.sections").performScrollToNode(hasTestTag(tag))
     }
 
-    private fun showFriends(state: SectionState<VsFriendsStanding>) {
-        show(StatsFixtures.readyWithLines(vsFriends = state))
+    private fun showFriends(state: SectionState<VsFriendsStanding>, game: GameId? = null) {
+        show(StatsFixtures.readyWithLines(game = game, vsFriends = state))
         // The last item: the list scrolls to its end.
         rule.onNodeWithTag("stats.sections").performScrollToNode(hasTestTag("stats.weekday"))
     }
@@ -82,9 +83,10 @@ class StatsWeekdayAndFriendsSectionsTest {
 
     @Test
     fun `one game shows only the best`() {
-        showFriends(SectionState.Ready(VsFriendsStanding.Ranked(GameStanding(StatsFixtures.queens, 90.0, place = 2, players = 3), weakest = null)))
+        showFriends(SectionState.Ready(VsFriendsStanding.Ranked(GameStanding(StatsFixtures.queens, 90.0, place = 2, players = 3), weakest = null)), game = StatsFixtures.queens)
 
         rule.onNodeWithTag("stats.vsFriends.best").assertIsDisplayed()
+        rule.onNodeWithTag("stats.vsFriends.best").assertTextContains("Your standing · place 2 of 3", substring = true)
         rule.onAllNodesWithTag("stats.vsFriends.weakest").assertCountEquals(0)
     }
 

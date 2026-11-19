@@ -26,13 +26,13 @@ import com.ivandsky.puzzlebox.model.GameId
 import java.util.Locale
 
 /**
- * The vs friends section: the game the viewer scores best in among friends, and the weakest when it differs, each with
+ * The vs friends section: the game the viewer scores best in among friends, and the weakest when it differs (on a single game's page, that game's standing alone), each with
  * its points and place. While it loads or when the read fails it is the usual titled frame with its quiet line (A16).
  * When there is nothing to compare yet (signed out, or no friends) the section is replaced by one plain line, with no
  * title, saying what unlocks it.
  */
 @Composable
-internal fun VsFriendsSection(state: SectionState<VsFriendsStanding>, gameName: (GameId) -> String, modifier: Modifier = Modifier) {
+internal fun VsFriendsSection(state: SectionState<VsFriendsStanding>, gameName: (GameId) -> String, singleGame: Boolean, modifier: Modifier = Modifier) {
     val locked = (state as? SectionState.Ready)?.value as? VsFriendsStanding.Locked
     if (locked != null) {
         Text(
@@ -46,7 +46,7 @@ internal fun VsFriendsSection(state: SectionState<VsFriendsStanding>, gameName: 
     StatsSectionFrame(title = "Vs friends", state = state, tag = "stats.vsFriends", modifier = modifier) { standing ->
         if (standing is VsFriendsStanding.Ranked) {
             Column(Modifier.fillMaxWidth().clip(MaterialTheme.shapes.large).background(MaterialTheme.colorScheme.surfaceContainerHigh)) {
-                StandingRow("stats.vsFriends.best", "Best game", standing.best, gameName)
+                StandingRow("stats.vsFriends.best", if (singleGame) "Your standing" else "Best game", standing.best, gameName)
                 standing.weakest?.let { weakest ->
                     HorizontalDivider(Modifier.padding(horizontal = Spacing.lg), color = MaterialTheme.colorScheme.outlineVariant)
                     StandingRow("stats.vsFriends.weakest", "Weakest game", weakest, gameName)

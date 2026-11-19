@@ -32,7 +32,8 @@ import kotlinx.coroutines.flow.map
  * - A read that is partial or offline, fails, or takes longer than [timeout]: [SectionState.Unavailable] (A16), never a
  *   number a later read could change; the rest of the page is unaffected.
  *
- * Signing in or out while the page is open re-reads.
+ * Signing in or out while the page is open re-reads; so does a new window, range or game, but not a history change that
+ * leaves them as they were ([readKey]).
  */
 internal class VsFriendsStatsSectionProvider(
     private val identity: IdentityService,
@@ -48,6 +49,10 @@ internal class VsFriendsStatsSectionProvider(
         } else {
             identity.current.map { it?.uid }.distinctUntilChanged().flatMapLatest { viewer -> read(input, viewer) }
         }
+
+    /** The read is the window, the games asked and whether there is anything to compare; the facts alone do not change it. */
+    override fun readKey(input: StatsInput): Any =
+        Triple(input.range.friendsWindow(input.today), input.facts.scope?.let(::listOf) ?: input.games, input.facts.solved > 0)
 
     private fun read(input: StatsInput, viewer: String?): Flow<StatsSection?> = flow {
         if (viewer == null) {
