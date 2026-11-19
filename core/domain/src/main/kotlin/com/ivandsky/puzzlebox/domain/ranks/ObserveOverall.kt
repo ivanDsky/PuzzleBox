@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.BoardPage
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntries
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -75,13 +76,22 @@ fun windowStandings(loaded: List<BoardLoad.Loaded>, me: Identity?, records: List
  * A11: the boards at the cap where the viewer has an official solve of their own ([records]) but no row, so they placed
  * beyond the page. Their points count those boards; a board the viewer is unofficial on is not one of them.
  */
-fun beyondPage(loaded: List<BoardLoad.Loaded>, me: Identity, records: List<CompletionRecord>): Set<LeaderboardRef> {
-    val official = records.mapNotNullTo(HashSet()) { record ->
-        LeaderboardEntries.fromRecord(record, me.uid, me.displayName)?.let { LeaderboardRef.fromPuzzleRefKey(it.puzzleRef) }
+fun beyondPage(loaded: List<BoardLoad.Loaded>, me: Identity, records: List<CompletionRecord>): Set<LeaderboardRef> =
+    beyondPageEntries(loaded, me, records).keys
+
+/**
+ * The viewer's own entry on each board [beyondPage] places them past, as their [records] give it: what the board holds
+ * for them but its read page does not. Friends boards put it among the friends ([friendBoard]), as it would be if the
+ * page were not cut at the cap.
+ */
+fun beyondPageEntries(loaded: List<BoardLoad.Loaded>, me: Identity, records: List<CompletionRecord>): Map<LeaderboardRef, LeaderboardEntry> {
+    val official = HashMap<LeaderboardRef, LeaderboardEntry>()
+    for (record in records) {
+        val entry = LeaderboardEntries.fromRecord(record, me.uid, me.displayName) ?: continue
+        LeaderboardRef.fromPuzzleRefKey(entry.puzzleRef)?.let { official[it] = entry }
     }
-    return loaded.filter { load ->
-        load.page.entries.size >= BoardPage.PAGE_SIZE &&
-            load.board in official &&
-            load.page.entries.none { it.uid == me.uid }
-    }.mapTo(HashSet()) { it.board }
+    return loaded.mapNotNull { load ->
+        val entry = official[load.board]?.takeIf { load.page.entries.size >= BoardPage.PAGE_SIZE && load.page.entries.none { it.uid == me.uid } }
+        entry?.let { load.board to it }
+    }.toMap()
 }

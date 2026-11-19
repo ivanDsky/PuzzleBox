@@ -136,7 +136,7 @@ class SyncRankHistoryTest {
             store = store,
             friendsOverall = ObserveFriendsOverall(
                 ObserveRankWindow(identity, reads, finalBoards, registry, FakeGameCalendar(today), clock),
-                ObserveFriendBoards(friendUids, identity, null),
+                ObserveFriendBoards(friendUids, identity, FakeCompletionRepository(history.toList()), null),
                 ObserveOverall(identity, FakeCompletionRepository()),
             ),
             clock = clock,

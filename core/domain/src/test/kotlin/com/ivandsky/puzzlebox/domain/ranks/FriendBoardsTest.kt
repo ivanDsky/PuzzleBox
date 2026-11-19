@@ -8,9 +8,15 @@ import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInBoardView
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayStatus
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
+import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RankOrder
+import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
+import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
+import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
@@ -129,6 +135,42 @@ class FriendBoardsTest {
         assertEquals(listOf("bea" to 1, connectionUid("ref-dee") to 2, "ann" to 3, "cy" to 4), hub.rows.map { it.entry.uid to it.rank })
         assertEquals(FriendDay.Standing(place = 3, count = 4), reported)
         assertEquals(FriendDay.Standing(hub.rows.single { it.entry.uid == "ann" }.rank, hub.n), reported)
+    }
+
+    private val me = Identity("ann", "Ann", null)
+
+    /** A full page of 99 strangers and [last], the board's other 300 places beyond it. */
+    private fun fullPage(last: LeaderboardEntry) =
+        RankWindowBoards.Boards(listOf(loaded(zip, *((1..BoardPage.PAGE_SIZE - 1).map { entry("s$it", zip, it * 10L) } + last).toTypedArray(), count = 400)))
+
+    private fun solved(board: LeaderboardRef, time: Long, official: Boolean = true) = CompletionRecord(
+        TestGames.Ref(GameId(board.gameId), PuzzleKey.Daily(board.day, 1)), time, hints = 0, stats = RecordStats(1, "{}"),
+        firstCompletedAt = Instant.parse("2026-11-13T08:00:00Z"), isRecord = official,
+    )
+
+    private fun RankWindowBoards.Boards.ownBeyondPage(vararg records: CompletionRecord) =
+        beyondPageEntries(boards.filterIsInstance<BoardLoad.Loaded>(), me, records.toList())
+
+    @Test
+    fun `a viewer who placed past the full page is on the friends board from their own solve, ranked among the friends`() {
+        val page = fullPage(last = entry("bea", zip, 20_000))
+        val own = page.ownBeyondPage(solved(zip, 30_000))
+
+        val among = ranked(page.amongFriends(friends, viewer = me, viewerEntries = own)).single()
+
+        assertEquals(setOf(zip), own.keys)
+        assertEquals(listOf("bea" to 1, "ann" to 2), among.rows.map { it.entry.uid to it.rank })
+        assertEquals(2, among.n)
+        assertEquals(listOf(100.0, 50.0), among.rows.map { it.points })
+    }
+
+    @Test
+    fun `no viewer entry is made for a board under the cap, one they are on, or a solve that is not official`() {
+        val short = RankWindowBoards.Boards(listOf(loaded(zip, entry("bea", zip, 20), count = 90), loaded(tango, entry("ann", tango, 10))))
+
+        assertEquals(emptyMap<LeaderboardRef, LeaderboardEntry>(), short.ownBeyondPage(solved(zip, 30_000), solved(tango, 30_000)))
+        assertEquals(emptyMap<LeaderboardRef, LeaderboardEntry>(), fullPage(last = entry("ann", zip, 20_000)).ownBeyondPage(solved(zip, 30_000)))
+        assertEquals(emptyMap<LeaderboardRef, LeaderboardEntry>(), fullPage(last = entry("bea", zip, 20_000)).ownBeyondPage(solved(zip, 30_000, official = false)))
     }
 
     private companion object {

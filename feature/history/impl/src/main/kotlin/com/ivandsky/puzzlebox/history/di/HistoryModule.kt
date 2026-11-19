@@ -38,7 +38,7 @@ val historyModule = module {
         val withLinkedIn = params.getOrNull<Boolean>() == true
         RanksViewModel(
             get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
-            friendBoards = if (withLinkedIn) get() else ObserveFriendBoards(observeFriendUids = get(), identity = get(), linkedIn = null),
+            friendBoards = if (withLinkedIn) get() else ObserveFriendBoards(observeFriendUids = get(), identity = get(), completions = get(), linkedIn = null),
             linkedIn = if (withLinkedIn) get() else null,
             releaseFlags = get(),
             savedState = get(),
