@@ -31,6 +31,7 @@ import com.ivandsky.puzzlebox.games.zip.zipModule
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.network.LINKEDIN_THROTTLE_COOLDOWN
 import com.ivandsky.puzzlebox.network.linkedInFeedTransport
+import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.network.FakeFeedTransport
 import java.time.Clock
@@ -171,14 +172,14 @@ class LinkedInArchiveE2ETest {
             }.readText()
     }
 
-    /** The real data graph of one launch over the shared [db]: data, domain and the four LinkedIn games; ends the last launch. */
+    /** The real data graph of one launch over the shared [db]: data, domain, play and the four LinkedIn games; ends the last launch. */
     private inner class Graph(transport: FeedTransport) {
         private val app = run {
             live?.close()
             koinApplication {
                 androidContext(RuntimeEnvironment.getApplication())
                 modules(
-                    commonModule, dataModule, unfilteredOwnerModule, domainModule, zipModule, queensModule, tangoModule, miniSudokuModule,
+                    commonModule, dataModule, unfilteredOwnerModule, domainModule, playModule, zipModule, queensModule, tangoModule, miniSudokuModule,
                     module {
                         single { transport }
                         single { db }

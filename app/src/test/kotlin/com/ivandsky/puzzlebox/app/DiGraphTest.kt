@@ -52,6 +52,9 @@ import com.ivandsky.puzzlebox.play.domain.linkedin.ObserveLinkedInPost
 import com.ivandsky.puzzlebox.play.domain.linkedin.SubmitLinkedInResult
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.domain.nextthing.ObserveResultNextThing
+import com.ivandsky.puzzlebox.domain.random.LoadRandomDay
+import com.ivandsky.puzzlebox.domain.random.LoadRandomPuzzle
+import com.ivandsky.puzzlebox.domain.random.LoadRandomShared
 import com.ivandsky.puzzlebox.domain.ranks.GetPlayerActions
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
@@ -334,6 +337,10 @@ class DiGraphTest : KoinTest {
             // One sync app-wide: Home and the hub read the same failed fetches.
             assertSame(koin.get<SyncTodayPuzzles>(), koin.get<SyncTodayPuzzles>())
             assertNotNull(koin.get<LoadPastDay>())
+            // The library's random pick: a past daily, a community puzzle, and the pick over both.
+            assertNotNull(koin.get<LoadRandomDay>())
+            assertNotNull(koin.get<LoadRandomShared>())
+            assertNotNull(koin.get<LoadRandomPuzzle>())
             assertNotNull(koin.get<LoadSolveReplay>())
             // The game page's archive calendar and its "n of N solved" header.
             assertNotNull(koin.get<ObserveArchiveMonth>())
