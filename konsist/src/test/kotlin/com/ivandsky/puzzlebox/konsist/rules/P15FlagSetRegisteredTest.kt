@@ -12,9 +12,9 @@ import org.junit.Test
  * as registered when the call's reference is its simple name, its qualified name or a dotted tail of it. Every
  * production `flagSet` call has that shape, with a plain string literal owner (an owner held in a variable or a
  * template cannot be checked); no owner is registered twice, in any production source set. The central `ReleaseFlag`
- * holds no entry outside the five it froze with, and every name in that frozen set is still an entry: the set only
- * shrinks. The subjects are the flag enums and the production `flagSet` calls; a `fun … flagSet` declaration, a
- * comment, a string and test sources are not calls.
+ * holds no entry outside the rule's `FROZEN` set (`SheetScreens` alone since the move slices; it froze with five), and
+ * every name in that set is still an entry: the set only shrinks. The subjects are the flag enums and the production
+ * `flagSet` calls; a `fun … flagSet` declaration, a comment, a string and test sources are not calls.
  *
  * Limits: the match is by name, with no type resolution, so two flag enums with one simple name share a bare
  * registration. A call through an import alias or a function reference is not seen. Whether the registering Koin
