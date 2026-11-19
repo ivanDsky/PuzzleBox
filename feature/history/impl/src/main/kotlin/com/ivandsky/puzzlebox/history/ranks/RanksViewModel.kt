@@ -5,7 +5,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
@@ -31,6 +30,7 @@ import com.ivandsky.puzzlebox.history.DayReplays
 import com.ivandsky.puzzlebox.history.DayReplaysLoader
 import com.ivandsky.puzzlebox.history.HistoryDayRow
 import com.ivandsky.puzzlebox.history.HistoryReplays
+import com.ivandsky.puzzlebox.history.flags.HistoryFlag
 import com.ivandsky.puzzlebox.history.historyRows
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.Clock
@@ -80,7 +80,7 @@ internal class RanksViewModel(
     private val daily: DailyRepository,
     private val clock: Clock = Clock.systemUTC(),
     linkedIn: ObserveLinkedInDayView? = null,
-    releaseFlags: ReleaseFlags? = null,
+    releaseFlags: ReleaseFlags,
     savedState: SavedStateHandle = SavedStateHandle(),
     opening: RanksSelection = RanksSelection(),
 ) : ViewModel() {
@@ -121,7 +121,7 @@ internal class RanksViewModel(
     private val scopedBoards = RanksScopedBoards(reads.boards, observeFriendUids, viewer, viewModelScope)
 
     // The LinkedIn part of the hub (the line, the pull's sync) exists only with RanksFreshness on and LinkedIn in the graph.
-    private val freshLinkedIn = linkedIn.takeIf { releaseFlags?.isEnabled(ReleaseFlag.RanksFreshness) == true }
+    private val freshLinkedIn = linkedIn.takeIf { releaseFlags.isEnabled(HistoryFlag.RanksFreshness) }
     private val freshness = freshLinkedIn?.let { RanksFreshness(clock) }
     private val pullSync = freshLinkedIn?.let { RanksPullSync(it, viewModelScope, ::shownLinkedInDay) }
 

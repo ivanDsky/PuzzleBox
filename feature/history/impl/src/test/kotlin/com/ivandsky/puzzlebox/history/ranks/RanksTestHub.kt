@@ -39,6 +39,7 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Clock
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
@@ -96,7 +97,7 @@ internal class RanksTestHub(
 
     fun viewModel(
         linkedIn: Boolean = false,
-        releaseFlags: ReleaseFlags? = null,
+        releaseFlags: ReleaseFlags = FakeReleaseFlags(),
         savedState: SavedStateHandle = SavedStateHandle(),
         opening: RanksSelection = RanksSelection(),
     ): RanksViewModel {

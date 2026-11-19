@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.history.ranks
 
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.linkedin.LinkState
@@ -9,6 +8,7 @@ import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
 import com.ivandsky.puzzlebox.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
+import com.ivandsky.puzzlebox.history.flags.HistoryFlag
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
@@ -36,7 +36,7 @@ class RanksViewModelFreshnessTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val today = LocalDate.of(2026, 11, 13)
-    private val on = FakeReleaseFlags(ReleaseFlag.RanksFreshness)
+    private val on = FakeReleaseFlags(HistoryFlag.RanksFreshness)
 
     private fun hub() = RanksTestHub(
         FakeLeaderboardRepository(

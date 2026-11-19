@@ -24,9 +24,9 @@ import kotlinx.coroutines.launch
  * also hides it at once, before the write lands. With [ReleaseFlag.SheetScreens] on it also waits while another sheet is
  * open ([hold]), so two sheets are never up together.
  */
-internal class ReplayOptInViewModel(private val visibility: VisibilityRepository, releaseFlags: ReleaseFlags? = null) : ViewModel() {
+internal class ReplayOptInViewModel(private val visibility: VisibilityRepository, releaseFlags: ReleaseFlags) : ViewModel() {
 
-    private val holdable = releaseFlags?.isEnabled(ReleaseFlag.SheetScreens) == true
+    private val holdable = releaseFlags.isEnabled(ReleaseFlag.SheetScreens)
     private val ranked = MutableStateFlow(false)
     private val answered = MutableStateFlow(false)
     private val held = MutableStateFlow(false)

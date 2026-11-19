@@ -23,13 +23,6 @@ enum class ReleaseFlag(override val label: String, override val releaseDefault: 
     HintPolish(label = "Calm hint button and plain hint captions", releaseDefault = false),
 
     /**
-     * Ranks shows when LinkedIn was last read (backlog #1357): a muted line under a game's Friends day board with when its
-     * LinkedIn part was last read, and a pull on the board that also asks LinkedIn for that day, inside the read windows.
-     * Read only in a ViewModel or a DI module (ADR-0022 §3).
-     */
-    RanksFreshness(label = "Ranks shows when LinkedIn was last read", releaseDefault = false),
-
-    /**
      * Zip's next number pulses itself (backlog #1151): the number's own dot breathes in place of the separate ring that
      * blinks round it. Read only in feature/play's DI, which hands the Zip board one Boolean (ADR-0022 §3, spec A2).
      */
