@@ -45,7 +45,7 @@ import com.ivandsky.puzzlebox.domain.LoadLegReplay
 import com.ivandsky.puzzlebox.domain.LoadPlayerReplay
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.domain.LoadSolveReplay
-import com.ivandsky.puzzlebox.domain.LoadPastDay
+import com.ivandsky.puzzlebox.play.domain.LoadPastDay
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -180,7 +180,6 @@ class CustomResultViewModelTest {
                     single<CustomBoardRepository> { FakeCustomBoardRepository() }
                     single<IdentityService> { FakeIdentityService() }
                     single { dismissedGoogleSignIn }
-                    factory { LoadPastDay(get(), get()) }
                     factory { loadSolveReplay(get(), get(), get()) }
                 },
                 module { single<CloudSync> { FakeCloudSync() } },

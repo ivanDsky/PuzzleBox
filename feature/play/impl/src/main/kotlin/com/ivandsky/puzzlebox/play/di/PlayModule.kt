@@ -39,6 +39,7 @@ import com.ivandsky.puzzlebox.play.api.ReplayCompareKey
 import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.play.domain.FinishLeg
+import com.ivandsky.puzzlebox.play.domain.LoadPastDay
 import com.ivandsky.puzzlebox.play.domain.ObserveArchiveMonth
 import com.ivandsky.puzzlebox.play.domain.ObserveArchiveProgress
 import com.ivandsky.puzzlebox.play.domain.ObserveLegTarget
@@ -46,9 +47,13 @@ import com.ivandsky.puzzlebox.play.domain.ObservePlayStats
 import com.ivandsky.puzzlebox.play.domain.ReportPuzzle
 import com.ivandsky.puzzlebox.play.domain.linkedin.ObserveLinkedInPost
 import com.ivandsky.puzzlebox.play.domain.linkedin.SubmitLinkedInResult
+import com.ivandsky.puzzlebox.play.domain.random.LoadRandomDay
+import com.ivandsky.puzzlebox.play.domain.random.LoadRandomPuzzle
+import com.ivandsky.puzzlebox.play.domain.random.LoadRandomShared
 import com.ivandsky.puzzlebox.play.random.RandomPickMemory
 import com.ivandsky.puzzlebox.play.random.RandomPuzzleViewModel
 import java.time.Instant
+import kotlin.random.Random
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import org.koin.core.module.dsl.viewModel
@@ -66,8 +71,9 @@ import org.koin.dsl.module
  * friend puzzles' wiring is [friendModule], From friends' [ObserveFriendPuzzles] and
  * [DeleteReceivedPuzzle] are here, as are Play's own use cases: the archive month and progress,
  * the tablet stats panel's [ObservePlayStats], a duel leg's [FinishLeg] and [ObserveLegTarget],
- * Report's [ReportPuzzle], and the result's LinkedIn post ([ObserveLinkedInPost], [SubmitLinkedInResult]). The
- * feature's release flags ([PlayFlag]) are declared here.
+ * Report's [ReportPuzzle], the result's LinkedIn post ([ObserveLinkedInPost], [SubmitLinkedInResult]),
+ * a past day's [LoadPastDay], and the random pick ([LoadRandomDay], [LoadRandomShared], [LoadRandomPuzzle]),
+ * which shuffles with [Random.Default]. The feature's release flags ([PlayFlag]) are declared here.
  *
  * [PlaySessionStore] is a single so live plays outlive their entries' compositions. Its
  * slot opening and every slot's writer share ONE [WriteLane], so a released slot's final
@@ -120,6 +126,18 @@ val playModule = module {
     factory { ReportPuzzle(shared = get(), hidden = get()) }
     factory { ObserveLinkedInPost(posts = get()) }
     factory { SubmitLinkedInResult(posts = get()) }
+    factory { LoadPastDay(daily = get(), registry = get()) }
+    factory {
+        LoadRandomDay(
+            daily = get(),
+            completions = get(),
+            loadPastDay = get(),
+            registry = get(),
+            random = Random.Default,
+        )
+    }
+    factory { LoadRandomShared(list = get(), random = Random.Default) }
+    factory { LoadRandomPuzzle(day = get(), shared = get()) }
     // The flag arrives as the parameter, so a graph without LinkedIn bindings builds the library with it off.
     viewModel { params ->
         LibraryViewModel(

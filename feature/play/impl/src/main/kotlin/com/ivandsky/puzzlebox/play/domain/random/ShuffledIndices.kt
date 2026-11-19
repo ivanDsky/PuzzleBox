@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain.random
+package com.ivandsky.puzzlebox.play.domain.random
 
 import kotlin.random.Random
 

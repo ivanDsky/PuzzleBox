@@ -31,15 +31,15 @@ import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.play.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
-import com.ivandsky.puzzlebox.domain.LoadPastDay
+import com.ivandsky.puzzlebox.play.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
-import com.ivandsky.puzzlebox.domain.random.LoadRandomDay
-import com.ivandsky.puzzlebox.domain.random.LoadRandomPuzzle
-import com.ivandsky.puzzlebox.domain.random.LoadRandomShared
+import com.ivandsky.puzzlebox.play.domain.random.LoadRandomDay
+import com.ivandsky.puzzlebox.play.domain.random.LoadRandomPuzzle
+import com.ivandsky.puzzlebox.play.domain.random.LoadRandomShared
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
@@ -135,7 +135,6 @@ class LibraryRandomPageRouteTest {
                     single<IdentityService> { identity }
                     single<UserPreferencesRepository> { FakeUserPreferencesRepository() }
                     single<GameCalendar> { FakeGameCalendar(today) }
-                    factory { LoadPastDay(get(), get()) }
                     single { SyncTodayPuzzles(get(), get(), get()) }
                     factory { ObserveTodaySet(get(), get(), get(), get(), get(), get()) }
                     factory { ObserveGameHistory(get(), get(), get()) }
@@ -144,6 +143,12 @@ class LibraryRandomPageRouteTest {
                     single<LeaderboardRepository> { FakeLeaderboardRepository(emptyMap()) }
                     single<GoogleIdTokenProvider> { dismissedGoogleSignIn }
                     factory { ObserveLeaderboard(get(), get(), get(), get()) }
+                },
+                module { single<CloudSync> { FakeCloudSync() } },
+                playModule,
+                // After playModule, whose own FinishLeg and LoadRandomPuzzle would replace these.
+                module {
+                    factory { FinishLeg(FakeMatchResultOutbox(), FakeSelfMatchRepository(), identity) { Instant.EPOCH } }
                     single {
                         val random = Random(1)
                         val registry = get<GameRegistry>()
@@ -153,10 +158,6 @@ class LibraryRandomPageRouteTest {
                         )
                     }
                 },
-                module { single<CloudSync> { FakeCloudSync() } },
-                playModule,
-                // After playModule, whose own FinishLeg would replace this one.
-                module { factory { FinishLeg(FakeMatchResultOutbox(), FakeSelfMatchRepository(), identity) { Instant.EPOCH } } },
                 hubOffFriendDay,
                 module { single<DispatcherProvider> { testDispatchers() } },
             )

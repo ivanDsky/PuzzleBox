@@ -16,7 +16,6 @@ import com.ivandsky.puzzlebox.domain.LoadCustomReplay
 import com.ivandsky.puzzlebox.domain.LoadDailyReplay
 import com.ivandsky.puzzlebox.domain.LoadLegPuzzle
 import com.ivandsky.puzzlebox.domain.LoadLegReplay
-import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadPlayerReplay
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.domain.LoadSolveReplay
@@ -47,9 +46,6 @@ import com.ivandsky.puzzlebox.domain.lineup.ValidateExactPuzzles
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
-import com.ivandsky.puzzlebox.domain.random.LoadRandomDay
-import com.ivandsky.puzzlebox.domain.random.LoadRandomPuzzle
-import com.ivandsky.puzzlebox.domain.random.LoadRandomShared
 import com.ivandsky.puzzlebox.domain.ranks.GetPlayerActions
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
@@ -83,18 +79,6 @@ val domainModule = module {
     factory { GetNextRollover(registry = get()) }
     factory { ComputeStreak(puzzleDay = get()) }
     factory { ObserveGameStats(registry = get(), observeGameHistory = get(), computeStreak = get()) }
-    factory { LoadPastDay(daily = get(), registry = get()) }
-    factory {
-        LoadRandomDay(
-            daily = get(),
-            completions = get(),
-            loadPastDay = get(),
-            registry = get(),
-            random = Random.Default,
-        )
-    }
-    factory { LoadRandomShared(list = get(), random = Random.Default) }
-    factory { LoadRandomPuzzle(day = get(), shared = get()) }
     single { SyncTodayPuzzles(registry = get(), daily = get(), calendar = get()) }
     factory {
         ObserveTodaySet(

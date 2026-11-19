@@ -28,7 +28,6 @@ import com.ivandsky.puzzlebox.play.domain.AuthorPin
 import com.ivandsky.puzzlebox.play.domain.ComputeCustomBoard
 import com.ivandsky.puzzlebox.play.domain.CustomBoardView
 import com.ivandsky.puzzlebox.play.domain.FinishLeg
-import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
@@ -291,7 +290,6 @@ class CustomBoardTest {
                     single<IdentityService> { identity }
                     single<GoogleIdTokenProvider> { tokens }
                     single { GameEditorRegistry(emptyList()) }
-                    factory { LoadPastDay(get(), get()) }
                     factory { loadSolveReplay(get(), get(), get()) }
                 },
                 module { single<CloudSync> { FakeCloudSync() } },

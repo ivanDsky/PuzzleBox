@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain.random
+package com.ivandsky.puzzlebox.play.domain.random
 
 /** The one entry point for a random pick: routes the [RandomFilter] to its pool's use case. */
 class LoadRandomPuzzle(

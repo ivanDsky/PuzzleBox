@@ -16,7 +16,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.designsystem.AppModalBottomSheet
 import com.ivandsky.puzzlebox.designsystem.FilterPageSwap
-import com.ivandsky.puzzlebox.domain.random.RandomPick
+import com.ivandsky.puzzlebox.play.domain.random.RandomPick
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.launch

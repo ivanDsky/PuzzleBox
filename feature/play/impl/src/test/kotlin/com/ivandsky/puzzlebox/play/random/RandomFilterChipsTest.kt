@@ -17,7 +17,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.domain.random.RandomPick
+import com.ivandsky.puzzlebox.play.domain.random.RandomPick
 import com.ivandsky.puzzlebox.play.community.BETA
 import com.ivandsky.puzzlebox.play.community.DifficultyChoice
 import org.junit.Assert.assertEquals

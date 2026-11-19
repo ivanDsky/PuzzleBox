@@ -24831,8 +24831,8 @@ Lcom/ivandsky/puzzlebox/domain/LoadDailyReplay;
 PLcom/ivandsky/puzzlebox/domain/LoadDailyReplay;-><init>(Lcom/ivandsky/puzzlebox/data/repository/CompletionRepository;Lcom/ivandsky/puzzlebox/data/repository/DailyRepository;)V
 Lcom/ivandsky/puzzlebox/domain/LoadLegReplay;
 PLcom/ivandsky/puzzlebox/domain/LoadLegReplay;-><init>(Lcom/ivandsky/puzzlebox/data/match/MatchRepository;Lcom/ivandsky/puzzlebox/data/match/MatchResultOutbox;Lcom/ivandsky/puzzlebox/data/identity/IdentityService;Lcom/ivandsky/puzzlebox/data/repository/DailyRepository;Lcom/ivandsky/puzzlebox/data/repository/ReceivedPuzzleRepository;Lcom/ivandsky/puzzlebox/domain/LoadSharedPuzzle;)V
-Lcom/ivandsky/puzzlebox/domain/LoadPastDay;
-SPLcom/ivandsky/puzzlebox/domain/LoadPastDay;-><init>(Lcom/ivandsky/puzzlebox/data/repository/DailyRepository;Lcom/ivandsky/puzzlebox/game/GameRegistry;)V
+Lcom/ivandsky/puzzlebox/play/domain/LoadPastDay;
+SPLcom/ivandsky/puzzlebox/play/domain/LoadPastDay;-><init>(Lcom/ivandsky/puzzlebox/data/repository/DailyRepository;Lcom/ivandsky/puzzlebox/game/GameRegistry;)V
 Lcom/ivandsky/puzzlebox/domain/LoadPlayerReplay;
 PLcom/ivandsky/puzzlebox/domain/LoadPlayerReplay;-><init>(Lcom/ivandsky/puzzlebox/data/replay/DailyReplayRepository;Lcom/ivandsky/puzzlebox/data/repository/DailyRepository;)V
 Lcom/ivandsky/puzzlebox/domain/LoadSharedPuzzle;
@@ -25165,7 +25165,7 @@ PLcom/ivandsky/puzzlebox/domain/di/DomainModuleKt;->domainModule$lambda$56$lambd
 PLcom/ivandsky/puzzlebox/domain/di/DomainModuleKt;->domainModule$lambda$56$lambda$53(Lorg/koin/core/scope/Scope;Lorg/koin/core/parameter/ParametersHolder;)Lcom/ivandsky/puzzlebox/domain/LoadLegReplay;
 PLcom/ivandsky/puzzlebox/domain/di/DomainModuleKt;->domainModule$lambda$56$lambda$54(Lorg/koin/core/scope/Scope;Lorg/koin/core/parameter/ParametersHolder;)Lcom/ivandsky/puzzlebox/domain/LoadPlayerReplay;
 PLcom/ivandsky/puzzlebox/domain/di/DomainModuleKt;->domainModule$lambda$56$lambda$55(Lorg/koin/core/scope/Scope;Lorg/koin/core/parameter/ParametersHolder;)Lcom/ivandsky/puzzlebox/domain/LoadSolveReplay;
-SPLcom/ivandsky/puzzlebox/domain/di/DomainModuleKt;->domainModule$lambda$56$lambda$7(Lorg/koin/core/scope/Scope;Lorg/koin/core/parameter/ParametersHolder;)Lcom/ivandsky/puzzlebox/domain/LoadPastDay;
+SPLcom/ivandsky/puzzlebox/domain/di/DomainModuleKt;->domainModule$lambda$56$lambda$7(Lorg/koin/core/scope/Scope;Lorg/koin/core/parameter/ParametersHolder;)Lcom/ivandsky/puzzlebox/play/domain/LoadPastDay;
 SPLcom/ivandsky/puzzlebox/domain/di/DomainModuleKt;->domainModule$lambda$56$lambda$8(Lorg/koin/core/scope/Scope;Lorg/koin/core/parameter/ParametersHolder;)Lcom/ivandsky/puzzlebox/play/domain/ObserveArchiveMonth;
 SPLcom/ivandsky/puzzlebox/domain/di/DomainModuleKt;->domainModule$lambda$56$lambda$9(Lorg/koin/core/scope/Scope;Lorg/koin/core/parameter/ParametersHolder;)Lcom/ivandsky/puzzlebox/play/domain/ObserveArchiveProgress;
 SPLcom/ivandsky/puzzlebox/domain/di/DomainModuleKt;->domainModule$lambda$56(Lorg/koin/core/module/Module;)Lkotlin/Unit;
@@ -32269,7 +32269,7 @@ Lcom/ivandsky/puzzlebox/play/ReplayViewModel;
 Lcom/ivandsky/puzzlebox/play/ResultViewModel;
 Lcom/ivandsky/puzzlebox/play/SlotOpening;
 SPLcom/ivandsky/puzzlebox/play/SlotOpening;-><clinit>()V
-SPLcom/ivandsky/puzzlebox/play/SlotOpening;-><init>(Lcom/ivandsky/puzzlebox/data/repository/DailyRepository;Lcom/ivandsky/puzzlebox/domain/LoadPastDay;Lcom/ivandsky/puzzlebox/data/repository/SavedPlayRepository;Lcom/ivandsky/puzzlebox/data/calendar/GameCalendar;Lcom/ivandsky/puzzlebox/game/GameRegistry;Lcom/ivandsky/puzzlebox/play/WriteLane;Lcom/ivandsky/puzzlebox/data/repository/ReceivedPuzzleRepository;Lcom/ivandsky/puzzlebox/data/match/MatchRepository;Lcom/ivandsky/puzzlebox/domain/LoadSharedPuzzle;Lcom/ivandsky/puzzlebox/common/dispatcher/DispatcherProvider;)V
+SPLcom/ivandsky/puzzlebox/play/SlotOpening;-><init>(Lcom/ivandsky/puzzlebox/data/repository/DailyRepository;Lcom/ivandsky/puzzlebox/play/domain/LoadPastDay;Lcom/ivandsky/puzzlebox/data/repository/SavedPlayRepository;Lcom/ivandsky/puzzlebox/data/calendar/GameCalendar;Lcom/ivandsky/puzzlebox/game/GameRegistry;Lcom/ivandsky/puzzlebox/play/WriteLane;Lcom/ivandsky/puzzlebox/data/repository/ReceivedPuzzleRepository;Lcom/ivandsky/puzzlebox/data/match/MatchRepository;Lcom/ivandsky/puzzlebox/domain/LoadSharedPuzzle;Lcom/ivandsky/puzzlebox/common/dispatcher/DispatcherProvider;)V
 PLcom/ivandsky/puzzlebox/play/SlotOpening;->access$decodes(Lcom/ivandsky/puzzlebox/play/SlotOpening;[BLcom/ivandsky/puzzlebox/model/PlaySlot;Lcom/ivandsky/puzzlebox/game/GamePlugin;)Z
 SPLcom/ivandsky/puzzlebox/play/SlotOpening;->access$fetch(Lcom/ivandsky/puzzlebox/play/SlotOpening;Lcom/ivandsky/puzzlebox/model/PlaySlot$Daily;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 SPLcom/ivandsky/puzzlebox/play/SlotOpening;->access$getDaily$p(Lcom/ivandsky/puzzlebox/play/SlotOpening;)Lcom/ivandsky/puzzlebox/data/repository/DailyRepository;

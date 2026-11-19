@@ -1,6 +1,6 @@
 package com.ivandsky.puzzlebox.play.random
 
-import com.ivandsky.puzzlebox.domain.random.RandomPick
+import com.ivandsky.puzzlebox.play.domain.random.RandomPick
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.community.DifficultyChoice
 
