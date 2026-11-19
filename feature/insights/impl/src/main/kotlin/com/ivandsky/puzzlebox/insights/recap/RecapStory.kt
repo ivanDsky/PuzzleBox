@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -24,13 +25,15 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
+import com.ivandsky.puzzlebox.insights.share.RecapShareContent
+import com.ivandsky.puzzlebox.insights.share.RecapShareState
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.launch
 
 /**
  * The recap as a story: one card to a full page under a progress strip and a close button. A tap on the right
  * two-thirds of the page or a swipe moves on, a tap on the left third or a swipe back moves back, and nothing moves by
- * itself (A7). System back steps back a card and, from the first card, falls through to leave the recap.
+ * itself (A7). With a [share] state the story ends on the Share page. System back steps back a card and, from the first card, falls through to leave the recap.
  */
 @Composable
 internal fun RecapStory(
@@ -41,6 +44,8 @@ internal fun RecapStory(
     onWatchReplay: (RecapCard.Fastest.Row) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    share: RecapShareState? = null,
+    onShare: (ImageBitmap, RecapShareContent) -> Unit = { _, _ -> },
 ) {
     val scope = rememberCoroutineScope()
     val reduced = rememberReducedMotion()
@@ -54,7 +59,7 @@ internal fun RecapStory(
             Modifier.fillMaxWidth().padding(start = Spacing.lg, top = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            RecapProgressStrip(count = cards.size, current = pagerState.currentPage, modifier = Modifier.weight(1f))
+            RecapProgressStrip(count = pagerState.pageCount, current = pagerState.currentPage, modifier = Modifier.weight(1f))
             IconButton(onClick = onClose, modifier = Modifier.testTag("recap.close")) {
                 Icon(PuzzleIcons.Close, contentDescription = "Close recap", tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -75,7 +80,11 @@ internal fun RecapStory(
                 }
                 .testTag("recap.pager"),
         ) { page ->
-            RecapCardPage(cards[page], periodLabel, gameName, onWatchReplay)
+            if (page < cards.size) {
+                RecapCardPage(cards[page], periodLabel, gameName, onWatchReplay)
+            } else if (share != null) {
+                ShareCardPage(cards, share, onShare)
+            }
         }
     }
 }

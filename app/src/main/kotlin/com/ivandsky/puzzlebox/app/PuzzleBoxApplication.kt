@@ -37,6 +37,7 @@ import com.ivandsky.puzzlebox.games.strandsui.strandsUiModule
 import com.ivandsky.puzzlebox.history.di.historyModule
 import com.ivandsky.puzzlebox.home.di.homeModule
 import com.ivandsky.puzzlebox.insights.di.insightsModule
+import com.ivandsky.puzzlebox.insights.share.RecapShareCleaner
 import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.profile.di.profileModule
 import com.ivandsky.puzzlebox.train.di.trainModule
@@ -69,6 +70,8 @@ class PuzzleBoxApplication : Application() {
         koin.get<DailyReplayPublisher>().start()
         // The weekly rank history (Insights): filled only while the stats page or the year recap is on.
         koin.get<RankHistoryStarter>().start()
+        // A recap's share image: the one the last session left in the cache goes at start.
+        koin.get<RecapShareCleaner>().start()
         // Cloud sync: the one place that starts runs besides "Sync now".
         koin.get<CloudSyncRunner>().start()
         // The daily reminder: follows the stored choice and the foreground.

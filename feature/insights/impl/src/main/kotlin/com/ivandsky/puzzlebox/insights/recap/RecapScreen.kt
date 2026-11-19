@@ -16,6 +16,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.EmptyState
@@ -25,13 +26,16 @@ import com.ivandsky.puzzlebox.designsystem.TwoColumnMinWidth
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.insights.label
+import com.ivandsky.puzzlebox.insights.share.RecapShareContent
+import com.ivandsky.puzzlebox.insights.share.RecapShareState
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.launch
 
 /**
  * A recap's whole screen for [state]: the story once the cards are ready, a quiet message while they are not.
  * [onPage] reports the page the story reaches; [onClose] leaves the recap. A window wide enough for two columns
- * ([TwoColumnMinWidth]) puts the story on the left and every fact as a list on the right.
+ * ([TwoColumnMinWidth]) puts the story on the left and every fact as a list on the right. A [share] state adds the
+ * Share page after the last card; [onShare] gets the image it captures.
  */
 @Composable
 internal fun RecapScreen(
@@ -42,6 +46,8 @@ internal fun RecapScreen(
     onWatchReplay: (RecapCard.Fastest.Row) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    share: RecapShareState? = null,
+    onShare: (ImageBitmap, RecapShareContent) -> Unit = { _, _ -> },
 ) {
     when (state) {
         RecapUiState.Loading -> Box(modifier.fillMaxSize())
@@ -61,7 +67,7 @@ internal fun RecapScreen(
             tag = "recap.empty",
             modifier = modifier,
         )
-        is RecapUiState.Ready -> RecapReady(state, gameName, onPage, onWatchReplay, onClose, modifier)
+        is RecapUiState.Ready -> RecapReady(state, gameName, onPage, onWatchReplay, onClose, share, onShare, modifier)
     }
 }
 
@@ -94,9 +100,12 @@ private fun RecapReady(
     onPage: (Int) -> Unit,
     onWatchReplay: (RecapCard.Fastest.Row) -> Unit,
     onClose: () -> Unit,
+    share: RecapShareState?,
+    onShare: (ImageBitmap, RecapShareContent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val pagerState = rememberPagerState(initialPage = state.initialPage) { state.cards.size }
+    val pageCount = state.cards.size + if (share == null) 0 else 1
+    val pagerState = rememberPagerState(initialPage = state.initialPage.coerceAtMost(pageCount - 1)) { pageCount }
     LaunchedEffect(pagerState) { snapshotFlow { pagerState.currentPage }.collect(onPage) }
     val periodLabel = state.period.label()
     BoxWithConstraints(modifier.fillMaxSize()) {
@@ -114,6 +123,8 @@ private fun RecapReady(
                         gameName = gameName,
                         onWatchReplay = onWatchReplay,
                         onClose = onClose,
+                        share = share,
+                        onShare = onShare,
                         modifier = column
                             .height(height)
                             .clip(MaterialTheme.shapes.extraLarge)
@@ -131,7 +142,7 @@ private fun RecapReady(
                 },
             )
         } else {
-            RecapStory(state.cards, pagerState, periodLabel, gameName, onWatchReplay, onClose)
+            RecapStory(state.cards, pagerState, periodLabel, gameName, onWatchReplay, onClose, share = share, onShare = onShare)
         }
     }
 }
