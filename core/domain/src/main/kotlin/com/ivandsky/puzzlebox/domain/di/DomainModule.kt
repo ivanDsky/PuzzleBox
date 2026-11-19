@@ -21,6 +21,7 @@ import com.ivandsky.puzzlebox.domain.ObserveMatch
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
+import com.ivandsky.puzzlebox.domain.insights.di.insightsDomainModule
 import com.ivandsky.puzzlebox.domain.lineup.ValidateExactPuzzles
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
@@ -41,6 +42,7 @@ import org.koin.dsl.module
  * UUID and its timestamp the wall clock. A duel's draw shuffles with [Random.Default].
  */
 val domainModule = module {
+    includes(insightsDomainModule)
     factory {
         ObserveGameHistory(
             registry = get(),

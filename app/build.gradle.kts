@@ -232,6 +232,8 @@ dependencies {
     implementation(projects.feature.profile.impl)
     implementation(projects.feature.compete.api)
     implementation(projects.feature.compete.impl)
+    implementation(projects.feature.insights.api)
+    implementation(projects.feature.insights.impl)
 
     implementation(libs.androidx.activity.compose)
     // Ticket 08: the system splash hold (installSplashScreen) that MainActivity keeps on screen.

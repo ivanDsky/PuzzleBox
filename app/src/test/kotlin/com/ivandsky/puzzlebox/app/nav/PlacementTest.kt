@@ -7,6 +7,9 @@ import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
 import com.ivandsky.puzzlebox.compete.api.DuelRevealKey
 import com.ivandsky.puzzlebox.compete.api.NewDuelKey
+import com.ivandsky.puzzlebox.insights.api.InsightsKey
+import com.ivandsky.puzzlebox.insights.api.InsightsRecapKey
+import com.ivandsky.puzzlebox.insights.api.InsightsStatsKey
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.CustomResultKey
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
@@ -86,16 +89,28 @@ class PlacementTest {
     }
 
     @Test
-    fun `the immersive set is exactly today's seven plus the replay, its compare, the Studio and New duel`() {
+    fun `the immersive set is exactly today's seven plus the replay, its compare, the Studio, New duel and a recap`() {
         val immersive = placementRows.filter { it.placement.chrome == Chrome.Immersive }.map { it.key }.toSet()
 
         assertEquals(
             setOf(
                 GameKey::class, CustomGameKey::class, ResultKey::class, CustomResultKey::class,
                 MatchLegKey::class, MatchLegResultKey::class, DuelRevealKey::class, ReplayKey::class, ReplayCompareKey::class,
-                EditorKey::class, NewDuelKey::class,
+                EditorKey::class, NewDuelKey::class, InsightsRecapKey::class,
             ),
             immersive,
+        )
+    }
+
+    @Test
+    fun `Insights' hub and stats page keep the bar and its recap story is immersive, all in the shell`() {
+        assertEquals(
+            mapOf(
+                InsightsKey::class to Placement(Home.Shell, Chrome.Bar),
+                InsightsStatsKey::class to Placement(Home.Shell, Chrome.Bar),
+                InsightsRecapKey::class to Placement(Home.Shell, Chrome.Immersive),
+            ),
+            listOf(InsightsKey::class, InsightsStatsKey::class, InsightsRecapKey::class).associateWith { placements.getValue(it) },
         )
     }
 
