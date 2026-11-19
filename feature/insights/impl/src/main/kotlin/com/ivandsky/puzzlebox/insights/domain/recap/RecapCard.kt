@@ -43,6 +43,12 @@ internal sealed interface RecapCard {
         val total: Int get() = personalBests + firstSubX + fullSets + streakMilestones.size
     }
 
+    /**
+     * Best game among friends: what the friends read of the period came to, as a [state] the card shows. Its place is
+     * fixed before the read answers ([FriendsStanding.Reading]), and the answer settles it in that place (A16).
+     */
+    data class Friends(val state: FriendsStanding.Shown) : RecapCard
+
     /** Total time spent solving: [totalMs] over [solved] counted solves, pauses excluded, imports included (A8). */
     data class TotalTime(val totalMs: Long, val solved: Int) : RecapCard
 }

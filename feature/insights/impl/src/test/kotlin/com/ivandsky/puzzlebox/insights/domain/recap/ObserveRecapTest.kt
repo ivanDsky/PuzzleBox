@@ -1,12 +1,22 @@
 package com.ivandsky.puzzlebox.insights.domain.recap
 
+import app.cash.turbine.test
 import com.ivandsky.puzzlebox.common.log.FailureLog
+import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.domain.ranks.OverallStandings
+import com.ivandsky.puzzlebox.domain.ranks.OverallState
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
 import java.io.IOException
 import java.time.LocalDate
 import java.time.YearMonth
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -19,10 +29,10 @@ class ObserveRecapTest {
     private val warnings = mutableListOf<Pair<String, String>>()
     private val failures = FailureLog { tag, message, _ -> warnings += tag to message }
 
-    private val defaultRecap = ObserveRecap(fixture.observeHistory, fixture.computePeriodFacts, fixture.registry)
+    private val defaultRecap = ObserveRecap(fixture.observeHistory, fixture.computePeriodFacts, fixture.registry, fixture.resolveFriends())
 
     private fun recap(vararg providers: RecapFactProvider) =
-        ObserveRecap(fixture.observeHistory, fixture.computePeriodFacts, fixture.registry, providers.toList(), failures)
+        ObserveRecap(fixture.observeHistory, fixture.computePeriodFacts, fixture.registry, fixture.resolveFriends(), providers.toList(), failures)
 
     /** Offers [cards], or throws [failure] when given one: a provider that reached for the network and found none. */
     private class FakeRecapFactProvider(
@@ -37,7 +47,7 @@ class ObserveRecapTest {
     private val cardA = RecapCard.Solved(total = 99, perGame = emptyList())
 
     @Test
-    fun `the default chain is the Solved, Fastest, Streak, Hint-free, Moments and Total time cards over the period's facts`() = runTest {
+    fun `the default chain, signed out, is the Solved, Fastest, Streak, Hint-free, Moments and Total time cards over the period's facts`() = runTest {
         fixture.store(
             fixture.solve(alpha, LocalDate.of(2026, 11, 1)),
             fixture.solve(alpha, LocalDate.of(2026, 11, 2)),
@@ -95,10 +105,190 @@ class ObserveRecapTest {
             fixture.observeHistory,
             fixture.computePeriodFacts,
             fixture.registry,
+            fixture.resolveFriends(),
             listOf(SolvedRecapFactProvider, offline()),
             failures,
         )(november).first()
 
         assertEquals(listOf(RecapCard.Solved(1, listOf(RecapCard.Solved.PerGame(alpha, 1)))), cards)
+    }
+
+    /** The friends read as the story sees it: [read] answers the one read of every game, [today] sets the puzzle day. */
+    private fun friendsRecap(
+        viewer: Identity? = Identity("me", "Me", photoUrl = null),
+        today: String = "2026-12-15T12:00:00Z",
+        read: (GameId) -> Flow<OverallState>,
+    ) = ObserveRecap(
+        fixture.observeHistory,
+        fixture.computePeriodFacts,
+        fixture.registry,
+        fixture.resolveFriends(
+            viewer = viewer,
+            friendsOverall = { _, games -> read(games.single()) },
+            today = fixture.puzzleDayAt(today),
+        ),
+    )
+
+    private fun standings(total: Double, friend: String = "maya") = OverallState.Complete(
+        OverallStandings(
+            listOf(
+                OverallStandings.Row("me", "Me", place = 1, total = total, games = 9, truncated = false),
+                OverallStandings.Row(friend, friend, place = 2, total = total / 2, games = 9, truncated = false),
+            ),
+        ),
+    )
+
+    private fun storeNovember() = fixture.store(
+        fixture.solve(alpha, LocalDate.of(2026, 11, 1)),
+        fixture.solve(alpha, LocalDate.of(2026, 11, 2)),
+        fixture.solve(beta, LocalDate.of(2026, 11, 2)),
+    )
+
+    private fun List<RecapCard>.kinds() = map { it::class.simpleName }
+
+    @Test
+    fun `the friends card is the sixth card, before total time, with every card present`() = runTest {
+        storeNovember()
+        val recap = friendsRecap { flowOf(standings(if (it == beta) 640.0 else 210.0)) }
+
+        recap(november).test {
+            val placeholder = awaitItem()
+            assertEquals(
+                listOf("Solved", "Fastest", "Streak", "HintFree", "Moments", "Friends", "TotalTime"),
+                placeholder.kinds(),
+            )
+            assertEquals(RecapCard.Friends(FriendsStanding.Reading), placeholder[5])
+            val settled = awaitItem()
+            assertEquals(placeholder.kinds(), settled.kinds())
+            assertEquals(RecapCard.Friends(FriendsStanding.Loaded(beta, 640.0)), settled[5])
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun `the local story is out with the placeholder before the friends read answers, then settles in place`() = runTest {
+        storeNovember()
+        val gate = CompletableDeferred<Unit>()
+        val recap = friendsRecap { game ->
+            flow {
+                gate.await()
+                emit(standings(if (game == beta) 640.0 else 210.0))
+            }
+        }
+
+        recap(november).test {
+            val local = awaitItem()
+            assertEquals(7, local.size)
+            assertEquals(RecapCard.Friends(FriendsStanding.Reading), local[5])
+
+            gate.complete(Unit)
+
+            val settled = awaitItem()
+            assertEquals(local.size, settled.size)
+            assertEquals(local.filterNot { it is RecapCard.Friends }, settled.filterNot { it is RecapCard.Friends })
+            assertEquals(RecapCard.Friends(FriendsStanding.Loaded(beta, 640.0)), settled[5])
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun `friends who are only LinkedIn connections still give the card, the read is the one source`() = runTest {
+        storeNovember()
+        // No duel partner is known to the story; the standings alone carry a connection among the rows.
+        val recap = friendsRecap { flowOf(standings(300.0, friend = "linkedin:connection")) }
+
+        recap(november).test {
+            awaitItem()
+            val settled = awaitItem()
+            assertEquals(RecapCard.Friends(FriendsStanding.Loaded(alpha, 300.0)), settled[5])
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun `a read that finds no friends takes the card out`() = runTest {
+        storeNovember()
+        val onlyMe = OverallState.Complete(
+            OverallStandings(listOf(OverallStandings.Row("me", "Me", place = 1, total = 50.0, games = 9, truncated = false))),
+        )
+        val recap = friendsRecap { flowOf(onlyMe) }
+
+        recap(november).test {
+            assertEquals(7, awaitItem().size)
+            val settled = awaitItem()
+            assertEquals(6, settled.size)
+            assertEquals(false, settled.any { it is RecapCard.Friends })
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun `offline, every other card is there and the friends card becomes Unavailable in place`() = runTest {
+        storeNovember()
+        val recap = friendsRecap { flowOf(OverallState.Offline(standings = null)) }
+
+        recap(november).test {
+            val local = awaitItem()
+            assertEquals(7, local.size)
+            val settled = awaitItem()
+            assertEquals(local.map { if (it is RecapCard.Friends) RecapCard.Friends(FriendsStanding.Unavailable) else it }, settled)
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun `a friends read that never answers leaves the local story whole, and the card says it cannot load`() = runTest {
+        storeNovember()
+        val recap = friendsRecap { flow { awaitCancellation() } }
+
+        recap(november).test {
+            val local = awaitItem()
+            assertEquals(7, local.size)
+            assertEquals(RecapCard.Friends(FriendsStanding.Unavailable), awaitItem()[5])
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun `on day 2 of the next month the card says results settle on the 4th at once and stays while friends are there`() = runTest {
+        storeNovember()
+        val gate = CompletableDeferred<Unit>()
+        val recap = friendsRecap(today = "2026-12-02T12:00:00Z") { flow { gate.await(); emit(standings(100.0)) } }
+        val settling = RecapCard.Friends(FriendsStanding.Settling(LocalDate.of(2026, 12, 4)))
+
+        recap(november).test {
+            assertEquals(settling, awaitItem()[5])
+            gate.complete(Unit)
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun `on day 2 of the next month a read that finds no friends takes the settling card out`() = runTest {
+        storeNovember()
+        val onlyMe = OverallState.Complete(
+            OverallStandings(listOf(OverallStandings.Row("me", "Me", place = 1, total = 50.0, games = 9, truncated = false))),
+        )
+        val recap = friendsRecap(today = "2026-12-02T12:00:00Z") { flowOf(onlyMe) }
+
+        recap(november).test {
+            val local = awaitItem()
+            assertEquals(RecapCard.Friends(FriendsStanding.Settling(LocalDate.of(2026, 12, 4))), local[5])
+            val settled = awaitItem()
+            assertEquals(local.filterNot { it is RecapCard.Friends }, settled)
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun `signed out, the story has no friends card and is told once`() = runTest {
+        storeNovember()
+
+        friendsRecap(viewer = null) { error("a signed-out viewer reads no board") }(november).test {
+            val story = awaitItem()
+            assertEquals(6, story.size)
+            assertEquals(false, story.any { it is RecapCard.Friends })
+            awaitComplete()
+        }
     }
 }

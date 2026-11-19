@@ -1,10 +1,12 @@
 package com.ivandsky.puzzlebox.insights.di
 
 import com.ivandsky.puzzlebox.common.di.flagSet
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendsOverall
 import com.ivandsky.puzzlebox.insights.domain.recap.ComputePeriodFacts
 import com.ivandsky.puzzlebox.insights.domain.recap.ObserveDueRecap
 import com.ivandsky.puzzlebox.insights.domain.recap.ObserveRecap
 import com.ivandsky.puzzlebox.insights.domain.recap.ObserveRecapAvailability
+import com.ivandsky.puzzlebox.insights.domain.recap.ResolveFriendsStanding
 import com.ivandsky.puzzlebox.insights.domain.recap.ReplaySolveFacts
 import com.ivandsky.puzzlebox.insights.flags.InsightsFlag
 import com.ivandsky.puzzlebox.insights.hub.InsightsHubViewModel
@@ -20,7 +22,8 @@ import org.koin.dsl.module
 
 /**
  * Insights feature wiring: the feature's release flags ([InsightsFlag]), the recap use cases and the view models of
- * the hub and of a recap story. A story's period arrives as a Koin parameter, so each opened month has its own.
+ * the hub and of a recap story. The friends standing ([ResolveFriendsStanding]) is the one recap read that goes to the
+ * network, kept apart from the local providers. A story's period arrives as a Koin parameter, so each opened month has its own.
  * The share files (renderer, Uris, cleaner) are singletons over the app's cache directory; [RecapShareCleaner] is the
  * one :app starts. [ObserveDueRecap] is the one use case :app reads, for Home's recap card. Use cases that several features share come from :core:domain's `insightsDomainModule`.
  */
@@ -29,7 +32,17 @@ val insightsModule: Module = module {
 
     factory { ReplaySolveFacts(computeStreak = get(), puzzleDay = get(), registry = get()) }
     factory { ComputePeriodFacts(computeStreak = get(), replaySolveFacts = get()) }
-    factory { ObserveRecap(observeGameHistory = get(), computePeriodFacts = get(), registry = get()) }
+    factory {
+        val friendsOverall = get<ObserveFriendsOverall>()
+        ResolveFriendsStanding(
+            identity = get(),
+            friendsOverall = { window, games -> friendsOverall(window, games) },
+            puzzleDay = get(),
+        )
+    }
+    factory {
+        ObserveRecap(observeGameHistory = get(), computePeriodFacts = get(), registry = get(), resolveFriends = get())
+    }
     factory { ObserveRecapAvailability(observeGameHistory = get(), calendar = get(), registry = get()) }
     factory { ObserveDueRecap(availability = get()) }
 

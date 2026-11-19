@@ -25,5 +25,6 @@ internal fun RecapCardPage(
         is RecapCard.HintFree -> HintFreeCardPage(card, periodLabel, modifier)
         is RecapCard.Moments -> MomentsCardPage(card, periodLabel, modifier)
         is RecapCard.TotalTime -> TotalTimeCardPage(card, periodLabel, modifier)
+        is RecapCard.Friends -> FriendsCardPage(card, periodLabel, gameName, modifier)
     }
 }

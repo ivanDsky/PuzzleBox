@@ -97,6 +97,36 @@ class RecapGoldenScreenshots {
     @Test fun `total-time-year phone light`() = capture("total-time-year", "phone", dark = false, state = readyOf(RecapFixtures.totalTimeYear))
 
     @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `friends reading phone light`() = capture("friends-reading", "phone", dark = false, state = readyOf(RecapFixtures.friendsReading))
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `friends reading phone dark`() = capture("friends-reading", "phone", dark = true, state = readyOf(RecapFixtures.friendsReading))
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `friends loaded phone light`() = capture("friends-loaded", "phone", dark = false, state = readyOf(RecapFixtures.friendsLoaded))
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `friends loaded phone dark`() = capture("friends-loaded", "phone", dark = true, state = readyOf(RecapFixtures.friendsLoaded))
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `friends settling phone light`() = capture("friends-settling", "phone", dark = false, state = readyOf(RecapFixtures.friendsSettling))
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `friends settling phone dark`() = capture("friends-settling", "phone", dark = true, state = readyOf(RecapFixtures.friendsSettling))
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `friends unavailable phone light`() = capture("friends-unavailable", "phone", dark = false, state = readyOf(RecapFixtures.friendsUnavailable))
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `friends unavailable phone dark`() = capture("friends-unavailable", "phone", dark = true, state = readyOf(RecapFixtures.friendsUnavailable))
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `friends tablet light`() = capture("friends", "tablet", dark = false, state = readyOf(RecapFixtures.solved, RecapFixtures.friendsLoaded).copy(initialPage = 1))
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `friends settling tablet dark`() = capture("friends-settling", "tablet", dark = true, state = readyOf(RecapFixtures.solved, RecapFixtures.friendsSettling).copy(initialPage = 1))
+
+    @Config(qualifiers = GOLDEN_PHONE)
     @Test fun `restoring phone light`() = capture("restoring", "phone", dark = false, state = RecapUiState.Restoring)
 
     @Config(qualifiers = GOLDEN_PHONE)

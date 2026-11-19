@@ -1,10 +1,14 @@
 package com.ivandsky.puzzlebox.insights.domain.recap
 
+import com.ivandsky.puzzlebox.common.log.FailureLog
+import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GameHistoryDay
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
+import com.ivandsky.puzzlebox.domain.ranks.OverallState
+import com.ivandsky.puzzlebox.domain.ranks.RankWindow
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -18,11 +22,16 @@ import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 
 /**
  * A fake history for the recap tests: two games, solves of a chosen puzzle day, and the real merged projection
@@ -41,6 +50,28 @@ internal class RecapHistoryFixture(now: Instant = Instant.parse("2026-12-15T12:0
 
     /** The puzzle day every game reads; move it with `setAll`. */
     val calendar = FakeGameCalendar(LocalDate.of(2026, 11, 20))
+
+    /**
+     * The friends read over scripted answers: by default a signed-out viewer, so no friends card; [viewer] signs one
+     * in, and [friendsOverall] answers each (window, games) read. [today] is
+     * the puzzle day's clock, the recap's settle rule reads it.
+     */
+    fun resolveFriends(
+        viewer: Identity? = null,
+        friendsOverall: (RankWindow, List<GameId>) -> Flow<OverallState> = { _, _ -> flowOf(OverallState.SignedOut) },
+        today: GetPuzzleDay = puzzleDay,
+        failures: FailureLog = FailureLog { _, _, _ -> },
+        timeout: Duration = 15.seconds,
+    ) = ResolveFriendsStanding(
+        identity = FakeIdentityService(viewer),
+        friendsOverall = friendsOverall,
+        puzzleDay = today,
+        failures = failures,
+        timeout = timeout,
+    )
+
+    /** A [GetPuzzleDay] whose puzzle day is the date of [at]. */
+    fun puzzleDayAt(at: String) = GetPuzzleDay(registry, Clock.fixed(Instant.parse(at), ZoneOffset.UTC))
 
     fun availability() = ObserveRecapAvailability(observeHistory, calendar, registry)
 
