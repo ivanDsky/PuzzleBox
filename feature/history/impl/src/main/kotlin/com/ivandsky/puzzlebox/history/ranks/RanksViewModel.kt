@@ -120,6 +120,9 @@ internal class RanksViewModel(
     private val reads = RanksWindowReads(observeRankWindow, observeWindowRefresh, window, games, viewModelScope)
     private val scopedBoards = RanksScopedBoards(reads.boards, observeFriendUids, viewer, viewModelScope)
 
+    /** The Tune sheet shows the board's choices only: the Defaults block stays in Settings (RanksTuneBoardOnly). */
+    val tuneBoardOnly: Boolean = releaseFlags.isEnabled(HistoryFlag.RanksTuneBoardOnly)
+
     // The LinkedIn part of the hub (the line, the pull's sync) exists only with RanksFreshness on and LinkedIn in the graph.
     private val freshLinkedIn = linkedIn.takeIf { releaseFlags.isEnabled(HistoryFlag.RanksFreshness) }
     private val freshness = freshLinkedIn?.let { RanksFreshness(clock) }

@@ -39,7 +39,8 @@ import java.time.LocalDate
  * holds; off, the hub touches nothing of LinkedIn.
  * A pushed key's [HistoryKey.calendarExpanded] opens the hub's calendar to the month. A past day's Your solve
  * offers a play action, the bar's tune label opens the Tune sheet and the tablet's hero card jumps to the viewer's row;
- * [tuneDefaults] is the player's defaults the sheet shows.
+ * [tuneDefaults] is the player's defaults the sheet shows, unless [com.ivandsky.puzzlebox.history.flags.HistoryFlag.RanksTuneBoardOnly]
+ * leaves them to Settings.
  */
 fun EntryProviderScope<NavKey>.ranksEntry(
     navigator: Navigator,
@@ -122,6 +123,6 @@ private fun RanksRoute(
         playerSheet = openPlayer,
         replayOptIn = askReplays,
         refreshing = refreshing,
-        tuneDefaults = tuneDefaults,
+        tuneDefaults = tuneDefaults.takeUnless { viewModel.tuneBoardOnly },
     )
 }

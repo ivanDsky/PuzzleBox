@@ -32,7 +32,7 @@ import com.ivandsky.puzzlebox.resultui.board.DailyBoardRowModel
  * On [HistoryLayout.TwoPane] the hub is [RanksTwoPane] around the same stack, with no title menu, week strip or dots.
  * A day or window pick keeps the held board on screen until the next one answers ([rememberHeldBoard]); a held board's
  * rows open against the day and window it was picked from, not the new pick.
- * [tuneDefaults] is handed to the Tune sheet. The Tune and How ranks work sheets are owned here, so [RanksActions.onSheetOpen]
+ * [tuneDefaults] is handed to the Tune sheet; null leaves its Defaults block out. The Tune and How ranks work sheets are owned here, so [RanksActions.onSheetOpen]
  * hears whether any Ranks sheet (those two or the [playerSheet]) is up.
  * The whole hub sits in the shown board's world ([RanksWorld]), which blends to the next board's as the hub moves to it.
  */
@@ -45,7 +45,7 @@ internal fun RanksScreen(
     playerSheet: PlayerSheetViewModel.State? = null,
     replayOptIn: Boolean = false,
     refreshing: Boolean = false,
-    tuneDefaults: RanksTuneDefaults,
+    tuneDefaults: RanksTuneDefaults?,
 ) {
     val shown = rememberHeldBoard(state)
     var tuning by rememberSaveable { mutableStateOf(false) }

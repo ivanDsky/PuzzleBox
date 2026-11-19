@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.data.visibility.OwnTier
 import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
 import com.ivandsky.puzzlebox.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.history.GOLDEN_PHONE
+import com.ivandsky.puzzlebox.history.GOLDEN_TABLET
 import com.ivandsky.puzzlebox.history.RanksTuneDefaults
 import com.ivandsky.puzzlebox.history.ranks.RanksSelection.Window
 import com.ivandsky.puzzlebox.history.settleAndCapture
@@ -18,11 +19,28 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The Tune sheet with its Defaults block, on a phone, light and dark. Goldens in `snapshots/ranks/`. */
+/** The Tune sheet with its Defaults block, and without it (RanksTuneBoardOnly on), on a phone, light and dark. Goldens in `snapshots/ranks/`. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = GOLDEN_PHONE)
-class TuneSheetGoldenScreenshots {
+class TuneSheetPhoneGoldenScreenshots : TuneSheetGoldenScreenshots("phone") {
+    @Test fun `tune defaults light`() = capture("tune-defaults", withDefaults = true, dark = false)
+    @Test fun `tune defaults dark`() = capture("tune-defaults", withDefaults = true, dark = true)
+    @Test fun `tune board only light`() = capture("tune-board-only", withDefaults = false, dark = false)
+    @Test fun `tune board only dark`() = capture("tune-board-only", withDefaults = false, dark = true)
+}
+
+/** The same sheet on the landscape tablet. */
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(sdk = [34], qualifiers = GOLDEN_TABLET)
+class TuneSheetTabletGoldenScreenshots : TuneSheetGoldenScreenshots("tablet") {
+    @Test fun `tune defaults light`() = capture("tune-defaults", withDefaults = true, dark = false)
+    @Test fun `tune board only light`() = capture("tune-board-only", withDefaults = false, dark = false)
+    @Test fun `tune board only dark`() = capture("tune-board-only", withDefaults = false, dark = true)
+}
+
+abstract class TuneSheetGoldenScreenshots(private val device: String) {
 
     @get:Rule
     val rule = createAndroidComposeRule<ComponentActivity>()
@@ -34,13 +52,10 @@ class TuneSheetGoldenScreenshots {
         onSelectFriendsDefault = {},
     )
 
-    private fun capture(dark: Boolean) {
+    internal fun capture(name: String, withDefaults: Boolean, dark: Boolean) {
         rule.showGolden(dark) {
-            TuneSheet(RankScope.Global, Window.Day, onScope = {}, onWindow = {}, onDismiss = {}, defaults = defaults)
+            TuneSheet(RankScope.Global, Window.Day, onScope = {}, onWindow = {}, onDismiss = {}, defaults = defaults.takeIf { withDefaults })
         }
-        rule.settleAndCapture("ranks", "tune-defaults", "phone", dark)
+        rule.settleAndCapture("ranks", name, device, dark)
     }
-
-    @Test fun `tune defaults light`() = capture(dark = false)
-    @Test fun `tune defaults dark`() = capture(dark = true)
 }

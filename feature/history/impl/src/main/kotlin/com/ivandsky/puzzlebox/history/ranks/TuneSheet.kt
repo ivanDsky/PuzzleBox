@@ -25,7 +25,7 @@ import com.ivandsky.puzzlebox.history.ranks.RanksSelection.Window
  * The tune sheet: who the board ranks ([scope], Global or Friends) and over what span ([window], a day, the
  * week or the month of the picked day). A tap reports through [onScope] / [onWindow] and the sheet stays open,
  * so the board behind it can be watched changing; [onDismiss] closes it. [defaults] is the Defaults block under
- * them ([TuneDefaultsBlock]).
+ * them ([TuneDefaultsBlock]); null leaves the sheet with the board's own choices only.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,7 +35,7 @@ internal fun TuneSheet(
     onScope: (RankScope) -> Unit,
     onWindow: (Window) -> Unit,
     onDismiss: () -> Unit,
-    defaults: RanksTuneDefaults,
+    defaults: RanksTuneDefaults?,
     modifier: Modifier = Modifier,
 ) {
     // The sheet opens whole instead of half way, so the Defaults block is not cut off.
@@ -51,7 +51,7 @@ private fun TuneChoices(
     window: Window,
     onScope: (RankScope) -> Unit,
     onWindow: (Window) -> Unit,
-    defaults: RanksTuneDefaults,
+    defaults: RanksTuneDefaults?,
 ) {
     Column(
         Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg),
@@ -80,7 +80,7 @@ private fun TuneChoices(
             tag = { "ranks.tune.window.${it.name}" },
             modifier = Modifier.fillMaxWidth(),
         )
-        TuneDefaultsBlock(defaults)
+        defaults?.let { TuneDefaultsBlock(it) }
     }
 }
 
@@ -89,5 +89,13 @@ private fun TuneChoices(
 private fun TuneChoicesPreview() {
     RanksPreviewHost {
         TuneChoices(RankScope.Friends, Window.Week, onScope = {}, onWindow = {}, defaults = previewTuneDefaults())
+    }
+}
+
+@PuzzleBoxPreviews
+@Composable
+private fun TuneChoicesBoardOnlyPreview() {
+    RanksPreviewHost {
+        TuneChoices(RankScope.Friends, Window.Week, onScope = {}, onWindow = {}, defaults = null)
     }
 }
