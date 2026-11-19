@@ -199,11 +199,13 @@ rebased onto the latest `main`:
 
 ```bash
 ./gradlew assembleDebug test -x :app:testReleaseUnitTest -x :app:testBenchmarkUnitTest   # module-graph guard, every module's debug unit tests, :konsist
+./gradlew :app:e2eTest                                    # only when the change touches :app, :core:navigation or a :feature:*:api module
 ./gradlew :app:testReleaseUnitTest                         # only when the change touches release-only wiring
 ```
 
-Every push to `main` runs the full suite, release host tests included, in [`.github/workflows/release.yml`](.github/workflows/release.yml),
-split over two parallel jobs (`assembleDebug testCore` and `testUi`), while a third builds the
+Every push to `main` runs the full suite, release host tests and `:app`'s e2e tier included
+([ADR-0035](docs/adr/0035-app-e2e-tier.md)), in [`.github/workflows/release.yml`](.github/workflows/release.yml),
+split over two parallel jobs (`assembleDebug testCore` and `testUi :app:e2eTest`), while a third builds the
 signed release. It publishes a GitHub release only if the tests pass and the `versionName` is new.
 A red `main` stops merges until a revert or fix lands. Neither the merge gate nor CI renders
 screenshots, so before you push a UI change, render the modules you changed with
