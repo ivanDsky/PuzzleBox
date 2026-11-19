@@ -23,6 +23,12 @@ enum class HistoryFlag(override val label: String, override val releaseDefault: 
      * ("Opens on", "Who can see you"), which stay in Settings. Read only in a ViewModel or a DI module (ADR-0022 §3).
      */
     RanksTuneBoardOnly(label = "Ranks filter sheet without Defaults", releaseDefault = false),
+
+    /**
+     * A game's Week and Month boards rank by the sum of its daily place points, as Overall does across games, not by the
+     * average of the days played (backlog #1698). Read only in a ViewModel or a DI module (ADR-0022 §3).
+     */
+    WeekMonthPoints(label = "Week and Month boards add up daily points", releaseDefault = false),
     ;
 
     /** The entry's own name: the stored override's key in `release_flags`. Never change it. */

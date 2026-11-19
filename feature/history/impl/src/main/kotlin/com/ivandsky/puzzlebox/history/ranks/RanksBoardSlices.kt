@@ -3,11 +3,14 @@ package com.ivandsky.puzzlebox.history.ranks
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.inSubmitWindow
+import com.ivandsky.puzzlebox.domain.ranks.BoardLoad
 import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
 import com.ivandsky.puzzlebox.domain.ranks.OverallState
+import com.ivandsky.puzzlebox.domain.ranks.OverallStandings
 import com.ivandsky.puzzlebox.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.domain.ranks.RankWindow
 import com.ivandsky.puzzlebox.domain.ranks.RankWindowBoards
+import com.ivandsky.puzzlebox.domain.ranks.windowStandings
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.history.HistoryDayRow
@@ -27,12 +30,16 @@ import kotlinx.coroutines.flow.shareIn
 
 private const val OVERALL_CAPTION = "Points from every game's Ranks. Higher is better."
 
+/** A game's Week or Month caption when it adds up its days' points (WeekMonthPoints). */
+internal const val WEEK_MONTH_POINTS_CAPTION = "Points from each day's Ranks. Higher is better."
+
 /**
  * Every board of the hub as the slice its slot draws, in the hub's swipe order. All are projections of the hub's shared
  * window boards (the [window]'s boards as a scope ranks them, [scopedBoards], and Overall over the same), so scrubbing
  * to a neighbouring board reads nothing. Every slice of one list answers the same scope: in Friends each game and
  * Overall rank friends among themselves, with the LinkedIn connections ([ghosts]) counted on every one. With [freshness]
  * a game's Friends Day board also says when its LinkedIn part was last read, and the boards are drawn again each minute to keep it current.
+ * With [weekMonthPoints] a game's Week and Month rank by its daily place points summed, as Overall sums every game's.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class RanksBoardSlices(
@@ -47,6 +54,7 @@ internal class RanksBoardSlices(
     private val isLinkedInGame: (GameId) -> Boolean,
     private val ghosts: BoardGhosts,
     private val freshness: RanksFreshness? = null,
+    private val weekMonthPoints: Boolean = false,
 ) {
     private val games = boards.filterIsInstance<RanksBoard.Game>().map { it.id }
 
@@ -91,12 +99,13 @@ internal class RanksBoardSlices(
         val friends = scope == RankScope.Friends
         val oneDay = kind == RanksSelection.Window.Day
         val photos = if (friends) inWindow?.photos().orEmpty() else emptyMap()
+        val points = if (weekMonthPoints && !oneDay) pointsOf(me, rows) else null
         // Leaderboard rows carry no photo: every slice's own row joins the signed-in account's, after the connections' pictures.
         return boards.map { board ->
             when (board) {
                 RanksBoard.Overall -> overallSlice(kind, day, overall, me?.uid).let { if (friends) it.inFriendsCounted(photos) else it }
                 is RanksBoard.Game -> {
-                    val slice = game(board.id, kind, day, if (oneDay) inWindow?.plain else inWindow?.counted, me, rows)
+                    val slice = game(board.id, kind, day, if (oneDay) inWindow?.plain else inWindow?.counted, me, rows, points)
                     when {
                         !friends -> slice
                         oneDay -> slice.inFriends(inWindow, board.id, me?.uid).copy(freshness = inWindow?.boardRead(board.id)?.let { freshness?.line(it) })
@@ -114,16 +123,24 @@ internal class RanksBoardSlices(
         inWindow: RankWindowBoards?,
         me: Identity?,
         rows: List<HistoryDayRow>,
+        points: ((List<BoardLoad.Loaded>) -> OverallStandings)?,
     ): RanksBoardSlice {
         val order = registry.rankOrderOf(game)
         val unofficial = inWindow.unofficialRow(game, order, me, rows) { calendar.inSubmitWindow(game, it) }.takeIf { kind == RanksSelection.Window.Day }
         return RanksBoardSlice(
             title = boardTitle(registry.displayName(game), kind, day),
             order = order,
-            state = inWindow.toGameBoardState(game, order, kind, me?.uid).withUnofficialRow(unofficial),
+            state = inWindow.toGameBoardState(game, order, kind, me?.uid, points).withUnofficialRow(unofficial),
+            caption = WEEK_MONTH_POINTS_CAPTION.takeIf { points != null },
             note = inWindow.gameBoardNote(game, kind),
             linkedIn = isLinkedInGame(game),
         )
+    }
+
+    /** Overall's points over one game's days; the viewer's own [rows] say which boards they solved officially past a full page (A11). */
+    private fun pointsOf(me: Identity?, rows: List<HistoryDayRow>): (List<BoardLoad.Loaded>) -> OverallStandings {
+        val records = rows.mapNotNull { it.record }
+        return { loaded -> windowStandings(loaded, me, records) }
     }
 }
 

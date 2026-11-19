@@ -17,6 +17,7 @@ import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
  * slice in swipe order ([board] is the one at [position]), there for a swipe to scrub to; empty when only [board] is known.
  * [playThisDay] is what the button where Your solve would be opens: set for a game's day the viewer has not played.
  * [largeBar] (MainTabsLargeBar on) puts the tab's hub on Today's large top bar ([RanksLargeBar]).
+ * [weekMonthPoints] (WeekMonthPoints on) says a game's Week and Month add up daily place points.
  */
 internal data class RanksUiState(
     val board: RanksBoardSlice,
@@ -33,6 +34,7 @@ internal data class RanksUiState(
     val boards: List<RanksBoardSlice> = emptyList(),
     val playThisDay: PlayThisDay? = null,
     val largeBar: Boolean = false,
+    val weekMonthPoints: Boolean = false,
 )
 
 /** True for a list of rows holding nobody but the viewer, and no LinkedIn ghost either; empty counts. Any other state is not "alone". */

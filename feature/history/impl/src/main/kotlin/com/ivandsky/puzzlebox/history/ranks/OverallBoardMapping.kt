@@ -29,15 +29,20 @@ internal fun OverallState.boardNote(): String? = when (this) {
     else -> null
 }
 
-private fun OverallStandings.toRows(selfUid: String?): List<DailyBoardRowModel> = rows.map { row ->
-    DailyBoardRowModel(
-        rank = row.place,
-        name = row.displayName,
-        timeMs = 0L,
-        hints = 0,
-        isSelf = row.uid == selfUid,
-        playerId = row.uid,
-        value = BoardRowValue.Points(row.total, row.games, atLeast = row.truncated),
-        beyondPage = row.place > BoardPage.PAGE_SIZE,
-    )
-}
+private fun OverallStandings.toRows(selfUid: String?): List<DailyBoardRowModel> =
+    pointRows(selfUid) { BoardRowValue.Points(it.total, it.games, atLeast = it.truncated) }
+
+/** Points standings as the kit's rows, each scoring [value] of its row; a place past the page cap reads 100+. */
+internal fun OverallStandings.pointRows(selfUid: String?, value: (OverallStandings.Row) -> BoardRowValue): List<DailyBoardRowModel> =
+    rows.map { row ->
+        DailyBoardRowModel(
+            rank = row.place,
+            name = row.displayName,
+            timeMs = 0L,
+            hints = 0,
+            isSelf = row.uid == selfUid,
+            playerId = row.uid,
+            value = value(row),
+            beyondPage = row.place > BoardPage.PAGE_SIZE,
+        )
+    }

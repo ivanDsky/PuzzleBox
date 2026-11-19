@@ -45,7 +45,7 @@ class ObserveOverall(
             }
         }
 
-        val standings = standings(loaded, me, records)
+        val standings = windowStandings(loaded, me, records)
         return when {
             loading > 0 -> OverallState.Partial(standings, loaded.size, total)
             unavailable == 0 -> if (standings.rows.isEmpty()) OverallState.Empty else OverallState.Complete(standings)
@@ -54,22 +54,28 @@ class ObserveOverall(
             else -> OverallState.Partial(standings, loaded.size, total)
         }
     }
+}
 
-    private fun standings(loaded: List<BoardLoad.Loaded>, me: Identity, records: List<CompletionRecord>): OverallStandings {
-        val official = records.mapNotNullTo(HashSet()) { record ->
-            LeaderboardEntries.fromRecord(record, me.uid, me.displayName)?.let { LeaderboardRef.fromPuzzleRefKey(it.puzzleRef) }
-        }
-        val ranked = loaded.map { rankBoard(it.board, it.page.entries, it.order, it.page.count) }
-        // A11: at the cap with an official solve of the viewer's own but no row, they placed beyond the page.
-        val beyondPage = loaded.filter { load ->
-            load.page.entries.size >= BoardPage.PAGE_SIZE &&
-                load.board in official &&
-                load.page.entries.none { it.uid == me.uid }
-        }.mapTo(HashSet()) { it.board }
-        val standings = overall(ranked, me.uid, beyondPage)
-        // `overall` has no name for a viewer on no page; the profile has.
-        return standings.copy(
-            rows = standings.rows.map { if (it.uid == me.uid && it.displayName.isEmpty()) it.copy(displayName = me.displayName) else it },
-        )
+/**
+ * Ranks [loaded] by points (A10): Overall over every game's boards, and a game's Week or Month over that game's days
+ * (WeekMonthPoints). [me], when signed in, is placed past a board's read page where [records] hold an official solve
+ * of that board but the page has no row of theirs (A11), and is named from the profile where no page names them.
+ */
+fun windowStandings(loaded: List<BoardLoad.Loaded>, me: Identity?, records: List<CompletionRecord>): OverallStandings {
+    val ranked = loaded.map { rankBoard(it.board, it.page.entries, it.order, it.page.count) }
+    if (me == null) return overall(ranked, viewerUid = null, viewerBeyondPage = emptySet())
+    val official = records.mapNotNullTo(HashSet()) { record ->
+        LeaderboardEntries.fromRecord(record, me.uid, me.displayName)?.let { LeaderboardRef.fromPuzzleRefKey(it.puzzleRef) }
     }
+    // A11: at the cap with an official solve of the viewer's own but no row, they placed beyond the page.
+    val beyondPage = loaded.filter { load ->
+        load.page.entries.size >= BoardPage.PAGE_SIZE &&
+            load.board in official &&
+            load.page.entries.none { it.uid == me.uid }
+    }.mapTo(HashSet()) { it.board }
+    val standings = overall(ranked, me.uid, beyondPage)
+    // `overall` has no name for a viewer on no page; the profile has.
+    return standings.copy(
+        rows = standings.rows.map { if (it.uid == me.uid && it.displayName.isEmpty()) it.copy(displayName = me.displayName) else it },
+    )
 }
