@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.play.di
 import com.ivandsky.puzzlebox.common.di.flagSet
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.TopBarFlag
 import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.domain.ObserveFriendPuzzles
@@ -18,6 +19,7 @@ import com.ivandsky.puzzlebox.play.HowToPlayRules
 import com.ivandsky.puzzlebox.play.LibraryViewModel
 import com.ivandsky.puzzlebox.play.MatchLegResultViewModel
 import com.ivandsky.puzzlebox.play.MatchLegViewModel
+import com.ivandsky.puzzlebox.play.MainTabsLargeBar
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.PlayStatsViewModel
 import com.ivandsky.puzzlebox.play.ReplayCompareViewModel
@@ -168,6 +170,8 @@ val playModule = module {
     single { HintPolish(enabled = get<ReleaseFlags>().isEnabled(GameUiFlag.HintPolish)) }
     // ZipDotPulse (backlog #1151) too: the Zip board's next number pulses its own dot while it is on.
     single { ZipDotPulse(enabled = get<ReleaseFlags>().isEnabled(PlayFlag.ZipDotPulse)) }
+    // MainTabsLargeBar (backlog #1597) too: Games and Community open on Today's large top bar while it is on.
+    single { MainTabsLargeBar(enabled = get<ReleaseFlags>().isEnabled(TopBarFlag.MainTabsLargeBar)) }
     // The memory forgets the last pick with the process.
     single { RandomPickMemory() }
     // The preset game is the one parameter: the page whose Random opened the sheet.

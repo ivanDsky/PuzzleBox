@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import com.ivandsky.puzzlebox.designsystem.AppDropdownMenu
+import com.ivandsky.puzzlebox.designsystem.LargeTopBarTitle
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
@@ -45,7 +46,8 @@ import com.ivandsky.puzzlebox.model.GameId
  * the [scrub] is between the two when there is one ([BoardScrubCell]). A tap drops a menu of every board in [places]
  * with the viewer's place on each (a pick reports [onPick]; the board re-ranks in place) and a "How ranks work" row
  * ([onHowRanksWork]). The menu grows out of the title and its rows rise in one after another; reduced motion drops
- * the travel and keeps the fades. [initiallyExpanded] opens the menu at first composition, for previews.
+ * the travel and keeps the fades. [initiallyExpanded] opens the menu at first composition, for previews. [large] draws the
+ * name at the large top bar's title size ([LargeTopBarTitle]), shrinking a long name before the chevron would be cut.
  */
 @Composable
 internal fun RanksTitleMenu(
@@ -57,6 +59,7 @@ internal fun RanksTitleMenu(
     modifier: Modifier = Modifier,
     scrub: BoardScrub? = null,
     initiallyExpanded: Boolean = false,
+    large: Boolean = false,
 ) {
     var open by rememberSaveable { mutableStateOf(initiallyExpanded) }
     val reduced = rememberReducedMotion()
@@ -73,13 +76,18 @@ internal fun RanksTitleMenu(
                 .pressScale(interaction, reduced)
                 .clip(PillShape)
                 .clickable(interaction, LocalIndication.current, role = Role.Button, onClickLabel = "Choose game") { open = true }
-                .defaultMinSize(minHeight = RanksMetrics.TitleMinHeight)
-                .padding(start = Spacing.sm)
+                // The large bar's title line is the touch row's height; the pointer's own minimum target makes up the rest.
+                .then(if (large) Modifier else Modifier.defaultMinSize(minHeight = RanksMetrics.TitleMinHeight).padding(start = Spacing.sm))
                 .semantics { stateDescription = if (open) "Expanded" else "Collapsed" },
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            BoardScrubCell(scrub, places.indexOfFirst { it.board == selected }, title, at = { places.getOrNull(it)?.name }) {
-                Text(it, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
+            val cell = if (large) Modifier.weight(1f, fill = false) else Modifier
+            BoardScrubCell(scrub, places.indexOfFirst { it.board == selected }, title, cell, at = { places.getOrNull(it)?.name }) {
+                if (large) {
+                    LargeTopBarTitle(it)
+                } else {
+                    Text(it, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
+                }
             }
             Icon(
                 PuzzleIcons.ExpandMore,

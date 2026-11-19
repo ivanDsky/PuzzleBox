@@ -51,11 +51,17 @@ internal fun RanksTopBar(label: String?, onTune: (() -> Unit)?, modifier: Modifi
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
             if (onTune != null) {
                 label?.let { TuneLabel(it, onTune) }
-                IconButton(onClick = onTune, modifier = Modifier.testTag("ranks.tune")) {
-                    Icon(TuneIcon, contentDescription = "Tune ranks", tint = MaterialTheme.colorScheme.onSurface)
-                }
+                TuneButton(onTune)
             }
         }
+    }
+}
+
+/** The 48 dp tune icon button; the old bar and the large bar ([RanksLargeBar]) share it. */
+@Composable
+internal fun TuneButton(onTune: () -> Unit) {
+    IconButton(onClick = onTune, modifier = Modifier.testTag("ranks.tune")) {
+        Icon(TuneIcon, contentDescription = "Tune ranks", tint = MaterialTheme.colorScheme.onSurface)
     }
 }
 

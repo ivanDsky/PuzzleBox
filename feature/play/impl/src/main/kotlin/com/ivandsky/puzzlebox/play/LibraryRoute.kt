@@ -126,6 +126,7 @@ internal fun LibraryRoute(
                 linkedIn = linkedInCard,
                 onOpenRanks = onOpenRanks,
                 onMakeOne = onMakeOne,
+                largeBar = rememberMainTabsLargeBar(),
             )
         }
         FriendRemovedSnackbar(removedFriend, onUndo = viewModel::undoRemoveFriend, modifier = Modifier.align(Alignment.BottomCenter))

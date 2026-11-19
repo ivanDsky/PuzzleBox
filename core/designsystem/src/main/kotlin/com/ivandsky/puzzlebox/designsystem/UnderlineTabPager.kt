@@ -27,11 +27,9 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.offset
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterIsInstance
 
@@ -154,16 +152,5 @@ private fun FadingPage(page: Int, link: TabFadeLink, state: PagerState, reduced:
             val fadingIn = remember { link.changing }
             CompositionLocalProvider(LocalTabFadingIn provides fadingIn) { content() }
         }
-    }
-}
-
-/** [Modifier.layout] that is [bleed] wider on each side than it reports, so what draws inside may reach into the gutters. */
-private fun Modifier.bleedSides(bleed: Dp): Modifier = if (bleed <= 0.dp) {
-    this
-} else {
-    layout { measurable, constraints ->
-        val side = bleed.roundToPx()
-        val placeable = measurable.measure(constraints.offset(horizontal = 2 * side))
-        layout(placeable.width - 2 * side, placeable.height) { placeable.place(-side, 0) }
     }
 }

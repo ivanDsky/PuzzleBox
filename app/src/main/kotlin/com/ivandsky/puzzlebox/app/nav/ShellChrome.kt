@@ -28,8 +28,8 @@ import kotlinx.coroutines.flow.StateFlow
 
 /**
  * The shell's chrome (ADR-0027): the avatar ([ShellAvatar], → Profile) in one fixed place.
- * With [avatarInTodayHeader] Today's header draws it; otherwise the rail carries it at its
- * bottom and no header does.
+ * With [avatarInHeader] Today's header draws it, and with [allMainTabs] (MainTabsLargeBar, [MainTabBars]) so does the
+ * top bar of each main tab's root (Games, Community, Ranks); otherwise the rail carries it at its bottom and no header does.
  * Settings is reached from Profile's own gear. Everything else passes through unchanged. The avatar opens Profile as the layer above the tabs.
  *
  * On the tablet it is still installed, as a pass-through: the decorator list, and with it every
@@ -42,14 +42,16 @@ import kotlinx.coroutines.flow.StateFlow
 internal fun shellChromeDecorator(
     navigator: Navigator,
     identity: StateFlow<Identity?>,
-    avatarInTodayHeader: Boolean,
+    avatarInHeader: Boolean,
+    allMainTabs: Boolean,
 ): NavEntryDecorator<NavKey> {
     val actions: @Composable RowScope.() -> Unit = {
         ShellAvatar(navigator, identity, ShellAvatarSize.Header)
     }
+    val roots = if (allMainTabs) topLevelDestinations.map { it.key } else listOf(HomeKey)
     return NavEntryDecorator { entry ->
         val key = entry.metadata[ENTRY_KEY]
-        if (avatarInTodayHeader && key is HomeKey) {
+        if (avatarInHeader && key in roots) {
             CompositionLocalProvider(LocalShellActions provides actions) { entry.Content() }
         } else {
             entry.Content()

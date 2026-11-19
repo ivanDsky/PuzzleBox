@@ -21,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.OnTabReselect
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -34,6 +35,7 @@ import com.ivandsky.puzzlebox.resultui.board.DailyBoardRowModel
  * A day or window pick keeps the held board on screen until the next one answers ([rememberHeldBoard]); a held board's
  * rows open against the day and window it was picked from, not the new pick.
  * [tuneDefaults] is handed to the Tune sheet; null leaves its Defaults block out, and with the filter chips on ([RanksUiState.filterSheets]) the tune icon too.
+ * With [RanksUiState.largeBar] the tab's hub opens on Today's large top bar ([RanksLargeBar]).
  * The Tune and How ranks work sheets are owned here, so [RanksActions.onSheetOpen] hears whether any Ranks sheet (those two, a filter chip's or the [playerSheet]) is up.
  * The whole hub sits in the shown board's world ([RanksWorld]), which blends to the next board's as the hub moves to it.
  */
@@ -67,6 +69,8 @@ internal fun RanksScreen(
     ReselectToTop(if (twoPane) listOf(leftScroll, scroll) else listOf(scroll), actions.onReset)
     val scrub = rememberBoardScrub(shown.position)
     val brands = remember(shown.places) { shown.places.map { it.brand } }
+    // The tab's own hub only: the hub pushed from a game page keeps its back row and its compact bar.
+    val largeBar = state.largeBar && actions.onBack == null
     RanksWorld(brands, scrub, wide = twoPane, modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
             if (actions.onBack != null) {
@@ -74,9 +78,9 @@ internal fun RanksScreen(
             }
             Box(Modifier.weight(1f)) {
                 if (twoPane) {
-                    RanksTwoPane(shown, actions, scrub, leftScroll, scroll, onRowClick, refreshing, onTune, onFilterOpenChange, onHowRanksWork = { howRanksWork = true })
+                    RanksTwoPane(shown, actions, scrub, leftScroll, scroll, onRowClick, refreshing, onTune, onFilterOpenChange, onHowRanksWork = { howRanksWork = true }, largeBar = largeBar)
                 } else {
-                    RanksPhone(shown, actions, scrub, scroll, onRowClick, refreshing, sheetOpen, onTune, onFilterOpenChange, onHowRanksWork = { howRanksWork = true })
+                    RanksPhone(shown, actions, scrub, scroll, onRowClick, refreshing, sheetOpen, onTune, onFilterOpenChange, onHowRanksWork = { howRanksWork = true }, largeBar = largeBar)
                 }
             }
         }
@@ -120,16 +124,19 @@ private fun RanksPhone(
     onTune: (() -> Unit)?,
     onFilterOpenChange: (Boolean) -> Unit,
     onHowRanksWork: () -> Unit,
+    largeBar: Boolean,
 ) {
     val current = state.places.getOrNull(state.position)
     val nudge = rememberSwipeNudge(show = state.nudge && !sheetOpen, onShown = actions.onNudgeShown)
     RanksPullToRefresh(refreshing, actions.onRefresh) {
         Box(Modifier.fillMaxSize()) {
             FillRemainingColumn(Modifier.fillMaxSize().testTag("route.ranks").verticalScroll(scroll)) {
-                Column(Modifier.padding(start = Spacing.lg, top = Spacing.lg, end = Spacing.lg)) {
-                    RanksTopBar(state.topBarLabel(), onTune = onTune) {
-                        RanksTitleMenu(current?.name ?: "Ranks", state.places, current?.board, actions.onPickBoard, onHowRanksWork = onHowRanksWork, scrub = scrub)
-                    }
+                val titleMenu = @Composable { large: Boolean ->
+                    RanksTitleMenu(current?.name ?: "Ranks", state.places, current?.board, actions.onPickBoard, onHowRanksWork = onHowRanksWork, scrub = scrub, large = large)
+                }
+                if (largeBar) RanksLargeBar(state, onTune) { titleMenu(true) }
+                Column(Modifier.padding(start = Spacing.lg, top = if (largeBar) 0.dp else Spacing.lg, end = Spacing.lg)) {
+                    if (!largeBar) RanksTopBar(state.topBarLabel(), onTune = onTune) { titleMenu(false) }
                     if (state.filterSheets) RanksFilterChips(state, actions, onFilterOpenChange)
                     RanksCalendar(state.calendar, state.stats, actions.onShowCalendar, actions.onSelectDay)
                 }

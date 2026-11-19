@@ -3,22 +3,19 @@ package com.ivandsky.puzzlebox.designsystem
 import com.airbnb.android.showkase.annotation.ShowkaseComposable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 
 /**
  * Screen-opening bar: serif display title (the editorial voice from A12) with an
- * optional subtitle and trailing actions. For top-level screens.
+ * optional subtitle and trailing actions. For top-level screens. It is the slot `LargeTopBar` in
+ * `LargeTopBarSlot.kt` with plain texts, so a long [title] wraps here instead of shrinking.
  */
 @Composable
 fun LargeTopBar(
@@ -27,33 +24,26 @@ fun LargeTopBar(
     subtitle: String? = null,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(start = Spacing.lg, end = Spacing.lg, top = Spacing.xl, bottom = Spacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-    ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) {
+    LargeTopBar(
+        title = {
             Text(
                 text = title,
                 style = MaterialTheme.typography.displaySmall,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            if (subtitle != null) {
+        },
+        modifier = modifier,
+        subtitle = subtitle?.let { line ->
+            {
                 Text(
-                    text = subtitle,
+                    text = line,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        }
-        actions()
-        LocalShellActions.current.invoke(this)
-    }
+        },
+        actions = actions,
+    )
 }
 
 /**
