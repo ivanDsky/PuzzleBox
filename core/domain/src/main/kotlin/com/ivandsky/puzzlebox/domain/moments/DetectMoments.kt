@@ -1,6 +1,4 @@
-package com.ivandsky.puzzlebox.play.domain.moments
-
-import com.ivandsky.puzzlebox.domain.moments.Moment
+package com.ivandsky.puzzlebox.domain.moments
 
 private val STREAK_MILESTONES = setOf(7, 30, 100)
 private const val TOP_PLACES = 3
@@ -12,7 +10,7 @@ private const val TOP_MIN_PLAYERS = 4
  * [SolveFacts.friends] the two friend moments are left out and the rest still come, so a caller can
  * ask at once and again when the board lands.
  */
-internal fun detectMoments(facts: SolveFacts): List<Moment> {
+fun detectMoments(facts: SolveFacts): List<Moment> {
     if (facts.playAgain || facts.practice) return emptyList()
     return listOfNotNull(
         Moment.PersonalBest.takeIf { facts.newBest },

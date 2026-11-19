@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.play.domain.moments
+package com.ivandsky.puzzlebox.domain.moments
 
 /** The one ladder of "sub-X" times every game shares (L1): 5:00, 3:00, 2:00, 1:30, 1:00, 0:45, 0:30, 0:20, 0:10. */
 internal object SubXThresholds {

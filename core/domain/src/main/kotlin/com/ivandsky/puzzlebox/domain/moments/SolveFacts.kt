@@ -1,6 +1,5 @@
-package com.ivandsky.puzzlebox.play.domain.moments
+package com.ivandsky.puzzlebox.domain.moments
 
-import com.ivandsky.puzzlebox.domain.moments.Moment
 import com.ivandsky.puzzlebox.domain.ranks.RankedBoard
 
 /**
@@ -17,7 +16,7 @@ import com.ivandsky.puzzlebox.domain.ranks.RankedBoard
  * @property streak the streak with this solve counted.
  * @property friends today's Friends board for this game; null until it is read, and when it cannot be.
  */
-internal data class SolveFacts(
+data class SolveFacts(
     val timeMs: Long,
     val hints: Int,
     val playAgain: Boolean,
