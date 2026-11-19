@@ -16,7 +16,9 @@ import com.ivandsky.puzzlebox.model.SolveReplay
 import kotlinx.coroutines.flow.first
 
 /**
- * Finds the replay bytes of one side of a duel leg. Answers only MyLeg and TheirLeg; every other ref is null before any read.
+ * Finds the replay bytes of one side of a duel leg: the opponent's from their posted result, mine from this device's outbox
+ * or, for a leg played on another device of mine, from my own posted result.
+ * Answers only MyLeg and TheirLeg; every other ref is null before any read.
  * The replay is advisory (A11): it never checks or changes a result, and a replay that does not fold is simply no replay.
  * A leg's daily puzzle is taken from the cache, else fetched like the play path does, so a leg this device never opened
  * still has its puzzle.
@@ -48,22 +50,26 @@ class LoadLegReplay(
             MatchFetch.NotFound, is MatchFetch.UnsupportedVersion -> return LegReplayRead.Absent
         }
         val me = match.mySeat(identity.current.value?.uid) ?: return LegReplayRead.Absent
-        val bytes = when (ref) {
+        val read = when (ref) {
             is SolveReplayRef.TheirLeg -> {
                 val opponent = match.opponentOf(me) ?: return LegReplayRead.Absent
-                when (val read = matches.readResult(match.code, legIndex, opponent.uid)) {
-                    is ResultRead.Found -> read.result.replay
-                    ResultRead.Offline -> return LegReplayRead.Unavailable
-                    ResultRead.Sealed, ResultRead.Missing -> null
-                }
+                matches.readResult(match.code, legIndex, opponent.uid)
             }
             else -> mine(code, legIndex, me)
+        }
+        val bytes = when (read) {
+            is ResultRead.Found -> read.result.replay
+            ResultRead.Offline -> return LegReplayRead.Unavailable
+            ResultRead.Sealed, ResultRead.Missing -> null
         } ?: return LegReplayRead.Absent
         return puzzleOf(match, legIndex, bytes)
     }
 
-    private suspend fun mine(code: ShareCode, legIndex: Int, me: String): SolveReplay? =
-        outbox.observe(code).first().firstOrNull { it.result.legIndex == legIndex && it.result.uid == me }?.result?.replay
+    /** My result for the leg: this device's own row, else my result document, which holds a leg played on another device. */
+    private suspend fun mine(code: ShareCode, legIndex: Int, me: String): ResultRead =
+        outbox.observe(code).first().firstOrNull { it.result.legIndex == legIndex && it.result.uid == me }
+            ?.let { ResultRead.Found(it.result) }
+            ?: matches.readResult(code, legIndex, me)
 
     private suspend fun puzzleOf(match: Match, legIndex: Int, bytes: SolveReplay): LegReplayRead {
         val leg = match.legs.getOrNull(legIndex)?.ref ?: return LegReplayRead.Absent

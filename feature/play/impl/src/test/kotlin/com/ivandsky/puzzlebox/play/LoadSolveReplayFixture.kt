@@ -2,6 +2,9 @@ package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.data.identity.IdentityService
+import com.ivandsky.puzzlebox.data.match.MatchRepository
+import com.ivandsky.puzzlebox.data.match.MatchResultOutbox
 import com.ivandsky.puzzlebox.data.replay.DailyReplayRepository
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
@@ -23,12 +26,15 @@ import java.time.Instant
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CoroutineDispatcher
 
-/** The replay loader over the daily and completion fakes of a test; every other source is empty. */
+/** The replay loader over the daily and completion fakes of a test (and, for a duel leg, its match, outbox and identity); every other source is empty. */
 internal fun loadSolveReplay(
     games: GameRegistry,
     daily: DailyRepository,
     completions: CompletionRepository,
     replays: DailyReplayRepository = FakeDailyReplayRepository(),
+    matches: MatchRepository = FakeMatchRepository(),
+    outbox: MatchResultOutbox = FakeMatchResultOutbox(),
+    identity: IdentityService = FakeIdentityService(),
 ): LoadSolveReplay {
     val received = FakeReceivedPuzzleRepository()
     val loadShared = LoadSharedPuzzle(games, FakeSharedPuzzleRepository(), received, { Budget.Unlimited }, { Instant.EPOCH })
@@ -36,7 +42,7 @@ internal fun loadSolveReplay(
         games = games,
         daily = LoadDailyReplay(completions, daily),
         custom = LoadCustomReplay(completions, received, loadShared),
-        leg = LoadLegReplay(FakeMatchRepository(), FakeMatchResultOutbox(), FakeIdentityService(), daily, received, loadShared, FakePublishedPuzzleRepository()),
+        leg = LoadLegReplay(matches, outbox, identity, daily, received, loadShared, FakePublishedPuzzleRepository()),
         player = LoadPlayerReplay(replays, daily),
         completions = completions,
         dispatchers = InlineDispatcherProvider,

@@ -163,6 +163,36 @@ class LoadLegReplayTest {
     }
 
     @Test
+    fun `my leg played on another device opens from my posted result`() = runTest {
+        duel()
+        post(ann, result(ann.uid, 0, solved)) // no outbox row here: the other device queued and posted it
+
+        assertEquals(solved, load(MyLeg(code, 0))?.bytes)
+        assertNull(load(MyLeg(code, 1)))
+    }
+
+    @Test
+    fun `my leg played on another device is unavailable offline, not absent`() = runTest {
+        duel()
+        post(ann, result(ann.uid, 0, solved))
+        matches.observe(code).first()
+        server.online = false
+
+        assertEquals(LegReplayRead.Unavailable, load.read(MyLeg(code, 0)))
+    }
+
+    @Test
+    fun `my leg with a row here is not read from the server`() = runTest {
+        duel()
+        outbox.enqueue(code, result(ann.uid, 0, solved))
+        matches.reads = 0
+
+        load(MyLeg(code, 0))
+
+        assertEquals(1, matches.reads) // the match; my result comes from the row
+    }
+
+    @Test
     fun `my leg ignores a row of another player`() = runTest {
         duel()
         outbox.enqueue(code, result(bob.uid, 0, solved))
