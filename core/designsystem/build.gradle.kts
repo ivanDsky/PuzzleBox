@@ -25,6 +25,7 @@ ksp {
 
 dependencies {
     implementation(libs.androidx.compose.material.icons.core)
+    implementation(libs.androidx.activity.compose)
 
     // Showkase trial (spec A9/A10, keep-or-drop decided after the run). Debug-only
     // posture per design-previews-00: browser runtime debugImplementation, annotations
