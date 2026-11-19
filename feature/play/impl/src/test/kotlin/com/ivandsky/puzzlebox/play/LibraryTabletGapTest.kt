@@ -112,7 +112,7 @@ class LibraryTabletGapTest {
 }
 
 /** Duels' real list pads its top by [Spacing.sm] and spaces rows [Spacing.lg]; the stand-in keeps both. */
-private fun gapDuels() = DuelsSlot(
+internal fun gapDuels() = DuelsSlot(
     content = { state, _, _ ->
         LazyColumn(
             Modifier.fillMaxWidth(),
