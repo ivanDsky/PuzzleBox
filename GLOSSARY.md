@@ -170,3 +170,15 @@ _Avoid_: vibrator call, View haptic
 **Moment**:
 A celebrated fact about a counted solve: a personal best, a first sub-X time, top 3 among friends today, passing a named friend, a full set, or a 7, 30 or 100-day streak. A freeze moment is a different thing.
 _Avoid_: achievement, badge
+
+**Counted solve**:
+The first solve of a puzzle day, played in the app or imported from LinkedIn. Recaps and the stats page count only these: Play again, custom, community and duel-only solves are left out of every number.
+_Avoid_: valid solve, real solve
+
+**Recap**:
+The story of one calendar month or year of counted solves: a swipeable run of cards with the period's headline numbers, shared as one image. A month or year with no counted solves has none. It is a calendar period, whatever the streak or freeze state.
+_Avoid_: wrapped, summary
+
+**Stats page**:
+One game's, or all games', trends, records, rank history and comparison with friends over a range. Ranks stays leaderboards only; the game page's stats block opens it.
+_Avoid_: dashboard, analytics

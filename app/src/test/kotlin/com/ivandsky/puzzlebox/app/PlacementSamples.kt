@@ -8,6 +8,8 @@ import com.ivandsky.puzzlebox.compete.api.NewDuelKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
 import com.ivandsky.puzzlebox.history.api.HistoryKey
+import com.ivandsky.puzzlebox.insights.api.InsightsRecapKey
+import com.ivandsky.puzzlebox.insights.api.InsightsStatsKey
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.CustomResultKey
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
@@ -42,6 +44,8 @@ internal object PlacementSamples {
         NewDuelKey(),
         EditorKey("d1"),
         PublishedPuzzleKey("K7Q2MX"),
+        InsightsRecapKey("2026-11"),
+        InsightsStatsKey(),
     ).associateBy { it::class }
 
     /** A sample instance of [key]. */

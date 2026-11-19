@@ -20,6 +20,7 @@ import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.home.HomeSummaries
 import com.ivandsky.puzzlebox.home.navigation.homeEntry
+import com.ivandsky.puzzlebox.insights.navigation.insightsEntry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.CustomSlot
@@ -126,6 +127,7 @@ internal fun puzzleBoxEntryProvider(
         visibility = visibility,
     )
     competeEntry(navigator, playLayout)
+    insightsEntry()
     entry<CatalogKey> { CatalogScreen() }
 }
 

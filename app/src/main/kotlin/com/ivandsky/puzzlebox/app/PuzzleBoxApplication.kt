@@ -36,6 +36,7 @@ import com.ivandsky.puzzlebox.games.strands.strandsModule
 import com.ivandsky.puzzlebox.games.strandsui.strandsUiModule
 import com.ivandsky.puzzlebox.history.di.historyModule
 import com.ivandsky.puzzlebox.home.di.homeModule
+import com.ivandsky.puzzlebox.insights.di.insightsModule
 import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.profile.di.profileModule
 import org.koin.android.ext.koin.androidContext
@@ -83,6 +84,6 @@ class PuzzleBoxApplication : Application() {
         }
 
         val appModules =
-            listOf(commonModule, dataModule, cloudSyncModule, firebaseBackendModule, domainModule, homeModule, historyModule, playModule, createModule, authModule(R.string.default_web_client_id), profileModule, competeModule, zipModule, zipUiModule, queensModule, queensUiModule, tangoModule, tangoUiModule, strandsModule, strandsUiModule, miniSudokuModule, miniSudokuUiModule, appModule, reminderModule, buildTypeReleaseFlagsModule) + buildTypeGameModules
+            listOf(commonModule, dataModule, cloudSyncModule, firebaseBackendModule, domainModule, homeModule, historyModule, playModule, createModule, authModule(R.string.default_web_client_id), profileModule, competeModule, insightsModule, zipModule, zipUiModule, queensModule, queensUiModule, tangoModule, tangoUiModule, strandsModule, strandsUiModule, miniSudokuModule, miniSudokuUiModule, appModule, reminderModule, buildTypeReleaseFlagsModule) + buildTypeGameModules
     }
 }

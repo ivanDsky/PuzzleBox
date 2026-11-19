@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.compete.api.competeNavKeys
 import com.ivandsky.puzzlebox.create.api.createNavKeys
 import com.ivandsky.puzzlebox.history.api.historyNavKeys
 import com.ivandsky.puzzlebox.home.api.homeNavKeys
+import com.ivandsky.puzzlebox.insights.api.insightsNavKeys
 import com.ivandsky.puzzlebox.navigation.navKeySavedStateConfiguration
 import com.ivandsky.puzzlebox.play.api.playNavKeys
 import com.ivandsky.puzzlebox.profile.api.profileNavKeys
@@ -21,5 +22,6 @@ internal val puzzleBoxNavKeys: SavedStateConfiguration = navKeySavedStateConfigu
     historyNavKeys()
     profileNavKeys()
     competeNavKeys()
+    insightsNavKeys()
     subclass(CatalogKey::class, CatalogKey.serializer())
 }

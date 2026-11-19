@@ -1,6 +1,6 @@
 # ADR-0027 — Navigation placement: one owner per content type
 
-Date: 2026-11-09 · Status: accepted · Source: `.scratch/nav-ia/spec.md` (A1–A19) · Amended by ADR-0028 (§2 owner table gains the row "LinkedIn connection | Profile (Accounts list) | —") · Amended 2026-11-10 by the re-gate fixes F1–F8 (§2, §3, §4, §11, §12) · Amended 2026-11-13 by the leaderboard hub (`.scratch/leaderboard-hub/spec.md` A1, A33: §2 owner table, Ranks owns daily leaderboards, the history timeline and lifetime stats) · Amended 2026-11-16 by the nav rethink (`.scratch/nav-rethink/spec.md` N7: §4, §12, Profile and Settings sit in a layer above the tabs) · Amended 2026-11-16 by the nav rethink (`.scratch/nav-rethink/spec.md` N9, N10, A2: §2, §3, §4, §6, §9, §10, §12, Custom in Games takes the place of the Create root and the Studio is immersive; behind the CustomInGames flag, not flipped yet, so §12's base table still applies; flip and removal dates are added here by their tickets)
+Date: 2026-11-09 · Status: accepted · Source: `.scratch/nav-ia/spec.md` (A1–A19) · Amended by ADR-0028 (§2 owner table gains the row "LinkedIn connection | Profile (Accounts list) | —") · Amended 2026-11-10 by the re-gate fixes F1–F8 (§2, §3, §4, §11, §12) · Amended 2026-11-13 by the leaderboard hub (`.scratch/leaderboard-hub/spec.md` A1, A33: §2 owner table, Ranks owns daily leaderboards, the history timeline and lifetime stats) · Amended 2026-11-16 by the nav rethink (`.scratch/nav-rethink/spec.md` N7: §4, §12, Profile and Settings sit in a layer above the tabs) · Amended 2026-11-16 by the nav rethink (`.scratch/nav-rethink/spec.md` N9, N10, A2: §2, §3, §4, §6, §9, §10, §12, Custom in Games takes the place of the Create root and the Studio is immersive; behind the CustomInGames flag, not flipped yet, so §12's base table still applies; flip and removal dates are added here by their tickets) · Amended 2026-11-19 by the Insights epic (`.scratch/insights/spec.md` A11: §2 owner table, placement of the Insights keys)
 
 ## Context
 The app grew screen by screen. Stats show on five screens, boards on four and the week strip on two, so no screen is
@@ -28,7 +28,7 @@ lives in Community › Yours; no other tab set remains, so §10 and §12 describ
    | App update available | Today (the existing pill) | — |
    | Lifetime stats (solved, best streak, no-hint, days) | Ranks | — |
    | History timeline (every past play) | Ranks | Games › game page: "Your history" row; Today: the recent days, and on the tablet the picked day's detail |
-   | Per-game stats (solved, hint-free, avg, best) | Games › game page | — |
+   | Per-game stats (solved, hint-free, avg, best) | Games › game page | The block opens the game's stats page (Insights) |
    | Past-day archive (play a past day) | Games › game page | History detail: "Play this day" action |
 | Random puzzle (a door, not a content owner: community puzzles stay with the Community tab, the archive with the Games game page) | Games › game page (the Random chip opens the sheet) | — |
    | Daily leaderboards | Ranks | Games › game page: one summary row; Today: "Today's rank: #12 on Zip"; Result: "You: #12 of 340" |
@@ -38,6 +38,8 @@ lives in Community › Yours; no other tab set remains, so §10 and §12 describ
    | Identity and sign in/out | Profile (opened by the avatar) | A signed-out prompt *in place* on identity-gated owners |
    | Settings: Appearance, About (version), Developer (debug: Catalog) | Settings (opened by Profile's top-right gear) | — |
    | LinkedIn connection (link state, Resume, Disconnect) | Profile (Accounts list) | — |
+   | Recaps (a month's or a year's story, with its share image) | Insights › recap story | Today: a recap card in a period's first days; Profile: the entry and past periods |
+   | Stats page (trends, records, rank history, vs friends; one game or all games) | Insights › stats page | Games › game page: the stats block opens it; Profile: the all-games entry |
 
    A section inside a tab (the update pill) is a valid home. History (what I played) and Archive (play a past day) are
    two content types with two owners, cross-linked by one row each.
@@ -49,6 +51,14 @@ lives in Community › Yours; no other tab set remains, so §10 and §12 describ
    tab set. The hub shipped behind a release flag; the flag, the History screen and the game-page board are
    deleted, so the tab always reads Ranks and the route table registers only the hub's entry for the root key. A pushed
    `HistoryKey` opens the hub at that game.
+
+   *(Amended 2026-11-19, Insights epic `.scratch/insights/spec.md` A11.)* Insights owns recaps and the stats page, in
+   `feature:insights`. Its three keys are `Home.Shell`: the hub (`InsightsKey`) and the stats page (`InsightsStatsKey`)
+   are `Bar`; a recap story (`InsightsRecapKey`) is `Immersive`, like a game's board. None is a tab root, so each is a
+   plain push on the current tab (`openOwner`). The routes are registered
+   ungated; each entry point that opens one (Today's recap card, Profile's entries, the game page's stats block) arrives
+   with its own ticket behind its own release flag (`MonthlyRecap`, `YearRecap`, `StatsPage`), so no screen reaches them
+   before then. Ranks stays leaderboards only.
 
    *(Amended 2026-11-16, nav rethink N9; 2026-11-17: the puzzles moved to Community.)* Create is not a tab. Games has
    two sections, Dailies · Duels. Community owns every puzzle the player made or received, in three sections: New

@@ -15,6 +15,9 @@ import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
+import com.ivandsky.puzzlebox.insights.api.InsightsKey
+import com.ivandsky.puzzlebox.insights.api.InsightsRecapKey
+import com.ivandsky.puzzlebox.insights.api.InsightsStatsKey
 import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.CustomResultKey
@@ -58,7 +61,7 @@ internal sealed interface Home {
     data class PushedOn(val tab: Tab) : Home
 
     /**
-     * Belongs to the shell, not to a tab: Profile and Settings. They open in the layer above
+     * Belongs to the shell, not to a tab: Profile, Settings and Insights. They open in the layer above
      * the tabs, or are pushed on the current tab while the layer is off.
      */
     data object Shell : Home
@@ -94,6 +97,9 @@ internal val placementRows: List<PlacementRow> = listOf(
     PlacementRow(SettingsKey::class, Placement(Shell, Chrome.Bar)),
     PlacementRow(WhatsNewKey::class, Placement(Shell, Chrome.Bar)),
     PlacementRow(LinkedInLoginKey::class, Placement(Shell, Chrome.Bar)),
+    PlacementRow(InsightsKey::class, Placement(Shell, Chrome.Bar)),
+    PlacementRow(InsightsRecapKey::class, Placement(Shell, Chrome.Immersive)),
+    PlacementRow(InsightsStatsKey::class, Placement(Shell, Chrome.Bar)),
     PlacementRow(GameKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
     PlacementRow(ResultKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
     PlacementRow(ReplayKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),

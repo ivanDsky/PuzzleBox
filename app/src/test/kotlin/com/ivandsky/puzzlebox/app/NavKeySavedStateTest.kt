@@ -15,6 +15,8 @@ import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.compete.api.NewDuelKey
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
+import com.ivandsky.puzzlebox.insights.api.InsightsRecapKey
+import com.ivandsky.puzzlebox.insights.api.InsightsStatsKey
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import kotlinx.serialization.PolymorphicSerializer
@@ -45,8 +47,9 @@ class NavKeySavedStateTest {
      */
     private val everyKey: NavigationState = run {
         val roots = topLevelDestinations.map { it.key }
-        // A per-game History key keeps the nullable payload covered.
-        val pushed = PlacementSamples.everyRow().filter { it !in roots } + HistoryKey("zip") + NewDuelKey("sam", "Sam", "zip")
+        // A per-game History key and the Insights keys' other forms (a year, one game) keep the nullable and period payloads covered.
+        val pushed = PlacementSamples.everyRow().filter { it !in roots } + HistoryKey("zip") + NewDuelKey("sam", "Sam", "zip") +
+            InsightsStatsKey("zip") + InsightsRecapKey("2025")
         val stackOf = { key: NavKey ->
             topLevelDestinations.indexOfFirst { it.tab == homeTab(key) }.coerceAtLeast(0)
         }
