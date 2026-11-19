@@ -10,10 +10,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.airbnb.android.showkase.annotation.ShowkaseComposable
 
-// Previews: the single sheet with a game list, a level list and a long list at font scale 1.3, then the chip in its states and a page header.
+// Previews: the single sheet with a game list, a level list and a long list at font scale 1.3, the single chip in its states, a page header,
+// then the multi sheet with two rows picked and with none, the multi page and the multi chip picked with one and with several, and inline.
 
 private val Games = listOf("Queens" to GameGlyphs.Queens, "Zip" to GameGlyphs.Zip, "Tango" to GameGlyphs.Tango, "Mini Sudoku" to GameGlyphs.Sudoku, "Strands" to GameGlyphs.Strands)
 private val Levels = listOf("Easy", "Medium", "Hard")
+private val Sources = listOf("From friends", "Community", "Past days", "Yours")
 
 @Composable
 private fun gameOptions() = Games.map { (name, glyph) ->
@@ -25,6 +27,9 @@ private fun levelOptions(): List<FilterOption<String>> {
     val marks = listOf(PuzzleIcons.LevelEasy, PuzzleIcons.LevelMedium, PuzzleIcons.LevelHard)
     return Levels.mapIndexed { i, name -> FilterOption(name, name, icon = { tint -> Icon(marks[i], contentDescription = null, tint = tint) }) }
 }
+
+@Composable
+private fun sourceOptions() = Sources.map { FilterOption(it, it) }
 
 @Composable
 private fun longOptions() = List(12) { FilterOption("row $it", "A source whose name is long enough to wrap onto a second line ${it + 1}") }
@@ -84,5 +89,54 @@ internal fun SingleFilterChipInlinePreview() {
 internal fun FilterPageHeaderPreview() {
     PuzzleBoxTheme {
         FilterPageHeader(title = "Games", onBack = {})
+    }
+}
+
+@ShowkaseComposable(name = "MultiFilterSheet (two picked)", group = "Filters")
+@PuzzleBoxPreviews
+@Composable
+internal fun MultiFilterSheetPickedPreview() {
+    PuzzleBoxTheme {
+        MultiFilterSheet("Source", "All sources", sourceOptions(), selected = setOf("From friends", "Past days"), onToggle = {}, onClearGroup = {}, onDismiss = {})
+    }
+}
+
+@ShowkaseComposable(name = "MultiFilterSheet (none picked)", group = "Filters")
+@PuzzleBoxPreviews
+@Composable
+internal fun MultiFilterSheetEmptyPreview() {
+    PuzzleBoxTheme {
+        MultiFilterSheet("Source", "All sources", sourceOptions(), selected = emptySet(), onToggle = {}, onClearGroup = {}, onDismiss = {})
+    }
+}
+
+@ShowkaseComposable(name = "MultiFilterPage", group = "Filters")
+@PuzzleBoxPreviews
+@Composable
+internal fun MultiFilterPagePreview() {
+    PuzzleBoxTheme {
+        MultiFilterPage("Source", "All sources", sourceOptions(), selected = setOf("Community", "Yours"), onToggle = {}, onClearGroup = {}, onBack = {})
+    }
+}
+
+@ShowkaseComposable(name = "MultiFilterChip", group = "Filters")
+@PuzzleBoxPreviews
+@Composable
+internal fun MultiFilterChipPreview() {
+    PuzzleBoxTheme {
+        Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            MultiFilterChip("Source", "All sources", sourceOptions(), selected = setOf("From friends"), onToggle = {}, onClearGroup = {})
+            MultiFilterChip("Source", "All sources", sourceOptions(), selected = setOf("From friends", "Yours"), onToggle = {}, onClearGroup = {})
+        }
+    }
+}
+
+@ShowkaseComposable(name = "MultiFilterChip (inline)", group = "Filters")
+@PuzzleBoxPreviews
+@Composable
+internal fun MultiFilterChipInlinePreview() {
+    PuzzleBoxTheme {
+        val inline = remember { FilterPresentation.Inline {} }
+        MultiFilterChip("Source", "All sources", sourceOptions(), selected = setOf("Community"), onToggle = {}, onClearGroup = {}, presentation = inline, modifier = Modifier.padding(Spacing.lg))
     }
 }
