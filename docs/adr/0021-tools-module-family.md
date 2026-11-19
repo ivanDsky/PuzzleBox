@@ -2,7 +2,8 @@
 
 Date: 2026-11-06 · Status: accepted · Source: editor spec A23, A27, S14; intake A12,
 cli_bridge; goldfish A persona-flows-17/18 · Amends ADR-0008 §6 (forbidden edges) and its
-"new module families need a rule" consequence
+"new module families need a rule" consequence · Amended 2026-11-19 (trainer: §1 a tool may
+fetch the LinkedIn archive for the technique index; §2 a tool may depend on `:core:network`)
 
 ## Context
 An AI agent writes puzzles as text and needs the app's own verdict before a human imports
@@ -22,10 +23,20 @@ ADR-0008 Consequences]. The convention says nothing outside `app` names a concre
    - `solve <file>`, which also prints the solution.
 
    The tool holds no credentials and makes no network calls.
+
+   > **Amended 2026-11-19 (trainer epic, technique index).** The tool that runs the
+   > technique-index pass (`:tools:puzzle-cli`, ADR-0017 §5 as amended) may fetch the LinkedIn
+   > archive for it: throttled and anonymous, with the same requests the app sends. It still
+   > holds no credentials. Every other tool stays network-free.
 2. **What a tool may depend on.** A tool may depend on `:core:game`, on any non-UI
    `games:<id>`, and on `:core:testing` from test configurations only. The new arms reject
    tool edges to `feature:*`, `backend:*`, `core:data`, `core:game-ui`, `core:designsystem`,
    any `games:*-ui` and every Android module.
+
+   > **Amended 2026-11-19 (trainer epic, technique index).** A tool may also depend on
+   > `:core:network`, in any configuration, for that archive fetch. The tools arm allows the
+   > edge and the storage arm (ADR-0034) exempts exactly `tools:*` → `:core:network`; every
+   > other tool edge stays rejected, `:core:database` and `:core:datastore` included.
 3. **Nothing depends on a tool.** A new arm rejects any edge from outside `tools:*` into it,
    in every configuration. Both arms sit next to the `:konsist` arms, before the generic
    family arms.

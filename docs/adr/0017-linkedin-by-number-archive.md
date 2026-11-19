@@ -1,6 +1,6 @@
 # ADR-0017 — LinkedIn past days by number from games-by-id
 
-Date: 2026-11-05 · Status: accepted · Source: remote-collection research 02 + 07, spec A2–A6, A17, A23 · Amends ADR-0012 (LinkedIn feeds serve only today) · Builds on ADR-0016 (persisted-query rung) · Amended by ADR-0028 (§6 terms posture: the opt-in LinkedIn account feature reads with the player's session and names LinkedIn)
+Date: 2026-11-05 · Status: accepted · Source: remote-collection research 02 + 07, spec A2–A6, A17, A23 · Amends ADR-0012 (LinkedIn feeds serve only today) · Builds on ADR-0016 (persisted-query rung) · Amended by ADR-0028 (§6 terms posture: the opt-in LinkedIn account feature reads with the player's session and names LinkedIn) · Amended 2026-11-19 (trainer: §5 the developer-run technique-index pass; §6 derived technique tags may ship, puzzle content never does)
 
 ## Context
 LinkedIn expires each Zip, Queens, Tango and Mini Sudoku puzzle at midnight PT, and every
@@ -47,9 +47,23 @@ was asked — only `entityUrn` component 3 names the edition returned.
 5. **Throttle sharing.** Past-day fetches go through the same `FeedTransport` and so share
    LinkedIn's per-IP throttle and its cooldown with today's fetches (A17). Accepted: a
    player browsing the archive can delay today's refresh by one cooldown.
+
+   > **Amended 2026-11-19 (trainer epic, technique index).** The technique-index pass is a
+   > developer-run `:tools:puzzle-cli` command (ADR-0021 §1 as amended) that walks the archive
+   > of Queens, Tango and Mini Sudoku, about 2,170 numbers. It fetches through `FeedTransport`,
+   > one number at a time, so it is paced under this same per-IP throttle and cooldown. It
+   > checkpoints each number and resumes where it stopped, and it stops after repeated
+   > throttles. Because the throttle is per IP, it runs off the player's network or at a quiet
+   > time. It never runs in CI; it is re-run only by hand, when new dailies should join.
 6. **Terms posture.** Fetch only on the user's tap, once per day per device, cached
    forever, no LinkedIn branding, nothing bundled or pre-seeded in the APK (A23,
    research 08). The exposure is accepted on these terms.
+
+   > **Amended 2026-11-19 (trainer epic, technique index).** Derived technique tags may ship
+   > inside the app as a resource: per puzzle number, the technique ids the game's stepper uses
+   > and how many steps each takes. Puzzle content and positions never ship. On-device fetches
+   > stay tap-only: one tap fetches at most one puzzle and nothing is fetched ahead (trainer
+   > spec A14). A drill puzzle fetched on a tap is cached forever, like an archive day.
 
 ## Consequences
 - Each LinkedIn game gains an archive from its #1 with one `LinkedInEdition` literal and a
