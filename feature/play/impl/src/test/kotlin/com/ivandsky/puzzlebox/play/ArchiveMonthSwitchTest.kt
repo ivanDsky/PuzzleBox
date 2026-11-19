@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.play
 
 import android.provider.Settings
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.Snapshot
@@ -51,7 +50,8 @@ import org.robolectric.annotation.GraphicsMode
  * Backlog #1551: paging the archive calendar from one month to the next never flashes. Every frame of the switch has
  * the grid at its full height, drawn (not faded to the card's colour), and showing the month its title names with that
  * month's discs all there: while the asked month's days are still loading the calendar keeps the loaded month whole,
- * and once they land the two change together.
+ * and once they land the two change together. These run with the swipe flag off, the shipped crossfade; the swipe's own
+ * frames are [ArchiveMonthSwipeTest].
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -107,26 +107,24 @@ class ArchiveMonthSwitchTest {
     private var asked by mutableStateOf<YearMonth?>(september)
     private var card = Color.Unspecified
 
-    private fun show(transition: ArchiveMonthTransition = ArchiveMonthTransition.Crossfade) {
+    private fun show() {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 card = MaterialTheme.colorScheme.surfaceContainerHigh
-                CompositionLocalProvider(LocalArchiveMonthTransition provides transition) {
-                    LibraryGamePage(
-                        row = row,
-                        page = page,
-                        month = asked,
-                        layout = PlayLayout.SinglePane,
-                        calendar = CalendarActions(),
-                        onPlay = { _, _ -> },
-                        onRetry = {},
-                        onOpenLesson = {},
-                        onBack = null,
-                        offline = false,
-                        hasLesson = false,
-                        onOpenRanks = { _, _ -> },
-                    )
-                }
+                LibraryGamePage(
+                    row = row,
+                    page = page,
+                    month = asked,
+                    layout = PlayLayout.SinglePane,
+                    calendar = CalendarActions(),
+                    onPlay = { _, _ -> },
+                    onRetry = {},
+                    onOpenLesson = {},
+                    onBack = null,
+                    offline = false,
+                    hasLesson = false,
+                    onOpenRanks = { _, _ -> },
+                )
             }
         }
         composeRule.waitForIdle()
@@ -243,34 +241,21 @@ class ArchiveMonthSwitchTest {
         return mid to left(date)
     }
 
-    /** Bug it catches: the slide variant not moving the incoming grid, or moving it from the wrong side. */
-    @Test
-    fun `the slide brings a later month in from the end and an earlier one from the start`() {
-        show(ArchiveMonthTransition.Slide)
-        composeRule.mainClock.autoAdvance = false
-
-        val (forwardMid, forwardRest) = travel(october, october.atDay(15))
-        assertTrue("a later month starts to the end of its place: $forwardMid vs $forwardRest", forwardMid > forwardRest + MOVED)
-
-        val (backMid, backRest) = travel(september, september.atDay(15))
-        assertTrue("an earlier month starts to the start of its place: $backMid vs $backRest", backMid < backRest - MOVED)
-    }
-
-    /** Bug it catches: the crossfade variant sliding too, so there is nothing to tell the two apart on the tablet. */
+    /** Bug it catches: the crossfade (the swipe flag's off path) sliding too, so a month change moves the grid when it should only fade. */
     @Test
     fun `the crossfade keeps the incoming grid where it will rest`() {
-        show(ArchiveMonthTransition.Crossfade)
+        show()
         composeRule.mainClock.autoAdvance = false
 
         val (mid, rest) = travel(october, october.atDay(15))
         assertEquals("the new grid does not move", rest, mid, 0.5f)
     }
 
-    /** Bug it catches: reduced motion still travelling (or fading over the long transition) instead of the short fade. */
+    /** Bug it catches: reduced motion still fading over the long transition instead of the short fade. */
     @Test
-    fun `reduced motion is the short fade for the slide too`() {
+    fun `reduced motion is the short fade`() {
         setAnimatorScale(0f)
-        show(ArchiveMonthTransition.Slide)
+        show()
         val rest = rest()
         composeRule.mainClock.autoAdvance = false
 
@@ -296,7 +281,6 @@ class ArchiveMonthSwitchTest {
         const val LOADING_FRAMES = 8
         const val SETTLE_MS = 600L
         const val MID_FRAMES = 3
-        const val MOVED = 4f
         const val REDUCED_FRAMES = 7
     }
 }

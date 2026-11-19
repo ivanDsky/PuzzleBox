@@ -77,6 +77,7 @@ internal fun LibraryGamePage(
                     // before then would show a title with an empty grid (backlog #1551).
                     month = shown?.month ?: requested,
                     days = shown?.days.orEmpty(),
+                    around = shown?.around.orEmpty(),
                     requested = requested,
                     picked = past?.date,
                     offline = unreachable,

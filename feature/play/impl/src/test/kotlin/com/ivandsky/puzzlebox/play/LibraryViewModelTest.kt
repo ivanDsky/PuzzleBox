@@ -167,37 +167,61 @@ class LibraryViewModelTest {
         ).also { vm ->
             screen.launch { vm.uiState.collect {} }
             screen.launch { vm.page.collect {} }
-            screen.launch { vm.monthTransition.collect {} }
+            screen.launch { vm.monthSwipe.collect {} }
             screen.launch { vm.friends.collect {} }
             dispatcher.scheduler.runCurrent()
         }
     }
 
-    /** Bug it catches: a build with no flag on getting the slide, or the debug flag leaving the calendar on the crossfade. */
+    /** Bug it catches: a build with no flag on getting the swiping calendar, or the debug flag leaving it on the crossfade. */
     @Test
-    fun `the calendar's month change is the crossfade, and the slide only with its debug flag on`() {
-        assertEquals(ArchiveMonthTransition.Crossfade, observedVm().monthTransition.value)
-        assertEquals(ArchiveMonthTransition.Crossfade, observedVm(releaseFlags = FakeReleaseFlags()).monthTransition.value)
-        assertEquals(
-            ArchiveMonthTransition.Slide,
-            observedVm(releaseFlags = FakeReleaseFlags(PlayFlag.ArchiveMonthSlide)).monthTransition.value,
-        )
+    fun `the calendar swipes between months only with its flag on`() {
+        assertFalse(observedVm().monthSwipe.value)
+        assertFalse(observedVm(releaseFlags = FakeReleaseFlags()).monthSwipe.value)
+        assertTrue(observedVm(releaseFlags = FakeReleaseFlags(PlayFlag.ArchiveMonthSwipe)).monthSwipe.value)
     }
 
     /** Bug it catches: the debug switch read once at start, so flipping it in Settings needed an app restart to show. */
     @Test
-    fun `flipping the slide flag changes the transition without a new view model`() {
+    fun `flipping the swipe flag changes the calendar without a new view model`() {
         val on = MutableStateFlow<Set<ReleaseFlagKey>>(emptySet())
         val vm = observedVm(releaseFlags = object : ReleaseFlags { override val enabled = on })
-        assertEquals(ArchiveMonthTransition.Crossfade, vm.monthTransition.value)
+        assertFalse(vm.monthSwipe.value)
 
-        on.value = setOf(PlayFlag.ArchiveMonthSlide)
+        on.value = setOf(PlayFlag.ArchiveMonthSwipe)
         dispatcher.scheduler.runCurrent()
-        assertEquals(ArchiveMonthTransition.Slide, vm.monthTransition.value)
+        assertTrue(vm.monthSwipe.value)
 
         on.value = emptySet()
         dispatcher.scheduler.runCurrent()
-        assertEquals(ArchiveMonthTransition.Crossfade, vm.monthTransition.value)
+        assertFalse(vm.monthSwipe.value)
+    }
+
+    /**
+     * Bug it catches: a swipe dragging in a month whose days are not loaded (an empty grid, then marks popping in), or the
+     * flag-off page paying for two extra month queries it never draws.
+     */
+    @Test
+    fun `the page carries the months either side only while the calendar swipes`() {
+        daily.setArchiveRange(alpha, day.minusDays(60)..day)
+        val month = YearMonth.from(day)
+        assertTrue("flag off: nothing beside", observedVm().page.value!!.around.isEmpty())
+
+        val on = MutableStateFlow<Set<ReleaseFlagKey>>(emptySet())
+        val vm = observedVm(releaseFlags = object : ReleaseFlags { override val enabled = on })
+        on.value = setOf(PlayFlag.ArchiveMonthSwipe)
+        dispatcher.scheduler.runCurrent()
+        assertEquals(setOf(month.minusMonths(1), month.plusMonths(1)), vm.page.value!!.around.keys)
+        assertEquals("the month before is all there", month.minusMonths(1).lengthOfMonth(), vm.page.value!!.around.getValue(month.minusMonths(1)).size)
+        assertTrue("past today there is nothing", vm.page.value!!.around.getValue(month.plusMonths(1)).isEmpty())
+
+        vm.showMonth(month.minusMonths(1))
+        dispatcher.scheduler.runCurrent()
+        assertEquals(setOf(month.minusMonths(2), month), vm.page.value!!.around.keys)
+
+        on.value = emptySet()
+        dispatcher.scheduler.runCurrent()
+        assertTrue("flag off again: nothing beside", vm.page.value!!.around.isEmpty())
     }
 
     private fun LibraryViewModel.row(game: GameId) = uiState.value.rows.first { it.card.game == game }
