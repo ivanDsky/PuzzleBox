@@ -28,7 +28,7 @@ class RecapTabletTest {
     val rule = createAndroidComposeRule<ComponentActivity>()
 
     private fun show() = rule.setContent {
-        PuzzleBoxTheme { RecapScreen(ready, "November 2026", gameName, onPage = {}, onClose = {}) }
+        PuzzleBoxTheme { RecapScreen(ready, "November 2026", gameName, onPage = {}, onWatchReplay = {}, onClose = {}) }
     }
 
     @Test

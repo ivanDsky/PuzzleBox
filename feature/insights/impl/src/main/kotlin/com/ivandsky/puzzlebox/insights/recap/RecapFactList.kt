@@ -28,6 +28,7 @@ internal fun RecapFactList(
     current: Int,
     gameName: (GameId) -> String,
     onSelect: (Int) -> Unit,
+    onWatchReplay: (RecapCard.Fastest.Row) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -46,7 +47,7 @@ internal fun RecapFactList(
                     color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
                 ),
             ) {
-                RecapFact(card, gameName, Modifier.padding(Spacing.md))
+                RecapFact(card, gameName, onWatchReplay, Modifier.padding(Spacing.md))
             }
         }
     }
@@ -54,9 +55,16 @@ internal fun RecapFactList(
 
 /** One card as a list fact: the one place a [RecapCard] becomes a list entry, exhaustive like [RecapCardPage]. */
 @Composable
-private fun RecapFact(card: RecapCard, gameName: (GameId) -> String, modifier: Modifier = Modifier) {
+private fun RecapFact(
+    card: RecapCard,
+    gameName: (GameId) -> String,
+    onWatchReplay: (RecapCard.Fastest.Row) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     when (card) {
         is RecapCard.Solved -> SolvedCardFact(card, gameName, modifier)
+        is RecapCard.Fastest -> FastestCardFact(card, gameName, onWatchReplay, modifier)
+        is RecapCard.Streak -> StreakCardFact(card, modifier)
     }
 }
 

@@ -4,7 +4,6 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.ivandsky.puzzlebox.common.log.FailureLog
 import com.ivandsky.puzzlebox.data.cloud.CloudSyncState
-import com.ivandsky.puzzlebox.insights.domain.recap.ComputePeriodFacts
 import com.ivandsky.puzzlebox.insights.domain.recap.ObserveRecap
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapFactProvider
@@ -55,7 +54,7 @@ class RecapViewModelTest {
         period = november,
         observeRecap = ObserveRecap(
             fixture.observeHistory,
-            ComputePeriodFacts(),
+            fixture.computePeriodFacts,
             fixture.registry,
             providers,
             FailureLog { _, _, _ -> },

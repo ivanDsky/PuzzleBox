@@ -29,6 +29,7 @@ import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.play.GamesTab
 import com.ivandsky.puzzlebox.play.SandboxPlay
 import com.ivandsky.puzzlebox.play.api.GameKey
+import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.play.navigation.communityEntry
 import com.ivandsky.puzzlebox.play.navigation.playEntry
 import com.ivandsky.puzzlebox.play.navigation.resultEntry
@@ -67,8 +68,9 @@ import java.time.LocalDate
  * Today's day and streak summaries open the hub ([homeSummaries]).
  * Profile's own pages (Settings, the LinkedIn login, the catalog) stack on Profile inside the layer above the tabs
  * ([Navigator.pushLayer]). [onOpenInsights] (null: Insights is off, see [insightsOpener]) is Profile's Insights row;
- * the hub opens a month's recap as a layer page too. [recap] (null: none due or the flag is off, see [recapSlot]) is
- * the card Home's Today list shows for the month just ended.
+ * the hub opens a month's recap as a layer page too. A recap's fastest solve opens its replay through
+ * [openRecapReplay]: the Games tab, with the layer closed on the way. [recap] (null: none due or the flag is off, see
+ * [recapSlot]) is the card Home's Today list shows for the month just ended.
  */
 internal fun puzzleBoxEntryProvider(
     navigator: Navigator,
@@ -132,9 +134,21 @@ internal fun puzzleBoxEntryProvider(
         visibility = visibility,
     )
     competeEntry(navigator, playLayout)
-    insightsEntry(onBack = back, onOpenRecap = { period -> navigator.pushLayer(InsightsRecapKey(period)) })
+    insightsEntry(
+        onBack = back,
+        onOpenRecap = { period -> navigator.pushLayer(InsightsRecapKey(period)) },
+        onOpenReplay = openRecapReplay(navigator),
+    )
     entry<CatalogKey> { CatalogScreen() }
 }
+
+/**
+ * Opens a recap's replay on the tab that owns it (`ReplayKey` is `PushedOn(Games)`, ADR-0027): the Games tab with its
+ * stack at its root plus the replay, the recap layer closed on the way ([Navigator.openOnOwnerTab], ADR-0011). One
+ * back returns to the tab the recap was opened from, not to the recap (the layer is gone); the Games stack keeps the
+ * replay.
+ */
+internal fun openRecapReplay(navigator: Navigator): (ReplayKey) -> Unit = { key -> navigator.openOnOwnerTab(key) }
 
 /**
  * The Studio's test solve on the play feature's regular play screen: create and play share no edge (ADR-0008), so

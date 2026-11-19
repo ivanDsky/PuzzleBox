@@ -19,10 +19,10 @@ class ObserveRecapTest {
     private val warnings = mutableListOf<Pair<String, String>>()
     private val failures = FailureLog { tag, message, _ -> warnings += tag to message }
 
-    private val defaultRecap = ObserveRecap(fixture.observeHistory, ComputePeriodFacts(), fixture.registry)
+    private val defaultRecap = ObserveRecap(fixture.observeHistory, fixture.computePeriodFacts, fixture.registry)
 
     private fun recap(vararg providers: RecapFactProvider) =
-        ObserveRecap(fixture.observeHistory, ComputePeriodFacts(), fixture.registry, providers.toList(), failures)
+        ObserveRecap(fixture.observeHistory, fixture.computePeriodFacts, fixture.registry, providers.toList(), failures)
 
     /** Offers [cards], or throws [failure] when given one: a provider that reached for the network and found none. */
     private class FakeRecapFactProvider(
@@ -37,7 +37,7 @@ class ObserveRecapTest {
     private val cardA = RecapCard.Solved(total = 99, perGame = emptyList())
 
     @Test
-    fun `the default chain has a Solved card with the period's counts`() = runTest {
+    fun `the default chain is the Solved, Fastest and Streak cards over the period's facts`() = runTest {
         fixture.store(
             fixture.solve(alpha, LocalDate.of(2026, 11, 1)),
             fixture.solve(alpha, LocalDate.of(2026, 11, 2)),
@@ -45,9 +45,17 @@ class ObserveRecapTest {
             fixture.playAgain(alpha, LocalDate.of(2026, 11, 2)),
         )
 
+        val cards = defaultRecap(november).first()
+
+        assertEquals(3, cards.size)
         assertEquals(
-            listOf(RecapCard.Solved(3, listOf(RecapCard.Solved.PerGame(alpha, 2), RecapCard.Solved.PerGame(beta, 1)))),
-            defaultRecap(november).first(),
+            RecapCard.Solved(3, listOf(RecapCard.Solved.PerGame(alpha, 2), RecapCard.Solved.PerGame(beta, 1))),
+            cards[0],
+        )
+        assertEquals(listOf(alpha, beta), (cards[1] as RecapCard.Fastest).rows.map { it.game })
+        assertEquals(
+            RecapCard.Streak(days = 2, from = LocalDate.of(2026, 11, 1), to = LocalDate.of(2026, 11, 2), freezesSpent = 0),
+            cards[2],
         )
     }
 
@@ -81,7 +89,7 @@ class ObserveRecapTest {
         fixture.store(fixture.solve(alpha, LocalDate.of(2026, 11, 1)))
         val cards = ObserveRecap(
             fixture.observeHistory,
-            ComputePeriodFacts(),
+            fixture.computePeriodFacts,
             fixture.registry,
             listOf(SolvedRecapFactProvider, offline()),
             failures,

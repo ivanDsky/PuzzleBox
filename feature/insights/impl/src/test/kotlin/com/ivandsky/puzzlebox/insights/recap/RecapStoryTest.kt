@@ -39,7 +39,7 @@ class RecapStoryTest {
 
     private fun show(state: RecapUiState = ready) = rule.setContent {
         PuzzleBoxTheme {
-            RecapScreen(state, "November 2026", gameName, onPage = { pages += it }, onClose = { closed++ })
+            RecapScreen(state, "November 2026", gameName, onPage = { pages += it }, onWatchReplay = {}, onClose = { closed++ })
         }
     }
 

@@ -14,7 +14,10 @@ class SolvedRecapFactProviderTest {
     private val gone = GameId("retired")
 
     private fun input(solved: Map<GameId, Int>, games: List<GameId> = listOf(alpha, beta)) = RecapInput(
-        facts = PeriodFacts(period, scope = null, solved = solved.values.sum(), solvedByGame = solved),
+        facts = PeriodFacts(
+            period, scope = null, solved = solved.values.sum(), solvedByGame = solved,
+            fastestByGame = emptyMap(), longestStreak = null, freezesSpent = 0,
+        ),
         games = games,
     )
 

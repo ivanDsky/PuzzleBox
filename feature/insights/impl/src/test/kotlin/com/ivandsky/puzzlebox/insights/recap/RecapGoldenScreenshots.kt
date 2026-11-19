@@ -40,6 +40,24 @@ class RecapGoldenScreenshots {
     @Test fun `story second card phone light`() = capture("story-second-card", "phone", dark = false, initialPage = 1)
 
     @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `fastest phone light`() = capture("fastest", "phone", dark = false, state = readyOf(RecapFixtures.fastest))
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `fastest phone dark`() = capture("fastest", "phone", dark = true, state = readyOf(RecapFixtures.fastest))
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `streak phone light`() = capture("streak", "phone", dark = false, state = readyOf(RecapFixtures.streak))
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `streak phone dark`() = capture("streak", "phone", dark = true, state = readyOf(RecapFixtures.streak))
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `fastest tablet light`() = capture("fastest", "tablet", dark = false, state = readyOf(RecapFixtures.fastest, RecapFixtures.streak))
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `streak tablet dark`() = capture("streak", "tablet", dark = true, state = readyOf(RecapFixtures.fastest, RecapFixtures.streak).copy(initialPage = 1))
+
+    @Config(qualifiers = GOLDEN_PHONE)
     @Test fun `restoring phone light`() = capture("restoring", "phone", dark = false, state = RecapUiState.Restoring)
 
     @Config(qualifiers = GOLDEN_PHONE)
@@ -53,7 +71,7 @@ class RecapGoldenScreenshots {
         state: RecapUiState = ready.copy(initialPage = initialPage),
     ) {
         rule.showGolden(dark = dark) {
-            RecapScreen(state, "November 2026", gameName, onPage = {}, onClose = {})
+            RecapScreen(state, "November 2026", gameName, onPage = {}, onWatchReplay = {}, onClose = {})
         }
         rule.settleAndCapture("recap", name, device, dark)
     }

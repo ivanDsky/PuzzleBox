@@ -38,6 +38,7 @@ internal fun RecapStory(
     pagerState: PagerState,
     periodLabel: String,
     gameName: (GameId) -> String,
+    onWatchReplay: (RecapCard.Fastest.Row) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -74,7 +75,7 @@ internal fun RecapStory(
                 }
                 .testTag("recap.pager"),
         ) { page ->
-            RecapCardPage(cards[page], periodLabel, gameName)
+            RecapCardPage(cards[page], periodLabel, gameName, onWatchReplay)
         }
     }
 }
