@@ -59,7 +59,7 @@ class ZipEditorDiagnosticsTest {
     }
 
     @Test
-    fun `a Multiple verdict rings exactly the differing cells and blames nothing`() {
+    fun `a Multiple verdict tints exactly the differing cells and blames nothing`() {
         show(controller(), MULTIPLE)
 
         assertEquals(MULTIPLE.differingCells, tagged("diff"))
@@ -68,7 +68,7 @@ class ZipEditorDiagnosticsTest {
     }
 
     @Test
-    fun `a new Multiple straight after another moves the rings to its cells`() {
+    fun `a new Multiple straight after another moves the tint to its cells`() {
         show(controller(), MULTIPLE)
         val moved = Verdict.Multiple(A, Solution(listOf(0, 1, 2, 9, 14)), setOf(3, 9, 14))
 

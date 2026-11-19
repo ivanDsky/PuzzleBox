@@ -43,7 +43,7 @@ import java.io.File
 
 /**
  * The Zip editor's looks on a 411 dp phone and in the tablet Studio's left pane, light and dark:
- * each step, an empty board with its coach line, a partial path with its fix row, Unique, Multiple with diff rings, None with its
+ * each step, an empty board with its coach line, a partial path with its fix row, Unique, Multiple with its diff tint, None with its
  * clash cells and witness A and B on the board. Every board is a real 5×5 draft whose verdict
  * comes from [ZipDraftAnalyzer], asserted before the capture.
  * Rendered with `-Proborazzi.record=true` into `snapshots/editor/` (untracked review captures).
