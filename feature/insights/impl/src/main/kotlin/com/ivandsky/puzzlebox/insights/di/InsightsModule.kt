@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.insights.domain.recap.ObserveRecapAvailability
 import com.ivandsky.puzzlebox.insights.domain.recap.ResolveFriendsStanding
 import com.ivandsky.puzzlebox.insights.domain.recap.ReplaySolveFacts
 import com.ivandsky.puzzlebox.insights.domain.stats.ObserveStatsPage
+import com.ivandsky.puzzlebox.insights.domain.stats.RankHistoryStatsSectionProvider
 import com.ivandsky.puzzlebox.insights.domain.stats.VsFriendsStatsSectionProvider
 import com.ivandsky.puzzlebox.insights.flags.InsightsFlag
 import com.ivandsky.puzzlebox.insights.hub.InsightsHubViewModel
@@ -28,7 +29,8 @@ import org.koin.dsl.module
 /**
  * Insights feature wiring: the feature's release flags ([InsightsFlag]), the recap and stats use cases and the view
  * models of the hub, of a recap story, of its share card and of the stats page. The stats page's vs friends section
- * ([VsFriendsStatsSectionProvider]) reads Friends Overall like the recap's friends card. The friends standing
+ * ([VsFriendsStatsSectionProvider]) reads Friends Overall like the recap's friends card; its rank history section
+ * ([RankHistoryStatsSectionProvider]) reads the kept weeks through [ObserveRankHistory], the one reader. The friends standing
  * ([ResolveFriendsStanding]) is the one recap read that goes to the network for a month, kept apart from the local
  * providers; a year's comes from the kept weekly history ([ObserveRankHistory]). A story's period and a stats page's
  * game arrive as Koin parameters, so each opened month, year or game has its own.
@@ -58,11 +60,17 @@ val insightsModule: Module = module {
     factory { ObserveDueRecap(availability = get()) }
     factory {
         val friendsOverall = get<ObserveFriendsOverall>()
+        val rankHistory = get<ObserveRankHistory>()
         ObserveStatsPage(
             observeGameHistory = get(),
             computePeriodFacts = get(),
             calendar = get(),
             registry = get(),
+            rankHistory = RankHistoryStatsSectionProvider(
+                identity = get(),
+                rankHistory = { game -> rankHistory(game) },
+                friendsOverall = { window, games -> friendsOverall(window, games) },
+            ),
             vsFriends = VsFriendsStatsSectionProvider(identity = get(), friendsOverall = { window, games -> friendsOverall(window, games) }),
         )
     }

@@ -30,6 +30,7 @@ class ObserveStatsPageFriendsReadTest {
         computePeriodFacts = f.history.computePeriodFacts,
         calendar = f.history.calendar,
         registry = f.history.registry,
+        rankHistory = { flowOf(null) },
         vsFriends = f.vsFriends { window, games ->
             reads += window to games
             flowOf(board)

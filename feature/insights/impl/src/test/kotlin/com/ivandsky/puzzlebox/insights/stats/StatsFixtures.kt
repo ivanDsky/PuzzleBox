@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.insights.domain.recap.HintFreeRun
 import com.ivandsky.puzzlebox.insights.domain.recap.SolveRef
 import com.ivandsky.puzzlebox.insights.domain.recap.StreakRun
 import com.ivandsky.puzzlebox.insights.domain.stats.HintFreeRateSeries
+import com.ivandsky.puzzlebox.insights.domain.stats.RankHistoryStanding
 import com.ivandsky.puzzlebox.insights.domain.stats.SectionState
 import com.ivandsky.puzzlebox.insights.domain.stats.StatsGranularity
 import com.ivandsky.puzzlebox.insights.domain.stats.StatsRange
@@ -80,12 +81,18 @@ internal object StatsFixtures {
         weakest = GameStanding(tango, points = 212.0, place = 4, players = 5),
     )
 
-    /** Every section the page has so far, in its order: trend, Records, hint-free rate, weekday, vs friends. */
+    /** Four kept weeks of Friends points per day. */
+    val rankHistory = RankHistoryStanding.Kept(
+        listOf(142.5, 98.0, 171.25, 203.0).mapIndexed { index, points -> RankHistoryStanding.Kept.Week(weeks[index], points) },
+    )
+
+    /** Every section the page has so far, in its order: trend, Records, hint-free rate, weekday, rank history, vs friends. */
     fun readyWithLines(
         range: StatsRange = StatsRange.Month,
         game: GameId? = null,
         trend: TimeTrendSeries = this.trend,
         hintFree: HintFreeRateSeries = hintFreeRate,
+        rankHistory: SectionState<RankHistoryStanding> = SectionState.Ready(this.rankHistory),
         vsFriends: SectionState<VsFriendsStanding> = SectionState.Ready(this.vsFriends),
     ) = StatsUiState(
         range,
@@ -96,6 +103,7 @@ internal object StatsFixtures {
                 StatsSection.Records(SectionState.Ready(records)),
                 StatsSection.HintFreeRate(SectionState.Ready(hintFree)),
                 StatsSection.Weekday(SectionState.Ready(weekday)),
+                StatsSection.RankHistory(rankHistory),
                 StatsSection.VsFriends(vsFriends),
             ),
         ),

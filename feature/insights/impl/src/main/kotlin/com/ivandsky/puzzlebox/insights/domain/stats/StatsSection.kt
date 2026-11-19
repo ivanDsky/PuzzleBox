@@ -19,6 +19,9 @@ internal sealed interface StatsSection {
     /** The average solve time per weekday of the range. Local, so always ready. */
     data class Weekday(val state: SectionState<WeekdayPattern>) : StatsSection
 
+    /** The viewer's Friends points per kept week, whatever the range. Reads this device's kept weeks and, with none, the network (A16); signed out or without friends it is one plain line. */
+    data class RankHistory(val state: SectionState<RankHistoryStanding>) : StatsSection
+
     /** The best and weakest game among friends. Needs the network (A16), so it loads and can be unavailable; signed out or without friends it is one plain line. */
     data class VsFriends(val state: SectionState<VsFriendsStanding>) : StatsSection
 }

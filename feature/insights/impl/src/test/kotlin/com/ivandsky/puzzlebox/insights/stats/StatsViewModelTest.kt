@@ -43,6 +43,7 @@ class StatsViewModelTest {
             fixture.computePeriodFacts,
             fixture.calendar,
             fixture.registry,
+            rankHistory = { flowOf(null) },
             vsFriends = { flowOf(null) },
             failures = FailureLog { _, _, _ -> },
         ),
