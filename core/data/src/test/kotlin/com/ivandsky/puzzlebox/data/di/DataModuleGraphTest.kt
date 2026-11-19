@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.data.di
 
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.data.cloud.OwnerScope
+import com.ivandsky.puzzlebox.data.rankhistory.RankHistoryStore
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
@@ -67,6 +68,7 @@ class DataModuleGraphTest : KoinTest {
             assertNotNull(koin.get<DraftRepository>())
             assertNotNull(koin.get<PublishedPuzzleRepository>())
             assertNotNull(koin.get<ReceivedPuzzleRepository>())
+            assertNotNull(koin.get<RankHistoryStore>())
             assertNotNull(koin.get<PuzzleDailyDao>())
         } finally {
             koinApp.close()
