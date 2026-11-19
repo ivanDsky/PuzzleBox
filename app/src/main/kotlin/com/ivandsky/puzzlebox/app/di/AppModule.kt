@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.app.di
 import android.net.ConnectivityManager
 import com.ivandsky.puzzlebox.app.buildTypeChecksForUpdates
 import com.ivandsky.puzzlebox.app.buildTypeUnlistedGames
+import com.ivandsky.puzzlebox.app.insights.RankHistoryStarter
 import com.ivandsky.puzzlebox.app.leaderboard.CustomBoardSubmitter
 import com.ivandsky.puzzlebox.app.leaderboard.DailyReplayPublisher
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
@@ -17,6 +18,7 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.TopBarFlag
 import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.domain.AppBuild
+import com.ivandsky.puzzlebox.domain.insights.rankhistory.SyncRankHistory
 import com.ivandsky.puzzlebox.domain.ranks.SubmitDailyReplay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
@@ -78,6 +80,10 @@ val appModule = module {
         )
     }
     single { DailyReplayPublisher(publish = get<SubmitDailyReplay>(), scope = get<CoroutineScope>()) }
+    // The weekly rank history filler (Insights): started only while the stats page or the year recap is on.
+    single {
+        RankHistoryStarter(flags = get<ReleaseFlags>(), fill = get<SyncRankHistory>()::invoke, scope = get<CoroutineScope>())
+    }
     // The ranks outside the hub (Home, Result, the play summary) follow its Friends/Global setting.
     factory {
         ObserveFriendDay.Binding(
