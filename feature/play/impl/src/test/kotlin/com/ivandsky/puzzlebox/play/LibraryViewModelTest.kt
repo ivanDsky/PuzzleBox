@@ -15,8 +15,8 @@ import com.ivandsky.puzzlebox.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
-import com.ivandsky.puzzlebox.domain.ObserveArchiveMonth
-import com.ivandsky.puzzlebox.domain.ObserveArchiveProgress
+import com.ivandsky.puzzlebox.play.domain.ObserveArchiveMonth
+import com.ivandsky.puzzlebox.play.domain.ObserveArchiveProgress
 import com.ivandsky.puzzlebox.domain.ObserveFriendPuzzles
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats

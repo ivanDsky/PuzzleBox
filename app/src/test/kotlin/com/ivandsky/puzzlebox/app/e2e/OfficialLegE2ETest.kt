@@ -19,11 +19,11 @@ import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.match.ResultPostState
 import com.ivandsky.puzzlebox.data.model.PuzzleRefKeys
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
-import com.ivandsky.puzzlebox.domain.ArchiveProgress
+import com.ivandsky.puzzlebox.play.domain.ArchiveProgress
 import com.ivandsky.puzzlebox.domain.GameHistoryDay
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
-import com.ivandsky.puzzlebox.domain.ObserveArchiveProgress
+import com.ivandsky.puzzlebox.play.domain.ObserveArchiveProgress
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.game.BestScore

@@ -32,11 +32,13 @@ import com.ivandsky.puzzlebox.domain.GetFeaturedGame
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadSolveReplay
+import com.ivandsky.puzzlebox.play.domain.ObserveArchiveMonth
+import com.ivandsky.puzzlebox.play.domain.ObserveArchiveProgress
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
-import com.ivandsky.puzzlebox.domain.ObservePlayStats
+import com.ivandsky.puzzlebox.play.domain.ObservePlayStats
 import com.ivandsky.puzzlebox.domain.ObserveResultInsights
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
@@ -331,6 +333,9 @@ class DiGraphTest : KoinTest {
             assertSame(koin.get<SyncTodayPuzzles>(), koin.get<SyncTodayPuzzles>())
             assertNotNull(koin.get<LoadPastDay>())
             assertNotNull(koin.get<LoadSolveReplay>())
+            // The game page's archive calendar and its "n of N solved" header.
+            assertNotNull(koin.get<ObserveArchiveMonth>())
+            assertNotNull(koin.get<ObserveArchiveProgress>())
             // The tablet play side panel's stats and the board gate beneath them.
             assertNotNull(koin.get<ObserveLeaderboard>())
             assertNotNull(koin.get<ObserveResultInsights>())

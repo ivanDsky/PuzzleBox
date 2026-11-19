@@ -1,7 +1,11 @@
-package com.ivandsky.puzzlebox.domain
+package com.ivandsky.puzzlebox.play.domain
 
 import app.cash.turbine.test
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
+import com.ivandsky.puzzlebox.domain.ComputeStreak
+import com.ivandsky.puzzlebox.domain.GetPuzzleDay
+import com.ivandsky.puzzlebox.domain.ObserveGameHistory
+import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RecordStats

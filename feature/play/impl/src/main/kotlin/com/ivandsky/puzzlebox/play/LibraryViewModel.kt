@@ -6,12 +6,12 @@ import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
-import com.ivandsky.puzzlebox.domain.ArchiveProgress
+import com.ivandsky.puzzlebox.play.domain.ArchiveProgress
 import com.ivandsky.puzzlebox.domain.DeleteReceivedPuzzle
 import com.ivandsky.puzzlebox.domain.FriendPuzzleRow
 import com.ivandsky.puzzlebox.domain.GameStats
-import com.ivandsky.puzzlebox.domain.ObserveArchiveMonth
-import com.ivandsky.puzzlebox.domain.ObserveArchiveProgress
+import com.ivandsky.puzzlebox.play.domain.ObserveArchiveMonth
+import com.ivandsky.puzzlebox.play.domain.ObserveArchiveProgress
 import com.ivandsky.puzzlebox.domain.ObserveFriendPuzzles
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats

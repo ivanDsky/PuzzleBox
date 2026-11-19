@@ -16,7 +16,7 @@ import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.domain.ArchiveProgress
+import com.ivandsky.puzzlebox.play.domain.ArchiveProgress
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.game.BestScore

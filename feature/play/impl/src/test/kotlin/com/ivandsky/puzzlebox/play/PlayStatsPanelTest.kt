@@ -37,7 +37,7 @@ import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
-import com.ivandsky.puzzlebox.domain.ObservePlayStats
+import com.ivandsky.puzzlebox.play.domain.ObservePlayStats
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay

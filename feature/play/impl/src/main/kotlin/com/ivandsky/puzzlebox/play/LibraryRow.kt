@@ -33,7 +33,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.tabular
-import com.ivandsky.puzzlebox.domain.ArchiveProgress
+import com.ivandsky.puzzlebox.play.domain.ArchiveProgress
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.gameui.CardSlot
 import com.ivandsky.puzzlebox.gameui.GameBrand

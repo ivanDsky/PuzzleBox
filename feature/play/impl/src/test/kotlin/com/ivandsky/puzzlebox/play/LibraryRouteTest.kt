@@ -39,14 +39,12 @@ import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.ArchiveProgress
+import com.ivandsky.puzzlebox.play.domain.ArchiveProgress
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.LoadPastDay
-import com.ivandsky.puzzlebox.domain.ObserveArchiveMonth
-import com.ivandsky.puzzlebox.domain.ObserveArchiveProgress
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
@@ -150,8 +148,6 @@ class LibraryRouteTest {
                     factory { ObserveTodaySet(get(), get(), get(), get(), get(), get()) }
                     factory { ObserveGameHistory(get(), get(), get()) }
                     factory { ObserveGameStats(get(), get(), ComputeStreak(GetPuzzleDay(get()))) }
-                    factory { ObserveArchiveProgress(get(), get(), get()) }
-                    factory { ObserveArchiveMonth(get(), get(), get(), get()) }
                     single<IdentityService> { FakeIdentityService() }
                     single<LeaderboardRepository> { FakeLeaderboardRepository(emptyMap()) }
                     single<GoogleIdTokenProvider> { dismissedGoogleSignIn }

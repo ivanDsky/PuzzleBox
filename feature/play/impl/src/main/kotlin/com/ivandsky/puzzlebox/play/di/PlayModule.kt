@@ -34,6 +34,9 @@ import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
 import com.ivandsky.puzzlebox.play.api.ReplayCompareKey
 import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
+import com.ivandsky.puzzlebox.play.domain.ObserveArchiveMonth
+import com.ivandsky.puzzlebox.play.domain.ObserveArchiveProgress
+import com.ivandsky.puzzlebox.play.domain.ObservePlayStats
 import com.ivandsky.puzzlebox.play.random.RandomPickMemory
 import com.ivandsky.puzzlebox.play.random.RandomPuzzleViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -45,11 +48,12 @@ import org.koin.dsl.module
  * Play feature wiring. The [com.ivandsky.puzzlebox.game.GameRegistry] and the
  * [com.ivandsky.puzzlebox.gameui.GamePlayRegistry] come from the app's aggregation
  * (ADR-0001: one registration per game); the repositories (the tutorial-seen preferences
- * included) and the calendar from :core:data's dataModule, and the use cases (today's
+ * included) and the calendar from :core:data's dataModule, and the shared use cases (today's
  * set, history, stats, the rollover) from :core:domain's domainModule. The tablet stats
  * panel's identity and leaderboard come from the backend module. This module names no game;
  * friend puzzles' wiring is [friendModule], From friends' [ObserveFriendPuzzles] and
- * [DeleteReceivedPuzzle] are here.
+ * [DeleteReceivedPuzzle] are here, as are Play's own use cases: the archive month and progress
+ * and the tablet stats panel's [ObservePlayStats].
  *
  * [PlaySessionStore] is a single so live plays outlive their entries' compositions. Its
  * slot opening and every slot's writer share ONE [WriteLane], so a released slot's final
@@ -87,6 +91,15 @@ val playModule = module {
     }
     factory { ObserveFriendPuzzles(received = get(), saved = get(), completions = get(), registry = get(), hidden = get()) }
     factory { DeleteReceivedPuzzle(received = get(), saved = get()) }
+    factory { ObserveArchiveMonth(daily = get(), saved = get(), completions = get(), calendar = get()) }
+    factory { ObserveArchiveProgress(daily = get(), calendar = get(), observeGameHistory = get()) }
+    factory {
+        ObservePlayStats(
+            todaySet = get(),
+            history = get(),
+            leaderboard = get(),
+        )
+    }
     // The flag arrives as the parameter, so a graph without LinkedIn bindings builds the library with it off.
     viewModel { params ->
         LibraryViewModel(

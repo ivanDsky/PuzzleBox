@@ -31,7 +31,7 @@ import com.ivandsky.puzzlebox.designsystem.GameAccent
 import com.ivandsky.puzzlebox.designsystem.pressScale
 import com.ivandsky.puzzlebox.designsystem.pressTint
 import com.ivandsky.puzzlebox.designsystem.tabular
-import com.ivandsky.puzzlebox.domain.ArchiveDay
+import com.ivandsky.puzzlebox.play.domain.ArchiveDay
 import com.ivandsky.puzzlebox.domain.PastDayStatus
 import java.time.LocalDate
 

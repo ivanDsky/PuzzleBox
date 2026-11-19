@@ -32,8 +32,6 @@ import com.ivandsky.puzzlebox.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
 import com.ivandsky.puzzlebox.domain.LoadPastDay
-import com.ivandsky.puzzlebox.domain.ObserveArchiveMonth
-import com.ivandsky.puzzlebox.domain.ObserveArchiveProgress
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
@@ -143,8 +141,6 @@ class LibraryRandomPageRouteTest {
                     factory { ObserveTodaySet(get(), get(), get(), get(), get(), get()) }
                     factory { ObserveGameHistory(get(), get(), get()) }
                     factory { ObserveGameStats(get(), get(), ComputeStreak(GetPuzzleDay(get()))) }
-                    factory { ObserveArchiveProgress(get(), get(), get()) }
-                    factory { ObserveArchiveMonth(get(), get(), get(), get()) }
                     // A game page's rank row builds this; nobody has ranked.
                     single<LeaderboardRepository> { FakeLeaderboardRepository(emptyMap()) }
                     single<GoogleIdTokenProvider> { dismissedGoogleSignIn }

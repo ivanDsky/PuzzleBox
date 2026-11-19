@@ -1,5 +1,10 @@
-package com.ivandsky.puzzlebox.domain
+package com.ivandsky.puzzlebox.play.domain
 
+import com.ivandsky.puzzlebox.domain.ObserveGameHistory
+import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
+import com.ivandsky.puzzlebox.domain.ObserveTodaySet
+import com.ivandsky.puzzlebox.domain.TodayStatus
+import com.ivandsky.puzzlebox.domain.isSolvedDaily
 import com.ivandsky.puzzlebox.model.PlaySlot
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine

@@ -1,5 +1,3 @@
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ArchiveDay.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ArchiveProgress.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/AuthorPin.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ComputeCustomBoard.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ComputeSolvedPool.kt  # P14
@@ -23,16 +21,12 @@ core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ListCommunityPuzzles.k
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/LoadPastDay.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/MyDuels.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/NextUnsolved.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ObserveArchiveMonth.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ObserveArchiveProgress.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ObserveDuel.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ObserveFriendPuzzles.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ObserveLegTarget.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ObserveMyDuels.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ObservePlayStats.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ObserveResultInsights.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/PastDayOutcome.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/PlayStats.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/PublishOutcome.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/RankedEntry.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/RecordRevealSeen.kt  # P14

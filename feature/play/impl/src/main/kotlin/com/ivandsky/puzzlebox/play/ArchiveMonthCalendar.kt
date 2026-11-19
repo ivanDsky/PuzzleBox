@@ -38,7 +38,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.tabular
-import com.ivandsky.puzzlebox.domain.ArchiveDay
+import com.ivandsky.puzzlebox.play.domain.ArchiveDay
 import com.ivandsky.puzzlebox.gameui.CardSlot
 import java.time.LocalDate
 import java.time.YearMonth

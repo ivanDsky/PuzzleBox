@@ -24,8 +24,6 @@ import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadPlayerReplay
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.domain.LoadSolveReplay
-import com.ivandsky.puzzlebox.domain.ObserveArchiveMonth
-import com.ivandsky.puzzlebox.domain.ObserveArchiveProgress
 import com.ivandsky.puzzlebox.domain.ObserveDuel
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
@@ -33,7 +31,6 @@ import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObserveLegTarget
 import com.ivandsky.puzzlebox.domain.ObserveMatch
 import com.ivandsky.puzzlebox.domain.ObserveMyDuels
-import com.ivandsky.puzzlebox.domain.ObservePlayStats
 import com.ivandsky.puzzlebox.domain.ObserveResultInsights
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
@@ -106,7 +103,6 @@ val domainModule = module {
         )
     }
     factory { LoadPastDay(daily = get(), registry = get()) }
-    factory { ObserveArchiveMonth(daily = get(), saved = get(), completions = get(), calendar = get()) }
     factory {
         LoadRandomDay(
             daily = get(),
@@ -118,7 +114,6 @@ val domainModule = module {
     }
     factory { LoadRandomShared(list = get(), random = Random.Default) }
     factory { LoadRandomPuzzle(day = get(), shared = get()) }
-    factory { ObserveArchiveProgress(daily = get(), calendar = get(), observeGameHistory = get()) }
     single { SyncTodayPuzzles(registry = get(), daily = get(), calendar = get()) }
     factory {
         ObserveTodaySet(
@@ -228,13 +223,6 @@ val domainModule = module {
     factory { ObserveSolvedPuzzles(registry = get(), pool = get(), completions = get(), received = get()) }
     factory { ObserveLegTitles(received = get(), published = get(), shared = get()) }
     factory { ReportPuzzle(shared = get(), hidden = get()) }
-    factory {
-        ObservePlayStats(
-            todaySet = get(),
-            history = get(),
-            leaderboard = get(),
-        )
-    }
     factory {
         ComputeMatchLegs(
             registry = get(),

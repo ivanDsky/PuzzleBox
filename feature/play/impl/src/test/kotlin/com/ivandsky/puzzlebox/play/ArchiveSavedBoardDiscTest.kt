@@ -16,10 +16,10 @@ import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.ArchiveDay
-import com.ivandsky.puzzlebox.domain.ArchiveProgress
+import com.ivandsky.puzzlebox.play.domain.ArchiveDay
+import com.ivandsky.puzzlebox.play.domain.ArchiveProgress
 import com.ivandsky.puzzlebox.domain.GameStats
-import com.ivandsky.puzzlebox.domain.ObserveArchiveMonth
+import com.ivandsky.puzzlebox.play.domain.ObserveArchiveMonth
 import com.ivandsky.puzzlebox.domain.PastDayStatus
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView

@@ -30,6 +30,8 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
 
     testImplementation(projects.core.testing)
+    // The archive and stats use-case tests collect their flows with Turbine.
+    testImplementation(libs.turbine)
     // GameRouteTest: system back through a real NavDisplay scene, as the app shell hosts it.
     testImplementation(libs.androidx.navigation3.ui)
 }

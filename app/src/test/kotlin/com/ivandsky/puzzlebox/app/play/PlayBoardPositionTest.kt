@@ -39,7 +39,6 @@ import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObserveLegTarget
-import com.ivandsky.puzzlebox.domain.ObservePlayStats
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
@@ -153,10 +152,8 @@ class PlayBoardPositionTest {
                     factory { ObserveGameStats(get(), get(), ComputeStreak(GetPuzzleDay(get()))) }
                     // Every tutorial seen: the boards draw straight away.
                     single<UserPreferencesRepository> { FakeUserPreferencesRepository(seen = games.toSet()) }
-                    // The tablet side panel's stats: signed out, so no board is read.
-                    factory {
-                        ObservePlayStats(get(), get(), ObserveLeaderboard(FakeIdentityService(), FakeLeaderboardRepository(), get(), get()))
-                    }
+                    // The tablet side panel's stats (playModule's ObservePlayStats): signed out, so no board is read.
+                    factory { ObserveLeaderboard(FakeIdentityService(), FakeLeaderboardRepository(), get(), get()) }
                     single { SubmitStatusTracker() }
                     single<IdentityService> { FakeIdentityService() }
                     single<GoogleIdTokenProvider> { CancelledGoogleIdTokenProvider }

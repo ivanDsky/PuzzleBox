@@ -1,4 +1,6 @@
-package com.ivandsky.puzzlebox.domain
+package com.ivandsky.puzzlebox.play.domain
+
+import com.ivandsky.puzzlebox.domain.TodayLeaderboard
 
 /**
  * What the tablet play side panel knows about one slot (A15), from [ObservePlayStats]:
