@@ -27,6 +27,15 @@ class PickerCopyTest {
     }
 
     @Test
+    fun `with the chips on the line counts puzzles and keeps the order after the count until something narrows it`() {
+        assertEquals("12 puzzles · Newest first", resultsLine(NO_QUERY, 12, sheets = true))
+        assertEquals("1 puzzle · Newest first", resultsLine(NO_QUERY, 1, sheets = true))
+        assertEquals("3 puzzles", resultsLine(NO_QUERY.copy(text = "cr"), 3, sheets = true))
+        assertEquals("1 puzzle", resultsLine(NO_QUERY.copy(fresh = setOf(Freshness.New)), 1, sheets = true))
+        assertEquals("0 puzzles", resultsLine(NO_QUERY.copy(sources = setOf(PuzzleSource.Mine)), 0, sheets = true))
+    }
+
+    @Test
     fun `an empty result names the text and adds with these filters only when chips are on`() {
         assertEquals("Nothing matches \"zzz\". Try a code, or clear the filters.", emptyLine(NO_QUERY.copy(text = "zzz")))
         assertEquals(

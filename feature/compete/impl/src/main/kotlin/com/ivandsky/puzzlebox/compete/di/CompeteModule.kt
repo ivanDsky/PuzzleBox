@@ -48,9 +48,9 @@ val competeModule: Module = module {
             legTitles = get(),
         )
     }
-    viewModel { AddPuzzleViewModel(observe = get<ObservePickablePuzzles>()::invoke, lookup = get<LoadPuzzleByCode>()::invoke) }
+    viewModel { AddPuzzleViewModel(observe = get<ObservePickablePuzzles>()::invoke, lookup = get<LoadPuzzleByCode>()::invoke, releaseFlags = getOrNull()) }
     // Past you's add sheet: the same search over what the player solved, on the device, so no code lookup.
-    viewModel(PAST_YOU_PICKER) { AddPuzzleViewModel(observe = get<ObserveSolvedPuzzles>()::invoke, lookup = null, pastYou = true) }
+    viewModel(PAST_YOU_PICKER) { AddPuzzleViewModel(observe = get<ObserveSolvedPuzzles>()::invoke, lookup = null, pastYou = true, releaseFlags = getOrNull()) }
     viewModel { (code: String) ->
         DuelViewModel(
             code = code,

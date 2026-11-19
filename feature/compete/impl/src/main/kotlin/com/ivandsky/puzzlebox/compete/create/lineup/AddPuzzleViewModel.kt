@@ -2,6 +2,9 @@ package com.ivandsky.puzzlebox.compete.create.lineup
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ivandsky.puzzlebox.common.flags.FilterFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.domain.lineup.CodeLookup
 import com.ivandsky.puzzlebox.domain.lineup.Freshness
@@ -42,13 +45,18 @@ internal const val LOOKUP_DEBOUNCE_MS = 400L
  * keyed by the text, so a changed text drops the old one and [reset] leaves nothing of it.
  *
  * Past you's search has no [lookup] (null): what it lists is on the device, so a code that is no row is only an empty list,
- * with no network, no "Looking up…" and no retry. [pastYou] tells the state so the sheet words it.
+ * with no network, no "Looking up…" and no retry. [pastYou] tells the state so the sheet words it. With [releaseFlags] saying FilterSheets is on, the state's
+ * [AddPuzzleState.filterSheets] has the picker show its filters as chips and sheets, not the filter button and panel.
  */
 internal class AddPuzzleViewModel(
     observe: (Flow<PickerQuery>, Flow<Int>) -> Flow<PickerResult>,
     lookup: (suspend (String) -> CodeLookup)?,
     private val pastYou: Boolean = false,
+    releaseFlags: ReleaseFlags? = null,
 ) : ViewModel() {
+
+    // Read once: the picker shows one set of filters for as long as it lives. Null (a test, a graph without flags) is off.
+    private val filterSheets = releaseFlags?.isEnabled(FilterFlag.FilterSheets) == true
 
     private val query = MutableStateFlow(NO_QUERY)
     private val added = MutableStateFlow<Set<LegRef>>(emptySet())
@@ -61,8 +69,8 @@ internal class AddPuzzleViewModel(
     private val asked = query.map { q -> ShareCode.fromLink(q.text.trim())?.let { q.copy(text = it.value) } ?: q }
 
     private val list: StateFlow<AddPuzzleState> = combine(query, observe(asked, archivePages), added) { shown, result, held ->
-        AddPuzzleState(shown, result.rows.map { PickerEntry(it, it.entry.ref in held) }, result.offline, result.moreDays, loaded = true, pastYou = pastYou)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), AddPuzzleState(pastYou = pastYou))
+        AddPuzzleState(shown, result.rows.map { PickerEntry(it, it.entry.ref in held) }, result.offline, result.moreDays, loaded = true, pastYou = pastYou, filterSheets = filterSheets)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), AddPuzzleState(pastYou = pastYou, filterSheets = filterSheets))
 
     /** What to look up: once the lists loaded and none of their rows answers the text, the code it announces or the player asked for. */
     private val wants: Flow<Want?> = combine(list, explicit) { base, request ->
@@ -93,7 +101,7 @@ internal class AddPuzzleViewModel(
             canRetry = current?.outcome == CodeLookup.Offline,
             filtersOpen = open,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), AddPuzzleState(pastYou = pastYou))
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), AddPuzzleState(pastYou = pastYou, filterSheets = filterSheets))
 
     fun setText(text: String) {
         explicit.value = null
@@ -120,6 +128,11 @@ internal class AddPuzzleViewModel(
 
     /** Every chip off; the text stays. */
     fun clearFilters() = query.update { it.copy(fresh = emptySet(), sources = emptySet(), games = emptySet()) }
+
+    /** The "All …" row of one group: that group's chips off, the others stay. */
+    fun clearFreshness() = query.update { it.copy(fresh = emptySet()) }
+    fun clearSources() = query.update { it.copy(sources = emptySet()) }
+    fun clearGames() = query.update { it.copy(games = emptySet()) }
 
     /** The puzzles the lineup holds now. */
     fun setAdded(refs: Set<LegRef>) {

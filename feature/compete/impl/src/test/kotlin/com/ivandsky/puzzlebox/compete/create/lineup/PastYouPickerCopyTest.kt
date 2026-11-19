@@ -17,6 +17,13 @@ class PastYouPickerCopyTest {
     }
 
     @Test
+    fun `with the chips on Past you counts puzzles and names its order until something narrows it`() {
+        assertEquals("12 puzzles · Recently solved first", resultsLine(NO_QUERY, 12, pastYou = true, sheets = true))
+        assertEquals("1 puzzle · Recently solved first", resultsLine(NO_QUERY, 1, pastYou = true, sheets = true))
+        assertEquals("2 puzzles", resultsLine(NO_QUERY.copy(games = setOf(QUEENS)), 2, pastYou = true, sheets = true))
+    }
+
+    @Test
     fun `nothing solved and nothing typed says so in plain words`() {
         assertEquals("You haven't solved any puzzles yet.", emptyLine(NO_QUERY, pastYou = true))
         assertEquals("You haven't solved any puzzles yet.", emptyLine(NO_QUERY.copy(text = " "), pastYou = true))

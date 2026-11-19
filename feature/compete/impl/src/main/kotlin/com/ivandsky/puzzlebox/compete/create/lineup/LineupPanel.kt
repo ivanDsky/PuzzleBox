@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -25,6 +26,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.compete.create.DuelGame
 import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -139,6 +141,9 @@ internal fun LineupPanel(
     }
     if (search != null) {
         editor.target?.let { row ->
+            // Inside the block, so it resets when the sheet closes: the next opening shows the tiles, not an option page.
+            var filterPage by rememberSaveable { mutableStateOf<PickerFilterPage?>(null) }
+            val searchState by search.state.collectAsStateWithLifecycle()
             AddPuzzleSheet(
                 position = row + 1,
                 changing = editor.changing,
@@ -146,8 +151,17 @@ internal fun LineupPanel(
                 onPickGame = { game -> edit { it.pick(AnyGame(game)) } },
                 onDismiss = { edit { it.dismiss() } },
                 solved = pastYou?.solved,
+                filterPage = filterPage,
+                onFilterPageBack = { filterPage = null },
+                filterPageContent = { page -> PickerFilterPageContent(page, searchState, games, search, onBack = { filterPage = null }) },
                 exactPuzzles = {
-                    ExactPuzzleSearch(games, draft.entries.filterIsInstance<ExactPuzzle>().mapTo(HashSet()) { it.ref }, onAdd = { puzzle -> edit { it.pick(puzzle) } }, viewModel = search)
+                    ExactPuzzleSearch(
+                        games,
+                        draft.entries.filterIsInstance<ExactPuzzle>().mapTo(HashSet()) { it.ref },
+                        onAdd = { puzzle -> edit { it.pick(puzzle) } },
+                        viewModel = search,
+                        onOpenFilter = { filterPage = it },
+                    )
                 },
             )
         }
