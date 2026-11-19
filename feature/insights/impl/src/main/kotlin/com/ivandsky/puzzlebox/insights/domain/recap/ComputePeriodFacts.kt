@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.domain.moments.Moment
 import com.ivandsky.puzzlebox.domain.moments.detectMoments
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.CompletionSource
+import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.model.GameId
 
 /**
@@ -25,6 +26,7 @@ import com.ivandsky.puzzlebox.model.GameId
 internal class ComputePeriodFacts(
     private val computeStreak: ComputeStreak,
     private val replaySolveFacts: ReplaySolveFacts,
+    private val registry: GameRegistry,
 ) {
 
     operator fun invoke(history: List<GameHistoryDay>, period: DaySpan, scope: GameId? = null): PeriodFacts {
@@ -43,7 +45,7 @@ internal class ComputePeriodFacts(
             longestStreakSolve = longestStreak?.let { lastSolveOf(it, counted) },
             freezesSpent = streaks.sumOf { it.frozen.size },
             hintFree = counted.count { it.solve.hints == 0 },
-            longestHintFreeRun = HintFreeRun.longestOf(counted),
+            longestHintFreeRun = HintFreeRun.longestOf(counted, registry.all.map { it.definition.id }),
             totalTimeMs = counted.sumOf { it.solve.time },
             moments = momentsOf(history, period, scope),
         )

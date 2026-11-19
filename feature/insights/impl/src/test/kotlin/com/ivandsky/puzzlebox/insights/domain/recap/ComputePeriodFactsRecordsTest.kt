@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.insights.domain.recap
 
 import com.ivandsky.puzzlebox.insights.domain.stats.DayRange
+import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
 import java.time.LocalDate
@@ -52,7 +54,7 @@ class ComputePeriodFactsRecordsTest {
     }
 
     @Test
-    fun `a run goes across games by puzzle day then game id`() = runTest {
+    fun `a run goes across games by puzzle day then the app game order`() = runTest {
         fixture.store(
             fixture.solve(beta, day(1)),
             fixture.solve(alpha, day(1)),
@@ -64,6 +66,32 @@ class ComputePeriodFactsRecordsTest {
         assertEquals(3, run.solves)
         assertEquals(alpha, run.last.game)
         assertEquals(day(2), run.last.day)
+    }
+
+    @Test
+    fun `within a day the registry's game order breaks a run, not the game id`() = runTest {
+        fixture.store(
+            fixture.solve(alpha, day(1), hints = 1),
+            fixture.solve(beta, day(1)),
+            fixture.solve(alpha, day(2)),
+            fixture.solve(beta, day(2)),
+        )
+        val history = fixture.history()
+        val range = DayRange(day(1), day(30))
+        val alphaFirst = ComputePeriodFacts(fixture.computeStreak, ReplaySolveFacts(fixture.computeStreak, fixture.puzzleDay, fixture.registry), fixture.registry)
+        val betaFirst = ComputePeriodFacts(
+            fixture.computeStreak,
+            ReplaySolveFacts(fixture.computeStreak, fixture.puzzleDay, fixture.registry),
+            GameRegistry(listOf(TestGames.plugin(beta), TestGames.plugin(alpha))),
+        )
+
+        val inAppOrder = checkNotNull(alphaFirst(history, range).longestHintFreeRun)
+        val reversed = checkNotNull(betaFirst(history, range).longestHintFreeRun)
+
+        assertEquals(3, inAppOrder.solves)
+        assertEquals(beta, inAppOrder.last.game)
+        assertEquals(2, reversed.solves)
+        assertEquals(alpha, reversed.last.game)
     }
 
     @Test

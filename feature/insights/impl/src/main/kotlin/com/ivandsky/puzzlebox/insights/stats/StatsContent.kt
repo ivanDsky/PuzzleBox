@@ -46,7 +46,7 @@ internal fun StatsContent(
                 contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.sm),
                 verticalArrangement = Arrangement.spacedBy(Spacing.xl),
             ) {
-                itemsIndexed(body.sections) { _, section -> StatsSectionSlot(section, gameName, onOpenSolve) }
+                itemsIndexed(body.sections, key = { _, section -> section::class.qualifiedName ?: section.toString() }) { _, section -> StatsSectionSlot(section, gameName, onOpenSolve) }
             }
         }
     }

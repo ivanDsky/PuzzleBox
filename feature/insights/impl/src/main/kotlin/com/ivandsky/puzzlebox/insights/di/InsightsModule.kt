@@ -35,7 +35,7 @@ val insightsModule: Module = module {
     flagSet("insights", InsightsFlag.entries)
 
     factory { ReplaySolveFacts(computeStreak = get(), puzzleDay = get(), registry = get()) }
-    factory { ComputePeriodFacts(computeStreak = get(), replaySolveFacts = get()) }
+    factory { ComputePeriodFacts(computeStreak = get(), replaySolveFacts = get(), registry = get()) }
     factory {
         val friendsOverall = get<ObserveFriendsOverall>()
         ResolveFriendsStanding(
