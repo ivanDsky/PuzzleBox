@@ -4,12 +4,18 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.ivandsky.puzzlebox.common.log.FailureLog
 import com.ivandsky.puzzlebox.data.cloud.CloudSyncState
+import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.domain.ranks.OverallStandings
+import com.ivandsky.puzzlebox.domain.ranks.OverallState
+import com.ivandsky.puzzlebox.insights.domain.recap.FriendsRecapFactProvider
+import com.ivandsky.puzzlebox.insights.domain.recap.FriendsStanding
 import com.ivandsky.puzzlebox.insights.domain.recap.ObserveRecap
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapFactProvider
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapHistoryFixture
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapInput
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapPeriod
+import com.ivandsky.puzzlebox.insights.domain.recap.ResolveFriendsStanding
 import com.ivandsky.puzzlebox.insights.domain.recap.SolvedRecapFactProvider
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
@@ -17,8 +23,11 @@ import com.ivandsky.puzzlebox.testing.game.TestGames.beta
 import java.io.IOException
 import java.time.LocalDate
 import java.time.YearMonth
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -50,12 +59,14 @@ class RecapViewModelTest {
     private fun viewModel(
         savedState: SavedStateHandle = SavedStateHandle(),
         providers: List<RecapFactProvider> = listOf(SolvedRecapFactProvider),
+        resolveFriends: ResolveFriendsStanding = fixture.resolveFriends(),
     ) = RecapViewModel(
         period = november,
         observeRecap = ObserveRecap(
             fixture.observeHistory,
             fixture.computePeriodFacts,
             fixture.registry,
+            resolveFriends,
             providers,
             FailureLog { _, _, _ -> },
         ),
@@ -206,5 +217,55 @@ class RecapViewModelTest {
         viewModel(saved).showPage(3)
 
         assertEquals(3, saved.get<Int>("recap.page"))
+    }
+
+    @Test
+    fun `the friends card joins the story at the end when its read lands, and no page moves`() = runTest {
+        fixture.store(fixture.solve(alpha, day(1)))
+        val gate = CompletableDeferred<Unit>()
+        val friends = fixture.resolveFriends(
+            viewer = Identity("me", "Me", photoUrl = null),
+            friendUids = { flowOf(setOf("maya")) },
+            friendsOverall = { _, _ ->
+                flow {
+                    gate.await()
+                    emit(
+                        OverallState.Complete(
+                            OverallStandings(listOf(OverallStandings.Row("me", "Me", place = 1, total = 310.0, games = 4, truncated = false))),
+                        ),
+                    )
+                }
+            },
+        )
+        val saved = SavedStateHandle()
+
+        viewModel(saved, providers = listOf(SolvedRecapFactProvider, FriendsRecapFactProvider), resolveFriends = friends).uiState.test {
+            assertEquals(RecapUiState.Loading, awaitItem())
+            val local = awaitItem() as RecapUiState.Ready
+            assertEquals(listOf(RecapCard.Solved(1, listOf(RecapCard.Solved.PerGame(alpha, 1)))), local.cards)
+
+            gate.complete(Unit)
+
+            val full = awaitItem() as RecapUiState.Ready
+            assertEquals(local.cards + RecapCard.Friends(FriendsStanding.Loaded(alpha, 310.0)), full.cards)
+            assertEquals(local.initialPage, full.initialPage)
+            expectNoEvents()
+        }
+    }
+
+    @Test
+    fun `an offline friends read leaves the story and adds the card in its own place`() = runTest {
+        fixture.store(fixture.solve(alpha, day(1)))
+        val friends = fixture.resolveFriends(
+            viewer = Identity("me", "Me", photoUrl = null),
+            friendUids = { flowOf(setOf("maya")) },
+            friendsOverall = { _, _ -> flowOf(OverallState.Offline(standings = null)) },
+        )
+
+        viewModel(providers = listOf(SolvedRecapFactProvider, FriendsRecapFactProvider), resolveFriends = friends).uiState.test {
+            assertEquals(RecapUiState.Loading, awaitItem())
+            assertEquals(1, (awaitItem() as RecapUiState.Ready).cards.size)
+            assertEquals(RecapCard.Friends(FriendsStanding.Unavailable), (awaitItem() as RecapUiState.Ready).cards.last())
+        }
     }
 }

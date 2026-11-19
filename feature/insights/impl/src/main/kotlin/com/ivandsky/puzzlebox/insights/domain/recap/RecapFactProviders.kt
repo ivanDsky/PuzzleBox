@@ -11,4 +11,5 @@ internal val RecapFactProviders: List<RecapFactProvider> = listOf(
     HintFreeRecapFactProvider,
     MomentsRecapFactProvider,
     TotalTimeRecapFactProvider,
+    FriendsRecapFactProvider,
 )

@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.insights.recap
 
+import com.ivandsky.puzzlebox.insights.domain.recap.FriendsStanding
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapPeriod
 import com.ivandsky.puzzlebox.model.GameId
@@ -53,6 +54,15 @@ internal object RecapFixtures {
 
     /** A year of play: the hero runs to hundreds of hours, the widest the time format gets. */
     val totalTimeYear = RecapCard.TotalTime(totalMs = 512_461_000, solved = 981)
+
+    /** Queens earned the most points among friends. */
+    val friendsLoaded = RecapCard.Friends(FriendsStanding.Loaded(queens, points = 1_340.0))
+
+    /** Day 2 of December: November's friends results settle on the 4th. */
+    val friendsSettling = RecapCard.Friends(FriendsStanding.Settling(LocalDate.of(2026, 12, 4)))
+
+    /** The friends read could not finish. */
+    val friendsUnavailable = RecapCard.Friends(FriendsStanding.Unavailable)
 
     val ready = RecapUiState.Ready(period = november, cards = listOf(solved, secondSolved), initialPage = 0)
 }

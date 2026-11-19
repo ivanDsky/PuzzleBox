@@ -68,6 +68,7 @@ private fun RecapFact(
         is RecapCard.HintFree -> HintFreeCardFact(card, modifier)
         is RecapCard.Moments -> MomentsCardFact(card, modifier)
         is RecapCard.TotalTime -> TotalTimeCardFact(card, modifier)
+        is RecapCard.Friends -> FriendsCardFact(card, gameName, modifier)
     }
 }
 
