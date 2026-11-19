@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -32,7 +33,7 @@ private val RESULTS_MAX_HEIGHT = 420.dp
  * "Or one exact puzzle": a field that searches name, author and code, a filter button right of it that opens the chips
  * that narrow it under the field, and the puzzles that pass, newest first (Past you's: the ones solved last first). [added] is what the lineup already
  * holds; Add calls [onAdd] with the puzzle. The query and whether the chips are open live in [viewModel], so the field, the rows and the chips all survive a
- * rotation; the panel clears them when the sheet closes.
+ * rotation; the panel clears them when the sheet closes. With FilterSheets on, chips take the panel's place: they open their options as a sheet, or, with [onOpenFilter] set (the add sheet, which must not stack a sheet), tell it which group to show as a page.
  */
 @Composable
 internal fun ExactPuzzleSearch(
@@ -41,6 +42,7 @@ internal fun ExactPuzzleSearch(
     onAdd: (ExactPuzzle) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: AddPuzzleViewModel,
+    onOpenFilter: ((PickerFilterPage) -> Unit)? = null,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val registry = koinInject<GamePlayRegistry>()
@@ -49,9 +51,9 @@ internal fun ExactPuzzleSearch(
         Text("Or one exact puzzle", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Column {
             PickerSearchRow(state, viewModel)
-            PickerFilterPanel(state, games, viewModel)
+            if (state.filterSheets) PickerFilterChips(state, games, viewModel, Modifier.padding(top = Spacing.sm), onOpenFilter) else PickerFilterPanel(state, games, viewModel)
         }
-        PickerStatusLines(state, onRetry = viewModel::lookUp)
+        PickerStatusLines(state, onRetry = viewModel::lookUp, onClearFilters = viewModel::clearFilters)
         if (state.loaded && state.rows.isNotEmpty()) {
             val listState = rememberLazyListState()
             // Only once the player has scrolled, so a list that fits never pulls pages the player did not ask for.

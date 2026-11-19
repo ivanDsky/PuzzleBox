@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -45,16 +46,16 @@ internal fun PickerSearchRow(state: AddPuzzleState, viewModel: AddPuzzleViewMode
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { viewModel.lookUp() }),
         )
-        PickerFilterButton(state.activeFilters, state.filtersOpen, onToggle = viewModel::toggleFilters)
+        if (!state.filterSheets) PickerFilterButton(state.activeFilters, state.filtersOpen, onToggle = viewModel::toggleFilters)
     }
 }
 
 /**
  * The offline note, the code lookup's line (with Retry when it can be tried again) and, once the list has loaded, the
- * empty line or the count. Inline, with no column of its own: the caller's arrangement spaces them.
+ * empty line (with Clear filters under it while a chip is on and the filters are chips) or the count. Inline, with no column of its own: the caller's arrangement spaces them.
  */
 @Composable
-internal fun PickerStatusLines(state: AddPuzzleState, onRetry: () -> Unit) {
+internal fun PickerStatusLines(state: AddPuzzleState, onRetry: () -> Unit, onClearFilters: () -> Unit = {}) {
     if (state.offline && state.lookup != OFFLINE_NOTE) {
         Text(OFFLINE_NOTE, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("duel.lineup.offline"))
     }
@@ -69,8 +70,11 @@ internal fun PickerStatusLines(state: AddPuzzleState, onRetry: () -> Unit) {
         // A lookup's own line says why there is nothing, better than "Nothing matches".
         if (state.lookup == null) {
             Text(emptyLine(state.query, state.pastYou), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.testTag("duel.lineup.empty"))
+            if (state.filterSheets && state.activeFilters > 0) {
+                FilledTonalButton(onClick = onClearFilters, modifier = Modifier.testTag("duel.lineup.empty.clear")) { Text("Clear filters") }
+            }
         }
     } else {
-        Text(resultsLine(state.query, state.rows.size, state.pastYou), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.testTag("duel.lineup.count"))
+        Text(resultsLine(state.query, state.rows.size, state.pastYou, state.filterSheets), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.testTag("duel.lineup.count"))
     }
 }

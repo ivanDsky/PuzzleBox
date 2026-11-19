@@ -50,6 +50,7 @@ private const val PANEL_INDEX = 2
  * player has solved; it keeps the query and the open panel, and the caller resets it when the page closes.
  * The list pads for the keyboard, so the last row can be reached with it up. A non-null [onClose] is for a page that
  * sits beside the form: it adds a line over the list with the row's title and a Close button.
+ * With FilterSheets on, the filter chips sit under the field in that header instead, each opening its own sheet over the page, and there is no panel.
  */
 @Composable
 internal fun PuzzlePickerPage(
@@ -67,7 +68,7 @@ internal fun PuzzlePickerPage(
     LaunchedEffect(viewModel, picker.added) { viewModel.setAdded(picker.added) }
     // Opening the panel brings it to rest just under the header, not behind it. A page that restores already open stays where it was.
     LaunchedEffect(listState, state.filtersOpen) {
-        if (state.filtersOpen && !panelOpen) listState.animateScrollToItem(PANEL_INDEX, scrollOffset = -headerPx)
+        if (state.filtersOpen && !state.filterSheets && !panelOpen) listState.animateScrollToItem(PANEL_INDEX, scrollOffset = -headerPx)
         panelOpen = state.filtersOpen
     }
     // Only once the player has scrolled, so a list that fits never pulls pages the player did not ask for.
@@ -96,11 +97,12 @@ internal fun PuzzlePickerPage(
                 ) {
                     Text("Or one exact puzzle", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     PickerSearchRow(state, viewModel)
+                    if (state.filterSheets) PickerFilterChips(state, picker.games, viewModel)
                 }
             }
-            if (state.filtersOpen) item(key = "filters") { PickerFilterPanel(state, picker.games, viewModel) }
+            if (state.filtersOpen && !state.filterSheets) item(key = "filters") { PickerFilterPanel(state, picker.games, viewModel) }
             item(key = "status") {
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) { PickerStatusLines(state, onRetry = viewModel::lookUp) }
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) { PickerStatusLines(state, onRetry = viewModel::lookUp, onClearFilters = viewModel::clearFilters) }
             }
             if (state.loaded) {
                 items(state.rows, key = { it.puzzle.entry.ref.wire }) { entry ->

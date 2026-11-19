@@ -31,11 +31,22 @@ private val PickerQuery.filtered: Boolean get() = fresh.isNotEmpty() || sources.
 
 private val PickerQuery.narrowed: Boolean get() = text.isNotBlank() || filtered
 
-/** The line over the results: how many match once the player narrowed them, else what the order is. */
-internal fun resultsLine(query: PickerQuery, count: Int, pastYou: Boolean = false): String = when {
-    query.narrowed -> "$count found"
-    pastYou -> "Recently solved first"
-    else -> "Newest first"
+/**
+ * The line over the results: how many match once the player narrowed them, else what the order is. With [sheets] (the chips) it counts in
+ * "puzzles", and puts the order after the count when nothing narrows them.
+ */
+internal fun resultsLine(query: PickerQuery, count: Int, pastYou: Boolean = false, sheets: Boolean = false): String {
+    if (!sheets) return when {
+        query.narrowed -> "$count found"
+        pastYou -> "Recently solved first"
+        else -> "Newest first"
+    }
+    val counted = if (count == 1) "1 puzzle" else "$count puzzles"
+    return when {
+        query.narrowed -> counted
+        pastYou -> "$counted · Recently solved first"
+        else -> "$counted · Newest first"
+    }
 }
 
 /** What an empty result says, naming the text and whether chips are narrowing it; Past you's says why it is only what was solved, since a code can't add to it. */
