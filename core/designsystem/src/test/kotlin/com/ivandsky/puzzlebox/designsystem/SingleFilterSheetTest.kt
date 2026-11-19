@@ -55,7 +55,7 @@ import org.robolectric.annotation.GraphicsMode
 import org.robolectric.shadows.ShadowDialog
 
 /**
- * The single-select sheet and its chip (epic picker-filters, ticket 02): the rows and their selection, the pick and its 150 ms close,
+ * The single-select sheet and its chip (epic picker-filters, ticket 02): the rows and their selection, the pick and its hide-then-dismiss close,
  * the close paths, sizes and the 92% cap, tags and semantics, the chip's two presentations, reduced motion and the contrast floors.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -177,7 +177,7 @@ class SingleFilterSheetTest {
     }
 
     @Test
-    fun `a tap moves the highlight at once, reports once and closes at 150 ms while taps in between do nothing`() {
+    fun `a tap moves the highlight at once, reports once and dismisses after the sheet has hidden while taps in between do nothing`() {
         showSheet()
 
         node("opt.b").performClick()
@@ -188,9 +188,10 @@ class SingleFilterSheetTest {
 
         assertEquals(listOf<String?>("b"), selects)
         node("opt.c").assertIsNotSelected()
-        assertEquals("not closed at 100 ms", 0, dismissals)
-        advance(60)
-        assertEquals("closed by 150 ms", 1, dismissals)
+        assertEquals("the hide has not started at 100 ms", 0, dismissals)
+        advance(SETTLE_MS)
+        assertEquals("dismissed once the sheet has hidden", 1, dismissals)
+        assertEquals(listOf<String?>("b"), selects)
     }
 
     @Test
@@ -211,7 +212,7 @@ class SingleFilterSheetTest {
         showSheet(followCaller = true)
 
         node("opt.b").performClick()
-        advance(160)
+        advance(SETTLE_MS)
 
         assertEquals(listOf<String?>("b"), selects)
         node("opt.b").assertIsSelected()
@@ -219,11 +220,12 @@ class SingleFilterSheetTest {
     }
 
     @Test
-    fun `the close button is 48dp, described Close and dismisses at once`() {
+    fun `the close button is 48dp, described Close and dismisses once the sheet has hidden`() {
         showSheet()
 
         node("x.filter.game.sheet.close").assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
         composeRule.onNodeWithContentDescription("Close").performClick()
+        advance(SETTLE_MS)
 
         assertEquals(1, dismissals)
     }
@@ -297,7 +299,7 @@ class SingleFilterSheetTest {
         assertEquals(listOf(true), openChanges)
 
         node("opt.b").performClick()
-        advance(160)
+        advance(SETTLE_MS)
 
         assertEquals(0, count("x.filter.game.sheet"))
         node("x.filter.game").assert(collapsed())

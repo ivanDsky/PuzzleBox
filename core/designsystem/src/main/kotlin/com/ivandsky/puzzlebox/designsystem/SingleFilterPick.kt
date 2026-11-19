@@ -15,9 +15,12 @@ import kotlinx.coroutines.launch
 @Stable
 internal class SingleFilterPick<T>(val highlighted: T?, val onAll: () -> Unit, val onOption: (T) -> Unit)
 
-/** A tap reports [onSelect] at once and [onDone] 150 ms ([MotionTokens.DurationExit]) later; taps in that window are ignored. */
+/**
+ * A tap reports [onSelect] at once and starts [onDone] 150 ms ([MotionTokens.DurationExit]) later; taps are ignored until [onDone]
+ * has returned.
+ */
 @Composable
-internal fun <T> rememberSingleFilterPick(selected: T?, onSelect: (T?) -> Unit, onDone: () -> Unit): SingleFilterPick<T> {
+internal fun <T> rememberSingleFilterPick(selected: T?, onSelect: (T?) -> Unit, onDone: suspend () -> Unit): SingleFilterPick<T> {
     val scope = rememberCoroutineScope()
     val report by rememberUpdatedState(onSelect)
     val done by rememberUpdatedState(onDone)
