@@ -17,12 +17,6 @@ enum class ReleaseFlag(override val label: String, override val releaseDefault: 
     ResultHeroPolish(label = "Result hero polish", releaseDefault = true),
 
     /**
-     * Hint polish (backlog #1172, #1174): the Hint button reads as a peer of Undo, and hint captions explain the step in a plain
-     * sentence before any technique name. Read only in feature/play's DI or a game UI module's DI (ADR-0022 §3).
-     */
-    HintPolish(label = "Calm hint button and plain hint captions", releaseDefault = false),
-
-    /**
      * Zip's next number pulses itself (backlog #1151): the number's own dot breathes in place of the separate ring that
      * blinks round it. Read only in feature/play's DI, which hands the Zip board one Boolean (ADR-0022 §3, spec A2).
      */

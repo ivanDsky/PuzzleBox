@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.games.tangoui
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
@@ -30,7 +30,7 @@ class TangoHintModeWiringTest {
             override val default: CoroutineDispatcher = StandardTestDispatcher(name = "default")
         }
         val flags = object : ReleaseFlags {
-            override val enabled = MutableStateFlow(emptySet<ReleaseFlag>())
+            override val enabled = MutableStateFlow(emptySet<ReleaseFlagKey>())
         }
         val koin = koinApplication {
             modules(

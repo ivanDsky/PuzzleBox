@@ -1,13 +1,13 @@
 package com.ivandsky.puzzlebox.games.queensui
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.queensui.editor.QueensEditorUi
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
+import com.ivandsky.puzzlebox.gameui.flags.GameUiFlag
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import org.koin.core.module.Module
 import org.koin.core.qualifier.qualifier
@@ -26,4 +26,4 @@ val queensUiModule: Module = module {
 }
 
 /** Whether Queens' hint callouts use the plain sentence set (HintPolish); the one place Queens reads that flag. */
-internal fun queensPlainCaptions(flags: ReleaseFlags?): Boolean = flags?.isEnabled(ReleaseFlag.HintPolish) == true
+internal fun queensPlainCaptions(flags: ReleaseFlags?): Boolean = flags?.isEnabled(GameUiFlag.HintPolish) == true
