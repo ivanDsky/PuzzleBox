@@ -109,6 +109,16 @@ class ZipTipAimTest {
     }
 
     @Test
+    fun `a finger clearly inside a blocked cell holds the tip on the tail rather than leaning it into the side step`() {
+        // Ticket 1572: deep in an out-of-order number, a finger drifting toward the open side
+        // leaned the end into it, which read as the line going there before it had.
+        // Tail (1,0): east is waypoint 3 before waypoint 2; south (2,0) is open.
+        val path = cells(0 to 0, 1 to 0)
+        assertEquals(0f, tip(path, 1.2f, 0.55f).extent, 0f)
+        assertTip(TipKind.Forward, GridCell(2, 0), 0.3f, tip(path, 0.6f, 0.3f))
+    }
+
+    @Test
     fun `no path or no finger makes no tip`() {
         assertNull(ZipTipAim().tip(emptyList(), Offset(0.5f, 0.5f), hooks))
         assertNull(ZipTipAim().tip(cells(0 to 0), null, hooks))
