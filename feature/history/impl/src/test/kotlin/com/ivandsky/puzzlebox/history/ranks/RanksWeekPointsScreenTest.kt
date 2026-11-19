@@ -76,10 +76,19 @@ class RanksWeekPointsScreenTest {
     }
 
     @Test
+    fun `How ranks work's Top 100 line says a game's Week and Month total can show at least too`() {
+        show()
+        openHowRanksWork()
+
+        composeRule.onNodeWithText("your Overall total, or a game's Week and Month total, shows as at least (≥).", substring = true).assertIsDisplayed()
+    }
+
+    @Test
     fun `with the flag off How ranks work keeps the average rule`() {
         show(weekMonthPoints = false)
         openHowRanksWork()
 
         composeRule.onNodeWithText("each game ranks the average of the days you played.", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("past that you see 100+ with no exact place, and your Overall total shows as at least (≥).", substring = true).assertIsDisplayed()
     }
 }

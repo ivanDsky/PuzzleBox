@@ -26,13 +26,14 @@ internal const val RANKS_RULE =
 
 /**
  * The lead word of each line, then what it says: how a board orders, what Overall sums, and the unofficial and 100+ cases.
- * With [weekMonthPoints] (WeekMonthPoints) a game's Week and Month add up its daily scores instead of averaging.
+ * With [weekMonthPoints] (WeekMonthPoints) a game's Week and Month add up its daily scores instead of averaging, so their
+ * totals can read "≥" past the top 100 too.
  */
 private fun rules(weekMonthPoints: Boolean) = listOf(
     "Per game" to "fastest time wins and fewer hints break a tie. Strands ranks hints first.",
     "Overall" to "your scores from every game's Ranks in the window. Players with the same total share a place.",
     "Week and Month" to if (weekMonthPoints) "each game adds up your daily scores in the window." else "each game ranks the average of the days you played.",
-    "Top 100" to "past that you see 100+ with no exact place, and your Overall total shows as at least (≥).",
+    "Top 100" to "past that you see 100+ with no exact place, and your Overall total${if (weekMonthPoints) ", or a game's Week and Month total," else ""} shows as at least (≥).",
     "Unofficial" to "a solve posted after its day's submit window closed stays on this device. Only you see it, marked. It earns no points and takes no one's place.",
 )
 
