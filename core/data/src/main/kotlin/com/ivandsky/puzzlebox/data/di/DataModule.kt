@@ -28,6 +28,8 @@ import com.ivandsky.puzzlebox.data.match.RoomMatchResultOutbox
 import com.ivandsky.puzzlebox.data.match.RoomSelfMatchRepository
 import com.ivandsky.puzzlebox.data.match.RoutingMatchRepository
 import com.ivandsky.puzzlebox.data.match.SelfMatchRepository
+import com.ivandsky.puzzlebox.data.rankhistory.RankHistoryStore
+import com.ivandsky.puzzlebox.data.rankhistory.RoomRankHistoryStore
 import com.ivandsky.puzzlebox.data.reminder.OfflineReminderRepository
 import com.ivandsky.puzzlebox.data.reminder.ReminderRepository
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
@@ -126,6 +128,8 @@ val dataModule = module {
     single<MatchRepository> { RoutingMatchRepository(self = get(), remote = get(MatchRemote)) }
     // Final boards read from the cloud are kept in their own database; nothing there is authoritative.
     single<FinalBoardStore> { RoomFinalBoardStore(get()) }
+    // The player's kept weekly Friends rank; on this device only, in the main database, never synced.
+    single<RankHistoryStore> { RoomRankHistoryStore(get()) }
     // Process-wide so the 15-minute update-check throttle survives screen changes.
     single<AppReleaseRepository> { NetworkAppReleaseRepository(get()) }
     // Shared-text hand-off: app puts, the Custom body takes it exactly once. In memory
