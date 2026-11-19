@@ -29,6 +29,12 @@ class LoadFriendsPastPage(private val leaderboard: LeaderboardRepository) {
         internal val known = ConcurrentHashMap<LeaderboardRef, Known>()
     }
 
+    /**
+     * What the composition root binds for the ranks outside the hub: the [loader] while `FriendsPastGlobalPage` is on,
+     * else none. Koin cannot bind a null, so the root's answer travels in this.
+     */
+    class Binding(val loader: LoadFriendsPastPage?)
+
     /** What one board has been asked and what it answered. */
     internal class Known {
         val asked: MutableSet<String> = ConcurrentHashMap.newKeySet()

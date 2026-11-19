@@ -2,6 +2,13 @@ package com.ivandsky.puzzlebox.history.ranks
 
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
+import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
+import com.ivandsky.puzzlebox.domain.ObserveResultRank
+import com.ivandsky.puzzlebox.domain.ResultRank
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
+import com.ivandsky.puzzlebox.domain.ranks.LoadFriendsPastPage
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.history.HistoryTestSupport
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
 import com.ivandsky.puzzlebox.history.domain.ranks.RankScope
@@ -24,6 +31,7 @@ import org.junit.Test
 /**
  * #1767: a friend who placed past the global page still ranks on that day's Friends board, and so counts in the
  * Friends Week, Month and Overall and in the viewer's own place among friends. Flag off, the boards are as they were.
+ * #1779: the Friends chip on Result, Today and the game page counts that friend the same way, behind the same flag.
  */
 class RanksFriendsPastPageTest {
 
@@ -131,5 +139,37 @@ class RanksFriendsPastPageTest {
         assertPoints("Overall", 200.0, 2, overall.getValue("Maya"))
         assertPoints("Overall", 400.0 / 3, 2, overall.getValue("Bea"))
         assertPoints("Overall", 200.0 / 3, 2, overall.getValue("Ann"))
+    }
+
+    private suspend fun chip(h: RanksTestHub, flagOn: Boolean) = ObserveResultRank(
+        ObserveLeaderboard(h.identity, h.leaderboard, h.registry, h.calendar),
+        h.registry,
+        ObserveFriendDay(
+            h.preferences, ObserveFriendUids(h.matches, h.identity), ObserveLinkedInDay(h.linkedInDays, h.registry), h.completions,
+            friendsPast = LoadFriendsPastPage(h.leaderboard).takeIf { flagOn },
+        ),
+    ).also { h.preferences.setRanksFriendsDefault(true) }
+
+    @Test
+    fun `the Friends chip counts the friend past the global page, the place the Friends Day board draws`() = runTest {
+        for (day in beyond) {
+            val h = hub()
+            val drawn = rowsOf(h.viewModel(releaseFlags = flagOn).friends(Window.Day, day)).single { it.isSelf }.rank
+
+            val reported = chip(h, flagOn = true)(ZIP, day).first { it is ResultRank.Ranked && it.amongFriends } as ResultRank.Ranked
+
+            // Maya on the page, Bea past it, Ann, slower, past it too: 3rd of 3, not 2nd of 2.
+            assertEquals("$day", 3, drawn)
+            assertEquals("$day", ResultRank.Ranked(position = drawn, count = 3, topPercent = 100, amongFriends = true), reported)
+        }
+    }
+
+    @Test
+    fun `flag off, the Friends chip leaves the friend past the global page out as before`() = runTest {
+        val h = hub()
+
+        val reported = chip(h, flagOn = false)(ZIP, today).first { it is ResultRank.Ranked && it.amongFriends } as ResultRank.Ranked
+
+        assertEquals(ResultRank.Ranked(position = 2, count = 2, topPercent = 100, amongFriends = true), reported)
     }
 }

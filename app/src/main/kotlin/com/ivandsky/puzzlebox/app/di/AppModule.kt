@@ -20,6 +20,7 @@ import com.ivandsky.puzzlebox.domain.AppBuild
 import com.ivandsky.puzzlebox.domain.insights.rankhistory.SyncRankHistory
 import com.ivandsky.puzzlebox.domain.ranks.SubmitDailyReplay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
+import com.ivandsky.puzzlebox.domain.ranks.LoadFriendsPastPage
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.gameui.flags.GameUiFlag
@@ -85,6 +86,10 @@ val appModule = module {
     single {
         RankHistoryStarter(flags = get<ReleaseFlags>(), fill = get<SyncRankHistory>()::invoke, scope = get<CoroutineScope>())
     }
+    // With HistoryFlag.FriendsPastGlobalPage on, the ranks outside the hub and Result's Friends board also count the friends a full global page leaves out.
+    factory {
+        LoadFriendsPastPage.Binding(if (get<ReleaseFlags>().isEnabled(HistoryFlag.FriendsPastGlobalPage)) LoadFriendsPastPage(get<LeaderboardRepository>()) else null)
+    }
     // The ranks outside the hub (Home, Result, the play summary) follow its Friends/Global setting.
     factory {
         ObserveFriendDay.Binding(
@@ -93,6 +98,7 @@ val appModule = module {
                 friendUids = get<ObserveFriendUids>(),
                 linkedInDay = get<ObserveLinkedInDay>(),
                 completions = get<CompletionRepository>(),
+                friendsPast = get<LoadFriendsPastPage.Binding>().loader,
             ),
         )
     }

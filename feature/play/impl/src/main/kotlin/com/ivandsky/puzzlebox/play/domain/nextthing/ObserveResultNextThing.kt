@@ -21,7 +21,10 @@ import com.ivandsky.puzzlebox.domain.TodayEntry
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.domain.isStreakDay
 import com.ivandsky.puzzlebox.domain.moments.Moment
+import com.ivandsky.puzzlebox.domain.ranks.BoardLoad
+import com.ivandsky.puzzlebox.domain.ranks.LoadFriendsPastPage
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
+import com.ivandsky.puzzlebox.domain.ranks.RankWindowBoards
 import com.ivandsky.puzzlebox.domain.ranks.RankedBoard
 import com.ivandsky.puzzlebox.domain.ranks.rankBoard
 import com.ivandsky.puzzlebox.game.BestScore
@@ -67,6 +70,9 @@ import kotlinx.coroutines.withTimeoutOrNull
  * placed on it at the solve's time, and "before" is the board without them. A friend's tier is read once, only for
  * the friend Challenge would offer, whether the chain's rung, the row or both ask, and a read that fails offers
  * nothing (ADR-0031 §15).
+ *
+ * With [friendsPast] (backlog #1779, `FriendsPastGlobalPage`) a friend who placed past the board's read page is read by
+ * id and is on the Friends board, as on the hub's, under the same [timeout]: a board that is slow for it is no board.
  */
 class ObserveResultNextThing(
     private val registry: GameRegistry,
@@ -83,6 +89,7 @@ class ObserveResultNextThing(
     private val communityPuzzles: ListCommunityPuzzles,
     private val timeout: Duration = 2.seconds,
     private val failures: FailureLog = LogcatFailureLog,
+    private val friendsPast: LoadFriendsPastPage? = null,
 ) {
     private val chain = NextThingChain(timeout = timeout, failures = failures)
 
@@ -211,7 +218,9 @@ class ObserveResultNextThing(
                 val order = registry.rankOrderOf(game)
                 val page = leaderboard.fetch(ref, order) ?: return@withTimeoutOrNull null
                 val players = friendUids().first() + viewer.uid
-                val friends = page.entries.filter { it.uid in players && it.uid != viewer.uid }
+                val past = friendsPast?.invoke(LoadFriendsPastPage.Memo(), RankWindowBoards.Boards(listOf(BoardLoad.Loaded(ref, order, page, final = false))), players, viewer.uid)?.get(ref).orEmpty()
+                val onPage = page.entries.mapTo(HashSet()) { it.uid }
+                val friends = page.entries.filter { it.uid in players && it.uid != viewer.uid } + past.filter { it.uid in players && it.uid != viewer.uid && onPage.add(it.uid) }
                 val onBoard = page.entries.firstOrNull { it.uid == viewer.uid }
                 val mine = onBoard ?: LeaderboardEntry(viewer.uid, viewer.displayName, "${game.value}/$day", solve.timeMs, solve.hints, completedAtMs = 0)
                 val after = friends + mine

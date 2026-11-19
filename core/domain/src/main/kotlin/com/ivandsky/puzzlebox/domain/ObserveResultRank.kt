@@ -52,7 +52,7 @@ class ObserveResultRank(
         return ranks.distinctUntilChanged()
     }
 
-    private fun rankOn(board: TodayLeaderboard, view: LinkedInDayView?, friends: FriendDay?, order: RankOrder): ResultRank {
+    private suspend fun rankOn(board: TodayLeaderboard, view: LinkedInDayView?, friends: FriendDay?, order: RankOrder): ResultRank {
         val signedIn = board as? TodayLeaderboard.SignedIn ?: return ResultRank.SignedOut
         val entries = (signedIn.board as? TodayLeaderboard.Board.Loaded)?.snapshot?.entries ?: return ResultRank.Hidden
         val uid = signedIn.identity.uid

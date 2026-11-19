@@ -116,7 +116,7 @@ class FriendBoardsTest {
     }
 
     @Test
-    fun `an entry point reports the viewer's place on the hub's Friends day board`() {
+    fun `an entry point reports the viewer's place on the hub's Friends day board`() = runTest {
         // Strangers first and third; a connection between Bea and the viewer, and one whose time is hidden.
         val entries = listOf(entry("sam", zip, 10), entry("bea", zip, 20), entry("tom", zip, 30), entry("ann", zip, 40), entry("cy", zip, 50))
         val connections = LinkedInDayView(
@@ -175,7 +175,7 @@ class FriendBoardsTest {
     }
 
     @Test
-    fun `an entry point reports the place the hub's Friends day board gives a viewer who placed past the full page`() {
+    fun `an entry point reports the place the hub's Friends day board gives a viewer who placed past the full page`() = runTest {
         val page = fullPage(last = entry("bea", zip, 20_000))
         val own = page.ownBeyondPage(solved(zip, 30_000))
         val entries = (page.boards.single() as BoardLoad.Loaded).page.entries

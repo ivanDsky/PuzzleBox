@@ -166,7 +166,7 @@ internal class GamePageRankViewModel(
     }
 
     /** The player's place among their friends and connections on a loaded [board], null off it or while it is not read. */
-    private fun FriendDay.standingOn(board: TodayLeaderboard): FriendDay.Standing? {
+    private suspend fun FriendDay.standingOn(board: TodayLeaderboard): FriendDay.Standing? {
         val signedIn = board as? TodayLeaderboard.SignedIn ?: return null
         val loaded = signedIn.board as? TodayLeaderboard.Board.Loaded ?: return null
         return standing(loaded.snapshot.entries, signedIn.identity, order)
