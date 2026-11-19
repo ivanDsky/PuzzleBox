@@ -13,7 +13,7 @@ import com.ivandsky.puzzlebox.data.match.SelfSeats
 import com.ivandsky.puzzlebox.play.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.LegSeen
 import com.ivandsky.puzzlebox.domain.LegVerdict
-import com.ivandsky.puzzlebox.domain.LoadPastDay
+import com.ivandsky.puzzlebox.play.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.domain.MatchState
 import com.ivandsky.puzzlebox.play.domain.ObserveLegTarget

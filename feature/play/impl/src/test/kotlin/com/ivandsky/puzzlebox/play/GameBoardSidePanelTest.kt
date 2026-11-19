@@ -18,7 +18,6 @@ import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.play.domain.FinishLeg
-import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.play.domain.ObservePlayStats
@@ -98,7 +97,6 @@ class GameBoardSidePanelTest {
                     single<MatchRepository> { FakeMatchRepository() }
                     single<GameCalendar> { calendar }
                     single<UserPreferencesRepository> { FakeUserPreferencesRepository() }
-                    factory { LoadPastDay(get(), get()) }
                 },
                 module { single<CloudSync> { FakeCloudSync() } },
                 playModule,

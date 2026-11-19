@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain.random
+package com.ivandsky.puzzlebox.play.domain.random
 
 /** What one random pick concluded. */
 sealed interface RandomOutcome {

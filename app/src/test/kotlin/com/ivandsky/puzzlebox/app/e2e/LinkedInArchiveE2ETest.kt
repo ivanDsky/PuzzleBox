@@ -9,8 +9,8 @@ import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.di.dataModule
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
-import com.ivandsky.puzzlebox.domain.LoadPastDay
-import com.ivandsky.puzzlebox.domain.PastDayOutcome
+import com.ivandsky.puzzlebox.play.domain.LoadPastDay
+import com.ivandsky.puzzlebox.play.domain.PastDayOutcome
 import com.ivandsky.puzzlebox.domain.di.domainModule
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.FeedTransport

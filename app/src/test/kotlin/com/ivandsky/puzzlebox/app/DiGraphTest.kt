@@ -31,7 +31,7 @@ import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.play.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.GetFeaturedGame
 import com.ivandsky.puzzlebox.domain.GetNextRollover
-import com.ivandsky.puzzlebox.domain.LoadPastDay
+import com.ivandsky.puzzlebox.play.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadSolveReplay
 import com.ivandsky.puzzlebox.play.domain.ObserveArchiveMonth
 import com.ivandsky.puzzlebox.play.domain.ObserveArchiveProgress
@@ -52,9 +52,9 @@ import com.ivandsky.puzzlebox.play.domain.linkedin.ObserveLinkedInPost
 import com.ivandsky.puzzlebox.play.domain.linkedin.SubmitLinkedInResult
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.domain.nextthing.ObserveResultNextThing
-import com.ivandsky.puzzlebox.domain.random.LoadRandomDay
-import com.ivandsky.puzzlebox.domain.random.LoadRandomPuzzle
-import com.ivandsky.puzzlebox.domain.random.LoadRandomShared
+import com.ivandsky.puzzlebox.play.domain.random.LoadRandomDay
+import com.ivandsky.puzzlebox.play.domain.random.LoadRandomPuzzle
+import com.ivandsky.puzzlebox.play.domain.random.LoadRandomShared
 import com.ivandsky.puzzlebox.domain.ranks.GetPlayerActions
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall

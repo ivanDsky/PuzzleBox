@@ -15,7 +15,7 @@ import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.play.domain.DeleteReceivedPuzzle
 import com.ivandsky.puzzlebox.play.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
-import com.ivandsky.puzzlebox.domain.LoadPastDay
+import com.ivandsky.puzzlebox.play.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.play.domain.ObserveArchiveMonth
 import com.ivandsky.puzzlebox.play.domain.ObserveArchiveProgress

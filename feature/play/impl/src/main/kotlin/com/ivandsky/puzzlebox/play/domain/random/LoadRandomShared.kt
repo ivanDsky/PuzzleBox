@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain.random
+package com.ivandsky.puzzlebox.play.domain.random
 
 import com.ivandsky.puzzlebox.data.repository.CommunityFilter
 import com.ivandsky.puzzlebox.data.repository.CommunityListResult

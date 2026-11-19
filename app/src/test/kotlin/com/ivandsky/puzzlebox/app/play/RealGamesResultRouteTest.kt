@@ -32,7 +32,6 @@ import com.ivandsky.puzzlebox.play.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
-import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadLegReplay
 import com.ivandsky.puzzlebox.domain.LoadPlayerReplay
 import com.ivandsky.puzzlebox.domain.LoadCustomReplay
@@ -211,7 +210,6 @@ class RealGamesResultRouteTest {
                     single<MatchRepository> { FakeMatchRepository() }
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
                     single<GameCalendar> { FakeGameCalendar(today) }
-                    factory { LoadPastDay(get(), get()) }
                     single { SyncTodayPuzzles(get(), get(), get()) }
                     factory { ObserveTodaySet(get(), get(), get(), get(), get(), get()) }
                     factory { ObserveGameHistory(get(), get(), get()) }

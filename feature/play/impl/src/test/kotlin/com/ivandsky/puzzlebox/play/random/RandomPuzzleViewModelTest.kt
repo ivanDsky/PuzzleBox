@@ -9,11 +9,11 @@ import com.ivandsky.puzzlebox.data.repository.CommunityListResult
 import com.ivandsky.puzzlebox.data.repository.DailyDay
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
 import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
-import com.ivandsky.puzzlebox.domain.LoadPastDay
-import com.ivandsky.puzzlebox.domain.random.LoadRandomDay
-import com.ivandsky.puzzlebox.domain.random.LoadRandomPuzzle
-import com.ivandsky.puzzlebox.domain.random.LoadRandomShared
-import com.ivandsky.puzzlebox.domain.random.RandomPick
+import com.ivandsky.puzzlebox.play.domain.LoadPastDay
+import com.ivandsky.puzzlebox.play.domain.random.LoadRandomDay
+import com.ivandsky.puzzlebox.play.domain.random.LoadRandomPuzzle
+import com.ivandsky.puzzlebox.play.domain.random.LoadRandomShared
+import com.ivandsky.puzzlebox.play.domain.random.RandomPick
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.community.DifficultyChoice

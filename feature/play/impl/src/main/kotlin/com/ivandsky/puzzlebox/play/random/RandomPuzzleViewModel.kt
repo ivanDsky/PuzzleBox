@@ -6,9 +6,9 @@ import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.FilterFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.isEnabled
-import com.ivandsky.puzzlebox.domain.random.LoadRandomPuzzle
-import com.ivandsky.puzzlebox.domain.random.RandomFilter
-import com.ivandsky.puzzlebox.domain.random.RandomOutcome
+import com.ivandsky.puzzlebox.play.domain.random.LoadRandomPuzzle
+import com.ivandsky.puzzlebox.play.domain.random.RandomFilter
+import com.ivandsky.puzzlebox.play.domain.random.RandomOutcome
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.community.DifficultyChoice
 import kotlinx.coroutines.Job

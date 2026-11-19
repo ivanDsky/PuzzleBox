@@ -1,6 +1,6 @@
 package com.ivandsky.puzzlebox.play.random
 
-import com.ivandsky.puzzlebox.domain.random.RandomPick
+import com.ivandsky.puzzlebox.play.domain.random.RandomPick
 
 /**
  * The last random pick, so the next pick can avoid it. Process memory only: a restart forgets it (spec A5). It is here and

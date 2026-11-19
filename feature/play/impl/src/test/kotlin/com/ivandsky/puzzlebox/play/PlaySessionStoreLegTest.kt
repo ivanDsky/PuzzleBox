@@ -2,7 +2,7 @@ package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.play.domain.FinishLeg
-import com.ivandsky.puzzlebox.domain.LoadPastDay
+import com.ivandsky.puzzlebox.play.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.game.editor.Budget

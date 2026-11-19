@@ -1,9 +1,9 @@
-package com.ivandsky.puzzlebox.domain.random
+package com.ivandsky.puzzlebox.play.domain.random
 
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
-import com.ivandsky.puzzlebox.domain.LoadPastDay
-import com.ivandsky.puzzlebox.domain.PastDayOutcome
+import com.ivandsky.puzzlebox.play.domain.LoadPastDay
+import com.ivandsky.puzzlebox.play.domain.PastDayOutcome
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.model.GameId

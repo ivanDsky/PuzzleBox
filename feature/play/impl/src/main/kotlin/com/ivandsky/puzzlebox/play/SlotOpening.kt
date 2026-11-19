@@ -9,10 +9,10 @@ import com.ivandsky.puzzlebox.data.repository.DailyRefresh
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
-import com.ivandsky.puzzlebox.domain.LoadPastDay
+import com.ivandsky.puzzlebox.play.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.domain.OpenOutcome
-import com.ivandsky.puzzlebox.domain.PastDayOutcome
+import com.ivandsky.puzzlebox.play.domain.PastDayOutcome
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.GamePlugin

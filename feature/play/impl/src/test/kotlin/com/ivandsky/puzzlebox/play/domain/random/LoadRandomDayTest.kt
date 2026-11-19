@@ -1,7 +1,7 @@
-package com.ivandsky.puzzlebox.domain.random
+package com.ivandsky.puzzlebox.play.domain.random
 
 import com.ivandsky.puzzlebox.data.repository.DailyDay
-import com.ivandsky.puzzlebox.domain.LoadPastDay
+import com.ivandsky.puzzlebox.play.domain.LoadPastDay
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.RecordStats

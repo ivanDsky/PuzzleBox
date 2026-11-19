@@ -11,7 +11,6 @@ import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
 import com.ivandsky.puzzlebox.play.domain.FinishLeg
-import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.play.domain.ObserveLegTarget
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.today
@@ -89,7 +88,6 @@ class TangoCompeteLoopTest {
             }
             single { GameRegistry(listOf(tangoPlugin)) }
             single { GamePlayRegistry(listOf(tangoUi)) }
-            factory { LoadPastDay(get(), get()) }
             single { com.ivandsky.puzzlebox.domain.SyncTodayPuzzles(get(), get(), get()) }
             factory { com.ivandsky.puzzlebox.domain.ObserveTodaySet(get(), get(), get(), get(), get(), get()) }
             single<com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository> {

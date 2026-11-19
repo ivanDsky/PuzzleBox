@@ -5,7 +5,7 @@ import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 
 import com.ivandsky.puzzlebox.play.domain.FinishLeg
-import com.ivandsky.puzzlebox.domain.LoadPastDay
+import com.ivandsky.puzzlebox.play.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.game.editor.Budget

@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain
+package com.ivandsky.puzzlebox.play.domain
 
 import com.ivandsky.puzzlebox.data.repository.DailyDay
 import com.ivandsky.puzzlebox.game.DecodeError

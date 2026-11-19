@@ -15,7 +15,7 @@ import com.ivandsky.puzzlebox.data.match.ResultRead
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.match.ResultPostState
 import com.ivandsky.puzzlebox.play.domain.FinishLeg
-import com.ivandsky.puzzlebox.domain.LoadPastDay
+import com.ivandsky.puzzlebox.play.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadCustomReplay
 import com.ivandsky.puzzlebox.domain.LoadDailyReplay
 import com.ivandsky.puzzlebox.domain.LoadLegReplay
