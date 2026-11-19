@@ -11,16 +11,19 @@ import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Velocity
 
 /**
  * Every bottom sheet in the app. Material's sheet settles with whatever fling velocity a scrolling
  * body leaves unused, so a list flung into its end kicks the idle sheet up or down. Here such a
- * fling stops at the list; only a drag aimed at the sheet itself reaches its settle.
+ * fling stops at the list; only a drag aimed at the sheet itself reaches its settle. The sheet's window
+ * brings its own platform haptics, so the app's are carried in: a buzz in the body still meets the Vibration gate.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,6 +35,7 @@ fun AppModalBottomSheet(
     sheetGesturesEnabled: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val haptics = LocalHapticFeedback.current
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         modifier = modifier,
@@ -39,7 +43,9 @@ fun AppModalBottomSheet(
         sheetMaxWidth = sheetMaxWidth,
         sheetGesturesEnabled = sheetGesturesEnabled,
     ) {
-        Column(Modifier.fillMaxWidth().nestedScroll(SwallowScrolledFling), content = content)
+        CompositionLocalProvider(LocalHapticFeedback provides haptics) {
+            Column(Modifier.fillMaxWidth().nestedScroll(SwallowScrolledFling), content = content)
+        }
     }
 }
 
