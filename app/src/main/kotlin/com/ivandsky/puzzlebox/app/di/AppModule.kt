@@ -7,12 +7,16 @@ import com.ivandsky.puzzlebox.app.leaderboard.CustomBoardSubmitter
 import com.ivandsky.puzzlebox.app.leaderboard.DailyReplayPublisher
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.app.match.AndroidNetworkStatus
+import com.ivandsky.puzzlebox.app.nav.MainTabBars
 import com.ivandsky.puzzlebox.common.di.flagSet
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.DeclaredFlags
 import com.ivandsky.puzzlebox.common.flags.FilterFlag
 import com.ivandsky.puzzlebox.common.flags.FlagSet
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.TopBarFlag
+import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.domain.AppBuild
 import com.ivandsky.puzzlebox.domain.ranks.SubmitDailyReplay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
@@ -123,6 +127,9 @@ val appModule = module {
     flagSet("common", ReleaseFlag.entries)
     // Declared in core:common, registered here for the same reason.
     flagSet("filters", FilterFlag.entries)
+    // Declared in core:common, registered here for the same reason.
+    flagSet("top-bars", TopBarFlag.entries)
+    single { MainTabBars(largeBar = get<ReleaseFlags>().isEnabled(TopBarFlag.MainTabsLargeBar)) }
     // Declared in core:game-ui, which has no Koin, so registered here too.
     flagSet("game-ui", GameUiFlag.entries)
 

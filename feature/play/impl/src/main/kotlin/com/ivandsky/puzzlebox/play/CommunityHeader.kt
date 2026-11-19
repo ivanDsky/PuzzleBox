@@ -11,6 +11,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.LargeTopBar
+import com.ivandsky.puzzlebox.designsystem.LargeTopBarSubtitle
+import com.ivandsky.puzzlebox.designsystem.LargeTopBarTitle
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 
 /**
@@ -31,4 +34,24 @@ internal fun CommunityHeader(onEnterCode: () -> Unit, modifier: Modifier = Modif
         SecondaryButton(text = "Enter code", onClick = onEnterCode, modifier = Modifier.testTag("community.enterCode"))
         trailing?.invoke()
     }
+}
+
+/**
+ * The same head on Today's large top bar (MainTabsLargeBar): Enter code, then [trailing], then the phone's avatar at the
+ * end. Enter code and [trailing] are one group, so the filter slot keeps hugging Enter code. On the tablet ([phone]
+ * false) the bar reaches into the panes' gutters ([mainTabBarBleed]).
+ */
+@Composable
+internal fun CommunityLargeHeader(onEnterCode: () -> Unit, phone: Boolean, trailing: (@Composable () -> Unit)? = null) {
+    LargeTopBar(
+        title = { LargeTopBarTitle("Community") },
+        modifier = Modifier.mainTabBarBleed(phone),
+        subtitle = { LargeTopBarSubtitle("Puzzles from you and your friends") },
+        actions = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SecondaryButton(text = "Enter code", onClick = onEnterCode, modifier = Modifier.testTag("community.enterCode"))
+                trailing?.invoke()
+            }
+        },
+    )
 }

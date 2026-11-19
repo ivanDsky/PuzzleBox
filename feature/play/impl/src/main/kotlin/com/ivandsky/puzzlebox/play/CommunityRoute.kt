@@ -67,10 +67,14 @@ internal fun CommunityRoute(
     // A closed sheet forgets the draft: the next Enter code opens empty.
     if (!enteringCode && codePrefill.isNotEmpty()) LaunchedEffect(Unit) { codePrefill = "" }
     val onEnterCode = { enteringCode = true }
+    val largeBar = rememberMainTabsLargeBar()
     Box(modifier.fillMaxSize().testTag("route.community")) {
         if (layout == PlayLayout.SinglePane) {
             CommunityBound(community, communityState, onOpen) { actions ->
-                CommunityTabs(communityState, actions, friends, custom, onOpen, viewModel::removeFriend, onEnterCode, Modifier.fillMaxSize(), sharePending = sharePending != null)
+                CommunityTabs(
+                    communityState, actions, friends, custom, onOpen, viewModel::removeFriend, onEnterCode, Modifier.fillMaxSize(),
+                    sharePending = sharePending != null, largeBar = largeBar,
+                )
             }
         } else {
             val yours = custom.yoursSummary()
@@ -78,10 +82,14 @@ internal fun CommunityRoute(
                 CommunityPanes(
                     default = { tab -> defaultCommunityPick(tab, communityState.phase, friends, yours) },
                     list = { size, picks ->
-                        CommunityTabs(communityState, actions, friends, custom, onOpen, viewModel::removeFriend, onEnterCode, size, picks, sharePending = sharePending != null)
+                        CommunityTabs(
+                            communityState, actions, friends, custom, onOpen, viewModel::removeFriend, onEnterCode, size, picks,
+                            sharePending = sharePending != null, largeBar = largeBar,
+                        )
                     },
                     empty = { tab -> CommunityEmptyPane(tab, communityState.phase) },
                     detail = { pick, clear -> CommunityPage(pick, clear, custom, onPlay) },
+                    largeBar = largeBar,
                 )
             }
         }

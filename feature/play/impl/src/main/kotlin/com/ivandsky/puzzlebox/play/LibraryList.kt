@@ -20,6 +20,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.LargeTopBar
+import com.ivandsky.puzzlebox.designsystem.LargeTopBarSubtitle
+import com.ivandsky.puzzlebox.designsystem.LargeTopBarTitle
 import com.ivandsky.puzzlebox.designsystem.OnTabReselect
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -39,6 +42,9 @@ import com.ivandsky.puzzlebox.model.GameId
  * Dailies on [scroll] and Duels on [duelsScroll], which the Duels body lays its list out on; a tab change ([onTab])
  * scrolls nothing back to the top. The friend puzzles live on the app's Community tab, so there is no From friends
  * carousel in the tabs. The Duels body is handed the pending [duelPrefill] and reports it taken ([onDuelPrefillTaken]).
+ *
+ * With [largeBar] (MainTabsLargeBar) the header is Today's large top bar ([GamesLargeBar]) and what follows it starts at
+ * its bottom edge, the height Today's first section starts at.
  */
 @Composable
 internal fun LibraryList(
@@ -55,6 +61,7 @@ internal fun LibraryList(
     duelsScroll: LazyListState = rememberLazyListState(),
     duelPrefill: DuelPrefill? = null,
     onDuelPrefillTaken: () -> Unit = {},
+    largeBar: Boolean = false,
 ) {
     val phone = layout == PlayLayout.SinglePane
     // Only the list on screen glides: a tab change already snaps the other ones back to their tops.
@@ -65,9 +72,30 @@ internal fun LibraryList(
     if (duels != null) {
         UnderlineTabbedList(
             state, phone, GamesScrolls(scroll, duelsScroll), onRow, modifier,
-            header = { Box(if (phone) Modifier.padding(horizontal = Spacing.lg) else Modifier) { ListHeader(tab.subtitle(), headerAction) } },
+            header = {
+                if (largeBar) {
+                    GamesLargeBar(tab.subtitle(), phone, headerAction)
+                } else {
+                    Box(if (phone) Modifier.padding(horizontal = Spacing.lg) else Modifier) { ListHeader(tab.subtitle(), headerAction) }
+                }
+            },
             duels, tab, onTab, duelPrefill, onDuelPrefillTaken,
+            headerGap = if (largeBar) 0.dp else Spacing.md,
         )
+        return
+    }
+    if (largeBar) {
+        Column(modifier.testTag("library.list").verticalScroll(scroll).padding(bottom = if (phone) Spacing.xl else 0.dp)) {
+            GamesLargeBar(GamesTab.Dailies.subtitle(), phone, headerAction)
+            Column(
+                modifier = if (phone) Modifier.padding(horizontal = Spacing.lg) else Modifier,
+                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
+                if (phone && state.offline) OfflinePill()
+                friends()
+                DailyRows(state, phone, onRow)
+            }
+        }
         return
     }
     Column(
@@ -83,6 +111,20 @@ internal fun LibraryList(
         friends()
         DailyRows(state, phone, onRow)
     }
+}
+
+/**
+ * "Games" on Today's large top bar over the tab's one-line [subtitle], [headerAction] then the phone's avatar at its end.
+ * On the tablet ([phone] false) it reaches into the panes' gutters ([mainTabBarBleed]).
+ */
+@Composable
+private fun GamesLargeBar(subtitle: String, phone: Boolean, headerAction: @Composable () -> Unit) {
+    LargeTopBar(
+        title = { LargeTopBarTitle("Games") },
+        modifier = Modifier.mainTabBarBleed(phone),
+        subtitle = { LargeTopBarSubtitle(subtitle) },
+        actions = { headerAction() },
+    )
 }
 
 @Composable

@@ -53,6 +53,9 @@ import kotlinx.coroutines.launch
  *
  * A [sharePending] text (another app shared it) opens Yours, where Custom's list takes it: on the first composition
  * without a move, later by the pager's. It acts when it turns true, so a taken text leaves the user's own tab choice.
+ *
+ * With [largeBar] (MainTabsLargeBar) the head is Today's large top bar ([CommunityLargeHeader]) and the tabs start at
+ * its bottom edge.
  */
 @Composable
 internal fun CommunityTabs(
@@ -66,6 +69,7 @@ internal fun CommunityTabs(
     modifier: Modifier = Modifier,
     picks: CommunityTabPicks? = null,
     sharePending: Boolean = false,
+    largeBar: Boolean = false,
 ) {
     val yours = custom.yours
     val pages = remember(yours != null) { CommunityTab.entries.filter { it != CommunityTab.Yours || yours != null } }
@@ -112,11 +116,17 @@ internal fun CommunityTabs(
         UnderlineTab("Yours", "community.tab.yours", count = custom.yoursSummary().count),
     ).take(pages.size)
     Column(modifier) {
-        CommunityHeader(
-            onEnterCode,
-            Modifier.padding(start = Spacing.lg, end = if (state.filterSheets) Spacing.lg else Spacing.sm),
-            trailing = if (state.filterSheets) null else ({ FilterSlot(link = link, state = state, actions = actions) }),
-        )
+        val trailing: (@Composable () -> Unit)? =
+            if (state.filterSheets) null else ({ FilterSlot(link = link, state = state, actions = actions) })
+        if (largeBar) {
+            CommunityLargeHeader(onEnterCode, phone = picks == null, trailing = trailing)
+        } else {
+            CommunityHeader(
+                onEnterCode,
+                Modifier.padding(start = Spacing.lg, end = if (state.filterSheets) Spacing.lg else Spacing.sm),
+                trailing = trailing,
+            )
+        }
         UnderlineTabPager(
             tabs = tabs,
             onReselect = { index -> scope.launch { listFor(pages[index]).animateScrollToItem(0) } },

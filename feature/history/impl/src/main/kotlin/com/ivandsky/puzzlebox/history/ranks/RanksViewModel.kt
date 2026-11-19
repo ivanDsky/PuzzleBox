@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.flags.FilterFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.TopBarFlag
 import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -126,6 +127,8 @@ internal class RanksViewModel(
 
     /** Who and When are filter chips (FilterSheets), read once like [tuneBoardOnly]. */
     private val filterSheets = releaseFlags.isEnabled(FilterFlag.FilterSheets)
+    /** The tab's hub on Today's large top bar (MainTabsLargeBar), read once the same way. */
+    private val largeBar = releaseFlags.isEnabled(TopBarFlag.MainTabsLargeBar)
 
     // The LinkedIn part of the hub (the line, the pull's sync) exists only with RanksFreshness on and LinkedIn in the graph.
     private val freshLinkedIn = linkedIn.takeIf { releaseFlags.isEnabled(HistoryFlag.RanksFreshness) }
@@ -218,11 +221,11 @@ internal class RanksViewModel(
     ) { (scope, slices), signIn, position, local, kind ->
         val slice = slices.getOrElse(position) { slices.first() }
         val places = boardPlaces(boards, registry, playRegistry::brandOf, slices)
-        RanksUiState(slice, signIn, position, boards.size, local.calendar, local.stats, local.yourSolve, scope, kind, places, local.nudge, slices, local.playThisDay, filterSheets)
+        RanksUiState(slice, signIn, position, boards.size, local.calendar, local.stats, local.yourSolve, scope, kind, places, local.nudge, slices, local.playThisDay, filterSheets, largeBar)
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
-        RanksUiState(overallSlice(RanksSelection.Window.Day, null, OverallState.Loading, null), filterSheets = filterSheets),
+        RanksUiState(overallSlice(RanksSelection.Window.Day, null, OverallState.Loading, null), filterSheets = filterSheets, largeBar = largeBar),
     )
 
     /** Applies one of [RanksSelection]'s transitions; the policy stays in the value. */

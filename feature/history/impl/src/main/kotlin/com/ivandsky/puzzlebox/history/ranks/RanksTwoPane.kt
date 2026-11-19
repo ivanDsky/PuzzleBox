@@ -25,10 +25,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.LargeTopBarTitle
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.bleedSides
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardRowModel
@@ -48,6 +50,8 @@ private const val BOARD_WEIGHT = 0.6f
  * ([RanksActions.onShowCalendar] only ever hears `expanded = true`). The hero card wears the shown board's accent; it,
  * the board's title and the board itself go to the next board's with the [scrub]. With [RanksUiState.filterSheets] the Who and When
  * chips sit under the top bar, and [onFilterOpenChange] hears their sheets open and close; a null [onTune] leaves the tune icon out.
+ * With [largeBar] the board's name, the scope and window and the tune icon are Today's large top bar over the left pane
+ * ([RanksLargeBar]), and the right pane starts with the hero card.
  */
 @Composable
 internal fun RanksTwoPane(
@@ -62,6 +66,7 @@ internal fun RanksTwoPane(
     onFilterOpenChange: (Boolean) -> Unit,
     onHowRanksWork: () -> Unit,
     modifier: Modifier = Modifier,
+    largeBar: Boolean = false,
 ) {
     val current = state.places.getOrNull(state.position)
     val accents = state.places.map { it.brand.accent.colors() }
@@ -76,26 +81,37 @@ internal fun RanksTwoPane(
     }
     Row(
         // No bottom padding on the row: each pane keeps its own, so the left list scrolls to the pane's edge.
-        modifier.fillMaxSize().testTag("route.ranks").padding(start = Spacing.lg, top = Spacing.lg, end = Spacing.lg),
+        modifier.fillMaxSize().testTag("route.ranks").padding(start = Spacing.lg, top = if (largeBar) 0.dp else Spacing.lg, end = Spacing.lg),
         horizontalArrangement = Arrangement.spacedBy(Spacing.xl),
     ) {
-        Column(
-            Modifier.weight(LIST_WEIGHT).fillMaxHeight().verticalScroll(leftScroll).padding(bottom = Spacing.lg).testTag("ranks.leftpane"),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            RanksCalendar(state.calendar.copy(expanded = true), state.stats, { day, _ -> actions.onShowCalendar(day, true) }, actions.onSelectDay, foldable = false, gapBelow = 0.dp)
-            GameList(state.places, current?.board, actions.onPickBoard, onHowRanksWork = onHowRanksWork)
+        Column(Modifier.weight(LIST_WEIGHT).fillMaxHeight().verticalScroll(leftScroll).padding(bottom = Spacing.lg).testTag("ranks.leftpane")) {
+            if (largeBar) {
+                // The bar's side padding sits in the gutters, so its title lines up with Today's and its tune with the list's end.
+                // The board's name, as the phone's title menu shows it; the sub line already says the scope and window.
+                RanksLargeBar(state, onTune, Modifier.bleedSides(Spacing.lg)) {
+                    BoardScrubCell(scrub, state.position, current?.name ?: "Ranks", at = { state.places.getOrNull(it)?.name }) { title ->
+                        LargeTopBarTitle(title, Modifier.testTag("ranks.boardtitle"))
+                    }
+                }
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                RanksCalendar(state.calendar.copy(expanded = true), state.stats, { day, _ -> actions.onShowCalendar(day, true) }, actions.onSelectDay, foldable = false, gapBelow = 0.dp)
+                GameList(state.places, current?.board, actions.onPickBoard, onHowRanksWork = onHowRanksWork)
+            }
         }
-        RanksPullToRefresh(refreshing, actions.onRefresh, Modifier.weight(BOARD_WEIGHT).fillMaxHeight().padding(bottom = Spacing.lg)) {
+        val paneTop = if (largeBar) Spacing.lg else 0.dp
+        RanksPullToRefresh(refreshing, actions.onRefresh, Modifier.weight(BOARD_WEIGHT).fillMaxHeight().padding(top = paneTop, bottom = Spacing.lg)) {
             FillRemainingColumn(Modifier.fillMaxSize().verticalScroll(rightScroll).testTag("ranks.rightpane")) {
-                RanksTopBar(state.topBarLabel(), onTune = onTune) {
-                    BoardScrubCell(scrub, state.position, state.board.title, Modifier.padding(start = Spacing.sm), at = { state.sliceAt(it)?.title }) { title ->
-                        Text(
-                            title,
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.testTag("ranks.boardtitle"),
-                        )
+                if (!largeBar) {
+                    RanksTopBar(state.topBarLabel(), onTune = onTune) {
+                        BoardScrubCell(scrub, state.position, state.board.title, Modifier.padding(start = Spacing.sm), at = { state.sliceAt(it)?.title }) { title ->
+                            Text(
+                                title,
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.testTag("ranks.boardtitle"),
+                            )
+                        }
                     }
                 }
                 if (state.filterSheets) RanksFilterChips(state, actions, onFilterOpenChange)
