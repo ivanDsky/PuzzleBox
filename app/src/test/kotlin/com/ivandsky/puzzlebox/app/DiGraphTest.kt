@@ -45,6 +45,7 @@ import com.ivandsky.puzzlebox.domain.LoadSolveReplay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
+import com.ivandsky.puzzlebox.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
@@ -348,6 +349,8 @@ class DiGraphTest : KoinTest {
             // A duel leg's result into the outbox, and the match leg screen's target.
             assertNotNull(koin.get<FinishLeg>())
             assertNotNull(koin.get<ObserveLegTarget>())
+            // The Duels tab's rows and its badge count.
+            assertNotNull(koin.get<ObserveMyDuels>())
             // The tablet play side panel's stats and the board gate beneath them.
             assertNotNull(koin.get<ObserveLeaderboard>())
             assertNotNull(koin.get<ObserveResultInsights>())
