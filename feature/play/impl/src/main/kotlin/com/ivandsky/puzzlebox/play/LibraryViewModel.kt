@@ -7,7 +7,7 @@ import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.play.domain.ArchiveProgress
-import com.ivandsky.puzzlebox.domain.DeleteReceivedPuzzle
+import com.ivandsky.puzzlebox.play.domain.DeleteReceivedPuzzle
 import com.ivandsky.puzzlebox.domain.FriendPuzzleRow
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.play.domain.ObserveArchiveMonth

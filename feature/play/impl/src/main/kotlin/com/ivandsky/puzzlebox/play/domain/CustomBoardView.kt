@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain
+package com.ivandsky.puzzlebox.play.domain
 
 /** What a friend puzzle's board shows; every state keeps the [author] pinned. */
 sealed interface CustomBoardView {

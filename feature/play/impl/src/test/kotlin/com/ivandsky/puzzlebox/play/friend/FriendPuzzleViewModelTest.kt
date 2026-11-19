@@ -7,13 +7,13 @@ import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
 import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
-import com.ivandsky.puzzlebox.domain.ComputeCustomBoard
-import com.ivandsky.puzzlebox.domain.CustomBoardView
+import com.ivandsky.puzzlebox.play.domain.ComputeCustomBoard
+import com.ivandsky.puzzlebox.play.domain.CustomBoardView
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.domain.ObserveFriendPuzzles
 import com.ivandsky.puzzlebox.domain.OpenOutcome
-import com.ivandsky.puzzlebox.domain.ReportPuzzle
-import com.ivandsky.puzzlebox.domain.SyncReceivedStatus
+import com.ivandsky.puzzlebox.play.domain.ReportPuzzle
+import com.ivandsky.puzzlebox.play.domain.SyncReceivedStatus
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.Puzzle

@@ -33,14 +33,13 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.gameui.SamePuzzleSolves
 import com.ivandsky.puzzlebox.data.visibility.HiddenPuzzles
-import com.ivandsky.puzzlebox.domain.ReportPuzzle
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.CustomBoardView
-import com.ivandsky.puzzlebox.domain.FinishLeg
+import com.ivandsky.puzzlebox.play.domain.CustomBoardView
+import com.ivandsky.puzzlebox.play.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.LoadCustomReplay
 import com.ivandsky.puzzlebox.domain.LoadDailyReplay
 import com.ivandsky.puzzlebox.domain.LoadLegReplay
@@ -173,10 +172,8 @@ class CustomResultViewModelTest {
                     single<ReceivedPuzzleRepository> { received }
                     single<HiddenPuzzles> { FakeHiddenPuzzles() }
                     single<ReleaseFlags> { FakeReleaseFlags() }
-                    factory { ReportPuzzle(get(), get()) }
                     single<SharedPuzzleRepository> { FakeSharedPuzzleRepository() }
                     single<MatchRepository> { FakeMatchRepository() }
-                    factory { FinishLeg(FakeMatchResultOutbox(), FakeSelfMatchRepository(), FakeIdentityService()) { Instant.EPOCH } }
                     single<GameCalendar> { FakeGameCalendar(LocalDate.parse("2026-11-04")) }
                     single<UserPreferencesRepository> { FakeUserPreferencesRepository() }
                     single { GameEditorRegistry(emptyList()) }
@@ -188,6 +185,8 @@ class CustomResultViewModelTest {
                 },
                 module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
+                // After playModule, whose own FinishLeg would replace this one.
+                module { factory { FinishLeg(FakeMatchResultOutbox(), FakeSelfMatchRepository(), FakeIdentityService()) { Instant.EPOCH } } },
                 hubOffFriendDay,
             )
         }

@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.play
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
-import com.ivandsky.puzzlebox.domain.DeleteReceivedPuzzle
+import com.ivandsky.puzzlebox.play.domain.DeleteReceivedPuzzle
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.game.TestGames

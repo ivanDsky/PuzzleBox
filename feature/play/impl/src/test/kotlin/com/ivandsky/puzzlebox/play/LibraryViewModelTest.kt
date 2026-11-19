@@ -10,8 +10,8 @@ import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.domain.ComputeStreak
-import com.ivandsky.puzzlebox.domain.DeleteReceivedPuzzle
-import com.ivandsky.puzzlebox.domain.FinishLeg
+import com.ivandsky.puzzlebox.play.domain.DeleteReceivedPuzzle
+import com.ivandsky.puzzlebox.play.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle

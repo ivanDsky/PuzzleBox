@@ -3,9 +3,9 @@ package com.ivandsky.puzzlebox.play
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
-import com.ivandsky.puzzlebox.domain.ComputeCustomBoard
+import com.ivandsky.puzzlebox.play.domain.ComputeCustomBoard
 import com.ivandsky.puzzlebox.domain.ComputeStreak
-import com.ivandsky.puzzlebox.domain.FinishLeg
+import com.ivandsky.puzzlebox.play.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.LoadPastDay

@@ -12,7 +12,7 @@ import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.CustomBoardView
+import com.ivandsky.puzzlebox.play.domain.CustomBoardView
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame

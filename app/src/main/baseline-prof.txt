@@ -24754,7 +24754,7 @@ PLcom/ivandsky/puzzlebox/domain/ComputeCodename;-><clinit>()V
 PLcom/ivandsky/puzzlebox/domain/ComputeCodename;-><init>()V
 PLcom/ivandsky/puzzlebox/domain/ComputeCodename$Companion;-><init>()V
 PLcom/ivandsky/puzzlebox/domain/ComputeCodename$Companion;-><init>(Lkotlin/jvm/internal/DefaultConstructorMarker;)V
-Lcom/ivandsky/puzzlebox/domain/ComputeCustomBoard;
+Lcom/ivandsky/puzzlebox/play/domain/ComputeCustomBoard;
 Lcom/ivandsky/puzzlebox/domain/ComputeMatchLegs;
 PLcom/ivandsky/puzzlebox/domain/ComputeMatchLegs;-><init>(Lcom/ivandsky/puzzlebox/game/GameRegistry;Lcom/ivandsky/puzzlebox/data/repository/DailyRepository;Lcom/ivandsky/puzzlebox/data/calendar/GameCalendar;Lcom/ivandsky/puzzlebox/domain/ObserveGameHistory;Lcom/ivandsky/puzzlebox/data/repository/ReceivedPuzzleRepository;Lkotlin/random/Random;)V
 Lcom/ivandsky/puzzlebox/domain/ComputeStreak;
@@ -24779,11 +24779,11 @@ PLcom/ivandsky/puzzlebox/domain/CreateMatch;-><init>(Lcom/ivandsky/puzzlebox/dat
 PLcom/ivandsky/puzzlebox/domain/CreateMatch$Companion;-><init>()V
 PLcom/ivandsky/puzzlebox/domain/CreateMatch$Companion;-><init>(Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 Lcom/ivandsky/puzzlebox/domain/CreateSharedPuzzle;
-Lcom/ivandsky/puzzlebox/domain/DeleteReceivedPuzzle;
-SPLcom/ivandsky/puzzlebox/domain/DeleteReceivedPuzzle;-><init>(Lcom/ivandsky/puzzlebox/data/repository/ReceivedPuzzleRepository;Lcom/ivandsky/puzzlebox/data/repository/SavedPlayRepository;)V
+Lcom/ivandsky/puzzlebox/play/domain/DeleteReceivedPuzzle;
+SPLcom/ivandsky/puzzlebox/play/domain/DeleteReceivedPuzzle;-><init>(Lcom/ivandsky/puzzlebox/data/repository/ReceivedPuzzleRepository;Lcom/ivandsky/puzzlebox/data/repository/SavedPlayRepository;)V
 Lcom/ivandsky/puzzlebox/domain/DuelOrigin;
-Lcom/ivandsky/puzzlebox/domain/FinishLeg;
-SPLcom/ivandsky/puzzlebox/domain/FinishLeg;-><init>(Lcom/ivandsky/puzzlebox/data/match/MatchResultOutbox;Lcom/ivandsky/puzzlebox/data/identity/IdentityService;Lkotlin/jvm/functions/Function0;)V
+Lcom/ivandsky/puzzlebox/play/domain/FinishLeg;
+SPLcom/ivandsky/puzzlebox/play/domain/FinishLeg;-><init>(Lcom/ivandsky/puzzlebox/data/match/MatchResultOutbox;Lcom/ivandsky/puzzlebox/data/identity/IdentityService;Lkotlin/jvm/functions/Function0;)V
 Lcom/ivandsky/puzzlebox/domain/GameHistoryDay;
 SPLcom/ivandsky/puzzlebox/domain/GameHistoryDay;-><init>(Ljava/lang/String;Ljava/time/LocalDate;Ljava/lang/Integer;Lcom/ivandsky/puzzlebox/game/CompletionRecord;JZLcom/ivandsky/puzzlebox/domain/DuelOrigin;Z)V
 SPLcom/ivandsky/puzzlebox/domain/GameHistoryDay;-><init>(Ljava/lang/String;Ljava/time/LocalDate;Ljava/lang/Integer;Lcom/ivandsky/puzzlebox/game/CompletionRecord;JZLcom/ivandsky/puzzlebox/domain/DuelOrigin;ZLkotlin/jvm/internal/DefaultConstructorMarker;)V
@@ -25087,7 +25087,7 @@ SPLcom/ivandsky/puzzlebox/domain/StreakLedger;-><init>(IILcom/ivandsky/puzzlebox
 SPLcom/ivandsky/puzzlebox/domain/StreakLedger;->getBest()I
 SPLcom/ivandsky/puzzlebox/domain/StreakLedger;->getCurrent()I
 SPLcom/ivandsky/puzzlebox/domain/StreakLedger;->getFreezes()Lcom/ivandsky/puzzlebox/domain/StreakFreezes;
-Lcom/ivandsky/puzzlebox/domain/SyncReceivedStatus;
+Lcom/ivandsky/puzzlebox/play/domain/SyncReceivedStatus;
 Lcom/ivandsky/puzzlebox/domain/SyncSolvesCounts;
 PLcom/ivandsky/puzzlebox/domain/SyncSolvesCounts;-><clinit>()V
 PLcom/ivandsky/puzzlebox/domain/SyncSolvesCounts;-><init>(Lcom/ivandsky/puzzlebox/data/repository/PublishedPuzzleRepository;Lcom/ivandsky/puzzlebox/data/repository/CustomBoardRepository;Lkotlin/jvm/functions/Function0;)V
@@ -25146,7 +25146,7 @@ SPLcom/ivandsky/puzzlebox/domain/di/DomainModuleKt;->domainModule$lambda$56$lamb
 SPLcom/ivandsky/puzzlebox/domain/di/DomainModuleKt;->domainModule$lambda$56$lambda$2(Lorg/koin/core/scope/Scope;Lorg/koin/core/parameter/ParametersHolder;)Lcom/ivandsky/puzzlebox/domain/GetPuzzleDay;
 PLcom/ivandsky/puzzlebox/domain/di/DomainModuleKt;->domainModule$lambda$56$lambda$20(Lorg/koin/core/scope/Scope;Lorg/koin/core/parameter/ParametersHolder;)Lcom/ivandsky/puzzlebox/domain/CreateDraft;
 PLcom/ivandsky/puzzlebox/domain/di/DomainModuleKt;->domainModule$lambda$56$lambda$23(Lorg/koin/core/scope/Scope;Lorg/koin/core/parameter/ParametersHolder;)Lcom/ivandsky/puzzlebox/domain/CreateDraftCopy;
-SPLcom/ivandsky/puzzlebox/domain/di/DomainModuleKt;->domainModule$lambda$56$lambda$25(Lorg/koin/core/scope/Scope;Lorg/koin/core/parameter/ParametersHolder;)Lcom/ivandsky/puzzlebox/domain/FinishLeg;
+SPLcom/ivandsky/puzzlebox/domain/di/DomainModuleKt;->domainModule$lambda$56$lambda$25(Lorg/koin/core/scope/Scope;Lorg/koin/core/parameter/ParametersHolder;)Lcom/ivandsky/puzzlebox/play/domain/FinishLeg;
 SPLcom/ivandsky/puzzlebox/domain/di/DomainModuleKt;->domainModule$lambda$56$lambda$3(Lorg/koin/core/scope/Scope;Lorg/koin/core/parameter/ParametersHolder;)Lcom/ivandsky/puzzlebox/domain/GetNextRollover;
 SPLcom/ivandsky/puzzlebox/domain/di/DomainModuleKt;->domainModule$lambda$56$lambda$30(Lorg/koin/core/scope/Scope;Lorg/koin/core/parameter/ParametersHolder;)Lcom/ivandsky/puzzlebox/domain/ObserveMyDuels;
 PLcom/ivandsky/puzzlebox/domain/di/DomainModuleKt;->domainModule$lambda$56$lambda$31(Lorg/koin/core/scope/Scope;Lorg/koin/core/parameter/ParametersHolder;)Lcom/ivandsky/puzzlebox/domain/ranks/ObserveOverall;
@@ -25421,8 +25421,8 @@ SPLcom/ivandsky/puzzlebox/domain/linkedin/ObserveLinkedInDayView$invoke$1$4;->em
 Lcom/ivandsky/puzzlebox/domain/linkedin/ObserveLinkedInDayViewKt;
 SPLcom/ivandsky/puzzlebox/domain/linkedin/ObserveLinkedInDayViewKt;->access$syncing(Lcom/ivandsky/puzzlebox/domain/linkedin/LinkedInDayView;)Lcom/ivandsky/puzzlebox/domain/linkedin/LinkedInDayView;
 SPLcom/ivandsky/puzzlebox/domain/linkedin/ObserveLinkedInDayViewKt;->syncing(Lcom/ivandsky/puzzlebox/domain/linkedin/LinkedInDayView;)Lcom/ivandsky/puzzlebox/domain/linkedin/LinkedInDayView;
-Lcom/ivandsky/puzzlebox/domain/linkedin/ObserveLinkedInPost;
-Lcom/ivandsky/puzzlebox/domain/linkedin/SubmitLinkedInResult;
+Lcom/ivandsky/puzzlebox/play/domain/linkedin/ObserveLinkedInPost;
+Lcom/ivandsky/puzzlebox/play/domain/linkedin/SubmitLinkedInResult;
 Lcom/ivandsky/puzzlebox/domain/linkedin/SyncLinkedInDay;
 SPLcom/ivandsky/puzzlebox/domain/linkedin/SyncLinkedInDay;-><init>(Lcom/ivandsky/puzzlebox/data/linkedin/LinkedInDays;J)V
 SPLcom/ivandsky/puzzlebox/domain/linkedin/SyncLinkedInDay;-><init>(Lcom/ivandsky/puzzlebox/data/linkedin/LinkedInDays;JILkotlin/jvm/internal/DefaultConstructorMarker;)V
@@ -31544,7 +31544,7 @@ SPLcom/ivandsky/puzzlebox/play/DuelsSlot;-><init>(Lkotlin/jvm/functions/Function
 SPLcom/ivandsky/puzzlebox/play/DuelsSlot;->getNeedYou()Lkotlin/jvm/functions/Function2;
 Lcom/ivandsky/puzzlebox/play/FriendRemoval;
 SPLcom/ivandsky/puzzlebox/play/FriendRemoval;-><clinit>()V
-SPLcom/ivandsky/puzzlebox/play/FriendRemoval;-><init>(Lcom/ivandsky/puzzlebox/domain/DeleteReceivedPuzzle;Lkotlinx/coroutines/CoroutineScope;Lkotlin/jvm/functions/Function2;)V
+SPLcom/ivandsky/puzzlebox/play/FriendRemoval;-><init>(Lcom/ivandsky/puzzlebox/play/domain/DeleteReceivedPuzzle;Lkotlinx/coroutines/CoroutineScope;Lkotlin/jvm/functions/Function2;)V
 SPLcom/ivandsky/puzzlebox/play/FriendRemoval;->getHidden()Lkotlinx/coroutines/flow/StateFlow;
 SPLcom/ivandsky/puzzlebox/play/FriendRemoval;->getRemoved()Lkotlinx/coroutines/flow/StateFlow;
 Lcom/ivandsky/puzzlebox/play/FriendRemoval$Companion;
@@ -31814,7 +31814,7 @@ SPLcom/ivandsky/puzzlebox/play/GamesTabsKt$$ExternalSyntheticLambda6;-><init>(Lj
 Lcom/ivandsky/puzzlebox/play/HowToPlayCardKt;
 HSPLcom/ivandsky/puzzlebox/play/HowToPlayCardKt;->HowToPlayCard(Lcom/ivandsky/puzzlebox/play/LibraryRowModel;ZLkotlin/jvm/functions/Function0;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
 Lcom/ivandsky/puzzlebox/play/LegCompletionRepositoryKt;
-SPLcom/ivandsky/puzzlebox/play/LegCompletionRepositoryKt;->forSlot(Lcom/ivandsky/puzzlebox/data/repository/CompletionRepository;Lcom/ivandsky/puzzlebox/model/PlaySlot;Lcom/ivandsky/puzzlebox/domain/FinishLeg;)Lcom/ivandsky/puzzlebox/data/repository/CompletionRepository;
+SPLcom/ivandsky/puzzlebox/play/LegCompletionRepositoryKt;->forSlot(Lcom/ivandsky/puzzlebox/data/repository/CompletionRepository;Lcom/ivandsky/puzzlebox/model/PlaySlot;Lcom/ivandsky/puzzlebox/play/domain/FinishLeg;)Lcom/ivandsky/puzzlebox/data/repository/CompletionRepository;
 Lcom/ivandsky/puzzlebox/play/LibraryGamePageKt;
 SPLcom/ivandsky/puzzlebox/play/LibraryGamePageKt;->LibraryGamePage$lambda$14(Ljava/lang/String;Lkotlin/jvm/functions/Function2;Lcom/ivandsky/puzzlebox/play/domain/ArchiveDay;Lcom/ivandsky/puzzlebox/play/LibraryRowModel;Lcom/ivandsky/puzzlebox/play/linkedin/LinkedInCardState;Landroidx/compose/runtime/Composer;I)Lkotlin/Unit;
 SPLcom/ivandsky/puzzlebox/play/LibraryGamePageKt;->LibraryGamePage$lambda$5$lambda$2$lambda$1(Lkotlin/jvm/functions/Function2;Ljava/lang/String;Lcom/ivandsky/puzzlebox/play/domain/ArchiveDay;)Lkotlin/Unit;
@@ -32116,7 +32116,7 @@ SPLcom/ivandsky/puzzlebox/play/LibraryUiState;->getRows()Ljava/util/List;
 SPLcom/ivandsky/puzzlebox/play/LibraryUiState;->getSelected-FIuX3gU()Ljava/lang/String;
 Lcom/ivandsky/puzzlebox/play/LibraryViewModel;
 SPLcom/ivandsky/puzzlebox/play/LibraryViewModel;-><clinit>()V
-SPLcom/ivandsky/puzzlebox/play/LibraryViewModel;-><init>(Lcom/ivandsky/puzzlebox/play/PlaySessionStore;Lcom/ivandsky/puzzlebox/domain/ObserveTodaySet;Lcom/ivandsky/puzzlebox/domain/SyncTodayPuzzles;Lcom/ivandsky/puzzlebox/domain/ObserveGameStats;Lcom/ivandsky/puzzlebox/domain/ObserveGameHistory;Lcom/ivandsky/puzzlebox/play/domain/ObserveArchiveProgress;Lcom/ivandsky/puzzlebox/play/domain/ObserveArchiveMonth;Lcom/ivandsky/puzzlebox/data/calendar/GameCalendar;Lcom/ivandsky/puzzlebox/game/GameRegistry;Lcom/ivandsky/puzzlebox/gameui/GamePlayRegistry;Lcom/ivandsky/puzzlebox/data/repository/DailyRepository;Lcom/ivandsky/puzzlebox/data/repository/UserPreferencesRepository;Lcom/ivandsky/puzzlebox/domain/ObserveFriendPuzzles;Lcom/ivandsky/puzzlebox/domain/DeleteReceivedPuzzle;Lkotlinx/coroutines/CoroutineScope;Lcom/ivandsky/puzzlebox/domain/linkedin/ObserveLinkedInDayView;Lcom/ivandsky/puzzlebox/data/identity/IdentityService;)V
+SPLcom/ivandsky/puzzlebox/play/LibraryViewModel;-><init>(Lcom/ivandsky/puzzlebox/play/PlaySessionStore;Lcom/ivandsky/puzzlebox/domain/ObserveTodaySet;Lcom/ivandsky/puzzlebox/domain/SyncTodayPuzzles;Lcom/ivandsky/puzzlebox/domain/ObserveGameStats;Lcom/ivandsky/puzzlebox/domain/ObserveGameHistory;Lcom/ivandsky/puzzlebox/play/domain/ObserveArchiveProgress;Lcom/ivandsky/puzzlebox/play/domain/ObserveArchiveMonth;Lcom/ivandsky/puzzlebox/data/calendar/GameCalendar;Lcom/ivandsky/puzzlebox/game/GameRegistry;Lcom/ivandsky/puzzlebox/gameui/GamePlayRegistry;Lcom/ivandsky/puzzlebox/data/repository/DailyRepository;Lcom/ivandsky/puzzlebox/data/repository/UserPreferencesRepository;Lcom/ivandsky/puzzlebox/domain/ObserveFriendPuzzles;Lcom/ivandsky/puzzlebox/play/domain/DeleteReceivedPuzzle;Lkotlinx/coroutines/CoroutineScope;Lcom/ivandsky/puzzlebox/domain/linkedin/ObserveLinkedInDayView;Lcom/ivandsky/puzzlebox/data/identity/IdentityService;)V
 SPLcom/ivandsky/puzzlebox/play/LibraryViewModel;->access$account(Lcom/ivandsky/puzzlebox/play/LibraryViewModel;)Ljava/lang/String;
 SPLcom/ivandsky/puzzlebox/play/LibraryViewModel;->access$getArchiveMonth$p(Lcom/ivandsky/puzzlebox/play/LibraryViewModel;)Lcom/ivandsky/puzzlebox/play/domain/ObserveArchiveMonth;
 SPLcom/ivandsky/puzzlebox/play/LibraryViewModel;->access$getCalendar$p(Lcom/ivandsky/puzzlebox/play/LibraryViewModel;)Lcom/ivandsky/puzzlebox/data/calendar/GameCalendar;
@@ -32249,7 +32249,7 @@ SPLcom/ivandsky/puzzlebox/play/PlayPersistence;->offer(Lcom/ivandsky/puzzlebox/g
 SPLcom/ivandsky/puzzlebox/play/PlayPersistence;->save(Lcom/ivandsky/puzzlebox/gameui/GamePlayController;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 Lcom/ivandsky/puzzlebox/play/PlaySessionStore;
 SPLcom/ivandsky/puzzlebox/play/PlaySessionStore;-><clinit>()V
-SPLcom/ivandsky/puzzlebox/play/PlaySessionStore;-><init>(Lcom/ivandsky/puzzlebox/game/GameRegistry;Lcom/ivandsky/puzzlebox/gameui/GamePlayRegistry;Lcom/ivandsky/puzzlebox/play/SlotOpening;Lkotlin/jvm/functions/Function1;Lcom/ivandsky/puzzlebox/data/repository/CompletionRepository;Lcom/ivandsky/puzzlebox/domain/FinishLeg;Lcom/ivandsky/puzzlebox/data/calendar/GameCalendar;Lcom/ivandsky/puzzlebox/common/dispatcher/DispatcherProvider;)V
+SPLcom/ivandsky/puzzlebox/play/PlaySessionStore;-><init>(Lcom/ivandsky/puzzlebox/game/GameRegistry;Lcom/ivandsky/puzzlebox/gameui/GamePlayRegistry;Lcom/ivandsky/puzzlebox/play/SlotOpening;Lkotlin/jvm/functions/Function1;Lcom/ivandsky/puzzlebox/data/repository/CompletionRepository;Lcom/ivandsky/puzzlebox/play/domain/FinishLeg;Lcom/ivandsky/puzzlebox/data/calendar/GameCalendar;Lcom/ivandsky/puzzlebox/common/dispatcher/DispatcherProvider;)V
 SPLcom/ivandsky/puzzlebox/play/PlaySessionStore;->decide$impl(Lcom/ivandsky/puzzlebox/play/api/GameKey;)Lcom/ivandsky/puzzlebox/play/OpenDecision;
 SPLcom/ivandsky/puzzlebox/play/PlaySessionStore;->getPlayable()Ljava/util/List;
 SPLcom/ivandsky/puzzlebox/play/PlaySessionStore;->open(Lcom/ivandsky/puzzlebox/model/PlaySlot;)Lcom/ivandsky/puzzlebox/play/ActivePlay;
@@ -32577,7 +32577,7 @@ SPLcom/ivandsky/puzzlebox/play/di/PlayModuleKt;->getPlayModule()Lorg/koin/core/m
 SPLcom/ivandsky/puzzlebox/play/di/PlayModuleKt;->playModule$lambda$13$lambda$1$lambda$0(Lcom/ivandsky/puzzlebox/data/repository/SavedPlayRepository;Lcom/ivandsky/puzzlebox/play/WriteLane;Lkotlinx/coroutines/CoroutineScope;Lcom/ivandsky/puzzlebox/model/PlaySlot;)Lcom/ivandsky/puzzlebox/play/SlotWriter;
 SPLcom/ivandsky/puzzlebox/play/di/PlayModuleKt;->playModule$lambda$13$lambda$1(Lorg/koin/core/scope/Scope;Lorg/koin/core/parameter/ParametersHolder;)Lcom/ivandsky/puzzlebox/play/PlaySessionStore;
 SPLcom/ivandsky/puzzlebox/play/di/PlayModuleKt;->playModule$lambda$13$lambda$2(Lorg/koin/core/scope/Scope;Lorg/koin/core/parameter/ParametersHolder;)Lcom/ivandsky/puzzlebox/domain/ObserveFriendPuzzles;
-SPLcom/ivandsky/puzzlebox/play/di/PlayModuleKt;->playModule$lambda$13$lambda$3(Lorg/koin/core/scope/Scope;Lorg/koin/core/parameter/ParametersHolder;)Lcom/ivandsky/puzzlebox/domain/DeleteReceivedPuzzle;
+SPLcom/ivandsky/puzzlebox/play/di/PlayModuleKt;->playModule$lambda$13$lambda$3(Lorg/koin/core/scope/Scope;Lorg/koin/core/parameter/ParametersHolder;)Lcom/ivandsky/puzzlebox/play/domain/DeleteReceivedPuzzle;
 SPLcom/ivandsky/puzzlebox/play/di/PlayModuleKt;->playModule$lambda$13$lambda$4(Lorg/koin/core/scope/Scope;Lorg/koin/core/parameter/ParametersHolder;)Lcom/ivandsky/puzzlebox/play/LibraryViewModel;
 SPLcom/ivandsky/puzzlebox/play/di/PlayModuleKt;->playModule$lambda$13$lambda$5(Lorg/koin/core/scope/Scope;Lorg/koin/core/parameter/ParametersHolder;)Lcom/ivandsky/puzzlebox/play/GameViewModel;
 SPLcom/ivandsky/puzzlebox/play/di/PlayModuleKt;->playModule$lambda$13$lambda$6(Lorg/koin/core/scope/Scope;Lorg/koin/core/parameter/ParametersHolder;)Lcom/ivandsky/puzzlebox/play/GamePageRankViewModel;

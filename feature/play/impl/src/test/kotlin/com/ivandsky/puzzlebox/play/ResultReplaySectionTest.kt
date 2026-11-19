@@ -5,7 +5,7 @@ import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 
 import com.ivandsky.puzzlebox.domain.ComputeStreak
-import com.ivandsky.puzzlebox.domain.FinishLeg
+import com.ivandsky.puzzlebox.play.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.LoadPastDay

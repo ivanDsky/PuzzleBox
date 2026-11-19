@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.designsystem.formatDuration
-import com.ivandsky.puzzlebox.domain.CustomBoardView
+import com.ivandsky.puzzlebox.play.domain.CustomBoardView
 import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.gameui.GamePlayUi

@@ -37,10 +37,10 @@ import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.domain.CreateOutcome
 import com.ivandsky.puzzlebox.domain.CreateSelfDuel
 import com.ivandsky.puzzlebox.domain.DeleteSelfDuel
-import com.ivandsky.puzzlebox.domain.FinishLeg
+import com.ivandsky.puzzlebox.play.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.GameHistoryDay
 import com.ivandsky.puzzlebox.domain.GameStats
-import com.ivandsky.puzzlebox.domain.LegFinish
+import com.ivandsky.puzzlebox.play.domain.LegFinish
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveMyDuels

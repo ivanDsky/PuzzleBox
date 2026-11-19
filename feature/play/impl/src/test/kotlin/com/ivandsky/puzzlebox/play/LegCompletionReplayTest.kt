@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.data.identity.Identity
-import com.ivandsky.puzzlebox.domain.FinishLeg
+import com.ivandsky.puzzlebox.play.domain.FinishLeg
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.PuzzleKey

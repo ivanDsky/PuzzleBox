@@ -29,9 +29,9 @@ import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.tabular
-import com.ivandsky.puzzlebox.domain.AuthorPin
-import com.ivandsky.puzzlebox.domain.CustomBoardView
-import com.ivandsky.puzzlebox.domain.RankedEntry
+import com.ivandsky.puzzlebox.play.domain.AuthorPin
+import com.ivandsky.puzzlebox.play.domain.CustomBoardView
+import com.ivandsky.puzzlebox.play.domain.RankedEntry
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
 

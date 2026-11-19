@@ -1,8 +1,8 @@
 package com.ivandsky.puzzlebox.play.di
 
-import com.ivandsky.puzzlebox.domain.ComputeCustomBoard
+import com.ivandsky.puzzlebox.play.domain.ComputeCustomBoard
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
-import com.ivandsky.puzzlebox.domain.SyncReceivedStatus
+import com.ivandsky.puzzlebox.play.domain.SyncReceivedStatus
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.play.api.CustomResultKey
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
@@ -21,7 +21,7 @@ import org.koin.dsl.module
  * doc ([SyncReceivedStatus]), the Enter code sheet's check, and the card's ViewModel and the
  * result's, each reading the puzzle's board through its own
  * [FriendPuzzleBoard], which ranks it with [ComputeCustomBoard].
- * The card's ViewModel also takes the release flags and [com.ivandsky.puzzlebox.domain.ReportPuzzle]
+ * The card's ViewModel also takes the release flags and [com.ivandsky.puzzlebox.play.domain.ReportPuzzle]
  * for Report; it reads the community flag once.
  * The games are reached only through the app's [com.ivandsky.puzzlebox.game.GameRegistry];
  * this module names none.

@@ -13,7 +13,6 @@ import com.ivandsky.puzzlebox.domain.CreateMatch
 import com.ivandsky.puzzlebox.domain.CreateSelfDuel
 import com.ivandsky.puzzlebox.domain.DeleteSelfDuel
 import com.ivandsky.puzzlebox.domain.ComputeSolvedPool
-import com.ivandsky.puzzlebox.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.GetFeaturedGame
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.LoadCustomReplay
@@ -28,7 +27,6 @@ import com.ivandsky.puzzlebox.domain.ObserveDuel
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
-import com.ivandsky.puzzlebox.domain.ObserveLegTarget
 import com.ivandsky.puzzlebox.domain.ObserveMatch
 import com.ivandsky.puzzlebox.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.domain.ObserveResultInsights
@@ -45,7 +43,6 @@ import com.ivandsky.puzzlebox.domain.lineup.ObserveLegTitles
 import com.ivandsky.puzzlebox.domain.lineup.ObservePickablePuzzles
 import com.ivandsky.puzzlebox.domain.lineup.ObserveSolvedPuzzles
 import com.ivandsky.puzzlebox.domain.lineup.OwnSource
-import com.ivandsky.puzzlebox.domain.ReportPuzzle
 import com.ivandsky.puzzlebox.domain.ValidatePublish
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.UpdateMatchSeat
@@ -53,8 +50,6 @@ import com.ivandsky.puzzlebox.domain.lineup.SaveDuelPuzzles
 import com.ivandsky.puzzlebox.domain.lineup.ValidateExactPuzzles
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
-import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInPost
-import com.ivandsky.puzzlebox.domain.linkedin.SubmitLinkedInResult
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.domain.nextthing.ObserveResultNextThing
 import com.ivandsky.puzzlebox.domain.random.LoadRandomDay
@@ -158,7 +153,6 @@ val domainModule = module {
         )
     }
     factory { CreateDraftCopy(drafts = get(), newId = { UUID.randomUUID().toString() }, clock = { Instant.now() }) }
-    factory { FinishLeg(outbox = get(), self = get(), identity = get(), clock = { Instant.now() }) }
     factory {
         ObserveMatch(
             repo = get(),
@@ -173,7 +167,6 @@ val domainModule = module {
     factory {
         ObserveMyDuels(repo = get(), self = get(), outbox = get(), local = get(), identity = get(), clock = { Instant.now() })
     }
-    factory { ObserveLegTarget(self = get(), preferences = get()) }
     factory { ObserveOverall(identity = get(), completions = get()) }
     factory { ObserveFriendUids(matches = get(), identity = get()) }
     factory { GetPlayerActions(visibility = get(), completions = get()) }
@@ -222,7 +215,6 @@ val domainModule = module {
     }
     factory { ObserveSolvedPuzzles(registry = get(), pool = get(), completions = get(), received = get()) }
     factory { ObserveLegTitles(received = get(), published = get(), shared = get()) }
-    factory { ReportPuzzle(shared = get(), hidden = get()) }
     factory {
         ComputeMatchLegs(
             registry = get(),
@@ -236,8 +228,6 @@ val domainModule = module {
     factory { SyncLinkedInDay(days = get()) }
     factory { ObserveLinkedInDay(days = get(), registry = get()) }
     factory { ObserveLinkedInDayView(observe = get(), sync = get(), link = get(), days = get()) }
-    factory { ObserveLinkedInPost(posts = get()) }
-    factory { SubmitLinkedInResult(posts = get()) }
     factory { LoadDailyReplay(completions = get(), daily = get()) }
     factory { LoadCustomReplay(completions = get(), received = get(), loadShared = get()) }
     factory {

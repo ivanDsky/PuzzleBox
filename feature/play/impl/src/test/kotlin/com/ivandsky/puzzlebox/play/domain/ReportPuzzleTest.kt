@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain
+package com.ivandsky.puzzlebox.play.domain
 
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.data.repository.CommunityListResult
 import com.ivandsky.puzzlebox.data.repository.ReportResult
 import com.ivandsky.puzzlebox.data.repository.SharedFetchResult
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
+import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.repository.FakeHiddenPuzzles
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService

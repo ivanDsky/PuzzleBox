@@ -41,7 +41,7 @@ import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.play.domain.ArchiveProgress
 import com.ivandsky.puzzlebox.domain.ComputeStreak
-import com.ivandsky.puzzlebox.domain.FinishLeg
+import com.ivandsky.puzzlebox.play.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.LoadPastDay
@@ -140,7 +140,6 @@ class LibraryRouteTest {
                     // The code sheet's check (EnterCodeViewModel) loads through it.
                     single<SharedPuzzleRepository> { FakeSharedPuzzleRepository() }
                     single<MatchRepository> { FakeMatchRepository() }
-                    factory { FinishLeg(FakeMatchResultOutbox(), FakeSelfMatchRepository(), FakeIdentityService()) { Instant.EPOCH } }
                     single<UserPreferencesRepository> { FakeUserPreferencesRepository() }
                     single<GameCalendar> { FakeGameCalendar(today) }
                     factory { LoadPastDay(get(), get()) }
@@ -155,6 +154,8 @@ class LibraryRouteTest {
                 },
                 module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
+                // After playModule, whose own FinishLeg would replace this one.
+                module { factory { FinishLeg(FakeMatchResultOutbox(), FakeSelfMatchRepository(), FakeIdentityService()) { Instant.EPOCH } } },
                 hubOffFriendDay,
             )
         }

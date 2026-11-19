@@ -31,7 +31,7 @@ import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
 import com.ivandsky.puzzlebox.domain.ComputeStreak
-import com.ivandsky.puzzlebox.domain.FinishLeg
+import com.ivandsky.puzzlebox.play.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
@@ -507,7 +507,6 @@ class ResultScreenTest {
                     single<ReceivedPuzzleRepository> { FakeReceivedPuzzleRepository() }
                     single<SharedPuzzleRepository> { FakeSharedPuzzleRepository() }
                     single<MatchRepository> { FakeMatchRepository() }
-                    factory { FinishLeg(FakeMatchResultOutbox(), FakeSelfMatchRepository(), FakeIdentityService()) { Instant.EPOCH } }
                     single<GameCalendar> { FakeGameCalendar(day) }
                     factory { LoadPastDay(get(), get()) }
                     single { SyncTodayPuzzles(get(), get(), get()) }
@@ -541,6 +540,8 @@ class ResultScreenTest {
                 },
                 module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
+                // After playModule, whose own FinishLeg would replace this one.
+                module { factory { FinishLeg(FakeMatchResultOutbox(), FakeSelfMatchRepository(), FakeIdentityService()) { Instant.EPOCH } } },
                 hubOffFriendDay,
             )
         }

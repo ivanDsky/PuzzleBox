@@ -28,7 +28,7 @@ import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.data.visibility.HiddenPuzzles
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.ComputeStreak
-import com.ivandsky.puzzlebox.domain.FinishLeg
+import com.ivandsky.puzzlebox.play.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
 import com.ivandsky.puzzlebox.domain.LoadPastDay
@@ -133,7 +133,6 @@ class LibraryRandomPageRouteTest {
                     single<SharedPuzzleRepository> { community.shared }
                     single<MatchRepository> { FakeMatchRepository() }
                     single<IdentityService> { identity }
-                    factory { FinishLeg(FakeMatchResultOutbox(), FakeSelfMatchRepository(), identity) { Instant.EPOCH } }
                     single<UserPreferencesRepository> { FakeUserPreferencesRepository() }
                     single<GameCalendar> { FakeGameCalendar(today) }
                     factory { LoadPastDay(get(), get()) }
@@ -156,6 +155,8 @@ class LibraryRandomPageRouteTest {
                 },
                 module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
+                // After playModule, whose own FinishLeg would replace this one.
+                module { factory { FinishLeg(FakeMatchResultOutbox(), FakeSelfMatchRepository(), identity) { Instant.EPOCH } } },
                 hubOffFriendDay,
                 module { single<DispatcherProvider> { testDispatchers() } },
             )

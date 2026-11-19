@@ -12,10 +12,10 @@ import com.ivandsky.puzzlebox.data.match.OutboxResult
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.match.ResultPostState
 import com.ivandsky.puzzlebox.data.match.ResultRead
-import com.ivandsky.puzzlebox.domain.FinishLeg
+import com.ivandsky.puzzlebox.play.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
-import com.ivandsky.puzzlebox.domain.ObserveLegTarget
+import com.ivandsky.puzzlebox.play.domain.ObserveLegTarget
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.model.PlaySlot

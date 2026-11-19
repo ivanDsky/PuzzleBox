@@ -5,7 +5,7 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
-import com.ivandsky.puzzlebox.domain.DeleteReceivedPuzzle
+import com.ivandsky.puzzlebox.play.domain.DeleteReceivedPuzzle
 import com.ivandsky.puzzlebox.domain.ObserveFriendPuzzles
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.model.GameId
@@ -34,11 +34,17 @@ import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
 import com.ivandsky.puzzlebox.play.api.ReplayCompareKey
 import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
+import com.ivandsky.puzzlebox.play.domain.FinishLeg
 import com.ivandsky.puzzlebox.play.domain.ObserveArchiveMonth
 import com.ivandsky.puzzlebox.play.domain.ObserveArchiveProgress
+import com.ivandsky.puzzlebox.play.domain.ObserveLegTarget
 import com.ivandsky.puzzlebox.play.domain.ObservePlayStats
+import com.ivandsky.puzzlebox.play.domain.ReportPuzzle
+import com.ivandsky.puzzlebox.play.domain.linkedin.ObserveLinkedInPost
+import com.ivandsky.puzzlebox.play.domain.linkedin.SubmitLinkedInResult
 import com.ivandsky.puzzlebox.play.random.RandomPickMemory
 import com.ivandsky.puzzlebox.play.random.RandomPuzzleViewModel
+import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import org.koin.core.module.dsl.viewModel
@@ -52,8 +58,9 @@ import org.koin.dsl.module
  * set, history, stats, the rollover) from :core:domain's domainModule. The tablet stats
  * panel's identity and leaderboard come from the backend module. This module names no game;
  * friend puzzles' wiring is [friendModule], From friends' [ObserveFriendPuzzles] and
- * [DeleteReceivedPuzzle] are here, as are Play's own use cases: the archive month and progress
- * and the tablet stats panel's [ObservePlayStats].
+ * [DeleteReceivedPuzzle] are here, as are Play's own use cases: the archive month and progress,
+ * the tablet stats panel's [ObservePlayStats], a duel leg's [FinishLeg] and [ObserveLegTarget],
+ * Report's [ReportPuzzle], and the result's LinkedIn post ([ObserveLinkedInPost], [SubmitLinkedInResult]).
  *
  * [PlaySessionStore] is a single so live plays outlive their entries' compositions. Its
  * slot opening and every slot's writer share ONE [WriteLane], so a released slot's final
@@ -100,6 +107,11 @@ val playModule = module {
             leaderboard = get(),
         )
     }
+    factory { FinishLeg(outbox = get(), self = get(), identity = get(), clock = { Instant.now() }) }
+    factory { ObserveLegTarget(self = get(), preferences = get()) }
+    factory { ReportPuzzle(shared = get(), hidden = get()) }
+    factory { ObserveLinkedInPost(posts = get()) }
+    factory { SubmitLinkedInResult(posts = get()) }
     // The flag arrives as the parameter, so a graph without LinkedIn bindings builds the library with it off.
     viewModel { params ->
         LibraryViewModel(

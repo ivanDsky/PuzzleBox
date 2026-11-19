@@ -24,10 +24,10 @@ import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.AuthorPin
-import com.ivandsky.puzzlebox.domain.ComputeCustomBoard
-import com.ivandsky.puzzlebox.domain.CustomBoardView
-import com.ivandsky.puzzlebox.domain.FinishLeg
+import com.ivandsky.puzzlebox.play.domain.AuthorPin
+import com.ivandsky.puzzlebox.play.domain.ComputeCustomBoard
+import com.ivandsky.puzzlebox.play.domain.CustomBoardView
+import com.ivandsky.puzzlebox.play.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -285,7 +285,6 @@ class CustomBoardTest {
                     single<ReceivedPuzzleRepository> { received }
                     single<SharedPuzzleRepository> { FakeSharedPuzzleRepository() }
                     single<MatchRepository> { FakeMatchRepository() }
-                    factory { FinishLeg(FakeMatchResultOutbox(), FakeSelfMatchRepository(), FakeIdentityService()) { Instant.EPOCH } }
                     single<GameCalendar> { FakeGameCalendar(LocalDate.parse("2026-11-04")) }
                     single<UserPreferencesRepository> { FakeUserPreferencesRepository() }
                     single<CustomBoardRepository> { boards }
@@ -297,6 +296,8 @@ class CustomBoardTest {
                 },
                 module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
+                // After playModule, whose own FinishLeg would replace this one.
+                module { factory { FinishLeg(FakeMatchResultOutbox(), FakeSelfMatchRepository(), FakeIdentityService()) { Instant.EPOCH } } },
                 hubOffFriendDay,
             )
         }

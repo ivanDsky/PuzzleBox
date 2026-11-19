@@ -24,9 +24,8 @@ import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.FinishLeg
+import com.ivandsky.puzzlebox.play.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.LoadPastDay
-import com.ivandsky.puzzlebox.domain.ObserveLegTarget
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
@@ -201,13 +200,13 @@ class MatchLegRouteTest {
                     single<MatchRepository> { matches }
                     single<MatchResultOutbox> { outbox }
                     single<IdentityService> { identity }
-                    factory { FinishLeg(get(), FakeSelfMatchRepository(), get()) { Instant.EPOCH } }
                     single<SelfMatchRepository> { FakeSelfMatchRepository() }
-                    factory { ObserveLegTarget(get(), get()) }
                     factory { LoadPastDay(get(), get()) }
                 },
                 module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
+                // After playModule, whose own FinishLeg would replace this one.
+                module { factory { FinishLeg(get(), FakeSelfMatchRepository(), get()) { Instant.EPOCH } } },
                 hubOffFriendDay,
             )
         }.koin.get()

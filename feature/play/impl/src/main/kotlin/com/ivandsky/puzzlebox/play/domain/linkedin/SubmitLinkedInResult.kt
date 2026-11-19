@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain.linkedin
+package com.ivandsky.puzzlebox.play.domain.linkedin
 
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInPostState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInPosts
