@@ -12,13 +12,6 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
  */
 enum class HistoryFlag(override val label: String, override val releaseDefault: Boolean) : ReleaseFlagKey {
     /**
-     * Ranks shows when LinkedIn was last read (backlog #1357): a muted line under a game's Friends day board with when its
-     * LinkedIn part was last read, and a pull on the board that also asks LinkedIn for that day, inside the read windows.
-     * Read only in a ViewModel or a DI module (ADR-0022 §3).
-     */
-    RanksFreshness(label = "Ranks shows when LinkedIn was last read", releaseDefault = true),
-
-    /**
      * The Ranks filter sheet holds only the board's own choices (backlog #1547): Who and When, without the Defaults block
      * ("Opens on", "Who can see you"), which stay in Settings. Read only in a ViewModel or a DI module (ADR-0022 §3).
      */

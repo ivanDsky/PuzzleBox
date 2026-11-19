@@ -133,10 +133,9 @@ internal class RanksViewModel(
     /** A game's Week and Month add up its daily place points (WeekMonthPoints), read once the same way. */
     private val weekMonthPoints = releaseFlags.isEnabled(HistoryFlag.WeekMonthPoints)
 
-    // The LinkedIn part of the hub (the line, the pull's sync) exists only with RanksFreshness on and LinkedIn in the graph.
-    private val freshLinkedIn = linkedIn.takeIf { releaseFlags.isEnabled(HistoryFlag.RanksFreshness) }
-    private val freshness = freshLinkedIn?.let { RanksFreshness(clock) }
-    private val pullSync = freshLinkedIn?.let { RanksPullSync(it, viewModelScope, ::shownLinkedInDay) }
+    // The LinkedIn part of the hub (the line, the pull's sync) exists only with LinkedIn in the graph.
+    private val freshness = linkedIn?.let { RanksFreshness(clock) }
+    private val pullSync = linkedIn?.let { RanksPullSync(it, viewModelScope, ::shownLinkedInDay) }
 
     /** The pull-to-refresh indicator: a pull's own brief one, held while the pull's LinkedIn sync runs when there is one. */
     val refreshing: StateFlow<Boolean> = pullSync?.let { sync ->
