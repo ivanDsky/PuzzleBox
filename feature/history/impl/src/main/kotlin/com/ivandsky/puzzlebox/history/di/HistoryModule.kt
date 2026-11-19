@@ -46,5 +46,5 @@ val historyModule = module {
         )
     }
     viewModel { PlayerSheetViewModel(get(), get(), get(), get()) }
-    viewModel { ReplayOptInViewModel(get(), releaseFlags = get()) }
+    viewModel { ReplayOptInViewModel(get()) }
 }

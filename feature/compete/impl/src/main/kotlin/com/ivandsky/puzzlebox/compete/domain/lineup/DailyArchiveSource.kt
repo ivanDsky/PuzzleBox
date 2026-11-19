@@ -59,7 +59,7 @@ internal class DailyArchiveSource(
 
     /**
      * The rows of the first [pages] pages, read as that count grows. The count is authoritative: when it drops below what
-     * was read (a sheet opened again) the read starts over from the newest day. [SourceRows.moreDays] says whether a
+     * was read (the picker opened again) the read starts over from the newest day. [SourceRows.moreDays] says whether a
      * further page exists.
      */
     fun observe(played: Flow<Set<String>>, pages: Flow<Int>): Flow<SourceRows> {

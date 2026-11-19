@@ -10,7 +10,7 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import kotlinx.coroutines.withContext
 
 /**
- * The add sheet's code lookup: a share code or a `/p/` link opened through [load] (`LoadSharedPuzzle`), which keeps a
+ * The picker page's code lookup: a share code or a `/p/` link opened through [load] (`LoadSharedPuzzle`), which keeps a
  * puzzle it found among the player's friends' puzzles as Enter code does (A4). No network path of its own; offline is
  * its own answer and never reads as a code nobody shared (A20). [load] runs on the default dispatcher, as its CPU
  * check asks.

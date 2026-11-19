@@ -22,7 +22,6 @@ import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.compete.create.DuelChallenge
 import com.ivandsky.puzzlebox.compete.create.NewDuelHarness
@@ -83,9 +82,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The Duels list beside the real pane with SheetScreens on, on the real [DuelsTabViewModel] and a [NewDuelHarness]
- * New duel view model: New duel is the pane's form (from the card or the empty button), never a sheet, and every way out
- * leaves the pane showing what it showed before.
+ * The Duels list beside the real pane, on the real [DuelsTabViewModel] and a [NewDuelHarness] New duel view model:
+ * New duel is the pane's form (from the card or the empty button), and every way out leaves the pane showing what it
+ * showed before.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -125,7 +124,7 @@ class DuelsPaneNewDuelTest {
                     single { ObserveMyDuels(harness.server, harness.self, outbox, local, harness.identity) { now } }
                     single { UpdateMatchSeat(harness.server, local, harness.identity) }
                     single<IdentityService> { harness.identity }
-                    single<ReleaseFlags> { FakeReleaseFlags(ReleaseFlag.SheetScreens) }
+                    single<ReleaseFlags> { FakeReleaseFlags() }
                     viewModel { harness.viewModel }
                     single { ObserveDuel(observeMatch, FakeCompletionRepository(), FakeSavedPlayRepository()) }
                     single { DeleteSelfDuel(harness.self, outbox, FakeSavedPlayRepository(), local) }
@@ -149,7 +148,7 @@ class DuelsPaneNewDuelTest {
         rule.setContent {
             PuzzleBoxTheme {
                 Row(Modifier.fillMaxSize()) {
-                    Box(Modifier.weight(1f)) { DuelsTab(onOpenDuel = {}, onOpenReveal = {}, inPane = true, challenge = challenge, onChallengeTaken = { taken++ }) }
+                    Box(Modifier.weight(1f)) { DuelsTab(onOpenDuel = {}, onOpenReveal = {}, onNewDuel = {}, inPane = true, challenge = challenge, onChallengeTaken = { taken++ }) }
                     Box(Modifier.weight(2f)) { pane(Modifier.fillMaxSize()) }
                 }
             }
@@ -162,14 +161,13 @@ class DuelsPaneNewDuelTest {
     private fun assertForm() {
         rule.onNode(inPane("duel.new.screen")).assertIsDisplayed()
         rule.onNode(inPane("duel.new.close")).assertIsDisplayed()
-        rule.onAllNodesWithTag("duel.new.sheet").assertCountEquals(0)
         rule.onAllNodesWithTag("duel.new.back").assertCountEquals(0)
     }
 
     private fun assertNoForm() = rule.onAllNodesWithTag("duel.new.screen").assertCountEquals(0)
 
     @Test
-    fun `the empty pane's New duel button shows the form in the pane, not a sheet`() {
+    fun `the empty pane's New duel button shows the form in the pane`() {
         show()
 
         rule.onNodeWithTag("duels.pane.newDuel").performClick()

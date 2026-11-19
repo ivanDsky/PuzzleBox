@@ -6,7 +6,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
@@ -18,7 +17,6 @@ import com.ivandsky.puzzlebox.compete.create.DuelPreset
 import com.ivandsky.puzzlebox.compete.create.GAMES
 import com.ivandsky.puzzlebox.compete.create.NO_ACTIONS
 import com.ivandsky.puzzlebox.compete.create.NewDuelActions
-import com.ivandsky.puzzlebox.compete.create.NewDuelContent
 import com.ivandsky.puzzlebox.compete.create.NewDuelState
 import com.ivandsky.puzzlebox.compete.create.Notice
 import com.ivandsky.puzzlebox.compete.create.Opponent
@@ -26,9 +24,9 @@ import com.ivandsky.puzzlebox.compete.create.QUEENS
 import com.ivandsky.puzzlebox.compete.create.SelfDuelForm
 import com.ivandsky.puzzlebox.compete.create.SelfDuelView
 import com.ivandsky.puzzlebox.compete.create.SolvedCounts
-import com.ivandsky.puzzlebox.compete.create.TANGO
 import com.ivandsky.puzzlebox.compete.create.ZIP
 import com.ivandsky.puzzlebox.compete.create.newDuelBrands
+import com.ivandsky.puzzlebox.compete.create.screen.NewDuelScreen
 import com.ivandsky.puzzlebox.compete.create.state
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.lineup.AnyGame
@@ -41,14 +39,13 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
-import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 private val SOLVED = mapOf(ZIP to 2, QUEENS to 1)
 
-/** The lineup panel for Past you: Any rows over the player's solved puzzles, a sheet whose tiles say their solved counts, and the Customize card in the sheet. The search of the sheet is in [PastYouAddSheetTest]. */
+/** The lineup panel for Past you: Any rows over the player's solved puzzles, and the Customize card. The Add puzzle page is in [PuzzlePickerPagePastYouTest]. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp-420dpi")
 class PastYouLineupPanelTest {
@@ -58,12 +55,7 @@ class PastYouLineupPanelTest {
 
     @Before
     fun startKoinWithBrands() {
-        startKoin {
-            modules(module {
-                single { newDuelBrands() }
-                viewModel(PAST_YOU_PICKER) { AddPuzzleViewModel(pickerOf(SOLVED_ROWS), lookup = null, pastYou = true) }
-            })
-        }
+        startKoin { modules(module { single { newDuelBrands() } }) }
     }
 
     @After
@@ -82,16 +74,15 @@ class PastYouLineupPanelTest {
         rule.waitForIdle()
     }
 
-    private fun pastYouState(counts: SolvedCounts?, preset: DuelPreset = DuelPreset.Custom, rows: List<LineupEntry> = editor.draft.entries, adding: Boolean = false): NewDuelState {
+    private fun pastYouState(counts: SolvedCounts?, preset: DuelPreset = DuelPreset.Custom, rows: List<LineupEntry> = editor.draft.entries): NewDuelState {
         val form = SelfDuelForm.quick(GAMES).copy(preset = preset)
-        val lineup = LineupEditor(LineupDraft(rows)).let { if (adding) it.openAdd() else it }
         return state(Opponent.PastYou, SelfDuelView(form, counts, GAMES), "Best of ${rows.size} · Zip, Queens, Zip · against your first solves")
-            .copy(lineup = lineup)
+            .copy(lineup = LineupEditor(LineupDraft(rows)))
     }
 
     private fun content(state: NewDuelState, actions: NewDuelActions = NO_ACTIONS) {
         rule.setContent {
-            PuzzleBoxTheme { Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) { NewDuelContent(state, actions) } }
+            PuzzleBoxTheme { Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) { NewDuelScreen(state, actions, onBack = {}) } }
         }
         rule.waitForIdle()
     }
@@ -110,31 +101,6 @@ class PastYouLineupPanelTest {
         panel(includeFriends = true)
 
         rule.onNodeWithTag("duel.lineup.row.2").assertTextContains("A daily or friend's puzzle you've solved", substring = true)
-    }
-
-    @Test
-    fun `with the counts unread the sheet's tiles are plain and enabled, not zero solved`() {
-        content(pastYouState(counts = null, adding = true))
-
-        rule.onNodeWithTag("duel.preset.custom").performClick()
-        rule.waitForIdle()
-
-        GAMES.forEach { game ->
-            rule.onNodeWithTag("duel.lineup.sheet.game.${game.id.value}").assertTextEquals(game.name).assertIsEnabled()
-        }
-    }
-
-    @Test
-    fun `a tap on a game with solved puzzles adds an Any row of it, and a tap on one with none changes nothing`() {
-        editor = editor.openAdd()
-        panel()
-
-        rule.onNodeWithTag("duel.lineup.sheet.game.${TANGO.value}").performClick()
-        assertEquals(3, editor.draft.size)
-        rule.onNodeWithTag("duel.lineup.sheet.game.${QUEENS.value}").performClick()
-
-        assertEquals(AnyGame(QUEENS), editor.draft.entries.last())
-        assertEquals(4, editor.draft.size)
     }
 
     @Test

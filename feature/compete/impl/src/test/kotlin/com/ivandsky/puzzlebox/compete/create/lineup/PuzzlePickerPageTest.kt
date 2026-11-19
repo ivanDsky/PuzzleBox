@@ -200,6 +200,30 @@ class PuzzlePickerPageTest {
     }
 
     @Test
+    fun `Paste with nothing on the clipboard leaves the field empty`() {
+        show(listOf(CROWN_JEWELS))
+        ApplicationProvider.getApplicationContext<Context>().let { (it.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).clearPrimaryClip() }
+
+        rule.onNodeWithTag("duel.lineup.search.paste").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("duel.lineup.search").assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("")))
+    }
+
+    @Test
+    fun `a typed word that reads as a code says Nothing matches and asks nobody`() {
+        val asked = mutableListOf<String>()
+        show(listOf(CROWN_JEWELS), lookup = { asked += it; CodeLookup.NotFound })
+
+        rule.onNodeWithTag("duel.lineup.search").performTextInput("dragon")
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("duel.lineup.empty").assertTextEquals("Nothing matches \"dragon\". Try a code, or clear the filters.")
+        rule.onNodeWithTag("duel.lineup.lookup").assertDoesNotExist()
+        assertEquals(emptyList<String>(), asked)
+    }
+
+    @Test
     fun `a code nobody shared, sent with the keyboard's Search, shows its lookup line, not Nothing matches`() {
         show(listOf(CROWN_JEWELS), lookup = { CodeLookup.NotFound })
 

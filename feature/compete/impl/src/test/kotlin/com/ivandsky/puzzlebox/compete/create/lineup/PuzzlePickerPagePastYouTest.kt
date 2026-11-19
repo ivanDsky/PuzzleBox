@@ -3,6 +3,9 @@ package com.ivandsky.puzzlebox.compete.create.lineup
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
@@ -50,6 +53,7 @@ class PuzzlePickerPagePastYouTest {
     fun stopKoinAgain() = stopKoin()
 
     private val picked = mutableListOf<LineupEntry>()
+    private var picker by mutableStateOf(LineupPickerModel(position = 2, changing = false, games = GAMES, solved = SOLVED_COUNTS, added = emptySet(), pastYou = true))
 
     private fun show(solved: List<PickablePuzzle> = SOLVED_ROWS, counts: Map<GameId, Int>? = SOLVED_COUNTS, added: Set<LegRef> = emptySet()) {
         startKoin {
@@ -58,7 +62,7 @@ class PuzzlePickerPagePastYouTest {
                 viewModel(PAST_YOU_PICKER) { AddPuzzleViewModel(pickerOf(solved), lookup = null, pastYou = true) }
             })
         }
-        val picker = LineupPickerModel(position = 2, changing = false, games = GAMES, solved = counts, added = added, pastYou = true)
+        picker = picker.copy(solved = counts, added = added)
         rule.setContent {
             PuzzleBoxTheme {
                 Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
@@ -112,10 +116,21 @@ class PuzzlePickerPagePastYouTest {
     }
 
     @Test
+    fun `a solve while the page is open turns its tile from off to on`() {
+        show(counts = mapOf(ZIP to 12))
+        rule.onNodeWithTag("duel.lineup.sheet.game.${TANGO.value}").assertTextEquals("Tango · 0 solved").assertIsNotEnabled()
+
+        picker = picker.copy(solved = mapOf(ZIP to 12, TANGO to 1))
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("duel.lineup.sheet.game.${TANGO.value}").assertTextEquals("Tango · 1 solved").assertIsEnabled()
+    }
+
+    @Test
     fun `while the solved counts are unread no tile is off`() {
         show(counts = null)
 
-        GAMES.forEach { rule.onNodeWithTag("duel.lineup.sheet.game.${it.id.value}").assertIsEnabled() }
+        GAMES.forEach { rule.onNodeWithTag("duel.lineup.sheet.game.${it.id.value}").assertTextEquals(it.name).assertIsEnabled() }
     }
 
     @Test
@@ -128,5 +143,38 @@ class PuzzlePickerPagePastYouTest {
         rule.onNodeWithTag("duel.lineup.empty").assertTextEquals("Nothing matches \"ZZ9-QQ2\". Past you only has puzzles you've solved.")
         rule.onNodeWithTag("duel.lineup.lookup").assertDoesNotExist()
         rule.onNodeWithTag("duel.lineup.lookup.retry").assertDoesNotExist()
+    }
+
+    @Test
+    fun `typing narrows the solved list`() {
+        show()
+
+        rule.onNodeWithTag("duel.lineup.search").performTextInput("tango")
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("1 puzzle")
+        rule.onNodeWithTag(addTag(FRIEND_TANGO)).assertExists()
+        rule.onNodeWithTag(addTag(ZIP_DAILY)).assertDoesNotExist()
+    }
+
+    @Test
+    fun `Past you's chips narrow the solved list, and Clear brings every puzzle back`() {
+        show()
+
+        rule.pickInSheet(PickerFilterPage.Source, "duel.lineup.chip.pastdays")
+        rule.pickInSheet(PickerFilterPage.Games, "duel.lineup.chip.game.${ZIP.value}")
+
+        rule.onNodeWithTag(PickerFilterPage.Source.tag).assertTextContains("Past days")
+        rule.onNodeWithTag(PickerFilterPage.Games.tag).assertTextContains("Zip")
+        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("1 puzzle")
+        rule.onNodeWithTag(addTag(ZIP_DAILY)).assertExists()
+        rule.onNodeWithTag(addTag(FRIEND_TANGO)).assertDoesNotExist()
+
+        rule.onNodeWithTag("duel.lineup.filter.clear").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("duel.lineup.filter.clear").assertDoesNotExist()
+        rule.onNodeWithTag(PickerFilterPage.Source.tag).assertTextEquals("Source")
+        SOLVED_ROWS.forEach { rule.onNodeWithTag(addTag(it)).assertExists() }
     }
 }

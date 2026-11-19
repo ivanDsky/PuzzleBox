@@ -1,7 +1,5 @@
 package com.ivandsky.puzzlebox.compete.tab
 
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.compete.create.DuelChallenge
 import com.ivandsky.puzzlebox.compete.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.compete.domain.UpdateMatchSeat
@@ -83,12 +81,12 @@ class DuelsTabViewModelTest {
         server.signedInUid = player?.uid
     }
 
-    private fun viewModel(flags: ReleaseFlags = FakeReleaseFlags()) = DuelsTabViewModel(
+    private fun viewModel() = DuelsTabViewModel(
         observeMyDuels = ObserveMyDuels(repo, FakeSelfMatchRepository(), FakeMatchResultOutbox(), local, identity) { now },
         updateSeat = UpdateMatchSeat(repo, local, identity),
         identity = identity,
         clock = { now },
-        releaseFlags = flags,
+        releaseFlags = FakeReleaseFlags(),
     )
 
     private fun TestScope.started(vm: DuelsTabViewModel): DuelsTabViewModel {
@@ -318,7 +316,7 @@ class DuelsTabViewModelTest {
 
     @Test
     fun `starting New duel holds the request with its challenge and ending it clears it`() {
-        val vm = viewModel(FakeReleaseFlags(ReleaseFlag.SheetScreens))
+        val vm = viewModel()
         val sam = DuelChallenge(friendUid = "sam", friendName = "Sam", game = GameId("alpha"))
         assertEquals(null, vm.newDuel.value)
 
@@ -336,7 +334,7 @@ class DuelsTabViewModelTest {
     fun `selecting a duel ends New duel and pins the pick`() = runTest {
         annChallenges()
         annChallenges(newCode = other)
-        val vm = started(viewModel(FakeReleaseFlags(ReleaseFlag.SheetScreens)))
+        val vm = started(viewModel())
         val second = (vm.rowCodes() - vm.state.value.selected!!).single()
         vm.startNewDuel()
 
@@ -349,17 +347,11 @@ class DuelsTabViewModelTest {
     @Test
     fun `ending New duel keeps the selected duel`() = runTest {
         annChallenges()
-        val vm = started(viewModel(FakeReleaseFlags(ReleaseFlag.SheetScreens)))
+        val vm = started(viewModel())
         vm.startNewDuel()
 
         vm.endNewDuel()
 
         assertEquals(code, vm.state.value.selected)
-    }
-
-    @Test
-    fun `New duel is a screen only while SheetScreens is on`() {
-        assertTrue(viewModel(FakeReleaseFlags(ReleaseFlag.SheetScreens)).newDuelAsScreen)
-        assertFalse(viewModel(FakeReleaseFlags()).newDuelAsScreen)
     }
 }

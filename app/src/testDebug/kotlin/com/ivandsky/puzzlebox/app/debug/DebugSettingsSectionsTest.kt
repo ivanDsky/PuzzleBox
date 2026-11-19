@@ -8,10 +8,9 @@ import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.debug.flags.DebugReleaseFlags
 import com.ivandsky.puzzlebox.app.debug.flags.ReleaseFlagsPanel
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.TopBarFlag
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -45,10 +44,10 @@ class DebugSettingsSectionsTest {
     @Test
     fun `release flags render inline from the override store`() {
         composeRule.setContent {
-            PuzzleBoxTheme { ReleaseFlagsPanel(flags = DebugReleaseFlags(LocalContext.current, ReleaseFlag.entries)) }
+            PuzzleBoxTheme { ReleaseFlagsPanel(flags = DebugReleaseFlags(LocalContext.current, TopBarFlag.entries)) }
         }
 
-        ReleaseFlag.entries.forEach {
+        TopBarFlag.entries.forEach {
             composeRule.onNodeWithTag("debug.flag.${it.name}").assertExists()
         }
     }
@@ -56,13 +55,12 @@ class DebugSettingsSectionsTest {
     /** Characterization: every flag gets a row that names it and its release default; a forced one says so. */
     @Test
     fun `every release flag row shows its name and release default`() {
-        assertTrue("no release flag: move this test to a test-only flag", ReleaseFlag.entries.isNotEmpty())
-        val flags = DebugReleaseFlags(RuntimeEnvironment.getApplication(), ReleaseFlag.entries)
-        val forced = ReleaseFlag.entries.first()
+        val flags = DebugReleaseFlags(RuntimeEnvironment.getApplication(), TopBarFlag.entries)
+        val forced = TopBarFlag.entries.first()
         flags.setOverride(forced, !forced.releaseDefault)
         composeRule.setContent { PuzzleBoxTheme { ReleaseFlagsPanel(flags = flags) } }
 
-        ReleaseFlag.entries.forEach {
+        TopBarFlag.entries.forEach {
             val release = if (it.releaseDefault) "on" else "off"
             val text = if (it == forced) "${it.name} · release: $release · forced" else "${it.name} · release: $release"
             composeRule.onNodeWithText(text).assertExists()

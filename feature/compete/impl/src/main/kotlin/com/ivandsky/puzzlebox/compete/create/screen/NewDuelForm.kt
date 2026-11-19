@@ -21,7 +21,7 @@ import com.ivandsky.puzzlebox.compete.create.PlayAgainstRow
 import com.ivandsky.puzzlebox.compete.create.SelfChoices
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
-/** The intro line, the "Play against" row when offered, then the friend's choices or Past you's, which add no sheet of their own: the screen shows the picker. It scrolls on its own. */
+/** The intro line, the "Play against" row when offered, then the friend's choices or Past you's. It scrolls on its own. */
 @Composable
 internal fun NewDuelForm(state: NewDuelState, actions: NewDuelActions, modifier: Modifier = Modifier) {
     Box(modifier.fillMaxWidth().verticalScroll(rememberScrollState()), contentAlignment = Alignment.TopCenter) {
@@ -36,8 +36,8 @@ internal fun NewDuelForm(state: NewDuelState, actions: NewDuelActions, modifier:
             NewDuelIntro(state.opponent)
             if (state.selfOffered) PlayAgainstRow(state.opponent, state.selfName, actions.onOpponent, selfPhotoUrl = state.selfPhotoUrl)
             when (state.opponent) {
-                Opponent.Friend -> FriendChoices(state, actions, sheetPicker = false)
-                Opponent.PastYou -> SelfChoices(state, actions, sheetPicker = false)
+                Opponent.Friend -> FriendChoices(state, actions)
+                Opponent.PastYou -> SelfChoices(state, actions)
             }
         }
     }

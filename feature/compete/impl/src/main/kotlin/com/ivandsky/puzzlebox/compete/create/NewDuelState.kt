@@ -2,18 +2,18 @@ package com.ivandsky.puzzlebox.compete.create
 
 import com.ivandsky.puzzlebox.compete.create.lineup.LineupEditor
 
-/** Which panel the sheet shows. */
+/** Which panel New duel shows. */
 internal enum class DuelStep { Create, SignIn }
 
 /** How the sign-in panel's last try went; a dismissed account picker is back to [Idle]. */
 internal enum class DuelSignIn { Idle, SigningIn, Offline, Failed }
 
-/** Everything the sheet draws. [summary] is the footer text, fixed at the moment the state was built. */
+/** Everything New duel draws. [summary] is the footer text, fixed at the moment the state was built. */
 internal data class NewDuelState(
     val draft: DuelDraft,
     val games: List<DuelGame>,
     val summary: String,
-    /** The friend a challenge invites, by name, for the sheet to say so; null for a duel nobody is invited to. */
+    /** The friend a challenge invites, by name, for the form to say so; null for a duel nobody is invited to. */
     val invitee: String?,
     val step: DuelStep,
     val creating: Boolean,

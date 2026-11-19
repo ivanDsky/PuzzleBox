@@ -1,13 +1,9 @@
 package com.ivandsky.puzzlebox.compete.tab
 
 import androidx.activity.ComponentActivity
-import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.compete.api.NewDuelKey
 import com.ivandsky.puzzlebox.compete.create.DuelChallenge
@@ -38,8 +34,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The Duels tab on the app's compete Koin module: with SheetScreens on, on the phone, New duel is a screen the host
- * pushes, and in the tablet's pane it is the pane's form (see DuelsPaneNewDuelTest); with the flag off, or with no screen to push, it stays the sheet.
+ * The Duels tab on the app's compete Koin module: on the phone, New duel is a screen the host pushes, and in the tablet's
+ * pane it is the pane's form (see DuelsPaneNewDuelTest).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -56,12 +52,7 @@ class DuelsTabNewDuelTest {
     @After
     fun stopKoinAgain() = stopKoin()
 
-    private fun show(
-        flags: ReleaseFlags,
-        inPane: Boolean = false,
-        screens: Boolean = true,
-        challenge: DuelChallenge? = null,
-    ) {
+    private fun show(inPane: Boolean = false, challenge: DuelChallenge? = null) {
         val now = Instant.now()
         startKoin {
             modules(
@@ -71,7 +62,7 @@ class DuelsTabNewDuelTest {
                     single { ObserveMyDuels(harness.server, FakeSelfMatchRepository(), FakeMatchResultOutbox(), FakeMatchLocalRepository(), harness.identity) { now } }
                     single { UpdateMatchSeat(harness.server, FakeMatchLocalRepository(), harness.identity) }
                     single<IdentityService> { harness.identity }
-                    single<ReleaseFlags> { flags }
+                    single<ReleaseFlags> { FakeReleaseFlags() }
                     viewModel { harness.viewModel }
                 },
             )
@@ -81,78 +72,41 @@ class DuelsTabNewDuelTest {
                 DuelsTab(
                     onOpenDuel = {},
                     onOpenReveal = {},
+                    onNewDuel = { pushed += it },
                     challenge = challenge,
                     onChallengeTaken = { taken++ },
                     inPane = inPane,
-                    onNewDuel = if (screens) ({ pushed += it }) else null,
                 )
             }
         }
         rule.waitForIdle()
     }
 
-    private fun assertSheet() = rule.onNodeWithTag("duel.new.sheet").assertIsDisplayed()
-
     @Test
-    fun `with the flag on the card pushes the New duel screen and opens no sheet`() {
-        show(FakeReleaseFlags(ReleaseFlag.SheetScreens))
+    fun `the card pushes the New duel screen`() {
+        show()
 
         rule.onNodeWithTag("duels.challenge").performClick()
         rule.waitForIdle()
 
         assertEquals(listOf(NewDuelKey()), pushed)
-        rule.onAllNodesWithTag("duel.new.sheet").assertCountEquals(0)
     }
 
     @Test
     fun `a challenge pushes the screen with its friend and game and is taken once`() {
-        show(FakeReleaseFlags(ReleaseFlag.SheetScreens), challenge = sam)
+        show(challenge = sam)
 
         assertEquals(listOf(NewDuelKey("sam", "Sam", "beta")), pushed)
         assertEquals(1, taken)
-        rule.onAllNodesWithTag("duel.new.sheet").assertCountEquals(0)
     }
 
     @Test
-    fun `with the flag off the card opens the sheet and pushes nothing`() {
-        show(FakeReleaseFlags())
+    fun `in the tablet's pane the card asks the pane for the form, so no screen is pushed`() {
+        show(inPane = true)
 
         rule.onNodeWithTag("duels.challenge").performClick()
         rule.waitForIdle()
 
-        assertSheet()
         assertEquals(emptyList<NewDuelKey>(), pushed)
-    }
-
-    @Test
-    fun `in the tablet's pane the flag asks the pane for the form, so no screen is pushed and no sheet opens`() {
-        show(FakeReleaseFlags(ReleaseFlag.SheetScreens), inPane = true)
-
-        rule.onNodeWithTag("duels.challenge").performClick()
-        rule.waitForIdle()
-
-        rule.onAllNodesWithTag("duel.new.sheet").assertCountEquals(0)
-        assertEquals(emptyList<NewDuelKey>(), pushed)
-    }
-
-    @Test
-    fun `in the pane with the flag off the card still opens the sheet`() {
-        show(FakeReleaseFlags(), inPane = true)
-
-        rule.onNodeWithTag("duels.challenge").performClick()
-        rule.waitForIdle()
-
-        assertSheet()
-        assertEquals(emptyList<NewDuelKey>(), pushed)
-    }
-
-    @Test
-    fun `with no screen to push the sheet opens even with the flag on`() {
-        show(FakeReleaseFlags(ReleaseFlag.SheetScreens), screens = false)
-
-        rule.onNodeWithTag("duels.challenge").performClick()
-        rule.waitForIdle()
-
-        assertSheet()
     }
 }

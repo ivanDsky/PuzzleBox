@@ -54,7 +54,7 @@ import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
 import com.ivandsky.puzzlebox.compete.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
@@ -125,7 +125,7 @@ internal fun shellRobot(
 }
 
 /** The graph with [also]'s flags on. */
-internal fun shellGraph(vararg also: ReleaseFlag, overrides: Module = module {}): E2eKoinGraph =
+internal fun shellGraph(vararg also: ReleaseFlagKey, overrides: Module = module {}): E2eKoinGraph =
     E2eKoinGraph(E2E_TODAY, overrides, FakeReleaseFlags(*also))
 
 /** The fresh state, selected on [tab], whose stack is [tab] then [pushed]. */
@@ -317,7 +317,7 @@ class ShellRobot internal constructor(
     }
 
     /**
-     * Creates a Daily duel over today's [game] alone through the New duel sheet (the Duels pill's challenge card),
+     * Creates a Daily duel over today's [game] alone through the New duel screen (the Duels pill's challenge card),
      * and leaves its Created sheet open. Returns the new duel's code.
      */
     fun createDuel(game: GameId): ShareCode {
@@ -337,7 +337,7 @@ class ShellRobot internal constructor(
         val before = graph.matches.matches.keys
         openDuelsTab()
         tap("duels.challenge")
-        awaitTag("duel.new.sheet")
+        awaitTag("duel.new.screen")
         tap(preset)
         adjust()
         tap("duel.create")

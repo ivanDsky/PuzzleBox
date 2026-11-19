@@ -25,7 +25,7 @@ import kotlinx.coroutines.launch
 
 /**
  * The newest public puzzles of every game (the repository's newest 30 each, older than a day included), asked of the
- * server once each time [observe] is collected, so one sheet life is one fetch however the query changes. The cached
+ * server once each time [observe] is collected, so one picker life is one fetch however the query changes. The cached
  * rows come out first and the fetched ones replace them, so nothing waits on the network. The last good list of each
  * game is kept in [cache]; a game the server can't be reached for keeps that list and marks the rows offline. Hidden
  * puzzles and the player's own are left out. Needs to be one instance for the app.

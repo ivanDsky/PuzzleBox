@@ -19,18 +19,9 @@ import com.ivandsky.puzzlebox.compete.create.lineup.LineupPanel
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
-/** The panel for a duel against a friend: the choices, then the footer and Create duel. */
+/** The invitee line and the Quick, Daily and Customize presets. */
 @Composable
-internal fun FriendCreatePanel(state: NewDuelState, actions: NewDuelActions) {
-    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        FriendChoices(state, actions)
-        FriendCreateFooter(state, actions)
-    }
-}
-
-/** The invitee line and the Quick, Daily and Customize presets. [sheetPicker] false: the lineup shows no add sheet, the screen shows the picker. */
-@Composable
-internal fun FriendChoices(state: NewDuelState, actions: NewDuelActions, sheetPicker: Boolean = true) {
+internal fun FriendChoices(state: NewDuelState, actions: NewDuelActions) {
     var customizing by rememberSaveable { mutableStateOf(false) }
     val draft = state.draft
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
@@ -46,7 +37,7 @@ internal fun FriendChoices(state: NewDuelState, actions: NewDuelActions, sheetPi
         PresetCard("Daily duel", "Today's puzzles · 24 h", draft.preset == DuelPreset.Daily, actions.onDaily, "duel.preset.daily") {
             if (draft.preset == DuelPreset.Daily) {
                 if (draft.showsRows(state.lineup, state.games)) {
-                    LineupPanel(state.lineup, state.games, draft.includeFriends, actions.onEditLineup, fixed = true, sheetPicker = sheetPicker)
+                    LineupPanel(state.lineup, state.games, draft.includeFriends, actions.onEditLineup, fixed = true)
                 } else {
                     DailyGames(state.games, draft, actions.onToggle)
                 }
@@ -67,7 +58,7 @@ internal fun FriendChoices(state: NewDuelState, actions: NewDuelActions, sheetPi
             },
             tag = "duel.preset.custom",
             trailing = { Chevron(expanded = customizing) },
-        ) { CustomizeBody(customizing && !draft.showsRows(state.lineup, state.games)) { DuelCustomizePanel(state, actions, Modifier.padding(top = Spacing.sm), sheetPicker) } }
+        ) { CustomizeBody(customizing && !draft.showsRows(state.lineup, state.games)) { DuelCustomizePanel(state, actions, Modifier.padding(top = Spacing.sm)) } }
     }
 }
 

@@ -44,11 +44,11 @@ import kotlinx.coroutines.launch
 private const val STOP_TIMEOUT_MS = 5_000L
 
 /**
- * The New duel sheet's state holder: presets and customize edits on a [DuelDraft], Create through [createMatch], and
+ * New duel's state holder: presets and customize edits on a [DuelDraft], Create through [createMatch], and
  * the Google sign-in a signed-out player gets first. "Play against" also offers Past you (unless a challenge already names a friend):
  * its choices live on a [SelfDuelForm] measured against the solved pool ([SelfDuelStep]),
  * Create goes through it too and the new duel's code leaves once through [opened] (it has nothing to share).
- * A created friend duel's code leaves once through [created]; the sheet calls [reset] when it closes so the next
+ * A created friend duel's code leaves once through [created]; the host calls [reset] when New duel closes so the next
  * opening starts from the Quick duel again. Customize edits a [LineupEditor] and Create sends its puzzles in order.
  */
 internal class NewDuelViewModel(
@@ -87,7 +87,7 @@ internal class NewDuelViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    /** The new duel, once, after Create succeeded: a duel created as the sheet closed waits here for the next opening. */
+    /** The new duel, once, after Create succeeded: a duel created as New duel closed waits here for the next opening. */
     val created: Flow<CreatedDuel> = createdCodes.receiveAsFlow()
 
     /** The games [created]'s invite text lists; see [inviteGames]. */
@@ -96,17 +96,17 @@ internal class NewDuelViewModel(
     /** The signed-in player's name for the invite text; null while signed out. */
     fun inviter(): String? = identity.current.value?.displayName
 
-    /** The code of a duel against Past you, once, after Create succeeded: the sheet opens that duel, the next opening's if it closed first. */
+    /** The code of a duel against Past you, once, after Create succeeded: the host opens that duel, the next opening's if New duel closed first. */
     val opened: Flow<ShareCode> = openedCodes.receiveAsFlow()
 
-    /** Bumped each time the sheet opens, so the solved counts are read again for puzzles solved since. */
-    private val sheetOpens = MutableStateFlow(0)
+    /** Bumped each time New duel opens, so the solved counts are read again for puzzles solved since. */
+    private val openings = MutableStateFlow(0)
 
     private val solved: StateFlow<SolvedCounts?> = selfStep
         .solved(
             games = games,
             includeFriends = working.map { it.form.includeFriends }.distinctUntilChanged(),
-            rereads = combine(working.map { it.generation }.distinctUntilChanged(), sheetOpens, ::Pair),
+            rereads = combine(working.map { it.generation }.distinctUntilChanged(), openings, ::Pair),
         )
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
@@ -182,7 +182,7 @@ internal class NewDuelViewModel(
 
     /**
      * Opens as a challenge: [challenge]'s friend is invited, and the duel is one puzzle of its game. The same challenge
-     * again (the sheet recomposed, the screen turned) leaves the draft as the player has edited it.
+     * again (recomposed, the screen turned) leaves the draft as the player has edited it.
      */
     fun prefill(challenge: DuelChallenge) = working.update {
         if (it.challenge == challenge) {
@@ -211,10 +211,10 @@ internal class NewDuelViewModel(
         }
     }
 
-    /** The sheet opened: counts the puzzles solved since it last did. */
-    fun refreshSolved() = sheetOpens.update { it + 1 }
+    /** New duel opened: counts the puzzles solved since it last did. */
+    fun refreshSolved() = openings.update { it + 1 }
 
-    /** Back to the Quick duel with nothing pending (no challenge either), as the sheet closes; a create still in flight keeps its place in [created] but not the sheet. */
+    /** Back to the Quick duel with nothing pending (no challenge either), as New duel closes; a create still in flight keeps its place in [created] but not on screen. */
     fun reset() = working.update {
         DuelWorking(DuelDraft.quick(games.value), form = SelfDuelForm.quick(games.value), generation = it.generation + 1, lineup = LineupEditor.opening(games.value))
     }
@@ -232,7 +232,7 @@ internal class NewDuelViewModel(
                 if (lineup != null) working.update { if (it.generation == start.generation) it.copy(lineup = it.lineup.pin(legs)) else it }
             }
             working.update { work -> settled(work, start, outcome) { it.after(outcome, registry::displayName) } }
-            // The server write is done whatever the sheet did meanwhile, so its code must still reach the creator.
+            // The server write is done whatever New duel did meanwhile, so its code must still reach the creator.
             if (outcome is CreateOutcome.Created) {
                 val games = outcome.legs.map { registry.displayName(it.ref.gameId) }
                 createdCodes.send(CreatedDuel(outcome.code, games, start.draft.deadlineHours, outcome.legs.map { it.ref }))
@@ -246,7 +246,7 @@ internal class NewDuelViewModel(
             val lineup = start.selfLineup.entries.takeIf { start.form.preset == DuelPreset.Custom }
             val outcome = selfStep.create(start.form, solved.value, lineup)
             working.update { work -> settled(work, start, outcome) { it.afterSelf(outcome, registry::displayName) } }
-            // The duel is stored whatever the sheet did meanwhile, so its code must still reach the creator.
+            // The duel is stored whatever New duel did meanwhile, so its code must still reach the creator.
             if (outcome is CreateOutcome.Created) openedCodes.send(outcome.code)
         }
     }

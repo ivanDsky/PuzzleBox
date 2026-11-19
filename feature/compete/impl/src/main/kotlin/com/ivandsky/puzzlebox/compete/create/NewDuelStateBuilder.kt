@@ -9,7 +9,7 @@ import java.time.ZoneId
 import java.util.Locale
 
 /**
- * Turns what [NewDuelViewModel] holds into what the sheet draws; the clock, zone and locale are read at each build.
+ * Turns what [NewDuelViewModel] holds into what New duel draws; the clock, zone and locale are read at each build.
  * With [pastYouPhoto] (CompeteFlag.PastYouPhoto, read by the view model) Past you carries the signed-in player's photo.
  */
 internal class NewDuelStateBuilder(

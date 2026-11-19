@@ -16,7 +16,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
-/** The right pane with no duel to show: what a duel is in a line, and New duel, which [onNewDuel] opens the New duel sheet for. */
+/** The right pane with no duel to show: what a duel is in a line, and New duel, which [onNewDuel] opens. */
 @Composable
 internal fun DuelsPaneEmpty(onNewDuel: () -> Unit, modifier: Modifier = Modifier) {
     Column(

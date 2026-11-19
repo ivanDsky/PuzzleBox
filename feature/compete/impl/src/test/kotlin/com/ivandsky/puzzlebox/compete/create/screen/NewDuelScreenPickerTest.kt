@@ -112,12 +112,11 @@ class NewDuelScreenPickerTest {
     }
 
     @Test
-    fun `Add puzzle shows the page in place of the form and its Create bar, not a sheet, titled by its row`() {
+    fun `Add puzzle shows the page in place of the form and its Create bar, titled by its row`() {
         show()
         openAdd()
 
         rule.onNodeWithTag("duel.lineup.picker").assertIsDisplayed()
-        rule.onNodeWithTag("duel.lineup.sheet").assertDoesNotExist()
         rule.onNodeWithTag("duel.new.form").assertDoesNotExist()
         rule.onNodeWithTag("duel.new.createBar").assertDoesNotExist()
         rule.onNodeWithText("Add puzzle 3").assertIsDisplayed()

@@ -15,7 +15,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -26,15 +25,11 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.compete.create.DuelGame
 import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.domain.lineup.AnyGame
-import com.ivandsky.puzzlebox.domain.lineup.ExactPuzzle
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import kotlinx.coroutines.delay
-import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 
 private const val FLASH_MS = 600L
@@ -45,10 +40,10 @@ private val DASH = floatArrayOf(16f, 12f)
 
 /**
  * The Customize panel's puzzles: "Puzzles, in order · N of 10", one row per puzzle, then the dashed Add row, which at
- * the limit says so instead. Every change goes through [onEdit] as the edit to apply to the [editor]; the add sheet shows
- * while the editor has a target. A [fixed] panel is the Daily duel's: its rows can be reordered and removed, but not changed, and nothing can be added.
- * The [audience] says whose puzzles an "Any" row draws from and which exact-puzzle search the sheet holds: a friend duel's, or, for Past you, what the player has solved, which the sheet counts and searches on the device.
- * With [sheetPicker] false the panel draws no sheet and holds no search: the screen that hosts it shows the picker as a page of its own.
+ * the limit says so instead. Every change goes through [onEdit] as the edit to apply to the [editor]; the screen that
+ * hosts the panel shows the picker page while the editor has a target. A [fixed] panel is the Daily duel's: its rows can
+ * be reordered and removed, but not changed, and nothing can be added.
+ * The [audience] says whose puzzles an "Any" row draws from: a friend duel's, or, for Past you, what the player has solved.
  */
 @Composable
 internal fun LineupPanel(
@@ -59,15 +54,8 @@ internal fun LineupPanel(
     modifier: Modifier = Modifier,
     fixed: Boolean = false,
     audience: LineupAudience = LineupAudience.Friend,
-    sheetPicker: Boolean = true,
 ) {
     val registry = koinInject<GamePlayRegistry>()
-    // Both searches live in this owner; the qualifier keeps Past you's from sharing the friend's text and rows.
-    val search = when {
-        !sheetPicker -> null
-        audience is LineupAudience.PastYou -> koinViewModel<AddPuzzleViewModel>(qualifier = PAST_YOU_PICKER)
-        else -> koinViewModel<AddPuzzleViewModel>()
-    }
     val pastYou = audience as? LineupAudience.PastYou
     val draft = editor.draft
     val edit by rememberUpdatedState(onEdit)
@@ -75,7 +63,6 @@ internal fun LineupPanel(
     val gap = with(LocalDensity.current) { ROW_GAP.toPx() }
     var drag by remember { mutableStateOf<ActiveDrag?>(null) }
     val landed = drag?.let { it.dropped && (draft != it.base || it.reorder.target == it.reorder.lifted) } == true
-    LaunchedEffect(editor.target == null) { if (editor.target == null) search?.reset() }
     LaunchedEffect(editor.flashed, draft) {
         if (editor.flashed != null) {
             delay(FLASH_MS)
@@ -137,33 +124,6 @@ internal fun LineupPanel(
                     modifier = Modifier.padding(vertical = Spacing.sm).testTag("duel.lineup.max"),
                 )
             }
-        }
-    }
-    if (search != null) {
-        editor.target?.let { row ->
-            // Inside the block, so it resets when the sheet closes: the next opening shows the tiles, not an option page.
-            var filterPage by rememberSaveable { mutableStateOf<PickerFilterPage?>(null) }
-            val searchState by search.state.collectAsStateWithLifecycle()
-            AddPuzzleSheet(
-                position = row + 1,
-                changing = editor.changing,
-                games = games,
-                onPickGame = { game -> edit { it.pick(AnyGame(game)) } },
-                onDismiss = { edit { it.dismiss() } },
-                solved = pastYou?.solved,
-                filterPage = filterPage,
-                onFilterPageBack = { filterPage = null },
-                filterPageContent = { page -> PickerFilterPageContent(page, searchState, games, search, onBack = { filterPage = null }) },
-                exactPuzzles = {
-                    ExactPuzzleSearch(
-                        games,
-                        draft.entries.filterIsInstance<ExactPuzzle>().mapTo(HashSet()) { it.ref },
-                        onAdd = { puzzle -> edit { it.pick(puzzle) } },
-                        viewModel = search,
-                        onOpenFilter = { filterPage = it },
-                    )
-                },
-            )
         }
     }
 }

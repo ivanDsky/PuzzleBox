@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.app.e2e
 
 import android.os.Looper
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInLink
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInAccountSession
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInAccountSource
@@ -158,7 +158,7 @@ internal class LinkedInWire : Dispatcher() {
  * The app's own graph with [also]'s flags on, the session store holding [sentinelSession] and the real account
  * adapter aimed at [wire]; [more] adds bindings on top.
  */
-internal fun linkedInGraph(wire: LinkedInWire, vararg also: ReleaseFlag, more: Module.() -> Unit = {}): E2eKoinGraph =
+internal fun linkedInGraph(wire: LinkedInWire, vararg also: ReleaseFlagKey, more: Module.() -> Unit = {}): E2eKoinGraph =
     shellGraph(
         *also,
         overrides = module {

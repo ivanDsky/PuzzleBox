@@ -12,8 +12,7 @@ import org.junit.Test
  * as registered when the call's reference is its simple name, its qualified name or a dotted tail of it. Every
  * production `flagSet` call has that shape, with a plain string literal owner (an owner held in a variable or a
  * template cannot be checked); no owner is registered twice, in any production source set. The central `ReleaseFlag`
- * holds no entry outside the rule's `FROZEN` set (`SheetScreens` alone since the move slices; it froze with five), and
- * every name in that set is still an entry: the set only shrinks. The subjects are the flag enums and the production
+ * holds no entry: it is gone, and a new one is told to go to its owner's enum. The subjects are the flag enums and the production
  * `flagSet` calls; a `fun … flagSet` declaration, a comment, a string and test sources are not calls.
  *
  * Limits: the match is by name, with no type resolution, so two flag enums with one simple name share a bare
@@ -52,12 +51,10 @@ class P15FlagSetRegisteredTest {
     }
 
     @Test
-    fun `P15 freeze names the added central entry and the stale frozen name`() {
+    fun `P15 freeze names the added central entry`() {
         val hint = P15FlagSetRegistered.check(SourceTree.fixture("P15")).violations.single { it.path == central }.hint
         assertEquals(
-            "ReleaseFlag is frozen: move AddedLater to the owner module's flag enum; " +
-                "P15's FROZEN still lists SheetScreens, gone from ReleaseFlag: delete it from FROZEN in " +
-                "P15FlagSetRegistered.kt (ADR-0022 amendment 2026-11-18)",
+            "ReleaseFlag is frozen: move AddedLater to the owner module's flag enum (ADR-0022 amendment 2026-11-18)",
             hint,
         )
     }

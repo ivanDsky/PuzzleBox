@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.app
 import com.ivandsky.puzzlebox.app.debug.flags.DebugReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.DeclaredFlags
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.TopBarFlag
 import com.ivandsky.puzzlebox.gameui.flags.GameUiFlag
 import com.ivandsky.puzzlebox.history.flags.HistoryFlag
 import com.ivandsky.puzzlebox.insights.flags.InsightsFlag
@@ -46,16 +46,16 @@ class DebugReleaseFlagsBindingTest {
         }
     }
 
-    /** The Release flags section lists the app's declared flags, set by set in owner order; the central enum keeps its own order. */
+    /** The Release flags section lists the app's declared flags, set by set in owner order; a set keeps its enum's order. */
     @Test
-    fun `debug graph declares the central flags in their enum order`() {
+    fun `debug graph declares the top-bar flags in their enum order`() {
         val koin = startKoin {
             androidContext(RuntimeEnvironment.getApplication())
             modules(PuzzleBoxApplication.appModules)
         }.koin
         try {
             val declared = koin.get<DeclaredFlags>().all
-            assertEquals(ReleaseFlag.entries, declared.filterIsInstance<ReleaseFlag>())
+            assertEquals(TopBarFlag.entries, declared.filterIsInstance<TopBarFlag>())
             assertEquals(declared, koin.get<DebugReleaseFlags>().declared)
         } finally {
             stopKoin()
@@ -92,12 +92,12 @@ class DebugReleaseFlagsBindingTest {
         val context = RuntimeEnvironment.getApplication()
         context.getSharedPreferences("release_flags", android.content.Context.MODE_PRIVATE)
             .edit().putBoolean("ZipEditor", false).putBoolean("TangoEditor", false).putBoolean("SudokuEditor", false)
-            .putBoolean("StrandsEditor", false).putBoolean("BoardErgonomics", false).commit()
+            .putBoolean("StrandsEditor", false).putBoolean("BoardErgonomics", false).putBoolean("SheetScreens", false).commit()
 
-        val flags = DebugReleaseFlags(context, ReleaseFlag.entries)
+        val flags = DebugReleaseFlags(context, TopBarFlag.entries)
 
-        assertEquals(emptyMap<ReleaseFlag, Boolean>(), flags.overrides.value)
-        assertEquals(ReleaseFlag.entries.filter { it.releaseDefault }.toSet(), flags.enabled.value)
+        assertEquals(emptyMap<TopBarFlag, Boolean>(), flags.overrides.value)
+        assertEquals(TopBarFlag.entries.filter { it.releaseDefault }.toSet(), flags.enabled.value)
     }
 
     /**
@@ -107,11 +107,10 @@ class DebugReleaseFlagsBindingTest {
      */
     @Test
     fun `an override is stored under the flag's name in release_flags and reset removes it`() {
-        assertTrue(NO_FLAG, ReleaseFlag.entries.isNotEmpty())
-        val flag = ReleaseFlag.entries.first()
+        val flag = TopBarFlag.entries.first()
         val context = RuntimeEnvironment.getApplication()
         val prefs = context.getSharedPreferences("release_flags", android.content.Context.MODE_PRIVATE)
-        val flags = DebugReleaseFlags(context, ReleaseFlag.entries)
+        val flags = DebugReleaseFlags(context, TopBarFlag.entries)
 
         flags.setOverride(flag, !flag.releaseDefault)
 
@@ -129,21 +128,16 @@ class DebugReleaseFlagsBindingTest {
      */
     @Test
     fun `a Boolean stored under a flag's name before launch is that flag's override`() {
-        assertTrue(NO_FLAG, ReleaseFlag.entries.isNotEmpty())
-        val flag = ReleaseFlag.entries.first()
+        val flag = TopBarFlag.entries.first()
         val context = RuntimeEnvironment.getApplication()
         context.getSharedPreferences("release_flags", android.content.Context.MODE_PRIVATE)
             .edit().putBoolean(flag.name, !flag.releaseDefault).commit()
 
-        val flags = DebugReleaseFlags(context, ReleaseFlag.entries)
+        val flags = DebugReleaseFlags(context, TopBarFlag.entries)
 
         assertEquals(mapOf(flag to !flag.releaseDefault), flags.overrides.value)
-        val defaults = ReleaseFlag.entries.filter { it.releaseDefault }.toSet()
+        val defaults = TopBarFlag.entries.filter { it.releaseDefault }.toSet()
         val expected = if (flag.releaseDefault) defaults - flag else defaults + flag
         assertEquals(expected, flags.enabled.value)
-    }
-
-    private companion object {
-        const val NO_FLAG = "no release flag: move this test to a test-only flag"
     }
 }

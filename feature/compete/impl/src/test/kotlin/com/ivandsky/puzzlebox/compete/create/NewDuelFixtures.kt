@@ -81,11 +81,6 @@ internal fun custom() = selfState(
     SolvedCounts(ALL_SOLVED.byGame + (STRANDS to 0)),
 )
 
-internal fun fewSolved() = selfState(
-    SelfDuelForm(DuelPreset.Custom, count = 3, games = setOf(ZIP), includeFriends = false),
-    SolvedCounts(mapOf(ZIP to 2, TANGO to 1)),
-)
-
 internal fun noneSolved() = selfState(
     SelfDuelForm(DuelPreset.Custom, count = 3, games = setOf(STRANDS), includeFriends = false),
     SolvedCounts(mapOf(ZIP to 14, TANGO to 9, QUEENS to 11, MINI to 6)),

@@ -28,18 +28,9 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 private val INFO_MARK = 20.dp
 private val INFO_STROKE = 1.5.dp
 
-/** The panel for a duel against Past you: the choices, then the footer and Create duel. */
+/** Quick or Customize (no Daily, no deadline). */
 @Composable
-internal fun SelfCreatePanel(state: NewDuelState, actions: NewDuelActions) {
-    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        SelfChoices(state, actions)
-        SelfCreateFooter(state, actions)
-    }
-}
-
-/** Quick or Customize (no Daily, no deadline). [sheetPicker] false: the lineup shows no add sheet, the screen shows the picker. */
-@Composable
-internal fun SelfChoices(state: NewDuelState, actions: NewDuelActions, sheetPicker: Boolean = true) {
+internal fun SelfChoices(state: NewDuelState, actions: NewDuelActions) {
     var customizing by rememberSaveable { mutableStateOf(false) }
     val self = state.self
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
@@ -60,7 +51,7 @@ internal fun SelfChoices(state: NewDuelState, actions: NewDuelActions, sheetPick
             tag = "duel.preset.custom",
             trailing = { Chevron(expanded = customizing) },
         ) {
-            CustomizeBody(customizing) { SelfLineupPanel(state, actions, Modifier.padding(top = Spacing.sm), sheetPicker) }
+            CustomizeBody(customizing) { SelfLineupPanel(state, actions, Modifier.padding(top = Spacing.sm)) }
         }
     }
 }
@@ -93,10 +84,10 @@ internal fun SelfCreateFooter(state: NewDuelState, actions: NewDuelActions) {
 
 /** Customize is the ordered lineup of "Any" rows over what the player has solved, and the friends' puzzles switch. */
 @Composable
-private fun SelfLineupPanel(state: NewDuelState, actions: NewDuelActions, modifier: Modifier = Modifier, sheetPicker: Boolean = true) {
+private fun SelfLineupPanel(state: NewDuelState, actions: NewDuelActions, modifier: Modifier = Modifier) {
     val self = state.self
     Column(modifier.fillMaxWidth().testTag("duel.customize"), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        LineupPanel(state.lineup, state.games, self.form.includeFriends, actions.onEditLineup, audience = LineupAudience.PastYou(self.counts?.byGame), sheetPicker = sheetPicker)
+        LineupPanel(state.lineup, state.games, self.form.includeFriends, actions.onEditLineup, audience = LineupAudience.PastYou(self.counts?.byGame))
         FriendsRow(self.form.includeFriends, actions.onFriends, hint = "Adds friend puzzles you've solved")
     }
 }
