@@ -6,7 +6,7 @@
 ## Version
 - app-id: com.ivandsky.puzzlebox
 - app-name: PuzzleBox
-- version: 0.38.1  # semver source of truth; main's release line; every merge to main publishes GitHub release v<version> (.github/workflows/release.yml, skipped when the tag exists). Bugfixes merge without a bump and ship in the next release the user asks for (user rule 2026-11-08); a release bumps this line and the Gradle versionName fallback and adds its entry at the top of docs/release-history.md, in one commit. Installs use deliver build_identity.py: <semver>-<slug>.<n>, APK PuzzleBox-<versionName>-<code>-<variant>.apk. Gradle versionCode fallback 100 (2026-11-05: headroom above every worktree's hand-set codes, max 23). Latest: 0.38.1 = RanksTuneBoardOnly ships on, plus backlog fixes. Release history: docs/release-history.md.
+- version: 0.38.2  # semver source of truth; main's release line; every merge to main publishes GitHub release v<version> (.github/workflows/release.yml, skipped when the tag exists). Bugfixes merge without a bump and ship in the next release the user asks for (user rule 2026-11-08); a release bumps this line and the Gradle versionName fallback and adds its entry at the top of docs/release-history.md, in one commit. Installs use deliver build_identity.py: <semver>-<slug>.<n>, APK PuzzleBox-<versionName>-<code>-<variant>.apk. Gradle versionCode fallback 100 (2026-11-05: headroom above every worktree's hand-set codes, max 23). Latest: 0.38.2 = shipped-on flags removed, plus Ranks Friends and Random fixes. Release history: docs/release-history.md.
 
 ## Product (frame)
 # purpose: one app for daily logic puzzles — play official NYT/LinkedIn dailies, build and share custom games, compete via leaderboards and 1v1; Zip ships first
