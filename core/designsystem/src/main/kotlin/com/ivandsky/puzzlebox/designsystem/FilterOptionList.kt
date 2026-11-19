@@ -24,7 +24,7 @@ private const val WINDOW_SHARE = 0.92f
 @Composable
 internal fun filterSheetMaxHeight(): Dp = with(LocalDensity.current) { (LocalWindowInfo.current.containerSize.height * WINDOW_SHARE).toDp() }
 
-/** The outlined list: the "all" row first, then [options]. Capped at 92% of the window height less the 56dp header; scrolls inside the cap. */
+/** The outlined list: the "all" row first, then [options]; [multi] gives every row the check slot and the checkbox role. Capped at 92% of the window height less the 56dp header; scrolls inside the cap. */
 @Composable
 internal fun <T> FilterOptionList(
     allLabel: String,
@@ -34,6 +34,7 @@ internal fun <T> FilterOptionList(
     isSelected: (T) -> Boolean,
     onOption: (T) -> Unit,
     modifier: Modifier = Modifier,
+    multi: Boolean = false,
     allTag: String? = null,
 ) {
     Column(
@@ -52,6 +53,7 @@ internal fun <T> FilterOptionList(
             onClick = onAll,
             modifier = if (allTag == null) Modifier else Modifier.testTag(allTag),
             first = true,
+            multi = multi,
         )
         options.forEach { option ->
             FilterOptionRow(
@@ -60,6 +62,7 @@ internal fun <T> FilterOptionList(
                 onClick = { onOption(option.value) },
                 modifier = if (option.tag == null) Modifier else Modifier.testTag(option.tag),
                 icon = option.icon,
+                multi = multi,
             )
         }
     }
