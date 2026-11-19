@@ -5,12 +5,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
+import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 
 /**
@@ -31,3 +35,12 @@ fun ReplayHintBadge(modifier: Modifier = Modifier) {
 
 private const val DISC_FRACTION = 0.18f
 private const val ICON_FRACTION = 0.7f
+
+@PuzzleBoxPreviews
+@Composable
+internal fun ReplayHintBadgePreview() {
+    PuzzleBoxTheme {
+        // The badge sizes itself from the cell it sits in: a 48 dp cell here.
+        Box(Modifier.size(48.dp)) { ReplayHintBadge(Modifier.align(Alignment.TopEnd)) }
+    }
+}

@@ -1,14 +1,11 @@
 package com.ivandsky.puzzlebox.gameui.replay
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -60,25 +57,6 @@ private fun previewTimeline(): Timeline {
 @Composable
 internal fun ReplayPlayerPreview() {
     PuzzleBoxTheme { ReplayPlayer(previewTimeline(), PreviewBoard) }
-}
-
-@PuzzleBoxPreviews
-@Composable
-internal fun ReplayHintBadgePreview() {
-    PuzzleBoxTheme {
-        // The badge sizes itself from the cell it sits in: a 48 dp cell here.
-        Box(Modifier.size(48.dp)) { ReplayHintBadge(Modifier.align(Alignment.TopEnd)) }
-    }
-}
-
-@PuzzleBoxPreviews
-@Composable
-internal fun ReplayStepDirectionPreview() {
-    PuzzleBoxTheme {
-        // The first frame is the baseline, so it counts as a forward step while the replay animates.
-        val forward = rememberStepsForward(ReplayBoardOptions(animate = true, showErrors = true), atMs = 1_000L)
-        Text(if (forward) "forward step" else "rests", Modifier.padding(16.dp))
-    }
 }
 
 @PuzzleBoxPreviews
