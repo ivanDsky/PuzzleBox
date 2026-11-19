@@ -68,4 +68,19 @@ class StreakRunsTest {
 
         assertEquals(listOf(StreakRun(day(10, 31), day(11, 1), emptySet())), runs.within(RecapPeriod.Year(2026)))
     }
+
+    @Test
+    fun `length at a day counts the days into its run, frozen days included`() {
+        val runs = StreakRuns.of(listOf(day(11, 1), day(11, 3), day(11, 4), day(11, 9)), freezes(day(11, 2)))
+
+        assertEquals(1, runs.lengthAt(day(11, 1)))
+        assertEquals(2, runs.lengthAt(day(11, 2)))
+        assertEquals(4, runs.lengthAt(day(11, 4)))
+        assertEquals(1, runs.lengthAt(day(11, 9)))
+    }
+
+    @Test
+    fun `length at a day no run holds is zero`() {
+        assertEquals(0, StreakRuns.of(listOf(day(11, 1)), freezes()).lengthAt(day(11, 5)))
+    }
 }

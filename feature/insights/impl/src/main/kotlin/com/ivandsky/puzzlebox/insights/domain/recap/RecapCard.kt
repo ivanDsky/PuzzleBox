@@ -26,4 +26,23 @@ internal sealed interface RecapCard {
      * period's edge shows only its own side), and the days [freezesSpent] holding streaks anywhere in the period.
      */
     data class Streak(val days: Int, val from: LocalDate, val to: LocalDate, val freezesSpent: Int) : RecapCard
+
+    /** Hint-free solves: [hintFree] of the period's [solved] counted solves needed no hint. */
+    data class HintFree(val hintFree: Int, val solved: Int) : RecapCard
+
+    /**
+     * Moments earned, local kinds only (A6): [personalBests] and [firstSubX] and [fullSets] counted, and every
+     * [streakMilestones] reached (7, 30 or 100 days), oldest first. Friend Moments are not counted.
+     */
+    data class Moments(
+        val personalBests: Int,
+        val firstSubX: Int,
+        val fullSets: Int,
+        val streakMilestones: List<Int>,
+    ) : RecapCard {
+        val total: Int get() = personalBests + firstSubX + fullSets + streakMilestones.size
+    }
+
+    /** Total time spent solving: [totalMs] over [solved] counted solves, pauses excluded, imports included (A8). */
+    data class TotalTime(val totalMs: Long, val solved: Int) : RecapCard
 }

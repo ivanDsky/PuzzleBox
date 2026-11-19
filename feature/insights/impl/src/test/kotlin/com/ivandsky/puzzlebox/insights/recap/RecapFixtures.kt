@@ -42,6 +42,18 @@ internal object RecapFixtures {
     /** A 17-day streak, two of its days held by freezes. */
     val streak = RecapCard.Streak(days = 17, from = LocalDate.of(2026, 11, 3), to = LocalDate.of(2026, 11, 19), freezesSpent = 2)
 
+    /** 36 of 42 solves needed no hint. */
+    val hintFree = RecapCard.HintFree(hintFree = 36, solved = 42)
+
+    /** Every local Moment kind came up, two streak milestones among them. */
+    val moments = RecapCard.Moments(personalBests = 5, firstSubX = 2, fullSets = 14, streakMilestones = listOf(7, 30))
+
+    /** Three hours and a bit over 42 solves. */
+    val totalTime = RecapCard.TotalTime(totalMs = 11_535_000, solved = 42)
+
+    /** A year of play: the hero runs to hundreds of hours, the widest the time format gets. */
+    val totalTimeYear = RecapCard.TotalTime(totalMs = 512_461_000, solved = 981)
+
     val ready = RecapUiState.Ready(period = november, cards = listOf(solved, secondSolved), initialPage = 0)
 }
 

@@ -65,6 +65,9 @@ private fun RecapFact(
         is RecapCard.Solved -> SolvedCardFact(card, gameName, modifier)
         is RecapCard.Fastest -> FastestCardFact(card, gameName, onWatchReplay, modifier)
         is RecapCard.Streak -> StreakCardFact(card, modifier)
+        is RecapCard.HintFree -> HintFreeCardFact(card, modifier)
+        is RecapCard.Moments -> MomentsCardFact(card, modifier)
+        is RecapCard.TotalTime -> TotalTimeCardFact(card, modifier)
     }
 }
 

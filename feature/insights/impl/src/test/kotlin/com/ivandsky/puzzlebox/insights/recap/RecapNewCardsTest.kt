@@ -2,7 +2,9 @@ package com.ivandsky.puzzlebox.insights.recap
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHasNoClickAction
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasClickAction
@@ -16,6 +18,7 @@ import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.fastest
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.gameName
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.queens
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.streak
+import androidx.compose.ui.unit.dp
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -91,6 +94,71 @@ class RecapNewCardsTest {
     fun `nothing on the streak page is a button`() {
         show(streak)
 
+        rule.onNode(hasClickAction()).assertDoesNotExist()
+    }
+
+    @Test
+    fun `hint-free shows its count, its share and the solves that used a hint`() {
+        show(RecapFixtures.hintFree)
+
+        rule.onNodeWithTag("recap.hintfree").assertIsDisplayed()
+        rule.onNodeWithTag("recap.hintfree.count").assertTextContains("36")
+        rule.onNodeWithTag("recap.hintfree.share").assertTextContains("Share of your solves").assertTextContains("86%")
+        rule.onNodeWithTag("recap.hintfree.hinted").assertTextContains("6")
+    }
+
+    @Test
+    fun `hint-free one solve is singular and the full share`() {
+        show(RecapCard.HintFree(hintFree = 1, solved = 1))
+
+        rule.onNodeWithTag("recap.hintfree.count").assertContentDescriptionEquals("1 solve without a hint")
+        rule.onNodeWithTag("recap.hintfree.share").assertTextContains("100%")
+    }
+
+    @Test
+    fun `moments shows the count and a row for each kind that came up`() {
+        show(RecapFixtures.moments)
+
+        rule.onNodeWithTag("recap.moments").assertIsDisplayed()
+        rule.onNodeWithTag("recap.moments.count").assertTextContains("23")
+        rule.onNodeWithTag("recap.moments.personalBest").assertTextContains("Personal bests").assertTextContains("5")
+        rule.onNodeWithTag("recap.moments.firstSubX").assertTextContains("2")
+        rule.onNodeWithTag("recap.moments.fullSet").assertTextContains("14")
+        rule.onNodeWithTag("recap.moments.streak").assertTextContains("7 days · 30 days")
+    }
+
+    @Test
+    fun `moments leaves out the kinds that did not come up`() {
+        show(RecapCard.Moments(personalBests = 0, firstSubX = 0, fullSets = 1, streakMilestones = emptyList()))
+
+        rule.onNodeWithTag("recap.moments.count").assertContentDescriptionEquals("1 moment earned")
+        rule.onNodeWithTag("recap.moments.fullSet").assertIsDisplayed()
+        rule.onNodeWithTag("recap.moments.personalBest").assertDoesNotExist()
+        rule.onNodeWithTag("recap.moments.firstSubX").assertDoesNotExist()
+        rule.onNodeWithTag("recap.moments.streak").assertDoesNotExist()
+    }
+
+    @Test
+    fun `total time shows the time, the puzzles and the average per puzzle`() {
+        show(RecapFixtures.totalTime)
+
+        rule.onNodeWithTag("recap.totaltime").assertIsDisplayed()
+        rule.onNodeWithTag("recap.totaltime.time").assertTextContains("3:12:15")
+        rule.onNodeWithTag("recap.totaltime.solved").assertTextContains("42")
+        rule.onNodeWithTag("recap.totaltime.average").assertTextContains("4:34")
+    }
+
+    @Test
+    fun `a fact row is one item for a screen reader and no row is smaller than a touch target`() {
+        show(RecapFixtures.totalTime)
+
+        rule.onNodeWithTag("recap.totaltime.average").assertIsDisplayed().assertHeightIsAtLeast(48.dp)
+        rule.onNodeWithTag("recap.totaltime.average").assertTextContains("Average per puzzle")
+    }
+
+    @Test
+    fun `nothing on the hint-free, moments or total time pages is a button`() {
+        show(RecapFixtures.hintFree)
         rule.onNode(hasClickAction()).assertDoesNotExist()
     }
 }

@@ -17,6 +17,7 @@ class SolvedRecapFactProviderTest {
         facts = PeriodFacts(
             period, scope = null, solved = solved.values.sum(), solvedByGame = solved,
             fastestByGame = emptyMap(), longestStreak = null, freezesSpent = 0,
+            hintFree = 0, totalTimeMs = 0, moments = emptyList(),
         ),
         games = games,
     )

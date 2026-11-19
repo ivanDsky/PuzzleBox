@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.domain
 import com.ivandsky.puzzlebox.game.Cadence
 import com.ivandsky.puzzlebox.game.GameRegistry
 import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -19,6 +20,9 @@ class GetPuzzleDay(
 ) {
 
     operator fun invoke(): LocalDate = LocalDate.now(clock.withZone(registry.puzzleZone()))
+
+    /** The puzzle day [instant] fell on, by the same zone as today: the day a past solve was made on. */
+    fun on(instant: Instant): LocalDate = instant.atZone(registry.puzzleZone()).toLocalDate()
 }
 
 /**

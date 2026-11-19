@@ -21,6 +21,7 @@ class FastestRecapFactProviderTest {
         facts = PeriodFacts(
             period, scope = null, solved = fastest.size, solvedByGame = fastest.mapValues { 1 },
             fastestByGame = fastest, longestStreak = null, freezesSpent = 0,
+            hintFree = 0, totalTimeMs = 0, moments = emptyList(),
         ),
         games = games,
     )

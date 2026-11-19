@@ -1,0 +1,258 @@
+package com.ivandsky.puzzlebox.insights.domain.recap
+
+import com.ivandsky.puzzlebox.domain.moments.Moment
+import com.ivandsky.puzzlebox.domain.moments.detectMoments
+import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
+import com.ivandsky.puzzlebox.testing.game.TestGames.beta
+import java.time.Instant
+import java.time.LocalDate
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+/** The detector's input per counted solve, as it stood when the solve was made. */
+class ReplaySolveFactsTest {
+
+    private val fixture = RecapHistoryFixture()
+    private val replay = ReplaySolveFacts(fixture.computeStreak, fixture.puzzleDay, fixture.registry)
+
+    private fun day(month: Int, dayOfMonth: Int) = LocalDate.of(2026, month, dayOfMonth)
+
+    private suspend fun replayed() = replay(fixture.history())
+
+    private suspend fun factsOf(game: com.ivandsky.puzzlebox.model.GameId, day: LocalDate) =
+        replayed().single { it.game == game && it.day == day }.facts
+
+    @Test
+    fun `no history is no solves`() = runTest {
+        assertEquals(emptyList<ReplayedSolve>(), replayed())
+    }
+
+    @Test
+    fun `solves come oldest day first and only counted ones`() = runTest {
+        fixture.store(
+            fixture.solve(alpha, day(11, 9)),
+            fixture.solve(alpha, day(11, 2)),
+            fixture.playAgain(alpha, day(11, 2)),
+            fixture.solve(alpha, day(11, 4), puzzleNumber = null),
+        )
+
+        assertEquals(listOf(day(11, 2), day(11, 9)), replayed().map { it.day })
+    }
+
+    @Test
+    fun `a game's first solve is no personal best, a faster one is, a slower one is not`() = runTest {
+        fixture.store(
+            fixture.solve(alpha, day(11, 2), time = 400_000),
+            fixture.solve(alpha, day(11, 4), time = 380_000),
+            fixture.solve(alpha, day(11, 6), time = 390_000),
+            fixture.solve(beta, day(11, 6), time = 500_000),
+        )
+
+        assertFalse(factsOf(alpha, day(11, 2)).newBest)
+        assertTrue(factsOf(alpha, day(11, 4)).newBest)
+        assertFalse(factsOf(alpha, day(11, 6)).newBest)
+        // Another game's best is its own: beta's first solve is not measured against alpha's.
+        assertFalse(factsOf(beta, day(11, 6)).newBest)
+    }
+
+    @Test
+    fun `the best a solve beats is the best before it, across months`() = runTest {
+        fixture.store(
+            fixture.solve(alpha, day(10, 5), time = 380_000),
+            fixture.solve(alpha, day(11, 3), time = 390_000),
+        )
+
+        assertFalse(factsOf(alpha, day(11, 3)).newBest)
+    }
+
+    @Test
+    fun `the best hint-free time before a solve ignores hinted solves and this one`() = runTest {
+        fixture.store(
+            fixture.solve(alpha, day(11, 2), time = 100_000, hints = 1),
+            fixture.solve(alpha, day(11, 4), time = 200_000),
+            fixture.solve(alpha, day(11, 6), time = 150_000),
+            fixture.solve(alpha, day(11, 8), time = 400_000),
+        )
+
+        assertNull(factsOf(alpha, day(11, 2)).bestHintFreeMs)
+        assertNull(factsOf(alpha, day(11, 4)).bestHintFreeMs)
+        assertEquals(200_000L, factsOf(alpha, day(11, 6)).bestHintFreeMs)
+        assertEquals(150_000L, factsOf(alpha, day(11, 8)).bestHintFreeMs)
+    }
+
+    @Test
+    fun `the last solve of a day's set finishes it, in the order they were completed`() = runTest {
+        fixture.store(
+            fixture.solve(alpha, day(11, 2), time = 100_000, hints = 1).copy(firstCompletedAt = Instant.parse("2026-11-02T10:05:00Z")),
+            fixture.solve(beta, day(11, 2), time = 200_000).copy(firstCompletedAt = Instant.parse("2026-11-02T10:00:00Z")),
+        )
+
+        val beta = factsOf(beta, day(11, 2))
+        val alpha = factsOf(alpha, day(11, 2))
+
+        assertEquals(1, beta.doneToday)
+        assertEquals(2, alpha.doneToday)
+        assertEquals(2, alpha.totalToday)
+        assertEquals(Moment.FullSetDone.DayTotal(timeMs = 300_000, hints = 1), alpha.dayTotal)
+        assertTrue(detectMoments(alpha).any { it is Moment.FullSetDone })
+        assertFalse(detectMoments(beta).any { it is Moment.FullSetDone })
+    }
+
+    @Test
+    fun `solves completed at the same instant, as imports are, finish the set in game order`() = runTest {
+        fixture.store(fixture.imported(beta, day(11, 2)), fixture.imported(alpha, day(11, 2)))
+
+        assertEquals(1, factsOf(alpha, day(11, 2)).doneToday)
+        assertEquals(2, factsOf(beta, day(11, 2)).doneToday)
+    }
+
+    @Test
+    fun `a day's first solve moves the streak, the next solves of the day do not`() = runTest {
+        fixture.store(
+            fixture.solve(alpha, day(11, 1)).copy(firstCompletedAt = Instant.parse("2026-11-01T08:00:00Z")),
+            fixture.solve(beta, day(11, 1)).copy(firstCompletedAt = Instant.parse("2026-11-01T09:00:00Z")),
+            fixture.solve(alpha, day(11, 2)),
+        )
+
+        assertEquals(0 to 1, factsOf(alpha, day(11, 1)).let { it.streakBefore to it.streak })
+        assertEquals(1 to 1, factsOf(beta, day(11, 1)).let { it.streakBefore to it.streak })
+        assertEquals(1 to 2, factsOf(alpha, day(11, 2)).let { it.streakBefore to it.streak })
+    }
+
+    @Test
+    fun `the streak reaches the 7 day mark on the day it does, across months`() = runTest {
+        fixture.store(*(26..31).map { fixture.solve(alpha, day(10, it), puzzleNumber = 100 + it) }.toTypedArray(), fixture.solve(alpha, day(11, 1)))
+
+        val seventh = factsOf(alpha, day(11, 1))
+
+        assertEquals(6 to 7, seventh.streakBefore to seventh.streak)
+        assertTrue(Moment.Streak(7) in detectMoments(seventh))
+        assertTrue(detectMoments(factsOf(alpha, day(10, 31))).none { it is Moment.Streak })
+    }
+
+    @Test
+    fun `a frozen day is part of the streak the next solve reaches`() = runTest {
+        fixture.store(fixture.solve(alpha, day(11, 1)), fixture.solve(alpha, day(11, 3)))
+
+        val third = factsOf(alpha, day(11, 3))
+
+        assertEquals(2 to 3, third.streakBefore to third.streak)
+    }
+
+    @Test
+    fun `an archive first solve is a counted solve and earns what Result gives it, a personal best included`() = runTest {
+        fixture.store(fixture.solve(alpha, day(11, 2), time = 390_000), fixture.solve(alpha, day(11, 4), time = 380_000))
+        fixture.captureArchived(alpha, day(11, 4))
+
+        val archive = factsOf(alpha, day(11, 4))
+
+        assertFalse(archive.playAgain)
+        assertTrue(archive.newBest)
+        assertEquals(listOf<Moment>(Moment.PersonalBest), detectMoments(archive))
+        // The walk and the solved count agree: both rows are counted solves.
+        assertEquals(2, replayed().size)
+        assertEquals(2, fixture.computePeriodFacts(fixture.history(), RecapPeriod.Month(java.time.YearMonth.of(2026, 11))).solved)
+    }
+
+    @Test
+    fun `an archive solve sets a time to beat like any other`() = runTest {
+        fixture.store(fixture.solve(alpha, day(11, 2), time = 390_000), fixture.solve(alpha, day(11, 4), time = 380_000), fixture.solve(alpha, day(11, 6), time = 385_000))
+        fixture.captureArchived(alpha, day(11, 4))
+
+        assertFalse(factsOf(alpha, day(11, 6)).newBest)
+    }
+
+    @Test
+    fun `an archive day earns no streak moment unless it joins runs the way Result reads it`() = runTest {
+        // Seven days Nov 14..20 held by alpha, and an archive solve of beta's Nov 9 made on Nov 22: it joins nothing.
+        fixture.store(
+            *(14..20).map { fixture.solve(alpha, day(11, it), puzzleNumber = 100 + it) }.toTypedArray(),
+            fixture.solve(beta, day(11, 9)).copy(firstCompletedAt = Instant.parse("2026-11-22T18:00:00Z")),
+        )
+        fixture.captureArchived(beta, day(11, 9))
+
+        val archive = factsOf(beta, day(11, 9))
+
+        assertEquals(archive.streakBefore, archive.streak)
+        assertTrue(detectMoments(archive).none { it is Moment.Streak })
+    }
+
+    @Test
+    fun `an archive solve that finished the day's set on the day it was made earns the full set`() = runTest {
+        // Beta's Nov 10 puzzle is solved at 10:00 in Los Angeles on Nov 10; alpha's Nov 3 archive puzzle at 11:00 the same day.
+        fixture.store(
+            fixture.solve(beta, day(11, 10), time = 200_000, hints = 1).copy(firstCompletedAt = Instant.parse("2026-11-10T18:00:00Z")),
+            fixture.solve(alpha, day(11, 3), time = 300_000).copy(firstCompletedAt = Instant.parse("2026-11-10T19:00:00Z")),
+        )
+        fixture.captureArchived(alpha, day(11, 3))
+
+        val archive = factsOf(alpha, day(11, 3))
+
+        assertEquals(2, archive.doneToday)
+        assertEquals(2, archive.totalToday)
+        assertEquals(Moment.FullSetDone.DayTotal(timeMs = 500_000, hints = 1), archive.dayTotal)
+        assertTrue(detectMoments(archive).any { it is Moment.FullSetDone })
+        // Alpha's own puzzle day, Nov 3, holds no other solve: only the day it was made on counts.
+        assertEquals(1, factsOf(beta, day(11, 10)).doneToday)
+    }
+
+    @Test
+    fun `an archive solve made before the other game's solve does not see it in the set`() = runTest {
+        fixture.store(
+            fixture.solve(beta, day(11, 10)).copy(firstCompletedAt = Instant.parse("2026-11-10T19:00:00Z")),
+            fixture.solve(alpha, day(11, 3)).copy(firstCompletedAt = Instant.parse("2026-11-10T18:00:00Z")),
+        )
+        fixture.captureArchived(alpha, day(11, 3))
+
+        assertEquals(1, factsOf(alpha, day(11, 3)).doneToday)
+        assertEquals(2, factsOf(beta, day(11, 10)).doneToday)
+    }
+
+    @Test
+    fun `an archive solve is judged against what was solved before it was made, not before its puzzle day`() = runTest {
+        fixture.store(
+            fixture.solve(alpha, day(11, 3), time = 390_000).copy(firstCompletedAt = Instant.parse("2026-11-20T18:00:00Z")),
+            fixture.solve(alpha, day(11, 10), time = 380_000),
+        )
+        fixture.captureArchived(alpha, day(11, 3))
+
+        // Nov 10's 380 s stood when Nov 3's 390 s was solved: no best.
+        assertFalse(factsOf(alpha, day(11, 3)).newBest)
+        assertFalse(factsOf(alpha, day(11, 10)).newBest)
+    }
+
+    @Test
+    fun `the same history replayed under two different clocks gives the same facts`() = runTest {
+        fun history(fixture: RecapHistoryFixture) {
+            fixture.store(
+                *(10..16).map { fixture.solve(alpha, day(11, it), time = 400_000 - it * 1_000L, puzzleNumber = 100 + it) }.toTypedArray(),
+                fixture.solve(beta, day(11, 12), time = 200_000).copy(firstCompletedAt = Instant.parse("2026-11-12T18:00:00Z")),
+                fixture.solve(alpha, day(11, 2), time = 300_000).copy(firstCompletedAt = Instant.parse("2026-11-12T19:00:00Z")),
+                fixture.solve(beta, day(11, 3), time = 150_000).copy(firstCompletedAt = Instant.parse("2026-11-17T19:00:00Z")),
+            )
+            fixture.captureArchived(alpha, day(11, 2))
+            fixture.captureArchived(beta, day(11, 3))
+        }
+        val early = RecapHistoryFixture(Instant.parse("2026-11-18T12:00:00Z")).also(::history)
+        val late = RecapHistoryFixture(Instant.parse("2027-06-01T12:00:00Z")).also(::history)
+
+        val earlyFacts = ReplaySolveFacts(early.computeStreak, early.puzzleDay, early.registry)(early.history())
+        val lateFacts = ReplaySolveFacts(late.computeStreak, late.puzzleDay, late.registry)(late.history())
+
+        assertEquals(earlyFacts, lateFacts)
+        assertEquals(earlyFacts.map { detectMoments(it.facts) }, lateFacts.map { detectMoments(it.facts) })
+        // The archive solve that finished Nov 12's set is in there: the replay is not empty of what it is checking.
+        assertTrue(earlyFacts.any { detectMoments(it.facts).any { m -> m is Moment.FullSetDone } })
+    }
+
+    @Test
+    fun `friends are absent from every solve`() = runTest {
+        fixture.store(fixture.solve(alpha, day(11, 2)), fixture.imported(beta, day(11, 3)))
+
+        assertTrue(replayed().all { it.facts.friends == null && !it.facts.practice })
+    }
+}

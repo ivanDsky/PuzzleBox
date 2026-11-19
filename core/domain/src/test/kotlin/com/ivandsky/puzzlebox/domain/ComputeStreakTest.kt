@@ -116,4 +116,12 @@ class ComputeStreakTest {
         assertEquals(0, streak(run).current)
         assertEquals(2, streak(run).best)
     }
+
+    @Test
+    fun `a streak read as of a past day ignores the clock's today`() {
+        val days = listOf(today.minusDays(6), today.minusDays(5))
+
+        assertEquals(2, streak(days, today.minusDays(5)).current)
+        assertEquals(0, streak(days, today).current)
+    }
 }
