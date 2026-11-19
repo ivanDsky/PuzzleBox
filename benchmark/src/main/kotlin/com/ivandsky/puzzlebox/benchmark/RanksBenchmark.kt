@@ -14,7 +14,7 @@ private const val SWIPE_STEPS = 20
 
 /**
  * Ranks as a signed-out player sees it: sign-in prompt in place of boards. Opening it, the day
- * arrows, the Who and When sheet, and swiping between boards. Real-board flows (scroll, refresh,
+ * arrows, the When sheet, and swiping between boards. Real-board flows (scroll, refresh,
  * replay) need an account and stay out of the benchmark install.
  */
 @RunWith(AndroidJUnit4::class)
@@ -46,9 +46,11 @@ class RanksBenchmark {
 
     @Test
     fun scopePeriodAndBoards() = rule.journey(setup = { selectTab(BenchmarkTab.Ranks) }) {
-        tap(By.desc("Tune ranks"))
-        listOf("Week", "Month", "Day").forEach { tap(By.text(it)) }
-        tap(By.desc("Close sheet"))
+        // Each pick closes the sheet; the window starts on Day, so the row tapped is never also the chip's text.
+        listOf("Week", "Month", "Day").forEach {
+            tap(RANKS_WHEN_CHIP)
+            tap(By.text(it))
+        }
         repeat(2) { tap(By.desc("Back")) }
         repeat(2) { tap(By.desc("Forward")) }
         repeat(BOARD_SWIPES) { swipeBoards(Direction.LEFT) }

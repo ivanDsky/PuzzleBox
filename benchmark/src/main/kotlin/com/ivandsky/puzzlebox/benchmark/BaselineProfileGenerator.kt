@@ -31,8 +31,8 @@ class BaselineProfileGenerator {
             leaveGame()
         }
         selectTab(BenchmarkTab.Ranks)
-        tap(By.desc("Tune ranks"))
-        tap(By.desc("Close sheet"))
+        tap(RANKS_WHEN_CHIP)
+        tap(By.desc("Close"))
         selectTab(BenchmarkTab.Community)
         selectTab(BenchmarkTab.Today)
     }
