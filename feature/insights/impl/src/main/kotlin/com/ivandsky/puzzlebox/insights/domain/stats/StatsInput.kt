@@ -2,15 +2,17 @@ package com.ivandsky.puzzlebox.insights.domain.stats
 
 import com.ivandsky.puzzlebox.insights.domain.recap.PeriodFacts
 import com.ivandsky.puzzlebox.model.GameId
+import java.time.LocalDate
 
 /**
  * What every stats section provider reads: the [facts] of the range and scope the page is on, the [range] itself and
- * the app's [games] in the order a section lists them. The facts are the one fold's ([PeriodFacts]), never a second.
+ * the app's [games] in the order a section lists them, and the puzzle day [today] the range was cut on. The facts are the one fold's ([PeriodFacts]), never a second.
  */
 internal data class StatsInput(
     val range: StatsRange,
     val facts: PeriodFacts,
     val games: List<GameId>,
+    val today: LocalDate,
 ) {
 
     /** [byGame]'s entries in the app's game order; a game the app no longer lists follows by id. */
