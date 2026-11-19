@@ -16,7 +16,9 @@ import java.time.temporal.ChronoUnit
  */
 class ComputeStreak(private val puzzleDay: GetPuzzleDay) {
 
-    operator fun invoke(solvedDays: Collection<LocalDate>): StreakLedger = replay(solvedDays).ledger
+    /** The ledger as it stands on [today], the app's puzzle day unless a streak is read back as of the day of a past solve. */
+    operator fun invoke(solvedDays: Collection<LocalDate>, today: LocalDate = puzzleDay()): StreakLedger =
+        replay(solvedDays, today).ledger
 
     /**
      * The freeze rule replayed forward once: over the solved days, then up to today. Nothing
@@ -25,8 +27,7 @@ class ComputeStreak(private val puzzleDay: GetPuzzleDay) {
      * Days after today (clock skew, another zone) feed no freeze number; [Replay.ledger]'s best
      * still counts them.
      */
-    internal fun replay(solvedDays: Collection<LocalDate>): Replay {
-        val today = puzzleDay()
+    internal fun replay(solvedDays: Collection<LocalDate>, today: LocalDate = puzzleDay()): Replay {
         val upToToday = solvedDays.filter { it <= today }
         val replay = walk(upToToday, today)
         if (upToToday.size == solvedDays.size) return replay

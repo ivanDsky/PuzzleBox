@@ -81,4 +81,11 @@ class GetPuzzleDayTest {
             rendererModel = base.rendererModel,
         )
     }
+
+    @Test
+    fun `an instant falls on the puzzle day of the cadence zone, whatever the clock says`() {
+        // 07:30Z on Nov 5 is 23:30 LA on Nov 4; the clock is elsewhere.
+        assertEquals(nov4, puzzleDay(laRegistry, "2026-12-25T00:00:00Z").on(Instant.parse("2026-11-05T07:30:00Z")))
+        assertEquals(nov5, puzzleDay(laRegistry, "2026-12-25T00:00:00Z").on(Instant.parse("2026-11-05T08:00:00Z")))
+    }
 }
