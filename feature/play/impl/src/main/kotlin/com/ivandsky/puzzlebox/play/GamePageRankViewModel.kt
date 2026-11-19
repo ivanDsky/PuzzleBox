@@ -169,7 +169,7 @@ internal class GamePageRankViewModel(
     private fun FriendDay.standingOn(board: TodayLeaderboard): FriendDay.Standing? {
         val signedIn = board as? TodayLeaderboard.SignedIn ?: return null
         val loaded = signedIn.board as? TodayLeaderboard.Board.Loaded ?: return null
-        return standing(loaded.snapshot.entries, signedIn.identity.uid, order)
+        return standing(loaded.snapshot.entries, signedIn.identity, order)
     }
 
     /**

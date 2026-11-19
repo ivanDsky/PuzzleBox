@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.domain.ranks
 
+import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
@@ -47,13 +48,13 @@ class ObserveFriendBoards(
      * so the caller shares it.
      */
     operator fun invoke(boards: Flow<Among?>): Flow<CountedBoards?> {
-        if (linkedIn == null) return boards.map { it?.counted(emptyMap(), viewerUid = null) }
+        if (linkedIn == null) return boards.map { it?.counted(emptyMap(), viewer = null) }
         val days = boards.map { it.refs() }.distinctUntilChanged().flatMapLatest { refs -> daysOf(linkedIn, refs).map { refs to it } }
         return combine(boards, days, identity.current) { read, (refs, days), me ->
             when {
                 read == null -> Answer(null)
                 read.refs() != refs -> null
-                else -> Answer(read.counted(days, me?.uid))
+                else -> Answer(read.counted(days, me))
             }
         }.mapNotNull { it }.map { it.counted }
     }
@@ -71,9 +72,9 @@ class ObserveFriendBoards(
         }
     }
 
-    private fun Among.counted(days: Map<LeaderboardRef, LinkedInDayView>, viewerUid: String?): CountedBoards {
+    private fun Among.counted(days: Map<LeaderboardRef, LinkedInDayView>, viewer: Identity?): CountedBoards {
         val plain = boards.amongFriends(players)
-        return CountedBoards(plain, if (days.isEmpty()) plain else boards.amongFriends(players, days, viewerUid), days)
+        return CountedBoards(plain, if (days.isEmpty()) plain else boards.amongFriends(players, days, viewer), days)
     }
 
     private fun Among?.refs(): List<LeaderboardRef> = (this?.boards as? RankWindowBoards.Boards)?.boards.orEmpty().map { it.board }

@@ -122,8 +122,9 @@ class FriendBoardsTest {
             ),
         )
 
-        val hub = ranked(RankWindowBoards.Boards(listOf(loaded(zip, *entries.toTypedArray()))).amongFriends(friends, mapOf(zip to connections), "ann")).single()
-        val reported = FriendDay(zip, friends - "ann", connections).standing(entries, "ann", order)
+        val ann = Identity("ann", "Ann", null)
+        val hub = ranked(RankWindowBoards.Boards(listOf(loaded(zip, *entries.toTypedArray()))).amongFriends(friends, mapOf(zip to connections), ann)).single()
+        val reported = FriendDay(zip, friends - "ann", connections).standing(entries, ann, order)
 
         assertEquals(listOf("bea" to 1, connectionUid("ref-dee") to 2, "ann" to 3, "cy" to 4), hub.rows.map { it.entry.uid to it.rank })
         assertEquals(FriendDay.Standing(place = 3, count = 4), reported)

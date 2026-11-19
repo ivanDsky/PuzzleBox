@@ -210,7 +210,7 @@ class GameBoardMappingTest {
     private fun friendsDay(board: RankWindowBoards.Boards, players: Set<String>, viewer: String, connections: List<LinkedInGhost>): CountedBoards {
         val saved = LinkedInDayView(LinkedInDayStatus.Idle, LinkedInBoardView.Shown(connections))
         val days = if (connections.isEmpty()) emptyMap() else mapOf(board.boards.single().board to saved)
-        return CountedBoards(board.amongFriends(players), board.amongFriends(players, days, viewer), days)
+        return CountedBoards(board.amongFriends(players), board.amongFriends(players, days, Identity(viewer, viewer, null)), days)
     }
 
     /** The Friends card as the hub builds it (F18): the board among the viewer and [friends], with the day's [connections] counted on it. */

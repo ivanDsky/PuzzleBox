@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.domain.ranks
 
+import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.BoardPage
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
@@ -22,14 +23,16 @@ fun connectionUid(memberRef: String): String = CONNECTION_UID + memberRef
  * One board's entries with a LinkedIn [day] merged in by the rule of the Day board (`linkedInTimeWins`): a connection
  * with a time is one more entry under its [connectionUid]; a hidden time takes no place and is not counted; a
  * connection named like an entry is that same player, so the entry takes the connection's time and the connection is
- * not added; the viewer's own import replaces their time only on an entry they really have. Entries come first, so on
+ * not added. The [viewer]'s own import replaces their time on their entry, and is their entry when they have none: a
+ * day they played only on LinkedIn counts for them as a connection's does ([withOwnImport]). Entries come first, so on
  * a tie the PuzzleBox entry is listed before the connection. Internal: a board takes connections only as a step of
  * [friendBoard], after it is narrowed to the friends.
  */
-internal fun BoardPage.withConnections(day: LinkedInDayView, viewerUid: String?): BoardPage {
-    val wins = winsOf(day, viewerUid) ?: return this
+internal fun BoardPage.withConnections(day: LinkedInDayView, viewer: Identity?): BoardPage {
+    val board = withOwnImport(day, viewer)
+    val wins = board.winsOf(day, viewer?.uid) ?: return board
     val ghosts = day.ghosts()
-    val shown = entries.mapIndexed { index, entry ->
+    val shown = board.entries.mapIndexed { index, entry ->
         val score = wins.rowScores[index]
         entry.copy(timeMs = score.timeMs, hints = score.hints)
     }
@@ -38,7 +41,18 @@ internal fun BoardPage.withConnections(day: LinkedInDayView, viewerUid: String?)
         // Never stored or posted: the entry exists only to be ranked, so it names no puzzle and no finish time.
         LeaderboardEntry(connectionUid(ghosts[index].memberRef), ghosts[index].name, puzzleRef = "", score.timeMs, score.hints, completedAtMs = 0L)
     }
-    return BoardPage(shown + added, count + added.size)
+    return BoardPage(shown + added, board.count + added.size)
+}
+
+/**
+ * The board with the [viewer]'s own LinkedIn result of [day] as their entry when they have none on it (ADR-0031 §11,
+ * 2026-11-19 amendment): ranked under their uid and PuzzleBox name, so a window adds it to the rest of their days, and
+ * then the self row of the merge, so a connection named like them stays someone else.
+ */
+private fun BoardPage.withOwnImport(day: LinkedInDayView, viewer: Identity?): BoardPage {
+    val own = day.ownScore ?: return this
+    if (viewer == null || entries.any { it.uid == viewer.uid }) return this
+    return BoardPage(entries + LeaderboardEntry(viewer.uid, viewer.displayName, puzzleRef = "", own.timeMs, own.hints, completedAtMs = 0L), count + 1)
 }
 
 /**
