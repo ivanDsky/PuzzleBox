@@ -7,6 +7,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Normal permission: lets the reminder alarm be set again after a restart. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Normal permission: on One UI the haptics play Vibrator effects, since it drops the touch-feedback kinds (#1686). -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:name=".PuzzleBoxApplication"

@@ -6,6 +6,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
@@ -15,9 +16,10 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import org.koin.compose.koinInject
 
 /**
- * Provides [LocalHapticFeedback] as the platform one behind the Vibration preference, for all of [content]. Off drops
+ * Provides [LocalHapticFeedback] as the device haptics behind the Vibration preference, for all of [content]. Off drops
  * every haptic the app plays, whatever a game's feel says; a flip applies to the next buzz, mid-play included. Every
- * haptic goes through [LocalHapticFeedback] (konsist S9), so this is the one gate.
+ * haptic goes through [LocalHapticFeedback] (konsist S9), so this is the one gate. The device haptics are the
+ * platform's, or Vibrator effects on One UI ([deviceHaptics], #1686); the gate silences either.
  */
 @Composable
 fun VibrationGate(
@@ -33,7 +35,8 @@ fun VibrationGate(
 internal fun VibrationGate(enabled: Boolean, content: @Composable () -> Unit) {
     val current by rememberUpdatedState(enabled)
     val platform = LocalHapticFeedback.current
-    val gated = remember(platform) { GatedHapticFeedback(platform) { current } }
+    val context = LocalContext.current
+    val gated = remember(platform, context) { GatedHapticFeedback(deviceHaptics(context, platform)) { current } }
     CompositionLocalProvider(LocalHapticFeedback provides gated, content = content)
 }
 
