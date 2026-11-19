@@ -30,10 +30,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.AppShapes
+import com.ivandsky.puzzlebox.designsystem.AppPopup
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
@@ -59,7 +59,7 @@ internal fun StripPopover(onDismiss: () -> Unit, content: @Composable () -> Unit
     val gap = with(LocalDensity.current) { Spacing.sm.roundToPx() }
     val reduced = rememberReducedMotion()
     val shown = remember { MutableTransitionState(false).apply { targetState = true } }
-    Popup(
+    AppPopup(
         popupPositionProvider = remember(gap) { WindowClamped.above(gap) },
         onDismissRequest = onDismiss,
         properties = PopupProperties(focusable = true),

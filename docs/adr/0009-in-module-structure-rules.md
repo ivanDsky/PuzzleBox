@@ -1,6 +1,6 @@
 # ADR-0009 — In-module structure rules (`:konsist`)
 
-Date: 2026-11-04 · Status: accepted · Source: structure-rules run (S0 S1 S2 S4 S5 P1–P7); P8 from the navigation-ux run (spec A5); P9 from the nav-ia run (ADR-0027); P10 from the LinkedIn account run (ADR-0028); S6 from the sudoku run (spec A12); S7 from the Queens app-theme fix; S8 from the consistency polish run (spec S1); S9 from the Vibration switch (P3-07); S10 from the sheet fling fix (#1510, #1535); S11 from the flaky-test quarantine (ADR-0023 amendment 2026-11-18); P11 from the ci-warnings run (#850); P12 and the P10 narrowing from the LinkedIn result post run (ADR-0032); P13 from the LinkedInPush flag that a rebase brought back with no reader (#1337, #1339); P14 and the P4 widening from the code-quality review (item 7, single-feature use cases leave `:core:domain`); P15 and P16 from the owner-flags move (ADR-0022 amendment 2026-11-18)
+Date: 2026-11-04 · Status: accepted · Source: structure-rules run (S0 S1 S2 S4 S5 P1–P7); P8 from the navigation-ux run (spec A5); P9 from the nav-ia run (ADR-0027); P10 from the LinkedIn account run (ADR-0028); S6 from the sudoku run (spec A12); S7 from the Queens app-theme fix; S8 from the consistency polish run (spec S1); S9 from the Vibration switch (P3-07); S10 from the sheet fling fix (#1510, #1535); S11 from the flaky-test quarantine (ADR-0023 amendment 2026-11-18); S12 from the popup haptics gate (#1719); P11 from the ci-warnings run (#850); P12 and the P10 narrowing from the LinkedIn result post run (ADR-0032); P13 from the LinkedInPush flag that a rebase brought back with no reader (#1337, #1339); P14 and the P4 widening from the code-quality review (item 7, single-feature use cases leave `:core:domain`); P15 and P16 from the owner-flags move (ADR-0022 amendment 2026-11-18)
 
 ## Context
 ADR-0008 guards the edges between modules. It says nothing about what is inside a module:
@@ -74,7 +74,7 @@ returns these findings:
   fixtures are protected files: a worker does not edit them to make a test pass.
 
 Entries on record at the time of writing: S1 64, S2 6, S4 25, S5 4, P1 6, P2 1, P5 4, P6 1, P14 107.
-S0, S6, S7, S8, S9, S10, S11, P3, P4, P7, P8, P9, P10, P11, P12, P13, P15 and P16 have none.
+S0, S6, S7, S8, S9, S10, S11, S12, P3, P4, P7, P8, P9, P10, P11, P12, P13, P15 and P16 have none.
 
 ### Payload cross-reference
 The `design-architecture` payload (`references/rules-architecture.md`) states four of these as
@@ -86,7 +86,7 @@ prose rules; the tests are their mechanical form and add no stricter bar:
 - Rule 20, one public top-level type per file (private helpers, extensions, typealiases and
   previews excepted): S1.
 
-The other rules (S0, S4, S5, S6, S7, S8, S9, S10, S11, P1, P4–P14, P15, P16) have no payload twin. Dependency direction between
+The other rules (S0, S4, S5, S6, S7, S8, S9, S10, S11, S12, P1, P4–P14, P15, P16) have no payload twin. Dependency direction between
 modules stays in ADR-0008.
 
 ### Adding a rule
@@ -261,6 +261,16 @@ Every ignored test is a dated quarantine with a ticket (ADR-0023): a test nobody
   (`typealias X = org.junit.Ignore`), the bracket form `@[Ignore …]`, and JUnit 5's `@Disabled` (the project runs
   JUnit 4).
 - **How to fix:** fix or delete the test, or quarantine it with `@Ignore("quarantine #<issue> until <YYYY-MM-DD>")`.
+
+## S12
+Every popup and dropdown menu goes through `AppPopup` / `AppDropdownMenu`, which re-provide the app's Vibration gate
+inside the popup window (a window brings its own platform haptics).
+
+- **Scope:** production files of every module except `:core:designsystem`, where the wrappers live.
+- **Detection:** in the file's code (comments and string contents removed), a `Popup(`, `DropdownMenu(` or
+  `ExposedDropdownMenu(` call, bare or qualified. The `App…` wrappers are not matched. The violation is the file.
+- **Accepted misses:** a call through an import alias.
+- **How to fix:** call `AppPopup` or `AppDropdownMenu` from `core:designsystem`.
 
 ## P1
 Every production file's package is under its module's package root.

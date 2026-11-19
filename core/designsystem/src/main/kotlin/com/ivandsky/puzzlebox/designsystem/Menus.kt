@@ -11,12 +11,15 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 
 /**
  * The app's overflow and long-press menu: a raised card in the dialog's container colour with
- * a hairline edge, so it reads as a surface over the page even where the shadow is faint.
+ * a hairline edge, so it reads as a surface over the page even where the shadow is faint. Its window brings its own
+ * haptics, so the outer Vibration gate is re-provided inside it.
  */
 @Composable
 fun AppDropdownMenu(
@@ -25,6 +28,7 @@ fun AppDropdownMenu(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val haptics = LocalHapticFeedback.current
     DropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismissRequest,
@@ -32,8 +36,9 @@ fun AppDropdownMenu(
         shape = AppShapes.medium,
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         border = BorderStroke(MenuEdge, MaterialTheme.colorScheme.outlineVariant),
-        content = content,
-    )
+    ) {
+        CompositionLocalProvider(LocalHapticFeedback provides haptics) { content() }
+    }
 }
 
 private val MenuEdge = 1.dp

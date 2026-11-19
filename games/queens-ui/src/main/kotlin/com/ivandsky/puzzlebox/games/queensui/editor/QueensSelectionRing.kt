@@ -16,8 +16,8 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import com.ivandsky.puzzlebox.designsystem.AppOffsetPopup
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import kotlin.math.roundToInt
@@ -57,7 +57,7 @@ internal fun QueensSelectionRing(
     )
     val used = remember(board) { board.regions.filterTo(HashSet()) { it != QueensDraft.UNPAINTED } }
     val current = selection.map { board.regions[it] }.distinct().singleOrNull()?.takeIf { it != QueensDraft.UNPAINTED }
-    Popup(
+    AppOffsetPopup(
         offset = IntOffset(topLeft.x.roundToInt(), topLeft.y.roundToInt()),
         properties = PopupProperties(focusable = false, clippingEnabled = false),
     ) {
