@@ -396,6 +396,65 @@ class ObserveMatchTest {
         assertEquals(listOf(0), reads)
     }
 
+    /** The other device's plays are only on the server: my `progress` entry and my own result document. */
+    @Test
+    fun aPuzzleIPlayedOnAnotherDeviceIsMineFromMyServerResultAndOpensTheirs() = runTest {
+        created(legCount = 2)
+        val elsewhere = posts(ann.uid, 0, timeMs = 41_000)
+        val bobs = posts(bob.uid, 0, timeMs = 52_000)
+        posts(bob.uid, 1)
+
+        observe().test {
+            val view = view()
+            assertEquals(listOf(OutboxResult(code, elsewhere, Posted, attempts = 0)), view.mine)
+            assertEquals(listOf(LegSeen.Revealed(bobs), LegSeen.Played), view.theirs)
+            assertEquals(LegVerdict.Win(LegBasis.Time), view.outcome.legs[0])
+            assertEquals(1, view.outcome.myWins)
+        }
+    }
+
+    @Test
+    fun aResultIPlayedOnAnotherDeviceIsReadOnceAcrossUpdates() = runTest {
+        created(legCount = 2)
+        posts(ann.uid, 0)
+        observe().test {
+            assertEquals(1, view().mine.size)
+            posts(ann.uid, 1)
+            assertEquals(listOf(0, 1), view().mine.map { it.result.legIndex })
+        }
+        assertEquals(listOf(0, 1), reads)
+    }
+
+    @Test
+    fun aPuzzleWithARowOnThisDeviceIsNotReadFromTheServer() = runTest {
+        created(legCount = 1)
+        posts(ann.uid, 0, timeMs = 40_000)
+        myRow(0, Pending, timeMs = 45_000, onServer = false)
+
+        observe().test {
+            val mine = view().mine.single()
+            assertEquals(45_000L, mine.result.timeMs)
+            assertEquals(Pending, mine.state)
+        }
+        assertTrue(reads.isEmpty())
+    }
+
+    /** A played puzzle whose time is unknown must not read as a puzzle to start. */
+    @Test
+    fun aPuzzleIPlayedOnAnotherDeviceThatCannotBeReadIsOfflineUntilItCan() = runTest {
+        created(legCount = 1)
+        val elsewhere = posts(ann.uid, 0)
+        scriptedReads[0] = ResultRead.Offline
+
+        observe().test {
+            assertEquals(MatchState.Offline, awaitItem())
+            scriptedReads.clear()
+            advanceTimeBy(10_000)
+            assertEquals(listOf(elsewhere), view().mine.map { it.result })
+            expectNoEvents()
+        }
+    }
+
     @Test
     fun lateAndLocalOnlyRowsListedButNotCounted() = runTest {
         created()
@@ -530,5 +589,18 @@ class ObserveMatchTest {
             assertFalse(both.revealReady(ann.uid, done, both.closesAt))
             assertFalse(both.revealReady(ann.uid, done, Instant.EPOCH))
         }
+    }
+
+    @Test
+    fun revealIsReadyWhenMyProgressNamesThePuzzlesIPlayedOnAnotherDevice() {
+        val match = match(bobsProgress = setOf(0, 1)).let { it.copy(progress = it.progress + (ann.uid to setOf(1))) }
+        assertTrue(match.revealReady(ann.uid, listOf(row(0, Posted)), Instant.EPOCH))
+        assertFalse(match.revealReady(ann.uid, emptyList(), Instant.EPOCH))
+    }
+
+    @Test
+    fun aPendingRowOnThisDeviceStaysNotDoneEvenWhenMyProgressNamesThatPuzzle() {
+        val match = match(bobsProgress = setOf(0, 1)).let { it.copy(progress = it.progress + (ann.uid to setOf(0, 1))) }
+        assertFalse(match.revealReady(ann.uid, listOf(row(0, Posted), row(1, Pending)), Instant.EPOCH))
     }
 }

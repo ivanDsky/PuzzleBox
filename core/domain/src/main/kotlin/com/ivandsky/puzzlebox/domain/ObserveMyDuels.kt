@@ -43,7 +43,8 @@ import kotlinx.coroutines.coroutineScope
  * row's stay) with no upstream change. Past `deadline` a match has no move left to ask for (a started puzzle is
  * resumed from the duel screen) and an unaccepted invite is dropped, so neither needs me.
  * Each row carries how many puzzles the opponent has played ([DuelRow.theirDone], from the public progress), never a
- * time. Signed out, or an `observeMine` of null, has no friend rows. Writes nothing.
+ * time, and how many I have: my outbox rows plus my own public progress, so a puzzle played on another device of mine
+ * counts without a read. Signed out, or an `observeMine` of null, has no friend rows. Writes nothing.
  * Self duels (the device store, signed in or out) are listed beside them as rows with [DuelRow.isSelf]: seat
  * [SelfSeats.ME], the same kinds and the same seven-day Finished stay, but they sort after the friend rows of their
  * section, never count in [MyDuels.needYou] and never schedule a time boundary (they have no deadline).
@@ -153,22 +154,24 @@ class ObserveMyDuels(
     private fun rowOf(match: Match, me: String, taken: List<OutboxResult>, cached: LocalMatch?, now: Instant): DuelRow? {
         if (match.cancelled || match.declined) return null
         val seated = me == match.challenger.uid || me == match.opponent?.uid
+        // Played here (any outbox row) or anywhere (my public progress): a puzzle played on my other device counts.
+        val legsDone = taken.mapTo(HashSet()) { it.result.legIndex }.apply { addAll(match.progressOf(me)) }.size
         val kind = when {
             !seated -> if (match.invitedUid == me && match.opponent == null && now < match.deadline) DuelRowKind.Invited else null
             match.revealReady(me, taken, now) ->
                 if (cached?.revealSeenAt == null) DuelRowKind.RevealReady else cached.finished(now)
             now >= match.closesAt -> null
             match.opponent == null -> DuelRowKind.Unclaimed
-            taken.size < match.legs.size && now < match.deadline -> DuelRowKind.YourMove
+            legsDone < match.legs.size && now < match.deadline -> DuelRowKind.YourMove
             else -> DuelRowKind.Waiting
         } ?: return null
         val other = if (kind == DuelRowKind.Invited) match.challenger else match.opponentOf(me)
-        val theirDone = if (kind == DuelRowKind.Invited || other == null) 0 else match.playedBy(other.uid)
-        return DuelRow(match.code, other, kind, taken.size, theirDone, match.legs.size, match.deadline, match.isSelf)
+        val theirDone = if (kind == DuelRowKind.Invited || other == null) 0 else match.progressOf(other.uid).size
+        return DuelRow(match.code, other, kind, legsDone, theirDone, match.legs.size, match.deadline, match.isSelf)
     }
 
-    /** How many of the match's puzzles [uid] has played, from the public progress; indices outside the match's legs do not count. */
-    private fun Match.playedBy(uid: String): Int = progress[uid].orEmpty().count { it in legs.indices }
+    /** The match's puzzles [uid] has played, from the public progress; indices outside the match's legs do not count. */
+    private fun Match.progressOf(uid: String): List<Int> = progress[uid].orEmpty().filter { it in legs.indices }
 
     /** An open, unclaimed match of someone else, known only from a cached link; the challenger is who invited me. */
     private fun linkInvite(match: Match, me: String, now: Instant): DuelRow? {
