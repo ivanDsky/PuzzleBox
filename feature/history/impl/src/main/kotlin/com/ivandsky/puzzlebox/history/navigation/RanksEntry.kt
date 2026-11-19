@@ -9,7 +9,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.history.HistoryLayout
-import com.ivandsky.puzzlebox.history.RanksTuneDefaults
 import com.ivandsky.puzzlebox.history.ReplaySolve
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
@@ -38,18 +37,15 @@ import java.time.LocalDate
  * the tablet's two panes. [linkedIn] adds the connections' ghosts to a game's Friends day board, from what the phone
  * holds; off, the hub touches nothing of LinkedIn.
  * A pushed key's [HistoryKey.calendarExpanded] opens the hub's calendar to the month. A past day's Your solve
- * offers a play action, the bar's tune label opens the Tune sheet and the tablet's hero card jumps to the viewer's row;
- * [tuneDefaults] is the player's defaults the sheet shows, unless [com.ivandsky.puzzlebox.history.flags.HistoryFlag.RanksTuneBoardOnly]
- * leaves them to Settings.
+ * offers a play action and the tablet's hero card jumps to the viewer's row.
  */
 fun EntryProviderScope<NavKey>.ranksEntry(
     navigator: Navigator,
     layout: HistoryLayout,
     linkedIn: Boolean = false,
-    tuneDefaults: RanksTuneDefaults,
 ) {
     entry<HistoryRootKey> {
-        RanksRoute(navigator, layout, linkedIn, RanksSelection(), key = null, onBack = null, tuneDefaults = tuneDefaults)
+        RanksRoute(navigator, layout, linkedIn, RanksSelection(), key = null, onBack = null)
     }
     entry<HistoryKey> { key ->
         val opening = RanksSelection.opening(
@@ -57,7 +53,7 @@ fun EntryProviderScope<NavKey>.ranksEntry(
             day = key.day?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
             calendarExpanded = key.calendarExpanded,
         )
-        RanksRoute(navigator, layout, linkedIn, opening, key = key.toString(), onBack = { navigator.pop() }, tuneDefaults = tuneDefaults)
+        RanksRoute(navigator, layout, linkedIn, opening, key = key.toString(), onBack = { navigator.pop() })
     }
 }
 
@@ -73,7 +69,6 @@ private fun RanksRoute(
     opening: RanksSelection,
     key: String?,
     onBack: (() -> Unit)?,
-    tuneDefaults: RanksTuneDefaults,
 ) {
     // One key per class: a ViewModelStore keeps a key's last ViewModel only, so a shared key made each new one clear the one before it.
     val viewModel = koinViewModel<RanksViewModel>(key = key?.let { "$it/ranks" }, parameters = { parametersOf(linkedIn, opening) })
@@ -124,6 +119,5 @@ private fun RanksRoute(
         playerSheet = openPlayer,
         replayOptIn = askReplays,
         refreshing = refreshing,
-        tuneDefaults = tuneDefaults.takeUnless { viewModel.tuneBoardOnly },
     )
 }

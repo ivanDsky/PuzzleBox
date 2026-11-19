@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 
 /**
- * The one list the add sheet picks an exact puzzle from: community, friends' and the player's own puzzles and the pages of
+ * The one list the picker page picks an exact puzzle from: community, friends' and the player's own puzzles and the pages of
  * the daily archive read so far, newest first, narrowed on the device by the query. The community is read once per call
  * of [invoke], so changing the query only refilters.
  */
@@ -18,7 +18,7 @@ class ObservePickablePuzzles internal constructor(
     private val own: OwnSource,
     private val archive: DailyArchiveSource,
 ) {
-    /** [archivePages] is how many pages of the daily archive the sheet has asked for so far. */
+    /** [archivePages] is how many pages of the daily archive the picker has asked for so far. */
     operator fun invoke(query: Flow<PickerQuery>, archivePages: Flow<Int>): Flow<PickerResult> {
         val played = completions.observeRecords().map { records -> records.mapTo(HashSet()) { PuzzleRefKeys.encode(it.puzzleRef) } }
         return combine(query, community.observe(played), friends.observe(played), own.observe(played), archive.observe(played, archivePages)) { q, c, f, o, a ->

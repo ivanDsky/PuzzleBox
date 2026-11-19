@@ -8,9 +8,7 @@ import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
 import com.ivandsky.puzzlebox.history.domain.ranks.RankScope
-import com.ivandsky.puzzlebox.history.flags.HistoryFlag
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Duration
@@ -36,7 +34,6 @@ class RanksViewModelFreshnessTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val today = LocalDate.of(2026, 11, 13)
-    private val on = FakeReleaseFlags(HistoryFlag.RanksFreshness)
 
     private fun hub() = RanksTestHub(
         FakeLeaderboardRepository(
@@ -69,14 +66,14 @@ class RanksViewModelFreshnessTest {
     fun `a game's Friends day board says how long ago LinkedIn was read`() = runTest {
         val h = hub().apply { befriend("maya"); read(Duration.ofMinutes(5)) }
 
-        assertEquals("LinkedIn updated 5 min ago", h.viewModel(linkedIn = true, releaseFlags = on).zip(RankScope.Friends).freshness)
+        assertEquals("LinkedIn updated 5 min ago", h.viewModel(linkedIn = true).zip(RankScope.Friends).freshness)
     }
 
     @Test
     fun `the line says final for a board read after its day`() = runTest {
         val h = hub().apply { befriend("maya"); read(Duration.ofMinutes(5), complete = true) }
 
-        val line = h.viewModel(linkedIn = true, releaseFlags = on).zip(RankScope.Friends).freshness
+        val line = h.viewModel(linkedIn = true).zip(RankScope.Friends).freshness
 
         assertEquals(true, line?.startsWith("LinkedIn final · read "))
     }
@@ -84,7 +81,7 @@ class RanksViewModelFreshnessTest {
     @Test
     fun `a minute later the same line says 6 min`() = runTest {
         val h = hub().apply { befriend("maya"); read(Duration.ofMinutes(5)) }
-        val viewModel = h.viewModel(linkedIn = true, releaseFlags = on)
+        val viewModel = h.viewModel(linkedIn = true)
         viewModel.zip(RankScope.Friends)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect { } }
 
@@ -99,36 +96,36 @@ class RanksViewModelFreshnessTest {
     fun `a day never read has no line`() = runTest {
         val h = hub().apply { befriend("maya"); read(null) }
 
-        assertNull(h.viewModel(linkedIn = true, releaseFlags = on).zip(RankScope.Friends).freshness)
+        assertNull(h.viewModel(linkedIn = true).zip(RankScope.Friends).freshness)
     }
 
     @Test
     fun `a link that is not connected has no line, the saved board being a relic`() = runTest {
         val h = hub().apply { befriend("maya"); read(Duration.ofMinutes(5), link = LinkState.NotConnected) }
 
-        assertNull(h.viewModel(linkedIn = true, releaseFlags = on).zip(RankScope.Friends).freshness)
+        assertNull(h.viewModel(linkedIn = true).zip(RankScope.Friends).freshness)
     }
 
     @Test
     fun `Global and a week have no line`() = runTest {
         val h = hub().apply { befriend("maya"); read(Duration.ofMinutes(5)) }
-        val viewModel = h.viewModel(linkedIn = true, releaseFlags = on)
+        val viewModel = h.viewModel(linkedIn = true)
 
         assertNull(viewModel.zip(RankScope.Global).freshness)
         assertNull(viewModel.zip(RankScope.Friends, RanksSelection.Window.Week).freshness)
     }
 
     @Test
-    fun `with the flag off there is no line`() = runTest {
+    fun `without LinkedIn in the graph there is no line`() = runTest {
         val h = hub().apply { befriend("maya"); read(Duration.ofMinutes(5)) }
 
-        assertNull(h.viewModel(linkedIn = true).zip(RankScope.Friends).freshness)
+        assertNull(h.viewModel().zip(RankScope.Friends).freshness)
     }
 
     @Test
     fun `a pull asks LinkedIn for the shown game's Friends day once`() = runTest {
         val h = hub().apply { befriend("maya"); read(Duration.ofMinutes(5)) }
-        val viewModel = h.viewModel(linkedIn = true, releaseFlags = on)
+        val viewModel = h.viewModel(linkedIn = true)
         viewModel.zip(RankScope.Friends)
 
         viewModel.refresh()
@@ -141,7 +138,7 @@ class RanksViewModelFreshnessTest {
     fun `a pull asks LinkedIn for the picked day, not today`() = runTest {
         val picked = today.minusDays(2)
         val h = hub().apply { befriend("maya"); read(Duration.ofMinutes(5)) }
-        val viewModel = h.viewModel(linkedIn = true, releaseFlags = on)
+        val viewModel = h.viewModel(linkedIn = true)
         viewModel.select { it.pickBoard(RanksBoard.Game(ZIP)).setScope(RankScope.Friends).pickFromCalendar(picked) }
 
         viewModel.refresh()
@@ -151,13 +148,13 @@ class RanksViewModelFreshnessTest {
     }
 
     @Test
-    fun `a pull with the flag off, on Overall, in Global or on a week asks LinkedIn nothing`() = runTest {
+    fun `a pull without LinkedIn in the graph, on Overall, in Global or on a week asks LinkedIn nothing`() = runTest {
         val h = hub().apply { befriend("maya"); read(Duration.ofMinutes(5)) }
-        val off = h.viewModel(linkedIn = true)
+        val off = h.viewModel()
         off.zip(RankScope.Friends)
         off.refresh()
 
-        val viewModel = h.viewModel(linkedIn = true, releaseFlags = on)
+        val viewModel = h.viewModel(linkedIn = true)
         viewModel.select { it.pickBoard(RanksBoard.Overall).setScope(RankScope.Friends) }
         viewModel.refresh()
         viewModel.zip(RankScope.Global)
@@ -173,7 +170,7 @@ class RanksViewModelFreshnessTest {
     fun `the pull indicator stays while LinkedIn is asked, then drops`() = runTest {
         val h = hub().apply { befriend("maya"); read(Duration.ofMinutes(5)) }
         val gate = CompletableDeferred<Unit>().also { h.linkedInDays.syncGate = it }
-        val viewModel = h.viewModel(linkedIn = true, releaseFlags = on)
+        val viewModel = h.viewModel(linkedIn = true)
         viewModel.zip(RankScope.Friends)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.refreshing.collect { } }
 
@@ -192,7 +189,7 @@ class RanksViewModelFreshnessTest {
     fun `a second pull while LinkedIn is still being asked sends no second sync`() = runTest {
         val h = hub().apply { befriend("maya"); read(Duration.ofMinutes(5)) }
         h.linkedInDays.syncGate = CompletableDeferred()
-        val viewModel = h.viewModel(linkedIn = true, releaseFlags = on)
+        val viewModel = h.viewModel(linkedIn = true)
         viewModel.zip(RankScope.Friends)
 
         viewModel.refresh()

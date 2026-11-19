@@ -14,7 +14,6 @@ import com.ivandsky.puzzlebox.backend.firebase.PendingCacheClear
 import com.ivandsky.puzzlebox.backend.firebase.firebaseBackendModule
 import com.ivandsky.puzzlebox.auth.di.authModule
 import com.ivandsky.puzzlebox.common.di.commonModule
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.compete.di.competeModule

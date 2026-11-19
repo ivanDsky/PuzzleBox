@@ -35,7 +35,6 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.tracePop
-import com.ivandsky.puzzlebox.gameui.LocalZipDotPulse
 import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
 
 private val cellCorner = RoundedCornerShape(10.dp)
@@ -48,10 +47,10 @@ private val cellCorner = RoundedCornerShape(10.dp)
  * into neighbor dots. Sizes come from [ZipBoardSpec] fractions of the cell. Resting by
  * contract (A8): the waypoint pop when the trace reaches a dot animates only in the live
  * game — the play screen passes [animated] (false under reduced motion); previews and
- * read-only boards stay static. The next number to reach is marked only by ZipDotPulse:
- * its circle and label hold the trace colour, and [halo], when a live board passes it, is
- * where a soft ripple is in its cycle (0 to 1), read as it is drawn. Without [halo] the
- * circle is simply still. Boards without ZipDotPulse, and static previews, draw no mark.
+ * read-only boards stay static. The next number to reach is marked only where a live board
+ * asks with [marksNext]: its circle and label hold the trace colour, and [halo], when the board
+ * passes it, is where a soft ripple is in its cycle (0 to 1), read as it is drawn. Without
+ * [halo] the circle is simply still. A board that does not ask, and static previews, draw no mark.
  */
 @Composable
 fun ZipCellDecor(
@@ -60,9 +59,9 @@ fun ZipCellDecor(
     col: Int,
     modifier: Modifier = Modifier,
     animated: Boolean = false,
+    marksNext: Boolean = false,
     halo: (() -> Float)? = null,
 ) {
-    val glow = LocalZipDotPulse.current
     val idx = row * model.n + col
     val cell = model.cells[idx]
     // Only this cell's own facts cross into ZipCell, so a board change recomposes just
@@ -77,7 +76,7 @@ fun ZipCellDecor(
         isHint = model.hintHighlight == idx,
         isRejected = model.rejection?.cellIdx == idx,
     )
-    ZipCell(face, modifier, animated, glow, halo)
+    ZipCell(face, modifier, animated, marksNext, halo)
 }
 
 /** What one cell draws; equal faces let [ZipCell] skip recomposition. */
@@ -111,7 +110,7 @@ internal fun ZipCell(
     val isHint = face.isHint
     val isRejected = face.isRejected
     val board = LocalBoardColors.current
-    // With ZipDotPulse the target's own circle holds the trace colour, with a halo round it.
+    // On a live board the target's own circle holds the trace colour, with a halo round it.
     val glowing = glow && face.isNextTarget
     val scheme = MaterialTheme.colorScheme
 
@@ -172,7 +171,7 @@ internal fun ZipCell(
         // unvisited and start in the waypointDot role, a traced dot in the blue on-path
         // role (D2, round 3). The label always rides the ring's state color on the
         // surface hole (both roles ≥4.5 on boardSurface in each theme); filled
-        // disks are gone. With ZipDotPulse the next target's circle and label hold the
+        // disks are gone. On a live board the next target's circle and label hold the
         // trace colour instead. Previews render the static state.
         val ringColor = if (glowing) board.boardTarget else if (inPath) board.waypointDotOnPath else board.waypointDot
         if (face.isWaypoint) {
@@ -215,7 +214,7 @@ internal fun ZipCell(
                 BasicText(
                     text = label.toString(),
                     style = TextStyle(fontWeight = FontWeight.Bold, fontSize = fontSize),
-                    color = ColorProducer { ringColor }, // label rides the ring (state color, or the trace colour while ZipDotPulse's target)
+                    color = ColorProducer { ringColor }, // label rides the ring (state color, or the trace colour on a live board's target)
                     maxLines = 1,
                 )
             }

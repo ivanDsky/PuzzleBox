@@ -48,13 +48,6 @@ internal fun pickerOf(rows: List<PickablePuzzle>, offline: Boolean = false): (Fl
     }
 }
 
-/** Opens the chip of [page] as a page of the Add puzzle sheet, taps its option [rows], and goes back to the picker. */
-internal fun ComposeTestRule.pickInPage(page: PickerFilterPage, vararg rows: String) {
-    tapAndSettle(page.tag)
-    rows.forEach { tapAndSettle(it) }
-    tapAndSettle("${page.tag}.page.back")
-}
-
 /** Opens the chip of [page] as its own sheet over the page, taps its option [rows], and closes the sheet. */
 internal fun ComposeTestRule.pickInSheet(page: PickerFilterPage, vararg rows: String) {
     tapAndSettle(page.tag)

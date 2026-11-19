@@ -81,7 +81,6 @@ import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.playNavKeys
 import com.ivandsky.puzzlebox.play.di.playModule
-import com.ivandsky.puzzlebox.play.flags.PlayFlag
 import com.ivandsky.puzzlebox.play.hubOffFriendDay
 import com.ivandsky.puzzlebox.play.navigation.playEntry
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
@@ -222,11 +221,10 @@ class CustomResultViewModelTest {
     private fun row(timeMs: Long, hints: Int = 0, isRecord: Boolean = false) =
         CompletionRecord(ref, timeMs, hints, RecordStats(1, "{}"), isRecord = isRecord)
 
-    private fun observed(key: CustomResultKey, flags: ReleaseFlags = FakeReleaseFlags()): CustomResultViewModel {
+    private fun observed(key: CustomResultKey): CustomResultViewModel {
         val koin = checkNotNull(koin).koin
         val viewModel = CustomResultViewModel(
             key, completions, received, fakes.games, fakes.registry, koin.get(), koin.get(), koin.get(), loadReplay(fakes.games),
-            releaseFlags = flags,
         )
         screen.launch { viewModel.state.collect {} }
         main.testDispatcher.scheduler.runCurrent()
@@ -269,7 +267,7 @@ class CustomResultViewModelTest {
         val viewModel = CustomResultViewModel(
             CustomResultKey(fixture.value, code.value, timeMs, 0), completions, received, fixtureGames,
             GamePlayRegistry(listOf(fixtureUi)),
-            koin.get(), store, koin.get(), loadReplay(fixtureGames, dispatchers), FakeReleaseFlags(),
+            koin.get(), store, koin.get(), loadReplay(fixtureGames, dispatchers),
         )
         screen.launch { viewModel.state.collect {} }
         main.testDispatcher.scheduler.runCurrent()
@@ -471,33 +469,21 @@ class CustomResultViewModelTest {
     }
 
     @Test
-    fun `with Result hero polish on the state asks for the hero and a first solve has no earlier solves`() {
+    fun `a first solve has no earlier solves`() {
         completions.setRecords(listOf(row(42_000L, isRecord = true)))
 
-        val state = observed(key(42_000L), FakeReleaseFlags(PlayFlag.ResultHeroPolish)).state.value
+        val state = observed(key(42_000L)).state.value
 
-        assertTrue(state.heroPolish)
-        assertEquals(SamePuzzleSolves.None.copy(columns = true), state.samePuzzle)
+        assertEquals(SamePuzzleSolves.None, state.samePuzzle)
     }
 
     @Test
-    fun `with Result hero polish on a play again compares with the earlier solves`() {
+    fun `a play again compares with the earlier solves`() {
         completions.setRecords(listOf(row(118_000L, isRecord = true), row(130_000L, hints = 1)))
 
-        val state = observed(key(130_000L, hints = 1), FakeReleaseFlags(PlayFlag.ResultHeroPolish)).state.value
+        val state = observed(key(130_000L, hints = 1)).state.value
 
         assertEquals(BestScore(118_000L, 0), state.samePuzzle.previous)
-        assertTrue(state.samePuzzle.columns)
-    }
-
-    @Test
-    fun `with Result hero polish off the old card stays and the earlier solves are never read`() {
-        completions.setRecords(listOf(row(118_000L, isRecord = true), row(130_000L, hints = 1)))
-
-        val state = observed(key(130_000L, hints = 1), FakeReleaseFlags()).state.value
-
-        assertFalse(state.heroPolish)
-        assertEquals(SamePuzzleSolves.Unread, state.samePuzzle)
     }
 
     @Test
@@ -528,7 +514,7 @@ class CustomResultViewModelTest {
         val takenDown = puzzle().copy(unpublished = true)
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                CustomResultScreen(
+                CustomResultHeroScreen(
                     state = CustomResultState(
                         timeMs = 130_000L,
                         hintsUsed = 0,
@@ -558,7 +544,7 @@ class CustomResultViewModelTest {
         var standing: CustomStanding by mutableStateOf(CustomStanding.Record)
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                CustomResultScreen(
+                CustomResultHeroScreen(
                     state = CustomResultState(
                         timeMs = 130_000L,
                         hintsUsed = 0,
@@ -567,6 +553,7 @@ class CustomResultViewModelTest {
                         rankOrder = RankOrder.TimeThenHints,
                         puzzle = puzzle(),
                         standing = standing,
+                        samePuzzle = SamePuzzleSolves.None,
                     ),
                     onDone = {},
                     onShare = {},
@@ -576,18 +563,18 @@ class CustomResultViewModelTest {
             }
         }
         composeRule.waitForIdle()
-        node("result.time").assertExists()
+        node("result.hero.time").assertExists()
         node("custom_result.author").assertExists()
-        node("result.tile.hints").assertExists()
-        assertEquals("a friend's puzzle has no streak", 0, count("result.tile.streak"))
-        node("result.record_badge").assertExists()
-        assertEquals(0, count("result.previous_best"))
+        node("result.hero.chip.hints").assertExists()
+        assertEquals("a friend's puzzle has no streak", 0, count("result.side.streak"))
+        node("result.hero.pill").assertExists()
+        assertEquals(0, count("result.hero.best"))
 
         composeRule.runOnIdle { standing = CustomStanding.PlayAgain(BestScore(118_000L, 0)) }
         composeRule.waitForIdle()
 
-        node("result.previous_best").assertExists()
-        assertEquals(0, count("result.record_badge"))
+        node("result.hero.best").assertExists()
+        assertEquals(0, count("result.hero.pill"))
     }
 
     @Test

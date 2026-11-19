@@ -214,7 +214,7 @@ class ResultSideCardTest {
         val earlier = List(124) { BestScore((5 + it * 39 / 123) * 1_000L, 0) } + listOf(60, 80, 100, 120, 140, 70, 90, 110, 130).map { BestScore(it * 1_000L, 0) }
         val current = BestScore(150_000L, 0)
         val facts = heroSampleFacts(timeMs = 150_000L, earlier = earlier)
-        val spread = timeSpread(earlier, current, RankOrder.TimeThenHints, slowTail = true)
+        val spread = timeSpread(earlier, current, RankOrder.TimeThenHints)
         val model = resultHeroModel(facts.copy(insights = facts.insights!!.copy(spread = spread)), Locale.US)
         setContent(model)
 

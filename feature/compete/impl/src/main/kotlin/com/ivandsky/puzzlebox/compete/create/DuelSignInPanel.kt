@@ -15,7 +15,7 @@ import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
 /**
- * The panel a signed-out player meets first for a friend duel: Sign in with Google, or Cancel to close the sheet.
+ * The panel a signed-out player meets first for a friend duel: Sign in with Google, or Cancel to close New duel.
  * With Past you offered it keeps the "Play against" row, the way to a duel that needs no account.
  */
 @Composable

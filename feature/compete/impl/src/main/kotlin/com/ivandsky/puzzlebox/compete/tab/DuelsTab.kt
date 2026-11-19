@@ -11,11 +11,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.selected
@@ -28,8 +25,6 @@ import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.compete.api.DuelRevealKey
 import com.ivandsky.puzzlebox.compete.api.NewDuelKey
 import com.ivandsky.puzzlebox.compete.create.DuelChallenge
-import com.ivandsky.puzzlebox.compete.create.DuelChallengeSaver
-import com.ivandsky.puzzlebox.compete.create.NewDuelSheet
 import com.ivandsky.puzzlebox.compete.domain.DuelRow
 import com.ivandsky.puzzlebox.compete.domain.DuelRowKind
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -42,8 +37,7 @@ import org.koin.androidx.compose.koinViewModel
  * note when there are none. It scrolls as one list on [listState], which the Games host holds so it can send the list
  * to its top; the host owns the side inset. [onOpenDuel] opens the duel screen and [onOpenReveal] the reveal of a duel
  * whose reveal is ready or already seen. A pending [challenge] opens New duel filled in, once: [onChallengeTaken]
- * runs as it takes the challenge, and closing the sheet drops it. [onNewDuel] opens New duel as a screen (the phone, with
- * the flag on); without it New duel is the sheet. With the flag on in the pane, New duel is the pane's form instead
+ * runs as it takes the challenge. [onNewDuel] opens New duel as a screen; in the pane New duel is the pane's form instead
  * ([DuelsTabViewModel.startNewDuel]), and no row is highlighted while it is up. With [inPane] (the tablet, whose right pane is [DuelsPane])
  * a row, an accepted invite and a reveal row select that duel for the pane instead of calling [onOpenDuel] and
  * [onOpenReveal], and the selected row is highlighted.
@@ -52,12 +46,12 @@ import org.koin.androidx.compose.koinViewModel
 fun DuelsTab(
     onOpenDuel: (DuelKey) -> Unit,
     onOpenReveal: (DuelRevealKey) -> Unit,
+    onNewDuel: (NewDuelKey) -> Unit,
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
     challenge: DuelChallenge? = null,
     onChallengeTaken: () -> Unit = {},
     inPane: Boolean = false,
-    onNewDuel: ((NewDuelKey) -> Unit)? = null,
 ) {
     val viewModel: DuelsTabViewModel = koinViewModel()
     val state = viewModel.state.collectAsStateWithLifecycle()
@@ -72,19 +66,11 @@ fun DuelsTab(
             viewModel.openDuel.collect { currentOnOpenDuel(DuelKey(it.value)) }
         }
     }
-    var newDuelOpen by rememberSaveable { mutableStateOf(false) }
-    // The challenge the open sheet was started with; the host's copy is gone once it has been taken.
-    var sheetChallenge by rememberSaveable(stateSaver = DuelChallengeSaver) { mutableStateOf<DuelChallenge?>(null) }
-    // A screen where there is one to push (the phone, flag on); else the sheet, over this tab.
-    val newDuelScreen = onNewDuel.takeIf { viewModel.newDuelAsScreen && !inPane }
     val startNewDuel: (DuelChallenge?) -> Unit = { start ->
-        if (inPane && viewModel.newDuelAsScreen) {
+        if (inPane) {
             viewModel.startNewDuel(start)
-        } else if (newDuelScreen != null) {
-            newDuelScreen(NewDuelKey(start?.friendUid.orEmpty(), start?.friendName.orEmpty(), start?.game?.value.orEmpty()))
         } else {
-            sheetChallenge = start
-            newDuelOpen = true
+            onNewDuel(NewDuelKey(start?.friendUid.orEmpty(), start?.friendName.orEmpty(), start?.game?.value.orEmpty()))
         }
     }
     TakeDuelChallenge(challenge, onTaken = onChallengeTaken, open = startNewDuel)
@@ -107,17 +93,6 @@ fun DuelsTab(
         onAccept = viewModel::accept,
         onDecline = viewModel::decline,
     )
-    if (newDuelOpen) {
-        NewDuelSheet(
-            inviter = state.value.inviter,
-            onDismiss = {
-                newDuelOpen = false
-                sheetChallenge = null
-            },
-            challenge = sheetChallenge,
-            onOpenDuel = { code -> open(DuelKey(code.value)) },
-        )
-    }
 }
 
 /**

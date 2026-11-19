@@ -88,7 +88,6 @@ class NewDuelHostPickerTest {
 
         openAdd()
         rule.onNodeWithTag("duel.lineup.picker").assertIsDisplayed()
-        rule.onNodeWithTag("duel.lineup.sheet").assertDoesNotExist()
         rule.onNodeWithTag("duel.lineup.pick.add.${CROWN.entry.ref.wire}").performClick()
         rule.waitForIdle()
 
@@ -129,6 +128,5 @@ class NewDuelHostPickerTest {
 
         rule.onNodeWithTag("duel.lineup.picker").assertIsDisplayed()
         rule.onNodeWithTag("duel.lineup.count").assertTextContains("Recently solved first", substring = true)
-        rule.onNodeWithTag("duel.lineup.sheet").assertDoesNotExist()
     }
 }

@@ -88,7 +88,7 @@ class ResultHeroCommunityTest {
 
     @Test
     fun `a solve with earlier solves compares with the previous one`() {
-        val same = SamePuzzleSolves(previous = com.ivandsky.puzzlebox.game.BestScore(120_000L, 0), previousFromLinkedIn = false, best = null, columns = true)
+        val same = SamePuzzleSolves(previous = com.ivandsky.puzzlebox.game.BestScore(120_000L, 0), previousFromLinkedIn = false, best = null)
         val model = resultHeroModel(community().copy(samePuzzle = same))
         assertEquals("2:00", model.compareColumns?.previous?.value)
     }

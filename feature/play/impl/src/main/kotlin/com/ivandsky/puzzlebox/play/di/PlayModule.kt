@@ -7,13 +7,11 @@ import com.ivandsky.puzzlebox.common.flags.TopBarFlag
 import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
-import com.ivandsky.puzzlebox.gameui.flags.GameUiFlag
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.CustomGameViewModel
 import com.ivandsky.puzzlebox.play.GamePageRankViewModel
 import com.ivandsky.puzzlebox.play.GameViewModel
-import com.ivandsky.puzzlebox.play.HintPolish
 import com.ivandsky.puzzlebox.play.HowToPlayRules
 import com.ivandsky.puzzlebox.play.LibraryViewModel
 import com.ivandsky.puzzlebox.play.MainTabsLargeBar
@@ -27,7 +25,6 @@ import com.ivandsky.puzzlebox.play.ResultViewModel
 import com.ivandsky.puzzlebox.play.SlotOpening
 import com.ivandsky.puzzlebox.play.SlotWriter
 import com.ivandsky.puzzlebox.play.WriteLane
-import com.ivandsky.puzzlebox.play.ZipDotPulse
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.MatchLegKey
@@ -69,8 +66,8 @@ import org.koin.dsl.module
  * included) and the calendar from :core:data's dataModule, and the shared use cases (today's
  * set, history, stats, the rollover) from :core:domain's domainModule. The result's insights
  * ([ObserveResultInsights]) and next thing ([ObserveResultNextThing]), both Play's own, are
- * defined here: their Boolean follows [PlayFlag.ResultHeroPolish], and :core:domain reads no
- * flag (ADR-0022). The tablet stats panel's identity and leaderboard come from the backend
+ * defined here, as :core:domain reads no flag (ADR-0022). The tablet stats panel's identity and
+ * leaderboard come from the backend
  * module. This module names no game; friend puzzles' wiring is [friendModule]. From friends'
  * [ObserveFriendPuzzles] and [DeleteReceivedPuzzle] are here, as are Play's own use cases: the
  * archive month and progress, the tablet stats panel's [ObservePlayStats], a duel leg's
@@ -170,10 +167,7 @@ val playModule = module {
             linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
         )
     }
-    single { HintPolish(enabled = get<ReleaseFlags>().isEnabled(GameUiFlag.HintPolish)) }
-    // ZipDotPulse (backlog #1151) too: the Zip board's next number pulses its own dot while it is on.
-    single { ZipDotPulse(enabled = get<ReleaseFlags>().isEnabled(PlayFlag.ZipDotPulse)) }
-    // MainTabsLargeBar (backlog #1597) too: Games and Community open on Today's large top bar while it is on.
+    // MainTabsLargeBar (backlog #1597): Games and Community open on Today's large top bar while it is on.
     single { MainTabsLargeBar(enabled = get<ReleaseFlags>().isEnabled(TopBarFlag.MainTabsLargeBar)) }
     // The memory forgets the last pick with the process.
     single { RandomPickMemory() }
@@ -187,7 +181,6 @@ val playModule = module {
             history = get(),
             computeStreak = get(),
             puzzleDay = get(),
-            slowTail = get<ReleaseFlags>().isEnabled(PlayFlag.ResultHeroPolish),
         )
     }
     factory {
@@ -204,7 +197,6 @@ val playModule = module {
             puzzleDay = get(),
             nextRollover = get(),
             communityPuzzles = get(),
-            showDayTotal = get<ReleaseFlags>().isEnabled(PlayFlag.ResultHeroPolish),
         )
     }
     // The flag-as-parameter rule again: with it off the result never touches LinkedIn. The Post button's flag is
@@ -227,7 +219,6 @@ val playModule = module {
             board = get(),
             completions = get(),
             loadReplay = get(),
-            releaseFlags = get(),
             observePost = if (linkedIn) get() else null,
             submitPost = if (linkedIn) get() else null,
             nextThing = inject(),

@@ -81,7 +81,6 @@ class ObserveResultNextThing(
     private val puzzleDay: GetPuzzleDay,
     private val nextRollover: GetNextRollover,
     private val communityPuzzles: ListCommunityPuzzles,
-    private val showDayTotal: Boolean = false,
     private val timeout: Duration = 2.seconds,
     private val failures: FailureLog = LogcatFailureLog,
 ) {
@@ -185,7 +184,7 @@ class ObserveResultNextThing(
             bestHintFreeMs = rest.filter { it.gameId == game }.mapNotNull { it.record }.filter { it.hints == 0 }.minOfOrNull { it.time },
             doneToday = set.count { it.game != game && it.status is TodayStatus.Solved } + 1,
             totalToday = set.size,
-            dayTotal = dayTotal(game, day, solve, days, set).takeIf { showDayTotal },
+            dayTotal = dayTotal(game, day, solve, days, set),
             streakBefore = computeStreak(streakDays).current,
             streak = computeStreak(streakDays + day).current,
         )

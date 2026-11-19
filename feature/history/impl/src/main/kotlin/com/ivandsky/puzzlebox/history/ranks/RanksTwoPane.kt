@@ -42,15 +42,15 @@ private const val BOARD_WEIGHT = 0.6f
 
 /**
  * The Ranks hub on a tablet: the left pane holds the full month with the lifetime stats under it and the game list
- * (Overall first, the viewer's place on each); the right pane holds the top bar (the board's name and the tune icon),
+ * (Overall first, the viewer's place on each); the right pane holds the board's name,
  * the placement hero card, Your solve for a past day and the board. A pick in the list re-ranks the board in place, and
- * so does a swipe anywhere under the top bar, down to the bottom of the pane ([RanksActions.onSwipe], as on the phone:
+ * so does a swipe anywhere under the board's name, down to the bottom of the pane ([RanksActions.onSwipe], as on the phone:
  * the same [RanksBoardStack]), so there is no title menu, week strip or dots here. The
  * calendar is always the month: the shared calendar's fold-to-week is turned back into a month at the door
  * ([RanksActions.onShowCalendar] only ever hears `expanded = true`). The hero card wears the shown board's accent; it,
  * the board's title and the board itself go to the next board's with the [scrub]. The Who and When
- * chips sit under the top bar, and [onFilterOpenChange] hears their sheets open and close; a null [onTune] leaves the tune icon out.
- * With [largeBar] the board's name, the scope and window and the tune icon are Today's large top bar over the left pane
+ * chips sit under the board's name, and [onFilterOpenChange] hears their sheets open and close.
+ * With [largeBar] the board's name and the scope and window are Today's large top bar over the left pane
  * ([RanksLargeBar]), and the right pane starts with the hero card.
  */
 @Composable
@@ -62,7 +62,6 @@ internal fun RanksTwoPane(
     rightScroll: ScrollState,
     onRowClick: ((DailyBoardRowModel) -> Unit)?,
     refreshing: Boolean,
-    onTune: (() -> Unit)?,
     onFilterOpenChange: (Boolean) -> Unit,
     onHowRanksWork: () -> Unit,
     modifier: Modifier = Modifier,
@@ -86,9 +85,9 @@ internal fun RanksTwoPane(
     ) {
         Column(Modifier.weight(LIST_WEIGHT).fillMaxHeight().verticalScroll(leftScroll).padding(bottom = Spacing.lg).testTag("ranks.leftpane")) {
             if (largeBar) {
-                // The bar's side padding sits in the gutters, so its title lines up with Today's and its tune with the list's end.
+                // The bar's side padding sits in the gutters, so its title lines up with Today's.
                 // The board's name, as the phone's title menu shows it; the sub line already says the scope and window.
-                RanksLargeBar(state, onTune, Modifier.bleedSides(Spacing.lg)) {
+                RanksLargeBar(state, Modifier.bleedSides(Spacing.lg)) {
                     BoardScrubCell(scrub, state.position, current?.name ?: "Ranks", at = { state.places.getOrNull(it)?.name }) { title ->
                         LargeTopBarTitle(title, Modifier.testTag("ranks.boardtitle"))
                     }
@@ -103,15 +102,13 @@ internal fun RanksTwoPane(
         RanksPullToRefresh(refreshing, actions.onRefresh, Modifier.weight(BOARD_WEIGHT).fillMaxHeight().padding(top = paneTop, bottom = Spacing.lg)) {
             FillRemainingColumn(Modifier.fillMaxSize().verticalScroll(rightScroll).testTag("ranks.rightpane")) {
                 if (!largeBar) {
-                    RanksTopBar(onTune = onTune) {
-                        BoardScrubCell(scrub, state.position, state.board.title, Modifier.padding(start = Spacing.sm), at = { state.sliceAt(it)?.title }) { title ->
-                            Text(
-                                title,
-                                style = MaterialTheme.typography.titleLarge,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.testTag("ranks.boardtitle"),
-                            )
-                        }
+                    BoardScrubCell(scrub, state.position, state.board.title, Modifier.padding(start = Spacing.sm), at = { state.sliceAt(it)?.title }) { title ->
+                        Text(
+                            title,
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.testTag("ranks.boardtitle"),
+                        )
                     }
                 }
                 RanksFilterChips(state, actions, onFilterOpenChange)

@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.play.domain.ComputeCustomBoard
 import com.ivandsky.puzzlebox.domain.ComputeStreak
@@ -21,7 +20,6 @@ import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.play.friend.FriendPuzzleBoard
 import com.ivandsky.puzzlebox.play.friend.oneGoogleAccount
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
@@ -59,7 +57,7 @@ class ResultViewModelShareTest {
     private val day = LocalDate.parse("2026-10-31")
     private val state = ResultUiState(game = "Alpha", puzzleNumber = 12)
 
-    private fun viewModel(flags: ReleaseFlags): ResultViewModel {
+    private fun viewModel(): ResultViewModel {
         val fakes = FakeGames(listOf(alpha))
         val daily = FakeDailyRepository()
         val completions = FakeCompletionRepository()
@@ -103,7 +101,6 @@ class ResultViewModelShareTest {
             board = FriendPuzzleBoard(FakeCustomBoardRepository(), identity, oneGoogleAccount("token"), ComputeCustomBoard()),
             completions = completions,
             loadReplay = loadSolveReplay(fakes.games, daily, completions),
-            releaseFlags = flags,
             nextThing = lazy { error("this test never reads the next thing") },
             daily = daily,
         )
@@ -113,7 +110,7 @@ class ResultViewModelShareTest {
     fun `the share text ends with the link to the result's day`() {
         assertEquals(
             "PuzzleBox Alpha #12 · 1:30 · no hints\nhttps://puzzlebox-f3356.web.app/p/${alpha.value}/2026-10-31",
-            viewModel(FakeReleaseFlags()).shareText(state),
+            viewModel().shareText(state),
         )
     }
 }

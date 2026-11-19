@@ -1,6 +1,6 @@
 package com.ivandsky.puzzlebox.compete.domain.lineup
 
-/** Whether the row survives the add sheet's [query]: text over title, author and code, then the chip groups (AND across, OR within). */
+/** Whether the row survives the picker page's [query]: text over title, author and code, then the chip groups (AND across, OR within). */
 internal fun PickablePuzzle.passes(query: PickerQuery): Boolean =
     matches(query.text) &&
         (query.fresh.isEmpty() || Freshness.New in query.fresh && isNew || Freshness.NotPlayed in query.fresh && !played) &&

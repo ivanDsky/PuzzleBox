@@ -10,16 +10,10 @@ import com.ivandsky.puzzlebox.konsist.core.Violation
 /**
  * ADR-0022 amendment 2026-11-18: release flags belong to their owner. Every flag enum ([FlagEnums]) is registered with
  * `flagSet("<owner>", <Enum>.entries)` in a Koin module of its own module or `:app`, so `DeclaredFlags` sees it; no two
- * registrations share an owner; the central `ReleaseFlag` takes no new entry, and [FROZEN] only shrinks with it.
+ * registrations share an owner; the central `ReleaseFlag` (gone since its last entry moved or was removed) takes no entry.
  */
 object P15FlagSetRegistered : Rule {
     override val id = "P15"
-
-    /**
-     * The central entries on the day it froze. It only shrinks: a name the enum no longer has is stale, and an entry
-     * that is not here is added.
-     */
-    private val FROZEN = setOf("SheetScreens")
 
     /** The one module that may register another module's flags: the app wires a module with no Koin (core:game-ui). */
     private const val APP = ":app"
@@ -65,15 +59,9 @@ object P15FlagSetRegistered : Rule {
                         "to a Koin module in a `di` package of ${file.module.path}'s main sources (or :app's)"
                 }
                 if (FlagEnums.isCentral(file, enum)) {
-                    val names = enum.enumConstants.map { it.name }
-                    val added = names.filterNot { it in FROZEN }
+                    val added = enum.enumConstants.map { it.name }
                     if (added.isNotEmpty()) {
                         hints += file.path to "ReleaseFlag is frozen: move ${added.joinToString()} to the owner module's flag enum"
-                    }
-                    val stale = FROZEN.filterNot { it in names }
-                    if (stale.isNotEmpty()) {
-                        hints += file.path to "P15's FROZEN still lists ${stale.joinToString()}, gone from ReleaseFlag: " +
-                            "delete it from FROZEN in P15FlagSetRegistered.kt"
                     }
                 }
             }

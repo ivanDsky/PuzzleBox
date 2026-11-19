@@ -4,7 +4,7 @@ import com.ivandsky.puzzlebox.compete.domain.SelfDuelSettings
 import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.model.GameId
 
-/** Who the sheet's duel is against. */
+/** Who a New duel is against. */
 internal enum class Opponent { Friend, PastYou }
 
 /** How many solved puzzles each game offers a self duel, as `ComputeSolvedPool` lists them. */
@@ -16,7 +16,7 @@ internal data class SolvedCounts(val byGame: Map<GameId, Int>) {
 }
 
 /**
- * What the sheet has chosen for a duel against Past you: Quick or Custom, never Daily, and no deadline. Pure like
+ * What New duel has chosen for a duel against Past you: Quick or Custom, never Daily, and no deadline. Pure like
  * [DuelDraft]: every edit returns a new form, and [rounds] / [toSettings] bring in the solved pool's [SolvedCounts].
  */
 internal data class SelfDuelForm(

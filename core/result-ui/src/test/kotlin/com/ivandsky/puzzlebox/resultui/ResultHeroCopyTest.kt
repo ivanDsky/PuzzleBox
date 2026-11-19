@@ -631,7 +631,7 @@ class ResultHeroCopyTest {
     fun `an open slow tail bar is labelled with its lower edge and plus`() {
         val earlier = List(124) { BestScore((5 + it * 39 / 123) * 1_000L, 0) } + listOf(60, 80, 100, 120, 140, 70, 90, 110, 130).map { BestScore(it * 1_000L, 0) }
         val current = BestScore(100_000L, 0)
-        val insights = heroSampleInsights(current, earlier).copy(spread = timeSpread(earlier, current, RankOrder.TimeThenHints, slowTail = true))
+        val insights = heroSampleInsights(current, earlier).copy(spread = timeSpread(earlier, current, RankOrder.TimeThenHints))
         val view = model(facts(insights = insights)).spread!!.views.getValue(all)
 
         assertEquals("0:45+", view.bars.last().range)

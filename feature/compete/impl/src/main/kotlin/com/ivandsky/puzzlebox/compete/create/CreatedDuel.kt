@@ -10,7 +10,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * A friend duel that was created: its [code], the game name of each puzzle in order ([puzzles]), and the [deadlineHours]
- * it was created with, which the invite text states. Carried whole because the sheet that shows it may have been reset since.
+ * it was created with, which the invite text states. Carried whole because New duel, which shows it, may have been reset since.
  * [legs] is every puzzle's reference in order, which the invite lists.
  */
 internal data class CreatedDuel(val code: ShareCode, val puzzles: List<String>, val deadlineHours: Int, val legs: List<LegRef>)

@@ -39,7 +39,7 @@ private fun barState(position: Int, title: String, scope: RankScope = RankScope.
 @Composable
 private fun Hub(state: RanksUiState, layout: HistoryLayout = HistoryLayout.SinglePane) {
     RanksPreviewHost(Modifier.fillMaxSize()) {
-        RanksScreen(state, RanksActions(onSignIn = {}, onSwipe = {}), layout = layout, tuneDefaults = previewTuneDefaults())
+        RanksScreen(state, RanksActions(onSignIn = {}, onSwipe = {}), layout = layout)
     }
 }
 

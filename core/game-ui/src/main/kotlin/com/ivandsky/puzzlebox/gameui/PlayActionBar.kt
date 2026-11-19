@@ -33,8 +33,8 @@ private val ControlsColumnWidth = 96.dp
 
 /**
  * The action bar every game shares (A14, A15): Undo · Redo · Hint · Clear, each a tall
- * chunky [GameButton] sharing the row equally. Hint fills with the game's [accent]; the
- * rest stay neutral, and so does Hint under [LocalHintPolish] (its cooldown ring stays [accent]).
+ * chunky [GameButton] sharing the row equally. All four stay neutral, Hint included (a peer of
+ * Undo); only its cooldown ring draws in the game's [accent].
  * The hint half is CORE only as far as the button and the running count ([hintsUsed], the session's A3 count); what a press does is the game's.
  * [onClear] null hides Clear (Sudoku keeps its own in the keypad); Clear is never disabled,
  * the rest are always shown, disabled when they cannot act. Games pass it as
@@ -59,7 +59,6 @@ internal fun PlayActionBar(
     sideColumnExtra: (@Composable (Modifier) -> Unit)? = null,
 ) {
     val vertical = LocalPlayControlsVertical.current
-    val calmHint = LocalHintPolish.current
     val buttons: @Composable (Modifier) -> Unit = { action ->
         GameButton(onUndo, PuzzleIcons.Undo, "Undo", action.testTag("play.undo"), canUndo, size = GameButtonSize.Tall)
         GameButton(onRedo, PuzzleIcons.Redo, "Redo", action.testTag("play.redo"), canRedo, size = GameButtonSize.Tall)
@@ -69,7 +68,6 @@ internal fun PlayActionBar(
             label = if (hintsUsed == 0) "Hint" else "Hint · $hintsUsed",
             modifier = action.testTag("play.hint").cooldownRing(hintRing, accent),
             enabled = hintEnabled,
-            accent = accent.takeUnless { calmHint },
             size = GameButtonSize.Tall,
         )
         if (vertical) sideColumnExtra?.invoke(action)
@@ -137,7 +135,7 @@ internal fun PlayActionBar(
 }
 
 // Preview: mid-play with one hint used, then a game with no Clear and nothing to undo
-// (its accent differs to show Hint follows the game).
+// (its accent differs to show the Hint ring follows the game).
 @PuzzleBoxPreviews
 @Composable
 internal fun PlayActionBarPreview() {

@@ -14,7 +14,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** A pending challenge opens the sheet once and is then let go, however often the screen recomposes. */
+/** A pending challenge opens New duel once and is then let go, however often the screen recomposes. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class TakeDuelChallengeTest {

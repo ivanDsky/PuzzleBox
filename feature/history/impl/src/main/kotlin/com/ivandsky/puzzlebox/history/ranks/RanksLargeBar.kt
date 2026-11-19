@@ -18,22 +18,13 @@ internal fun rankSubLine(scope: RankScope, window: Window, games: Games = Games.
 
 /**
  * The tab's hub on Today's large top bar (MainTabsLargeBar): [title] (the board menu on the phone, the board's name on
- * the tablet) over the active scope and window, the tune icon at the end, then the phone's avatar. The sub line opens
- * tune as the label pill did; a null [onTune] (nothing to tune) leaves it plain text and drops the icon.
+ * the tablet) over the active scope and window, then the phone's avatar.
  */
 @Composable
-internal fun RanksLargeBar(state: RanksUiState, onTune: (() -> Unit)?, modifier: Modifier = Modifier, title: @Composable () -> Unit) {
+internal fun RanksLargeBar(state: RanksUiState, modifier: Modifier = Modifier, title: @Composable () -> Unit) {
     LargeTopBar(
         title = title,
         modifier = modifier,
-        subtitle = {
-            LargeTopBarSubtitle(
-                rankSubLine(state.scope, state.window, state.games),
-                Modifier.testTag("ranks.tune.label"),
-                onClick = onTune,
-                onClickLabel = "Tune ranks",
-            )
-        },
-        actions = { if (onTune != null) TuneButton(onTune) },
+        subtitle = { LargeTopBarSubtitle(rankSubLine(state.scope, state.window, state.games), Modifier.testTag("ranks.tune.label")) },
     )
 }

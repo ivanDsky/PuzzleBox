@@ -27,7 +27,6 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.history.CalendarState
 import com.ivandsky.puzzlebox.history.HistoryLayout
-import com.ivandsky.puzzlebox.history.RanksTuneDefaults
 import com.ivandsky.puzzlebox.history.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.history.ranks.RanksSelection.Window
 import com.ivandsky.puzzlebox.model.GameId
@@ -79,15 +78,15 @@ class RanksFilterChipsTest {
         onWindow = { windowPicks += it; state = state.copy(window = it) },
     )
 
-    private fun show(layout: HistoryLayout = HistoryLayout.SinglePane, defaults: RanksTuneDefaults? = previewTuneDefaults(), fontScale: Float = 1f) {
-        composeRule.setContent { Screen(layout, defaults, fontScale) }
+    private fun show(layout: HistoryLayout = HistoryLayout.SinglePane, fontScale: Float = 1f) {
+        composeRule.setContent { Screen(layout, fontScale) }
     }
 
     @Composable
-    private fun Screen(layout: HistoryLayout, defaults: RanksTuneDefaults?, fontScale: Float = 1f) {
+    private fun Screen(layout: HistoryLayout, fontScale: Float = 1f) {
         PuzzleBoxTheme {
             CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, fontScale)) {
-                RanksScreen(state, actions, layout = layout, tuneDefaults = defaults)
+                RanksScreen(state, actions, layout = layout)
             }
         }
     }
@@ -106,12 +105,12 @@ class RanksFilterChipsTest {
     }
 
     @Test
-    fun `the chips sit between the top bar and the calendar`() {
+    fun `the chips sit between the title and the calendar`() {
         show()
 
         node("ranks.filter.who").assertIsDisplayed().assertTextEquals("Who")
         node("ranks.filter.when").assertIsDisplayed().assertTextEquals("When")
-        assertTrue(node("ranks.tune").getBoundsInRoot().bottom <= node("ranks.filter.who").getBoundsInRoot().top)
+        assertTrue(node("ranks.title").getBoundsInRoot().bottom <= node("ranks.filter.who").getBoundsInRoot().top)
         assertTrue(node("ranks.filter.who").getBoundsInRoot().bottom <= node("ranks.calendar").getBoundsInRoot().top)
     }
 
@@ -189,44 +188,9 @@ class RanksFilterChipsTest {
     }
 
     @Test
-    fun `while tuned the tune icon opens a sheet with the Defaults block and no toggles`() {
-        state = state.copy(scope = RankScope.Friends, window = Window.Week)
-        show()
-
-        node("ranks.filter.who").assertTextEquals("Friends")
-        node("ranks.filter.when").assertTextEquals("Week")
-
-        tap("ranks.tune")
-
-        node("ranks.tune.sheet").assertIsDisplayed()
-        node("ranks.tune.defaults").assertExists()
-        assertEquals(0, count("ranks.tune.scope.Friends") + count("ranks.tune.window.Week"))
-    }
-
-    @Test
-    fun `with no Defaults block the chips are all of the tuning, so no tune icon`() {
-        show(defaults = null)
-
-        node("ranks.filter.who").assertIsDisplayed()
-        assertEquals(0, count("ranks.tune"))
-    }
-
-    @Test
-    fun `a Defaults pick in the tune sheet leaves the board's own scope alone`() {
-        show()
-        tap("ranks.tune")
-
-        tap("ranks.tune.defaults.scope.Friends")
-        composeRule.waitForIdle()
-
-        node("ranks.tune.sheet").assertIsDisplayed()
-        assertEquals(emptyList<RankScope>(), scopePicks)
-    }
-
-    @Test
     fun `an open sheet survives a rotation`() {
         val restoration = StateRestorationTester(composeRule)
-        restoration.setContent { Screen(HistoryLayout.SinglePane, previewTuneDefaults()) }
+        restoration.setContent { Screen(HistoryLayout.SinglePane) }
         tap("ranks.filter.when")
         node("ranks.filter.when.sheet").assertIsDisplayed()
 
@@ -247,12 +211,12 @@ class RanksFilterChipsTest {
 
     @Test
     @Config(qualifiers = "w1280dp-h800dp-land-mdpi")
-    fun `on the tablet the chips sit under the right pane's top bar, above the board, with no sideways scrolling`() {
+    fun `on the tablet the chips sit under the right pane's board title, above the board, with no sideways scrolling`() {
         show(HistoryLayout.TwoPane)
 
         val pane = node("ranks.rightpane").getBoundsInRoot()
         val who = node("ranks.filter.who").getBoundsInRoot()
-        assertTrue(node("ranks.tune").getBoundsInRoot().bottom <= who.top)
+        assertTrue(node("ranks.boardtitle").getBoundsInRoot().bottom <= who.top)
         assertTrue(who.bottom <= node("ranks.board").getBoundsInRoot().top)
         assertTrue(node("ranks.filter.when").getBoundsInRoot().right <= pane.right)
     }

@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,7 +46,7 @@ private const val MINE_POP_FROM_SCALE = 0.9f
  * so. Null [board] is the first read in flight. Once the author takes the puzzle down the board
  * is [closed]: its rows still show, it says it is closed, offers no sign-in and promises no
  * post. States crossfade and the card's height follows its rows as a layout animation; under
- * reduced motion both are instant. Unless [framed], it draws no surface or padding of its own: the result's side card is its frame.
+ * reduced motion both are instant. It draws no surface or padding of its own: the result's side card is its frame.
  */
 @Composable
 internal fun CustomBoard(
@@ -60,7 +59,6 @@ internal fun CustomBoard(
     onSignIn: () -> Unit,
     closed: Boolean,
     modifier: Modifier = Modifier,
-    framed: Boolean = true,
 ) {
     val reduced = rememberReducedMotion()
     val post = postOn(postState, closed)
@@ -72,9 +70,7 @@ internal fun CustomBoard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .then(if (framed) Modifier.background(MaterialTheme.colorScheme.surfaceContainer, MaterialTheme.shapes.small) else Modifier)
             .then(resize)
-            .then(if (framed) Modifier.padding(Spacing.md) else Modifier)
             .testTag("custom_board"),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {

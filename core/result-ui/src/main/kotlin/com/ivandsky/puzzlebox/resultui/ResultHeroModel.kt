@@ -74,9 +74,8 @@ internal sealed interface HeroRank {
  * paints the best line in the game's accent (a new best); [celebrate] is the entrance's
  * pulse; [burst] adds the burst (a new best only). [moments] are the moment card's rows, strongest first, at most
  * three, none for a practice puzzle or a play again; [challenge] is the Challenge row's friend, none when the
- * [primary] already is that challenge. [bestSubLine] is the small line under the comparison ("Best on this puzzle 1:41");
- * [compare] draws the comparison line larger, as the same-puzzle comparison does. [compareColumns] (Result hero polish) is
- * the previous and best solve as two labelled columns; it replaces [bestLine] and [bestSubLine], which are then null.
+ * [primary] already is that challenge. [compare] draws the comparison line larger, as the same-puzzle comparison does.
+ * [compareColumns] is the previous and best solve as two labelled columns; it replaces [bestLine], which is then null.
  */
 internal data class ResultHeroModel(
     val title: String,
@@ -94,9 +93,8 @@ internal data class ResultHeroModel(
     val primary: ResultPrimaryAction?,
     val moments: List<HeroMoment>,
     val challenge: ResultPrimaryAction.ChallengeFriend?,
-    /** The sign-in invitation under the time; null when the player is signed in or the line is off. */
+    /** The sign-in invitation under the time; null when the player is signed in or has no counting solve. */
     val signInLine: String? = null,
-    val bestSubLine: String? = null,
     val compare: Boolean = false,
     val compareColumns: HeroCompare? = null,
 )
@@ -120,7 +118,7 @@ internal fun resultHeroModel(
     val insights = facts.insights.takeUnless { facts.practice }
     val verdict = facts.verdict.takeUnless { facts.practice }
     val pill = heroPill(verdict).takeIf { counts }
-    val columns = facts.samePuzzle?.takeIf { it.columns && !facts.practice }
+    val columns = facts.samePuzzle?.takeUnless { facts.practice }
         ?.let { heroSamePuzzleCompare(it, facts.rankOrder, facts.timeMs, facts.hintsUsed) }
     return ResultHeroModel(
         title = resultTitle(facts.game, facts.puzzleNumber, facts.practice),
@@ -128,7 +126,6 @@ internal fun resultHeroModel(
         timeMs = facts.timeMs,
         pill = pill,
         bestLine = bestLine(facts, verdict).takeIf { columns == null },
-        bestSubLine = facts.samePuzzle?.let { heroSamePuzzleBest(it, facts.rankOrder) }.takeUnless { facts.practice || columns != null },
         compare = facts.samePuzzle != null,
         compareColumns = columns,
         bestImproved = counts && verdict == RecordVerdict.NewBest,
@@ -141,26 +138,19 @@ internal fun resultHeroModel(
         primary = facts.primary,
         moments = if (counts) heroMoments(facts.moments) else emptyList(),
         challenge = visibleChallenge(facts.primary, facts.challenge),
-        signInLine = HERO_SIGN_IN_LINE.takeIf { facts.signInLine && counts && facts.rank == ResultRank.SignedOut },
+        signInLine = HERO_SIGN_IN_LINE.takeIf { counts && facts.rank == ResultRank.SignedOut },
     )
 }
 
 /**
- * The line under the time. With the same-puzzle comparison on ([ResultHeroFacts.samePuzzle]) an earlier solve of this
- * puzzle is what the solve is compared with, whatever the game-wide verdict (it may be unknown after process death),
- * and nothing shows until those solves are read; without an earlier solve, or with the comparison off, it is the
- * game-wide wording. A practice puzzle has none.
+ * The line under the time when there is no compare row. With the same-puzzle comparison on ([ResultHeroFacts.samePuzzle])
+ * nothing shows until those solves are read; without an earlier solve it is the game-wide wording. A practice puzzle has none.
  */
 private fun bestLine(facts: ResultHeroFacts, verdict: RecordVerdict?): String? {
     val same = facts.samePuzzle
-    val previous = same?.previous
     return when {
         facts.practice -> null
         same != null && !same.read -> null
-        same != null && previous != null -> {
-            val line = heroSamePuzzleLine(previous, same.previousFromLinkedIn, facts.rankOrder, facts.timeMs, facts.hintsUsed)
-            if (facts.playAgain) "${PlayAgainCopy.LABEL} · $line" else line
-        }
         else -> heroBestLine(
             verdict = if (facts.playAgain) RecordVerdict.PlayAgain else verdict,
             previousBest = facts.previousBest,

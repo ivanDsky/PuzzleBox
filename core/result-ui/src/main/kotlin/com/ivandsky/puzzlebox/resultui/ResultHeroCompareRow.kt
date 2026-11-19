@@ -24,7 +24,7 @@ import com.ivandsky.puzzlebox.gameui.GameBrand
 private val ColumnGap = 28.dp
 
 /**
- * The compare row of Result hero polish: the PREVIOUS column, its gap tag, and the BEST column, bottom-aligned. Each value
+ * The hero's compare row: the PREVIOUS column, its gap tag, and the BEST column, bottom-aligned. Each value
  * is half the hero time's size (38 sp, 48 sp when [wide]); the tag sits on its value's baseline. A row too narrow for both
  * columns moves BEST under PREVIOUS rather than wrapping a value.
  */

@@ -13,7 +13,6 @@ import com.ivandsky.puzzlebox.common.di.flagSet
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.DeclaredFlags
 import com.ivandsky.puzzlebox.common.flags.FlagSet
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.TopBarFlag
 import com.ivandsky.puzzlebox.common.flags.isEnabled
@@ -127,10 +126,7 @@ val appModule = module {
     // Every module's release flags, ordered by owner (ADR-0022). A duplicate key throws on first resolve; a repeated
     // owner is caught by konsist P15 (Koin keeps the last set).
     single { DeclaredFlags(getAll<FlagSet>()) }
-    // The frozen central enum, until its last entry moves to its owner. Not in commonModule: its verify() rejects
-    // FlagSet's String and List parameters.
-    flagSet("common", ReleaseFlag.entries)
-    // Declared in core:common, registered here for the same reason.
+    // Declared in core:common, registered here: commonModule's verify() rejects FlagSet's String and List parameters.
     flagSet("top-bars", TopBarFlag.entries)
     single { MainTabBars(largeBar = get<ReleaseFlags>().isEnabled(TopBarFlag.MainTabsLargeBar)) }
     // Declared in core:game-ui, which has no Koin, so registered here too.

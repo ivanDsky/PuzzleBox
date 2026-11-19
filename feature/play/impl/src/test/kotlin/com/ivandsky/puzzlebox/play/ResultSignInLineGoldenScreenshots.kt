@@ -20,7 +20,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Today's Results hero with the sign-in line on (Result hero polish), signed out (the line under the time) and signed in
+ * Today's Results hero signed out (the sign-in line under the time) and signed in
  * (the rank chip's page, no line). Phone and tablet, light and dark. Goldens in `snapshots/results-hero/`.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -63,7 +63,7 @@ abstract class ResultSignInLineGoldenScreenshots(private val device: String) {
     }
 
     private companion object {
-        val SIGNED_OUT = facts(rank = ResultRank.SignedOut).copy(signInLine = true)
-        val SIGNED_IN = facts().copy(signInLine = true)
+        val SIGNED_OUT = facts(rank = ResultRank.SignedOut)
+        val SIGNED_IN = facts()
     }
 }

@@ -47,7 +47,7 @@ private fun targetBins(solves: Int): Int = when {
     else -> 10
 }
 
-/** Below this many solves a slow tail says little, so the chart keeps today's bins. */
+/** Below this many solves a slow tail says little, so the chart keeps the even bins. */
 private const val SLOW_TAIL_MIN_SOLVES = 10
 private const val SLOW_TAIL_PERCENTILE = 0.9
 
@@ -79,11 +79,11 @@ private fun slowTailLayout(sorted: List<Long>, target: Int): BinLayout? {
 /**
  * Bins [earlier] plus [current] times with the smallest nice step that fits [targetBins], and
  * counts how many of [earlier] [current] beats under [order]. When every time is the same the
- * step is at least a third of it, so the one bar does not sit in a sliver range. With [slowTail]
- * and at least [SLOW_TAIL_MIN_SOLVES] solves, a few slow ones do not stretch the axis: they share
- * one open last bin ([SpreadBin.open]). Rank, beaten and the average always use every solve.
+ * step is at least a third of it, so the one bar does not sit in a sliver range. With at least
+ * [SLOW_TAIL_MIN_SOLVES] solves, a few slow ones do not stretch the axis: they share one open
+ * last bin ([SpreadBin.open]). Rank, beaten and the average always use every solve.
  */
-fun timeSpread(earlier: List<BestScore>, current: BestScore, order: RankOrder, slowTail: Boolean = false): TimeSpread {
+fun timeSpread(earlier: List<BestScore>, current: BestScore, order: RankOrder): TimeSpread {
     val beaten = earlier.count { order.comparator.compare(current, it) < 0 }
     val ahead = earlier.count { order.comparator.compare(it, current) < 0 }
     val times = earlier.map { it.timeMs } + current.timeMs
@@ -91,7 +91,7 @@ fun timeSpread(earlier: List<BestScore>, current: BestScore, order: RankOrder, s
     val max = times.max()
     val target = targetBins(times.size)
     val even = evenLayout(min, max, target)
-    val tail = if (slowTail && times.size >= SLOW_TAIL_MIN_SOLVES) slowTailLayout(times.sorted(), target) else null
+    val tail = if (times.size >= SLOW_TAIL_MIN_SOLVES) slowTailLayout(times.sorted(), target) else null
     val layout = tail?.takeIf { it.stepMs < even.stepMs } ?: even
     fun binOf(timeMs: Long): Int = (timeMs / layout.stepMs - layout.first).toInt().coerceAtMost(layout.count - 1)
 

@@ -7,8 +7,8 @@ import com.ivandsky.puzzlebox.domain.lineup.LineupEntry
 import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
 
 /**
- * The lineup editor's state, held by the New duel view model so it outlives a rotation: the [draft], the row the add
- * sheet works on ([target]: a row's index to change it, the draft's size to add one; null while closed), the row that
+ * The lineup editor's state, held by the New duel view model so it outlives a rotation: the [draft], the row the picker
+ * page works on ([target]: a row's index to change it, the draft's size to add one; null while closed), the row that
  * just changed ([flashed]) and the row Create refused ([marked]), all 0-based.
  * [pinned] holds the puzzles a Create attempt drew: a retry re-sends them rather than drawing again, and any edit drops them.
  */
@@ -27,7 +27,7 @@ internal data class LineupEditor(
     fun openChange(index: Int): LineupEditor = if (index in draft.entries.indices) copy(target = index) else this
     fun dismiss(): LineupEditor = copy(target = null)
 
-    /** Puts [entry] in the row the sheet works on, closes the sheet and flashes the row. */
+    /** Puts [entry] in the row the picker works on, closes the picker and flashes the row. */
     fun pick(entry: LineupEntry): LineupEditor {
         val row = target ?: return this
         val next = if (row < draft.size) draft.replaced(row, entry) else draft.added(entry)

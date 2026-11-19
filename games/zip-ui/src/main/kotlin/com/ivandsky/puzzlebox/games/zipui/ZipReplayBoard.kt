@@ -10,7 +10,6 @@ import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
 import com.ivandsky.puzzlebox.gameui.BoardGrid
-import com.ivandsky.puzzlebox.gameui.LocalZipDotPulse
 import com.ivandsky.puzzlebox.gameui.hidden.GivensBoard
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
@@ -32,35 +31,49 @@ internal object ZipReplayBoard : GameReplayBoard {
     override val pieces: String get() = "cells"
 
     override fun givens(puzzle: Puzzle): GivensBoard? =
-        zipGivensSession(puzzle)?.let { GivensBoard.of(it.puzzle.board.n, it.puzzle.board.n, this, it) }
+        zipGivensSession(puzzle)?.let { GivensBoard.of(it.puzzle.board.n, it.puzzle.board.n, ZipGivensBoard, it) }
 
     @Composable
-    override fun Board(frame: ReplayFrame, options: ReplayBoardOptions, modifier: Modifier) {
-        // The frame is game-blind; this board is only reached through Zip's own plugin, so a miss draws nothing.
-        val session = frame.session as? ZipSession ?: return
-        val model = remember(session) {
-            ZipRendererModel.of(ZipState(session.puzzle, session.path), hint = null, rejection = null)
-        }
-        val forward = rememberStepsForward(options, frame.atMs)
-        // With ZipDotPulse the next number ripples as live, playing or paused (never under reduced motion).
-        val halo = rememberNextNumberHalo(
-            enabled = LocalZipDotPulse.current && !rememberReducedMotion() && model.cells.any { it.isNextTarget },
-        )
-        BoardGrid(
-            rows = model.n,
-            cols = model.n,
-            modifier = modifier.zipBoardOutline(model.n),
-            edgeOverlays = zipWallOverlays(model),
-            underlay = { ZipPipes(model, animate = forward) },
-            cellContent = { row, col ->
-                val idx = row * model.n + col
-                Box(Modifier.fillMaxSize()) {
-                    ZipCellDecor(model, row, col, animated = forward, halo = halo)
-                    if (idx in frame.hinted && model.cells[idx].isOnPath) {
-                        ReplayHintBadge(Modifier.align(Alignment.TopEnd))
-                    }
-                }
-            },
-        )
+    override fun Board(frame: ReplayFrame, options: ReplayBoardOptions, modifier: Modifier) =
+        ZipReplayFrame(frame, options, modifier, pulses = true)
+}
+
+/** The same faces for a puzzle nobody has played: a thumbnail, so the next number is not marked and nothing runs endlessly. */
+private object ZipGivensBoard : GameReplayBoard {
+    override val pieces: String get() = "cells"
+
+    @Composable
+    override fun Board(frame: ReplayFrame, options: ReplayBoardOptions, modifier: Modifier) =
+        ZipReplayFrame(frame, options, modifier, pulses = false)
+}
+
+/** One frame of the replay; [pulses] marks the next number to reach as live play does, with its halo. */
+@Composable
+private fun ZipReplayFrame(frame: ReplayFrame, options: ReplayBoardOptions, modifier: Modifier, pulses: Boolean) {
+    // The frame is game-blind; this board is only reached through Zip's own plugin, so a miss draws nothing.
+    val session = frame.session as? ZipSession ?: return
+    val model = remember(session) {
+        ZipRendererModel.of(ZipState(session.puzzle, session.path), hint = null, rejection = null)
     }
+    val forward = rememberStepsForward(options, frame.atMs)
+    // The next number ripples as live, playing or paused (never under reduced motion).
+    val halo = rememberNextNumberHalo(
+        enabled = pulses && !rememberReducedMotion() && model.cells.any { it.isNextTarget },
+    )
+    BoardGrid(
+        rows = model.n,
+        cols = model.n,
+        modifier = modifier.zipBoardOutline(model.n),
+        edgeOverlays = zipWallOverlays(model),
+        underlay = { ZipPipes(model, animate = forward) },
+        cellContent = { row, col ->
+            val idx = row * model.n + col
+            Box(Modifier.fillMaxSize()) {
+                ZipCellDecor(model, row, col, animated = forward, marksNext = pulses, halo = halo)
+                if (idx in frame.hinted && model.cells[idx].isOnPath) {
+                    ReplayHintBadge(Modifier.align(Alignment.TopEnd))
+                }
+            }
+        },
+    )
 }

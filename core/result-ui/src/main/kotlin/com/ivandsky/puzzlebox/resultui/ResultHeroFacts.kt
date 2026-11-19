@@ -13,7 +13,6 @@ import com.ivandsky.puzzlebox.gameui.RecordVerdict
  * [challenge] (L4) is the friend the Challenge row names; both are empty for a page that has none (a duel leg's).
  * [samePuzzle] (M10) is what the player's earlier solves of this very puzzle say; null (a duel leg) keeps the line that
  * compares with the game's best, and any value, even [SamePuzzleSolves.None], draws that line larger.
- * [signInLine] (Result hero polish) puts the sign-in invitation under the time of a signed-out player's counting solve.
  * [community], when given, makes this a community puzzle's hero: Hints reads "0" rather than "None" and its chips follow it
  * in place of the Today and Average chips.
  */
@@ -36,6 +35,5 @@ data class ResultHeroFacts(
     val moments: List<Moment>,
     val challenge: ResultPrimaryAction.ChallengeFriend?,
     val samePuzzle: SamePuzzleSolves?,
-    val signInLine: Boolean = false,
     val community: ResultCommunity? = null,
 )

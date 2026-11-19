@@ -25,7 +25,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The hero's sign-in line (Result hero polish): when the model has it, where it sits and that a tap starts sign-in. */
+/** The hero's sign-in line: when the model has it, where it sits and that a tap starts sign-in. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34])
@@ -36,8 +36,8 @@ class ResultHeroSignInLineTest {
 
     private var signIns = 0
 
-    private fun facts(rank: ResultRank = ResultRank.SignedOut, line: Boolean = true, playAgain: Boolean = false, practice: Boolean = false) =
-        heroSampleFacts(rank = rank, playAgain = playAgain, practice = practice).copy(signInLine = line)
+    private fun facts(rank: ResultRank = ResultRank.SignedOut, playAgain: Boolean = false, practice: Boolean = false) =
+        heroSampleFacts(rank = rank, playAgain = playAgain, practice = practice)
 
     private fun show(facts: ResultHeroFacts, widthDp: Int, heightDp: Int) {
         composeRule.setContent {
@@ -53,13 +53,12 @@ class ResultHeroSignInLineTest {
     }
 
     @Test
-    fun `a signed-out counting solve with the line on carries the sign-in invitation`() {
+    fun `a signed-out counting solve carries the sign-in invitation`() {
         assertEquals(HERO_SIGN_IN_LINE, resultHeroModel(facts()).signInLine)
     }
 
     @Test
-    fun `the line is off by default, for a signed-in player, a play again and a practice puzzle`() {
-        assertNull(resultHeroModel(facts(line = false)).signInLine)
+    fun `no line for a signed-in player, a play again and a practice puzzle`() {
         assertNull(resultHeroModel(facts(rank = ResultRank.Ranked(position = 3, count = 40, topPercent = 8))).signInLine)
         assertNull(resultHeroModel(facts(playAgain = true)).signInLine)
         assertNull(resultHeroModel(facts(practice = true)).signInLine)
@@ -92,12 +91,6 @@ class ResultHeroSignInLineTest {
         val chip = composeRule.onNodeWithTag("result.hero.chip.hints").getUnclippedBoundsInRoot()
         assertTrue("line ${line.top} under time ${time.bottom}", line.top >= time.bottom)
         assertTrue("chips ${chip.top} under line ${line.bottom}", chip.top >= line.bottom)
-    }
-
-    @Test
-    fun `with the line off a signed-out hero has no sign-in line`() {
-        show(facts(line = false), widthDp = 411, heightDp = 891)
-        composeRule.onNodeWithTag("result.hero.signin").assertDoesNotExist()
     }
 
     @Test

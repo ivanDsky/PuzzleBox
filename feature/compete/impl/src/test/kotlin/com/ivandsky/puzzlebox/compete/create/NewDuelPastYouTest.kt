@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.compete.assertTouchTargetsAtLeast48
+import com.ivandsky.puzzlebox.compete.create.screen.NewDuelScreen
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -22,7 +23,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The New duel sheet with Past you chosen: the same signed in or out (no sign-in panel, Create works), and every
+ * The New duel page with Past you chosen: the same signed in or out (no sign-in panel, Create works), and every
  * control in it a 48 dp touch target, Quick duel and the expanded Customize panel alike.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -42,7 +43,7 @@ class NewDuelPastYouTest {
 
     private fun show(state: NewDuelState, actions: NewDuelActions = NO_ACTIONS) {
         rule.setContent {
-            PuzzleBoxTheme { Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) { NewDuelContent(state, actions) } }
+            PuzzleBoxTheme { Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) { NewDuelScreen(state, actions, onBack = {}) } }
         }
         rule.waitForIdle()
     }
@@ -60,7 +61,7 @@ class NewDuelPastYouTest {
     }
 
     @Test
-    fun `every control on the Quick duel sheet is a 48 dp touch target`() {
+    fun `every control on the Quick duel page is a 48 dp touch target`() {
         show(quick())
 
         rule.assertTouchTargetsAtLeast48()

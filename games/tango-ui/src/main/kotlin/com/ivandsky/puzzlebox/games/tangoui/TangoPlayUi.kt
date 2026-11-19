@@ -34,21 +34,16 @@ import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.model.GameId
 
-/**
- * Tango's one play registration (ADR-0001): its controller, its board and its play screen. [plainCaptions]
- * is asked once per board opened, so a flag flipped mid-session changes the next board and never the open one;
- * it picks the plain hint captions (HintPolish).
- */
+/** Tango's one play registration (ADR-0001): its controller, its board and its play screen. */
 class TangoPlayUi(
     private val hintMode: HintMode.Stepwise,
-    private val plainCaptions: () -> Boolean = { false },
 ) : GamePlayUi {
     override val gameId: GameId get() = TangoDefinition.id
 
     override val brand: GameBrand get() = TangoBrand
 
     override fun createController(env: PlayEnvironment): GamePlayController =
-        TangoPlayController(env, hintMode = hintMode, plainCaptions = plainCaptions())
+        TangoPlayController(env, hintMode = hintMode)
 
     /** Clear wipes the player's cells as one undo unit; always enabled (an empty or solved board ignores it). */
     override fun clearFor(controller: GamePlayController): PlayClear = tangoClear(controller as TangoPlayController)

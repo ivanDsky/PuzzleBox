@@ -66,7 +66,7 @@ class FriendOpenLoopE2ETest(name: String) {
                 custom.map { it.puzzleRef.gameId to it.puzzleRef.key },
             )
             assertEquals("D: the daily records are as they were", before.records, world.dailies(game.id).records)
-            awaitTag("result.record_badge")
+            awaitTag("result.hero.pill")
 
             // The submitter's last step: the row is marked Posted, so it never posts this win again.
             rule.waitUntil(FRIEND_TIMEOUT_MS) { world.received.rows[code]?.postState == PostState.Posted }

@@ -20,7 +20,7 @@ private const val PASTE_CAP = 200
 
 /**
  * "Paste": hands the clipboard's text to [onPaste] when the player taps it, and does nothing when the clipboard holds
- * none. The add sheet shows it while its field is empty.
+ * none. The picker page shows it while its field is empty.
  */
 @Composable
 internal fun PasteCodeButton(onPaste: (String) -> Unit, modifier: Modifier = Modifier) {

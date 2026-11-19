@@ -1,8 +1,7 @@
 package com.ivandsky.puzzlebox.common.flags
 
 /**
- * One release flag (ADR-0022): what an owner module's `<Owner>Flag` enum implements. The temporary name lets the
- * central [ReleaseFlag] enum keep its own until the last flag leaves it; then this interface takes the name.
+ * One release flag (ADR-0022): what an owner module's `<Owner>Flag` enum implements.
  *
  * @property key the flag's SharedPreferences key in `release_flags`, where a debug override is stored: an enum's
  *   entry `name`. Never change it, so an override survives the flag's move between modules.

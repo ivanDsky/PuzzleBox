@@ -1,6 +1,6 @@
 package com.ivandsky.puzzlebox.compete.create
 
-/** Why the last Create did not close the sheet; the draft is kept for each. */
+/** Why the last Create did not make the duel; the draft is kept for each. */
 internal sealed interface DuelNotice {
     data object Offline : DuelNotice
     /** The service's daily limit on new duels was reached; not a connection problem. */

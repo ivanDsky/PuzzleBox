@@ -11,7 +11,6 @@ import com.ivandsky.puzzlebox.create.navigation.editorEntry
 import com.ivandsky.puzzlebox.create.navigation.publishedPuzzleEntry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.history.HistoryLayout
-import com.ivandsky.puzzlebox.history.RanksTuneDefaults
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.history.navigation.ranksEntry
@@ -65,7 +64,7 @@ import java.time.LocalDate
  * the game page's rank summary row and Result's rank chip all push that [HistoryKey] ([openRanks]).
  * [visibility] backs Settings' Visibility section. The Studio's test solve can open on the play screen ([TestSolveOnPlay]).
  *
- * Today's day and streak summaries open the hub ([homeSummaries]), and the hub takes [tuneDefaults] for its Tune sheet.
+ * Today's day and streak summaries open the hub ([homeSummaries]).
  * Profile's own pages (Settings, the LinkedIn login, the catalog) stack on Profile inside the layer above the tabs
  * ([Navigator.pushLayer]). [onOpenInsights] (null: Insights is off, see [insightsOpener]) is Profile's Insights row;
  * the hub opens a month's recap as a layer page too. [recap] (null: none due or the flag is off, see [recapSlot]) is
@@ -83,7 +82,6 @@ internal fun puzzleBoxEntryProvider(
     duels: DuelsSlot? = null,
     libraryRequests: LibraryRequests = LibraryRequests(),
     visibility: VisibilitySlot,
-    tuneDefaults: RanksTuneDefaults,
     onOpenInsights: (() -> Unit)? = null,
     recap: RecapSlot? = null,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
@@ -93,7 +91,7 @@ internal fun puzzleBoxEntryProvider(
         title = topLevelDestinations.first { it.key == HomeKey }.label,
         summaries = homeSummaries(navigator, duels, libraryRequests, recap),
     )
-    ranksEntry(navigator, historyLayout, linkedIn = true, tuneDefaults = tuneDefaults)
+    ranksEntry(navigator, historyLayout, linkedIn = true)
     playEntry(
         navigator,
         playLayout,

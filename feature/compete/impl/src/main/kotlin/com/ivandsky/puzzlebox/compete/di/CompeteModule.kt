@@ -45,7 +45,7 @@ import org.koin.dsl.module
  * ([ObserveLegTitles], [SaveDuelPuzzles]), the solved pool and the self-duel create drawing from it
  * ([ComputeSolvedPool], [CreateSelfDuel]), and the add-puzzle searches and code lookup ([ObservePickablePuzzles]
  * over the community, friend, own and daily-archive sources, [ObserveSolvedPuzzles], [LoadPuzzleByCode]). The Duels
- * tab's, the New duel sheet's, the add-puzzle searches' (a friend's, and Past you's under its own qualifier), the
+ * tab's, New duel's, the add-puzzle searches' (a friend's, and Past you's under its own qualifier), the
  * duel screen's, the reveal's and the rematch sheet's view models are bound here (the duel screen's by its code; the
  * reveal's by its code and the screen's reduced motion, zone and locale; the rematch's by the duel it repeats). The
  * result sync comes from the app, which binds it to the result poster. The feature's release flags ([CompeteFlag])
@@ -108,7 +108,7 @@ val competeModule: Module = module {
         )
     }
     viewModel { AddPuzzleViewModel(observe = get<ObservePickablePuzzles>()::invoke, lookup = get<LoadPuzzleByCode>()::invoke) }
-    // Past you's add sheet: the same search over what the player solved, on the device, so no code lookup.
+    // Past you's picker page: the same search over what the player solved, on the device, so no code lookup.
     viewModel(PAST_YOU_PICKER) { AddPuzzleViewModel(observe = get<ObserveSolvedPuzzles>()::invoke, lookup = null, pastYou = true) }
     viewModel { (code: String) ->
         DuelViewModel(

@@ -31,7 +31,7 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.MatchLegKey
 import com.ivandsky.puzzlebox.play.api.ReplayKey
-import com.ivandsky.puzzlebox.play.friend.CustomResultScreen
+import com.ivandsky.puzzlebox.play.friend.CustomResultHeroScreen
 import com.ivandsky.puzzlebox.play.friend.CustomResultState
 import com.ivandsky.puzzlebox.play.friend.CustomStanding
 import com.ivandsky.puzzlebox.play.friend.PreviewBoardAuthor
@@ -166,7 +166,7 @@ abstract class ResultReplayGoldenScreenshots(private val device: String) {
 
     @Composable
     private fun ColumnScope.CustomResult(timeline: Timeline) {
-        CustomResultScreen(
+        CustomResultHeroScreen(
             state = CUSTOM.copy(replay = ReplaySectionState.Ready(timeline)),
             onDone = {},
             onShare = {},

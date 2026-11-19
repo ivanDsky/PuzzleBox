@@ -147,14 +147,6 @@ internal fun ResultHeroCard(
                     modifier = Modifier.resultBeat(ResultBeats.Supporting, 1).testTag("result.hero.best"),
                 )
             }
-            model.bestSubLine?.let { line ->
-                Text(
-                    text = line,
-                    style = MaterialTheme.typography.bodyLarge.tabular(),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.resultBeat(ResultBeats.Supporting, 1).testTag("result.hero.bestOn"),
-                )
-            }
             model.signInLine?.let { line ->
                 Text(
                     text = line,

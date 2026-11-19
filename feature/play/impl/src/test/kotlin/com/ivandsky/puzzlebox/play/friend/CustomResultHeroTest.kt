@@ -84,8 +84,7 @@ class CustomResultHeroTest {
         puzzle = puzzle,
         standing = standing,
         board = board,
-        heroPolish = true,
-        samePuzzle = SamePuzzleSolves.None.copy(columns = true),
+        samePuzzle = SamePuzzleSolves.None,
     )
 
     @Test

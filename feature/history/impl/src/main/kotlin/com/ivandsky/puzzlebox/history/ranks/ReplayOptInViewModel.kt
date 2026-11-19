@@ -2,9 +2,6 @@ package com.ivandsky.puzzlebox.history.ranks
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.visibility.OwnTier
 import com.ivandsky.puzzlebox.data.visibility.VisibilityRepository
 import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
@@ -21,12 +18,11 @@ import kotlinx.coroutines.launch
  * The replay opt-in prompt: [show] is true while the sheet should be up, which is only when the player's tier
  * was never chosen ([OwnTier.Unset]; [OwnTier.Unknown] fails closed, so a cold start never flashes it) and the hub shows
  * their official ranked row ([rankedRow]). Either answer writes a tier, which is what keeps it from coming back; [answered]
- * also hides it at once, before the write lands. With [ReleaseFlag.SheetScreens] on it also waits while another sheet is
- * open ([hold]), so two sheets are never up together.
+ * also hides it at once, before the write lands. It also waits while another sheet is open
+ * ([hold]), so two sheets are never up together.
  */
-internal class ReplayOptInViewModel(private val visibility: VisibilityRepository, releaseFlags: ReleaseFlags) : ViewModel() {
+internal class ReplayOptInViewModel(private val visibility: VisibilityRepository) : ViewModel() {
 
-    private val holdable = releaseFlags.isEnabled(ReleaseFlag.SheetScreens)
     private val ranked = MutableStateFlow(false)
     private val answered = MutableStateFlow(false)
     private val held = MutableStateFlow(false)
@@ -40,9 +36,9 @@ internal class ReplayOptInViewModel(private val visibility: VisibilityRepository
         ranked.value = present
     }
 
-    /** Another Ranks sheet is open: the question waits for it to close (SheetScreens on). */
+    /** Another Ranks sheet is open: the question waits for it to close. */
     fun hold(sheetOpen: Boolean) {
-        if (holdable) held.value = sheetOpen
+        held.value = sheetOpen
     }
 
     /** "Share my replays": future solves only. */

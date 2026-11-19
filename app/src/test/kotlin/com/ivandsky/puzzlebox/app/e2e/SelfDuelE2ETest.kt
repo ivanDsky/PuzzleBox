@@ -33,7 +33,7 @@ import org.robolectric.annotation.Config
 
 /**
  * A whole duel against Past you, signed out, over the real shell, the real compete screens, the real use cases and the
- * on-device self store (Room): Duels tab, the New duel sheet's Past you choice, Create, every leg played with its
+ * on-device self store (Room): Duels tab, the New duel screen's Past you choice, Create, every leg played with its
  * time-left timer showing, Results ready, the reveal with its improvement line, and the duel as a finished row in
  * My duels. Nothing reaches the friend-duel server fake.
  */
@@ -45,14 +45,14 @@ class SelfDuelE2ETest {
     private val graph = shellGraph()
 
     @Test
-    fun aSignedOutPlayerDuelsPastYouFromTheSheetToAFinishedRow() = shellRobot(onPlay, graph = graph) {
+    fun aSignedOutPlayerDuelsPastYouFromTheScreenToAFinishedRow() = shellRobot(onPlay, graph = graph) {
         graph.seedSolvedZips(E2E_TODAY)
         graph.koin.get<MatchResultPoster>().start()
         openDuelsTab()
         assertTrue("the Challenge card offers dueling yourself", rule.onAllNodesWithText(SIGNED_OUT_LINE).fetchSemanticsNodes().isNotEmpty())
 
         tap("duels.challenge")
-        awaitTag("duel.new.sheet")
+        awaitTag("duel.new.screen")
         tap("duel.opponent.self")
         tap("duel.preset.quick")
         tap("duel.create")

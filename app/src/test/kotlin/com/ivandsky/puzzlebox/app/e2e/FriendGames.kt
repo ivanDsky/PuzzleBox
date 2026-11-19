@@ -1,6 +1,6 @@
 package com.ivandsky.puzzlebox.app.e2e
 
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
 import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
@@ -36,7 +36,7 @@ import com.ivandsky.puzzlebox.play.PlaySessionStore
  * publishes, and how a player plays that board to its win through the board's own input (the
  * handlers its gestures call), never by writing a result.
  */
-abstract class FriendGame(private val label: String, val flags: List<ReleaseFlag> = emptyList()) {
+abstract class FriendGame(private val label: String, val flags: List<ReleaseFlagKey> = emptyList()) {
     abstract val board: EditorDraft<*>
     val id: GameId get() = board.gameId
 

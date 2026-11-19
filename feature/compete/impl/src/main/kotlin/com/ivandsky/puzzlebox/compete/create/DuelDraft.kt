@@ -11,11 +11,11 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Locale
 
-/** Which preset the sheet shows as chosen; any edit to a Quick draft leaves it Custom. */
+/** Which preset New duel shows as chosen; any edit to a Quick draft leaves it Custom. */
 internal enum class DuelPreset { Quick, Daily, Custom }
 
 /**
- * A game the sheet can offer: its [name], today's puzzle [todayNumber] (null when its source numbers none) and the
+ * A game New duel can offer: its [name], today's puzzle [todayNumber] (null when its source numbers none) and the
  * [todayDay] that is today for it, and whether the player already [solvedToday].
  */
 internal data class DuelGame(
@@ -27,7 +27,7 @@ internal data class DuelGame(
 )
 
 /**
- * What the sheet has chosen so far. [todayOnly] is the Daily duel's rule; everything else is the customize panel.
+ * What New duel has chosen so far. [todayOnly] is the Daily duel's rule; everything else is the customize panel.
  * Pure: [toSettings] and [summary] hold the mapping and the footer text, and every edit returns a new draft.
  */
 internal data class DuelDraft(
@@ -39,7 +39,7 @@ internal data class DuelDraft(
     val includeFriends: Boolean,
 ) {
 
-    /** The request [CreateMatch] takes; this sheet never pastes codes (Enter code does). A [lineup] decides the puzzles instead of the count and games. */
+    /** The request [CreateMatch] takes; New duel never pastes codes (Enter code does). A [lineup] decides the puzzles instead of the count and games. */
     fun toSettings(lineup: List<LineupEntry>? = null) = DuelSettings(
         count = count,
         games = games,

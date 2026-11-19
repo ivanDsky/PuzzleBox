@@ -10,12 +10,10 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.visibility.OwnTier
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeVisibilityRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import org.junit.Assert.assertEquals
@@ -28,7 +26,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The share-replays question beside the hub's other sheets, on the real [ReplayOptInViewModel] wired as the route wires
- * it: with SheetScreens on it never lands on top of Tune or How ranks work and shows once they close; off, as before.
+ * it: it never lands on top of a filter sheet or How ranks work and shows once they close.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -45,8 +43,8 @@ class RanksSheetHoldTest {
 
     private val visibility = FakeVisibilityRepository()
 
-    private fun show(flags: FakeReleaseFlags) {
-        val viewModel = ReplayOptInViewModel(visibility, flags)
+    private fun show() {
+        val viewModel = ReplayOptInViewModel(visibility)
         viewModel.rankedRow(true)
         composeRule.setContent {
             val ask by viewModel.show.collectAsStateWithLifecycle()
@@ -55,18 +53,12 @@ class RanksSheetHoldTest {
                     hub,
                     RanksActions(onSignIn = {}, onSwipe = {}, onSheetOpen = viewModel::hold),
                     replayOptIn = ask,
-                    tuneDefaults = previewTuneDefaults(),
                 )
             }
         }
     }
 
-    private fun openTune() {
-        composeRule.onNodeWithTag("ranks.tune").performClick()
-        composeRule.onNodeWithTag("ranks.tune.sheet").assertIsDisplayed()
-    }
-
-    private fun closeTune() {
+    private fun closeSheet() {
         composeRule.onNode(SemanticsMatcher.keyIsDefined(SemanticsActions.Dismiss)).performSemanticsAction(SemanticsActions.Dismiss)
         composeRule.waitForIdle()
     }
@@ -74,33 +66,8 @@ class RanksSheetHoldTest {
     private fun questionCount() = composeRule.onAllNodesWithTag("ranks.optin.sheet").fetchSemanticsNodes().size
 
     @Test
-    fun `with SheetScreens on, the question that turns up over Tune waits and shows when Tune closes`() {
-        show(FakeReleaseFlags(ReleaseFlag.SheetScreens))
-        openTune()
-
-        visibility.emitOwn(OwnTier.Unset)
-        composeRule.waitForIdle()
-        assertEquals(0, questionCount())
-
-        closeTune()
-        composeRule.onNodeWithTag("ranks.optin.sheet").assertIsDisplayed()
-    }
-
-    @Test
-    fun `with SheetScreens off, the question shows over Tune as today`() {
-        show(FakeReleaseFlags())
-        openTune()
-
-        visibility.emitOwn(OwnTier.Unset)
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithTag("ranks.optin.sheet").assertIsDisplayed()
-        composeRule.onNodeWithTag("ranks.tune.sheet").assertIsDisplayed()
-    }
-
-    @Test
-    fun `with SheetScreens on, the question that turns up over the Who sheet waits and shows when it closes`() {
-        show(FakeReleaseFlags(ReleaseFlag.SheetScreens))
+    fun `the question that turns up over the Who sheet waits and shows when it closes`() {
+        show()
         composeRule.onNodeWithTag("ranks.filter.who").performClick()
         composeRule.onNodeWithTag("ranks.filter.who.sheet").assertIsDisplayed()
 
@@ -108,7 +75,7 @@ class RanksSheetHoldTest {
         composeRule.waitForIdle()
         assertEquals(0, questionCount())
 
-        closeTune()
+        closeSheet()
         composeRule.onNodeWithTag("ranks.optin.sheet").assertIsDisplayed()
     }
 }

@@ -1,14 +1,11 @@
 package com.ivandsky.puzzlebox.compete.tab
 
 import androidx.activity.ComponentActivity
-import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performClick
+import com.ivandsky.puzzlebox.compete.create.NewDuelHarness
 import com.ivandsky.puzzlebox.compete.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.compete.domain.UpdateMatchSeat
 import com.ivandsky.puzzlebox.data.identity.Identity
@@ -37,7 +34,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The tablet's Duels pane with no duel: the empty state and its New duel button, which opens the New duel sheet. */
+/** The tablet's Duels pane with no duel: the empty state and its New duel button. Opening the form is in DuelsPaneNewDuelTest. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w1280dp-h800dp-land-mdpi")
@@ -48,6 +45,7 @@ class DuelsPaneTest {
 
     private val now = Instant.parse("2026-11-09T10:00:00Z")
     private val navigator = Navigator(NavigationState(PlayKey, listOf(listOf(PlayKey))))
+    private val harness = NewDuelHarness()
 
     @Before
     fun startKoinWithNoDuels() {
@@ -65,6 +63,7 @@ class DuelsPaneTest {
                             releaseFlags = FakeReleaseFlags(),
                         )
                     }
+                    viewModel { harness.viewModel }
                 },
             )
         }
@@ -74,11 +73,7 @@ class DuelsPaneTest {
     fun stopKoinAgain() = stopKoin()
 
     private fun show() = rule.setContent {
-        PuzzleBoxTheme {
-            DuelsPaneHost(navigator, PlayLayout.TwoPane, Modifier) { inviter, _ ->
-                Text("sheet for $inviter", Modifier.testTag("duel.new.sheet"))
-            }
-        }
+        PuzzleBoxTheme { DuelsPaneHost(navigator, PlayLayout.TwoPane, Modifier) }
     }
 
     @Test
@@ -88,17 +83,6 @@ class DuelsPaneTest {
 
         rule.onNodeWithTag("duels.pane.empty").assertIsDisplayed()
         rule.onNodeWithTag("duels.pane.newDuel").assertIsDisplayed()
-        rule.onNodeWithTag("duel.new.sheet").assertDoesNotExist()
-    }
-
-    @Test
-    fun `New duel opens the New duel sheet for the signed-in player`() {
-        show()
-        rule.waitForIdle()
-
-        rule.onNodeWithTag("duels.pane.newDuel").performClick()
-        rule.waitForIdle()
-
-        rule.onNodeWithTag("duel.new.sheet").assertTextEquals("sheet for Bob")
+        rule.onNodeWithTag("duel.new.screen").assertDoesNotExist()
     }
 }

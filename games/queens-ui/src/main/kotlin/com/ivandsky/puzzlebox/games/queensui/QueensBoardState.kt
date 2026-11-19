@@ -70,7 +70,6 @@ class QueensBoardState(
     private val settle: (QueensSession) -> QueensSession = { it },
     mode: HintMode.Stepwise,
     scope: CoroutineScope,
-    plainCaptions: Boolean = false,
     /** Whether a hint callout carries "Place it"; a guided lesson never does (A8). */
     offersPlaceIt: Boolean = false,
     /** Every player input, whether or not it changes the board (see [PlayEnvironment.onInput]). */
@@ -104,7 +103,7 @@ class QueensBoardState(
         StepHints(
             mode,
             scope,
-            QueensStepGame({ session }, QueensPlaceIt(::placeHintQueen, ::crossHintCells).takeIf { offersPlaceIt }, plainCaptions),
+            QueensStepGame({ session }, QueensPlaceIt(::placeHintQueen, ::crossHintCells).takeIf { offersPlaceIt }),
             { session.hintsUsed },
             { commit(QueensReplayMove.Hint) },
         )

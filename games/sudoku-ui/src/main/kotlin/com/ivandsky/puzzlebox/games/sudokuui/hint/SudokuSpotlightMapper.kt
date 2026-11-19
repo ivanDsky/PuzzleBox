@@ -29,22 +29,18 @@ internal object SudokuSpotlightMapper {
         puzzle: SudokuPuzzle,
         board: SudokuBoard,
         playId: Int,
-        plainCaptions: Boolean = false,
     ): Spotlight = when (step) {
         is SudokuStep.Single ->
-            spotlight(step, puzzle, board, singleRoles(step, puzzle), singleTexts(step), playId, plainCaptions)
+            spotlight(step, puzzle, board, singleRoles(step, puzzle), singleTexts(step), playId)
         is SudokuStep.Elimination -> spotlight(
             step, puzzle, board, eliminationRoles(step),
             step.struck.mapValues { (_, mask) -> SudokuStepCopy.digitsOf(mask).joinToString(" ") }, playId,
-            plainCaptions,
         )
         is SudokuStep.Reveal -> spotlight(
             step, puzzle, board, mapOf(step.cell to SpotlightRole.TARGET), mapOf(step.cell to step.digit.toString()), playId,
-            plainCaptions,
         )
         is SudokuStep.Mistake -> spotlight(
             step, puzzle, board, mistakeRoles(step), mapOf(step.cell to board.digitAt(step.cell).toString()), playId,
-            plainCaptions,
         )
         SudokuStep.Solved -> error("a solved board has no Spotlight")
     }
@@ -56,7 +52,6 @@ internal object SudokuSpotlightMapper {
         roles: Map<Int, SpotlightRole>,
         texts: Map<Int, String>,
         playId: Int,
-        plainCaptions: Boolean,
     ): Spotlight {
         val anchor = ANCHOR_ORDER.firstNotNullOf { role ->
             roles.filterValues { it == role }.keys.takeIf { it.isNotEmpty() }
@@ -66,7 +61,7 @@ internal object SudokuSpotlightMapper {
             rows = size,
             cols = size,
             roles = roles,
-            callout = SpotlightCallout(SudokuStepCopy.text(step, puzzle, board, plainCaptions), anchor),
+            callout = SpotlightCallout(SudokuStepCopy.text(step, puzzle, board), anchor),
             glyphs = SudokuSpotlightGlyphs(texts),
             playId = playId,
         )

@@ -100,7 +100,7 @@ internal object ZipBoardSpec {
     /** The base stroke of the next number's halo; [haloWeightFactor] scales it. */
     val nextNumberStrokeWeight = 3.dp
 
-    /** ZipDotPulse's halo: ripples out of the target's circle, each [haloGrowth] wider at its end and fading from [haloAlpha]; the stroke is [haloWeightFactor] x [nextNumberStrokeWeight]. */
+    /** The next number's halo: ripples out of the target's circle, each [haloGrowth] wider at its end and fading from [haloAlpha]; the stroke is [haloWeightFactor] x [nextNumberStrokeWeight]. */
     const val haloWaves = 2
     const val haloGrowth = 0.55f
     const val haloAlpha = 0.55f

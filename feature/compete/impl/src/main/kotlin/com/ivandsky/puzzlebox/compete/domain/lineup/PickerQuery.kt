@@ -4,7 +4,7 @@ import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
 import com.ivandsky.puzzlebox.model.GameId
 
 /**
- * The add sheet's search [text] and chips. Groups combine with AND, the values of one group with OR; an empty group
+ * The picker page's search [text] and chips. Groups combine with AND, the values of one group with OR; an empty group
  * lets everything through.
  */
 data class PickerQuery(

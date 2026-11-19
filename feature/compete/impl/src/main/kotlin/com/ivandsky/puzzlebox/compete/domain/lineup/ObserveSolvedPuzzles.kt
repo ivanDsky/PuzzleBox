@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 
 /**
- * The Past you add sheet's list: every puzzle the player has solved that a Past you duel can play (the pool of
+ * The Past you picker page's list: every puzzle the player has solved that a Past you duel can play (the pool of
  * [ComputeSolvedPool], friends' puzzles included) and has a first-solve record, newest first solve first, narrowed on
  * the device by the query. The player's own published puzzles are not in the pool, so they are not listed.
  */
@@ -25,7 +25,7 @@ class ObserveSolvedPuzzles internal constructor(
     private val completions: CompletionRepository,
     private val received: ReceivedPuzzleRepository,
 ) {
-    /** Same query type as the friend sheet; [PickerResult.offline] is false and [PickerResult.moreDays] is false. [archivePages] is ignored: there is no archive to page. */
+    /** Same query type as the friend picker; [PickerResult.offline] is false and [PickerResult.moreDays] is false. [archivePages] is ignored: there is no archive to page. */
     @Suppress("UNUSED_PARAMETER")
     operator fun invoke(query: Flow<PickerQuery>, archivePages: Flow<Int>): Flow<PickerResult> =
         combine(query, rows()) { q, rows -> PickerResult(rows.filter { it.passes(q) }, offline = false) }

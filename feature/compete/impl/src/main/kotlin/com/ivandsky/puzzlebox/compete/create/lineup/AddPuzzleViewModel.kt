@@ -32,8 +32,8 @@ private const val STOP_TIMEOUT_MS = 5_000L
 internal const val LOOKUP_DEBOUNCE_MS = 400L
 
 /**
- * The add sheet's exact-puzzle search: the text and chips the player set, the pickable puzzles they narrow, and which of
- * those the lineup already holds ([setAdded]). The list is read once while the sheet is on screen, however the query changes;
+ * The picker page's exact-puzzle search: the text and chips the player set, the pickable puzzles they narrow, and which of
+ * those the lineup already holds ([setAdded]). The list is read once while the page is on screen, however the query changes;
  * the daily archive comes a page at a time as [loadMore] asks.
  *
  * A link or a dashed code typed in that matches nothing loaded is looked up with [lookup] after a short rest; a bare six
@@ -42,7 +42,7 @@ internal const val LOOKUP_DEBOUNCE_MS = 400L
  * keyed by the text, so a changed text drops the old one and [reset] leaves nothing of it.
  *
  * Past you's search has no [lookup] (null): what it lists is on the device, so a code that is no row is only an empty list,
- * with no network, no "Looking up…" and no retry. [pastYou] tells the state so the sheet words it.
+ * with no network, no "Looking up…" and no retry. [pastYou] tells the state so the page words it.
  */
 internal class AddPuzzleViewModel(
     observe: (Flow<PickerQuery>, Flow<Int>) -> Flow<PickerResult>,
@@ -131,7 +131,7 @@ internal class AddPuzzleViewModel(
         if (state.value.moreDays) archivePages.update { it + 1 }
     }
 
-    /** The next opening of the sheet starts clean. */
+    /** The next opening of the page starts clean. */
     fun reset() {
         explicit.value = null
         query.value = NO_QUERY

@@ -75,7 +75,6 @@ class RanksScrollKeepsPositionTest {
                     ),
                     modifier = Modifier.height(height.dp),
                     layout = layout,
-                    tuneDefaults = previewTuneDefaults(),
                 )
             }
         }

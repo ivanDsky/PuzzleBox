@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 
 /**
- * What a duel against Past you needs from the data layer, for the New duel sheet: the solved puzzles it can draw
+ * What a duel against Past you needs from the data layer, for New duel: the solved puzzles it can draw
  * from ([solved], through [computeSolvedPool]) and the Create itself ([create], through [createSelfDuel]).
  * A store that throws is reported to [failures] and never
  * escapes: no counts on the read, [CreateOutcome.Failed] on the Create.
@@ -29,8 +29,8 @@ internal class SelfDuelStep(
 ) {
     /**
      * What each game's solved puzzles number, following the device: it is read again when [games] or [includeFriends]
-     * changes or [rereads] emits (the sheet opening, a reset), and again on every stored change, so a solve made while
-     * the sheet is open is counted without reopening it. Null until the first read or when the read failed.
+     * changes or [rereads] emits (New duel opening, a reset), and again on every stored change, so a solve made while
+     * New duel is open is counted without reopening it. Null until the first read or when the read failed.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
     fun solved(games: Flow<List<DuelGame>>, includeFriends: Flow<Boolean>, rereads: Flow<Any>): Flow<SolvedCounts?> =

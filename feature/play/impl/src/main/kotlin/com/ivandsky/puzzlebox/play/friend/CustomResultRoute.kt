@@ -24,21 +24,18 @@ import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.gameui.GameBrand
-import com.ivandsky.puzzlebox.gameui.GamePlayUi
-import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.CustomResultKey
 import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.play.shareText
-import com.ivandsky.puzzlebox.resultui.ResultScreen
-import com.ivandsky.puzzlebox.resultui.replay.ReplaySection
+import com.ivandsky.puzzlebox.resultui.SamePuzzleSolves
 import java.time.Instant
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * A solved friend's puzzle on the Play stack: the result card over the key's solve. Done
+ * A solved friend's puzzle on the Play stack: the daily's hero page ([CustomResultHeroScreen]) over the key's solve. Done
  * and Up are [onDone], back to the puzzle's card; Play again resets the finished play
  * before [onPlayAgain] reopens its board, so the board never re-hands off the old solve.
  * Share hands the system share sheet the puzzle's link, so the friend's friends can try it;
@@ -66,9 +63,9 @@ internal fun CustomResultRoute(
                 }
             },
         )
-        CustomResultScreen(
+        CustomResultHeroScreen(
             state = state,
-            modifier = if (state.heroPolish) Modifier.weight(1f) else Modifier,
+            modifier = Modifier.weight(1f),
             onDone = onDone,
             onShare = { context.shareText(shareTextOf(state, key.puzzleId)) },
             onPlayAgain = {
@@ -80,61 +77,6 @@ internal fun CustomResultRoute(
             onOpenReplay = { onOpenReplay(ReplayKey.custom(key.gameId, key.puzzleId, latest = true)) },
         )
     }
-}
-
-/**
- * The daily's [ResultScreen] over a friend's puzzle: its title, the time as the hero, a
- * "New best" pill once the solve is recorded as the record, or the score a play again leaves
- * standing; the Hints tile, then the puzzle's board with its author pinned. A friend's puzzle
- * never moves a streak, so there is no Streak tile, and the primary step is always Done. The replay section ([replayUi]
- * is the game's play UI, null for a game this build does not ship) follows the card and draws nothing until the state is Ready.
- * With Result hero polish on ([CustomResultState.heroPolish]) it is the daily's hero page instead: [CustomResultHeroScreen].
- */
-@Composable
-internal fun CustomResultScreen(
-    state: CustomResultState,
-    onDone: () -> Unit,
-    onShare: () -> Unit,
-    onPlayAgain: () -> Unit,
-    onSignIn: () -> Unit,
-    modifier: Modifier = Modifier,
-    replayUi: GamePlayUi? = null,
-    onOpenReplay: () -> Unit = {},
-) {
-    if (state.heroPolish) {
-        CustomResultHeroScreen(state, onDone, onShare, onPlayAgain, onSignIn, modifier, replayUi, onOpenReplay)
-        return
-    }
-    ResultScreen(
-        timeMs = state.timeMs,
-        hintsUsed = state.hintsUsed,
-        onDone = onDone,
-        onShare = onShare,
-        onPlayAgain = onPlayAgain,
-        modifier = modifier,
-        brand = state.brand,
-        game = state.title,
-        verdict = when (state.standing) {
-            CustomStanding.Record -> RecordVerdict.NewBest
-            is CustomStanding.PlayAgain -> RecordVerdict.PlayAgain
-            null -> null
-        },
-        previousBest = (state.standing as? CustomStanding.PlayAgain)?.record,
-        rankOrder = state.rankOrder,
-        details = {
-            CustomBoard(
-                board = state.board,
-                author = state.puzzle?.authorPin(),
-                yours = state.yours(),
-                postState = state.puzzle?.postState,
-                rankOrder = state.rankOrder,
-                signIn = state.signIn,
-                onSignIn = onSignIn,
-                closed = state.boardClosed,
-            )
-        },
-        below = replayUi?.let { ui -> { ReplaySection(state.replay, ui, onOpen = onOpenReplay) } },
-    )
 }
 
 /** "I solved “Crown the castle” in 1:58. Can you beat it? <link>"; the code alone if it never parses. */
@@ -190,13 +132,14 @@ private fun previewState(
     ),
     standing = standing,
     board = board,
+    samePuzzle = SamePuzzleSolves.None,
 )
 
 @Composable
 private fun PreviewScreen(state: CustomResultState) {
     PuzzleBoxTheme {
         Surface(color = MaterialTheme.colorScheme.surface) {
-            CustomResultScreen(state, onDone = {}, onShare = {}, onPlayAgain = {}, onSignIn = {})
+            CustomResultHeroScreen(state, onDone = {}, onShare = {}, onPlayAgain = {}, onSignIn = {})
         }
     }
 }

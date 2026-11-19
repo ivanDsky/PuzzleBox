@@ -31,7 +31,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The New duel screen on its real view model: the key's challenge fills it in, and each way out lands where the sheet's did. */
+/** The New duel screen on its real view model: the key's challenge fills it in, and each way out ends where it should. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp-420dpi")

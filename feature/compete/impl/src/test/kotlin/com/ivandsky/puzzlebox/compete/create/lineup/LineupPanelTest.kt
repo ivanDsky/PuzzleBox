@@ -15,7 +15,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
@@ -44,12 +43,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
-import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** The lineup panel as drawn: full at ten puzzles, the sheet opened from a row or the Add row. */
+/** The lineup panel as drawn: full at ten puzzles, the picker asked for by a row or the Add row. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp-420dpi")
 class LineupPanelTest {
@@ -59,12 +57,7 @@ class LineupPanelTest {
 
     @Before
     fun startKoinWithBrands() {
-        startKoin {
-            modules(module {
-                single { newDuelBrands() }
-                viewModel { AddPuzzleViewModel(pickerOf(emptyList()), NO_LOOKUP) }
-            })
-        }
+        startKoin { modules(module { single { newDuelBrands() } }) }
     }
 
     @After
@@ -128,26 +121,12 @@ class LineupPanelTest {
     }
 
     @Test
-    fun `tapping the Add row asks for the sheet on the next row`() {
+    fun `tapping the Add row asks for the picker on the next row`() {
         var editor = LineupEditor.opening(GAMES)
         show(editor) { edit -> editor = edit(editor) }
 
         rule.onNodeWithTag("duel.lineup.add").performClick()
         assertEquals(3, editor.target)
-    }
-
-    @Test
-    fun `an open sheet lists the games and a tap picks one`() {
-        var editor = LineupEditor.opening(GAMES).openAdd()
-        rule.setContent {
-            PuzzleBoxTheme { LineupPanel(editor, GAMES, includeFriends = false, onEdit = { edit -> editor = edit(editor) }) }
-        }
-        rule.waitForIdle()
-
-        rule.onNodeWithTag("duel.lineup.sheet").assertIsDisplayed()
-        rule.onNodeWithTag("duel.lineup.sheet.game.${TANGO.value}").performClick()
-
-        assertEquals(AnyGame(TANGO), editor.draft.entries.last())
     }
 
     @Test
@@ -197,7 +176,7 @@ class LineupPanelTest {
         assertEquals(listOf(ZIP, TANGO, QUEENS), editor.entries.map { it.gameId })
     }
 
-    /** The panel as NewDuelSheet holds it: in a column that scrolls, taller than its window. */
+    /** The panel as the New duel form holds it: in a column that scrolls, taller than its window. */
     private fun showScrolling(onEdit: ((LineupEditor) -> LineupEditor) -> Unit): androidx.compose.foundation.ScrollState {
         val scroll = androidx.compose.foundation.ScrollState(0)
         rule.setContent {

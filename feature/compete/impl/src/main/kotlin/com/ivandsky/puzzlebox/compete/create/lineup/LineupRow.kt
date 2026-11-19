@@ -41,7 +41,7 @@ private val LIFT_ELEVATION = 8.dp
 /**
  * One puzzle of the lineup: its [position] (from 1), glyph, title and subtitle, and a remove button that is off on the last
  * puzzle, and a grip to drag it by ([drag]). A [lifted] row is raised. A [flashed] row takes the primary container colour for a moment, and a [refused] one is outlined as an error.
- * Tapping the row opens its change sheet; with no [onClick] the row is not tappable.
+ * Tapping the row opens its change picker; with no [onClick] the row is not tappable.
  */
 @Composable
 internal fun LineupRow(

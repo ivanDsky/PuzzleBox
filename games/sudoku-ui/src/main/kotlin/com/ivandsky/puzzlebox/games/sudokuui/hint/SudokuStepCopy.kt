@@ -14,48 +14,12 @@ import com.ivandsky.puzzlebox.games.sudoku.engine.hints.step.SudokuStep
  * techniques exists to hide a missing entry; the last-cell single has its own entry because it has no technique.
  * [board] must be the board the step was computed from, or the digits named may be stale.
  *
- * Two sets, picked per play by the caller (`plain`, the HintPolish flag): the legacy lines start with the technique name
- * (`Pointing: ...`); the plain lines explain the step in a sentence and keep the technique only as a trailing
- * parenthetical (`... (hidden single)`).
+ * Every line explains the step in a sentence and keeps the technique only as a trailing parenthetical
+ * (`... (hidden single)`); none opens with a technique name.
  */
 internal object SudokuStepCopy {
 
     private val singles: Map<SudokuTechnique, (SudokuStep.Single, SudokuBoard) -> String> = mapOf(
-        SudokuTechnique.HIDDEN_SINGLE_BOX to { step, _ ->
-            "Hidden single (box): in this box only this cell can take ${step.place.digit}"
-        },
-        SudokuTechnique.HIDDEN_SINGLE_LINE to { step, _ ->
-            "Hidden single (line): in ${unitName(requireNotNull(step.place.unit))} only this cell can take ${step.place.digit}"
-        },
-        SudokuTechnique.NAKED_SINGLE to { step, board ->
-            "Naked single: ${nakedReason(step, board)}, so it is ${step.place.digit}"
-        },
-    )
-
-    private val lastCell: (SudokuStep.Single, SudokuUnit) -> String = { step, unit ->
-        "Last cell: ${unitName(unit)} only needs ${step.place.digit}"
-    }
-
-    private val eliminations: Map<SudokuTechnique, (SudokuStep.Elimination, SudokuPuzzle) -> String> = mapOf(
-        SudokuTechnique.POINTING to { step, puzzle ->
-            val line = sharedLine(step, puzzle.geometry)
-            val digit = digitsOf(step.group).single()
-            "Pointing: this box puts its $digit in $line, so the rest of $line can't take $digit"
-        },
-        SudokuTechnique.CLAIMING to { step, _ ->
-            val unit = unitName(requireNotNull(step.unit))
-            val digit = digitsOf(step.group).single()
-            "Claiming: $unit puts its $digit in this box, so the rest of the box can't take $digit"
-        },
-        SudokuTechnique.NAKED_PAIR to { step, _ ->
-            "Naked pair: these two cells only take ${digitList(step.group)}, so the rest of ${unitName(requireNotNull(step.unit))} loses both"
-        },
-        SudokuTechnique.HIDDEN_PAIR to { step, _ ->
-            "Hidden pair: ${digitList(step.group)} only fit these two cells, so they take nothing else"
-        },
-    )
-
-    private val plainSingles: Map<SudokuTechnique, (SudokuStep.Single, SudokuBoard) -> String> = mapOf(
         SudokuTechnique.HIDDEN_SINGLE_BOX to { step, _ ->
             "In this box only this cell can take ${step.place.digit} (hidden single)"
         },
@@ -67,7 +31,7 @@ internal object SudokuStepCopy {
         },
     )
 
-    private val plainEliminations: Map<SudokuTechnique, (SudokuStep.Elimination, SudokuPuzzle) -> String> = mapOf(
+    private val eliminations: Map<SudokuTechnique, (SudokuStep.Elimination, SudokuPuzzle) -> String> = mapOf(
         SudokuTechnique.POINTING to { step, puzzle ->
             val line = sharedLine(step, puzzle.geometry)
             val digit = digitsOf(step.group).single()
@@ -86,26 +50,12 @@ internal object SudokuStepCopy {
         },
     )
 
-    /** The line for [step]; [plain] picks the sentence set (HintPolish) over the legacy name-first one. */
-    fun text(step: SudokuStep, puzzle: SudokuPuzzle, board: SudokuBoard, plain: Boolean = false): String {
-        if (plain) return plainText(step, puzzle, board)
-        return when (step) {
-            is SudokuStep.Single -> step.lastCell?.let { lastCell(step, it) }
-                ?: checkNotNull(singles[step.place.technique]) { "no copy for ${step.place.technique}" }(step, board)
-            is SudokuStep.Elimination ->
-                checkNotNull(eliminations[step.technique]) { "no copy for ${step.technique}" }(step, puzzle)
-            is SudokuStep.Reveal ->
-                "Reveal: ${cellName(step.cell, puzzle.geometry)} is ${step.digit} — no simple step here"
-            is SudokuStep.Mistake -> mistake(step, puzzle.geometry)
-            SudokuStep.Solved -> error("a solved board has no callout")
-        }
-    }
-
-    private fun plainText(step: SudokuStep, puzzle: SudokuPuzzle, board: SudokuBoard): String = when (step) {
+    /** The line for [step]. */
+    fun text(step: SudokuStep, puzzle: SudokuPuzzle, board: SudokuBoard): String = when (step) {
         is SudokuStep.Single -> step.lastCell?.let { "${unitName(it).replaceFirstChar(Char::uppercase)} has one cell left, and it needs ${step.place.digit}" }
-            ?: checkNotNull(plainSingles[step.place.technique]) { "no copy for ${step.place.technique}" }(step, board)
+            ?: checkNotNull(singles[step.place.technique]) { "no copy for ${step.place.technique}" }(step, board)
         is SudokuStep.Elimination ->
-            checkNotNull(plainEliminations[step.technique]) { "no copy for ${step.technique}" }(step, puzzle)
+            checkNotNull(eliminations[step.technique]) { "no copy for ${step.technique}" }(step, puzzle)
         is SudokuStep.Reveal -> "${cellName(step.cell, puzzle.geometry).replaceFirstChar(Char::uppercase)} is ${step.digit} — no simple step here"
         is SudokuStep.Mistake -> mistake(step, puzzle.geometry)
         SudokuStep.Solved -> error("a solved board has no callout")

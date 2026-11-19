@@ -29,6 +29,7 @@ import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.compete.api.DuelRevealKey
+import com.ivandsky.puzzlebox.compete.create.NewDuelHarness
 import com.ivandsky.puzzlebox.compete.di.competeModule
 import com.ivandsky.puzzlebox.compete.domain.DeleteSelfDuel
 import com.ivandsky.puzzlebox.compete.domain.ObserveDuel
@@ -83,6 +84,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
@@ -170,6 +172,7 @@ class DuelsTabPaneTest {
                     single { UpdateMatchSeat(server, local, identity) }
                     single<IdentityService> { identity }
                     single<ReleaseFlags> { FakeReleaseFlags() }
+                    viewModel { NewDuelHarness().viewModel }
                     single { ObserveDuel(observeMatch, FakeCompletionRepository(), FakeSavedPlayRepository()) }
                     single { DeleteSelfDuel(FakeSelfMatchRepository(), outbox, FakeSavedPlayRepository(), local) }
                     single<UserPreferencesRepository> { FakeUserPreferencesRepository() }
@@ -198,7 +201,7 @@ class DuelsTabPaneTest {
         rule.setContent {
             PuzzleBoxTheme {
                 Row(Modifier.fillMaxSize()) {
-                    Box(Modifier.weight(1f)) { DuelsTab(onOpenDuel = {}, onOpenReveal = {}, inPane = true) }
+                    Box(Modifier.weight(1f)) { DuelsTab(onOpenDuel = {}, onOpenReveal = {}, onNewDuel = {}, inPane = true) }
                     Box(Modifier.weight(2f)) { pane(Modifier.fillMaxSize()) }
                 }
             }

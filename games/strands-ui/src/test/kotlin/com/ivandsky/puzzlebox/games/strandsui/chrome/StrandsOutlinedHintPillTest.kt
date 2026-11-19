@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.games.strandsui.chrome
 
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.assertCountEquals
@@ -12,7 +11,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.LightBoardTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.gameui.LocalHintPolish
 import com.ivandsky.puzzlebox.games.strandsui.HintUi
 import kotlin.math.abs
 import org.junit.Assert.assertTrue
@@ -38,11 +36,9 @@ class StrandsOutlinedHintPillTest {
 
     private val light = LightBoardTokens
 
-    private fun show(hint: HintUi, polish: Boolean = false) = rule.setContent {
+    private fun show(hint: HintUi) = rule.setContent {
         PuzzleBoxTheme(darkTheme = false) {
-            CompositionLocalProvider(LocalHintPolish provides polish) {
-                StrandsHintControl(hint = hint, onHint = {}, reduceMotion = true)
-            }
+            StrandsHintControl(hint = hint, onHint = {}, reduceMotion = true)
         }
     }
 
@@ -74,25 +70,14 @@ class StrandsOutlinedHintPillTest {
         rule.onNodeWithTag("strands.hint").assertHeightIsEqualTo(64.dp)
     }
 
-    // HintPolish (#1172) calms Undo-peer Hints in the other games; Strands' Hint keeps its own face.
-
     @Test
-    fun `HintPolish on, a banked hint keeps the tint and a thick selection border`() {
-        show(HintUi(count = 1, meterThirds = 3), polish = true)
+    fun `a banked hint with all three words in keeps the tint, the badge and three lit dots`() {
+        show(HintUi(count = 1, meterThirds = 3))
         val map = rule.onNodeWithTag("strands.hint").captureToImage().toPixelMap()
         val mid = map.height / 2
         assertTrue("border ${map[4, mid]}", map[4, mid].near(light.strandsFlatSelection))
         assertTrue("face ${map[30, mid]}", map[30, mid].near(light.strandsThemeTint))
         rule.onNodeWithTag("strands.hint_badge", useUnmergedTree = true).assertExists()
         rule.onAllNodesWithTag("strands.hint_dot.on", useUnmergedTree = true).assertCountEquals(3)
-    }
-
-    @Test
-    fun `HintPolish on, no hint banked, the pill stays transparent with the thin outline`() {
-        show(HintUi(count = 0, meterThirds = 2), polish = true)
-        val map = rule.onNodeWithTag("strands.hint").captureToImage().toPixelMap()
-        val mid = map.height / 2
-        assertTrue("border ${map[2, mid]}", map[2, mid].near(light.strandsFlatOutline))
-        assertTrue("face ${map[30, mid]}", map[30, mid].near(map[0, 0]))
     }
 }

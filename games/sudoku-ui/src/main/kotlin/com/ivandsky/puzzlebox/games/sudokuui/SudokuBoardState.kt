@@ -56,7 +56,6 @@ class SudokuBoardState(
     private val settle: (SudokuSession) -> SudokuSession = { it },
     hintMode: HintMode = HintMode.Legacy,
     scope: CoroutineScope? = null,
-    plainCaptions: Boolean = false,
     // Read when the model is built, so a toggle repaints the board without rebuilding the state.
     private val peerHighlight: () -> Boolean = { true },
     private val sameDigitHighlight: () -> Boolean = { true },
@@ -94,7 +93,6 @@ class SudokuBoardState(
             scope?.let {
                 val game = SudokuStepGame(
                     session = { session },
-                    plainCaptions = plainCaptions,
                     placeIt = ::placeExplained,
                 )
                 StepHints(mode, it, game, used = { session.hintsUsed }, onCount = { countHint() })

@@ -12,7 +12,7 @@ import com.ivandsky.puzzlebox.domain.ranks.RankedBoard
  * @property bestHintFreeMs the game's best hint-free time before this solve; null when it had none.
  * @property doneToday today's solved games, this solve included.
  * @property totalToday the games in today's set.
- * @property dayTotal the time and hints summed over today's set, this solve included; null when the total is not asked for.
+ * @property dayTotal the time and hints summed over today's set, this solve included; null when the facts carry none.
  * @property streakBefore the streak before this solve.
  * @property streak the streak with this solve counted.
  * @property friends today's Friends board for this game; null until it is read, and when it cannot be.

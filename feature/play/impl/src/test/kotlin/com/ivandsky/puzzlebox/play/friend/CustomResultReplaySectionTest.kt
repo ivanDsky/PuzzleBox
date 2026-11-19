@@ -1,9 +1,6 @@
 package com.ivandsky.puzzlebox.play.friend
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -36,7 +33,7 @@ import org.robolectric.annotation.Config
 
 /**
  * When the custom result screen shows the replay section: the Watch replay row appears once the state is Ready and the
- * game has a replay board, opens the replay on a tap, and never moves the primary actions.
+ * game has a replay board, and opens the replay on a tap.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp-420dpi")
@@ -65,7 +62,7 @@ class CustomResultReplaySectionTest {
         val puzzle = puzzle()
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                CustomResultScreen(
+                CustomResultHeroScreen(
                     state = CustomResultState(
                         timeMs = 118_000L,
                         hintsUsed = 0,
@@ -117,20 +114,6 @@ class CustomResultReplaySectionTest {
         show(ready, replayUi = FakePlayUi(game))
 
         assertEquals(0, count(ReplayTags.WATCH_ROW))
-    }
-
-    @Test
-    fun `the section never moves the actions`() {
-        var replay by mutableStateOf<ReplaySectionState>(ReplaySectionState.Hidden)
-        showWith(RankedBoard) { replay }
-
-        val without = node("result.done").fetchSemanticsNode().boundsInRoot.top
-        replay = ready
-        composeRule.waitForIdle()
-        val with = node("result.done").fetchSemanticsNode().boundsInRoot.top
-
-        node(ReplayTags.WATCH_ROW).assertExists()
-        assertEquals(without, with, 0f)
     }
 
     @Test

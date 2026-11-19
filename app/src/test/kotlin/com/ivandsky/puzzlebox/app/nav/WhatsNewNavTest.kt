@@ -34,7 +34,6 @@ class WhatsNewNavTest {
             custom = testCustomSlot(),
             makeOne = testMakeOne(navigator),
             visibility = VisibilitySlot(flowOf(OwnTier.Unset)) {},
-            tuneDefaults = testTuneDefaults(),
         ).invoke(WhatsNewKey)
         assertTrue("got ${entry.contentKey}", entry.contentKey.toString().contains(WhatsNewKey.toString()))
     }

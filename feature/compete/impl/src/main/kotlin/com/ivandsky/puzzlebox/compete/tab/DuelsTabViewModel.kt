@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.compete.tab
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.compete.CompeteFlag
@@ -70,8 +69,8 @@ private const val STOP_TIMEOUT_MS = 5_000L
  * time boundary itself. Nothing is collected, the ticker included, while no one is looking at the tab.
  * It also holds which duel the tablet's right pane shows ([DuelsTabState.selected]): the one the player picked
  * ([select]), else the [defaultSelection] pinned as soon as there is a row, so the pane does not hop to another duel
- * when the shown one stops needing the player. The pane and the list read this one holder. With [newDuelAsScreen] it
- * also holds the New duel being composed in the pane ([newDuel]), which a pick from the list ends.
+ * when the shown one stops needing the player. The pane and the list read this one holder. It also holds the New duel
+ * being composed in the pane ([newDuel]), which a pick from the list ends.
  */
 internal class DuelsTabViewModel(
     observeMyDuels: ObserveMyDuels,
@@ -88,9 +87,6 @@ internal class DuelsTabViewModel(
 
     /** One-shot: the duel screen to open for this code, after an accept or when sign-in is needed first. */
     val openDuel: Flow<ShareCode> = opens.receiveAsFlow()
-
-    /** New duel opens as a screen, not a sheet ([ReleaseFlag.SheetScreens]): pushed on the phone, in the pane on the tablet. */
-    val newDuelAsScreen: Boolean = releaseFlags.isEnabled(ReleaseFlag.SheetScreens)
 
     /** Past you wears the signed-in player's photo ([CompeteFlag.PastYouPhoto]); the flag off, no one gets one. */
     private val pastYouPhoto: Boolean = releaseFlags.isEnabled(CompeteFlag.PastYouPhoto)

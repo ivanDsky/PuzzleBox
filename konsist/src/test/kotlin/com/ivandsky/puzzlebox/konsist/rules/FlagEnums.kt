@@ -13,7 +13,7 @@ internal object FlagEnums {
     private const val CENTRAL = "ReleaseFlag"
     private val supertypes = setOf("ReleaseFlagKey", "ReleaseFlag")
 
-    /** The central enum, frozen since the ADR-0022 amendment of 2026-11-18. */
+    /** The central enum, frozen by the ADR-0022 amendment of 2026-11-18 and since deleted; one that comes back is still judged. */
     fun isCentral(file: SourceFile, declaration: KoClassDeclaration): Boolean =
         declaration.hasEnumModifier && declaration.name == CENTRAL && file.packageName == CENTRAL_PACKAGE
 

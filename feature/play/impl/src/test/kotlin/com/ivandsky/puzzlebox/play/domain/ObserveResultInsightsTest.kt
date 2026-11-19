@@ -361,21 +361,14 @@ class ObserveResultInsightsTest {
     )
 
     @Test
-    fun `with the slow tail on, every day and the weekday each gather their slow solves`() = runTest {
+    fun `every day and the weekday each gather their slow solves`() = runTest {
         // Today is a Tuesday: 7, 14, ... 70 days ago are Tuesdays, the other 12 days are not. Each scope has one 5-minute solve.
         val tuesdays = (1..10).map { it * 7L to if (it == 10) 300_000L else 20_000L + it * 1_000L }
         val others = (listOf(1L, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13)).mapIndexed { i, ago -> ago to if (i == 0) 300_000L else 22_000L }
         completions.setRecords((tuesdays + others).map { (ago, time) -> record(alpha, ago, time) })
         (tuesdays + others).forEach { (ago, _) -> daily.addEntry(captured(alpha, ago)) }
-        val slowTail = ObserveResultInsights(
-            registry = registry,
-            history = ObserveGameHistory(registry, daily, completions),
-            computeStreak = ComputeStreak(GetPuzzleDay(registry, clock)),
-            puzzleDay = GetPuzzleDay(registry, clock),
-            slowTail = true,
-        )
 
-        val result = slowTail(alpha, today, now, counted = true).first()!!
+        val result = insights(alpha, 0, now, counted = true).first()!!
 
         assertTrue(result.spread.bins.last().open)
         assertTrue(result.weekday.spread.bins.last().open)

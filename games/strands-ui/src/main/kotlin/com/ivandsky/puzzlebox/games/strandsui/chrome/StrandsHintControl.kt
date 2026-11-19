@@ -47,7 +47,7 @@ import com.ivandsky.puzzlebox.games.strandsui.board.keyframes
  * the button and swells it ([rememberHintFace]). TalkBack hears "Hint" and the state: how many
  * hints are banked and how many words toward the next. Under the core hint cooldown (F2) every
  * press, modal or reveal, waits it out with the shared ring ([rememberHintCooldown]).
- * HintPolish (#1172) never reaches this face: Strands' Hint is its only action button, so it keeps its own earned look. [fill] takes the width the parent gives instead of [HintWidth] (the tuned control row).
+ * Strands' Hint is its only action button, not the shared Undo-peer one, so it keeps its own earned look. [fill] takes the width the parent gives instead of [HintWidth] (the tuned control row).
  */
 @Composable
 internal fun StrandsHintControl(

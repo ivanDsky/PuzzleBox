@@ -62,63 +62,61 @@ internal fun PlayBoardChrome(
     onReplayTutorial: () -> Unit = {},
 ) {
     CompositionLocalProvider(LocalSolveRestOnBoard provides true) {
-        PlayBoardHosts {
-            Column(modifier = modifier) {
-                val playing = tutorial == TutorialGate.Closed
-                // A game's clock opens the moment its puzzle is adopted, which can be behind the
-                // first-open tutorial: fold that window so lesson time never counts. The board's
-                // chrome reopens it when the tutorial gives way to the Screen.
-                val clockBehindTutorial = if (playing) null else controller as? PlayClock
-                LaunchedEffect(clockBehindTutorial, status) { clockBehindTutorial?.onBackground() }
-                PlayTopBar(
-                    title = title,
-                    label = label,
-                    pastDay = pastDay,
-                    onBack = onBack,
-                    glyph = { GameGlyph(ui.brand, GameGlyphSize.Badge) },
-                ) {
-                    if (!playing) return@PlayTopBar
-                    val clock = controller as? PlayClock
-                    if (status is PlayBoardStatus.Ready && clock != null) {
-                        TimerBar(
-                            elapsedMs = { clock.displayedElapsedMs() },
-                            modifier = Modifier.width(IntrinsicSize.Max).testTag("play.timer"),
-                            budgetMs = targetMs,
-                            label = if (targetMs != null) ::selfTimerLabel else null,
-                        )
-                    }
-                    if (onHowToPlay != null && ui.tutorial.isNotEmpty()) {
-                        IconButton(onClick = onHowToPlay, modifier = Modifier.testTag("play.how_to_play")) {
-                            Icon(
-                                imageVector = PuzzleIcons.HowTo,
-                                contentDescription = "How to play",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                    PlayOverflow(ui.overflowFor(controller) + overflow)
-                }
-                when (tutorial) {
-                    is TutorialGate.Open -> TutorialHost(
-                        ui = ui,
-                        session = tutorial.session,
-                        onFinished = onTutorialFinished,
+        Column(modifier = modifier) {
+            val playing = tutorial == TutorialGate.Closed
+            // A game's clock opens the moment its puzzle is adopted, which can be behind the
+            // first-open tutorial: fold that window so lesson time never counts. The board's
+            // chrome reopens it when the tutorial gives way to the Screen.
+            val clockBehindTutorial = if (playing) null else controller as? PlayClock
+            LaunchedEffect(clockBehindTutorial, status) { clockBehindTutorial?.onBackground() }
+            PlayTopBar(
+                title = title,
+                label = label,
+                pastDay = pastDay,
+                onBack = onBack,
+                glyph = { GameGlyph(ui.brand, GameGlyphSize.Badge) },
+            ) {
+                if (!playing) return@PlayTopBar
+                val clock = controller as? PlayClock
+                if (status is PlayBoardStatus.Ready && clock != null) {
+                    TimerBar(
+                        elapsedMs = { clock.displayedElapsedMs() },
+                        modifier = Modifier.width(IntrinsicSize.Max).testTag("play.timer"),
+                        budgetMs = targetMs,
+                        label = if (targetMs != null) ::selfTimerLabel else null,
                     )
-                    TutorialGate.Closed -> {
-                        val clock = (controller as? PlayClock)?.takeIf { status is PlayBoardStatus.Ready }
-                        ui.Screen(
-                            controller = controller,
-                            status = status,
-                            layout = layout,
-                            sidePanel = sidePanel?.invoke(),
-                            onRetry = onRetry,
-                            onSolved = onSolved,
-                            modifier = Modifier,
+                }
+                if (onHowToPlay != null && ui.tutorial.isNotEmpty()) {
+                    IconButton(onClick = onHowToPlay, modifier = Modifier.testTag("play.how_to_play")) {
+                        Icon(
+                            imageVector = PuzzleIcons.HowTo,
+                            contentDescription = "How to play",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
-                RulesSheetHost(ui, controller, rules, playing, onDismissRules, onReplayTutorial)
+                PlayOverflow(ui.overflowFor(controller) + overflow)
             }
+            when (tutorial) {
+                is TutorialGate.Open -> TutorialHost(
+                    ui = ui,
+                    session = tutorial.session,
+                    onFinished = onTutorialFinished,
+                )
+                TutorialGate.Closed -> {
+                    val clock = (controller as? PlayClock)?.takeIf { status is PlayBoardStatus.Ready }
+                    ui.Screen(
+                        controller = controller,
+                        status = status,
+                        layout = layout,
+                        sidePanel = sidePanel?.invoke(),
+                        onRetry = onRetry,
+                        onSolved = onSolved,
+                        modifier = Modifier,
+                    )
+                }
+            }
+            RulesSheetHost(ui, controller, rules, playing, onDismissRules, onReplayTutorial)
         }
     }
 }
