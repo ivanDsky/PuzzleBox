@@ -28,6 +28,7 @@ import com.ivandsky.puzzlebox.play.CustomSlot
 import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.play.GamesTab
 import com.ivandsky.puzzlebox.play.SandboxPlay
+import com.ivandsky.puzzlebox.play.TrainSlot
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.play.navigation.communityEntry
@@ -70,7 +71,8 @@ import java.time.LocalDate
  * ([Navigator.pushLayer]). [onOpenInsights] (null: Insights is off, see [insightsOpener]) is Profile's Insights row;
  * the hub opens a month's recap as a layer page too. A recap's fastest solve opens its replay through
  * [openRecapReplay]: the Games tab, with the layer closed on the way. [recap] (null: none due or the flag is off, see
- * [recapSlot]) is the card Home's Today list shows for the month just ended.
+ * [recapSlot]) is the card Home's Today list shows for the month just ended. [train] (null: no game has a trainer) is
+ * the Train tab on Games, after Duels.
  */
 internal fun puzzleBoxEntryProvider(
     navigator: Navigator,
@@ -82,6 +84,7 @@ internal fun puzzleBoxEntryProvider(
     codeDraft: () -> String? = { null },
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
+    train: TrainSlot? = null,
     libraryRequests: LibraryRequests = LibraryRequests(),
     visibility: VisibilitySlot,
     onOpenInsights: (() -> Unit)? = null,
@@ -102,6 +105,7 @@ internal fun puzzleBoxEntryProvider(
         onLibraryRequestTaken = libraryRequests::take,
         onCodeDraftTaken = onCodeDraftTaken,
         duels = duels,
+        train = train,
         onReconnectLinkedIn = { navigator.pushOnce(LinkedInLoginKey) },
         onOpenRanks = openRanks(navigator),
         onMakeOne = { game -> makeOne(game) },

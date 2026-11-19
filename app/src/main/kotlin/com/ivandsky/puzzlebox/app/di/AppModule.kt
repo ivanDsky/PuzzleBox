@@ -41,8 +41,11 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
+import com.ivandsky.puzzlebox.gameui.trainer.TrainerGame
+import com.ivandsky.puzzlebox.gameui.trainer.TrainerRegistry
 import com.ivandsky.puzzlebox.games.queensui.QueensSettings
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuHighlightSettings
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.FirstScreenReady
 import com.ivandsky.puzzlebox.profile.settings.GameOptions
 import com.ivandsky.puzzlebox.profile.settings.RanksLinkedInRow
@@ -132,6 +135,10 @@ val appModule = module {
     // Every game module's editor UI (ADR-0019); a duplicate game id throws.
     single { GameEditorRegistry(getAll<GameEditorUi>()) }
 
+    // Every game's Trainer adapter, bound only while that game's flag is on (ADR-0019 pattern). Empty until a game binds
+    // one, and the Train tab shows only while it is not.
+    single { TrainerRegistry(getAll<TrainerGame>(), TRAINER_ORDER) }
+
     // Every module's release flags, ordered by owner (ADR-0022). A duplicate key throws on first resolve; a repeated
     // owner is caught by konsist P15 (Koin keeps the last set).
     single { DeclaredFlags(getAll<FlagSet>()) }
@@ -168,6 +175,9 @@ internal fun requireEveryGamePlayable(games: GameRegistry, play: GamePlayRegistr
 
 /** Product order of the shipped games: the four LinkedIn games together, then Strands, then the debug-only Sudoku. */
 private val GAME_ORDER = listOf("zip", "tango", "queens", "minisudoku", "strands", "sudoku")
+
+/** The Train tab's game order: Queens, Tango, then Mini Sudoku. A game with no adapter bound is skipped. */
+private val TRAINER_ORDER = listOf(GameId("queens"), GameId("tango"), GameId("minisudoku"))
 
 /** [GAME_ORDER] rank; an unlisted game sorts after every listed one, then by id. */
 private val gameOrder: Comparator<GamePlugin<*, *, *>> =

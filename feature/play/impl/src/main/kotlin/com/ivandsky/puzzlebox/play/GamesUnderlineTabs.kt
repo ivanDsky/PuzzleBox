@@ -23,9 +23,9 @@ import kotlinx.coroutines.launch
 
 /**
  * The Games tabs (nav-rethink 125): the [header] over the shared underline strip over
- * its swipeable pager, one page per [GamesTab]. The tabs' tags and roles are `library.tab.*` and Duels'
- * red need-you badge trails its label. [tab] is the host's saved tab: a
- * request for another moves the pager, and each page the pager settles on is reported through [onTab].
+ * its swipeable pager, one page per [GamesTab] ([gamesTabs]: Train only with a [train] slot). The tabs' tags and roles
+ * are `library.tab.*` and Duels' red need-you badge trails its label. [tab] is the host's saved tab, one the strip
+ * lists: a request for another moves the pager, and each page the pager settles on is reported through [onTab].
  *
  * Every tab owns its scroll ([scrolls]), so a swipe away
  * and back finds it where it was, and a tap on the current tab glides that tab to its top. On the tablet the bodies
@@ -42,6 +42,7 @@ internal fun UnderlineTabbedList(
     modifier: Modifier,
     header: @Composable () -> Unit,
     duels: DuelsSlot,
+    train: TrainSlot?,
     tab: GamesTab,
     onTab: (GamesTab) -> Unit,
     duelPrefill: DuelPrefill?,
@@ -49,8 +50,8 @@ internal fun UnderlineTabbedList(
     headerGap: Dp = Spacing.md,
 ) {
     val scope = rememberCoroutineScope()
-    val tabs = GamesTab.entries
-    val shown = tab.ordinal
+    val tabs = gamesTabs(trainShown = train != null)
+    val shown = tabs.indexOf(tab)
     val needYou = duels.needYou()
     val strip = tabs.map { it.underlineTab(needYou) }
     Column(modifier.testTag("library.list"), verticalArrangement = Arrangement.spacedBy(headerGap)) {
@@ -85,6 +86,12 @@ internal fun UnderlineTabbedList(
                         .padding(horizontal = if (phone) Spacing.lg else OutlineRoom)
                         .padding(top = Spacing.sm),
                 ) { duels.content(scrolls.duels, duelPrefill, onDuelPrefillTaken) }
+                GamesTab.Train -> Box(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = if (phone) Spacing.lg else OutlineRoom)
+                        .padding(top = Spacing.sm),
+                ) { train?.content?.invoke() }
             }
         }
     }
@@ -95,10 +102,11 @@ internal class GamesScrolls(
     val dailies: ScrollState,
     val duels: LazyListState,
 ) {
-    /** Glides [tab]'s own list back to its first item. */
+    /** Glides [tab]'s own list back to its first item; Train's body keeps its own scroll, so it has none to glide here. */
     suspend fun toTop(tab: GamesTab) = when (tab) {
         GamesTab.Dailies -> dailies.animateScrollTo(0)
         GamesTab.Duels -> duels.animateScrollToItem(0)
+        GamesTab.Train -> Unit
     }
 }
 
@@ -111,4 +119,5 @@ private fun GamesTab.underlineTab(duelsNeedYou: Int): UnderlineTab = when (this)
         description = if (duelsNeedYou > 0) "Duels, $duelsNeedYou need you" else null,
         trailing = { TabCountBadge(duelsNeedYou, Modifier.testTag("library.tab.duels.count")) },
     )
+    GamesTab.Train -> UnderlineTab("Train", "library.tab.train")
 }

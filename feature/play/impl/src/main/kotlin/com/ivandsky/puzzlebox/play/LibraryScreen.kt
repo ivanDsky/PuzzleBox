@@ -44,7 +44,7 @@ import java.time.YearMonth
  * page's game; the header has none. [friends] heads the list as From friends, each card opening its
  * puzzle through [onOpenFriend] and removing it through [onRemoveFriend]; the tabs have none, since the friend puzzles
  * live on the app's Community tab. A [duels] slot turns
- * the list into the Dailies and Duels tabs (the tab is saved here, so it survives a
+ * the list into the Dailies and Duels tabs, and a [train] slot adds Train after them (the tab is saved here, so it survives a
  * page push). A [request] acts once
  * ([ConsumeLibraryRequest]; a section or a challenge needs [duels]) and is reported taken ([onRequestTaken]); a challenge
  * also leaves its [DuelPrefill] pending (saved here) for the Duels body, until the body takes it. The game page
@@ -72,6 +72,7 @@ internal fun LibraryScreen(
     onOpenFriend: (ShareCode) -> Unit = {},
     onRemoveFriend: (ShareCode) -> Unit = {},
     duels: DuelsSlot? = null,
+    train: TrainSlot? = null,
     request: LibraryRequest? = null,
     onRequestTaken: () -> Unit = {},
     linkedIn: LinkedInCardState? = null,
@@ -95,12 +96,13 @@ internal fun LibraryScreen(
     )
     val selected = state.rows.firstOrNull { it.card.game == state.selected } ?: state.rows.firstOrNull()
     var tab by rememberSaveable { mutableStateOf(GamesTab.Dailies) }
+    val tabs = gamesTabs(trainShown = train != null)
     val headerAction: @Composable () -> Unit = { onEnterCode?.let { EnterCodeButton(it) } }
     var pageOpen by rememberSaveable { mutableStateOf(false) }
     var duelPrefill by rememberSaveable(stateSaver = DuelPrefillSaver) { mutableStateOf<DuelPrefill?>(null) }
     val showSection: suspend (GamesTab) -> Unit = { next ->
         if (duels != null) {
-            tab = next
+            tab = next.orDailies(tabs)
             pageOpen = false
             listScroll.scrollTo(0)
             duelsScroll.requestScrollToItem(0)
@@ -120,11 +122,11 @@ internal fun LibraryScreen(
     @Composable
     fun GamesList(onRow: (GameId) -> Unit, modifier: Modifier = Modifier) = LibraryList(
         state, layout, listScroll, onRow, modifier, headerAction = headerAction, friends = fromFriends,
-        duels = duels, tab = tab, onTab = { tab = it }, duelsScroll = duelsScroll,
+        duels = duels, train = train, tab = tab, onTab = { tab = it }, duelsScroll = duelsScroll,
         duelPrefill = duelPrefill, onDuelPrefillTaken = { duelPrefill = null }, largeBar = largeBar,
     )
     if (layout == PlayLayout.TwoPane) {
-        val home = tab.ordinal
+        val home = tabs.indexOf(tab.orDailies(tabs))
         val link = remember { TabFadeLink(home) }
         SideEffect { link.home = home }
         // Under the large top bar the list starts at the window's top, as Today's does; the page keeps its own inset.
@@ -135,11 +137,12 @@ internal fun LibraryScreen(
             }
             Spacer(Modifier.width(Spacing.xl))
             // The Duels tab's right pane is a duel, never a game's page; going back to Dailies shows the selected game again.
-            // It fades with the tabs: the pager's own progress drives it.
+            // Train has no right pane yet, so it draws none. It fades with the tabs: the pager's own progress drives it.
             TabFadePane(link, Modifier.weight(1f).fillMaxHeight().then(if (largeBar) Modifier.padding(top = Spacing.lg) else Modifier)) { index ->
-                if (duels != null && GamesTab.entries[index] == GamesTab.Duels) {
+                val paneTab = tabs[index]
+                if (duels != null && paneTab == GamesTab.Duels) {
                     duels.pane(Modifier.fillMaxSize())
-                } else if (selected != null) {
+                } else if (paneTab != GamesTab.Train && selected != null) {
                     LibraryPane(LibraryPaneFrame(selected, page, month)) { shown ->
                         Page(shown.row, onBack = null, shown.page, shown.month)
                     }

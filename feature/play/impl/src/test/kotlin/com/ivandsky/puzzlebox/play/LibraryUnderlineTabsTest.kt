@@ -18,6 +18,7 @@ import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -42,7 +43,8 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Games with the underline tabs (nav-rethink 125): the 120 strip over the
- * 121 pager, one swipeable page per tab (Dailies and Duels) with its own scroll, and the Duels badge in the strip.
+ * 121 pager, one swipeable page per tab (Dailies and Duels, and Train when the app hands in a slot) with its own
+ * scroll, and the Duels badge in the strip.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -57,11 +59,11 @@ class LibraryUnderlineTabsTest {
     private var tab by mutableStateOf(GamesTab.Dailies)
     private val reported = mutableListOf<GamesTab>()
 
-    private fun show() {
+    private fun show(train: TrainSlot? = null) {
         composeRule.setContent {
             CompositionLocalProvider(LocalTabReselect provides reselect) {
                 PuzzleBoxTheme {
-                    Host(needYou = { needYou }, tab = tab, onTab = { tab = it; reported += it })
+                    Host(needYou = { needYou }, tab = tab, onTab = { tab = it; reported += it }, train = train)
                 }
             }
         }
@@ -95,6 +97,57 @@ class LibraryUnderlineTabsTest {
         composeRule.onNodeWithTag("library.tab.duels").assertIsSelected()
         composeRule.onNodeWithText("duel 0").assertIsDisplayed()
         assertEquals(listOf(GamesTab.Duels), reported)
+    }
+
+    @Test
+    fun `no Train tab without a Train slot`() {
+        show()
+
+        composeRule.onNodeWithTag("library.tab.train").assertDoesNotExist()
+        composeRule.onNodeWithTag("library.tab.dailies").assertExists()
+        composeRule.onNodeWithTag("library.tab.duels").assertExists()
+        swipeToNext()
+        composeRule.onNodeWithTag("library.tab.duels").assertIsSelected()
+        composeRule.onNodeWithText("train stand-in").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a Train slot adds the Train tab after Duels and a tap opens its body`() {
+        show(train = standInTrain)
+
+        listOf("dailies", "duels", "train").forEach { composeRule.onNodeWithTag("library.tab.$it").assertExists() }
+        val duelsLeft = composeRule.onNodeWithTag("library.tab.duels").getBoundsInRoot().left
+        val trainLeft = composeRule.onNodeWithTag("library.tab.train").getBoundsInRoot().left
+        assertTrue("Train follows Duels in the strip: $duelsLeft, $trainLeft", trainLeft > duelsLeft)
+
+        composeRule.onNodeWithTag("library.tab.train").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("library.tab.train").assertIsSelected()
+        composeRule.onNodeWithText("train stand-in").assertIsDisplayed()
+        assertEquals(GamesTab.Train, tab)
+    }
+
+    @Test
+    fun `swipes Duels to Train`() {
+        show(train = standInTrain)
+
+        swipeToNext()
+        swipeToNext()
+
+        composeRule.onNodeWithTag("library.tab.train").assertIsSelected()
+        composeRule.onNodeWithText("train stand-in").assertIsDisplayed()
+        assertEquals(listOf(GamesTab.Duels, GamesTab.Train), reported)
+    }
+
+    @Test
+    fun `a saved Train tab with no slot shows Dailies`() {
+        tab = GamesTab.Train
+        show()
+
+        composeRule.onNodeWithTag("library.tab.train").assertDoesNotExist()
+        composeRule.onNodeWithTag("library.tab.dailies").assertIsSelected()
+        composeRule.onNodeWithText("Zip").assertIsDisplayed()
     }
 
     @Test
@@ -187,6 +240,8 @@ class LibraryUnderlineTabsTest {
     }
 }
 
+private val standInTrain = TrainSlot { Text("train stand-in") }
+
 private val standInDuels: (() -> Int) -> DuelsSlot = { needYou ->
     DuelsSlot(
         content = { state, _, _ ->
@@ -205,6 +260,7 @@ private fun Host(
     needYou: () -> Int,
     tab: GamesTab,
     onTab: (GamesTab) -> Unit,
+    train: TrainSlot?,
 ) {
     val scroll = rememberScrollState()
     val duels = remember { standInDuels(needYou) }
@@ -217,5 +273,6 @@ private fun Host(
         duels = duels,
         tab = tab,
         onTab = onTab,
+        train = train,
     )
 }

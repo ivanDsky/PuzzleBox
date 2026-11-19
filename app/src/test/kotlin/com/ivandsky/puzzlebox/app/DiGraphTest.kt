@@ -80,6 +80,7 @@ import com.ivandsky.puzzlebox.games.queensui.editor.QueensEditorUi
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
+import com.ivandsky.puzzlebox.gameui.trainer.TrainerRegistry
 import com.ivandsky.puzzlebox.history.domain.ranks.GetPlayerActions
 import com.ivandsky.puzzlebox.history.domain.ranks.ObserveWindowRefresh
 import com.ivandsky.puzzlebox.home.HomeViewModel
@@ -431,6 +432,9 @@ class DiGraphTest : KoinTest {
             // A past, uncached day: the slot opens as a cache miss, never today's network fetch.
             assertNotNull(koin.get<GameViewModel> { parametersOf(GameKey("zip", "2000-01-01")) }.play)
             assertNotNull(koin.get<ResultViewModel> { parametersOf(ResultKey("zip", "2026-11-04", 12_340L, 0)) })
+
+            // Trainer mode: the registry resolves, and no game binds an adapter yet, so the Train tab stays hidden.
+            assertTrue(koin.get<TrainerRegistry>().isEmpty)
 
             // Editor mode (ADR-0019): Queens registers its editor UI, and the Create routes'
             // ViewModels resolve (an unknown draft id loads as Missing, never a crash).
