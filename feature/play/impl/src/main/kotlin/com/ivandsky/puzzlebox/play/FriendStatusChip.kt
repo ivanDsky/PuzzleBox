@@ -29,7 +29,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.tabular
-import com.ivandsky.puzzlebox.domain.FriendStatus
+import com.ivandsky.puzzlebox.play.domain.FriendStatus
 
 private val ChipHeight = 28.dp
 private val ChipIcon = 16.dp

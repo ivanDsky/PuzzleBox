@@ -2,7 +2,7 @@ package com.ivandsky.puzzlebox.play.domain.random
 
 import com.ivandsky.puzzlebox.data.repository.CommunityFilter
 import com.ivandsky.puzzlebox.data.repository.CommunityListResult
-import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
+import com.ivandsky.puzzlebox.play.domain.ListCommunityPuzzles
 import kotlin.random.Random
 
 /**

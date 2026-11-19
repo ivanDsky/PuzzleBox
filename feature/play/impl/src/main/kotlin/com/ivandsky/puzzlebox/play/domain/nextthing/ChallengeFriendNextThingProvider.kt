@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.play.domain.nextthing
 
-import com.ivandsky.puzzlebox.domain.nextthing.NextThing
 import com.ivandsky.puzzlebox.play.domain.moments.friendNeighbours
 
 /**

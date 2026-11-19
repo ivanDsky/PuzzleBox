@@ -40,13 +40,13 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.selectedRow
-import com.ivandsky.puzzlebox.domain.FriendPuzzleRow
-import com.ivandsky.puzzlebox.domain.FriendStatus
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.play.domain.FriendPuzzleRow
+import com.ivandsky.puzzlebox.play.domain.FriendStatus
 
 private val CardWidth = 256.dp
 
