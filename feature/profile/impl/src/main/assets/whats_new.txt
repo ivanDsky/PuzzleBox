@@ -2,6 +2,13 @@
 # A release adds its entry at the top in the same commit as its version bump.
 # "## <version> <date>" starts a release; "- " starts a note; "#" lines are comments.
 
+## 0.38.2 2026-11-19
+- Ranks Friends boards now count your LinkedIn days, and keep you on days you placed outside the global top 100.
+- A friend whose days came partly from LinkedIn now shows as one row on the Week and Month boards.
+- Your LinkedIn days keep counting on Ranks while the LinkedIn link is paused.
+- The Friends chip on Result, Today and the game page now shows your place on days you finished outside the global top 100.
+- Random now opens a day you already solved as a fresh game, not its result.
+
 ## 0.38.1 2026-11-19
 - Ranks has no Tune icon now: Opens on and Who can see you live in Settings only.
 - Haptics now play in dialogs, bottom sheets, popups and dropdown menus too, and Settings, Haptics, Vibration turns them off.
