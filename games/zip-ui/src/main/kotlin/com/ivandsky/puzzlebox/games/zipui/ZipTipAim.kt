@@ -16,6 +16,9 @@ private val Arms = arrayOf(TipDirection.East, TipDirection.South, TipDirection.W
 /** How far behind the finger its heading is taken from (cell units): past sample jitter, short of a turn. */
 private const val TurnLeashCells = 0.1f
 
+/** A heading toward a step at least this share of its speed across it (30° off the travelled axis) turns onto it. */
+private const val TurnSlope = 0.58f
+
 /**
  * Zip's live tip (spec A4) for one board: the line end sits at the point nearest the finger
  * on a step out of the tail that Zip would take — a cell [DragTraceHooks.canExtend] accepts,
@@ -28,7 +31,9 @@ private const val TurnLeashCells = 0.1f
  * The end keeps to the axis the finger travels along. A finger passing a centre off the
  * centre line is, for a moment, nearer a side step than the one it follows; taking that step
  * would stop the end on the centre and poke it sideways. So the end changes axis only when
- * the finger's own heading runs along the nearer step. A lifted finger forgets the axis.
+ * the finger heads toward the nearer step ([TurnSlope]): a fast finger cuts a corner on the
+ * diagonal, and an end that waited for it to run straight along the new axis would trail
+ * it by half a cell, then snap round the corner. A lifted finger forgets the axis.
  */
 internal class ZipTipAim {
     // The steps out of the tail, surveyed once per path: a path is a new list on every commit.
@@ -69,7 +74,7 @@ internal class ZipTipAim {
             }
         }
         if (nearest < 0) return null
-        val turning = if (Arms[nearest].alongRow) abs(heading.x) > abs(heading.y) else abs(heading.y) > abs(heading.x)
+        val turning = Arms[nearest].isTurnedTo(heading)
         val pick = if (kept >= 0 && !(nearestGap < keptGap && turning)) kept else nearest
         alongRow = Arms[pick].alongRow
         val extent = if (heldAt(offset)) 0f else Arms[pick].extentOf(offset)
@@ -114,6 +119,13 @@ internal class ZipTipAim {
 }
 
 private val TipDirection.alongRow: Boolean get() = dRow == 0
+
+/** Does [heading] run toward this step, at least [TurnSlope] as fast as across it? */
+private fun TipDirection.isTurnedTo(heading: Offset): Boolean {
+    val toward = heading.x * dCol + heading.y * dRow
+    val across = if (alongRow) abs(heading.y) else abs(heading.x)
+    return toward > 0f && toward >= TurnSlope * across
+}
 
 /** The point on this step nearest [offset], both from the tail centre in cell units. */
 private fun TipDirection.reach(offset: Offset): Offset {
