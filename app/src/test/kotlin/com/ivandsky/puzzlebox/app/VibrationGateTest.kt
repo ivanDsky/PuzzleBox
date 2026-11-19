@@ -5,8 +5,10 @@ import android.os.VibrationAttributes
 import android.os.Vibrator
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.test.core.app.ApplicationProvider
@@ -24,7 +26,8 @@ import org.robolectric.shadows.ShadowBuild
 
 /**
  * The Vibration preference gates the device haptics at the root, and a flip applies without recomposing the content.
- * On One UI the gate plays Vibrator effects instead of the platform's (#1686); everywhere else the platform plays.
+ * On One UI the gate plays Vibrator effects instead of the platform's (#1686); where the system drops the light tick it
+ * plays that tick on the Vibrator (#1701); everywhere else the platform plays.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = DrainTestApplication::class)
@@ -43,9 +46,11 @@ class VibrationGateTest {
     private val vibrator = ApplicationProvider.getApplicationContext<Context>().getSystemService(Vibrator::class.java)
     private var compositions = 0
 
-    private fun show(preferences: FakeUserPreferencesRepository) {
+    private fun show(preferences: FakeUserPreferencesRepository, systemTick: Boolean = false) {
         composeRule.setContent {
-            CompositionLocalProvider(LocalHapticFeedback provides platform) {
+            val base = LocalContext.current
+            val context = remember(base) { textHandleTickContext(base, plays = systemTick) }
+            CompositionLocalProvider(LocalHapticFeedback provides platform, LocalContext provides context) {
                 VibrationGate(preferences) {
                     haptics = LocalHapticFeedback.current
                     SideEffect { compositions++ }
@@ -121,12 +126,35 @@ class VibrationGateTest {
     @Test
     fun `on a Pixel every kind still reaches the platform and the vibrator stays still`() {
         ShadowBuild.setManufacturer("Google")
-        show(FakeUserPreferencesRepository())
+        show(FakeUserPreferencesRepository(), systemTick = true)
 
         appKinds.forEach(haptics::performHapticFeedback)
 
         assertEquals(appKinds, calls)
         assertNull(shadowOf(vibrator).vibrationAttributesFromLastVibration)
+    }
+
+    @Test
+    fun `where the system drops the light tick, it plays on the vibrator as a touch tick and the rest stay on the platform`() {
+        ShadowBuild.setManufacturer("motorola")
+        show(FakeUserPreferencesRepository(), systemTick = false)
+
+        appKinds.forEach(haptics::performHapticFeedback)
+
+        val attributes = shadowOf(vibrator).vibrationAttributesFromLastVibration as VibrationAttributes
+        assertEquals(VibrationAttributes.USAGE_TOUCH, attributes.usage)
+        assertEquals(appKinds - HapticFeedbackType.TextHandleMove, calls)
+    }
+
+    @Test
+    fun `where the system drops the light tick and Vibration is off, neither path plays`() {
+        ShadowBuild.setManufacturer("motorola")
+        show(FakeUserPreferencesRepository(vibration = false), systemTick = false)
+
+        appKinds.forEach(haptics::performHapticFeedback)
+
+        assertNull(shadowOf(vibrator).vibrationAttributesFromLastVibration)
+        assertEquals(emptyList<HapticFeedbackType>(), calls)
     }
 
     private companion object {

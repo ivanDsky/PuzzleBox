@@ -19,7 +19,10 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowBuild
 
-/** One UI drops the touch-feedback kinds the app plays (#1686): there each kind plays a predefined Vibrator effect. */
+/**
+ * One UI drops the touch-feedback kinds the app plays (#1686): there each kind plays a predefined Vibrator effect. Where
+ * the system drops only the light tick (#1701), only that kind does.
+ */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = DrainTestApplication::class)
 class VibratorHapticFeedbackTest {
@@ -43,7 +46,7 @@ class VibratorHapticFeedbackTest {
 
     @Test
     fun `a mapped kind plays on the vibrator as touch feedback, never on the platform`() {
-        VibratorHapticFeedback(vibrator, platform).performHapticFeedback(HapticFeedbackType.Reject)
+        VibratorHapticFeedback(vibrator, platform, ::touchEffect).performHapticFeedback(HapticFeedbackType.Reject)
 
         val attributes = shadowOf(vibrator).vibrationAttributesFromLastVibration as VibrationAttributes
         assertEquals("touch usage, so the system touch-feedback switch still silences it", VibrationAttributes.USAGE_TOUCH, attributes.usage)
@@ -52,24 +55,28 @@ class VibratorHapticFeedbackTest {
 
     @Test
     fun `a kind with no mapped effect stays on the platform`() {
-        VibratorHapticFeedback(vibrator, platform).performHapticFeedback(HapticFeedbackType.SegmentTick)
+        VibratorHapticFeedback(vibrator, platform, ::touchEffect).performHapticFeedback(HapticFeedbackType.SegmentTick)
 
         assertEquals(listOf(HapticFeedbackType.SegmentTick), calls)
         assertNull(shadowOf(vibrator).vibrationAttributesFromLastVibration)
     }
 
     @Test
-    fun `Samsung on Android 13+ gets the vibrator path`() {
+    fun `Samsung on Android 13+ gets the full vibrator mapping, even where the system plays the light tick`() {
         ShadowBuild.setManufacturer("samsung")
 
-        assertTrue(deviceHaptics(context, platform) is VibratorHapticFeedback)
+        deviceHaptics(textHandleTickContext(context, plays = true), platform).performHapticFeedback(HapticFeedbackType.Reject)
+
+        val attributes = shadowOf(vibrator).vibrationAttributesFromLastVibration as VibrationAttributes
+        assertEquals(VibrationAttributes.USAGE_TOUCH, attributes.usage)
+        assertEquals(emptyList<HapticFeedbackType>(), calls)
     }
 
     @Test
-    fun `any other maker keeps the platform haptics as they are`() {
+    fun `a maker whose system plays the light tick keeps the platform haptics as they are`() {
         ShadowBuild.setManufacturer("Google")
 
-        assertSame(platform, deviceHaptics(context, platform))
+        assertSame(platform, deviceHaptics(textHandleTickContext(context, plays = true), platform))
     }
 
     @Test
