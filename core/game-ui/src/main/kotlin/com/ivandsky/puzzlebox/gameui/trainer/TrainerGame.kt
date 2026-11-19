@@ -39,4 +39,12 @@ interface TrainerGame {
 
     /** The step [snippet] stops before, as a Spotlight: the reveal after a verdict, or on Show me. */
     fun spotlight(snippet: Snippet): Spotlight
+
+    /**
+     * What a game UI module binds so the [TrainerRegistry] can collect its adapter: [game] while the
+     * game's Train flag is on, null while it is off. The module binds one of these per game, always
+     * (a factory that reads the flag when asked), so a game whose flag is off adds nothing to the
+     * registry and a flag flipped between launches is read afresh.
+     */
+    class Binding(val game: TrainerGame?)
 }

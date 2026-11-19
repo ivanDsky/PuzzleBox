@@ -432,7 +432,8 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<GameViewModel> { parametersOf(GameKey("zip", "2000-01-01")) }.play)
             assertNotNull(koin.get<ResultViewModel> { parametersOf(ResultKey("zip", "2026-11-04", 12_340L, 0)) })
 
-            // Trainer mode: the registry resolves, and no game binds an adapter yet, so the Train tab stays hidden.
+            // Trainer mode: the registry resolves off the games' Trainer bindings. Every Train flag is off in a fresh
+            // graph (TrainerRegistryGatingTest turns TrainQueens on), so no adapter is held and the Train tab stays hidden.
             assertTrue(koin.get<TrainerRegistry>().isEmpty)
 
             // Editor mode (ADR-0019): Queens registers its editor UI, and the Create routes'
