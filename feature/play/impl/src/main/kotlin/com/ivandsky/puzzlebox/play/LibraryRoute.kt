@@ -52,7 +52,7 @@ import org.koin.core.parameter.parametersOf
  * [onMakeOne] puts "Make one" on each game page. The friend puzzles and Custom's list are the app's Community
  * tab ([CommunityRoute]); Games shows Dailies and Duels.
  * Each game page's calendar has Random: it opens the random sheet for that game, and its
- * pick plays a past day through [onPlay] or opens a New today puzzle's card through [onOpenCode], the sheet closing first.
+ * pick plays a past day through [onPlay], as a fresh play again when it is already solved, or opens a New today puzzle's card through [onOpenCode], the sheet closing first.
  */
 @Composable
 internal fun LibraryRoute(
@@ -149,6 +149,7 @@ internal fun LibraryRoute(
         }
         randomGame?.let { randomOf ->
             val games: GameRegistry = koinInject()
+            val store: PlaySessionStore = koinInject()
             RandomPuzzleSheet(
                 game = GameId(randomOf),
                 games = state.rows.archiveGames(),
@@ -157,7 +158,11 @@ internal fun LibraryRoute(
                 onOpen = { pick ->
                     randomGame = null
                     when (pick) {
-                        is RandomPick.Day -> onPlay(pick.game, pick.day)
+                        // A solved day would open its result; Random's pick is always a board to play.
+                        is RandomPick.Day -> {
+                            store.playAgain(pick.game, pick.day)
+                            onPlay(pick.game, pick.day)
+                        }
                         is RandomPick.Shared -> onOpenCode(pick.code)
                     }
                 },

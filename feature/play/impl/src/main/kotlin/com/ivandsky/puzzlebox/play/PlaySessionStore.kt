@@ -140,8 +140,11 @@ class PlaySessionStore internal constructor(
      * complete live play is reset in place; with none live the slot opens fresh (a solve
      * deleted its row). The play is live afterwards, so the board that follows opens it as is.
      */
-    fun playAgain(key: ResultKey) {
-        val live = open(PlaySlot.Daily(GameId(key.gameId), LocalDate.parse(key.day))) ?: return
+    fun playAgain(key: ResultKey) = playAgain(GameId(key.gameId), LocalDate.parse(key.day))
+
+    /** [playAgain] for a day named by game and date, as Random's pick of a day that may already be solved. */
+    fun playAgain(game: GameId, day: LocalDate) {
+        val live = open(PlaySlot.Daily(game, day)) ?: return
         if (live.controller.isComplete) live.playAgain()
     }
 
