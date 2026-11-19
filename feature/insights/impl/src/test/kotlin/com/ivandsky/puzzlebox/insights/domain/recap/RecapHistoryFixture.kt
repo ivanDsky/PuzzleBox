@@ -36,7 +36,7 @@ internal class RecapHistoryFixture(now: Instant = Instant.parse("2026-12-15T12:0
 
     /** The streak walk the game page uses, "today" being [now]'s puzzle day. */
     val computeStreak = ComputeStreak(GetPuzzleDay(registry, Clock.fixed(now, ZoneOffset.UTC)))
-    val computePeriodFacts = ComputePeriodFacts(computeStreak)
+    val computePeriodFacts = ComputePeriodFacts(computeStreak, ReplaySolveFacts(computeStreak, registry))
 
     /** The puzzle day every game reads; move it with `setAll`. */
     val calendar = FakeGameCalendar(LocalDate.of(2026, 11, 20))

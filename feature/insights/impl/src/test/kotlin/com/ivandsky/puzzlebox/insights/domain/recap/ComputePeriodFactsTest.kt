@@ -35,6 +35,7 @@ class ComputePeriodFactsTest {
             PeriodFacts(
                 november, scope = null, solved = 0, solvedByGame = emptyMap(),
                 fastestByGame = emptyMap(), longestStreak = null, freezesSpent = 0,
+                hintFree = 0, totalTimeMs = 0, moments = emptyList(),
             ),
             facts(november),
         )

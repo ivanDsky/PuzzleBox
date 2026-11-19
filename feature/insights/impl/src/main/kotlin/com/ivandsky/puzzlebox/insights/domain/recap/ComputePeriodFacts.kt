@@ -4,6 +4,8 @@ import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GameHistoryDay
 import com.ivandsky.puzzlebox.domain.isSolvedDaily
 import com.ivandsky.puzzlebox.domain.isStreakDay
+import com.ivandsky.puzzlebox.domain.moments.Moment
+import com.ivandsky.puzzlebox.domain.moments.detectMoments
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.model.GameId
@@ -17,8 +19,13 @@ import com.ivandsky.puzzlebox.model.GameId
  * block never disagree: the day's record row of a numbered daily, in-app or imported. Play again, practice, custom
  * and duel-only solves have no such row. A solve belongs to the period of its puzzle day, so an old puzzle imported
  * today lands in its own year. A streak day is a counted solve through [isStreakDay], again the game page's rule.
+ * Hint-free and total time come off the same counted solves; the Moments come from [ReplaySolveFacts] over the whole
+ * history and the one Moment detector.
  */
-internal class ComputePeriodFacts(private val computeStreak: ComputeStreak) {
+internal class ComputePeriodFacts(
+    private val computeStreak: ComputeStreak,
+    private val replaySolveFacts: ReplaySolveFacts,
+) {
 
     operator fun invoke(history: List<GameHistoryDay>, period: RecapPeriod, scope: GameId? = null): PeriodFacts {
         val inScope = history.filter { scope == null || it.gameId == scope }
@@ -33,8 +40,20 @@ internal class ComputePeriodFacts(private val computeStreak: ComputeStreak) {
             fastestByGame = counted.groupBy { it.gameId }.mapValues { (_, days) -> fastest(days) },
             longestStreak = streaks.maxByOrNull { it.days },
             freezesSpent = streaks.sumOf { it.frozen.size },
+            hintFree = counted.count { it.solve.hints == 0 },
+            totalTimeMs = counted.sumOf { it.solve.time },
+            moments = momentsOf(history, period, scope),
         )
     }
+
+    /**
+     * The Moments of the period's solves, from the replay of the whole history: all games feed a streak or a set, and
+     * only then is the scope applied to what is read out.
+     */
+    private fun momentsOf(history: List<GameHistoryDay>, period: RecapPeriod, scope: GameId?): List<Moment> =
+        replaySolveFacts(history)
+            .filter { it.day in period && (scope == null || it.game == scope) }
+            .flatMap { detectMoments(it.facts) }
 
     private fun fastest(days: List<GameHistoryDay>): FastestSolve {
         val best = days.minWith(compareBy<GameHistoryDay>({ it.solve.time }, { it.solve.hints }, { it.day }))

@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.insights.domain.recap
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.StreakFreezes
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 /**
  * Every streak of a history as a run of days, read off the one streak rule ([ComputeStreak]) and defining none of its
@@ -18,6 +19,10 @@ internal class StreakRuns private constructor(private val runs: List<StreakRun>)
 
     /** The part of each streak that falls inside [period], oldest first; a streak that never reaches it is left out. */
     fun within(period: RecapPeriod): List<StreakRun> = runs.mapNotNull { it.within(period) }
+
+    /** How many days into its streak [day] is, frozen days included: 1 for a streak's first day, 0 when no streak holds [day]. */
+    fun lengthAt(day: LocalDate): Int =
+        runs.firstOrNull { day in it.start..it.end }?.let { ChronoUnit.DAYS.between(it.start, day).toInt() + 1 } ?: 0
 
     companion object {
         /** The runs of [streakDays], the days [ComputeStreak] was given, with the [freezes] it answered. */

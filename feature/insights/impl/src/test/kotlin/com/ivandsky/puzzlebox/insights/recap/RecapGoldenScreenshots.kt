@@ -58,6 +58,45 @@ class RecapGoldenScreenshots {
     @Test fun `streak tablet dark`() = capture("streak", "tablet", dark = true, state = readyOf(RecapFixtures.fastest, RecapFixtures.streak).copy(initialPage = 1))
 
     @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `hint-free phone light`() = capture("hint-free", "phone", dark = false, state = readyOf(RecapFixtures.hintFree))
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `hint-free phone dark`() = capture("hint-free", "phone", dark = true, state = readyOf(RecapFixtures.hintFree))
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `hint-free tablet light`() = capture("hint-free", "tablet", dark = false, state = readyOf(RecapFixtures.solved, RecapFixtures.hintFree).copy(initialPage = 1))
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `hint-free tablet dark`() = capture("hint-free", "tablet", dark = true, state = readyOf(RecapFixtures.solved, RecapFixtures.hintFree).copy(initialPage = 1))
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `moments phone light`() = capture("moments", "phone", dark = false, state = readyOf(RecapFixtures.moments))
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `moments phone dark`() = capture("moments", "phone", dark = true, state = readyOf(RecapFixtures.moments))
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `moments tablet light`() = capture("moments", "tablet", dark = false, state = readyOf(RecapFixtures.solved, RecapFixtures.moments).copy(initialPage = 1))
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `moments tablet dark`() = capture("moments", "tablet", dark = true, state = readyOf(RecapFixtures.solved, RecapFixtures.moments).copy(initialPage = 1))
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `total-time phone light`() = capture("total-time", "phone", dark = false, state = readyOf(RecapFixtures.totalTime))
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `total-time phone dark`() = capture("total-time", "phone", dark = true, state = readyOf(RecapFixtures.totalTime))
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `total-time tablet light`() = capture("total-time", "tablet", dark = false, state = readyOf(RecapFixtures.solved, RecapFixtures.totalTime).copy(initialPage = 1))
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `total-time tablet dark`() = capture("total-time", "tablet", dark = true, state = readyOf(RecapFixtures.solved, RecapFixtures.totalTime).copy(initialPage = 1))
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `total-time-year phone light`() = capture("total-time-year", "phone", dark = false, state = readyOf(RecapFixtures.totalTimeYear))
+
+    @Config(qualifiers = GOLDEN_PHONE)
     @Test fun `restoring phone light`() = capture("restoring", "phone", dark = false, state = RecapUiState.Restoring)
 
     @Config(qualifiers = GOLDEN_PHONE)

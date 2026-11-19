@@ -16,6 +16,7 @@ class StreakRecapFactProviderTest {
         facts = PeriodFacts(
             period, scope = null, solved = 0, solvedByGame = emptyMap(),
             fastestByGame = emptyMap(), longestStreak = streak, freezesSpent = freezesSpent,
+            hintFree = 0, totalTimeMs = 0, moments = emptyList(),
         ),
         games = emptyList(),
     )

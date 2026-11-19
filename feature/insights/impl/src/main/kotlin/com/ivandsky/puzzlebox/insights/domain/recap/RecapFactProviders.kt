@@ -8,4 +8,7 @@ internal val RecapFactProviders: List<RecapFactProvider> = listOf(
     SolvedRecapFactProvider,
     FastestRecapFactProvider,
     StreakRecapFactProvider,
+    HintFreeRecapFactProvider,
+    MomentsRecapFactProvider,
+    TotalTimeRecapFactProvider,
 )

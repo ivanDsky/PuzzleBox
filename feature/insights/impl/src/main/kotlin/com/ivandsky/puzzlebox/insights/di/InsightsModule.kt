@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.insights.domain.recap.ComputePeriodFacts
 import com.ivandsky.puzzlebox.insights.domain.recap.ObserveDueRecap
 import com.ivandsky.puzzlebox.insights.domain.recap.ObserveRecap
 import com.ivandsky.puzzlebox.insights.domain.recap.ObserveRecapAvailability
+import com.ivandsky.puzzlebox.insights.domain.recap.ReplaySolveFacts
 import com.ivandsky.puzzlebox.insights.flags.InsightsFlag
 import com.ivandsky.puzzlebox.insights.hub.InsightsHubViewModel
 import com.ivandsky.puzzlebox.insights.recap.RecapViewModel
@@ -20,7 +21,8 @@ import org.koin.dsl.module
 val insightsModule: Module = module {
     flagSet("insights", InsightsFlag.entries)
 
-    factory { ComputePeriodFacts(computeStreak = get()) }
+    factory { ReplaySolveFacts(computeStreak = get(), registry = get()) }
+    factory { ComputePeriodFacts(computeStreak = get(), replaySolveFacts = get()) }
     factory { ObserveRecap(observeGameHistory = get(), computePeriodFacts = get(), registry = get()) }
     factory { ObserveRecapAvailability(observeGameHistory = get(), calendar = get(), registry = get()) }
     factory { ObserveDueRecap(availability = get()) }

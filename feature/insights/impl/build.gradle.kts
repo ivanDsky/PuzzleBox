@@ -20,6 +20,8 @@ dependencies {
     implementation(projects.core.domain)
     // GameRegistry: the listed games' order and display names.
     implementation(projects.core.game)
+    // RecordVerdict: the one personal-best rule, which the recap replays over the history.
+    implementation(projects.core.gameUi)
     // GameId in the recap cards.
     implementation(projects.core.model)
 

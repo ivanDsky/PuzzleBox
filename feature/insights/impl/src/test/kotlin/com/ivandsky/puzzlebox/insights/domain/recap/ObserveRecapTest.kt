@@ -37,7 +37,7 @@ class ObserveRecapTest {
     private val cardA = RecapCard.Solved(total = 99, perGame = emptyList())
 
     @Test
-    fun `the default chain is the Solved, Fastest and Streak cards over the period's facts`() = runTest {
+    fun `the default chain is the Solved, Fastest, Streak, Hint-free, Moments and Total time cards over the period's facts`() = runTest {
         fixture.store(
             fixture.solve(alpha, LocalDate.of(2026, 11, 1)),
             fixture.solve(alpha, LocalDate.of(2026, 11, 2)),
@@ -47,7 +47,7 @@ class ObserveRecapTest {
 
         val cards = defaultRecap(november).first()
 
-        assertEquals(3, cards.size)
+        assertEquals(6, cards.size)
         assertEquals(
             RecapCard.Solved(3, listOf(RecapCard.Solved.PerGame(alpha, 2), RecapCard.Solved.PerGame(beta, 1))),
             cards[0],
@@ -57,6 +57,10 @@ class ObserveRecapTest {
             RecapCard.Streak(days = 2, from = LocalDate.of(2026, 11, 1), to = LocalDate.of(2026, 11, 2), freezesSpent = 0),
             cards[2],
         )
+        assertEquals(RecapCard.HintFree(hintFree = 3, solved = 3), cards[3])
+        // Each game's first, quick solve went under a mark, and Nov 2 finished both games' day.
+        assertEquals(RecapCard.Moments(personalBests = 0, firstSubX = 2, fullSets = 1, streakMilestones = emptyList()), cards[4])
+        assertEquals(RecapCard.TotalTime(totalMs = 90_000, solved = 3), cards[5])
     }
 
     @Test
