@@ -1,13 +1,16 @@
-package com.ivandsky.puzzlebox.domain
+package com.ivandsky.puzzlebox.compete.domain
 
+import com.ivandsky.puzzlebox.compete.domain.lineup.ResolveSelfLineup
+import com.ivandsky.puzzlebox.compete.domain.lineup.SelfDraw
+import com.ivandsky.puzzlebox.compete.domain.lineup.legOf
 import com.ivandsky.puzzlebox.data.match.MatchLeg
 import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
 import com.ivandsky.puzzlebox.data.match.SelfMatchRepository
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
-import com.ivandsky.puzzlebox.domain.lineup.ResolveSelfLineup
-import com.ivandsky.puzzlebox.domain.lineup.SelfDraw
-import com.ivandsky.puzzlebox.domain.lineup.legOf
+import com.ivandsky.puzzlebox.domain.ComputeSolvedPool
+import com.ivandsky.puzzlebox.domain.CreateOutcome
+import com.ivandsky.puzzlebox.domain.buildSelfMatch
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.model.ShareCode

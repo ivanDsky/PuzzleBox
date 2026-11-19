@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.compete.create
 
+import com.ivandsky.puzzlebox.compete.domain.SelfDuelSettings
 import com.ivandsky.puzzlebox.data.match.Match
-import com.ivandsky.puzzlebox.domain.SelfDuelSettings
 import com.ivandsky.puzzlebox.model.GameId
 
 /** Who the sheet's duel is against. */

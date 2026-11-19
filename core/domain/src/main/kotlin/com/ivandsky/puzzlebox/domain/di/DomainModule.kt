@@ -7,7 +7,6 @@ import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.CreateDraft
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.domain.CreateMatch
-import com.ivandsky.puzzlebox.domain.CreateSelfDuel
 import com.ivandsky.puzzlebox.domain.GetFeaturedGame
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
@@ -126,17 +125,6 @@ val domainModule = module {
     factory { LoadPuzzleByCode(load = get<LoadSharedPuzzle>()::invoke, dispatchers = get()) }
     factory { CreateMatch(repo = get(), local = get(), draw = get(), identity = get(), random = Random.Default, validateExact = get()) }
     factory { ComputeSolvedPool(registry = get(), completions = get(), received = get()) }
-    factory {
-        CreateSelfDuel(
-            pool = get(),
-            completions = get(),
-            received = get(),
-            self = get(),
-            local = get(),
-            clock = { Instant.now() },
-            random = Random.Default,
-        )
-    }
     factory { ImportDraftFromText(registry = get(), createDraft = get(), drafts = get(), dispatchers = get()) }
     factory { ValidatePublish() }
     single { CommunitySource(shared = get(), hidden = get(), identity = get(), registry = get(), clock = System::currentTimeMillis) }
