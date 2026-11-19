@@ -22,9 +22,9 @@ import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 
 /**
  * One card text line as a fixed [height] box, so a value change never moves a
- * neighbouring line (hub-card §Text slots). Like [PlayCaptionSlot], [value] changes
- * cross-fade in place (opacity only, no size transform) on MotionTokens short; reduced
- * motion swaps instantly.
+ * neighbouring line (hub-card §Text slots). Like
+ * [com.ivandsky.puzzlebox.gameui.PlayCaptionSlot], [value] changes cross-fade in place
+ * (opacity only, no size transform) on MotionTokens short; reduced motion swaps instantly.
  */
 @Composable
 fun <T> CardSlot(value: T, height: Dp, modifier: Modifier = Modifier, content: @Composable (T) -> Unit) {
