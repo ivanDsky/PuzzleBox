@@ -2,8 +2,8 @@ package com.ivandsky.puzzlebox.compete.tab
 
 import com.ivandsky.puzzlebox.compete.CompeteFlag
 import com.ivandsky.puzzlebox.compete.domain.ObserveMyDuels
+import com.ivandsky.puzzlebox.compete.domain.UpdateMatchSeat
 import com.ivandsky.puzzlebox.data.identity.Identity
-import com.ivandsky.puzzlebox.domain.UpdateMatchSeat
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository

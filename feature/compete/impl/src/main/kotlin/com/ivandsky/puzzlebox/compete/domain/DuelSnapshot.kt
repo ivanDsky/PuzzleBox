@@ -1,5 +1,6 @@
-package com.ivandsky.puzzlebox.domain
+package com.ivandsky.puzzlebox.compete.domain
 
+import com.ivandsky.puzzlebox.domain.MatchState
 import java.time.Instant
 
 /**

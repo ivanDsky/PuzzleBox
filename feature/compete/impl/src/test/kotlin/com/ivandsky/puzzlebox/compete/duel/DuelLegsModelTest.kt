@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.compete.duel
 
+import com.ivandsky.puzzlebox.compete.domain.lineup.LegName
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.LegResult
 import com.ivandsky.puzzlebox.data.match.Match
@@ -11,7 +12,6 @@ import com.ivandsky.puzzlebox.data.match.SelfSeats
 import com.ivandsky.puzzlebox.domain.LegSeen
 import com.ivandsky.puzzlebox.domain.MatchView
 import com.ivandsky.puzzlebox.domain.Outcome
-import com.ivandsky.puzzlebox.domain.lineup.LegName
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode

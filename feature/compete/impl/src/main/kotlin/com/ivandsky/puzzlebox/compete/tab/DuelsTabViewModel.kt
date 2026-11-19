@@ -9,11 +9,11 @@ import com.ivandsky.puzzlebox.compete.CompeteFlag
 import com.ivandsky.puzzlebox.compete.create.DuelChallenge
 import com.ivandsky.puzzlebox.compete.domain.DuelRow
 import com.ivandsky.puzzlebox.compete.domain.ObserveMyDuels
+import com.ivandsky.puzzlebox.compete.domain.SeatAction
+import com.ivandsky.puzzlebox.compete.domain.SeatResult
+import com.ivandsky.puzzlebox.compete.domain.UpdateMatchSeat
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.identity.IdentityService
-import com.ivandsky.puzzlebox.domain.SeatAction
-import com.ivandsky.puzzlebox.domain.SeatResult
-import com.ivandsky.puzzlebox.domain.UpdateMatchSeat
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Instant
 import kotlinx.coroutines.channels.Channel

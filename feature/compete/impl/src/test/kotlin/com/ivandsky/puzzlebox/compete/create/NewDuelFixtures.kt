@@ -3,17 +3,16 @@ package com.ivandsky.puzzlebox.compete.create
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.ivandsky.puzzlebox.compete.create.lineup.AddPuzzleViewModel
 import com.ivandsky.puzzlebox.compete.create.lineup.LineupDraft
 import com.ivandsky.puzzlebox.compete.create.lineup.LineupEditor
 import com.ivandsky.puzzlebox.compete.create.lineup.NO_LOOKUP
-import com.ivandsky.puzzlebox.domain.lineup.AnyGame
-import com.ivandsky.puzzlebox.compete.create.lineup.AddPuzzleViewModel
 import com.ivandsky.puzzlebox.compete.create.lineup.PAST_YOU_PICKER
 import com.ivandsky.puzzlebox.compete.create.lineup.SOLVED_ROWS
 import com.ivandsky.puzzlebox.compete.create.lineup.pickerOf
-import org.koin.core.module.dsl.viewModel
-import org.koin.dsl.module
+import com.ivandsky.puzzlebox.compete.domain.lineup.ObserveLegTitles
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
+import com.ivandsky.puzzlebox.domain.lineup.AnyGame
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
@@ -22,11 +21,12 @@ import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.TutorialStep
-import com.ivandsky.puzzlebox.domain.lineup.ObserveLegTitles
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
+import org.koin.core.module.dsl.viewModel
+import org.koin.dsl.module
 
 // The New duel sheet's states, shared by its goldens and its behaviour tests.
 

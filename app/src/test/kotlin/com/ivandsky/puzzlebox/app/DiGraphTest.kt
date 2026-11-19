@@ -7,7 +7,13 @@ import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.compete.domain.DeleteSelfDuel
+import com.ivandsky.puzzlebox.compete.domain.ObserveDuel
 import com.ivandsky.puzzlebox.compete.domain.ObserveMyDuels
+import com.ivandsky.puzzlebox.compete.domain.RecordRevealSeen
+import com.ivandsky.puzzlebox.compete.domain.UpdateMatchSeat
+import com.ivandsky.puzzlebox.compete.domain.lineup.ObserveLegTitles
+import com.ivandsky.puzzlebox.compete.domain.lineup.SaveDuelPuzzles
 import com.ivandsky.puzzlebox.create.CreateViewModel
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.editor.EditorViewModel
@@ -351,6 +357,14 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<ObserveLegTarget>())
             // The Duels tab's rows and its badge count.
             assertNotNull(koin.get<ObserveMyDuels>())
+            // The duel screen's page, seat moves and self-duel removal, the reveal's seen mark, and the
+            // leg titles and saved puzzles the duel and New duel screens read.
+            assertNotNull(koin.get<ObserveDuel>())
+            assertNotNull(koin.get<UpdateMatchSeat>())
+            assertNotNull(koin.get<DeleteSelfDuel>())
+            assertNotNull(koin.get<RecordRevealSeen>())
+            assertNotNull(koin.get<ObserveLegTitles>())
+            assertNotNull(koin.get<SaveDuelPuzzles>())
             // The tablet play side panel's stats and the board gate beneath them.
             assertNotNull(koin.get<ObserveLeaderboard>())
             assertNotNull(koin.get<ObserveResultInsights>())

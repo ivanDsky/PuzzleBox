@@ -2,7 +2,7 @@ package com.ivandsky.puzzlebox.compete.duel
 
 import com.ivandsky.puzzlebox.common.log.FailureLog
 import com.ivandsky.puzzlebox.common.log.LogcatFailureLog
-import com.ivandsky.puzzlebox.domain.DeleteSelfDuel
+import com.ivandsky.puzzlebox.compete.domain.DeleteSelfDuel
 import com.ivandsky.puzzlebox.model.ShareCode
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope

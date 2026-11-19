@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain
+package com.ivandsky.puzzlebox.compete.domain
 
 /** How a [SeatAction] ended; the claim failures keep the repository's names. */
 sealed interface SeatResult {

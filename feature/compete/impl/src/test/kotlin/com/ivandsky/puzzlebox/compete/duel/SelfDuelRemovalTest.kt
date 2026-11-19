@@ -1,9 +1,9 @@
 package com.ivandsky.puzzlebox.compete.duel
 
 import com.ivandsky.puzzlebox.common.log.FailureLog
+import com.ivandsky.puzzlebox.compete.domain.DeleteSelfDuel
 import com.ivandsky.puzzlebox.data.match.MatchFetch
 import com.ivandsky.puzzlebox.data.match.SelfMatchRepository
-import com.ivandsky.puzzlebox.domain.DeleteSelfDuel
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchResultOutbox
