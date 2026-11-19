@@ -49,7 +49,7 @@ import java.time.YearMonth
  * ([ConsumeLibraryRequest]; a section or a challenge needs [duels]) and is reported taken ([onRequestTaken]); a challenge
  * also leaves its [DuelPrefill] pending (saved here) for the Duels body, until the body takes it. The game page
  * shows its rank as a summary row that calls [onOpenRanks].
- * A non-null [linkedIn] puts the LinkedIn lines on the page's day card. [onMakeOne] puts "Make one" on the page.
+ * A non-null [linkedIn] puts the LinkedIn lines on the page's day card. [onMakeOne] puts "Make one" on the page; a non-null [onOpenStats] puts "See all stats" on its stats card.
  * With [largeBar] (MainTabsLargeBar) the list opens on Today's large top bar ([LibraryList]).
  */
 @Composable
@@ -78,6 +78,7 @@ internal fun LibraryScreen(
     linkedIn: LinkedInCardState? = null,
     onMakeOne: (GameId) -> Unit,
     largeBar: Boolean = false,
+    onOpenStats: ((GameId) -> Unit)? = null,
 ) {
     val listScroll = rememberScrollState()
     val duelsScroll = rememberLazyListState()
@@ -93,6 +94,7 @@ internal fun LibraryScreen(
         row, shownPage, shownMonth, layout, calendar, onPlay, onRetry, onOpenLesson, onBack,
         offline = state.offline, hasLesson = hasLesson(row.card.game),
         onOpenRanks = onOpenRanks, linkedIn = linkedIn, onMakeOne = onMakeOne, onRandom = onRandom,
+        onOpenStats = onOpenStats,
     )
     val selected = state.rows.firstOrNull { it.card.game == state.selected } ?: state.rows.firstOrNull()
     var tab by rememberSaveable { mutableStateOf(GamesTab.Dailies) }

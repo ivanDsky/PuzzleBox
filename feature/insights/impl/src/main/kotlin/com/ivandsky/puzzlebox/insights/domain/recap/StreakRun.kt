@@ -14,10 +14,10 @@ internal data class StreakRun(val start: LocalDate, val end: LocalDate, val froz
     /** The streak's length in days, frozen days included: the number the game page's best streak counts. */
     val days: Int get() = (ChronoUnit.DAYS.between(start, end) + 1).toInt()
 
-    /** The part of this streak inside [period], or null when it never reaches it: a streak across a month edge counts only its own side. */
-    fun within(period: RecapPeriod): StreakRun? {
-        val inside = generateSequence(start) { it.plusDays(1).takeIf { next -> next <= end } }.filter { it in period }.toList()
+    /** The part of this streak inside [span], or null when it never reaches it: a streak across a month edge counts only its own side. */
+    fun within(span: DaySpan): StreakRun? {
+        val inside = generateSequence(start) { it.plusDays(1).takeIf { next -> next <= end } }.filter { it in span }.toList()
         if (inside.isEmpty()) return null
-        return StreakRun(inside.first(), inside.last(), frozen.filterTo(mutableSetOf()) { it in period })
+        return StreakRun(inside.first(), inside.last(), frozen.filterTo(mutableSetOf()) { it in span })
     }
 }

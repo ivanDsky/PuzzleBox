@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.insights.domain.recap.ObserveRecap
 import com.ivandsky.puzzlebox.insights.domain.recap.ObserveRecapAvailability
 import com.ivandsky.puzzlebox.insights.domain.recap.ResolveFriendsStanding
 import com.ivandsky.puzzlebox.insights.domain.recap.ReplaySolveFacts
+import com.ivandsky.puzzlebox.insights.domain.stats.ObserveStatsPage
 import com.ivandsky.puzzlebox.insights.flags.InsightsFlag
 import com.ivandsky.puzzlebox.insights.hub.InsightsHubViewModel
 import com.ivandsky.puzzlebox.insights.recap.RecapViewModel
@@ -16,14 +17,17 @@ import com.ivandsky.puzzlebox.insights.share.RecapShareRenderer
 import com.ivandsky.puzzlebox.insights.share.RecapShareUris
 import com.ivandsky.puzzlebox.insights.share.RecapShareViewModel
 import org.koin.android.ext.koin.androidContext
+import com.ivandsky.puzzlebox.insights.stats.StatsViewModel
+import com.ivandsky.puzzlebox.model.GameId
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.Module
 import org.koin.dsl.module
 
 /**
- * Insights feature wiring: the feature's release flags ([InsightsFlag]), the recap use cases and the view models of
- * the hub and of a recap story. The friends standing ([ResolveFriendsStanding]) is the one recap read that goes to the
- * network, kept apart from the local providers. A story's period arrives as a Koin parameter, so each opened month has its own.
+ * Insights feature wiring: the feature's release flags ([InsightsFlag]), the recap and stats use cases and the view
+ * models of the hub, of a recap story, of its share card and of the stats page. The friends standing
+ * ([ResolveFriendsStanding]) is the one recap read that goes to the network, kept apart from the local providers. A
+ * story's period and a stats page's game arrive as Koin parameters, so each opened month or game has its own.
  * The share files (renderer, Uris, cleaner) are singletons over the app's cache directory; [RecapShareCleaner] is the
  * one :app starts. [ObserveDueRecap] is the one use case :app reads, for Home's recap card. Use cases that several features share come from :core:domain's `insightsDomainModule`.
  */
@@ -45,6 +49,9 @@ val insightsModule: Module = module {
     }
     factory { ObserveRecapAvailability(observeGameHistory = get(), calendar = get(), registry = get()) }
     factory { ObserveDueRecap(availability = get()) }
+    factory {
+        ObserveStatsPage(observeGameHistory = get(), computePeriodFacts = get(), calendar = get(), registry = get())
+    }
 
     single { RecapShareRenderer(cacheRoot = androidContext().cacheDir, dispatchers = get()) }
     single { RecapShareUris(androidContext()) }
@@ -63,6 +70,15 @@ val insightsModule: Module = module {
             puzzleDay = get(),
             renderer = get(),
             uriOf = uris::of,
+        )
+    }
+    viewModel { params ->
+        StatsViewModel(
+            initialGame = params.getOrNull<String>()?.let(::GameId),
+            observeStatsPage = get(),
+            registry = get(),
+            cloudSync = get(),
+            savedState = get(),
         )
     }
 }

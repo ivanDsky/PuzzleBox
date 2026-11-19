@@ -17,8 +17,8 @@ import java.time.temporal.ChronoUnit
  */
 internal class StreakRuns private constructor(private val runs: List<StreakRun>) {
 
-    /** The part of each streak that falls inside [period], oldest first; a streak that never reaches it is left out. */
-    fun within(period: RecapPeriod): List<StreakRun> = runs.mapNotNull { it.within(period) }
+    /** The part of each streak that falls inside [span], oldest first; a streak that never reaches it is left out. */
+    fun within(span: DaySpan): List<StreakRun> = runs.mapNotNull { it.within(span) }
 
     /** How many days into its streak [day] is, frozen days included: 1 for a streak's first day, 0 when no streak holds [day]. */
     fun lengthAt(day: LocalDate): Int =

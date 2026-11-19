@@ -42,6 +42,7 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
  * (the game's rank row) goes under the stats card, before how to play. The tablet's right column scrolls as one so how to play keeps
  * its place under them. A non-null [onMakeOne] adds a "Make one" button (`library.page.makeOne`) between the board and how to play,
  * or with [makeOwnLink] (backlog #1567, [LocalMakeOwnLink]) a "Make your own <Game>" pill ending how to play instead.
+ * A non-null [onSeeAllStats] adds "See all stats" to the stats card.
  */
 @Composable
 internal fun GamePage(
@@ -58,6 +59,7 @@ internal fun GamePage(
     scroll: ScrollState = rememberScrollState(),
     onMakeOne: (() -> Unit)? = null,
     makeOwnLink: Boolean = LocalMakeOwnLink.current,
+    onSeeAllStats: (() -> Unit)? = null,
 ) {
     val reduced = rememberReducedMotion()
     val tag = "library.page.${row.card.game.value}"
@@ -76,7 +78,7 @@ internal fun GamePage(
                     Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(Spacing.lg),
                 ) {
-                    EnterFade(2, reduced) { GameStatsCard(row) }
+                    EnterFade(2, reduced) { GameStatsCard(row, onSeeAllStats = onSeeAllStats) }
                     // The right column scrolls as one: stats, board, then how to play at its own height.
                     EnterFade(3, reduced) { PageTail(Spacing.lg, board, row, hasLesson, onOpenLesson, onMakeOne, makeOwnLink) }
                 }
@@ -102,7 +104,7 @@ internal fun GamePage(
             if (offline) OfflinePill()
             EnterFade(0, reduced) { dayCard() }
             EnterFade(1, reduced) { calendar() }
-            EnterFade(2, reduced) { GameStatsCard(row) }
+            EnterFade(2, reduced) { GameStatsCard(row, onSeeAllStats = onSeeAllStats) }
             EnterFade(3, reduced) { PageTail(Spacing.md, board, row, hasLesson, onOpenLesson, onMakeOne, makeOwnLink) }
         }
     }

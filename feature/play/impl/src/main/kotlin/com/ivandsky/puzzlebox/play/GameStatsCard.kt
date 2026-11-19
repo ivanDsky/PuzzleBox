@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,19 +9,24 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ivandsky.puzzlebox.designsystem.AppShapes
+import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.tabular
@@ -41,10 +47,11 @@ internal fun longDate(day: LocalDate): String = day.format(LongDate)
  * One game's stats (06-a §Stats card): Solved · Hint-free · Average · Best tiles, then
  * when the player started, the archive's span and how many solves came from it. Before
  * any solve it shows only Solved and Best with a line saying archive days count too.
- * No streak: that is cross-game and lives on Home.
+ * No streak: that is cross-game and lives on Home. A non-null [onSeeAllStats] ends the card with a "See all stats"
+ * row that opens the game's stats page; null (the page is dark) leaves the card as it was.
  */
 @Composable
-internal fun GameStatsCard(row: LibraryRowModel, modifier: Modifier = Modifier) {
+internal fun GameStatsCard(row: LibraryRowModel, modifier: Modifier = Modifier, onSeeAllStats: (() -> Unit)? = null) {
     val stats = row.stats
     val empty = stats.solved == 0
     Column(
@@ -96,6 +103,31 @@ internal fun GameStatsCard(row: LibraryRowModel, modifier: Modifier = Modifier) 
                     modifier = Modifier.fillMaxWidth().padding(vertical = StatRowPadding).testTag("library.stats.archive"),
                 )
             }
+        }
+        onSeeAllStats?.let { SeeAllStats(it) }
+    }
+}
+
+/** The card's last row: "See all stats" and a chevron, one tap target at least 48dp tall. */
+@Composable
+private fun SeeAllStats(onClick: () -> Unit) {
+    Column {
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .clickable(role = Role.Button, onClick = onClick)
+                .testTag("library.stats.seeAll"),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                "See all stats",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(PuzzleIcons.Chevron, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         }
     }
 }

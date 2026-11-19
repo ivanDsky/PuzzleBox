@@ -32,7 +32,8 @@ import com.ivandsky.puzzlebox.insights.label
 
 /**
  * The Insights hub: a bar with a back arrow over the months that have a recap, newest first. [onOpen] opens one
- * month's story; [onBack] leaves the hub.
+ * month's story; [onBack] leaves the hub. [onOpenStats] adds the "Stats for all games" row above the months and opens the
+ * all-games stats page; null (the page is dark) leaves the row out.
  */
 @Composable
 internal fun InsightsHubScreen(
@@ -40,6 +41,7 @@ internal fun InsightsHubScreen(
     onOpen: (RecapPeriod) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenStats: (() -> Unit)? = null,
 ) {
     Column(modifier.fillMaxSize().testTag("insights.hub")) {
         CompactTopBar(
@@ -62,36 +64,41 @@ internal fun InsightsHubScreen(
                 message = "Solve a puzzle and its month shows up here.",
                 modifier = Modifier.fillMaxSize().testTag("insights.hub.empty"),
             )
-            is InsightsHubUiState.Ready -> MonthList(state.periods, onOpen)
+            is InsightsHubUiState.Ready -> MonthList(state.periods, onOpen, onOpenStats)
         }
     }
 }
 
 @Composable
-private fun MonthList(periods: List<RecapPeriod>, onOpen: (RecapPeriod) -> Unit) {
+private fun MonthList(periods: List<RecapPeriod>, onOpen: (RecapPeriod) -> Unit, onOpenStats: (() -> Unit)?) {
     LazyColumn(
         modifier = Modifier.maxContentWidth().testTag("insights.hub.list"),
         contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
-        items(periods, key = { it.id }) { period -> MonthRow(period, onClick = { onOpen(period) }) }
+        if (onOpenStats != null) {
+            item(key = "stats") { HubRow("Stats for all games", onClick = onOpenStats, tag = "insights.hub.stats") }
+        }
+        items(periods, key = { it.id }) { period ->
+            HubRow(period.label(), onClick = { onOpen(period) }, tag = "insights.hub.month.${period.id}")
+        }
     }
 }
 
-/** One month: its name and a chevron, as tall as a comfortable tap (at least 56dp). */
+/** One hub row: its [label] and a chevron, as tall as a comfortable tap (at least 56dp). */
 @Composable
-private fun MonthRow(period: RecapPeriod, onClick: () -> Unit) {
+private fun HubRow(label: String, onClick: () -> Unit, tag: String) {
     Row(
         Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
             .clickable(role = Role.Button, onClick = onClick)
             .padding(vertical = Spacing.sm)
-            .testTag("insights.hub.month.${period.id}"),
+            .testTag(tag),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = period.label(),
+            text = label,
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f),
