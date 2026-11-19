@@ -71,6 +71,28 @@ user, the PR is a place to read the change, not a test gate.
    a release-only break turns main red and rule 4 applies. A ticket that touches release-only
    wiring (`app/src/testRelease`, `app/src/release`, `buildTypeGameModules`, release flags or
    build type config) runs `./gradlew :app:testReleaseUnitTest` before its merge.
+   *Amendment 2026-11-18 (One merge lane per repository):* the per-session lane re-ran a suite
+   because main moved in 85.2% of batches. Over 3 days it logged 119 requeues; 57% of suites
+   tested a single ticket, and the median suite took 4.0 minutes. Pushes to main ran at a median
+   of 7/h, p90 14/h, peak 36/h.
+   - **Rerun rule kept.** A suite reruns only when main moved in a module the batch touches.
+   - **One lane.** There is one lane per repository, shared by every session and worktree. Its
+     state lives in `<git-common-dir>/agent-builds/lane/`.
+   - **Batches.** A batch holds at most 5 tickets. Two batches are pipelined across the two
+     remote build slots: B runs on A's top while A settles, and B is thrown away if A goes red.
+   - **Final outcomes.** A lasting merge refusal and a user-closed PR are final. A ticket
+     requeued 6 times for its own reasons ends `stuck`.
+   - **Base race.** "Base branch was modified" right after the batch's own squash is retried.
+     A real main move reruns the main-moved step.
+   - **Commands.** `merge_lane.py enqueue --who <slug> --nn <NN>`, then
+     `merge_lane.py wait --who <slug> --nn <NN>`. The old `--queue` is removed.
+   - **Consequences.**
+     - Capacity is about 30 suites/h, and the expected rerun trigger falls to about 35%.
+     - B's suite is wasted when A is red.
+     - Merges can land out of order across batches. That is accepted.
+     - Scratch worktrees live under `.git/agent-builds/lane/wt`; IDEs and backups should
+       exclude that path.
+     - The lane needs `local.properties` or `ANDROID_HOME`.
 4. **A red main stops merges.** The next PR is either a `git revert` of the culprit squash
    commit or a one-line obvious fix forward. Other merges wait until main is green again.
    *Amendment 2026-11-11:* nobody waits for main's run.
