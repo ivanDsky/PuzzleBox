@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.history.di
 
 import com.ivandsky.puzzlebox.common.di.flagSet
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendBoards
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.history.domain.ranks.GetPlayerActions
 import com.ivandsky.puzzlebox.history.domain.ranks.ObserveWindowRefresh
@@ -31,11 +32,14 @@ val historyModule = module {
     factory { GetPlayerActions(visibility = get(), completions = get()) }
 
     // The LinkedIn flag and where the hub opens arrive as parameters, so a graph without LinkedIn bindings builds the hub with it off (ghosts read nothing).
+    // On, the hub's Friends boards are domainModule's, the ones Friends Overall gets; off, the same boards count no connection.
     viewModel { params ->
         val opening = (params.getOrNull<RanksSelection>() ?: RanksSelection()).landing(rankBoards(get<GameRegistry>()), get<GameCalendar>()::today)
+        val withLinkedIn = params.getOrNull<Boolean>() == true
         RanksViewModel(
             get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
-            linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
+            friendBoards = if (withLinkedIn) get() else ObserveFriendBoards(observeFriendUids = get(), identity = get(), linkedIn = null),
+            linkedIn = if (withLinkedIn) get() else null,
             releaseFlags = get(),
             savedState = get(),
             opening = opening,

@@ -1,6 +1,6 @@
 package com.ivandsky.puzzlebox.domain.ranks
 
-import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
@@ -18,18 +18,27 @@ import kotlinx.coroutines.flow.mapNotNull
  * A window's boards as the Friends scope ranks them (F18, F21), with the LinkedIn connections of their days counted
  * among the friends, read from the phone's own saved days: no Firestore read and no sync. The boards are built by the
  * domain's one Friends pipeline ([amongFriends]), the same the entry points' place uses; without LinkedIn ([linkedIn]
- * null) no connection is counted.
+ * null) no connection is counted. Both Friends Overall ([ObserveFriendsOverall]) and the Ranks hub run their window's
+ * read through [among], then [invoke].
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class ObserveFriendBoards(private val linkedIn: ObserveLinkedInDayView?) {
+class ObserveFriendBoards(
+    private val observeFriendUids: ObserveFriendUids,
+    private val identity: IdentityService,
+    private val linkedIn: ObserveLinkedInDayView?,
+) {
 
     /** A window's [boards] as read, with the [players] Friends ranks on them. */
-    data class Among(val boards: RankWindowBoards, val players: Set<String>) {
-        companion object {
-            /** The players Friends ranks on [boards]: the viewer's [friends] and the [viewer] themselves. */
-            fun of(boards: RankWindowBoards, friends: Set<String>, viewer: Identity?) = Among(boards, friends + setOfNotNull(viewer?.uid))
+    data class Among(val boards: RankWindowBoards, val players: Set<String>)
+
+    /**
+     * A window's [boards] (null while none has answered), each with the players Friends ranks on it: the viewer's
+     * friends and the viewer themselves, followed as they change.
+     */
+    fun among(boards: Flow<Pair<RankWindow, RankWindowBoards>?>): Flow<Pair<RankWindow, Among>?> =
+        combine(boards, observeFriendUids(), identity.current) { answered, friends, me ->
+            answered?.let { (window, read) -> window to Among(read, friends + setOfNotNull(me?.uid)) }
         }
-    }
 
     /**
      * [boards] (null while they have not answered) among their players, with their connections counted. The boards
@@ -37,10 +46,10 @@ class ObserveFriendBoards(private val linkedIn: ObserveLinkedInDayView?) {
      * with it; the days are listened to once per set of days, not once per board answer. [boards] is collected twice,
      * so the caller shares it.
      */
-    operator fun invoke(boards: Flow<Among?>, viewer: Flow<Identity?>): Flow<CountedBoards?> {
+    operator fun invoke(boards: Flow<Among?>): Flow<CountedBoards?> {
         if (linkedIn == null) return boards.map { it?.counted(emptyMap(), viewerUid = null) }
         val days = boards.map { it.refs() }.distinctUntilChanged().flatMapLatest { refs -> daysOf(linkedIn, refs).map { refs to it } }
-        return combine(boards, days, viewer) { read, (refs, days), me ->
+        return combine(boards, days, identity.current) { read, (refs, days), me ->
             when {
                 read == null -> Answer(null)
                 read.refs() != refs -> null

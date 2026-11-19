@@ -76,6 +76,7 @@ internal class RanksViewModel(
     private val registry: GameRegistry,
     private val daily: DailyRepository,
     private val clock: Clock = Clock.systemUTC(),
+    friendBoards: ObserveFriendBoards,
     linkedIn: ObserveLinkedInDayView? = null,
     releaseFlags: ReleaseFlags,
     savedState: SavedStateHandle = SavedStateHandle(),
@@ -122,7 +123,7 @@ internal class RanksViewModel(
         .distinctUntilChanged()
 
     private val reads = RanksWindowReads(observeRankWindow, observeWindowRefresh, window, games, viewModelScope)
-    private val scopedBoards = RanksScopedBoards(reads.boards, observeFriendUids, viewer, ObserveFriendBoards(linkedIn), viewModelScope)
+    private val scopedBoards = RanksScopedBoards(reads.boards, friendBoards, viewModelScope)
 
     /** The Tune sheet shows the board's choices only: the Defaults block stays in Settings (RanksTuneBoardOnly). */
     val tuneBoardOnly: Boolean = releaseFlags.isEnabled(HistoryFlag.RanksTuneBoardOnly)

@@ -102,12 +102,13 @@ internal class RanksTestHub(
     /** The phone's LinkedIn days as the hub reads them with LinkedIn on. */
     private fun linkedInView() = ObserveLinkedInDayView(ObserveLinkedInDay(linkedInDays, registry), SyncLinkedInDay(linkedInDays, 500), FakeLinkedInLink(), linkedInDays)
 
-    /** The domain's Friends Overall over the same fakes and clock as [viewModel] built with LinkedIn on: a second caller of the hub's pipeline. */
+    /** The domain's Friends boards as domainModule binds them (LinkedIn on): a hub built with LinkedIn on and [friendsOverall] share this one. */
+    private val linkedInFriendBoards = ObserveFriendBoards(ObserveFriendUids(matches, this.identity), this.identity, linkedInView())
+
+    /** The domain's Friends Overall over the same fakes, clock and Friends boards as [viewModel] built with LinkedIn on: a second caller of the hub's pipeline. */
     fun friendsOverall() = ObserveFriendsOverall(
         ObserveRankWindow(this.identity, leaderboard, FakeFinalBoardStore(), registry, calendar, clock),
-        ObserveFriendUids(matches, this.identity),
-        this.identity,
-        ObserveFriendBoards(linkedInView()),
+        linkedInFriendBoards,
         ObserveOverall(this.identity, completions),
     )
 
@@ -138,6 +139,8 @@ internal class RanksTestHub(
             registry = registry,
             daily = daily,
             clock = clock,
+            // As historyModule wires it: off, the same boards count no connection.
+            friendBoards = if (linkedIn) linkedInFriendBoards else ObserveFriendBoards(ObserveFriendUids(matches, this.identity), this.identity, linkedIn = null),
             linkedIn = linkedInView().takeIf { linkedIn },
             releaseFlags = releaseFlags,
             savedState = savedState,

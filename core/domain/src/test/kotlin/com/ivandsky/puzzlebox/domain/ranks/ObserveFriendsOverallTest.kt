@@ -61,9 +61,11 @@ class ObserveFriendsOverallTest {
 
     private fun observe(linkedIn: Boolean = true) = ObserveFriendsOverall(
         ObserveRankWindow(identity, leaderboard, FakeFinalBoardStore(), registry, FakeGameCalendar(today), clock),
-        ObserveFriendUids(matches, identity),
-        identity,
-        ObserveFriendBoards(ObserveLinkedInDayView(ObserveLinkedInDay(days, registry), SyncLinkedInDay(days, 500), FakeLinkedInLink(), days).takeIf { linkedIn }),
+        ObserveFriendBoards(
+            ObserveFriendUids(matches, identity),
+            identity,
+            ObserveLinkedInDayView(ObserveLinkedInDay(days, registry), SyncLinkedInDay(days, 500), FakeLinkedInLink(), days).takeIf { linkedIn },
+        ),
         ObserveOverall(identity, FakeCompletionRepository()),
     )
 
