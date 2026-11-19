@@ -21,11 +21,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import com.ivandsky.puzzlebox.compete.create.DuelSignIn
+import com.ivandsky.puzzlebox.compete.domain.SeatAction
 import com.ivandsky.puzzlebox.designsystem.DuelTone
-import com.ivandsky.puzzlebox.designsystem.SIGN_IN_WITH_GOOGLE
-import com.ivandsky.puzzlebox.domain.SeatAction
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.ResultBeats
+import com.ivandsky.puzzlebox.designsystem.SIGN_IN_WITH_GOOGLE
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors

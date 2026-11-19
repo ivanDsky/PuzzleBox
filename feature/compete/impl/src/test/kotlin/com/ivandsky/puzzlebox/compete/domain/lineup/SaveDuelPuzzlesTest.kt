@@ -1,11 +1,11 @@
-package com.ivandsky.puzzlebox.domain.lineup
+package com.ivandsky.puzzlebox.compete.domain.lineup
 
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.domain.OpenOutcome
+import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import java.time.Instant
-import com.ivandsky.puzzlebox.model.ShareCode
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals

@@ -30,7 +30,12 @@ import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.compete.api.DuelRevealKey
 import com.ivandsky.puzzlebox.compete.di.competeModule
+import com.ivandsky.puzzlebox.compete.domain.DeleteSelfDuel
+import com.ivandsky.puzzlebox.compete.domain.ObserveDuel
 import com.ivandsky.puzzlebox.compete.domain.ObserveMyDuels
+import com.ivandsky.puzzlebox.compete.domain.UpdateMatchSeat
+import com.ivandsky.puzzlebox.compete.domain.lineup.ObserveLegTitles
+import com.ivandsky.puzzlebox.compete.domain.lineup.SaveDuelPuzzles
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.match.LegRef
@@ -43,14 +48,9 @@ import com.ivandsky.puzzlebox.data.match.ResultPostState
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.MaxContentWidth
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.DeleteSelfDuel
 import com.ivandsky.puzzlebox.domain.LoadLegPuzzle
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
-import com.ivandsky.puzzlebox.domain.ObserveDuel
 import com.ivandsky.puzzlebox.domain.ObserveMatch
-import com.ivandsky.puzzlebox.domain.UpdateMatchSeat
-import com.ivandsky.puzzlebox.domain.lineup.ObserveLegTitles
-import com.ivandsky.puzzlebox.domain.lineup.SaveDuelPuzzles
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout

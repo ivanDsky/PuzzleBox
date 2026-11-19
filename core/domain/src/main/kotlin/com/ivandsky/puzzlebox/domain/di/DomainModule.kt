@@ -2,16 +2,16 @@ package com.ivandsky.puzzlebox.domain.di
 
 import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
 import com.ivandsky.puzzlebox.domain.ComputeMatchLegs
-import com.ivandsky.puzzlebox.domain.ImportDraftFromText
+import com.ivandsky.puzzlebox.domain.ComputeSolvedPool
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.CreateDraft
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.domain.CreateMatch
 import com.ivandsky.puzzlebox.domain.CreateSelfDuel
-import com.ivandsky.puzzlebox.domain.DeleteSelfDuel
-import com.ivandsky.puzzlebox.domain.ComputeSolvedPool
 import com.ivandsky.puzzlebox.domain.GetFeaturedGame
 import com.ivandsky.puzzlebox.domain.GetNextRollover
+import com.ivandsky.puzzlebox.domain.GetPuzzleDay
+import com.ivandsky.puzzlebox.domain.ImportDraftFromText
 import com.ivandsky.puzzlebox.domain.LoadCustomReplay
 import com.ivandsky.puzzlebox.domain.LoadDailyReplay
 import com.ivandsky.puzzlebox.domain.LoadLegPuzzle
@@ -19,27 +19,21 @@ import com.ivandsky.puzzlebox.domain.LoadLegReplay
 import com.ivandsky.puzzlebox.domain.LoadPlayerReplay
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.domain.LoadSolveReplay
-import com.ivandsky.puzzlebox.domain.ObserveDuel
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObserveMatch
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
-import com.ivandsky.puzzlebox.domain.RecordRevealSeen
-import com.ivandsky.puzzlebox.domain.GetPuzzleDay
+import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
+import com.ivandsky.puzzlebox.domain.ValidatePublish
 import com.ivandsky.puzzlebox.domain.lineup.CommunitySource
 import com.ivandsky.puzzlebox.domain.lineup.DailyArchiveSource
 import com.ivandsky.puzzlebox.domain.lineup.FriendSource
 import com.ivandsky.puzzlebox.domain.lineup.LoadPuzzleByCode
-import com.ivandsky.puzzlebox.domain.lineup.ObserveLegTitles
 import com.ivandsky.puzzlebox.domain.lineup.ObservePickablePuzzles
 import com.ivandsky.puzzlebox.domain.lineup.ObserveSolvedPuzzles
 import com.ivandsky.puzzlebox.domain.lineup.OwnSource
-import com.ivandsky.puzzlebox.domain.ValidatePublish
-import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
-import com.ivandsky.puzzlebox.domain.UpdateMatchSeat
-import com.ivandsky.puzzlebox.domain.lineup.SaveDuelPuzzles
 import com.ivandsky.puzzlebox.domain.lineup.ValidateExactPuzzles
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
@@ -114,7 +108,6 @@ val domainModule = module {
             clock = { Instant.now() },
         )
     }
-    factory { ObserveDuel(observeMatch = get(), completions = get(), savedPlays = get()) }
     factory { ObserveOverall(identity = get(), completions = get()) }
     factory { ObserveFriendUids(matches = get(), identity = get()) }
     factory { GetPlayerActions(visibility = get(), completions = get()) }
@@ -131,7 +124,6 @@ val domainModule = module {
     }
     factory { ValidateExactPuzzles(shared = get()) }
     factory { LoadPuzzleByCode(load = get<LoadSharedPuzzle>()::invoke, dispatchers = get()) }
-    factory { SaveDuelPuzzles(open = get<LoadSharedPuzzle>()::invoke) }
     factory { CreateMatch(repo = get(), local = get(), draw = get(), identity = get(), random = Random.Default, validateExact = get()) }
     factory { ComputeSolvedPool(registry = get(), completions = get(), received = get()) }
     factory {
@@ -145,9 +137,6 @@ val domainModule = module {
             random = Random.Default,
         )
     }
-    factory { DeleteSelfDuel(self = get(), outbox = get(), plays = get(), local = get()) }
-    factory { UpdateMatchSeat(repo = get(), local = get(), identity = get()) }
-    factory { RecordRevealSeen(local = get(), clock = { Instant.now() }) }
     factory { ImportDraftFromText(registry = get(), createDraft = get(), drafts = get(), dispatchers = get()) }
     factory { ValidatePublish() }
     single { CommunitySource(shared = get(), hidden = get(), identity = get(), registry = get(), clock = System::currentTimeMillis) }
@@ -161,7 +150,6 @@ val domainModule = module {
         )
     }
     factory { ObserveSolvedPuzzles(registry = get(), pool = get(), completions = get(), received = get()) }
-    factory { ObserveLegTitles(received = get(), published = get(), shared = get()) }
     factory {
         ComputeMatchLegs(
             registry = get(),

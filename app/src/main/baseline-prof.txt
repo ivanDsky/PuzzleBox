@@ -24865,7 +24865,7 @@ SPLcom/ivandsky/puzzlebox/play/domain/ObserveArchiveProgress$invoke$1;-><init>(L
 SPLcom/ivandsky/puzzlebox/play/domain/ObserveArchiveProgress$invoke$1;->invoke(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
 SPLcom/ivandsky/puzzlebox/play/domain/ObserveArchiveProgress$invoke$1;->invoke(Ljava/time/LocalDate;Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 SPLcom/ivandsky/puzzlebox/play/domain/ObserveArchiveProgress$invoke$1;->invokeSuspend(Ljava/lang/Object;)Ljava/lang/Object;
-Lcom/ivandsky/puzzlebox/domain/ObserveDuel;
+Lcom/ivandsky/puzzlebox/compete/domain/ObserveDuel;
 Lcom/ivandsky/puzzlebox/play/domain/ObserveFriendPuzzles;
 SPLcom/ivandsky/puzzlebox/play/domain/ObserveFriendPuzzles;-><init>(Lcom/ivandsky/puzzlebox/data/repository/ReceivedPuzzleRepository;Lcom/ivandsky/puzzlebox/data/repository/SavedPlayRepository;Lcom/ivandsky/puzzlebox/data/repository/CompletionRepository;Lcom/ivandsky/puzzlebox/game/GameRegistry;)V
 SPLcom/ivandsky/puzzlebox/play/domain/ObserveFriendPuzzles;->invoke()Lkotlinx/coroutines/flow/Flow;
@@ -25047,7 +25047,7 @@ SPLcom/ivandsky/puzzlebox/domain/PastDayStatus$Stored;-><init>()V
 SPLcom/ivandsky/puzzlebox/domain/PastDayStatus$Stored;->equals(Ljava/lang/Object;)Z
 Lcom/ivandsky/puzzlebox/home/domain/PlayTargetKt;
 SPLcom/ivandsky/puzzlebox/home/domain/PlayTargetKt;->playTarget(Ljava/util/List;)Ljava/lang/String;
-Lcom/ivandsky/puzzlebox/domain/RecordRevealSeen;
+Lcom/ivandsky/puzzlebox/compete/domain/RecordRevealSeen;
 Lcom/ivandsky/puzzlebox/domain/ResultInsightsKt;
 SPLcom/ivandsky/puzzlebox/domain/ResultInsightsKt;->weekEnding(Ljava/time/LocalDate;)Ljava/util/List;
 Lcom/ivandsky/puzzlebox/domain/SeedOnceKt;
@@ -25129,7 +25129,7 @@ Lcom/ivandsky/puzzlebox/domain/TodayStatus$Offline;
 SPLcom/ivandsky/puzzlebox/domain/TodayStatus$Offline;-><clinit>()V
 SPLcom/ivandsky/puzzlebox/domain/TodayStatus$Offline;-><init>()V
 Lcom/ivandsky/puzzlebox/domain/TodayStatus$Solved;
-Lcom/ivandsky/puzzlebox/domain/UpdateMatchSeat;
+Lcom/ivandsky/puzzlebox/compete/domain/UpdateMatchSeat;
 Lcom/ivandsky/puzzlebox/domain/UpdatePublishState;
 Lcom/ivandsky/puzzlebox/domain/ValidatePublish;
 Lcom/ivandsky/puzzlebox/domain/di/DomainModuleKt;

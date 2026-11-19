@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.compete.create
 
+import com.ivandsky.puzzlebox.compete.domain.lineup.ObserveLegTitles
 import com.ivandsky.puzzlebox.compete.duel.CompeteTime
 import com.ivandsky.puzzlebox.compete.share.createdInviteText
 import com.ivandsky.puzzlebox.data.match.LegRef
@@ -7,7 +8,6 @@ import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.repository.SharedFetchResult
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
-import com.ivandsky.puzzlebox.domain.lineup.ObserveLegTitles
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository

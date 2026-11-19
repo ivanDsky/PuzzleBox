@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain
+package com.ivandsky.puzzlebox.compete.domain
 
 import com.ivandsky.puzzlebox.data.match.LocalRole
 import com.ivandsky.puzzlebox.model.ShareCode

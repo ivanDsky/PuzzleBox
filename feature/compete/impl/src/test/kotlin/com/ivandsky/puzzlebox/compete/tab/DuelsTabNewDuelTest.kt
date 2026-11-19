@@ -15,9 +15,9 @@ import com.ivandsky.puzzlebox.compete.create.NewDuelHarness
 import com.ivandsky.puzzlebox.compete.create.newDuelModule
 import com.ivandsky.puzzlebox.compete.di.competeModule
 import com.ivandsky.puzzlebox.compete.domain.ObserveMyDuels
+import com.ivandsky.puzzlebox.compete.domain.UpdateMatchSeat
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.UpdateMatchSeat
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository

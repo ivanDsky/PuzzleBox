@@ -1,10 +1,10 @@
 package com.ivandsky.puzzlebox.compete.duel
 
 import com.ivandsky.puzzlebox.compete.create.DuelSignIn
+import com.ivandsky.puzzlebox.compete.domain.SeatAction
+import com.ivandsky.puzzlebox.compete.domain.lineup.LegName
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.domain.MatchView
-import com.ivandsky.puzzlebox.domain.SeatAction
-import com.ivandsky.puzzlebox.domain.lineup.LegName
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Instant
 

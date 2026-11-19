@@ -1,9 +1,9 @@
 package com.ivandsky.puzzlebox.compete.create
 
+import com.ivandsky.puzzlebox.compete.domain.lineup.ObserveLegTitles
 import com.ivandsky.puzzlebox.compete.duel.customCodes
 import com.ivandsky.puzzlebox.compete.duel.inviteLegs
 import com.ivandsky.puzzlebox.data.match.LegRef
-import com.ivandsky.puzzlebox.domain.lineup.ObserveLegTitles
 import com.ivandsky.puzzlebox.model.ShareCode
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.withTimeoutOrNull
