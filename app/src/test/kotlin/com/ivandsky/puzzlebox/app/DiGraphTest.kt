@@ -13,7 +13,10 @@ import com.ivandsky.puzzlebox.compete.domain.ObserveDuel
 import com.ivandsky.puzzlebox.compete.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.compete.domain.RecordRevealSeen
 import com.ivandsky.puzzlebox.compete.domain.UpdateMatchSeat
+import com.ivandsky.puzzlebox.compete.domain.lineup.LoadPuzzleByCode
 import com.ivandsky.puzzlebox.compete.domain.lineup.ObserveLegTitles
+import com.ivandsky.puzzlebox.compete.domain.lineup.ObservePickablePuzzles
+import com.ivandsky.puzzlebox.compete.domain.lineup.ObserveSolvedPuzzles
 import com.ivandsky.puzzlebox.compete.domain.lineup.SaveDuelPuzzles
 import com.ivandsky.puzzlebox.create.CreateViewModel
 import com.ivandsky.puzzlebox.create.api.EditorKey
@@ -56,9 +59,6 @@ import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
-import com.ivandsky.puzzlebox.domain.lineup.LoadPuzzleByCode
-import com.ivandsky.puzzlebox.domain.lineup.ObservePickablePuzzles
-import com.ivandsky.puzzlebox.domain.lineup.ObserveSolvedPuzzles
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
