@@ -17,11 +17,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -53,6 +55,7 @@ fun DialogCard(
     }
 }
 
+/** The dialog's window brings its own platform haptics, so the app's are carried in: a buzz in the body still meets the Vibration gate. */
 @Composable
 fun AppDialog(
     title: String,
@@ -73,34 +76,37 @@ fun AppDialog(
             ),
         )
     }
+    val haptics = LocalHapticFeedback.current
     Dialog(
         onDismissRequest = onDismissRequest,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        DialogCard(
-            modifier = modifier
-                .padding(horizontal = Spacing.xxl)
-                .widthIn(max = 380.dp)
-                .fillMaxWidth()
-                .graphicsLayer {
-                    val scale = beatScale(MotionTokens.EnterScaleFrom, appear.value)
-                    scaleX = scale
-                    scaleY = scale
-                    alpha = appear.value
-                },
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            content()
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically,
+        CompositionLocalProvider(LocalHapticFeedback provides haptics) {
+            DialogCard(
+                modifier = modifier
+                    .padding(horizontal = Spacing.xxl)
+                    .widthIn(max = 380.dp)
+                    .fillMaxWidth()
+                    .graphicsLayer {
+                        val scale = beatScale(MotionTokens.EnterScaleFrom, appear.value)
+                        scaleX = scale
+                        scaleY = scale
+                        alpha = appear.value
+                    },
             ) {
-                actions()
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                content()
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    actions()
+                }
             }
         }
     }
