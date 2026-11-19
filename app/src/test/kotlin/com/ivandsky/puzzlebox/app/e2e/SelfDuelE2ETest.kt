@@ -4,10 +4,10 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithText
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
+import com.ivandsky.puzzlebox.compete.domain.DuelRowKind
 import com.ivandsky.puzzlebox.data.match.MatchResultPoster
 import com.ivandsky.puzzlebox.data.match.ResultPostState
 import com.ivandsky.puzzlebox.data.match.SelfMatchRepository
-import com.ivandsky.puzzlebox.domain.DuelRowKind
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zipui.ZipPlayController
 import com.ivandsky.puzzlebox.gameui.DragEvent

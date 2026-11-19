@@ -1,5 +1,8 @@
 package com.ivandsky.puzzlebox.compete.duel
 
+import com.ivandsky.puzzlebox.compete.domain.DuelRow
+import com.ivandsky.puzzlebox.compete.domain.DuelRowKind
+import com.ivandsky.puzzlebox.compete.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.LegResult
@@ -7,12 +10,9 @@ import com.ivandsky.puzzlebox.data.match.MatchDraft
 import com.ivandsky.puzzlebox.data.match.MatchLeg
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.match.ResultPostState
-import com.ivandsky.puzzlebox.domain.DuelRow
-import com.ivandsky.puzzlebox.domain.DuelRowKind
 import com.ivandsky.puzzlebox.domain.MatchState
 import com.ivandsky.puzzlebox.domain.MatchView
 import com.ivandsky.puzzlebox.domain.ObserveMatch
-import com.ivandsky.puzzlebox.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.game.TestGames

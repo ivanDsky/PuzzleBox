@@ -3,17 +3,12 @@ core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/CreateDraftCopy.kt  # 
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/CreateSelfDuel.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/CreateSharedPuzzle.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/DeleteSelfDuel.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/DuelRow.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/DuelRowKind.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/DuelSnapshot.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ImportDraftFromText.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ImportResult.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/MyDuels.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ObserveDuel.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ObserveMyDuels.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/PublishOutcome.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/RecordRevealSeen.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/RevealReady.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/SeatAction.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/SeatResult.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/SelfDuelSettings.kt  # P14

@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.compete.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.create.CreateViewModel
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.editor.EditorViewModel
@@ -45,7 +46,6 @@ import com.ivandsky.puzzlebox.domain.LoadSolveReplay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
-import com.ivandsky.puzzlebox.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles

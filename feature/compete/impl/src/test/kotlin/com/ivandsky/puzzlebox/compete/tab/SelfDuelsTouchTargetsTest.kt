@@ -6,11 +6,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import com.ivandsky.puzzlebox.compete.assertTouchTargetsAtLeast48
+import com.ivandsky.puzzlebox.compete.domain.DuelRow
+import com.ivandsky.puzzlebox.compete.domain.DuelRowKind
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.match.SelfSeats
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.DuelRow
-import com.ivandsky.puzzlebox.domain.DuelRowKind
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Instant
 import org.junit.Rule

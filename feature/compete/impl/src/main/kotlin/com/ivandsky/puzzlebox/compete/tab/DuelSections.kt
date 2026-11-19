@@ -27,14 +27,14 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ivandsky.puzzlebox.compete.domain.DuelRow
+import com.ivandsky.puzzlebox.compete.domain.DuelRowKind
 import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.LocalMutedStatus
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.tabular
-import com.ivandsky.puzzlebox.domain.DuelRow
-import com.ivandsky.puzzlebox.domain.DuelRowKind
 
 /**
  * The Duels list's sections, in display order. Each is one card with a coloured header. [Waiting] holds both a match

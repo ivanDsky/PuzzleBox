@@ -9,9 +9,9 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import com.ivandsky.puzzlebox.compete.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.domain.UpdateMatchSeat
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.navigation.NavigationState
@@ -20,9 +20,9 @@ import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
-import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchResultOutbox
+import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
 import java.time.Instant
 import org.junit.After
 import org.junit.Before

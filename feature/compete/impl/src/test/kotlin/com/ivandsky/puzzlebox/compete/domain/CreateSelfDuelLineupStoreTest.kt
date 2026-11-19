@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain
+package com.ivandsky.puzzlebox.compete.domain
 
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.LegResult
@@ -9,6 +9,14 @@ import com.ivandsky.puzzlebox.data.match.ResultRead
 import com.ivandsky.puzzlebox.data.match.SelfSeats
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
+import com.ivandsky.puzzlebox.domain.ComputeMatchOutcome
+import com.ivandsky.puzzlebox.domain.ComputeSolvedPool
+import com.ivandsky.puzzlebox.domain.CreateOutcome
+import com.ivandsky.puzzlebox.domain.CreateSelfDuel
+import com.ivandsky.puzzlebox.domain.LegBasis
+import com.ivandsky.puzzlebox.domain.LegVerdict
+import com.ivandsky.puzzlebox.domain.MatchVerdict
+import com.ivandsky.puzzlebox.domain.SelfDuelSettings
 import com.ivandsky.puzzlebox.domain.lineup.AnyGame
 import com.ivandsky.puzzlebox.domain.lineup.ExactPuzzle
 import com.ivandsky.puzzlebox.domain.lineup.LineupEntry

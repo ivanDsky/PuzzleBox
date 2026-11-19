@@ -14,10 +14,10 @@ import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.width
+import com.ivandsky.puzzlebox.compete.domain.DuelRow
+import com.ivandsky.puzzlebox.compete.domain.DuelRowKind
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.DuelRow
-import com.ivandsky.puzzlebox.domain.DuelRowKind
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Instant
 import org.junit.Assert.assertEquals

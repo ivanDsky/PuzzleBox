@@ -16,11 +16,11 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
+import com.ivandsky.puzzlebox.compete.domain.DuelRow
+import com.ivandsky.puzzlebox.compete.domain.DuelRowKind
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.domain.DuelRow
-import com.ivandsky.puzzlebox.domain.DuelRowKind
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Instant
 import org.junit.Assert.assertEquals

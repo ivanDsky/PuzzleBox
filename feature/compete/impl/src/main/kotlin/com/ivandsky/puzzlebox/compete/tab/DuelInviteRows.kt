@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ivandsky.puzzlebox.compete.domain.DuelRow
 import com.ivandsky.puzzlebox.compete.duel.rememberCompeteTime
 import com.ivandsky.puzzlebox.compete.share.UNKNOWN_INVITER
 import com.ivandsky.puzzlebox.compete.share.inviteText
@@ -29,7 +30,6 @@ import com.ivandsky.puzzlebox.designsystem.DuelTone
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.domain.DuelRow
 import com.ivandsky.puzzlebox.resultui.PlayerAvatar
 import java.time.Instant
 

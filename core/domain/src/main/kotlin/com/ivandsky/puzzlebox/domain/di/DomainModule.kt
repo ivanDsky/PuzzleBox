@@ -24,7 +24,6 @@ import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObserveMatch
-import com.ivandsky.puzzlebox.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.RecordRevealSeen
@@ -116,9 +115,6 @@ val domainModule = module {
         )
     }
     factory { ObserveDuel(observeMatch = get(), completions = get(), savedPlays = get()) }
-    factory {
-        ObserveMyDuels(repo = get(), self = get(), outbox = get(), local = get(), identity = get(), clock = { Instant.now() })
-    }
     factory { ObserveOverall(identity = get(), completions = get()) }
     factory { ObserveFriendUids(matches = get(), identity = get()) }
     factory { GetPlayerActions(visibility = get(), completions = get()) }

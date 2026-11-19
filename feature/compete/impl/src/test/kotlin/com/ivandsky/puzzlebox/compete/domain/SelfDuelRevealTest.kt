@@ -1,6 +1,5 @@
-package com.ivandsky.puzzlebox.domain
+package com.ivandsky.puzzlebox.compete.domain
 
-import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.LegResult
@@ -10,6 +9,14 @@ import com.ivandsky.puzzlebox.data.match.MatchLeg
 import com.ivandsky.puzzlebox.data.match.ResultPostState
 import com.ivandsky.puzzlebox.data.match.ResultRead
 import com.ivandsky.puzzlebox.data.match.SelfSeats
+import com.ivandsky.puzzlebox.domain.ComputeMatchOutcome
+import com.ivandsky.puzzlebox.domain.LegReplayRead
+import com.ivandsky.puzzlebox.domain.LoadLegReplay
+import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
+import com.ivandsky.puzzlebox.domain.MatchVerdict
+import com.ivandsky.puzzlebox.domain.Outcome
+import com.ivandsky.puzzlebox.domain.SolveReplayRef
+import com.ivandsky.puzzlebox.domain.buildSelfMatch
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.Puzzle
@@ -25,6 +32,7 @@ import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchResultOutbox
+import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository

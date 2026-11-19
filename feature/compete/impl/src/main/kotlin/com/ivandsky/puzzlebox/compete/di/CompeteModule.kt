@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.compete.CompeteFlag
 import com.ivandsky.puzzlebox.compete.create.NewDuelViewModel
 import com.ivandsky.puzzlebox.compete.create.lineup.AddPuzzleViewModel
 import com.ivandsky.puzzlebox.compete.create.lineup.PAST_YOU_PICKER
+import com.ivandsky.puzzlebox.compete.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.compete.duel.DuelViewModel
 import com.ivandsky.puzzlebox.compete.reveal.RematchViewModel
 import com.ivandsky.puzzlebox.compete.reveal.RevealViewModel
@@ -23,15 +24,20 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 /**
- * Compete feature wiring. [com.ivandsky.puzzlebox.domain.ObserveMyDuels], ObserveMatch, ObserveDuel, UpdateMatchSeat,
- * RecordRevealSeen and LoadSolveReplay come from :core:domain's domainModule and the identity service from the app's aggregation; the
- * Duels tab's, the New duel sheet's, the add-puzzle searches' (a friend's, and Past you's under its own qualifier), the duel screen's, the reveal's and the rematch sheet's view models are bound
- * here (the duel screen's by its code; the reveal's by its code and the screen's reduced motion, zone and locale; the
- * rematch's by the duel it repeats). The result sync comes from the app, which binds it to the result poster. The feature's
- * release flags ([CompeteFlag]) are declared here; the view models that read them take the app's ReleaseFlags.
+ * Compete feature wiring. ObserveMatch, ObserveDuel, UpdateMatchSeat, RecordRevealSeen and LoadSolveReplay come
+ * from :core:domain's domainModule and the identity service from the app's aggregation. The Duels tab's rows
+ * ([ObserveMyDuels]), Compete's own, are defined here. The Duels tab's, the New duel sheet's, the add-puzzle
+ * searches' (a friend's, and Past you's under its own qualifier), the duel screen's, the reveal's and the rematch
+ * sheet's view models are bound here (the duel screen's by its code; the reveal's by its code and the screen's
+ * reduced motion, zone and locale; the rematch's by the duel it repeats). The result sync comes from the app, which
+ * binds it to the result poster. The feature's release flags ([CompeteFlag]) are declared here; the view models that
+ * read them take the app's ReleaseFlags.
  */
 val competeModule: Module = module {
     flagSet("compete", CompeteFlag.entries)
+    factory {
+        ObserveMyDuels(repo = get(), self = get(), outbox = get(), local = get(), identity = get(), clock = { Instant.now() })
+    }
     viewModel {
         DuelsTabViewModel(observeMyDuels = get(), updateSeat = get(), identity = get(), clock = { Instant.now() }, releaseFlags = get())
     }
