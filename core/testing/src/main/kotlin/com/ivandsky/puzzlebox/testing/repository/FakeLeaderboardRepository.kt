@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitResult
 import com.ivandsky.puzzlebox.data.leaderboard.entryComparator
 import com.ivandsky.puzzlebox.game.RankOrder
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.flow.Flow
@@ -74,6 +75,25 @@ class FakeLeaderboardRepository(
         counts.incrementAndGet()
         if (!readsAvailable) return null
         return totals[board] ?: flowOf(board).value.orEmpty().size
+    }
+
+    /** Entries that are on a board but past the page [setEntries] and the observers see, which only [fetchPlayers] reads. */
+    private val pastPage = ConcurrentHashMap<LeaderboardRef, List<LeaderboardEntry>>()
+
+    fun setPastPage(board: LeaderboardRef, entries: List<LeaderboardEntry>) {
+        pastPage[board] = entries
+    }
+
+    /** When false, `fetchPlayers` answers null though the boards read fine, like a failed friends-only read. */
+    var playersAvailable = true
+
+    /** Every [fetchPlayers] asked, in order: which board, which players. */
+    val playersFetched: MutableList<Pair<LeaderboardRef, Set<String>>> = CopyOnWriteArrayList()
+
+    override suspend fun fetchPlayers(board: LeaderboardRef, players: Set<String>): List<LeaderboardEntry>? {
+        playersFetched += board to players
+        if (!readsAvailable || !playersAvailable) return null
+        return (flowOf(board).value.orEmpty() + pastPage[board].orEmpty()).filter { it.uid in players }
     }
 
     override suspend fun submit(entry: LeaderboardEntry): SubmitResult {

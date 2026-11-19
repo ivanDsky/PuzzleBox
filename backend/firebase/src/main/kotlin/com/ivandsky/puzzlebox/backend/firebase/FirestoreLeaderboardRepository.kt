@@ -71,6 +71,15 @@ internal class FirestoreLeaderboardRepository(
         return softNull { store.count(board.boardId).toInt() }
     }
 
+    override suspend fun fetchPlayers(board: LeaderboardRef, players: Set<String>): List<LeaderboardEntry>? {
+        if (currentUid() == null) return null
+        return softNull {
+            players.chunked(FirestoreLeaderboardStore.MAX_IN_IDS)
+                .flatMap { store.fetchEntriesOf(board.boardId, it) }
+                .mapNotNull(LeaderboardDocCodec::decode)
+        }
+    }
+
     /** A7/A14: a failed one-shot read is a soft null, never an error across the seam. */
     private inline fun <T> softNull(read: () -> T): T? = try {
         read()

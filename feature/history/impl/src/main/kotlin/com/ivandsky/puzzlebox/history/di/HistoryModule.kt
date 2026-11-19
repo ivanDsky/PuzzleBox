@@ -1,7 +1,11 @@
 package com.ivandsky.puzzlebox.history.di
 
 import com.ivandsky.puzzlebox.common.di.flagSet
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
+import com.ivandsky.puzzlebox.domain.ranks.LoadFriendsPastPage
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendBoards
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.history.domain.ranks.GetPlayerActions
@@ -33,14 +37,23 @@ val historyModule = module {
 
     // The LinkedIn flag and where the hub opens arrive as parameters, so a graph without LinkedIn bindings builds the hub with it off (ghosts read nothing).
     // On, the hub's Friends boards are domainModule's, the ones Friends Overall gets; off, the same boards count no connection.
+    // With HistoryFlag.FriendsPastGlobalPage on they are built here instead, to read the friends a full global page leaves out.
     viewModel { params ->
         val opening = (params.getOrNull<RanksSelection>() ?: RanksSelection()).landing(rankBoards(get<GameRegistry>()), get<GameCalendar>()::today)
         val withLinkedIn = params.getOrNull<Boolean>() == true
+        val releaseFlags = get<ReleaseFlags>()
+        val friendsPast = if (releaseFlags.isEnabled(HistoryFlag.FriendsPastGlobalPage)) LoadFriendsPastPage(get<LeaderboardRepository>()) else null
         RanksViewModel(
             get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
-            friendBoards = if (withLinkedIn) get() else ObserveFriendBoards(observeFriendUids = get(), identity = get(), completions = get(), linkedIn = null),
+            friendBoards = when {
+                friendsPast != null -> ObserveFriendBoards(
+                    observeFriendUids = get(), identity = get(), completions = get(), linkedIn = if (withLinkedIn) get() else null, friendsPast = friendsPast,
+                )
+                withLinkedIn -> get()
+                else -> ObserveFriendBoards(observeFriendUids = get(), identity = get(), completions = get(), linkedIn = null)
+            },
             linkedIn = if (withLinkedIn) get() else null,
-            releaseFlags = get(),
+            releaseFlags = releaseFlags,
             savedState = get(),
             opening = opening,
         )
