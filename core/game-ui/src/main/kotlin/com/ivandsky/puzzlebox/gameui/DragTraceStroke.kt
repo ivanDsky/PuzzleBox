@@ -111,9 +111,26 @@ internal class DragTraceStroke(
         }
     }
 
-    /** Follows [finger] from the tail until neither a step back nor a step forward is due. */
+    /** Follows [finger] from the tail until neither a step back, a cut nor a step forward is due. */
     private fun steer(finger: Offset) {
-        while (path.isNotEmpty() && (stepBack(finger) || stepForward(finger))) Unit
+        while (path.isNotEmpty() && (stepBack(finger) || cutBack(finger) || stepForward(finger))) Unit
+    }
+
+    /**
+     * The finger comes back nearly to the middle of an earlier cell beside the tail that the hooks
+     * let it cut to ([DragTraceHooks.cutFrom], ticket 1585): the line is cut back there. The cell before
+     * the tail is [stepBack]'s; the geometry is checked first so the hooks are asked rarely.
+     */
+    private fun cutBack(finger: Offset): Boolean {
+        val tail = path.last()
+        val offset = offsetFromTail(finger, tail)
+        val target = neighbour(tail, horizontal = abs(offset.x) >= abs(offset.y), offset = offset)
+        if (!nearlyAtMiddle(finger, of = target, from = tail)) return false
+        val index = path.indexOf(target)
+        if (index < 0 || index >= path.lastIndex - 1 || index < hooks.cutFrom(path)) return false
+        path = path.take(index + 1)
+        emit(DragEvent.Retract(index))
+        return true
     }
 
     private fun stepBack(finger: Offset): Boolean {
