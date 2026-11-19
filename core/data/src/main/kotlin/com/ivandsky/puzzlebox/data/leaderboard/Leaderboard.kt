@@ -125,6 +125,13 @@ interface LeaderboardRepository {
     /** N alone — for an open board whose live page is at the cap; null when signed out or failed. */
     suspend fun count(board: LeaderboardRef): Int?
 
+    /**
+     * The entries [players] have on [board], wherever they place on it (the page [fetch] reads stops at
+     * [BoardPage.PAGE_SIZE]), unranked; a player with none is absent. Server only: null when signed out, offline or
+     * the read failed, never a cached or empty stand-in. Costs one read per entry found, and at least one per 30 players.
+     */
+    suspend fun fetchPlayers(board: LeaderboardRef, players: Set<String>): List<LeaderboardEntry>?
+
     suspend fun submit(entry: LeaderboardEntry): SubmitResult
 }
 

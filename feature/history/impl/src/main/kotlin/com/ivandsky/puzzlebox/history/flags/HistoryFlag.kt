@@ -18,6 +18,13 @@ enum class HistoryFlag(override val label: String, override val releaseDefault: 
     WeekMonthPoints(label = "Week and Month boards add up daily points", releaseDefault = false),
 
     /**
+     * The Ranks hub's Friends boards (Day, Week, Month, Overall and the viewer's place) also count a friend who placed
+     * past the global page, read for each board whose top 100 is full (backlog #1767). Off, such a friend is missing,
+     * as before. Read only in a ViewModel or a DI module (ADR-0022 §3).
+     */
+    FriendsPastGlobalPage(label = "Friends boards count friends past the top 100", releaseDefault = false),
+
+    /**
      * Ranks gets a third filter, Games (backlog #1707): All games, or LinkedIn games only, so Overall and the game list can
      * leave Strands out. It combines with Who and When and can be saved as a default. Read only in a ViewModel or a DI
      * module (ADR-0022 §3).

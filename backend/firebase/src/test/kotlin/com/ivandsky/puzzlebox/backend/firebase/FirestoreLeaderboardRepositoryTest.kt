@@ -96,6 +96,16 @@ class FirestoreLeaderboardRepositoryTest {
             return total ?: docs.value[boardId].orEmpty().size.toLong()
         }
 
+        /** Each [fetchEntriesOf] asked, in order: which board, which uids. */
+        val fetchedOf = mutableListOf<Pair<String, List<String>>>()
+
+        override suspend fun fetchEntriesOf(boardId: String, uids: List<String>): List<Map<String, Any?>> {
+            require(uids.size <= FirestoreLeaderboardStore.MAX_IN_IDS)
+            fetchedOf += boardId to uids
+            fetchError?.let { throw it }
+            return docs.value[boardId].orEmpty().filter { it["uid"] in uids }
+        }
+
         override suspend fun createIfAbsent(
             boardId: String,
             uid: String,
@@ -431,5 +441,53 @@ class FirestoreLeaderboardRepositoryTest {
 
         store.countError = FirebaseNetworkException("offline")
         assertNull(repository.count(board))
+    }
+
+    // ----- fetchPlayers -----
+
+    @Test
+    fun `signed out fetchPlayers is null without touching the backend`() = runTest {
+        val store = FakeStore()
+        val repository = FirestoreLeaderboardRepository(store, currentUid = { null })
+
+        assertNull(repository.fetchPlayers(board, setOf("u1")))
+        assertTrue(store.fetchedOf.isEmpty())
+    }
+
+    @Test
+    fun `fetchPlayers decodes only the entries asked for, past a full page too, and drops malformed ones`() = runTest {
+        val store = FakeStore()
+        store.docs.value = mapOf(board.boardId to (1..100).map { doc(entry(uid = "u$it", timeMs = 1_000L * it)) } + doc(entry(uid = "bea", timeMs = 200_000)) + mapOf("uid" to "cy"))
+        val repository = FirestoreLeaderboardRepository(store, currentUid = { "me" })
+
+        val entries = repository.fetchPlayers(board, setOf("bea", "cy", "nobody"))!!
+
+        assertEquals(listOf("bea"), entries.map { it.uid })
+        assertEquals(listOf(board.boardId to listOf("bea", "cy", "nobody")), store.fetchedOf.map { (id, uids) -> id to uids.sorted() })
+    }
+
+    @Test
+    fun `fetchPlayers asks for at most 30 ids at a time, because that is what a Firestore in query takes`() = runTest {
+        val store = FakeStore()
+        val players = (1..65).map { "u$it" }
+        store.docs.value = mapOf(board.boardId to players.map { doc(entry(uid = it)) })
+        val repository = FirestoreLeaderboardRepository(store, currentUid = { "me" })
+
+        val entries = repository.fetchPlayers(board, players.toSet())!!
+
+        assertEquals(listOf(30, 30, 5), store.fetchedOf.map { it.second.size })
+        assertEquals(players.toSet(), entries.map { it.uid }.toSet())
+    }
+
+    @Test
+    fun `fetchPlayers makes no query for nobody and is null when the read fails`() = runTest {
+        val store = FakeStore()
+        val repository = FirestoreLeaderboardRepository(store, currentUid = { "me" })
+
+        assertEquals(emptyList<LeaderboardEntry>(), repository.fetchPlayers(board, emptySet()))
+        assertTrue(store.fetchedOf.isEmpty())
+
+        store.fetchError = FirebaseNetworkException("offline")
+        assertNull(repository.fetchPlayers(board, setOf("bea")))
     }
 }

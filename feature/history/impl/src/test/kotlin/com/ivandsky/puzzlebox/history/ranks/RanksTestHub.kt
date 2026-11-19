@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
+import com.ivandsky.puzzlebox.domain.ranks.LoadFriendsPastPage
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendBoards
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendsOverall
@@ -25,6 +26,7 @@ import com.ivandsky.puzzlebox.history.domain.ranks.ObserveWindowRefresh
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.history.HistoryTestSupport
+import com.ivandsky.puzzlebox.history.flags.HistoryFlag
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -41,6 +43,7 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Clock
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import java.time.Duration
 import java.time.Instant
@@ -139,8 +142,13 @@ internal class RanksTestHub(
             registry = registry,
             daily = daily,
             clock = clock,
-            // As historyModule wires it: off, the same boards count no connection.
-            friendBoards = if (linkedIn) linkedInFriendBoards else ObserveFriendBoards(ObserveFriendUids(matches, this.identity), this.identity, completions, linkedIn = null),
+            // As historyModule wires it: off, the same boards count no connection; with FriendsPastGlobalPage on they also read the friends a full page leaves out.
+            friendBoards = when {
+                releaseFlags.isEnabled(HistoryFlag.FriendsPastGlobalPage) ->
+                    ObserveFriendBoards(ObserveFriendUids(matches, this.identity), this.identity, completions, linkedInView().takeIf { linkedIn }, LoadFriendsPastPage(leaderboard))
+                linkedIn -> linkedInFriendBoards
+                else -> ObserveFriendBoards(ObserveFriendUids(matches, this.identity), this.identity, completions, linkedIn = null)
+            },
             linkedIn = linkedInView().takeIf { linkedIn },
             releaseFlags = releaseFlags,
             savedState = savedState,

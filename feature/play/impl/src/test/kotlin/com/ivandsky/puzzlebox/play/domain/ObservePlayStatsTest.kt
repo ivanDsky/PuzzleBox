@@ -87,6 +87,7 @@ class ObservePlayStatsTest {
             override fun observe(board: LeaderboardRef, order: RankOrder): Flow<LeaderboardSnapshot?> = emptyFlow()
             override suspend fun fetch(board: LeaderboardRef, order: RankOrder): BoardPage? = error("unused")
             override suspend fun count(board: LeaderboardRef): Int? = error("unused")
+            override suspend fun fetchPlayers(board: LeaderboardRef, players: Set<String>): List<LeaderboardEntry>? = error("unused")
             override suspend fun submit(entry: LeaderboardEntry): SubmitResult = error("unused")
         }
 

@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.backend.firebase
 
 import com.google.firebase.firestore.AggregateSource
+import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.MetadataChanges
@@ -33,6 +34,12 @@ internal interface LeaderboardStore {
      */
     suspend fun fetchEntries(boardId: String, order: RankOrder): List<Map<String, Any?>>
 
+    /**
+     * The docs of [uids] (the entries' own ids) on one board, from the server only like [fetchEntries], wherever they
+     * place: a doc-id `in` query, so at most [FirestoreLeaderboardStore.MAX_IN_IDS] ids, and it bills a read per doc found.
+     */
+    suspend fun fetchEntriesOf(boardId: String, uids: List<String>): List<Map<String, Any?>>
+
     /** Server-side count of the whole board (a billed aggregate, not a document read per row). */
     suspend fun count(boardId: String): Long
 
@@ -53,6 +60,11 @@ internal class FirestoreLeaderboardStore : LeaderboardStore {
 
     override suspend fun fetchEntries(boardId: String, order: RankOrder): List<Map<String, Any?>> =
         page(boardId, order).get(Source.SERVER).await().documents.map { it.data.orEmpty() }
+
+    override suspend fun fetchEntriesOf(boardId: String, uids: List<String>): List<Map<String, Any?>> {
+        require(uids.size <= MAX_IN_IDS) { "an in query takes at most $MAX_IN_IDS ids" }
+        return entries(boardId).whereIn(FieldPath.documentId(), uids).get(Source.SERVER).await().documents.map { it.data.orEmpty() }
+    }
 
     override suspend fun count(boardId: String): Long =
         entries(boardId).count().get(AggregateSource.SERVER).await().count
@@ -95,5 +107,8 @@ internal class FirestoreLeaderboardStore : LeaderboardStore {
         const val COLLECTION = "leaderboards"
         const val ENTRIES = "entries"
         const val MAX_BOARD_SIZE = BoardPage.PAGE_SIZE.toLong()
+
+        /** Firestore's cap on the values of one `in` filter. */
+        const val MAX_IN_IDS = 30
     }
 }
