@@ -88,7 +88,8 @@ private const val SLOT_SCALE_MAX = 0.62f
 /**
  * One digit key: the digit over its remaining count, or over "×[placed]" when [placed] is set
  * (the editor; the exhausted look still follows [remaining]). The digit alone in a key under
- * 40dp. A fully placed digit greys out but stays clickable (A10), so a player can still
+ * 40dp, or when [counted] is false (the Trainer's picker, where a tally means nothing, so the key reads as the
+ * bare digit too). A fully placed digit greys out but stays clickable (A10), so a player can still
  * overwrite a wrong cell with it. In notes
  * mode the key turns outlined and the digit shrinks into the slot its pencil mark takes in
  * a cell (slot `d - 1` of the box-shaped notes grid), a look no board tint shares (V7).
@@ -110,6 +111,7 @@ internal fun SudokuDigitKey(
     modifier: Modifier = Modifier,
     placed: Int? = null,
     pencilLook: Boolean = false,
+    counted: Boolean = true,
 ) {
     val scheme = MaterialTheme.colorScheme
     val exhausted = remaining == 0
@@ -140,7 +142,7 @@ internal fun SudokuDigitKey(
         label = "digitKeyNotesMorph",
     )
     val italic by remember(pencilLook) { derivedStateOf { pencilLook && morph.value >= PENCIL_FLIP_AT } }
-    val label = if (placed == null) digitKeyLabel(digit, remaining, notesMode) else digit.toString()
+    val label = if (placed == null && counted) digitKeyLabel(digit, remaining, notesMode) else digit.toString()
     val shape = MaterialTheme.shapes.medium
 
     Box(
@@ -164,6 +166,7 @@ internal fun SudokuDigitKey(
             ),
             pencilLook = pencilLook,
             count = if (placed == null) remaining.toString() else "×$placed",
+            counted = counted,
             countStyle = MaterialTheme.typography.labelSmall.copy(fontFeatureSettings = TABULAR_FIGURES),
             color = content,
             morph = { morph.value },
@@ -186,6 +189,7 @@ private fun DigitOverCount(
     count: String,
     countStyle: TextStyle,
     color: Color,
+    counted: Boolean,
     morph: () -> Float,
 ) {
     Layout(
@@ -203,7 +207,7 @@ private fun DigitOverCount(
         val countFigure = countStyle.fontSize.toPx() * FIGURE_HEIGHT_EM
         val width = if (constraints.hasBoundedWidth) constraints.maxWidth else maxOf(digitText.width, countText.width)
         val height = if (constraints.hasBoundedHeight) constraints.maxHeight else maxOf(constraints.minHeight, 48.dp.roundToPx())
-        val showCount = height >= COUNT_MIN_KEY_HEIGHT.toPx()
+        val showCount = counted && height >= COUNT_MIN_KEY_HEIGHT.toPx()
         val block = if (showCount) digitFigure + LINE_GAP.toPx() + countFigure else digitFigure
         val digitBaseline = (height - block) / 2 + digitFigure
         val countBaseline = digitBaseline + LINE_GAP.toPx() + countFigure

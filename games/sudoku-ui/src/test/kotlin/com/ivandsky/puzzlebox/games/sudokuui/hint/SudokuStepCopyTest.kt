@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.games.sudoku.engine.hints.SudokuHint
 import com.ivandsky.puzzlebox.games.sudoku.engine.hints.SudokuTechnique
 import com.ivandsky.puzzlebox.games.sudoku.engine.hints.step.SudokuStep
 import com.ivandsky.puzzlebox.games.sudoku.engine.hints.step.emittedEliminationTechniques
+import com.ivandsky.puzzlebox.games.sudoku.engine.trainer.SudokuTechniqueIds
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -235,5 +236,45 @@ class SudokuStepCopyTest {
     @Test
     fun `a solved board has no callout`() {
         assertTrue(runCatching { text(SudokuStep.Solved) }.isFailure)
+    }
+
+    @Test
+    fun `a technique's generic line is its sentence with no digit, unit or cell named`() {
+        val byName = SudokuTechniqueIds.all.associate { it.value to SudokuStepCopy.technique(it) }
+
+        assertEquals(
+            mapOf(
+                "last-cell" to "This line has one cell left, and it needs a certain digit",
+                "hidden-single-box" to "In this box only this cell can take a certain digit (hidden single)",
+                "hidden-single-line" to "In this line only this cell can take a certain digit (hidden single)",
+                "naked-single" to "It sees every other digit, so it is the one left (naked single)",
+                "pointing" to "This box puts its digit in a line, so the rest of that line can't take it (pointing)",
+                "claiming" to "This line puts its digit in this box, so the rest of the box can't take it (claiming)",
+                "naked-pair" to "These two cells only take two digits, so the rest of this line loses both (naked pair)",
+                "hidden-pair" to "Two digits only fit these two cells, so they take nothing else (hidden pair)",
+            ),
+            byName,
+        )
+    }
+
+    @Test
+    fun `a generic line is the hint's sentence for a sample step with its facts left out`() {
+        val steps = everyStep()
+        val box = text(steps.getValue("HIDDEN_SINGLE_BOX"))
+
+        assertEquals(SudokuStepCopy.technique(SudokuTechniqueIds.byTechnique.getValue(SudokuTechnique.HIDDEN_SINGLE_BOX)), box.replace("4", "a certain digit"))
+        for ((name, technique) in listOf("POINTING" to SudokuTechnique.POINTING, "CLAIMING" to SudokuTechnique.CLAIMING, "NAKED_PAIR" to SudokuTechnique.NAKED_PAIR, "HIDDEN_PAIR" to SudokuTechnique.HIDDEN_PAIR, "NAKED_SINGLE" to SudokuTechnique.NAKED_SINGLE)) {
+            val tag = text(steps.getValue(name)).substringAfterLast(" (")
+            assertTrue("$name keeps its tag in the generic line", SudokuStepCopy.technique(SudokuTechniqueIds.byTechnique.getValue(technique)).endsWith(" ($tag"))
+        }
+    }
+
+    @Test
+    fun `every listed technique has a generic line within the technique list's budget`() {
+        for (id in SudokuTechniqueIds.all) {
+            val line = SudokuStepCopy.technique(id)
+            assertFalse("${id.value} is one line", '\n' in line)
+            assertTrue("${id.value} is ${line.length} chars: $line", line.length <= 90)
+        }
     }
 }

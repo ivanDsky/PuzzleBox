@@ -8,15 +8,19 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
 /**
  * The engine's own candidate masks. They come from the givens and the correct entries only:
  * the player's notes are never read, so a hint stays sound even when the notes are wrong.
+ * A mask holds digit `d` as bit `d - 1`.
  */
-internal object SudokuCandidates {
+object SudokuCandidates {
 
-    /** A mask per cell: every digit no known peer holds, or 0 for a cell whose digit is known. */
+    /**
+     * A mask per cell of [board]: every digit no known peer holds, or 0 for a cell whose digit is known. A trainer
+     * snippet shows these as its notes, so the move check and the board read one rule.
+     */
     fun of(puzzle: SudokuPuzzle, board: SudokuBoard): IntArray =
         ofKnown(puzzle.geometry, IntArray(puzzle.geometry.cellCount) { idx -> knownDigit(puzzle, board.cells[idx], idx) })
 
     /** [of] over digits already known per cell (0 = open), with no solution to check against. */
-    fun ofKnown(geometry: SudokuGeometry, known: IntArray): IntArray {
+    internal fun ofKnown(geometry: SudokuGeometry, known: IntArray): IntArray {
         val full = (1 shl geometry.size) - 1
         return IntArray(geometry.cellCount) { idx ->
             if (known[idx] != 0) {

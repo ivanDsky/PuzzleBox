@@ -9,7 +9,7 @@ import com.ivandsky.puzzlebox.games.sudoku.engine.hints.step.SudokuStep
  * and never read from enum names). One mapper because Last cell is no [SudokuTechnique]: it is a
  * single the stepper found as the only empty cell of a unit.
  */
-internal object SudokuTechniqueIds {
+object SudokuTechniqueIds {
 
     /** The eight ids in stepper order: last cell, the three singles, then the four eliminations. */
     val all: List<TechniqueId> = listOf(
@@ -23,9 +23,11 @@ internal object SudokuTechniqueIds {
         TechniqueId("hidden-pair"),
     )
 
-    private val lastCell = all[0]
+    /** The id of a single the stepper found as the only empty cell of a unit; no [SudokuTechnique] carries it. */
+    val lastCell: TechniqueId = all[0]
 
-    private val byTechnique: Map<SudokuTechnique, TechniqueId> = mapOf(
+    /** The id of each technique the stepper emits (the triples have none). */
+    val byTechnique: Map<SudokuTechnique, TechniqueId> = mapOf(
         SudokuTechnique.HIDDEN_SINGLE_BOX to all[1],
         SudokuTechnique.HIDDEN_SINGLE_LINE to all[2],
         SudokuTechnique.NAKED_SINGLE to all[3],
