@@ -41,8 +41,9 @@ internal class ObserveStatsPage(
     private val computePeriodFacts: ComputePeriodFacts,
     private val calendar: GameCalendar,
     private val registry: GameRegistry,
+    rankHistory: StatsSectionProvider,
     vsFriends: StatsSectionProvider,
-    private val providers: List<StatsSectionProvider> = statsSectionProviders(vsFriends),
+    private val providers: List<StatsSectionProvider> = statsSectionProviders(rankHistory, vsFriends),
     private val failures: FailureLog = LogcatFailureLog,
 ) {
 

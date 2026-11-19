@@ -24,11 +24,12 @@ class ObserveStatsPageTest {
 
     private val noFriends = StatsSectionProvider { flowOf(null) }
 
-    private fun observe(providers: List<StatsSectionProvider> = statsSectionProviders(noFriends)) = ObserveStatsPage(
+    private fun observe(providers: List<StatsSectionProvider> = statsSectionProviders(noFriends, noFriends)) = ObserveStatsPage(
         observeGameHistory = fixture.observeHistory,
         computePeriodFacts = fixture.computePeriodFacts,
         calendar = fixture.calendar,
         registry = fixture.registry,
+        rankHistory = noFriends,
         vsFriends = noFriends,
         providers = providers,
         failures = failures,

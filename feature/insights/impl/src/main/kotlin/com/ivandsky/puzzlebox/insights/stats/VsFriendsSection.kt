@@ -35,12 +35,7 @@ import java.util.Locale
 internal fun VsFriendsSection(state: SectionState<VsFriendsStanding>, gameName: (GameId) -> String, singleGame: Boolean, modifier: Modifier = Modifier) {
     val locked = (state as? SectionState.Ready)?.value as? VsFriendsStanding.Locked
     if (locked != null) {
-        Text(
-            text = locked.unlock.line(),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = modifier.fillMaxWidth().testTag("stats.vsFriends.locked"),
-        )
+        StatsUnlockLine(locked.unlock.line(), "stats.vsFriends.locked", modifier)
         return
     }
     StatsSectionFrame(title = "Vs friends", state = state, tag = "stats.vsFriends", modifier = modifier) { standing ->

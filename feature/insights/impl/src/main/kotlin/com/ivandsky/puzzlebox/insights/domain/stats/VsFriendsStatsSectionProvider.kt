@@ -7,7 +7,6 @@ import com.ivandsky.puzzlebox.domain.guardedAsk
 import com.ivandsky.puzzlebox.domain.ranks.OverallState
 import com.ivandsky.puzzlebox.insights.domain.recap.FriendsOverallRead
 import com.ivandsky.puzzlebox.insights.domain.recap.ResolveFriendsStanding
-import com.ivandsky.puzzlebox.insights.domain.recap.rows
 import com.ivandsky.puzzlebox.insights.domain.recap.settledEach
 import kotlin.time.Duration
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -71,14 +70,12 @@ internal class VsFriendsStatsSectionProvider(
     private suspend fun compare(input: StatsInput, viewer: String): SectionState<VsFriendsStanding?> {
         val games = input.facts.scope?.let(::listOf) ?: input.games
         val reads = friendsOverall.settledEach(input.range.friendsWindow(input.today), games)
-        val states = reads.map { it.second }
-        val rows = states.flatMap { it.rows() }
-        return when {
-            OverallState.SignedOut in states -> SectionState.Ready(VsFriendsStanding.Locked(VsFriendsStanding.Unlock.SignIn))
-            states.any { it !is OverallState.Complete && it != OverallState.Empty } -> SectionState.Unavailable
-            rows.isEmpty() -> SectionState.Ready(null)
-            rows.all { it.uid == viewer } -> SectionState.Ready(VsFriendsStanding.Locked(VsFriendsStanding.Unlock.AddFriends))
-            else -> SectionState.Ready(VsFriendsStanding.Ranked.of(reads.mapNotNull { (game, state) -> (state as? OverallState.Complete)?.let { game to it.standings } }, viewer))
+        return when (reads.map { it.second }.friendsPresence(viewer)) {
+            FriendsPresence.SignedOut -> SectionState.Ready(VsFriendsStanding.Locked(VsFriendsStanding.Unlock.SignIn))
+            FriendsPresence.Unreadable -> SectionState.Unavailable
+            FriendsPresence.NoBoards -> SectionState.Ready(null)
+            FriendsPresence.Alone -> SectionState.Ready(VsFriendsStanding.Locked(VsFriendsStanding.Unlock.AddFriends))
+            FriendsPresence.WithFriends -> SectionState.Ready(VsFriendsStanding.Ranked.of(reads.mapNotNull { (game, state) -> (state as? OverallState.Complete)?.let { game to it.standings } }, viewer))
         }
     }
 
