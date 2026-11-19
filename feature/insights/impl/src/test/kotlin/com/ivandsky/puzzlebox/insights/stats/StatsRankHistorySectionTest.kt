@@ -32,7 +32,7 @@ class StatsRankHistorySectionTest {
     @get:Rule
     val rule = createAndroidComposeRule<ComponentActivity>()
 
-    private fun show(state: SectionState<RankHistoryStanding>, game: GameId? = null, scrollTo: String = "stats.rankHistory") {
+    private fun show(state: SectionState<RankHistoryStanding>, game: GameId = StatsFixtures.zip, scrollTo: String = "stats.rankHistory") {
         rule.setContent {
             PuzzleBoxTheme {
                 StatsScreen(
@@ -56,16 +56,7 @@ class StatsRankHistorySectionTest {
         rule.onNodeWithText("Rank history").assertIsDisplayed()
         rule.onNodeWithTag("stats.rankHistory.line").assertIsDisplayed()
         rule.onNodeWithTag("stats.rankHistory.caption").assertTextContains("among your friends that week", substring = true)
-        rule.onNodeWithTag("stats.rankHistory.caption").assertTextContains("all games added up", substring = true)
         rule.onAllNodesWithTag("stats.rankHistory.single").assertCountEquals(0)
-    }
-
-    @Test
-    fun `a single game's page does not say games are added up`() {
-        show(SectionState.Ready(StatsFixtures.rankHistory), game = StatsFixtures.zip)
-
-        rule.onNodeWithTag("stats.rankHistory.caption").assertTextContains("Friends points per day, among your friends that week")
-        rule.onAllNodesWithText("all games added up", substring = true).assertCountEquals(0)
     }
 
     @Test

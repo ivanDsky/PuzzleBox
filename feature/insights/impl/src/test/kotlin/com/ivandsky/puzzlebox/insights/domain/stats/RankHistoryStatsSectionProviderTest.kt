@@ -26,7 +26,7 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** The rank history section: kept weeks per game, summed on the all-games page, ignoring the range, and every way a page without kept weeks can end. */
+/** The rank history section: kept weeks per game (none on the all-games page), ignoring the range, and every way a page without kept weeks can end. */
 class RankHistoryStatsSectionProviderTest {
 
     private val f = StatsSeriesFixture()
@@ -77,17 +77,16 @@ class RankHistoryStatsSectionProviderTest {
     }
 
     @Test
-    fun `the all-games page adds the games' points per day for each week`() = runTest {
-        val provider = f.rankHistory(
-            kept = listOf(kept(alpha, "2026-11-02", 60.0), kept(beta, "2026-11-02", 15.0), kept(beta, "2026-11-09", 40.0)),
-        )
+    fun `the all-games page has no rank history section, signed in or out, and reads nothing`() = runTest {
+        val kept = listOf(kept(alpha, "2026-11-02", 60.0), kept(beta, "2026-11-02", 15.0))
 
-        val section = provider.settled(input())
-
-        assertEquals(
-            Kept(listOf(Kept.Week(LocalDate.of(2026, 11, 2), 75.0), Kept.Week(LocalDate.of(2026, 11, 9), 40.0))),
-            section.ready(),
-        )
+        for (viewer in listOf(Identity("me", "Me", null), null)) {
+            f.rankHistory(viewer = viewer, kept = kept, friendsOverall = friends(standings("me", "maya"))).section(input()).test {
+                assertEquals(null, awaitItem())
+                awaitComplete()
+            }
+        }
+        assertEquals(emptyList<Any>(), reads)
     }
 
     @Test
@@ -102,9 +101,9 @@ class RankHistoryStatsSectionProviderTest {
     @Test
     fun `the range does not change what it asks nor its answer`() = runTest {
         val provider = f.rankHistory(kept = listOf(kept(alpha, "2026-11-02", 60.0), kept(beta, "2026-11-02", 15.0)))
-        val week = input(StatsRange.Week)
-        val month = input(StatsRange.Month)
-        val all = input(StatsRange.All)
+        val week = input(StatsRange.Week, alpha)
+        val month = input(StatsRange.Month, alpha)
+        val all = input(StatsRange.All, alpha)
 
         assertEquals(provider.readKey(week), provider.readKey(month))
         assertEquals(provider.readKey(month), provider.readKey(all))
@@ -124,7 +123,7 @@ class RankHistoryStatsSectionProviderTest {
 
     @Test
     fun `signed out is one plain line asking to sign in, with no read`() = runTest {
-        val section = f.rankHistory(viewer = null, friendsOverall = friends(standings("me", "maya"))).settled(input())
+        val section = f.rankHistory(viewer = null, friendsOverall = friends(standings("me", "maya"))).settled(input(scope = alpha))
 
         assertEquals(Locked(Unlock.SignIn), section.ready())
         assertEquals(emptyList<Any>(), reads)
@@ -134,7 +133,7 @@ class RankHistoryStatsSectionProviderTest {
     fun `nothing kept and friends on the boards is no weeks yet, after loading`() = runTest {
         val provider = f.rankHistory(friendsOverall = friends(standings("me", "maya")))
 
-        provider.section(input()).test {
+        provider.section(input(scope = alpha)).test {
             assertEquals(StatsSection.RankHistory(SectionState.Loading), awaitItem())
             assertEquals(StatsSection.RankHistory(SectionState.Ready(Kept(emptyList()))), awaitItem())
             cancelAndIgnoreRemainingEvents()
@@ -144,21 +143,21 @@ class RankHistoryStatsSectionProviderTest {
 
     @Test
     fun `nothing kept and nobody on the boards but the viewer is one plain line asking to add friends`() = runTest {
-        val section = f.rankHistory(friendsOverall = friends(standings("me"))).settled(input())
+        val section = f.rankHistory(friendsOverall = friends(standings("me"))).settled(input(scope = alpha))
 
         assertEquals(Locked(Unlock.AddFriends), section.ready())
     }
 
     @Test
     fun `nothing kept and no board at all is no weeks yet`() = runTest {
-        val section = f.rankHistory(friendsOverall = friends(OverallState.Empty)).settled(input())
+        val section = f.rankHistory(friendsOverall = friends(OverallState.Empty)).settled(input(scope = alpha))
 
         assertEquals(Kept(emptyList()), section.ready())
     }
 
     @Test
     fun `nothing kept and offline is Can't load right now`() = runTest {
-        val section = f.rankHistory(friendsOverall = friends(OverallState.Offline(null))).settled(input())
+        val section = f.rankHistory(friendsOverall = friends(OverallState.Offline(null))).settled(input(scope = alpha))
 
         assertEquals(SectionState.Unavailable, section.state)
     }
@@ -167,7 +166,7 @@ class RankHistoryStatsSectionProviderTest {
     fun `nothing kept and a partial read is Can't load right now`() = runTest {
         val partial = OverallState.Partial(OverallStandings(emptyList()), loaded = 1, total = 2)
 
-        assertEquals(SectionState.Unavailable, f.rankHistory(friendsOverall = friends(partial)).settled(input()).state)
+        assertEquals(SectionState.Unavailable, f.rankHistory(friendsOverall = friends(partial)).settled(input(scope = alpha)).state)
     }
 
     @Test
@@ -175,8 +174,8 @@ class RankHistoryStatsSectionProviderTest {
         val failing = f.rankHistory(warnings = warnings) { _, _ -> flow { throw IOException("down") } }
         val hanging = f.rankHistory(timeout = 1.seconds) { _, _ -> flow { awaitCancellation() } }
 
-        assertEquals(SectionState.Unavailable, failing.settled(input()).state)
-        assertEquals(SectionState.Unavailable, hanging.settled(input()).state)
+        assertEquals(SectionState.Unavailable, failing.settled(input(scope = alpha)).state)
+        assertEquals(SectionState.Unavailable, hanging.settled(input(scope = alpha)).state)
         assertEquals(1, warnings.size)
     }
 

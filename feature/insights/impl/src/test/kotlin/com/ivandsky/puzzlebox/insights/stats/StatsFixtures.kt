@@ -103,9 +103,8 @@ internal object StatsFixtures {
                 StatsSection.Records(SectionState.Ready(records)),
                 StatsSection.HintFreeRate(SectionState.Ready(hintFree)),
                 StatsSection.Weekday(SectionState.Ready(weekday)),
-                StatsSection.RankHistory(rankHistory),
                 StatsSection.VsFriends(vsFriends),
-            ),
+            ).let { sections -> if (game == null) sections else sections.toMutableList().apply { add(size - 1, StatsSection.RankHistory(rankHistory)) } },
         ),
     )
 }

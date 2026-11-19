@@ -20,9 +20,9 @@ private fun week(dayOfMonth: Int, pointsPerDay: Double) = RankHistoryStanding.Ke
 private val SeveralWeeks = RankHistoryStanding.Kept(listOf(week(2, 142.5), week(9, 98.0), week(16, 171.25), week(23, 203.0)))
 
 @Composable
-private fun Section(state: SectionState<RankHistoryStanding>, singleGame: Boolean = true) = PuzzleBoxTheme {
+private fun Section(state: SectionState<RankHistoryStanding>) = PuzzleBoxTheme {
     Surface(color = MaterialTheme.colorScheme.background) {
-        RankHistorySection(state, singleGame, Modifier.padding(16.dp))
+        RankHistorySection(state, Modifier.padding(16.dp))
     }
 }
 
@@ -37,10 +37,6 @@ private fun RankHistoryOneWeekPreview() = Section(SectionState.Ready(RankHistory
 @PuzzleBoxPreviews
 @Composable
 private fun RankHistorySeveralWeeksPreview() = Section(SectionState.Ready(SeveralWeeks))
-
-@PuzzleBoxPreviews
-@Composable
-private fun RankHistoryAllGamesPreview() = Section(SectionState.Ready(SeveralWeeks), singleGame = false)
 
 @PuzzleBoxPreviews
 @Composable

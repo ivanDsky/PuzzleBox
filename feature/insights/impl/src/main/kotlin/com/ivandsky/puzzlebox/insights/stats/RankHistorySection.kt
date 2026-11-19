@@ -20,17 +20,17 @@ import java.util.Locale
  * from 2 weeks and as one number with 1 (A14). Each value reads "among your friends that week" (A19): a week is what
  * it was when kept. With no week kept yet it says when they start to appear. While it loads or cannot load it is the
  * usual titled frame with its quiet line (A16). Signed out, or with no friends, the section is replaced by one plain
- * line, with no title, saying what unlocks it. [singleGame] is true on a single game's page; the all-games page adds the games up.
+ * line, with no title, saying what unlocks it.
  */
 @Composable
-internal fun RankHistorySection(state: SectionState<RankHistoryStanding>, singleGame: Boolean, modifier: Modifier = Modifier) {
+internal fun RankHistorySection(state: SectionState<RankHistoryStanding>, modifier: Modifier = Modifier) {
     val locked = (state as? SectionState.Ready)?.value as? RankHistoryStanding.Locked
     if (locked != null) {
         StatsUnlockLine(locked.unlock.line(), "stats.rankHistory.locked", modifier)
         return
     }
     StatsSectionFrame(title = "Rank history", state = state, tag = "stats.rankHistory", modifier = modifier) { standing ->
-        if (standing is RankHistoryStanding.Kept) KeptWeeks(standing, singleGame)
+        if (standing is RankHistoryStanding.Kept) KeptWeeks(standing)
     }
 }
 
@@ -40,7 +40,7 @@ private fun VsFriendsStanding.Unlock.line(): String = when (this) {
 }
 
 @Composable
-private fun KeptWeeks(kept: RankHistoryStanding.Kept, singleGame: Boolean) {
+private fun KeptWeeks(kept: RankHistoryStanding.Kept) {
     if (kept.weeks.isEmpty()) {
         Text(
             text = "Your weeks show here once a week you played with friends has ended.",
@@ -52,7 +52,7 @@ private fun KeptWeeks(kept: RankHistoryStanding.Kept, singleGame: Boolean) {
     }
     val withYear = kept.weeks.map { it.start.year }.distinct().size > 1
     val latest = kept.weeks.last()
-    val what = "Friends points per day" + if (singleGame) "" else ", all games added up"
+    val what = "Friends points per day"
     val among = "among your friends that week"
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         StatsTrendBlock(

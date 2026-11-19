@@ -29,7 +29,7 @@ class StatsSectionOrderTest {
             vsFriends = f.vsFriends { _, _ -> flowOf(board) },
         )
 
-        val sections = page(scope = null, range = StatsRange.Month).first().sections
+        val sections = page(scope = alpha, range = StatsRange.Month).first().sections
 
         assertEquals(
             listOf(
@@ -41,6 +41,11 @@ class StatsSectionOrderTest {
                 StatsSection.VsFriends::class,
             ),
             sections.map { it::class },
+        )
+        assertEquals(
+            "rank history is per game: the all-games page leaves it out",
+            listOf(StatsSection.RankHistory::class),
+            sections.map { it::class } - page(scope = null, range = StatsRange.Month).first().sections.map { it::class }.toSet(),
         )
     }
 }

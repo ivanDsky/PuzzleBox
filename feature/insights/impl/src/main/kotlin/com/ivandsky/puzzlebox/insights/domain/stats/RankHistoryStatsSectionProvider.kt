@@ -20,11 +20,11 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 
 /**
- * The rank history section: the viewer's Friends points per kept week, read from the weeks this device kept
- * ([rankHistory], the one reader). It ignores the stats range: the weeks are always weekly and every one is shown, so
- * [readKey] is the games asked and nothing else, and switching the range neither re-reads nor changes it. A single
- * game's page shows that game's weeks; the all-games page adds up the games' points per day for each week
- * ([RankHistoryStanding.Kept.of]).
+ * The rank history section: the viewer's Friends points per kept week of one game, read from the weeks this device
+ * kept ([rankHistory], the one reader). It ignores the stats range: the weeks are always weekly and every one is shown,
+ * so [readKey] is the game asked and nothing else, and switching the range neither re-reads nor changes it. It is per
+ * game only: the weeks kept differ by game, so no one line could stand for all games. The all-games page leaves the
+ * section out (null), and its unlock line is vs friends'.
  *
  * - Signed out: [RankHistoryStanding.Locked], which the screen draws as one plain line in the section's place.
  * - Weeks kept: they show at once, as they are on this device, offline too. A kept week is never changed (A19).
@@ -33,7 +33,8 @@ import kotlinx.coroutines.flow.map
  *   yet: no weeks yet, which the screen says plainly. A read that is partial or offline, fails or takes longer than
  *   [timeout]: [SectionState.Unavailable] (A16), and the rest of the page is unaffected.
  *
- * Signing in or out while the page is open reads again.
+ * Signing in or out while the page is open reads again. Kept weeks are read once per account, so a week kept while the
+ * page is open shows on the next open.
  */
 internal class RankHistoryStatsSectionProvider(
     private val identity: IdentityService,
@@ -44,35 +45,34 @@ internal class RankHistoryStatsSectionProvider(
 ) : StatsSectionProvider {
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    override fun section(input: StatsInput): Flow<StatsSection?> =
-        identity.current.map { it?.uid }.distinctUntilChanged().flatMapLatest { viewer -> read(input, viewer) }
+    override fun section(input: StatsInput): Flow<StatsSection?> {
+        val game = input.facts.scope ?: return flow { emit(null) }
+        return identity.current.map { it?.uid }.distinctUntilChanged().flatMapLatest { viewer -> read(input, game, viewer) }
+    }
 
-    /** The weeks are the games' own, whatever the range or the facts. */
-    override fun readKey(input: StatsInput): Any = games(input)
+    /** The weeks are the game's own, whatever the range or the facts. */
+    override fun readKey(input: StatsInput): Any = input.facts.scope ?: AllGames
 
-    private fun games(input: StatsInput): List<GameId> = input.facts.scope?.let(::listOf) ?: input.games
-
-    private fun read(input: StatsInput, viewer: String?): Flow<StatsSection?> = flow {
+    private fun read(input: StatsInput, game: GameId, viewer: String?): Flow<StatsSection?> = flow {
         if (viewer == null) {
             emit(ready(RankHistoryStanding.Locked(VsFriendsStanding.Unlock.SignIn)))
             return@flow
         }
-        val games = games(input)
-        val kept = guardedAsk(failures, TAG, "kept rank history") { games.flatMap { rankHistory(it).first() } }
+        val kept = guardedAsk(failures, TAG, "kept rank history") { rankHistory(game).first() }
         when {
             kept == null -> emit(StatsSection.RankHistory(SectionState.Unavailable))
             kept.isNotEmpty() -> emit(ready(RankHistoryStanding.Kept.of(kept)))
             else -> {
                 emit(StatsSection.RankHistory(SectionState.Loading))
-                emit(withoutWeeks(input.today, games, viewer))
+                emit(withoutWeeks(input.today, game, viewer))
             }
         }
     }
 
     /** Nothing is kept: whether there are friends decides between the unlock line, no weeks yet and not loading right now. */
-    private suspend fun withoutWeeks(today: LocalDate, games: List<GameId>, viewer: String): StatsSection {
+    private suspend fun withoutWeeks(today: LocalDate, game: GameId, viewer: String): StatsSection {
         val states = guardedAsk(failures, TAG, "rank history friends", timeout) {
-            friendsOverall.settledEach(StatsRange.Week.friendsWindow(today), games).map { it.second }
+            friendsOverall.settledEach(StatsRange.Week.friendsWindow(today), listOf(game)).map { it.second }
         }
         return when (states?.friendsPresence(viewer)) {
             FriendsPresence.SignedOut -> ready(RankHistoryStanding.Locked(VsFriendsStanding.Unlock.SignIn))
@@ -83,6 +83,9 @@ internal class RankHistoryStatsSectionProvider(
     }
 
     private fun ready(history: RankHistoryStanding) = StatsSection.RankHistory(SectionState.Ready(history))
+
+    /** The read key of the all-games page, which has no section. */
+    private object AllGames
 
     private companion object {
         const val TAG = "RankHistoryStats"

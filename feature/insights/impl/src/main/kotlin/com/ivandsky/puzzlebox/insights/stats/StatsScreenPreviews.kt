@@ -11,7 +11,6 @@ import com.ivandsky.puzzlebox.insights.domain.recap.SolveRef
 import com.ivandsky.puzzlebox.insights.domain.recap.StreakRun
 import com.ivandsky.puzzlebox.insights.domain.stats.GameStanding
 import com.ivandsky.puzzlebox.insights.domain.stats.HintFreeRateSeries
-import com.ivandsky.puzzlebox.insights.domain.stats.RankHistoryStanding
 import com.ivandsky.puzzlebox.insights.domain.stats.SectionState
 import com.ivandsky.puzzlebox.insights.domain.stats.StatsGranularity
 import com.ivandsky.puzzlebox.insights.domain.stats.StatsRange
@@ -93,10 +92,6 @@ private val Ranked = VsFriendsStanding.Ranked(
     weakest = GameStanding(Queens, points = 212.0, place = 4, players = 5),
 )
 
-private val RankHistory = RankHistoryStanding.Kept(
-    listOf(142.5, 98.0, 171.25, 203.0).mapIndexed { index, points -> RankHistoryStanding.Kept.Week(Weeks[index], points) },
-)
-
 private fun withLines(
     trend: TimeTrendSeries = Trend,
     hintFree: HintFreeRateSeries = HintFreeRate,
@@ -110,7 +105,6 @@ private fun withLines(
             StatsSection.Records(SectionState.Ready(Records)),
             StatsSection.HintFreeRate(SectionState.Ready(hintFree)),
             StatsSection.Weekday(SectionState.Ready(Weekday)),
-            StatsSection.RankHistory(SectionState.Ready(RankHistory)),
             StatsSection.VsFriends(vsFriends),
         ),
     ),

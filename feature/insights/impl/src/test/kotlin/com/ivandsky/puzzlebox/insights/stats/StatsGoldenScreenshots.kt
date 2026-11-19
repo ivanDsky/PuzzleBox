@@ -77,33 +77,33 @@ class StatsGoldenScreenshots {
     @Test fun `weekday and friends phone dark`() = capture("weekday-friends", "phone", dark = true, state = StatsFixtures.readyWithLines(), scrollTo = "stats.weekday")
 
     @Config(qualifiers = GOLDEN_PHONE)
-    @Test fun `rank history several weeks phone light`() = capture("rank-history-several", "phone", dark = false, state = StatsFixtures.readyWithLines(), scrollTo = "stats.rankHistory")
+    @Test fun `rank history several weeks phone light`() = capture("rank-history-several", "phone", dark = false, state = StatsFixtures.readyWithLines(game = StatsFixtures.zip), scrollTo = "stats.rankHistory")
 
     @Config(qualifiers = GOLDEN_PHONE)
-    @Test fun `rank history several weeks phone dark`() = capture("rank-history-several", "phone", dark = true, state = StatsFixtures.readyWithLines(), scrollTo = "stats.rankHistory")
+    @Test fun `rank history several weeks phone dark`() = capture("rank-history-several", "phone", dark = true, state = StatsFixtures.readyWithLines(game = StatsFixtures.zip), scrollTo = "stats.rankHistory")
 
     @Config(qualifiers = GOLDEN_PHONE)
     @Test fun `rank history one week phone light`() = capture(
         "rank-history-one-week", "phone", dark = false, scrollTo = "stats.rankHistory",
-        state = StatsFixtures.readyWithLines(rankHistory = SectionState.Ready(RankHistoryStanding.Kept(StatsFixtures.rankHistory.weeks.take(1)))),
+        state = StatsFixtures.readyWithLines(game = StatsFixtures.zip, rankHistory = SectionState.Ready(RankHistoryStanding.Kept(StatsFixtures.rankHistory.weeks.take(1)))),
     )
 
     @Config(qualifiers = GOLDEN_PHONE)
     @Test fun `rank history no weeks phone light`() = capture(
         "rank-history-no-weeks", "phone", dark = false, scrollTo = "stats.rankHistory",
-        state = StatsFixtures.readyWithLines(rankHistory = SectionState.Ready(RankHistoryStanding.Kept(emptyList()))),
+        state = StatsFixtures.readyWithLines(game = StatsFixtures.zip, rankHistory = SectionState.Ready(RankHistoryStanding.Kept(emptyList()))),
     )
 
     @Config(qualifiers = GOLDEN_PHONE)
     @Test fun `rank history signed out phone light`() = capture(
         "rank-history-signed-out", "phone", dark = false, scrollTo = "stats.rankHistory.locked",
-        state = StatsFixtures.readyWithLines(rankHistory = SectionState.Ready(RankHistoryStanding.Locked(VsFriendsStanding.Unlock.SignIn))),
+        state = StatsFixtures.readyWithLines(game = StatsFixtures.zip, rankHistory = SectionState.Ready(RankHistoryStanding.Locked(VsFriendsStanding.Unlock.SignIn))),
     )
 
     @Config(qualifiers = GOLDEN_PHONE)
     @Test fun `rank history unavailable phone dark`() = capture(
         "rank-history-unavailable", "phone", dark = true, scrollTo = "stats.rankHistory",
-        state = StatsFixtures.readyWithLines(rankHistory = SectionState.Unavailable),
+        state = StatsFixtures.readyWithLines(game = StatsFixtures.zip, rankHistory = SectionState.Unavailable),
     )
 
     @Config(qualifiers = GOLDEN_PHONE)

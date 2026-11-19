@@ -21,16 +21,9 @@ internal sealed interface RankHistoryStanding {
         companion object {
             private const val MIN_LINE_WEEKS = 2
 
-            /**
-             * The weeks of [kept], one per week start, oldest first. A week kept in several games adds their points per
-             * day, so the all-games page is the sum over its games; a single game's page has one row per week.
-             */
+            /** The weeks of one game's [kept] rows, oldest first, each with its points per day as kept. */
             fun of(kept: List<RankHistoryStore.Week>): Kept =
-                Kept(
-                    kept.groupBy { it.weekStart }
-                        .map { (start, rows) -> Week(start, rows.sumOf { it.pointsPerDay }) }
-                        .sortedBy { it.start },
-                )
+                Kept(kept.sortedBy { it.weekStart }.map { Week(it.weekStart, it.pointsPerDay) })
         }
     }
 
