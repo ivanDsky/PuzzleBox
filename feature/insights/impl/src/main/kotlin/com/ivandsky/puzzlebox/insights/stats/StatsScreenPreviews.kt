@@ -9,14 +9,17 @@ import com.ivandsky.puzzlebox.insights.domain.recap.FastestSolve
 import com.ivandsky.puzzlebox.insights.domain.recap.HintFreeRun
 import com.ivandsky.puzzlebox.insights.domain.recap.SolveRef
 import com.ivandsky.puzzlebox.insights.domain.recap.StreakRun
+import com.ivandsky.puzzlebox.insights.domain.stats.HintFreeRateSeries
 import com.ivandsky.puzzlebox.insights.domain.stats.SectionState
+import com.ivandsky.puzzlebox.insights.domain.stats.StatsGranularity
 import com.ivandsky.puzzlebox.insights.domain.stats.StatsRange
 import com.ivandsky.puzzlebox.insights.domain.stats.StatsRecords
 import com.ivandsky.puzzlebox.insights.domain.stats.StatsSection
+import com.ivandsky.puzzlebox.insights.domain.stats.TimeTrendSeries
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 
-// The stats page, light and dark: every game's month with its records, one game's week, an empty range and a records section that cannot load.
+// The stats page, light and dark: every game's month with its trend, records and hint-free rate, one game's week, an empty range and a records section that cannot load.
 
 private val Zip = GameId("zip")
 private val Queens = GameId("queens")
@@ -63,3 +66,40 @@ private fun StatsScreenEmptyPreview() = Page(StatsUiState(StatsRange.Week, null,
 @PuzzleBoxPreviews
 @Composable
 private fun StatsScreenRecordsUnavailablePreview() = Page(ready(state = SectionState.Unavailable))
+
+private val Weeks = listOf(day(2), day(9), day(16), day(23))
+
+private val Trend = TimeTrendSeries(
+    StatsGranularity.Week,
+    listOf(95_000L, 88_000L, 102_000L, 76_000L).mapIndexed { index, ms -> TimeTrendSeries.Point(Weeks[index], ms, solved = 5) },
+)
+
+private val HintFreeRate = HintFreeRateSeries(
+    StatsGranularity.Week,
+    listOf(2, 3, 3, 5).mapIndexed { index, free -> HintFreeRateSeries.Point(Weeks[index], hintFree = free, solved = 5) },
+)
+
+private fun withLines(trend: TimeTrendSeries = Trend, hintFree: HintFreeRateSeries = HintFreeRate) = StatsUiState(
+    StatsRange.Month,
+    null,
+    StatsBody.Ready(
+        listOf(
+            StatsSection.TimeTrend(SectionState.Ready(trend)),
+            StatsSection.Records(SectionState.Ready(Records)),
+            StatsSection.HintFreeRate(SectionState.Ready(hintFree)),
+        ),
+    ),
+)
+
+@PuzzleBoxPreviews
+@Composable
+private fun StatsScreenLinesPreview() = Page(withLines())
+
+@PuzzleBoxPreviews
+@Composable
+private fun StatsScreenSinglePointsPreview() = Page(
+    withLines(
+        trend = TimeTrendSeries(StatsGranularity.Week, Trend.points.take(1)),
+        hintFree = HintFreeRateSeries(StatsGranularity.Week, HintFreeRate.points.take(1)),
+    ),
+)

@@ -99,7 +99,7 @@ private fun recordRows(records: StatsRecords, gameName: (GameId) -> String): Lis
     }
 }
 
-private fun plural(count: Int, noun: String): String = if (count == 1) "1 $noun" else "$count ${noun}s"
+internal fun plural(count: Int, noun: String): String = if (count == 1) "1 $noun" else "$count ${noun}s"
 
 @Composable
 private fun RecordRow(line: RecordLine, onOpenSolve: (SolveRef) -> Unit) {

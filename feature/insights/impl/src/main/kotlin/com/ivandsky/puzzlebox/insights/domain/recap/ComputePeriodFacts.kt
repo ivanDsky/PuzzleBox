@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.YearMonth
+import java.time.LocalDate
 
 /**
  * Folds the full game history ([com.ivandsky.puzzlebox.domain.ObserveGameHistory]) into one period's [PeriodFacts]. It
@@ -51,6 +52,7 @@ internal class ComputePeriodFacts(
             moments = momentsOf(history, period, scope),
             months = if (period is RecapPeriod.Year) monthsOf(counted) else emptyList(),
             importedDays = importedDaysOf(counted, period),
+            dayTallies = counted.groupBy { it.day }.toSortedMap().map { (day, solves) -> tally(day, solves) },
         )
     }
 
@@ -81,6 +83,13 @@ internal class ComputePeriodFacts(
         val quickest = counted.filter { it.day == last }.minWith(compareBy<GameHistoryDay>({ it.solve.time }, { it.gameId.value }))
         return SolveRef.of(quickest)
     }
+
+    private fun tally(day: LocalDate, solves: List<GameHistoryDay>) = DayTally(
+        day = day,
+        solved = solves.size,
+        timeMs = solves.sumOf { it.solve.time },
+        hintFree = solves.count { it.solve.hints == 0 },
+    )
 
     private fun fastest(days: List<GameHistoryDay>): FastestSolve {
         val best = days.minWith(compareBy<GameHistoryDay>({ it.solve.time }, { it.solve.hints }, { it.day }))

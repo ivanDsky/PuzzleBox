@@ -4,10 +4,13 @@ import com.ivandsky.puzzlebox.insights.domain.recap.FastestSolve
 import com.ivandsky.puzzlebox.insights.domain.recap.HintFreeRun
 import com.ivandsky.puzzlebox.insights.domain.recap.SolveRef
 import com.ivandsky.puzzlebox.insights.domain.recap.StreakRun
+import com.ivandsky.puzzlebox.insights.domain.stats.HintFreeRateSeries
 import com.ivandsky.puzzlebox.insights.domain.stats.SectionState
+import com.ivandsky.puzzlebox.insights.domain.stats.StatsGranularity
 import com.ivandsky.puzzlebox.insights.domain.stats.StatsRange
 import com.ivandsky.puzzlebox.insights.domain.stats.StatsRecords
 import com.ivandsky.puzzlebox.insights.domain.stats.StatsSection
+import com.ivandsky.puzzlebox.insights.domain.stats.TimeTrendSeries
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 
@@ -45,4 +48,36 @@ internal object StatsFixtures {
         game: GameId? = null,
         state: SectionState<StatsRecords> = SectionState.Ready(records),
     ) = StatsUiState(range, game, StatsBody.Ready(listOf(StatsSection.Records(state))))
+
+    private val weeks = listOf(day(2), day(9), day(16), day(23))
+
+    /** Four weeks of average times, the line the Month range draws. */
+    val trend = TimeTrendSeries(
+        StatsGranularity.Week,
+        listOf(95_000L, 88_000L, 102_000L, 76_000L).mapIndexed { index, ms -> TimeTrendSeries.Point(weeks[index], ms, solved = 5) },
+    )
+
+    /** Four weeks of hint-free shares. */
+    val hintFreeRate = HintFreeRateSeries(
+        StatsGranularity.Week,
+        listOf(2, 3, 3, 5).mapIndexed { index, free -> HintFreeRateSeries.Point(weeks[index], hintFree = free, solved = 5) },
+    )
+
+    /** Every section that is local, in the page's order: trend, Records, hint-free rate. */
+    fun readyWithLines(
+        range: StatsRange = StatsRange.Month,
+        game: GameId? = null,
+        trend: TimeTrendSeries = this.trend,
+        hintFree: HintFreeRateSeries = hintFreeRate,
+    ) = StatsUiState(
+        range,
+        game,
+        StatsBody.Ready(
+            listOf(
+                StatsSection.TimeTrend(SectionState.Ready(trend)),
+                StatsSection.Records(SectionState.Ready(records)),
+                StatsSection.HintFreeRate(SectionState.Ready(hintFree)),
+            ),
+        ),
+    )
 }

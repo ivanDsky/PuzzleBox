@@ -1,0 +1,120 @@
+package com.ivandsky.puzzlebox.designsystem.chart
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.tabular
+
+/**
+ * A flat line over time: one stroke through [points], faint rules at its lowest and highest value with those values
+ * written beside them, and the first and last point's label under the ends. [what] says what the line measures, for the
+ * screen reader's summary ([lineChartSummary]); [valueLabel] writes a value. A [valueRange] fixes the scale (a share
+ * from 0 to 1) where the default fits the points' own lowest and highest. A line needs 2 points: with fewer nothing is
+ * drawn, and the caller shows the value as a number instead. All equal values draw a flat line mid-way with its one value.
+ * The time axis runs the way the layout reads, so it mirrors in a right-to-left layout.
+ */
+@Composable
+fun LineChart(
+    points: List<LineChartPoint>,
+    what: String,
+    valueLabel: (Double) -> String,
+    modifier: Modifier = Modifier,
+    valueRange: ClosedFloatingPointRange<Double>? = null,
+) {
+    if (points.size < 2) return
+    val ordered = remember(points) { points.sortedBy { it.x } }
+    val scale = remember(ordered, valueRange) { valueRange ?: (ordered.minOf { it.y }..ordered.maxOf { it.y }) }
+    val summary = remember(ordered, what) { lineChartSummary(what, ordered, valueLabel) }
+    val labelStyle = MaterialTheme.typography.labelSmall.tabular()
+    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+    Column(modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = summary }) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Column(Modifier.height(PlotHeight), verticalArrangement = if (scale.start == scale.endInclusive) Arrangement.Center else Arrangement.SpaceBetween) {
+                Text(valueLabel(scale.endInclusive), style = labelStyle, color = labelColor)
+                if (scale.start != scale.endInclusive) Text(valueLabel(scale.start), style = labelStyle, color = labelColor)
+            }
+            Column(Modifier.weight(1f)) {
+                Plot(ordered, scale, Modifier.fillMaxWidth().height(PlotHeight))
+                Row(Modifier.fillMaxWidth().padding(top = Spacing.xs), verticalAlignment = Alignment.Top) {
+                    Text(ordered.first().label, style = labelStyle, color = labelColor, modifier = Modifier.weight(1f))
+                    Text(ordered.last().label, style = labelStyle, color = labelColor)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Plot(points: List<LineChartPoint>, scale: ClosedFloatingPointRange<Double>, modifier: Modifier) {
+    val line = MaterialTheme.colorScheme.primary
+    val rule = MaterialTheme.colorScheme.outlineVariant
+    val mirrored = LocalLayoutDirection.current == LayoutDirection.Rtl
+    Canvas(modifier.fillMaxSize()) {
+        val inset = PlotInset.toPx()
+        val top = inset
+        val bottom = size.height - inset
+        val ruleWidth = RuleWidth.toPx()
+        val flat = scale.start == scale.endInclusive
+        if (flat) {
+            drawRule((top + bottom) / 2, rule, ruleWidth)
+        } else {
+            drawRule(top, rule, ruleWidth)
+            drawRule(bottom, rule, ruleWidth)
+        }
+        val xs = points.first().x..points.last().x
+        val dotRoom = LatestDotRadius.toPx()
+        val offsets = points.map { point ->
+            val along = if (xs.start == xs.endInclusive) 0.5f else ((point.x - xs.start) / (xs.endInclusive - xs.start)).toFloat()
+            val x = dotRoom + (size.width - 2 * dotRoom) * (if (mirrored) 1f - along else along)
+            val up = if (flat) 0.5f else ((point.y - scale.start) / (scale.endInclusive - scale.start)).toFloat()
+            Offset(x, bottom - (bottom - top) * up)
+        }
+        val path = Path().apply {
+            offsets.forEachIndexed { index, offset -> if (index == 0) moveTo(offset.x, offset.y) else lineTo(offset.x, offset.y) }
+        }
+        drawPath(path, line, style = Stroke(LineWidth.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+        // Few points get a dot each; a long line keeps only its latest point so the stroke stays clean.
+        val dotted = if (points.size <= MaxDots) offsets else listOf(offsets.last())
+        dotted.forEach { drawCircle(line, DotRadius.toPx(), it) }
+        // The latest point is a larger dot, so it reads as the current value.
+        drawCircle(line, LatestDotRadius.toPx(), offsets.last())
+    }
+}
+
+private fun DrawScope.drawRule(y: Float, color: Color, width: Float) =
+    drawLine(color, Offset(0f, y), Offset(size.width, y), strokeWidth = width)
+
+private val PlotHeight: Dp = 120.dp
+
+// Half a label line, so a rule sits level with the centre of the value written beside it.
+private val PlotInset: Dp = 8.dp
+private val RuleWidth: Dp = 1.dp
+private val LineWidth: Dp = 2.dp
+private val DotRadius: Dp = 3.dp
+private val LatestDotRadius: Dp = 5.dp
+private const val MaxDots = 16

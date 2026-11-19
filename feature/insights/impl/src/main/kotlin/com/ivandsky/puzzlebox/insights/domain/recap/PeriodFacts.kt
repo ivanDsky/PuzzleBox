@@ -48,4 +48,6 @@ internal data class PeriodFacts(
      * days" (A22). Null for a month, for a year with any solve made in the app, and for a year with no solve.
      */
     val importedDays: Int? = null,
+    /** The counted solves of each puzzle day that has one, summed over the scope's games, oldest day first: what the stats page's trend lines bucket. */
+    val dayTallies: List<DayTally> = emptyList(),
 )

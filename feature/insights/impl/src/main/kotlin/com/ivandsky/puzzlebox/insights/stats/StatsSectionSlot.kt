@@ -18,6 +18,8 @@ internal fun StatsSectionSlot(
     modifier: Modifier = Modifier,
 ) {
     when (section) {
+        is StatsSection.TimeTrend -> TrendSection(section.state, modifier)
         is StatsSection.Records -> RecordsSection(section.state, gameName, onOpenSolve, modifier)
+        is StatsSection.HintFreeRate -> HintFreeSection(section.state, modifier)
     }
 }
