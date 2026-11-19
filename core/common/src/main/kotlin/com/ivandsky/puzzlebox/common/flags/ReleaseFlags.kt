@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
  */
 interface ReleaseFlags {
     /** The flags that are on right now. Constant in release builds. */
-    val enabled: StateFlow<Set<ReleaseFlag>>
+    val enabled: StateFlow<Set<ReleaseFlagKey>>
 }
 
-fun ReleaseFlags.isEnabled(flag: ReleaseFlag): Boolean = flag in enabled.value
+fun ReleaseFlags.isEnabled(flag: ReleaseFlagKey): Boolean = flag in enabled.value

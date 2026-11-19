@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.app.e2e
 
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import kotlinx.coroutines.runBlocking
@@ -20,7 +19,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class TestSolveImmersiveE2ETest {
 
-    private val world = TestSolveWorld(*ReleaseFlag.entries.filter { it.releaseDefault }.toTypedArray())
+    private val world = TestSolveWorld(shipped = true)
 
     @Test
     fun `a phone's Test solve from the Studio shows no bottom bar, while the Games screen shows one`() =

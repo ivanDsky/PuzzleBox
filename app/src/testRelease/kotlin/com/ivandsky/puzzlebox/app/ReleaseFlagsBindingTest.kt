@@ -1,8 +1,11 @@
 package com.ivandsky.puzzlebox.app
 
+import com.ivandsky.puzzlebox.common.flags.DeclaredFlags
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.ShippedReleaseFlags
-import org.junit.Assert.assertSame
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.android.ext.koin.androidContext
@@ -12,7 +15,10 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
-/** Release reads only the shipped defaults: no override path can reach a release build (ADR-0022). */
+/**
+ * Release reads only the shipped defaults of every declared flag, the central enum's included: no override path can
+ * reach a release build (ADR-0022).
+ */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = DrainTestApplication::class)
 class ReleaseFlagsBindingTest {
@@ -24,7 +30,11 @@ class ReleaseFlagsBindingTest {
             modules(PuzzleBoxApplication.appModules)
         }.koin
         try {
-            assertSame(ShippedReleaseFlags, koin.get<ReleaseFlags>())
+            val flags = koin.get<ReleaseFlags>()
+            val declared = koin.get<DeclaredFlags>().all
+            assertTrue("release binds $flags", flags is ShippedReleaseFlags)
+            assertTrue("the central flags are declared", declared.containsAll(ReleaseFlag.entries))
+            assertEquals(declared.filter { it.releaseDefault }.toSet(), flags.enabled.value)
         } finally {
             stopKoin()
         }

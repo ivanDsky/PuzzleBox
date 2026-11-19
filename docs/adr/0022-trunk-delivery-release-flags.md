@@ -1,6 +1,6 @@
 # ADR-0022 — Trunk delivery: unfinished work merges dark behind release flags
 
-Date: 2026-11-07 · Status: accepted · Source: trunk switch (PROFILE `changes: trunk`)
+Date: 2026-11-07 · Status: accepted · Amended 2026-11-18 (flags belong to their owner; migrating, F1–F7) · Source: trunk switch (PROFILE `changes: trunk`)
 
 ## Context
 Runs used to land as one branch or stack per feature. The branch drifted from main for days
@@ -65,6 +65,54 @@ to merge without being reachable in a release build.
   `testDebug/DebugReleaseFlagsBindingTest` pins debug to the one `DebugReleaseFlags` the
   Catalog tab edits. A test for a gated screen takes `ReleaseFlags` as a parameter and
   covers both flag states.
+
+## Amendment 2026-11-18: flags belong to their owner (report item 4)
+Status: migrating, F1–F7. Decision 2 above is replaced and decision 3 extended as each slice lands.
+
+*Context.* All release flags were entries of one enum in `core:common`. 13.8% of a day's commits
+edited it, and each edit invalidated 19 modules (69% of main sources, 1,252 test files) though
+only 9 read flags. A rebase re-added a removed flag (`LinkedInPush`), which then had no reader.
+The reader was optional: `ReleaseFlags?` with a `null` default in 8 files and `getOrNull` in 15
+Koin sites, so a missing binding read as "every flag off" with no error. `DomainModule` read the
+UI flag `ResultHeroPolish` to choose a use-case parameter.
+
+*Decision.*
+1. A release flag is an interface in `core:common` (`com.ivandsky.puzzlebox.common.flags`):
+   `key`, `label`, `releaseDefault`. Each module declares the flags it reads as an enum
+   `<root>.flags.<Owner>Flag` whose `key` is the entry `name`; that key is the SharedPreferences
+   key in `release_flags`, so a debug override survives a flag's move between modules. Keys stay
+   typed: code gates on `PlayFlag.X`, never on a string. Until the central enum is deleted (F7)
+   the interface is named `ReleaseFlagKey`; F7 renames it `ReleaseFlag`.
+2. An owner contributes its flags with `flagSet("<owner>", <Owner>Flag.entries)` in a Koin module
+   in its `di` package (`com.ivandsky.puzzlebox.common.di.flagSet`). `:app` aggregates them into
+   `DeclaredFlags` (`getAll<FlagSet>()`, ordered by owner, each set in its declaration order). A
+   duplicate key throws on first resolve; a repeated owner is caught by konsist P15 (Koin keeps
+   the last set). `ShippedReleaseFlags`, `DebugReleaseFlags` and the Settings → Release flags
+   panel read `DeclaredFlags`.
+3. A flag read by two modules is declared in the lowest module both depend on. `core:domain`
+   declares and reads no flag: a use case takes a Boolean, and the Koin module of the feature
+   that owns the flag supplies it.
+4. `ReleaseFlags` is a required dependency everywhere: no `ReleaseFlags?`, no
+   `getOrNull<ReleaseFlags>()`. Tests bind `FakeReleaseFlags`. New reads take it required from F1
+   on; the older nullable reads go owner by owner (F4–F7).
+5. konsist P15 (ADR-0009) fails on a flag enum not registered with `flagSet` in `main` sources of
+   its own module or `:app` (`:app` may register a module that has no Koin), on a repeated owner,
+   on a new entry in the central enum and on a frozen name the central enum no longer has. P13
+   still fails on a shipped entry with no reader, in any flag enum. Later slices add rules for a
+   domain import of the flags package and for a nullable or `getOrNull` flag read.
+6. Migration, until the central enum is deleted: `ReleaseFlag` is frozen at its five entries
+   (ResultHeroPolish, HintPolish, RanksFreshness, ZipDotPulse, SheetScreens) and `:app`
+   registers it as the `common` set. A new flag goes to its owner's enum; a flip of an entry
+   still in `ReleaseFlag` edits it in place. A removal or a move deletes the entry and, in the
+   same PR, its name from P15's frozen list, which only shrinks. A move slice moves only the
+   entries left at its rebase.
+
+*Consequences.* A flag's declaration, readers and removal sit in one module; adding, flipping
+or removing one retests its owner and `:app`, not 19 modules. A flag enum that is never
+registered reads as off even with `releaseDefault = true`; P15 is what prevents it. Release
+still holds the gated code and the guarantee is still unreachability (Consequences, first
+bullet). The Release flags panel lists flags grouped by owner. "An empty `ReleaseFlag`"
+(Consequences) becomes "no flag enum has an entry"; the panel's empty state says so.
 
 ## Flip history
 - FriendSharing flipped to `releaseDefault = true` in 0.17.0 on 2026-11-07. The App Links

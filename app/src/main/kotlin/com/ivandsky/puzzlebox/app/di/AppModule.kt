@@ -7,7 +7,11 @@ import com.ivandsky.puzzlebox.app.leaderboard.CustomBoardSubmitter
 import com.ivandsky.puzzlebox.app.leaderboard.DailyReplayPublisher
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.app.match.AndroidNetworkStatus
+import com.ivandsky.puzzlebox.common.di.flagSet
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.common.flags.DeclaredFlags
+import com.ivandsky.puzzlebox.common.flags.FlagSet
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.domain.AppBuild
 import com.ivandsky.puzzlebox.domain.ranks.SubmitDailyReplay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
@@ -108,6 +112,14 @@ val appModule = module {
 
     // Every game module's editor UI (ADR-0019); a duplicate game id throws.
     single { GameEditorRegistry(getAll<GameEditorUi>()) }
+
+    // Every module's release flags, ordered by owner (ADR-0022). A duplicate key throws on first resolve; a repeated
+    // owner is caught by konsist P15 (Koin keeps the last set).
+    single { DeclaredFlags(getAll<FlagSet>()) }
+    // The frozen central enum, until its last entry moves to its owner. Not in commonModule: its verify() rejects
+    // FlagSet's String and List parameters.
+    flagSet("common", ReleaseFlag.entries)
+
     // The installed build GetAppUpdate compares against; debug never checks.
     single {
         val context = androidContext()

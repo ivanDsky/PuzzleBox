@@ -2,7 +2,9 @@ package com.ivandsky.puzzlebox.app.e2e
 
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isEnabled
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.DeclaredFlags
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.ShippedReleaseFlags
 import com.ivandsky.puzzlebox.data.model.TestSolve
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
@@ -16,20 +18,21 @@ import kotlinx.coroutines.runBlocking
 import org.koin.dsl.module
 
 /**
- * The Studio's test solve over the real shell's graph with [flags] on. The Studio keeps its drafts in [drafts], and
- * every play controller a game creates is kept, so a test can play the test solve's board: no play store slot
- * holds it.
+ * The Studio's test solve over the real shell's graph, with no flag on or, when [shipped], every declared flag at its
+ * release value: read from the graph's `DeclaredFlags`, so a flag that moves to its owner's enum stays in. The Studio
+ * keeps its drafts in [drafts], and every play controller a game creates is kept, so a test can play the test solve's
+ * board: no play store slot holds it.
  */
-internal class TestSolveWorld(vararg flags: ReleaseFlag) {
+internal class TestSolveWorld(shipped: Boolean = false) {
 
     val drafts = FakeDraftRepository()
     private val created = mutableListOf<GamePlayController>()
 
     val graph = shellGraph(
-        *flags,
         overrides = module {
             single<DraftRepository> { drafts }
             single { GamePlayRegistry(getAll<GamePlayUi>().map(::Keeping)) }
+            if (shipped) single<ReleaseFlags> { ShippedReleaseFlags(get<DeclaredFlags>().all) }
         },
     )
 

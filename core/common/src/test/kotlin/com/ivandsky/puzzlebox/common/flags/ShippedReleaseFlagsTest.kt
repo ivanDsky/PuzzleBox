@@ -24,6 +24,6 @@ class ShippedReleaseFlagsTest {
             entries.any { !it.releaseDefault },
         )
 
-        entries.forEach { assertEquals("$it", it.releaseDefault, ShippedReleaseFlags.isEnabled(it)) }
+        entries.forEach { assertEquals("$it", it.releaseDefault, ShippedReleaseFlags(entries).isEnabled(it)) }
     }
 }
