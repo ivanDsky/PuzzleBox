@@ -39,6 +39,8 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.temporal.TemporalAdjusters
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.flowOf
@@ -58,6 +60,7 @@ class SyncRankHistoryTest {
 
     private val clock = Clock.fixed(Instant.parse("2026-11-19T12:00:00Z"), ZoneOffset.UTC)
     private val today = LocalDate.of(2026, 11, 19)
+    private val weekTimeout = 10.seconds
     private val zip = GameId("zip")
     private val tango = GameId("tango")
     private val registry = TestGames.registry(listOf(zip, tango))
@@ -137,6 +140,7 @@ class SyncRankHistoryTest {
                 ObserveOverall(identity, FakeCompletionRepository()),
             ),
             clock = clock,
+            weekReadTimeout = weekTimeout,
         )
     }
 
@@ -161,6 +165,39 @@ class SyncRankHistoryTest {
         assertEquals(expected, readWeeks())
         assertEquals(8 * 7, reads.fetched.size)
         assertEquals(expected.sorted(), store.kept(zip).map { it.weekStart })
+    }
+
+    @Test
+    fun `a device that has kept weeks reads every unkept week since the oldest, however long the gap`() = runTest {
+        befriendMaya()
+        finalWeeks.forEach { played(zip, it) }
+        val oldestKept = finalWeeks[10]
+        val keptBefore = RankHistoryStore.Week(me.uid, zip, oldestKept, pointsPerDay = 12.5, friendCount = 4)
+        val store = FakeRankHistoryStore(listOf(keptBefore))
+
+        run(filler(store))
+
+        // Ten weeks have passed since the kept one: all ten are read, newest first. The week before the kept one is
+        // older than anything this device kept and outside the last eight, so it is not refilled.
+        assertEquals(finalWeeks.take(10), readWeeks())
+        assertEquals(10 * 7, reads.fetched.size)
+        assertEquals(finalWeeks.take(11).sorted(), store.kept(zip).map { it.weekStart })
+        assertEquals(keptBefore, store.kept(zip).single { it.weekStart == oldestKept })
+    }
+
+    @Test
+    fun `a run after a cold refill does not reach back past the last eight weeks`() = runTest {
+        befriendMaya()
+        finalWeeks.forEach { played(zip, it) }
+        val store = FakeRankHistoryStore()
+        run(filler(store)).cancel()
+        val readsOfColdRun = reads.fetched.size
+
+        run(filler(store, FakeFinalBoardStore()))
+
+        assertEquals(8 * 7, readsOfColdRun)
+        assertEquals(readsOfColdRun, reads.fetched.size)
+        assertEquals(finalWeeks.take(8).sorted(), store.kept(zip).map { it.weekStart })
     }
 
     @Test
@@ -239,6 +276,34 @@ class SyncRankHistoryTest {
         run(filler(store, FakeFinalBoardStore()))
 
         assertEquals(listOf(newestFinalWeek), store.kept(zip).map { it.weekStart })
+    }
+
+    @Test
+    fun `a week that never loads is given up on after the timeout and the next week is read`() = runTest {
+        befriendMaya()
+        played(zip, newestFinalWeek)
+        played(zip, newestFinalWeek.minusWeeks(1))
+        reads.gates[LeaderboardRef(zip.value, newestFinalWeek.plusDays(6))] = CompletableDeferred()
+        val store = FakeRankHistoryStore()
+        val first = run(filler(store))
+
+        assertEquals(listOf(newestFinalWeek), readWeeks())
+
+        testScheduler.advanceTimeBy(weekTimeout - 1.milliseconds)
+        testScheduler.runCurrent()
+        assertEquals(listOf(newestFinalWeek), readWeeks())
+
+        testScheduler.advanceTimeBy(1.milliseconds)
+        testScheduler.runCurrent()
+        assertEquals(listOf(newestFinalWeek, newestFinalWeek.minusWeeks(1)), readWeeks())
+        assertEquals(listOf(newestFinalWeek.minusWeeks(1)), store.kept(zip).map { it.weekStart })
+
+        // The week it gave up on was not kept, so the next run reads it again.
+        first.cancel()
+        reads.gates.clear()
+        run(filler(store, FakeFinalBoardStore()))
+
+        assertEquals(listOf(newestFinalWeek.minusWeeks(1), newestFinalWeek), store.kept(zip).map { it.weekStart })
     }
 
     @Test
