@@ -2,6 +2,8 @@ package com.ivandsky.puzzlebox.play
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
@@ -118,6 +120,7 @@ class LibraryViewModel(
     appScope: CoroutineScope,
     internal val linkedIn: ObserveLinkedInDayView?,
     private val identity: IdentityService,
+    releaseFlags: ReleaseFlags? = null,
 ) : ViewModel() {
 
     // Held rows reset when this changes: a sign-in as someone else never shows the first account's.
@@ -207,6 +210,17 @@ class LibraryViewModel(
             .flatMapLatest { (game, shown, day) -> archiveMonth.page(game, shown, day, calendar) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
+    /**
+     * How the calendar's grid changes month (backlog #1551): the crossfade, or with [PlayFlag.ArchiveMonthSlide] the slide.
+     * Live, so the debug flag's switch applies on the next month change without a restart.
+     */
+    internal val monthTransition: StateFlow<ArchiveMonthTransition> = if (releaseFlags == null) {
+        MutableStateFlow(ArchiveMonthTransition.Crossfade)
+    } else {
+        releaseFlags.enabled.map(::transitionOf)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), transitionOf(releaseFlags.enabled.value))
+    }
+
     /** The day card's LinkedIn view; no stop grace, so a sync still in its debounce dies with the card. */
     internal val linkedInView: StateFlow<LinkedInDayView?> = linkedIn
         .libraryView(selected, picked, uiState, calendar)
@@ -277,5 +291,8 @@ class LibraryViewModel(
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
+
+        fun transitionOf(on: Set<ReleaseFlagKey>) =
+            if (PlayFlag.ArchiveMonthSlide in on) ArchiveMonthTransition.Slide else ArchiveMonthTransition.Crossfade
     }
 }

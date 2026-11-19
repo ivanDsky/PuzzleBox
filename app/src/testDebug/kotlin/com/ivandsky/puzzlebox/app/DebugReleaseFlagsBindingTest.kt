@@ -42,7 +42,7 @@ class DebugReleaseFlagsBindingTest {
         }
     }
 
-    /** The Release flags section lists the app's declared flags; today that is the central enum, in its own order. */
+    /** The Release flags section lists the app's declared flags: the central enum in its own order, then the owners' flags. */
     @Test
     fun `debug graph declares the central flags in their enum order`() {
         val koin = startKoin {
@@ -50,8 +50,9 @@ class DebugReleaseFlagsBindingTest {
             modules(PuzzleBoxApplication.appModules)
         }.koin
         try {
-            assertEquals(ReleaseFlag.entries, koin.get<DeclaredFlags>().all)
-            assertEquals(ReleaseFlag.entries, koin.get<DebugReleaseFlags>().declared)
+            val declared = koin.get<DeclaredFlags>().all
+            assertEquals(ReleaseFlag.entries, declared.filterIsInstance<ReleaseFlag>())
+            assertEquals(declared, koin.get<DebugReleaseFlags>().declared)
         } finally {
             stopKoin()
         }

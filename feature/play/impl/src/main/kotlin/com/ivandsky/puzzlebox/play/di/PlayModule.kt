@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.play.di
 
+import com.ivandsky.puzzlebox.common.di.flagSet
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
@@ -18,6 +19,7 @@ import com.ivandsky.puzzlebox.play.MatchLegResultViewModel
 import com.ivandsky.puzzlebox.play.MatchLegViewModel
 import com.ivandsky.puzzlebox.play.HintPolish
 import com.ivandsky.puzzlebox.play.HowToPlayRules
+import com.ivandsky.puzzlebox.play.PlayFlag
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.PlayStatsViewModel
 import com.ivandsky.puzzlebox.play.ReplayCompareViewModel
@@ -62,6 +64,7 @@ import org.koin.dsl.module
  */
 val playModule = module {
     includes(friendModule)
+    flagSet("play", PlayFlag.entries)
     single {
         val lane = WriteLane()
         val saved = get<SavedPlayRepository>()
@@ -106,6 +109,7 @@ val playModule = module {
             get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
             linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
             identity = get(),
+            releaseFlags = getOrNull(),
         )
     }
     viewModel { (key: GameKey) -> GameViewModel(key, get(), get(), get(), get()) }
