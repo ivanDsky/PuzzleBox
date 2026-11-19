@@ -25,7 +25,8 @@ import com.ivandsky.puzzlebox.history.ranks.RanksSelection.Window
  * The tune sheet: who the board ranks ([scope], Global or Friends) and over what span ([window], a day, the
  * week or the month of the picked day). A tap reports through [onScope] / [onWindow] and the sheet stays open,
  * so the board behind it can be watched changing; [onDismiss] closes it. [defaults] is the Defaults block under
- * them ([TuneDefaultsBlock]); null leaves the sheet with the board's own choices only.
+ * them ([TuneDefaultsBlock]); null leaves the sheet with the board's own choices only. With [filterSheets] on, the
+ * chips own Who and When, so the sheet holds the Defaults block alone.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,11 +38,12 @@ internal fun TuneSheet(
     onDismiss: () -> Unit,
     defaults: RanksTuneDefaults?,
     modifier: Modifier = Modifier,
+    filterSheets: Boolean = false,
 ) {
     // The sheet opens whole instead of half way, so the Defaults block is not cut off.
     val state = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     AppModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier.testTag("ranks.tune.sheet"), sheetState = state) {
-        TuneChoices(scope, window, onScope, onWindow, defaults)
+        TuneChoices(scope, window, onScope, onWindow, defaults, filterSheets)
     }
 }
 
@@ -52,36 +54,43 @@ private fun TuneChoices(
     onScope: (RankScope) -> Unit,
     onWindow: (Window) -> Unit,
     defaults: RanksTuneDefaults?,
+    filterSheets: Boolean = false,
 ) {
     Column(
         Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Text("Who", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-        SegmentedToggle(
-            options = RankScope.entries,
-            selected = scope,
-            onSelect = onScope,
-            label = { it.name },
-            tag = { "ranks.tune.scope.${it.name}" },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Text(
-            "When",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(top = Spacing.sm),
-        )
-        SegmentedToggle(
-            options = Window.entries,
-            selected = window,
-            onSelect = onWindow,
-            label = { it.name },
-            tag = { "ranks.tune.window.${it.name}" },
-            modifier = Modifier.fillMaxWidth(),
-        )
+        if (!filterSheets) WhoAndWhenToggles(scope, window, onScope, onWindow)
         defaults?.let { TuneDefaultsBlock(it) }
     }
+}
+
+/** The segmented Who and When picks the filter chips replace; kept for the flag-off sheet. */
+@Composable
+private fun WhoAndWhenToggles(scope: RankScope, window: Window, onScope: (RankScope) -> Unit, onWindow: (Window) -> Unit) {
+    Text("Who", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+    SegmentedToggle(
+        options = RankScope.entries,
+        selected = scope,
+        onSelect = onScope,
+        label = { it.name },
+        tag = { "ranks.tune.scope.${it.name}" },
+        modifier = Modifier.fillMaxWidth(),
+    )
+    Text(
+        "When",
+        style = MaterialTheme.typography.titleMedium,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier.padding(top = Spacing.sm),
+    )
+    SegmentedToggle(
+        options = Window.entries,
+        selected = window,
+        onSelect = onWindow,
+        label = { it.name },
+        tag = { "ranks.tune.window.${it.name}" },
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 @PuzzleBoxPreviews
@@ -97,5 +106,13 @@ private fun TuneChoicesPreview() {
 private fun TuneChoicesBoardOnlyPreview() {
     RanksPreviewHost {
         TuneChoices(RankScope.Friends, Window.Week, onScope = {}, onWindow = {}, defaults = null)
+    }
+}
+
+@PuzzleBoxPreviews
+@Composable
+private fun TuneChoicesFilterSheetsPreview() {
+    RanksPreviewHost {
+        TuneChoices(RankScope.Friends, Window.Week, onScope = {}, onWindow = {}, defaults = previewTuneDefaults(), filterSheets = true)
     }
 }

@@ -30,6 +30,7 @@ import com.ivandsky.puzzlebox.resultui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -95,6 +96,7 @@ class RanksTwoPaneTest {
         onShowCalendar: (LocalDate, Boolean) -> Unit = { _, _ -> },
         yourSolve: YourSolve? = null,
         places: List<BoardPlace> = this.places,
+        filterSheets: Boolean = false,
     ) {
         val state = RanksUiState(
             RanksBoardSlice("Zip · today", RankOrder.TimeThenHints, DailyBoardState.Ranked(rows)),
@@ -103,6 +105,7 @@ class RanksTwoPaneTest {
             calendar = calendar,
             places = places,
             yourSolve = yourSolve,
+            filterSheets = filterSheets,
         )
         composeRule.setContent {
             PuzzleBoxTheme {
@@ -121,6 +124,24 @@ class RanksTwoPaneTest {
     // A swipe towards the next board across the right pane, [up] px above the screen's bottom edge.
     private fun swipeNearBottom(up: Float) = composeRule.onNodeWithTag("route.ranks").performTouchInput {
         swipe(Offset(right - 40f, bottom - up), Offset(right - 440f, bottom - up))
+    }
+
+    @Test
+    fun `with the chips on the right pane has Who and When above the board and no tune label`() {
+        show(filterSheets = true)
+
+        composeRule.onNodeWithTag("ranks.filter.who").assertIsDisplayed()
+        composeRule.onNodeWithTag("ranks.filter.when").assertIsDisplayed()
+        assertEquals(0, composeRule.onAllNodesWithTag("ranks.tune.label").fetchSemanticsNodes().size)
+        assertTrue(bounds("ranks.filter.who").bottom <= bounds("ranks.board").top)
+    }
+
+    @Test
+    fun `with the chips off the right pane has no chips`() {
+        show()
+
+        composeRule.onAllNodesWithTag("ranks.filter.who").assertCountEquals(0)
+        composeRule.onAllNodesWithTag("ranks.filter.when").assertCountEquals(0)
     }
 
     @Test

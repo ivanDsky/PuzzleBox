@@ -48,7 +48,7 @@ class TuneSheetTest {
         onSelectFriendsDefault = { friendsPicks += it; friendsDefault.value = it },
     )
 
-    private fun show(slot: RanksTuneDefaults?) {
+    private fun show(slot: RanksTuneDefaults?, filterSheets: Boolean = false) {
         composeRule.setContent {
             PuzzleBoxTheme {
                 TuneSheet(
@@ -58,6 +58,7 @@ class TuneSheetTest {
                     onWindow = {},
                     onDismiss = { dismissed++ },
                     defaults = slot,
+                    filterSheets = filterSheets,
                 )
             }
         }
@@ -133,5 +134,14 @@ class TuneSheetTest {
         show(defaults)
 
         composeRule.onNodeWithTag("ranks.tune.defaults").assertExists()
+    }
+
+    @Test
+    fun `with the chips on the sheet holds the Defaults block and no Who or When toggles`() {
+        show(defaults, filterSheets = true)
+
+        composeRule.onNodeWithTag("ranks.tune.defaults").assertExists()
+        composeRule.onNodeWithTag("ranks.tune.scope.Friends").assertDoesNotExist()
+        composeRule.onNodeWithTag("ranks.tune.window.Day").assertDoesNotExist()
     }
 }

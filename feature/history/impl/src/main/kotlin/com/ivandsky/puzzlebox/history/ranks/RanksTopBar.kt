@@ -37,18 +37,23 @@ internal fun tuneLabel(scope: RankScope, window: Window): String? = listOfNotNul
     window.name.takeIf { window != Window.Day },
 ).takeIf { it.isNotEmpty() }?.joinToString(" · ")
 
+/** The bar's label: none with the filter chips on, since each chip reads its own value. */
+internal fun RanksUiState.topBarLabel(): String? = if (filterSheets) null else tuneLabel(scope, window)
+
 /**
  * The hub's bar: the [title] (the board menu) at the start, the active [label] (if any) and the tune icon that calls [onTune] at the end.
- * The label is a button too, the same as the icon.
+ * The label is a button too, the same as the icon. A null [onTune] means there is nothing to tune, so the bar has neither.
  */
 @Composable
-internal fun RanksTopBar(label: String?, onTune: () -> Unit, modifier: Modifier = Modifier, title: @Composable () -> Unit) {
+internal fun RanksTopBar(label: String?, onTune: (() -> Unit)?, modifier: Modifier = Modifier, title: @Composable () -> Unit) {
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         title()
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
-            label?.let { TuneLabel(it, onTune) }
-            IconButton(onClick = onTune, modifier = Modifier.testTag("ranks.tune")) {
-                Icon(TuneIcon, contentDescription = "Tune ranks", tint = MaterialTheme.colorScheme.onSurface)
+            if (onTune != null) {
+                label?.let { TuneLabel(it, onTune) }
+                IconButton(onClick = onTune, modifier = Modifier.testTag("ranks.tune")) {
+                    Icon(TuneIcon, contentDescription = "Tune ranks", tint = MaterialTheme.colorScheme.onSurface)
+                }
             }
         }
     }
