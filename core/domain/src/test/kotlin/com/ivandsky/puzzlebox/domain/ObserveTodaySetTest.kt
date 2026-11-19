@@ -22,7 +22,6 @@ import java.time.LocalDate
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 
 /** Today's set (A12–A14, SC10, SC11) over the core:testing fakes; Offline comes from [SyncTodayPuzzles]. */
@@ -202,31 +201,6 @@ class ObserveTodaySetTest {
             sync()
             assertEquals(TodayStatus.NotStarted, awaitItem().single().status)
         }
-    }
-
-    @Test
-    fun `nextUnsolved wraps and excludes the current game`() {
-        val set = listOf(
-            TodayEntry(alpha, "Alpha", TodayStatus.Solved(1L)),
-            TodayEntry(beta, "Beta", TodayStatus.InProgress(1L)),
-            TodayEntry(gamma, "Gamma", TodayStatus.NotStarted),
-        )
-
-        assertEquals(beta, set.nextUnsolved(after = alpha))
-        assertEquals(beta, set.nextUnsolved(after = gamma))
-        assertEquals(gamma, set.nextUnsolved(after = beta))
-    }
-
-    @Test
-    fun `nextUnsolved is null when every other game is solved`() {
-        val set = listOf(
-            TodayEntry(alpha, "Alpha", TodayStatus.Solved(1L)),
-            TodayEntry(beta, "Beta", TodayStatus.Solved(1L)),
-            TodayEntry(gamma, "Gamma", TodayStatus.NotStarted),
-        )
-
-        assertNull(set.nextUnsolved(after = gamma))
-        assertNull(set.map { it.copy(status = TodayStatus.Solved(1L)) }.nextUnsolved(after = alpha))
     }
 
     @Test

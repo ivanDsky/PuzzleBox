@@ -6,7 +6,6 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.TopBarFlag
 import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
-import com.ivandsky.puzzlebox.domain.ObserveFriendPuzzles
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.gameui.flags.GameUiFlag
 import com.ivandsky.puzzlebox.model.GameId
@@ -17,9 +16,9 @@ import com.ivandsky.puzzlebox.play.GameViewModel
 import com.ivandsky.puzzlebox.play.HintPolish
 import com.ivandsky.puzzlebox.play.HowToPlayRules
 import com.ivandsky.puzzlebox.play.LibraryViewModel
+import com.ivandsky.puzzlebox.play.MainTabsLargeBar
 import com.ivandsky.puzzlebox.play.MatchLegResultViewModel
 import com.ivandsky.puzzlebox.play.MatchLegViewModel
-import com.ivandsky.puzzlebox.play.MainTabsLargeBar
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.PlayStatsViewModel
 import com.ivandsky.puzzlebox.play.ReplayCompareViewModel
@@ -38,9 +37,11 @@ import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.play.domain.DeleteReceivedPuzzle
 import com.ivandsky.puzzlebox.play.domain.FinishLeg
+import com.ivandsky.puzzlebox.play.domain.ListCommunityPuzzles
 import com.ivandsky.puzzlebox.play.domain.LoadPastDay
 import com.ivandsky.puzzlebox.play.domain.ObserveArchiveMonth
 import com.ivandsky.puzzlebox.play.domain.ObserveArchiveProgress
+import com.ivandsky.puzzlebox.play.domain.ObserveFriendPuzzles
 import com.ivandsky.puzzlebox.play.domain.ObserveLegTarget
 import com.ivandsky.puzzlebox.play.domain.ObservePlayStats
 import com.ivandsky.puzzlebox.play.domain.ObserveResultInsights
@@ -74,9 +75,10 @@ import org.koin.dsl.module
  * [ObserveFriendPuzzles] and [DeleteReceivedPuzzle] are here, as are Play's own use cases: the
  * archive month and progress, the tablet stats panel's [ObservePlayStats], a duel leg's
  * [FinishLeg] and [ObserveLegTarget], Report's [ReportPuzzle], the result's LinkedIn post
- * ([ObserveLinkedInPost], [SubmitLinkedInResult]), a past day's [LoadPastDay], and the random
- * pick ([LoadRandomDay], [LoadRandomShared], [LoadRandomPuzzle]), which shuffles with
- * [Random.Default]. The feature's release flags ([PlayFlag]) are declared here.
+ * ([ObserveLinkedInPost], [SubmitLinkedInResult]), a past day's [LoadPastDay], the community
+ * list ([ListCommunityPuzzles]), and the random pick ([LoadRandomDay], [LoadRandomShared],
+ * [LoadRandomPuzzle]), which shuffles with [Random.Default]. The feature's release flags
+ * ([PlayFlag]) are declared here.
  *
  * [PlaySessionStore] is a single so live plays outlive their entries' compositions. Its
  * slot opening and every slot's writer share ONE [WriteLane], so a released slot's final
@@ -139,6 +141,7 @@ val playModule = module {
             random = Random.Default,
         )
     }
+    factory { ListCommunityPuzzles(shared = get(), hidden = get(), identity = get(), clock = System::currentTimeMillis) }
     factory { LoadRandomShared(list = get(), random = Random.Default) }
     factory { LoadRandomPuzzle(day = get(), shared = get()) }
     // The flag arrives as the parameter, so a graph without LinkedIn bindings builds the library with it off.

@@ -8,13 +8,13 @@ import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.repository.CommunityFilter
 import com.ivandsky.puzzlebox.data.repository.CommunityListResult
 import com.ivandsky.puzzlebox.data.repository.ReportResult
-import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
-import com.ivandsky.puzzlebox.play.domain.ReportPuzzle
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.board.BoardSignInHolder
+import com.ivandsky.puzzlebox.play.domain.ListCommunityPuzzles
+import com.ivandsky.puzzlebox.play.domain.ReportPuzzle
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

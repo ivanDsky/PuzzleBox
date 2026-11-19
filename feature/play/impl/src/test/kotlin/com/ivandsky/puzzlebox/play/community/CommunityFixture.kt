@@ -5,8 +5,6 @@ import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
 import com.ivandsky.puzzlebox.data.repository.CommunityFilter
 import com.ivandsky.puzzlebox.data.repository.CommunityListResult
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
-import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
-import com.ivandsky.puzzlebox.play.domain.ReportPuzzle
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.editor.Difficulty
@@ -14,6 +12,8 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.AlphaShareEditor
 import com.ivandsky.puzzlebox.play.FakeGames
+import com.ivandsky.puzzlebox.play.domain.ListCommunityPuzzles
+import com.ivandsky.puzzlebox.play.domain.ReportPuzzle
 import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeHiddenPuzzles

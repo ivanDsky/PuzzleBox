@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain
+package com.ivandsky.puzzlebox.play.domain
 
 /**
  * A friend's puzzle as From friends reads it (spec A19), in precedence order: the first case

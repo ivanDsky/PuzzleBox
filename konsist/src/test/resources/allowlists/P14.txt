@@ -6,15 +6,10 @@ core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/DeleteSelfDuel.kt  # P
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/DuelRow.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/DuelRowKind.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/DuelSnapshot.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/FriendPuzzleRow.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/FriendStatus.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ImportDraftFromText.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ImportResult.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ListCommunityPuzzles.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/MyDuels.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/NextUnsolved.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ObserveDuel.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ObserveFriendPuzzles.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ObserveMyDuels.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/PublishOutcome.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/RecordRevealSeen.kt  # P14
@@ -48,8 +43,6 @@ core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/lineup/SaveDuelPuzzles
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/lineup/SelfDraw.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/lineup/SelfLeg.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/lineup/SourceRows.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/nextthing/NextThing.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/nextthing/ResultNextThing.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ranks/GameWindowStandings.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ranks/GetPlayerActions.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ranks/ObserveOverall.kt  # P14

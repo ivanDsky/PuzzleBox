@@ -17,8 +17,6 @@ import androidx.compose.ui.unit.Dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.FriendPuzzleRow
-import com.ivandsky.puzzlebox.domain.FriendStatus
 import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.model.GameId
@@ -27,6 +25,8 @@ import com.ivandsky.puzzlebox.play.community.CommunityActions
 import com.ivandsky.puzzlebox.play.community.CommunityPhase
 import com.ivandsky.puzzlebox.play.community.CommunityRowModel
 import com.ivandsky.puzzlebox.play.community.CommunityState
+import com.ivandsky.puzzlebox.play.domain.FriendPuzzleRow
+import com.ivandsky.puzzlebox.play.domain.FriendStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

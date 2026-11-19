@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.play.domain.nextthing
 
-import com.ivandsky.puzzlebox.domain.FriendStatus
-import com.ivandsky.puzzlebox.domain.nextthing.NextThing
+import com.ivandsky.puzzlebox.play.domain.FriendStatus
 
 /** Rung 4: the first received friend puzzle that was never played. */
 internal object NewFriendPuzzleNextThingProvider : NextThingProvider {

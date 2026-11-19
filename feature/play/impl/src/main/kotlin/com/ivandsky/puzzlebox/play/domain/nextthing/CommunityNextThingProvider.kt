@@ -1,7 +1,5 @@
 package com.ivandsky.puzzlebox.play.domain.nextthing
 
-import com.ivandsky.puzzlebox.domain.nextthing.NextThing
-
 /**
  * Rung 4b: the newest community puzzle the player has not opened. Opening a puzzle keeps it among the received
  * ones whatever became of it, so any code there is opened. The list is newest first and already without the

@@ -1,9 +1,9 @@
-package com.ivandsky.puzzlebox.domain.nextthing
+package com.ivandsky.puzzlebox.play.domain.nextthing
 
 import com.ivandsky.puzzlebox.domain.moments.Moment
 
 /**
- * What Result shows for one solve at one moment of Play's ObserveResultNextThing flow.
+ * What Result shows for one solve at one moment of [ObserveResultNextThing]'s flow.
  *
  * @property moments what the solve has earned so far, strongest first (L1); a friend-board moment joins when the
  *   board lands. Empty for a play again or a practice puzzle, which earn none.

@@ -1,7 +1,5 @@
 package com.ivandsky.puzzlebox.play.domain.nextthing
 
-import com.ivandsky.puzzlebox.domain.nextthing.NextThing
-
 /**
  * Rung 3: the most recent of the last [DAYS_BACK] days, today excluded, whose puzzle of the game just solved
  * is on the phone with no record. A history row without a record is such a captured day.

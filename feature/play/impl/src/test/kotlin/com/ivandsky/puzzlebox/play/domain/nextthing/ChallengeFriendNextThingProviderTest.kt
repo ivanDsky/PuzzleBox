@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.play.domain.nextthing
 
 import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
-import com.ivandsky.puzzlebox.domain.nextthing.NextThing
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
