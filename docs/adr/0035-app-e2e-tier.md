@@ -19,26 +19,34 @@ of `:app`'s 148 test classes.
 ## Decision
 1. **e2e runs in its own task.** `:app:e2eTest` runs the classes under
    `com.ivandsky.puzzlebox.app.e2e`. It also runs `NativeGraphicsWarmUpTest`, which warms up the
-   Robolectric native runtime for that JVM. It reuses `testDebugUnitTest`'s classes, classpath and
-   test JVM settings. `testDebugUnitTest` skips the package, and so do `test` and the merge gate
-   (`./gradlew assembleDebug test -x :app:testReleaseUnitTest -x :app:testBenchmarkUnitTest`).
-   `e2eTest` never runs beside `:app`'s other tests.
+   Robolectric native runtime for that JVM. It reuses `testDebugUnitTest`'s classes, classpath,
+   inputs and test JVM settings. The inputs matter: AGP's test config names the resource APK,
+   merged manifest and assets by path only, so without them a resource- or manifest-only change
+   would leave `e2eTest` up to date. `testDebugUnitTest` skips the package, and so do `test` and
+   the merge gate (`./gradlew assembleDebug test -x :app:testReleaseUnitTest -x
+   :app:testBenchmarkUnitTest`). `e2eTest` never runs beside other tests: it runs after `:app`'s
+   other test tasks, and the root build file starts `:app`'s tests after every other module's.
+   The package's two golden classes render only with `./gradlew :app:e2eTest
+   -Proborazzi.record=true`.
 2. **The lane runs the tier when a batch touches the shell.** PROFILE has
    `- e2e: ./gradlew :app:e2eTest   # when: app, core:navigation, feature:*:api`. When a batch's
    commits touch `:app`, `:core:navigation` or a feature's `api` module (its NavKeys, the
    contract every entry is built on), ship-to-trunk's merge lane appends the task to the batch's
-   suite. It runs in the same check and build slot as the suite, so a red e2e is a red suite. Any
-   other batch merges on the gate alone. A shared build setup change on its own does not trigger
-   the tier.
+   suite. A change to the shared build setup (root build and settings files, `gradle.properties`,
+   `gradle/`, `build-logic/`) triggers it too: it can change how every module builds. Only the
+   modules a batch touches count, not their dependents, because `:app` depends on almost every
+   module. The task runs in the same check and build slot as the suite, so a red e2e is a red
+   suite. Any other batch merges on the gate alone.
 3. **Main CI always runs the tier.** The Main workflow's `ui` job runs `testUi :app:e2eTest` after
    every merge. A red e2e turns main red, and ADR-0023 §4 applies.
-4. **Outside the lane**, a change to `:app`, `:core:navigation` or a feature's `api` module runs
-   `./gradlew :app:e2eTest` by hand before its PR.
+4. **Outside the lane**, a change to `:app`, `:core:navigation`, a feature's `api` module or the
+   shared build setup runs `./gradlew :app:e2eTest` by hand before its PR.
 
 ## Consequences
-- A batch outside those modules no longer pays for the e2e classes. That is about 125 s of test
-  time per suite (77% of the 163 s median) [INFERENCE: from the medians, not a measured A/B].
-  It also takes the most load-sensitive tests out of the shared build slot.
+- A batch outside those modules and the shared build setup no longer pays for the e2e classes.
+  That is about 125 s of test time per suite (77% of the 163 s median) [INFERENCE: from the
+  medians, not a measured A/B]. It also takes the most load-sensitive tests out of the shared
+  build slot.
 - A break that only an e2e test catches, made in a feature's `impl` or a `core` module, is found
   after the merge, by main's run (CI median 11 minutes), instead of before it. ADR-0023 §4 covers
   it: a red main stops merges, and the fix is a revert or a one-line fix forward.

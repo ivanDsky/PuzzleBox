@@ -107,9 +107,9 @@ user, the PR is a place to read the change, not a test gate.
        exclude that path.
      - The lane needs `local.properties` or `ANDROID_HOME`.
    *Amendment 2026-11-19 (ADR-0035):* `test` no longer runs `:app`'s e2e classes. The lane adds
-   `./gradlew :app:e2eTest` to a batch's suite when the batch touches `:app`, `:core:navigation`
-   or a `:feature:*:api` module (PROFILE `e2e:`). Every other batch merges on the gate alone, and
-   main's `ui` job runs the tier after every merge.
+   `./gradlew :app:e2eTest` to a batch's suite when the batch touches `:app`, `:core:navigation`,
+   a `:feature:*:api` module or the shared build setup (PROFILE `e2e:`). Every other batch merges
+   on the gate alone, and main's `ui` job runs the tier after every merge.
 4. **A red main stops merges.** The next PR is either a `git revert` of the culprit squash
    commit or a one-line obvious fix forward. Other merges wait until main is green again.
    *Amendment 2026-11-11:* nobody waits for main's run.
