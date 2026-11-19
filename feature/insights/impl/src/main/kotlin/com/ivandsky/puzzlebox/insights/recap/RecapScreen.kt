@@ -23,6 +23,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.TwoColumnFrame
 import com.ivandsky.puzzlebox.designsystem.TwoColumnMinWidth
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
+import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.insights.label
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.launch
@@ -38,6 +39,7 @@ internal fun RecapScreen(
     periodLabel: String,
     gameName: (GameId) -> String,
     onPage: (Int) -> Unit,
+    onWatchReplay: (RecapCard.Fastest.Row) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -59,7 +61,7 @@ internal fun RecapScreen(
             tag = "recap.empty",
             modifier = modifier,
         )
-        is RecapUiState.Ready -> RecapReady(state, gameName, onPage, onClose, modifier)
+        is RecapUiState.Ready -> RecapReady(state, gameName, onPage, onWatchReplay, onClose, modifier)
     }
 }
 
@@ -90,6 +92,7 @@ private fun RecapReady(
     state: RecapUiState.Ready,
     gameName: (GameId) -> String,
     onPage: (Int) -> Unit,
+    onWatchReplay: (RecapCard.Fastest.Row) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -109,6 +112,7 @@ private fun RecapReady(
                         pagerState = pagerState,
                         periodLabel = periodLabel,
                         gameName = gameName,
+                        onWatchReplay = onWatchReplay,
                         onClose = onClose,
                         modifier = column
                             .height(height)
@@ -122,11 +126,12 @@ private fun RecapReady(
                         current = pagerState.currentPage,
                         gameName = gameName,
                         onSelect = { page -> scope.launch { pagerState.showPage(page, reduced) } },
+                        onWatchReplay = onWatchReplay,
                     )
                 },
             )
         } else {
-            RecapStory(state.cards, pagerState, periodLabel, gameName, onClose)
+            RecapStory(state.cards, pagerState, periodLabel, gameName, onWatchReplay, onClose)
         }
     }
 }

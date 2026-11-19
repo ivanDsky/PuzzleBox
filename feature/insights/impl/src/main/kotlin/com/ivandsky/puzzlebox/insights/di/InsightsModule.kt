@@ -20,7 +20,7 @@ import org.koin.dsl.module
 val insightsModule: Module = module {
     flagSet("insights", InsightsFlag.entries)
 
-    factory { ComputePeriodFacts() }
+    factory { ComputePeriodFacts(computeStreak = get()) }
     factory { ObserveRecap(observeGameHistory = get(), computePeriodFacts = get(), registry = get()) }
     factory { ObserveRecapAvailability(observeGameHistory = get(), calendar = get(), registry = get()) }
     factory { ObserveDueRecap(availability = get()) }

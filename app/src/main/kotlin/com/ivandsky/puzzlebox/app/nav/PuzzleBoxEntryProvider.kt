@@ -67,8 +67,9 @@ import java.time.LocalDate
  * Today's day and streak summaries open the hub ([homeSummaries]).
  * Profile's own pages (Settings, the LinkedIn login, the catalog) stack on Profile inside the layer above the tabs
  * ([Navigator.pushLayer]). [onOpenInsights] (null: Insights is off, see [insightsOpener]) is Profile's Insights row;
- * the hub opens a month's recap as a layer page too. [recap] (null: none due or the flag is off, see [recapSlot]) is
- * the card Home's Today list shows for the month just ended.
+ * the hub opens a month's recap as a layer page too, and a recap's fastest solve opens its replay on that layer, so
+ * Back returns to the recap. [recap] (null: none due or the flag is off, see [recapSlot]) is the card Home's Today
+ * list shows for the month just ended.
  */
 internal fun puzzleBoxEntryProvider(
     navigator: Navigator,
@@ -132,7 +133,11 @@ internal fun puzzleBoxEntryProvider(
         visibility = visibility,
     )
     competeEntry(navigator, playLayout)
-    insightsEntry(onBack = back, onOpenRecap = { period -> navigator.pushLayer(InsightsRecapKey(period)) })
+    insightsEntry(
+        onBack = back,
+        onOpenRecap = { period -> navigator.pushLayer(InsightsRecapKey(period)) },
+        onOpenReplay = { key -> navigator.pushLayer(key) },
+    )
     entry<CatalogKey> { CatalogScreen() }
 }
 
