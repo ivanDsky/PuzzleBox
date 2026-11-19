@@ -1,8 +1,9 @@
 package com.ivandsky.puzzlebox.history.ranks
 
 import com.ivandsky.puzzlebox.domain.ranks.BoardLoad
+import com.ivandsky.puzzlebox.domain.ranks.CountedBoards
 import com.ivandsky.puzzlebox.history.domain.ranks.GameWindowStandings
-import com.ivandsky.puzzlebox.history.domain.ranks.OverallStandings
+import com.ivandsky.puzzlebox.domain.ranks.OverallStandings
 import com.ivandsky.puzzlebox.domain.ranks.RankWindowBoards
 import com.ivandsky.puzzlebox.domain.ranks.RankedBoard
 import com.ivandsky.puzzlebox.history.domain.ranks.gameWindowStandings
@@ -79,10 +80,10 @@ private const val WITH_LINKEDIN = "with LinkedIn connections"
  * of that ranking and keeps its own place, taking none from anyone.
  * [RanksBoardSlice.friendsAlone] marks a list of the viewer alone.
  */
-internal fun RanksBoardSlice.inFriends(boards: BoardGhosts.Counted?, game: GameId, selfUid: String?): RanksBoardSlice =
+internal fun RanksBoardSlice.inFriends(boards: CountedBoards?, game: GameId, selfUid: String?): RanksBoardSlice =
     withGhosts(boards, game, selfUid).let { it.copy(friendsAlone = it.state.isViewerAlone()) }
 
-private fun RanksBoardSlice.withGhosts(boards: BoardGhosts.Counted?, game: GameId, selfUid: String?): RanksBoardSlice {
+private fun RanksBoardSlice.withGhosts(boards: CountedBoards?, game: GameId, selfUid: String?): RanksBoardSlice {
     val ranked = state as? DailyBoardState.Ranked
     val input = boards?.ghostInput(game, selfUid) ?: BoardGhostInput.None
     if (ranked == null || (input.ghosts.isEmpty() && input.you == null)) return this

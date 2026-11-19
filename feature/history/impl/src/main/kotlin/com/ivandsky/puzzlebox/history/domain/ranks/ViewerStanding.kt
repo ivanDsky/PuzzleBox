@@ -1,8 +1,13 @@
 package com.ivandsky.puzzlebox.history.domain.ranks
 
+import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.BoardPage
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
+import com.ivandsky.puzzlebox.domain.ranks.BoardLoad
+import com.ivandsky.puzzlebox.domain.ranks.beyondPage
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RankOrder
+import com.ivandsky.puzzlebox.model.PuzzleKey
 
 /** How the viewer stands on one day's board (A14). */
 sealed interface ViewerStanding {
@@ -27,3 +32,22 @@ fun viewerStanding(local: CompletionRecord?, inWindow: Boolean, board: BoardPage
     inWindow -> ViewerStanding.None
     else -> ViewerStanding.Unofficial(unofficialPlace(local.time, local.hints, board.entries, order))
 }
+
+/**
+ * How many of [loaded]'s days the viewer solved ([records]) but stands [ViewerStanding.Unofficial] on, as each day's
+ * board marks them: the days a game's Week or Month leaves out of their points (ADR-0031 §11). [inWindow] is the
+ * client's one submit-window rule. A board A11 places them past the page on counts for them, so it is not one of these.
+ */
+fun unofficialDays(loaded: List<BoardLoad.Loaded>, me: Identity?, records: List<CompletionRecord>, inWindow: (LeaderboardRef) -> Boolean): Int {
+    if (me == null) return 0
+    val solves = records.mapNotNull { record -> record.board()?.let { it to record } }.toMap()
+    val counted = beyondPage(loaded, me, records)
+    return loaded.count { load ->
+        load.board !in counted &&
+            viewerStanding(solves[load.board], inWindow(load.board), load.page, me.uid, load.order) is ViewerStanding.Unofficial
+    }
+}
+
+/** The daily board this record's day is on; null for a puzzle with no day. */
+private fun CompletionRecord.board(): LeaderboardRef? =
+    (puzzleRef.key as? PuzzleKey.Daily)?.let { LeaderboardRef(puzzleRef.gameId.value, it.date) }

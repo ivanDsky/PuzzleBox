@@ -16,9 +16,11 @@ import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendBoards
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
-import com.ivandsky.puzzlebox.history.domain.ranks.ObserveOverall
-import com.ivandsky.puzzlebox.history.domain.ranks.ObserveRankWindow
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendsOverall
+import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
+import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
 import com.ivandsky.puzzlebox.history.domain.ranks.ObserveWindowRefresh
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
@@ -97,6 +99,19 @@ internal class RanksTestHub(
         override fun instant(): Instant = now
     }
 
+    /** The phone's LinkedIn days as the hub reads them with LinkedIn on. */
+    private fun linkedInView() = ObserveLinkedInDayView(ObserveLinkedInDay(linkedInDays, registry), SyncLinkedInDay(linkedInDays, 500), FakeLinkedInLink(), linkedInDays)
+
+    /** The domain's Friends boards as domainModule binds them (LinkedIn on): a hub built with LinkedIn on and [friendsOverall] share this one. */
+    private val linkedInFriendBoards = ObserveFriendBoards(ObserveFriendUids(matches, this.identity), this.identity, linkedInView())
+
+    /** The domain's Friends Overall over the same fakes, clock and Friends boards as [viewModel] built with LinkedIn on: a second caller of the hub's pipeline. */
+    fun friendsOverall() = ObserveFriendsOverall(
+        ObserveRankWindow(this.identity, leaderboard, FakeFinalBoardStore(), registry, calendar, clock),
+        linkedInFriendBoards,
+        ObserveOverall(this.identity, completions),
+    )
+
     fun viewModel(
         linkedIn: Boolean = false,
         releaseFlags: ReleaseFlags = FakeReleaseFlags(),
@@ -124,7 +139,9 @@ internal class RanksTestHub(
             registry = registry,
             daily = daily,
             clock = clock,
-            linkedIn = ObserveLinkedInDayView(ObserveLinkedInDay(linkedInDays, registry), SyncLinkedInDay(linkedInDays, 500), FakeLinkedInLink(), linkedInDays).takeIf { linkedIn },
+            // As historyModule wires it: off, the same boards count no connection.
+            friendBoards = if (linkedIn) linkedInFriendBoards else ObserveFriendBoards(ObserveFriendUids(matches, this.identity), this.identity, linkedIn = null),
+            linkedIn = linkedInView().takeIf { linkedIn },
             releaseFlags = releaseFlags,
             savedState = savedState,
             opening = opening,

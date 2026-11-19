@@ -1,0 +1,7 @@
+core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ranks/CountedBoards.kt # until Insights #1607
+core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ranks/ObserveFriendBoards.kt # until Insights #1607
+core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ranks/ObserveFriendsOverall.kt # until Insights #1607
+core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ranks/ObserveOverall.kt # until Insights #1607
+core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ranks/ObserveRankWindow.kt # until Insights #1607
+core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ranks/OverallStandings.kt # until Insights #1607
+core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ranks/OverallState.kt # until Insights #1607

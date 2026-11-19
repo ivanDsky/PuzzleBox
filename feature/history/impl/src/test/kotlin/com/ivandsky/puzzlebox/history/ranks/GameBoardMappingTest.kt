@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.domain.linkedin.LinkedInBoardView
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayStatus
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
 import com.ivandsky.puzzlebox.domain.ranks.BoardLoad
+import com.ivandsky.puzzlebox.domain.ranks.CountedBoards
 import com.ivandsky.puzzlebox.domain.ranks.RankWindowBoards
 import com.ivandsky.puzzlebox.domain.ranks.amongFriends
 import com.ivandsky.puzzlebox.game.RankOrder
@@ -206,10 +207,10 @@ class GameBoardMappingTest {
     private fun connection(name: String, timeMs: Long?, hintFree: Boolean = true) = LinkedInGhost("ref-$name", name, timeMs, hintFree, flawless = false)
 
     /** [board]'s one day among [players] as the hub holds it in Friends for [viewer], with [connections] saved for that day. */
-    private fun friendsDay(board: RankWindowBoards.Boards, players: Set<String>, viewer: String, connections: List<LinkedInGhost>): BoardGhosts.Counted {
+    private fun friendsDay(board: RankWindowBoards.Boards, players: Set<String>, viewer: String, connections: List<LinkedInGhost>): CountedBoards {
         val saved = LinkedInDayView(LinkedInDayStatus.Idle, LinkedInBoardView.Shown(connections))
         val days = if (connections.isEmpty()) emptyMap() else mapOf(board.boards.single().board to saved)
-        return BoardGhosts.Counted(board.amongFriends(players), board.amongFriends(players, days, viewer), days)
+        return CountedBoards(board.amongFriends(players), board.amongFriends(players, days, viewer), days)
     }
 
     /** The Friends card as the hub builds it (F18): the board among the viewer and [friends], with the day's [connections] counted on it. */

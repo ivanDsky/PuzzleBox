@@ -2,7 +2,7 @@ package com.ivandsky.puzzlebox.history.ranks
 
 import com.ivandsky.puzzlebox.domain.ranks.RankWindow
 import com.ivandsky.puzzlebox.domain.ranks.RankWindowBoards
-import com.ivandsky.puzzlebox.history.domain.ranks.ObserveRankWindow
+import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
 import com.ivandsky.puzzlebox.history.domain.ranks.ObserveWindowRefresh
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.CoroutineScope
