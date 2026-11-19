@@ -28,23 +28,21 @@ private fun hintCostSeen(game: GameId) = GameSetting(game, "hint_cost_seen", def
  */
 @Composable
 internal fun HintCostHost(game: GameId, inputs: StateFlow<Int>, content: @Composable () -> Unit) {
-    PlayBoardHosts {
-        val settings = currentKoinScope().getOrNull<GameSettingsRepository>()
-        val scope = rememberCoroutineScope()
-        val key = remember(game) { hintCostSeen(game) }
-        val seen: State<Boolean?> = produceState<Boolean?>(null, settings, key) {
-            settings?.flag(key)?.collect { value = it }
-        }
-        val inputCount = inputs.collectAsState()
-        val line = remember(settings, key) {
-            settings?.let {
-                HintCostLine(
-                    seen = { seen.value != false }, // unloaded reads as seen: nothing shows until the store answers
-                    inputs = { inputCount.value },
-                    markSeen = { scope.launch { withContext(NonCancellable) { it.setFlag(key, true) } } },
-                )
-            }
-        }
-        CompositionLocalProvider(LocalHintCostLine provides line, content)
+    val settings = currentKoinScope().getOrNull<GameSettingsRepository>()
+    val scope = rememberCoroutineScope()
+    val key = remember(game) { hintCostSeen(game) }
+    val seen: State<Boolean?> = produceState<Boolean?>(null, settings, key) {
+        settings?.flag(key)?.collect { value = it }
     }
+    val inputCount = inputs.collectAsState()
+    val line = remember(settings, key) {
+        settings?.let {
+            HintCostLine(
+                seen = { seen.value != false }, // unloaded reads as seen: nothing shows until the store answers
+                inputs = { inputCount.value },
+                markSeen = { scope.launch { withContext(NonCancellable) { it.setFlag(key, true) } } },
+            )
+        }
+    }
+    CompositionLocalProvider(LocalHintCostLine provides line, content)
 }

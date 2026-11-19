@@ -10,7 +10,7 @@ import com.ivandsky.puzzlebox.games.tango.engine.step.TangoStepRung
 
 /**
  * Turns a [TangoStep] into everything the Spotlight draws: roles, callout, glyphs, and the ledger [Key].
- * [grid] is the press-time board, equal to the snapshot the step was computed from. [plainCaptions] picks the callout set.
+ * [grid] is the press-time board, equal to the snapshot the step was computed from.
  */
 internal object TangoSpotlightMapper {
 
@@ -27,15 +27,14 @@ internal object TangoSpotlightMapper {
         puzzle: TangoPuzzle,
         grid: List<TangoCell?>,
         playId: Int,
-        plainCaptions: Boolean = false,
     ): Spotlight = when (step) {
         is TangoStep.Deduction ->
-            spotlight(step, puzzle, deductionRoles(step), mapOf(step.idx to step.value), playId, plainCaptions)
+            spotlight(step, puzzle, deductionRoles(step), mapOf(step.idx to step.value), playId)
         is TangoStep.Reveal -> spotlight(
-            step, puzzle, single(step.idx, SpotlightRole.TARGET), mapOf(step.idx to step.value), playId, plainCaptions,
+            step, puzzle, single(step.idx, SpotlightRole.TARGET), mapOf(step.idx to step.value), playId,
         )
         is TangoStep.Mistake -> spotlight(
-            step, puzzle, single(step.idx, SpotlightRole.CULPRIT), mistakeValues(step, grid), playId, plainCaptions,
+            step, puzzle, single(step.idx, SpotlightRole.CULPRIT), mistakeValues(step, grid), playId,
         )
         TangoStep.Solved, TangoStep.Unavailable -> error("$step has no Spotlight")
     }
@@ -46,12 +45,11 @@ internal object TangoSpotlightMapper {
         shape: Pair<Map<Int, SpotlightRole>, Set<Int>>,
         values: Map<Int, TangoCell>,
         playId: Int,
-        plainCaptions: Boolean,
     ): Spotlight = Spotlight(
         rows = puzzle.n,
         cols = puzzle.n,
         roles = shape.first,
-        callout = SpotlightCallout(TangoStepCopy.text(step, puzzle, plainCaptions), shape.second),
+        callout = SpotlightCallout(TangoStepCopy.text(step, puzzle), shape.second),
         glyphs = TangoSpotlightGlyphs(puzzle.n, values),
         playId = playId,
     )

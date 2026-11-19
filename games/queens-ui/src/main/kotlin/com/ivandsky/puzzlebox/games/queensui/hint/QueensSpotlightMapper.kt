@@ -7,7 +7,7 @@ import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.HintReason
 import com.ivandsky.puzzlebox.games.queens.engine.hints.step.QueensStep
 
-/** Turns a [QueensStep] into everything the Spotlight draws (roles, callout, glyphs) and its ledger [Key]. [plainCaptions] picks the callout set. */
+/** Turns a [QueensStep] into everything the Spotlight draws (roles, callout, glyphs) and its ledger [Key]. */
 internal object QueensSpotlightMapper {
 
     /** Identity of a step for the shown-step ledger: what it names, so the same step found again is free. */
@@ -24,16 +24,15 @@ internal object QueensSpotlightMapper {
     }
 
     /** The Spotlight of a keyed [step]; [QueensStep.Solved] and [QueensStep.Unavailable] have none and throw. */
-    fun map(step: QueensStep, puzzle: QueensPuzzle, playId: Int, plainCaptions: Boolean = false): Spotlight = when (step) {
+    fun map(step: QueensStep, puzzle: QueensPuzzle, playId: Int): Spotlight = when (step) {
         is QueensStep.Mistake -> spotlight(
             step, puzzle, playId, mistakeRoles(step),
-            culpritIsCross = step.kind == QueensStep.Mistake.Kind.WRONG_CROSS, plainCaptions = plainCaptions,
+            culpritIsCross = step.kind == QueensStep.Mistake.Kind.WRONG_CROSS,
         )
-        is QueensStep.Deduction ->
-            spotlight(step, puzzle, playId, deductionRoles(step), culpritIsCross = false, plainCaptions = plainCaptions)
+        is QueensStep.Deduction -> spotlight(step, puzzle, playId, deductionRoles(step), culpritIsCross = false)
         is QueensStep.Reveal -> spotlight(
             step, puzzle, playId, mapOf(step.cell.idx to SpotlightRole.EXCLUDED),
-            culpritIsCross = false, plainCaptions = plainCaptions,
+            culpritIsCross = false,
         )
         QueensStep.Solved, QueensStep.Unavailable -> error("$step has no Spotlight")
     }
@@ -44,7 +43,6 @@ internal object QueensSpotlightMapper {
         playId: Int,
         roles: Map<Int, SpotlightRole>,
         culpritIsCross: Boolean,
-        plainCaptions: Boolean,
     ): Spotlight {
         val lit = roles.filterValues { it != SpotlightRole.EXCLUDED }.keys
         val anchor = lit.ifEmpty { roles.keys }
@@ -52,7 +50,7 @@ internal object QueensSpotlightMapper {
             rows = puzzle.size,
             cols = puzzle.size,
             roles = roles,
-            callout = SpotlightCallout(QueensStepCopy.text(step, plainCaptions), anchor),
+            callout = SpotlightCallout(QueensStepCopy.text(step), anchor),
             glyphs = QueensSpotlightGlyphs(culpritIsCross = culpritIsCross),
             playId = playId,
         )

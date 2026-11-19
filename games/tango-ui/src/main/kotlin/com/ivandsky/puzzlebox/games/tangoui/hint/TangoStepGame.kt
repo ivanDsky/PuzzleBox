@@ -18,7 +18,7 @@ import com.ivandsky.puzzlebox.games.tango.engine.step.TangoStepper
  * Tango stores no solution, so the compute block searches it once per puzzle (A19) with a poll-counting budget, never
  * wall-clock, so the answer is repeatable; no unique solution or a spent budget is null, and the stepper then accuses
  * only rule breaks and never reveals. Main-confined except the compute block, which only reads the snapshot and the
- * memo. [solve] is a seam for tests. [plainCaptions] picks the plain callout set (HintPolish), fixed for the play too.
+ * memo. [solve] is a seam for tests.
  * [placeIt] puts "Place it" in a deduction's or reveal's callout: it is the controller's own
  * placement entry, built once for the play, so a press only wraps it and nothing is rebuilt per recomposition.
  */
@@ -26,7 +26,6 @@ internal class TangoStepGame(
     private val session: () -> TangoSession,
     solve: (TangoPuzzle) -> List<TangoCell>? = { TangoBoundedSolution.of(it) },
     private val placeIt: (idx: Int, value: TangoCell) -> Unit,
-    private val plainCaptions: Boolean = false,
 ) : StepHints.Game<TangoStep, TangoSpotlightMapper.Key> {
 
     private val solutions = OncePerPuzzle(solve)
@@ -44,7 +43,7 @@ internal class TangoStepGame(
     /** The press-time board: any input invalidates the search before it delivers, so the live board is the snapshot. */
     override fun spotlight(step: TangoStep, playId: Int): Spotlight {
         val current = session()
-        val spotlight = TangoSpotlightMapper.map(step, current.puzzle, current.grid(), playId, plainCaptions)
+        val spotlight = TangoSpotlightMapper.map(step, current.puzzle, current.grid(), playId)
         return spotlight.withPlaceIt(step, placeIt)
     }
 

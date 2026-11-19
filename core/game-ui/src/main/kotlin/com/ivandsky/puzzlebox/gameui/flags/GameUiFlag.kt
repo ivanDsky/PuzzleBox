@@ -13,12 +13,6 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
  */
 enum class GameUiFlag(override val label: String, override val releaseDefault: Boolean) : ReleaseFlagKey {
     /**
-     * Hint polish (backlog #1172, #1174): the Hint button reads as a peer of Undo, and hint captions explain the step in a plain
-     * sentence before any technique name. Read only in feature/play's DI or a game UI module's DI (ADR-0022 §3).
-     */
-    HintPolish(label = "Calm hint button and plain hint captions", releaseDefault = true),
-
-    /**
      * Technique trainer for Queens (epic trainer): Queens' UI module binds its trainer adapter only while this is on, and
      * the Train tab in Games shows once any adapter is bound. Read only in a game UI module's DI (ADR-0022 §3).
      */

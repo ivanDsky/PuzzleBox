@@ -289,60 +289,32 @@ class PlayActionBarTest {
         assertFalse("left edge $left vs $accent", near(accent, left))
     }
 
-    // HintPolish (#1172): Hint wears the neutral well like Undo; the ring stays the game accent.
+    // Hint wears the neutral well like Undo; the cooldown ring (above) stays the game accent.
 
-    /** The hint's face colour, the undo's, and the game accent, read off one bar. */
-    private fun faces(polish: Boolean, dark: Boolean): Triple<Color, Color, Color> {
-        var accent = Color.Unspecified
+    /** The hint's face colour and the undo's, read off one bar. */
+    private fun faces(dark: Boolean): Pair<Color, Color> {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = dark) {
-                accent = AccentSlot.Teal.colors().accent
-                CompositionLocalProvider(LocalHintPolish provides polish) {
-                    PlayActionBar({}, {}, {}, {}, canUndo = true, canRedo = true, hintEnabled = true, accent = AccentSlot.Teal, hintsUsed = 1)
-                }
+                PlayActionBar({}, {}, {}, {}, canUndo = true, canRedo = true, hintEnabled = true, accent = AccentSlot.Teal, hintsUsed = 1)
             }
         }
         fun face(tag: String): Color {
             val pixels = composeRule.onNodeWithTag(tag).captureToImage().toPixelMap()
             return pixels[with(composeRule.density) { 8.dp.roundToPx() }, pixels.height / 2]
         }
-        return Triple(face("play.hint"), face("play.undo"), accent)
+        return face("play.hint") to face("play.undo")
     }
 
     @Test
-    fun `HintPolish on, light, the hint face is the neutral well like undo`() {
-        val (hint, undo) = faces(polish = true, dark = false)
+    fun `light, the hint face is the neutral well like undo`() {
+        val (hint, undo) = faces(dark = false)
         assertTrue("hint $hint vs undo $undo", near(hint, undo))
     }
 
     @Test
-    fun `HintPolish on, dark, the hint face is the neutral well like undo`() {
-        val (hint, undo) = faces(polish = true, dark = true)
+    fun `dark, the hint face is the neutral well like undo`() {
+        val (hint, undo) = faces(dark = true)
         assertTrue("hint $hint vs undo $undo", near(hint, undo))
-    }
-
-    @Test
-    fun `HintPolish off, the hint keeps today's accent face`() {
-        val (hint, undo, accent) = faces(polish = false, dark = false)
-        assertFalse("hint $hint vs undo $undo", near(hint, undo))
-        assertTrue("hint $hint vs $accent", near(hint, accent))
-    }
-
-    @Test
-    fun `HintPolish on, the cooldown ring still draws in the accent`() {
-        val game = Game()
-        var accent = Color.Unspecified
-        composeRule.setContent {
-            CompositionLocalProvider(LocalHintPolish provides true) { GatedBar(game) }
-            PuzzleBoxTheme(darkTheme = false) { accent = AccentSlot.Teal.colors().accent }
-        }
-        composeRule.mainClock.autoAdvance = false
-        pressHint()
-        advance(2_500)
-        val pixels = composeRule.onNodeWithTag("play.hint").captureToImage().toPixelMap()
-        val inset = with(composeRule.density) { 2.dp.roundToPx() }
-        val right = pixels[pixels.width - 1 - inset, pixels.height / 2]
-        assertTrue("right edge $right vs $accent", near(accent, right))
     }
 
     private fun near(a: Color, b: Color) =

@@ -7,13 +7,11 @@ import com.ivandsky.puzzlebox.common.flags.TopBarFlag
 import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
-import com.ivandsky.puzzlebox.gameui.flags.GameUiFlag
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.CustomGameViewModel
 import com.ivandsky.puzzlebox.play.GamePageRankViewModel
 import com.ivandsky.puzzlebox.play.GameViewModel
-import com.ivandsky.puzzlebox.play.HintPolish
 import com.ivandsky.puzzlebox.play.HowToPlayRules
 import com.ivandsky.puzzlebox.play.LibraryViewModel
 import com.ivandsky.puzzlebox.play.MainTabsLargeBar
@@ -169,8 +167,7 @@ val playModule = module {
             linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
         )
     }
-    single { HintPolish(enabled = get<ReleaseFlags>().isEnabled(GameUiFlag.HintPolish)) }
-    // MainTabsLargeBar (backlog #1597) too: Games and Community open on Today's large top bar while it is on.
+    // MainTabsLargeBar (backlog #1597): Games and Community open on Today's large top bar while it is on.
     single { MainTabsLargeBar(enabled = get<ReleaseFlags>().isEnabled(TopBarFlag.MainTabsLargeBar)) }
     // The memory forgets the last pick with the process.
     single { RandomPickMemory() }

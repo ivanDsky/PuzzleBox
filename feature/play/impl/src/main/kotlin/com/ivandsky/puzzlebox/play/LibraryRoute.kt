@@ -168,14 +168,12 @@ internal fun LibraryRoute(
         val ui = open?.let { registry[it.game] }
         if (open != null && ui != null) {
             BackHandler { viewModel.closeLesson() }
-            PlayBoardHosts {
-                TutorialHost(
-                    ui = ui,
-                    session = open.session,
-                    onFinished = viewModel::closeLesson,
-                    modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
-                )
-            }
+            TutorialHost(
+                ui = ui,
+                session = open.session,
+                onFinished = viewModel::closeLesson,
+                modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+            )
         }
     }
 }
