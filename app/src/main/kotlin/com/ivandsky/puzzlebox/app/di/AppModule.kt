@@ -135,9 +135,10 @@ val appModule = module {
     // Every game module's editor UI (ADR-0019); a duplicate game id throws.
     single { GameEditorRegistry(getAll<GameEditorUi>()) }
 
-    // Every game's Trainer adapter, bound only while that game's flag is on (ADR-0019 pattern). Empty until a game binds
-    // one, and the Train tab shows only while it is not.
-    single { TrainerRegistry(getAll<TrainerGame>(), TRAINER_ORDER) }
+    // Every game's Trainer adapter, bound inside a TrainerGame.Binding that holds it only while that game's flag is on
+    // (the LoadFriendsPastPage.Binding shape: a definition cannot be left out by a flag). A factory, so each resolve reads
+    // the flags afresh. Empty until a game's flag is on, and the Train tab shows only while it is not.
+    factory { TrainerRegistry(getAll<TrainerGame.Binding>().mapNotNull { it.game }, TRAINER_ORDER) }
 
     // Every module's release flags, ordered by owner (ADR-0022). A duplicate key throws on first resolve; a repeated
     // owner is caught by konsist P15 (Koin keeps the last set).

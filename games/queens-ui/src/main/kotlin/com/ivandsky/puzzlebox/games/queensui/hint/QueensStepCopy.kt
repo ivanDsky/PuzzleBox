@@ -38,6 +38,18 @@ internal object QueensStepCopy {
         QueensStep.Solved, QueensStep.Unavailable -> error("$step has no callout")
     }
 
+    /**
+     * The sentence of the rung keyed [captionKey], for a technique with no step in hand (the Trainer's technique list):
+     * the same sentence the hint shows, with the unit left generic. A copy edit above shows in the hint and the list.
+     */
+    fun technique(captionKey: String): String =
+        deductions.getValue(captionKey)(if (captionKey == LINE_LOCK_KEY) ANY_LINE else ANY_UNIT)
+
+    /** Line-lock only ever names a row or a column, so its generic unit is the one word for both. */
+    private const val LINE_LOCK_KEY = "queens.hint.rung.line-lock"
+    private const val ANY_LINE = "line"
+    private const val ANY_UNIT = "row, column or color"
+
     private fun unitWord(kind: HintReason.Kind): String = when (kind) {
         HintReason.Kind.ROW -> "row"
         HintReason.Kind.COLUMN -> "column"
