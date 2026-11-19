@@ -12,6 +12,7 @@ import com.ivandsky.puzzlebox.games.tango.codec.TangoSessionCodec
 import com.ivandsky.puzzlebox.games.tango.editor.TangoEditor
 import com.ivandsky.puzzlebox.games.tango.engine.TangoRules
 import com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness
+import com.ivandsky.puzzlebox.games.tango.engine.trainer.TangoTechniqueWalker
 import com.ivandsky.puzzlebox.games.tango.engine.TangoState
 import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
 import com.ivandsky.puzzlebox.model.GameId
@@ -98,6 +99,7 @@ val tangoPlugin: GamePlugin<TangoState, TangoSession, TangoRendererModel> =
         editor = TangoEditor,
         replay = TangoReplay,
         linkedInPlay = TangoLinkedInPlay::encode,
+        techniqueWalker = TangoTechniqueWalker,
     )
 
 /**

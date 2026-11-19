@@ -1,7 +1,5 @@
 package com.ivandsky.puzzlebox.games.tango
 
-import com.ivandsky.puzzlebox.game.DecodeResult
-import com.ivandsky.puzzlebox.games.tango.codec.LotkaWireParser
 import com.ivandsky.puzzlebox.games.tango.engine.TangoHint
 import com.ivandsky.puzzlebox.games.tango.engine.TangoLineRule
 import com.ivandsky.puzzlebox.games.tango.engine.TangoMove
@@ -9,8 +7,6 @@ import com.ivandsky.puzzlebox.games.tango.engine.TangoRules
 import com.ivandsky.puzzlebox.games.tango.engine.TangoState
 import com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness
 import com.ivandsky.puzzlebox.games.tango.engine.TangoVerdict
-import com.ivandsky.puzzlebox.games.tango.feed.TangoGameExtractor
-import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -169,8 +165,8 @@ class TangoHintLadderTest {
     @Test
     fun `hints walk each stuck daily and the sample to the solution without a wrong hint`() {
         listOf(
-            dailyOf("linkedin-tango-byid-758.json"),
-            dailyOf("01-tango-stream-today.txt"),
+            TangoTestSupport.dailyOf("linkedin-tango-byid-758.json"),
+            TangoTestSupport.dailyOf("01-tango-stream-today.txt"),
             TangoTestSupport.sample,
         ).forEach { puzzle -> assertWalkSolves(puzzle) }
     }
@@ -178,19 +174,10 @@ class TangoHintLadderTest {
     @Test
     fun `the dailies that never got stuck keep their hints and still solve`() {
         listOf("linkedin-tango-byid-1.json", "linkedin-tango-byid-301.json").forEach { name ->
-            val puzzle = dailyOf(name)
+            val puzzle = TangoTestSupport.dailyOf(name)
             val rungs = assertWalkSolves(puzzle)
             assertTrue(name, rungs.none { it is TangoHint.Why.LineFills })
         }
-    }
-
-    private fun fixture(name: String) =
-        requireNotNull(javaClass.getResource("/fixtures/$name")) { name }.readText()
-
-    private fun dailyOf(name: String): TangoPuzzle {
-        val match = requireNotNull(TangoGameExtractor.extract(fixture(name))) { name }
-        val parsed = LotkaWireParser.parse(match.lotkaGamePuzzleJson, LocalDate.of(2026, 11, 5), match.editionText)
-        return (parsed as DecodeResult.Ok).value.puzzle
     }
 
     /** Applies the ladder from the givens to the end; returns the `why` of every hint. */
