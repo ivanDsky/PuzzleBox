@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.linkedin.LinkState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInDayData
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
@@ -38,6 +40,7 @@ import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInLink
@@ -139,6 +142,7 @@ class LibraryViewModelTest {
     private fun observedVm(
         delete: DeleteReceivedPuzzle = DeleteReceivedPuzzle(received, saved),
         linkedIn: ObserveLinkedInDayView? = null,
+        releaseFlags: ReleaseFlags? = null,
     ): LibraryViewModel {
         val history = ObserveGameHistory(fakes.games, daily, GatedCompletionRepository(completions, historyOpen))
         return LibraryViewModel(
@@ -159,12 +163,41 @@ class LibraryViewModelTest {
             appScope = CoroutineScope(dispatcher + Job()),
             linkedIn = linkedIn,
             identity = identity,
+            releaseFlags = releaseFlags,
         ).also { vm ->
             screen.launch { vm.uiState.collect {} }
             screen.launch { vm.page.collect {} }
+            screen.launch { vm.monthTransition.collect {} }
             screen.launch { vm.friends.collect {} }
             dispatcher.scheduler.runCurrent()
         }
+    }
+
+    /** Bug it catches: a build with no flag on getting the slide, or the debug flag leaving the calendar on the crossfade. */
+    @Test
+    fun `the calendar's month change is the crossfade, and the slide only with its debug flag on`() {
+        assertEquals(ArchiveMonthTransition.Crossfade, observedVm().monthTransition.value)
+        assertEquals(ArchiveMonthTransition.Crossfade, observedVm(releaseFlags = FakeReleaseFlags()).monthTransition.value)
+        assertEquals(
+            ArchiveMonthTransition.Slide,
+            observedVm(releaseFlags = FakeReleaseFlags(PlayFlag.ArchiveMonthSlide)).monthTransition.value,
+        )
+    }
+
+    /** Bug it catches: the debug switch read once at start, so flipping it in Settings needed an app restart to show. */
+    @Test
+    fun `flipping the slide flag changes the transition without a new view model`() {
+        val on = MutableStateFlow<Set<ReleaseFlagKey>>(emptySet())
+        val vm = observedVm(releaseFlags = object : ReleaseFlags { override val enabled = on })
+        assertEquals(ArchiveMonthTransition.Crossfade, vm.monthTransition.value)
+
+        on.value = setOf(PlayFlag.ArchiveMonthSlide)
+        dispatcher.scheduler.runCurrent()
+        assertEquals(ArchiveMonthTransition.Slide, vm.monthTransition.value)
+
+        on.value = emptySet()
+        dispatcher.scheduler.runCurrent()
+        assertEquals(ArchiveMonthTransition.Crossfade, vm.monthTransition.value)
     }
 
     private fun LibraryViewModel.row(game: GameId) = uiState.value.rows.first { it.card.game == game }

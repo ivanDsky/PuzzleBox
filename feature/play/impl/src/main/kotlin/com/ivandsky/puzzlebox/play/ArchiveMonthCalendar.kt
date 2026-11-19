@@ -18,7 +18,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,7 +47,6 @@ import java.util.Locale
 private val MonthTitle = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.US)
 private val Weekdays = listOf("M", "T", "W", "T", "F", "S", "S")
 private const val DISABLED_ALPHA = 0.3f
-private const val WEEK = 7
 private val Swatch = 12.dp
 
 /** The disc for a phone's ([compact]) or a tablet's layout; [archiveCellFor] sets the row around it. */
@@ -61,7 +59,9 @@ internal fun archiveDiscFor(compact: Boolean): Dp = if (compact) 42.dp else 46.d
  * inside [range] (#1 .. today); the "Today" jump calls [onToday]; a disc calls [onPick]. The ring
  * marks [picked], else today.
  * A non-null [onRandom] puts a Random chip in [accent]'s container at the jump row's right edge.
- * [compact] is the phone's smaller disc and row. A month change fades the grid in.
+ * [compact] is the phone's smaller disc and row. [month] and [days] are always one loaded month: while a month the
+ * user asked for ([requested], the one ‹ › and the jumps step from) is still loading, they stay the last loaded one, and
+ * when it lands the title, numbers and grid change together over [transition] (see [ArchiveMonthGrid]).
  */
 @Composable
 internal fun ArchiveMonthCalendar(
@@ -77,6 +77,8 @@ internal fun ArchiveMonthCalendar(
     onPick: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
     onRandom: (() -> Unit)? = null,
+    requested: YearMonth = month,
+    transition: ArchiveMonthTransition = LocalArchiveMonthTransition.current,
 ) {
     val nav = remember(range) { ArchiveMonthNav(range) }
     val reduced = rememberReducedMotion()
@@ -89,8 +91,8 @@ internal fun ArchiveMonthCalendar(
             .padding(horizontal = 20.dp, vertical = Spacing.lg)
             .testTag("library.calendar"),
     ) {
-        Header(nav, month, days, onMonth)
-        ArchiveMonthJumps(nav, month, accent, reduced, onMonth, onToday, onRandom)
+        Header(nav, month, requested, days, onMonth)
+        ArchiveMonthJumps(nav, requested, accent, reduced, onMonth, onToday, onRandom)
         Row(Modifier.fillMaxWidth().height(20.dp), verticalAlignment = Alignment.CenterVertically) {
             Weekdays.forEach { letter ->
                 Text(
@@ -102,45 +104,22 @@ internal fun ArchiveMonthCalendar(
                 )
             }
         }
-        val byDate = remember(days) { days.associateBy { it.date } }
-        val disc = archiveDiscFor(compact)
-        val cell = archiveCellFor(disc)
-        key(month) {
-            EnterFade(0, reduced, bleed = SelectedRingRoom) {
-                Column {
-                    nav.grid(month).chunked(WEEK).forEach { week ->
-                        Row(Modifier.fillMaxWidth()) {
-                            week.forEach { date ->
-                                val inMonth = YearMonth.from(date) == month
-                                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                                    ArchiveDayDisc(
-                                        date = date,
-                                        day = byDate[date]?.takeIf { inMonth && nav.contains(date) },
-                                        today = date == today,
-                                        selected = inMonth && date == (picked ?: today),
-                                        offline = offline,
-                                        accent = accent,
-                                        cell = cell,
-                                        disc = disc,
-                                        reduced = reduced,
-                                        onClick = { onPick(date) },
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        ArchiveMonthGrid(nav, month, days, picked, today, offline, accent, compact, transition, reduced, onPick)
         Spacer(Modifier.weight(1f, fill = false).height(10.dp))
         Legend(accent.accent, offline)
     }
 }
 
 @Composable
-private fun Header(nav: ArchiveMonthNav, month: YearMonth, days: List<ArchiveDay>, onMonth: (YearMonth) -> Unit) {
+private fun Header(
+    nav: ArchiveMonthNav,
+    month: YearMonth,
+    requested: YearMonth,
+    days: List<ArchiveDay>,
+    onMonth: (YearMonth) -> Unit,
+) {
     Row(Modifier.fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
-        StepButton(nav.hasPrevious(month), "library.calendar.prev", flip = true) { onMonth(nav.previous(month)) }
+        StepButton(nav.hasPrevious(requested), "library.calendar.prev", flip = true) { onMonth(nav.previous(requested)) }
         Column(
             Modifier.weight(1f).testTag("library.calendar.month.$month"),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -164,7 +143,7 @@ private fun Header(nav: ArchiveMonthNav, month: YearMonth, days: List<ArchiveDay
                 )
             }
         }
-        StepButton(nav.hasNext(month), "library.calendar.next", flip = false) { onMonth(nav.next(month)) }
+        StepButton(nav.hasNext(requested), "library.calendar.next", flip = false) { onMonth(nav.next(requested)) }
     }
 }
 

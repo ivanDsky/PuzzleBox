@@ -70,12 +70,14 @@ internal fun LibraryGamePage(
         calendar = {
             val range = row.progress?.range
             if (range != null) {
-                val shownMonth = month ?: YearMonth.from(range.endInclusive)
+                val requested = month ?: YearMonth.from(range.endInclusive)
                 ArchiveMonthCalendar(
                     range = range,
-                    month = shownMonth,
-                    // Until the month's days load, its discs draw as outside rather than the old month's.
-                    days = shown?.takeIf { it.month == shownMonth }?.days.orEmpty(),
+                    // The last loaded month and its days, as a pair: the asked month's days land later, and drawing it
+                    // before then would show a title with an empty grid (backlog #1551).
+                    month = shown?.month ?: requested,
+                    days = shown?.days.orEmpty(),
+                    requested = requested,
                     picked = past?.date,
                     offline = unreachable,
                     accent = row.card.brand.accent.colors(),

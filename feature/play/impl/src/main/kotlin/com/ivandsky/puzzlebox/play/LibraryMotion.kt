@@ -26,8 +26,8 @@ import androidx.compose.ui.unit.offset
 import com.ivandsky.puzzlebox.designsystem.LocalTabFadingIn
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 
-// The push travels a twelfth of the width: enough to read as forward, not a full slide.
-private const val PUSH_TRAVEL_DIVISOR = 12
+// The push travels a twelfth of the width: enough to read as forward, not a full slide. The month grid's slide uses it too.
+internal const val PUSH_TRAVEL_DIVISOR = 12
 
 /**
  * True where the Games right pane crossfades and the tablet's Games list sits beside it: blocks
@@ -77,7 +77,7 @@ internal fun EnterFade(
  * places the node [room] up and left: the node's own bounds (and layer) hold the overhang
  * while its parent lays out the same footprint as without it.
  */
-private fun Modifier.bleedLayout(room: Dp): Modifier = layout { measurable, constraints ->
+internal fun Modifier.bleedLayout(room: Dp): Modifier = layout { measurable, constraints ->
     val r = room.roundToPx()
     val placeable = measurable.measure(constraints.offset(horizontal = 2 * r, vertical = 2 * r))
     layout((placeable.width - 2 * r).coerceAtLeast(0), (placeable.height - 2 * r).coerceAtLeast(0)) {
