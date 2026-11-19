@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.app
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.VibrationAttributes
+import android.os.VibrationEffect
 import android.os.Vibrator
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -66,15 +67,28 @@ class VibratorHapticFeedbackTest {
     }
 
     @Test
-    fun `on One UI reject is a double whose pulses are shorter than the 30 ms double click that buzzed hard on the Tab`() {
+    fun `on One UI each kind plays the durations felt on the SM-X910, at the default amplitude its motor plays anyway`() {
+        val default = VibrationEffect.DEFAULT_AMPLITUDE
+        assertEquals(VibrationEffect.createOneShot(35, default), timingEffect(HapticFeedbackType.TextHandleMove))
+        assertEquals(VibrationEffect.createOneShot(45, default), timingEffect(HapticFeedbackType.Confirm))
+        assertEquals(VibrationEffect.createOneShot(60, default), timingEffect(HapticFeedbackType.LongPress))
+        assertEquals(
+            VibrationEffect.createWaveform(longArrayOf(35, 90, 35), intArrayOf(default, 0, default), -1),
+            timingEffect(HapticFeedbackType.Reject),
+        )
+    }
+
+    @Test
+    fun `on One UI every pulse of every kind is at least 30 ms, the floor below which the SM-X910 motor plays nothing`() {
         ShadowBuild.setManufacturer("samsung")
+        val haptics = deviceHaptics(context, platform)
 
-        deviceHaptics(context, platform).performHapticFeedback(HapticFeedbackType.Reject)
+        appKinds.forEach { kind ->
+            haptics.performHapticFeedback(kind)
 
-        val timings = shadowOf(vibrator).pattern
-        val pulses = timings.filterIndexed { index, _ -> index % 2 == 0 }
-        assertEquals("on, off, on", 3, timings.size)
-        assertTrue("pulses ${pulses.toList()}", pulses.all { it < 30 })
+            val pulses = shadowOf(vibrator).pattern.filterIndexed { index, _ -> index % 2 == 0 }
+            assertTrue("$kind pulses $pulses", pulses.isNotEmpty() && pulses.all { it >= 30 })
+        }
     }
 
     @Test
