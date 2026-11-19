@@ -30,7 +30,6 @@ import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.visibility.HiddenPuzzles
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
@@ -82,6 +81,7 @@ import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.playNavKeys
 import com.ivandsky.puzzlebox.play.di.playModule
+import com.ivandsky.puzzlebox.play.PlayFlag
 import com.ivandsky.puzzlebox.play.hubOffFriendDay
 import com.ivandsky.puzzlebox.play.navigation.playEntry
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
@@ -475,7 +475,7 @@ class CustomResultViewModelTest {
     fun `with Result hero polish on the state asks for the hero and a first solve has no earlier solves`() {
         completions.setRecords(listOf(row(42_000L, isRecord = true)))
 
-        val state = observed(key(42_000L), FakeReleaseFlags(ReleaseFlag.ResultHeroPolish)).state.value
+        val state = observed(key(42_000L), FakeReleaseFlags(PlayFlag.ResultHeroPolish)).state.value
 
         assertTrue(state.heroPolish)
         assertEquals(SamePuzzleSolves.None.copy(columns = true), state.samePuzzle)
@@ -485,7 +485,7 @@ class CustomResultViewModelTest {
     fun `with Result hero polish on a play again compares with the earlier solves`() {
         completions.setRecords(listOf(row(118_000L, isRecord = true), row(130_000L, hints = 1)))
 
-        val state = observed(key(130_000L, hints = 1), FakeReleaseFlags(ReleaseFlag.ResultHeroPolish)).state.value
+        val state = observed(key(130_000L, hints = 1), FakeReleaseFlags(PlayFlag.ResultHeroPolish)).state.value
 
         assertEquals(BestScore(118_000L, 0), state.samePuzzle.previous)
         assertTrue(state.samePuzzle.columns)

@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
@@ -937,7 +936,7 @@ class ResultViewModelTest {
         completions.setRecords(listOf(solve(before)))
         solveLive()
 
-        val polished = FakeReleaseFlags(ReleaseFlag.ResultHeroPolish)
+        val polished = FakeReleaseFlags(PlayFlag.ResultHeroPolish)
         assertEquals(
             SamePuzzleSolves(BestScore(before, 0), best = BestScore(before, 0), columns = true),
             samePuzzle(vm(flags = polished)),
@@ -949,7 +948,7 @@ class ResultViewModelTest {
     fun `the hero sign-in line is asked for only with Result hero polish on`() {
         solveLive()
 
-        assertTrue(vm(flags = FakeReleaseFlags(ReleaseFlag.ResultHeroPolish)).heroSignInLine)
+        assertTrue(vm(flags = FakeReleaseFlags(PlayFlag.ResultHeroPolish)).heroSignInLine)
         assertFalse(vm(flags = FakeReleaseFlags()).heroSignInLine)
         assertFalse(vm(flags = null).heroSignInLine)
     }

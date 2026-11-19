@@ -1,10 +1,10 @@
 package com.ivandsky.puzzlebox.app
 
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.domain.ObserveResultInsights
 import com.ivandsky.puzzlebox.domain.nextthing.ObserveResultNextThing
+import com.ivandsky.puzzlebox.play.PlayFlag
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import org.junit.Assert.assertEquals
@@ -19,7 +19,7 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 /**
- * Characterization: on the real app graph, [ReleaseFlag.ResultHeroPolish] alone decides Result's slow tail
+ * Characterization: on the real app graph, [PlayFlag.ResultHeroPolish] alone decides Result's slow tail
  * ([ObserveResultInsights]) and day total ([ObserveResultNextThing]), wherever those use cases are wired. The
  * Booleans are private constructor fields, so they are read reflectively. Delete this test with the
  * ResultHeroPolish cleanup ticket.
@@ -30,7 +30,7 @@ class ResultHeroPolishWiringTest {
 
     @Test
     fun `result hero polish on turns on the slow tail and the day total`() {
-        assertEquals(Wired(slowTail = true, showDayTotal = true), wiredWith(FakeReleaseFlags(ReleaseFlag.ResultHeroPolish)))
+        assertEquals(Wired(slowTail = true, showDayTotal = true), wiredWith(FakeReleaseFlags(PlayFlag.ResultHeroPolish)))
     }
 
     @Test

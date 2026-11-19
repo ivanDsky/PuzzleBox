@@ -11,18 +11,6 @@ package com.ivandsky.puzzlebox.common.flags
  */
 enum class ReleaseFlag(override val label: String, override val releaseDefault: Boolean) : ReleaseFlagKey {
     /**
-     * Result hero polish (backlog #1162, #1170, #1171): previous and best as two labelled columns, a signed-out sign-in line
-     * under the time, and the day's total on the full-set moment. Read only in a ViewModel or a DI module (ADR-0022 §3).
-     */
-    ResultHeroPolish(label = "Result hero polish", releaseDefault = true),
-
-    /**
-     * Zip's next number pulses itself (backlog #1151): the number's own dot breathes in place of the separate ring that
-     * blinks round it. Read only in feature/play's DI, which hands the Zip board one Boolean (ADR-0022 §3, spec A2).
-     */
-    ZipDotPulse(label = "Zip next number pulses itself", releaseDefault = true),
-
-    /**
      * Sheets that opened other sheets become screens (epic nested-sheets): New duel is a screen on the phone and fills the
      * Duels pane on the tablet, and its Add puzzle step is a page of it. Read only in a ViewModel or a DI module (ADR-0022 §3).
      */
