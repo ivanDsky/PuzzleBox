@@ -16,7 +16,7 @@ enum class HistoryFlag(override val label: String, override val releaseDefault: 
      * LinkedIn part was last read, and a pull on the board that also asks LinkedIn for that day, inside the read windows.
      * Read only in a ViewModel or a DI module (ADR-0022 §3).
      */
-    RanksFreshness(label = "Ranks shows when LinkedIn was last read", releaseDefault = false),
+    RanksFreshness(label = "Ranks shows when LinkedIn was last read", releaseDefault = true),
 
     /**
      * The Ranks filter sheet holds only the board's own choices (backlog #1547): Who and When, without the Defaults block

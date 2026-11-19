@@ -2,6 +2,18 @@
 # A release adds its entry at the top in the same commit as its version bump.
 # "## <version> <date>" starts a release; "- " starts a note; "#" lines are comments.
 
+## 0.38.0 2026-11-18
+- New duel is now its own screen. Adding a puzzle to a duel opens beside it on a tablet, not in a second sheet.
+- Filters are now dropdown buttons: tap one to pick from a list, or several at once for Source and Games, in Add puzzle, Community, Random puzzle and Ranks.
+- The Hint button is calmer, and hint captions explain the step in a plain sentence before naming any technique.
+- Ranks shows when a day's LinkedIn results were last read, and pulling the board down also checks LinkedIn for that day.
+- Zip: the line steps back when you back round a corner, turns through a corner you cut and holds at a blocked cell instead of leaning into the one beside it.
+- Zip: the next number's old ring is gone from previews, lessons, replays and the editor, and the editor shows one path and one tint when a puzzle has more than one solution.
+- The archive calendar keeps the month whole while the next one loads.
+- A duel result you have seen on one device now shows as seen on your others, and a puzzle you played on another device counts in the duel.
+- On a phone, the first card in Games keeps a gap under the tab strip.
+- A Past you rematch that fails no longer talks about an invite.
+
 ## 0.37.0 2026-11-18
 - There is a new What's new page: open it from Settings, under About.
 - Every game now ticks when you place, buzzes when a move is refused and confirms a solve, lessons included. Settings, Haptics, Vibration still turns it all off.
