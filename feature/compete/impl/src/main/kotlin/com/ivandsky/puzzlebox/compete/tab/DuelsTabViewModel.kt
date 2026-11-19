@@ -74,7 +74,7 @@ internal class DuelsTabViewModel(
     private val updateSeat: UpdateMatchSeat,
     identity: IdentityService,
     clock: () -> Instant,
-    releaseFlags: ReleaseFlags? = null,
+    releaseFlags: ReleaseFlags,
 ) : ViewModel() {
 
     private val calls = MutableStateFlow(RowCalls())
@@ -85,8 +85,8 @@ internal class DuelsTabViewModel(
     /** One-shot: the duel screen to open for this code, after an accept or when sign-in is needed first. */
     val openDuel: Flow<ShareCode> = opens.receiveAsFlow()
 
-    /** New duel opens as a screen, not a sheet ([ReleaseFlag.SheetScreens]): pushed on the phone, in the pane on the tablet; false with no flags bound. */
-    val newDuelAsScreen: Boolean = releaseFlags?.isEnabled(ReleaseFlag.SheetScreens) == true
+    /** New duel opens as a screen, not a sheet ([ReleaseFlag.SheetScreens]): pushed on the phone, in the pane on the tablet. */
+    val newDuelAsScreen: Boolean = releaseFlags.isEnabled(ReleaseFlag.SheetScreens)
 
     /** The New duel being composed in the tablet's pane, or null. */
     val newDuel: StateFlow<NewDuelRequest?> = composing.asStateFlow()

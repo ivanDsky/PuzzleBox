@@ -83,7 +83,7 @@ class DuelsTabViewModelTest {
         server.signedInUid = player?.uid
     }
 
-    private fun viewModel(flags: ReleaseFlags? = null) = DuelsTabViewModel(
+    private fun viewModel(flags: ReleaseFlags = FakeReleaseFlags()) = DuelsTabViewModel(
         observeMyDuels = ObserveMyDuels(repo, FakeSelfMatchRepository(), FakeMatchResultOutbox(), local, identity) { now },
         updateSeat = UpdateMatchSeat(repo, local, identity),
         identity = identity,
@@ -361,6 +361,5 @@ class DuelsTabViewModelTest {
     fun `New duel is a screen only while SheetScreens is on`() {
         assertTrue(viewModel(FakeReleaseFlags(ReleaseFlag.SheetScreens)).newDuelAsScreen)
         assertFalse(viewModel(FakeReleaseFlags()).newDuelAsScreen)
-        assertFalse("no flags bound reads as off", viewModel(null).newDuelAsScreen)
     }
 }
