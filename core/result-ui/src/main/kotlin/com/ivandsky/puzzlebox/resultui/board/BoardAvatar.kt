@@ -21,7 +21,7 @@ import com.ivandsky.puzzlebox.designsystem.DuelTone
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.R
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.gameui.PlayerAvatar
+import com.ivandsky.puzzlebox.resultui.PlayerAvatar
 
 private val AvatarSize = 32.dp
 private val DotSize = 12.dp

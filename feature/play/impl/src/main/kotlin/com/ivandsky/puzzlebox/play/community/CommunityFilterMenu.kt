@@ -23,8 +23,8 @@ import com.ivandsky.puzzlebox.designsystem.AppDropdownMenu
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.editor.Difficulty
-import com.ivandsky.puzzlebox.gameui.DifficultyIcon
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.resultui.DifficultyIcon
 
 private val TouchTarget = 48.dp
 

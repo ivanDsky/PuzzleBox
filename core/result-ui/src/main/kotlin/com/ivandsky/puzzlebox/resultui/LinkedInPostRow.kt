@@ -25,7 +25,6 @@ import com.ivandsky.puzzlebox.designsystem.LinkedInBlue
 import com.ivandsky.puzzlebox.designsystem.LinkedInBluePressed
 import com.ivandsky.puzzlebox.designsystem.LocalLinkedInText
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
-import com.ivandsky.puzzlebox.gameui.LinkedInPostRowState
 
 private val GlyphSize = 24.dp
 private val SpinnerSize = 20.dp

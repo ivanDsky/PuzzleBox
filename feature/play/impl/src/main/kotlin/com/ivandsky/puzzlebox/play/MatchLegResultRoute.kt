@@ -32,14 +32,14 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.LegBasis
 import com.ivandsky.puzzlebox.domain.LegVerdict
 import com.ivandsky.puzzlebox.domain.MatchState
-import com.ivandsky.puzzlebox.gameui.DuelCompare
-import com.ivandsky.puzzlebox.gameui.DuelSideState
-import com.ivandsky.puzzlebox.gameui.ResultHeroChip
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
 import com.ivandsky.puzzlebox.play.api.ReplayKey
+import com.ivandsky.puzzlebox.resultui.DuelCompare
+import com.ivandsky.puzzlebox.resultui.DuelSideState
 import com.ivandsky.puzzlebox.resultui.ResultBelowCardRows
 import com.ivandsky.puzzlebox.resultui.ResultColumnMaxWidth
+import com.ivandsky.puzzlebox.resultui.ResultHeroChip
 import com.ivandsky.puzzlebox.resultui.ResultHeroScreen
 import com.ivandsky.puzzlebox.resultui.replay.ReplaySection
 import org.koin.androidx.compose.koinViewModel

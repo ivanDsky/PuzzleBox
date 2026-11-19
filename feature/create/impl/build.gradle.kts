@@ -17,6 +17,8 @@ dependencies {
     // GameEditorUi through the registries, never a games:* edge.
     implementation(projects.core.game)
     implementation(projects.core.gameUi)
+    // DifficultyIcon and DifficultyLabel on the publish picker and the verdict chips.
+    implementation(projects.core.resultUi)
     // Publishing signs in first: the Google ID token comes from GoogleIdTokenProvider.
     implementation(projects.core.auth)
 

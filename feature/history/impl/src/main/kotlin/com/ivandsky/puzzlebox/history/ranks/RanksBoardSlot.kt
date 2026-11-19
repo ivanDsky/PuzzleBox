@@ -10,10 +10,10 @@ import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.MorphCell
 import com.ivandsky.puzzlebox.designsystem.ScrubCell
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.gameui.rankRuleText
 import com.ivandsky.puzzlebox.resultui.board.DailyBoard
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardStyle
+import com.ivandsky.puzzlebox.resultui.rankRuleText
 import kotlin.math.roundToInt
 
 // The gap over each part under the board. Inside the part, so a part that is not there leaves no gap behind.

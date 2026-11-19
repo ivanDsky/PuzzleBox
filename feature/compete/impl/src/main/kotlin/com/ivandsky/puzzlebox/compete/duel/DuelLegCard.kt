@@ -27,7 +27,7 @@ import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
-import com.ivandsky.puzzlebox.gameui.rankRuleText
+import com.ivandsky.puzzlebox.resultui.rankRuleText
 
 private val SelectedBorder = 2.dp
 

@@ -25,7 +25,7 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.gameui.bestScoreText
+import com.ivandsky.puzzlebox.resultui.bestScoreText
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale

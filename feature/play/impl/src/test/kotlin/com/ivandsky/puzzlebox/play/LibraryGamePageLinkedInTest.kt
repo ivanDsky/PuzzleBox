@@ -24,10 +24,10 @@ import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead.Rejected.Kind
 import com.ivandsky.puzzlebox.gameui.GameBrand
-import com.ivandsky.puzzlebox.gameui.GameCardModel
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.linkedin.LinkedInCardState
+import com.ivandsky.puzzlebox.resultui.GameCardModel
 import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals

@@ -20,8 +20,8 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.editor.Difficulty.Level
-import com.ivandsky.puzzlebox.gameui.DifficultyIcon
-import com.ivandsky.puzzlebox.gameui.DifficultyLabel
+import com.ivandsky.puzzlebox.resultui.DifficultyIcon
+import com.ivandsky.puzzlebox.resultui.DifficultyLabel
 
 /**
  * The level a Public publish is listed at (96): Easy, Medium, Hard and Expert as flat chips, each at least 48dp tall and

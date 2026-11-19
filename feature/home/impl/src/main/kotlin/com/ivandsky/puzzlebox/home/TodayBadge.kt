@@ -41,7 +41,7 @@ import com.ivandsky.puzzlebox.designsystem.pressTint
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.domain.TodayStatus
-import com.ivandsky.puzzlebox.gameui.SkeletonLine
+import com.ivandsky.puzzlebox.resultui.SkeletonLine
 
 private const val OFFLINE_ALPHA = 0.7f
 private const val SKELETON_ALPHA = 0.16f

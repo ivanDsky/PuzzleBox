@@ -14,7 +14,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.editor.Difficulty
-import com.ivandsky.puzzlebox.gameui.DifficultyIcon
+import com.ivandsky.puzzlebox.resultui.DifficultyIcon
 
 /**
  * The Finish level picker (90): a [StripPopover] above the tool strip that asks how hard the

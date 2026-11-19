@@ -6,8 +6,6 @@ import com.ivandsky.puzzlebox.domain.moments.Moment
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
-import com.ivandsky.puzzlebox.gameui.ResultCommunity
-import com.ivandsky.puzzlebox.gameui.SamePuzzleSolves
 
 /**
  * The facts one Results hero page is built from; [rank] and [insights] are what the page reads beyond the old result.

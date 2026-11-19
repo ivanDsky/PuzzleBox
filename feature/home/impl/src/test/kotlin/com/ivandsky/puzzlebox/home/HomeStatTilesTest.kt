@@ -14,7 +14,7 @@ import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.gameui.WeekDay
+import com.ivandsky.puzzlebox.resultui.WeekDay
 import java.time.Instant
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit

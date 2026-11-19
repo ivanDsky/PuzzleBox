@@ -7,10 +7,10 @@ import com.ivandsky.puzzlebox.designsystem.FilterChipRow
 import com.ivandsky.puzzlebox.designsystem.FilterOption
 import com.ivandsky.puzzlebox.designsystem.FilterPresentation
 import com.ivandsky.puzzlebox.designsystem.SingleFilterChip
-import com.ivandsky.puzzlebox.gameui.gameFilterOption
-import com.ivandsky.puzzlebox.gameui.levelFilterOption
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.community.DifficultyChoice
+import com.ivandsky.puzzlebox.resultui.gameFilterOption
+import com.ivandsky.puzzlebox.resultui.levelFilterOption
 
 /** The two Random filters; the host that holds one is showing that filter's option page. */
 internal enum class RandomFilterPage { Game, Difficulty }

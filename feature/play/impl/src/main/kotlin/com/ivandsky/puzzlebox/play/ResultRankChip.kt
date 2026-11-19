@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.domain.ResultRank
-import com.ivandsky.puzzlebox.gameui.ResultHeroChip
+import com.ivandsky.puzzlebox.resultui.ResultHeroChip
 
 /**
  * The Result hero's rank chip, "#12 of 340", that opens the hub through [onClick]; null for every rank but a

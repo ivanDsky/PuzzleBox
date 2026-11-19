@@ -26,10 +26,10 @@ import com.ivandsky.puzzlebox.domain.PastDayStatus
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
-import com.ivandsky.puzzlebox.gameui.GameCardModel
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.play.domain.ArchiveDay
 import com.ivandsky.puzzlebox.play.domain.ArchiveProgress
+import com.ivandsky.puzzlebox.resultui.GameCardModel
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import java.time.DayOfWeek
 import java.time.LocalDate

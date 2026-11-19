@@ -40,7 +40,7 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.domain.DuelRow
 import com.ivandsky.puzzlebox.domain.DuelRowKind
-import com.ivandsky.puzzlebox.gameui.PlayerAvatar
+import com.ivandsky.puzzlebox.resultui.PlayerAvatar
 import java.time.Duration
 import java.time.Instant
 

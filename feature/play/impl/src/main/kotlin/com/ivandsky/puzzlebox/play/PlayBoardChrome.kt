@@ -22,9 +22,9 @@ import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayClock
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.PlayOverflowItem
-import com.ivandsky.puzzlebox.gameui.TimerBar
 import com.ivandsky.puzzlebox.gameui.TutorialHost
-import com.ivandsky.puzzlebox.gameui.selfTimerLabel
+import com.ivandsky.puzzlebox.resultui.TimerBar
+import com.ivandsky.puzzlebox.resultui.selfTimerLabel
 
 /**
  * One board's play screen, whoever holds its [controller]: the play top bar (Up, the game's glyph and [title], then

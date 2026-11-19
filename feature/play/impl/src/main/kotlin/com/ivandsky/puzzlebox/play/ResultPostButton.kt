@@ -4,8 +4,8 @@ import com.ivandsky.puzzlebox.data.linkedin.LinkedInPostState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInPostView
 import com.ivandsky.puzzlebox.play.domain.linkedin.ObserveLinkedInPost
 import com.ivandsky.puzzlebox.play.domain.linkedin.SubmitLinkedInResult
-import com.ivandsky.puzzlebox.gameui.LinkedInPostRowState
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.resultui.LinkedInPostRowState
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job

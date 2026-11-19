@@ -9,8 +9,8 @@ import com.ivandsky.puzzlebox.domain.MatchVerdict
 import com.ivandsky.puzzlebox.domain.Outcome
 import com.ivandsky.puzzlebox.domain.SelfDuelSettings
 import com.ivandsky.puzzlebox.domain.lineup.rematchLineup
-import com.ivandsky.puzzlebox.gameui.DuelSideState
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.resultui.DuelSideState
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter

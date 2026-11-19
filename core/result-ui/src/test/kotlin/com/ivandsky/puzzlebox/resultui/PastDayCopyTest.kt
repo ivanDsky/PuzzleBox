@@ -1,0 +1,25 @@
+package com.ivandsky.puzzlebox.resultui
+
+import com.ivandsky.puzzlebox.domain.PastDayStatus
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+/** A20: the one past-day copy the game page's day card reads. */
+class PastDayCopyTest {
+
+    @Test
+    fun `each status reads its own words`() {
+        assertEquals("Solved 1:35", pastDayStatusLine(PastDayStatus.Solved(95_000)))
+        assertEquals("In progress", pastDayStatusLine(PastDayStatus.InProgress(42_000)))
+        assertEquals("Saved on this device", pastDayStatusLine(PastDayStatus.Stored))
+        assertEquals("Needs a connection the first time", pastDayStatusLine(PastDayStatus.NeedsConnection))
+    }
+
+    @Test
+    fun `each status has one action`() {
+        assertEquals("See result", pastDayAction(PastDayStatus.Solved(95_000)))
+        assertEquals("Keep going", pastDayAction(PastDayStatus.InProgress(42_000)))
+        assertEquals("Play", pastDayAction(PastDayStatus.Stored))
+        assertEquals("Play", pastDayAction(PastDayStatus.NeedsConnection))
+    }
+}

@@ -20,10 +20,10 @@ import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.designsystem.LocalShellActions
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
-import com.ivandsky.puzzlebox.gameui.PlayerAvatar
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
+import com.ivandsky.puzzlebox.resultui.PlayerAvatar
 import kotlinx.coroutines.flow.StateFlow
 
 /**

@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.resultui.board
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.gameui.bestScoreText
+import com.ivandsky.puzzlebox.resultui.bestScoreText
 import java.util.Locale
 
 /**

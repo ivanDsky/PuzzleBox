@@ -7,9 +7,9 @@ import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.designsystem.MorphCell
 import com.ivandsky.puzzlebox.designsystem.ScrubCell
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
-import com.ivandsky.puzzlebox.gameui.rankRuleText
 import com.ivandsky.puzzlebox.resultui.board.BoardFace
 import com.ivandsky.puzzlebox.resultui.board.BoardMorph
+import com.ivandsky.puzzlebox.resultui.rankRuleText
 
 /**
  * The board slot between two of the hub's boards: the slice it leaves, [from], the one it goes to, [to], and how far

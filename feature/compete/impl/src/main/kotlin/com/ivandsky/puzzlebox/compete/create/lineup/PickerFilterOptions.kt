@@ -17,8 +17,8 @@ import com.ivandsky.puzzlebox.designsystem.Sparkle
 import com.ivandsky.puzzlebox.domain.lineup.Freshness
 import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
-import com.ivandsky.puzzlebox.gameui.gameFilterOption
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.resultui.gameFilterOption
 import org.koin.compose.koinInject
 
 private val ICON_SIZE = 24.dp

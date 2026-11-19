@@ -7,7 +7,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
-import com.ivandsky.puzzlebox.gameui.LinkedInPostRowState
 
 /**
  * The rows under the result card, for [ResultHeroScreen]'s `replay` slot: the Post to LinkedIn row for [post] (null

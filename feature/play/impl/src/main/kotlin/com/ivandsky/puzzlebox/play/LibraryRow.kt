@@ -35,15 +35,15 @@ import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.play.domain.ArchiveProgress
 import com.ivandsky.puzzlebox.domain.TodayStatus
-import com.ivandsky.puzzlebox.gameui.CardSlot
 import com.ivandsky.puzzlebox.gameui.GameBrand
-import com.ivandsky.puzzlebox.gameui.GameCardColors
-import com.ivandsky.puzzlebox.gameui.GameCardCornerRadius
-import com.ivandsky.puzzlebox.gameui.GameCardSurface
-import com.ivandsky.puzzlebox.gameui.GameMotif
-import com.ivandsky.puzzlebox.gameui.SkeletonLine
-import com.ivandsky.puzzlebox.gameui.StatusMark
-import com.ivandsky.puzzlebox.gameui.todayStatusLine
+import com.ivandsky.puzzlebox.resultui.CardSlot
+import com.ivandsky.puzzlebox.resultui.GameCardColors
+import com.ivandsky.puzzlebox.resultui.GameCardCornerRadius
+import com.ivandsky.puzzlebox.resultui.GameCardSurface
+import com.ivandsky.puzzlebox.resultui.GameMotif
+import com.ivandsky.puzzlebox.resultui.SkeletonLine
+import com.ivandsky.puzzlebox.resultui.StatusMark
+import com.ivandsky.puzzlebox.resultui.todayStatusLine
 import java.util.Locale
 
 private val NameHeight = 28.dp

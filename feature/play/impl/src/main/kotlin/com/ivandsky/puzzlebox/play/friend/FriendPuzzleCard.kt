@@ -44,9 +44,9 @@ import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.maxContentWidth
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
-import com.ivandsky.puzzlebox.gameui.DifficultyLabel
-import com.ivandsky.puzzlebox.gameui.PlayAgainCopy
 import com.ivandsky.puzzlebox.gameui.hidden.HiddenBoardSection
+import com.ivandsky.puzzlebox.resultui.DifficultyLabel
+import com.ivandsky.puzzlebox.resultui.PlayAgainCopy
 
 /**
  * A friend's puzzle before it is played: the game's glyph, the title, "by" the author and

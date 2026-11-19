@@ -11,8 +11,8 @@ import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.FilterChipRow
 import com.ivandsky.puzzlebox.designsystem.SingleFilterChip
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.gameui.gameFilterOption
-import com.ivandsky.puzzlebox.gameui.levelFilterOption
+import com.ivandsky.puzzlebox.resultui.gameFilterOption
+import com.ivandsky.puzzlebox.resultui.levelFilterOption
 
 private val DifficultyOptions = DifficultyChoice.entries.map {
     levelFilterOption(it, it.label, it.mark, tag = "community.filter.difficulty.${it.name.lowercase()}")

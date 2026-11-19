@@ -56,7 +56,7 @@ import com.ivandsky.puzzlebox.game.editor.IncompleteReason
 import com.ivandsky.puzzlebox.game.editor.LadderRung
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
-import com.ivandsky.puzzlebox.gameui.DifficultyIcon
+import com.ivandsky.puzzlebox.resultui.DifficultyIcon
 
 private val PillHeight = 36.dp
 private val PillTouchHeight = 48.dp

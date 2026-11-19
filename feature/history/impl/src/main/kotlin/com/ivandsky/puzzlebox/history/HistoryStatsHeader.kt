@@ -18,7 +18,7 @@ import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.domain.GameStats
-import com.ivandsky.puzzlebox.gameui.bestScoreText
+import com.ivandsky.puzzlebox.resultui.bestScoreText
 
 /**
  * The All timeline's numbers (spec A18, A28, history.md §2): days in a row with the

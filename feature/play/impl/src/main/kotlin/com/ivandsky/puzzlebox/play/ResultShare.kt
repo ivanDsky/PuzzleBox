@@ -1,11 +1,11 @@
 package com.ivandsky.puzzlebox.play
 
-import com.ivandsky.puzzlebox.gameui.resultShareText
-import com.ivandsky.puzzlebox.gameui.solveStrip
 import com.ivandsky.puzzlebox.model.DailyLink
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.resultui.replay.ReplaySectionState
+import com.ivandsky.puzzlebox.resultui.resultShareText
+import com.ivandsky.puzzlebox.resultui.solveStrip
 
 /**
  * A daily result's Share text: the header, the solve strip when the replay is already read and the game has one, and

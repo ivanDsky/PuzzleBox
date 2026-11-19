@@ -23,7 +23,7 @@ import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.gameui.PastYouAvatar
+import com.ivandsky.puzzlebox.resultui.PastYouAvatar
 import java.io.File
 import org.junit.Rule
 import org.junit.Test
