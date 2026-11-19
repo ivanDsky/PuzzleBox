@@ -1,6 +1,6 @@
 # PuzzleBox — project map
 
-pinned: e6e0a0c6ce427e08e3254424f684ce455aeea99b
+pinned: e035c86e84e5edebb50302675f68aed6143f85b5
 
 ## Purpose
 
@@ -16,7 +16,7 @@ persisted artifact self-describes its schema version and rule changes are data
 (`Puzzle.variant`), ADR-0006 command history and the shared core play chrome, ADR-0007 the
 play session store (amended: slots persist on disk and resume; per-entry ViewModels),
 ADR-0008 the module graph and its enforced forbidden edges, ADR-0009 the
-in-module structure rules (`:konsist`, 16 Konsist-backed rules with shrink-only allowlists;
+in-module structure rules (`:konsist`, 28 Konsist-backed rules with shrink-only allowlists;
 each failure links to its section), ADR-0011 per-tab navigation (immutable
 `NavigationState` + verb rules, rejected designs, "Adding a tab", serial-name policy),
 ADR-0012 archive-capable daily sources (amends 0002: optional `DailySource.archiveSince`,
@@ -34,6 +34,17 @@ seam (`GameEditor` in `core:game`, `GameEditorUi` in `core:game-ui`, one game-ag
 ADR-0022 trunk delivery (unfinished work merges dark behind a
 `ReleaseFlag`, bound per build type; the flip PR releases), ADR-0023 CI on main only (PRs
 run no CI; the local `assembleDebug test` is the merge gate; main tests before releasing), ADR-0024 per-game daily boards (rules allow-list, day window, rank-ordered queries; amends ADR-0013 and ADR-0020), ADR-0025 Spotlight and press ledger (one generic `StepHints` press flow, shape-only glyph seam, `HintMode` supplied per game at registration; hint-parity seams). ADR-0026 Competitions (match documents in Firestore, sealed results, device-derived outcome, a Duels tab in Games). ADR-0027 navigation placement (one owner per content type, the placement table and Konsist P9, chrome types `Bar`/`Immersive`, the shell's one avatar and Profile's gear, one flag-on convention (the NavV2 flag shipped in 0.24.0 and was removed); amends ADR-0011). ADR-0028 LinkedIn account reads (the player's own result and connections' boards through the logged-in WebView session; amends ADR-0027's owner table).
+ADR-0029 cloud sync (one owner-only space per account under `users/{uid}/{kind}/{docId}`, `CloudSpace` the
+`core:data` port with its `:backend:firebase` adapter, one engine, one file per kind). ADR-0030 solve replay (a move
+log apart from undo history, play-time stamps, replay as a re-fold through `GamePlugin.replay`, a log is complete or
+absent, the `ReplayCodec` byte format). ADR-0031 the Ranks hub (Overall computed on the client from per-day boards,
+percentile points, the 100-entry cap, Partial never final, puzzle-day windows, per-game Week and Month ranked by
+average). ADR-0032 LinkedIn result post (the game page GET and `updateGameState` are the only new wires on the
+account session; manual, opt-in and experimental; one port method per request; never retries). ADR-0033
+screenshot renders are review evidence (nothing committed, no verify; `-Proborazzi.record=true` renders).
+ADR-0034 layer order inside core (`core:game-ui` is the play kit, `core:result-ui` the shared result UI, a use case
+with one feature consumer lives in that feature, three more guard arms). ADR-0035 the `:app` e2e tier
+(`:app:e2eTest` runs the `app.e2e` package outside the merge gate; the merge lane and main's CI run it).
 
 ## Layout
 
@@ -42,8 +53,13 @@ Gradle root `PuzzleBox`; `settings.gradle.kts` is the module list. Dependency di
 `:core:navigation` (features: home, play, history, profile, create, compete); impls also sit on `:core:*` (`:core:designsystem` via the
 `puzzlebox.android.feature.impl` plugin). `:games:<x>` → `:core:game` (+ `:core:model`),
 `:games:<x>-ui` → `:games:<x>`, `:core:game`, `:core:game-ui`, `:core:designsystem`; games plug in
-through Koin. `:core:data` exposes `:core:common`/`:core:game`/`:core:model` and hides
-`:core:database`, `:core:datastore`, `:core:network`; `:core:domain` exposes `:core:data`;
+through Koin. Inside core the layers run play kit, result UI, domain, data (ADR-0034): `:core:game-ui` (the
+play kit: `:core:game`, `:core:model` api, `:core:designsystem`, `:core:common`) has no domain or data edge;
+`:core:result-ui` (the result, stats, day-board and replay UI the features share) is api over `:core:game-ui` and
+reads `:core:domain`. `:core:data` exposes `:core:common`/`:core:game`/`:core:model` and hides
+`:core:database`, `:core:datastore`, `:core:network`; `:core:domain` exposes `:core:data` and holds only use
+cases with two or more consumers: one with a single feature consumer lives in that feature's `:impl` under
+`<feature>.domain` (ADR-0008 decision 4, Konsist P14).
 `:backend:firebase` implements seams declared in `:core:data`. `:core:auth` (Android library, no project
 edges) holds the Google ID-token seam. Every module except app/backend
 tests via `testImplementation(projects.core.testing)`. Pure JVM modules
@@ -65,7 +81,10 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
 `:konsist` → any module, and any module → `:konsist` (test configurations too). Two more arms
 guard the Macrobenchmark module `:benchmark` (ADR-0008): its only edge is `:app` through `testedApks`,
 and nothing depends on it. Two more arms guard the `tools` family (ADR-0021): `tools:*` → anything but `:core:game`, a non-UI `games:*`
-and (test configurations only) `:core:testing`; and any module outside `tools:*` → a tool.
+and (test configurations only) `:core:testing`; and any module outside `tools:*` → a tool. Three more arms order
+the core layers (ADR-0034): `:core:game-ui` and `games:*` → `:core:domain`, `:core:data` or `:core:result-ui`;
+any module but `:core:data` (and `:app` test configurations) → `:core:database`, `:core:datastore` or
+`:core:network`; and `:core:designsystem` → any project module.
 
 - `app/` (`:app`) — `PuzzleBoxApplication` (starts Koin, then starts `LeaderboardSubmitWatcher`,
   `CustomBoardSubmitter` and `MatchResultPoster`),
@@ -98,14 +117,16 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `leaderboard/CustomBoardSubmitter` (friend puzzle wins),
   `match/AndroidNetworkStatus` (the Android side of `NetworkStatus`),
   `di/AppModule` (app scope; `GameRegistry` over `getAll<GamePlugin>()` sorted by the app-side
-  `GAME_ORDER`, unlisted set from `buildTypeUnlistedGames`; zip → tango → queens → strands → minisudoku → sudoku; `GamePlayRegistry(getAll())` over every game's
-  `GamePlayUi`; `PreferencesQueensSettings` and `PreferencesSudokuHighlightSettings` adapt `GameSettingsRepository`),
+  `GAME_ORDER`, unlisted set from `buildTypeUnlistedGames`; zip → tango → queens → minisudoku → strands → sudoku; `GamePlayRegistry(getAll())` over every game's
+  `GamePlayUi`; `PreferencesQueensSettings` and `PreferencesSudokuHighlightSettings` adapt `GameSettingsRepository`;
+  `DeclaredFlags` over every module's `FlagSet`, and the `common` (`ReleaseFlag`), `top-bars` (`TopBarFlag`) and
+  `game-ui` (`GameUiFlag`) flag sets: `core:game-ui` has no Koin, and `commonModule`'s verify rejects `FlagSet`'s parameters),
   `di/BuildTypeReleaseFlagsModule` (`src/debug` `DebugReleaseFlags` with local
   overrides, `src/release` `ShippedReleaseFlags`; ADR-0022), debug-only Showkase catalog route and flat Settings debug sections (`DebugSettingsSections`):
   browser (`CatalogDebugBinding`, `ShowkaseBrowserScreen`, `PreviewBackdrop`,
   `BrowserRadioControls`; no goldens), Release flags
   (`ReleaseFlagsPanel`). Tests:
-  the app's `e2e` test package, the E2E robot (`shellRobot`/`ShellRobot`: gestures, back and
+  the app's `e2e` test package (run only by `:app:e2eTest`, ADR-0035), the E2E robot (`shellRobot`/`ShellRobot`: gestures, back and
   predictive back, background/restore/relaunch, spec-notation row assertions; `E2eKoinGraph`:
   production `appModules` with core:testing fakes on the edges; `TabNavigationE2ETest`,
   `ProcessDeathE2ETest`, `ShellTabsE2ETest`, `ShellSummariesE2ETest`,
@@ -120,10 +141,17 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `RuleCheck`, `CensusTest`), `rules/` one `<ID><Name>.kt` + test per rule, resources
   `allowlists/<ID>.txt` and `fixtures/<ID>/` (incl. `add-a-game`). Rules (no S3, ADR-0009):
   S0 no `@Suppress`, S1 one top-level type per file, S2 file length, S4 composable previews,
-  S5 no colour literals, S6 no infinite animation, S7 no system night flag outside theme resolution, S8 one word per concept and US spelling in visible copy, S9 haptics only through `LocalHapticFeedback`, S10 sheets only through `AppModalBottomSheet`; P1 package root, P2 dispatchers location,
+  S5 no colour literals, S6 no infinite animation, S7 no system night flag outside theme resolution, S8 one word per concept and US spelling in visible copy, S9 haptics only through `LocalHapticFeedback`, S10 sheets only through `AppModalBottomSheet`,
+  S11 every `@Ignore` is a dated quarantine (`@Ignore("quarantine #<issue> until <YYYY-MM-DD>")`, ADR-0023), S12 popups and
+  dropdowns only through `AppPopup`/`AppDropdownMenu` (so the Vibration gate holds); P1 package root, P2 dispatchers location,
   P3 ViewModel shape, P4 use-case shape, P5 naming, P6 Koin module location, P7 Android-free
   pure modules, P8 NavKey payload, P9 every NavKey has a placement row (ADR-0027; `P9NavKeyPlacement`, fixtures under `fixtures/P9/`),
-  P10 LinkedIn account path GET-only (ADR-0028; `LinkedInPostApi.kt` exempt from the non-GET check), P11 app Robolectric tests run under `DrainTestApplication` (#850), P12 the LinkedIn post API has two POSTs, `updateGameState` and the voyager save, and nothing hand-builds a write (ADR-0032).
+  P10 LinkedIn account path GET-only (ADR-0028; `LinkedInPostApi.kt` exempt from the non-GET check), P11 app Robolectric tests run under `DrainTestApplication` (#850), P12 the LinkedIn post API has two POSTs, `updateGameState` and the voyager save, and nothing hand-builds a write (ADR-0032),
+  P13 every shipped release-flag entry has a reader outside its own file (ADR-0022), P14 a `:core:domain` file with one
+  feature consumer moves to that feature's `:impl` `domain` package (ADR-0034; shrink-only `allowlists/P14.txt`, now empty), P15 every
+  flag enum is registered with `flagSet("<owner>", <Enum>.entries)` in a `di` Koin module of its own module or `:app`, owners
+  are unique and the central `ReleaseFlag` takes no new entry (its frozen list holds `SheetScreens` only), P16 `:core:domain`
+  declares and reads no release flag (a use case takes a Boolean from the owning feature's Koin module).
 - `tools/puzzle-cli/` (`:tools:puzzle-cli`, pure JVM `application`, ADR-0021; ships nowhere) —
   `PuzzleCli.kt` (`main`, the one file that names games: a `GameRegistry` over every non-UI
   plugin; `validate <file>` / `solve <file>` print one `CliVerdict` JSON line, exit codes in
@@ -151,7 +179,11 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `NAVIGATION_STATE_KEY` (ADR-0011).
 - `core/common/` (`:core:common`) — `DispatcherProvider` seam (+ `DefaultDispatcherProvider`),
   `AppResult`/`AppError` and `resultOf` convention (typed errors, never thrown surprises),
-  `flags/` `ReleaseFlag` enum (empty: no feature in flight) + `ReleaseFlags` reader + `ShippedReleaseFlags` (ADR-0022), Koin `commonModule`.
+  `flags/` (ADR-0022 as amended: flags belong to their owner): `ReleaseFlagKey` (the flag interface: `key`, `label`,
+  `releaseDefault`), `FlagSet(owner, flags)` and `DeclaredFlags` (every set ordered by owner; a repeated key throws), the
+  `ReleaseFlags` reader + `ShippedReleaseFlags`, the frozen central `ReleaseFlag` enum (only `SheetScreens` left, on) and
+  `TopBarFlag` (`MainTabsLargeBar`); `di/FlagSetDefinition.kt` `Module.flagSet(owner, flags)`, with which each owner registers
+  its own `<Owner>Flag` enum; Koin `commonModule`.
 - `core/data/` (`:core:data`) — game-agnostic repositories: `DailyRepository` →
   `OfflineFirstDailyRepository` (`cachedPuzzle(game, day)`/`observeHistory(game)`,
   `refreshToday(game)` → `DailyRefresh` Stored/Unchanged/Changed/Failed + `replaceToday(game, expected, fresh)`,
@@ -226,22 +258,21 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   (`LocalTabReselect`). `DuelTone.kt` is the duel colour vocabulary.
 - `core/model/` (`:core:model`, pure JVM) — dependency-free shared types in package
   `com.ivandsky.puzzlebox.model` (`GameId`, `ThemeMode`, `PlaySlot` (`Daily`/`Custom`), `GameSetting`).
-- `core/domain/` (`:core:domain`) — use cases (package `com.ivandsky.puzzlebox.domain`, Koin
-  `domainModule`): `ObserveGameHistory` (records UNION every registered game's captured days →
+- `core/domain/` (`:core:domain`, Android library) — the use cases with two or more consumers (package
+  `com.ivandsky.puzzlebox.domain`, Koin `domainModule`; a use case read by one feature lives in that feature, ADR-0034,
+  Konsist P14): `ObserveGameHistory` (records UNION every registered game's captured days →
   `GameHistoryDay`), `GetFeaturedGame` (registry's first game as `GameSummary`),
-  `ComputeStreak`, `LoadPastDay` (a past day by date — cached, or fetched once for an archive game — → the game's session blob as
-  `PastDayOutcome`), `ObserveLeaderboard` (identity-gated board for one game and day, or `today(game)` on the game's calendar day:
-  `TodayLeaderboard`), `ObserveLatestSolvedToday` (the game whose numbered daily was solved most recently on its own today, or null),
-  `ObservePlayStats` (one slot's tablet side-panel data: today progress, times,
-  solved → `PlayStats`), `ObserveTodaySet` (saved plays + records + each game's calendar day →
-  registry-order `TodayEntry` per game: Solved/InProgress(elapsed)/NotStarted; `nextUnsolved`),
-  `ObserveResultNextThing` (Result's one read: `moments/` `DetectMoments` over `SolveFacts` → the strongest `Moment`s, and the `nextthing/`
-  `NextThingChain` over its providers → one `NextThing`),
-  `ImportDraftFromText` (whole-text import: `NotationText.parse` on `dispatchers.default`, and
-  only a parsed draft is stored, via `CreateDraft` + one `DraftRepository.upsert`, as an
-  imported row → `ImportResult`). Duel use cases (ADR-0026): `CreateMatch`, `ObserveMyDuels`,
-  `ObserveDuel`/`ObserveMatch`, `ComputeMatchLegs`/`ComputeMatchOutcome`, `FinishLeg`,
-  `UpdateMatchSeat` (claim, cancel, decline), `RecordRevealSeen`, `RevealReady`. Android library.
+  `ComputeStreak` (+ `StreakFreezes`), `GetPuzzleDay`/`GetNextRollover`, `ObserveGameStats` → `GameStats`,
+  `ObserveLeaderboard` (identity-gated board for one game and day, or `today(game)` on the game's calendar day:
+  `TodayLeaderboard`), `ObserveResultRank`, `ObserveTodaySet` (saved plays + records + each game's calendar day →
+  registry-order `TodayEntry` per game: Solved/InProgress(elapsed)/NotStarted), `SyncTodayPuzzles`,
+  `ComputeNextReminder`/`ComputeReminderMessage`, `LoadSharedPuzzle` (a friend's puzzle by share code → `OpenOutcome`),
+  `CreateDraft` + `ComputeCodename`. Duel use cases shared by compete and play (ADR-0026): `CreateMatch` (its lineup in
+  `lineup/`: `ResolveLineup` over `LineupEntry` `AnyGame`/`ExactPuzzle`, `ValidateExactPuzzles`), `BuildSelfMatch`,
+  `ObserveMatch` → `MatchState`, `ComputeMatchLegs`/`ComputeMatchOutcome`, `LoadLegPuzzle`. `ranks/` (ADR-0031):
+  `RankWindow`, `RankWindowBoards`, `RankedBoard`, `PercentilePoints`, `FriendBoards`, `ObserveFriendDay`/`ObserveFriendUids`,
+  `SubmitDailyReplay`. `linkedin/` (ADR-0028): `ObserveLinkedInDay`, `ObserveLinkedInDayView`, `SyncLinkedInDay`.
+  `moments/Moment` (the kinds; play's `detectMoments` finds them).
   Replay use cases (ADR-0030): `LoadSolveReplay` over `SolveReplayRef` (`Record`/`Latest`/`MyLeg`/`TheirLeg`), which asks
   `LoadDailyReplay`, `LoadCustomReplay` and `LoadLegReplay` in turn and opens the source through the game's plugin.
 - `core/game/` (`:core:game`, pure JVM) — the orthogonal game contracts (ADR-0001):
@@ -276,8 +307,8 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `Screen`), `GamePlayController` (+ `PlayClock`/`PlayHints`/`PlayUndo`), `GamePlayRegistry`
   (GameId → `GamePlayUi`; a duplicate id throws), `PlayBoardStatus` + `PlayBoardFallback`,
   `PlayCopy`, `BoardGrid` + `EdgeOverlay`, `DragTrace`, `GridGeometry`,
-  `TimerBar`, `PastYouAvatar` (the opponent's initial with the history mark, for Past you), `AdaptivePlayScaffold`, `PanePolicy` (the one two-pane decision from window size in dp), `PlayChrome`, `PlaySolveFrame` (the one solve hand-off: the solve moment B rests the board 1.7 s, `SolveRestState` + `SolveRestTapLayer`, then hands off), `ResultHeroScreen` (daily result; `ResultMoments.kt`, `ResultMomentCard`), `ResultScreen` (friend result),
-  `CompletionRecordEmitter`, `board/SelfRowJump` (a request the hero card sends the day board to scroll to the viewer's row). `editor/`: `GameEditorUi` (per-game `sizeLabel`,
+  `AdaptivePlayScaffold`, `PanePolicy` (the one two-pane decision from window size in dp), `PlayChrome`, `PlayActionBar` (Undo · Redo · Hint · Clear), `PlaySolveFrame` (the one solve hand-off: the solve moment B rests the board 1.7 s, `SolveRestState` + `SolveRestTapLayer`, then hands off),
+  `hidden/` (`HiddenBoard`), `flags/GameUiFlag` (`HintPolish`; `:app` registers it as the `game-ui` set). `editor/`: `GameEditorUi` (per-game `sizeLabel`,
   `createController`, `Board`), `GameEditorController` (draft `StateFlow`, `adopt`, overlay
   hooks), `GameEditorRegistry` (GameId → `GameEditorUi`), `EditorOverlay` (witness display).
   `hint/` (ADR-0025, the one stepwise press flow; never interprets a step): `StepHints<S, K>`
@@ -285,16 +316,23 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   per-game adapter: `capture`, `keyOf`, `spotlight`), `HintLedger` (a step key counts once per play, in memory,
   saturating at `MAX_HINTS_USED`), `HintSearch` (stale results dropped), `HintMode`
   (`Legacy` / `Stepwise(compute)`), `HintModeSource` (supplied per game at registration; UI modules never read a flag),
-  `OncePerPuzzle<P, S>` (the solution memo, last puzzle only). Beside `HintButton`:
+  `OncePerPuzzle<P, S>` (the solution memo, last puzzle only). Beside `PlayActionBar`'s Hint:
   `HintCooldown` + `rememberHintCooldown` (the Hint button's wait; `LocalHintCooldown` null = none).
-  Duel kit: `DuelCompare`/`DuelSide`/`DuelSideState`, `PlayerAvatar` (the signed-in photo or the
-  profile icon; the shell avatar uses it), `LocalRouteCaption` (a game's own caption wins),
-  `PlayBoardPane`, and `ResultHeroActions`/`ResultHeroChip` (the result hero takes action and chip slots).
-  `replay/` (ADR-0030): `ReplayPlayback` (the headless state machine: advance by frame time, speed, skip idle,
-  seek, step), `ReplayPlayer`/`ReplayPage`, `ReplayCompare`/`ReplayComparePage` with `CompareLayout`
-  (`compareLayoutFor(width, height)`: `Twin` at Expanded width with at least 480 dp of height, `FlipPeek` otherwise), `WatchReplayRow` (the result's entry),
-  `UnavailableWatchReplayRow` (the disabled row for a solve with no replay), `ReplayHintBadge`, `ShowErrorsToggle` (the top bar's Show errors switch),
-  `ReplayLeadLine`, and the per-game `GameReplayBoard` contract.
+  `LocalRouteCaption` (a game's own caption wins) and `PlayBoardPane`.
+  `replay/` (ADR-0030): the per-game `GameReplayBoard` contract with `ReplayPlaybackState`, `ReplayBoardOptions`,
+  `ReplayHintBadge` and `stepsForward`/`rememberStepsForward` (games implement or read them; the player and compare chrome is in `:core:result-ui`).
+- `core/result-ui/` (`:core:result-ui`, package `com.ivandsky.puzzlebox.resultui`, ADR-0034; api `:core:game-ui`, plus
+  `:core:game`, `:core:designsystem`, `:core:common` and `:core:domain`) — the result, stats, day-board and replay UI the
+  features share: `ResultHeroScreen` (daily result; `ResultMoments.kt`, `ResultMomentCard`), `ResultScreen` (friend result),
+  `ResultHeroActions`/`ResultHeroChip` (the result hero takes action and chip slots), `TimerBar`, `CompletionRecordEmitter`
+  (`RecordEmission.kt`), `TimeSpreadChart`, `WeekStrip`, `LinkedInPostRow`; the duel kit `DuelCompare`/`DuelSide`/`DuelSideState`,
+  `PastYouAvatar` (the opponent's initial with the history mark, for Past you) and `PlayerAvatar` (the signed-in photo or the
+  profile icon; the shell avatar uses it). `board/`: the daily board (`DailyBoard`, `DailyBoardList`, `ScrubbedBoardList`,
+  `SelfRowDock`, `SelfRowJump`: a request the hero card sends the day board to scroll to the viewer's row). `replay/` (ADR-0030):
+  `ReplayPlayback` (the headless state machine: advance by frame time, speed, skip idle, seek, step), `ReplayPlayer`/`ReplayPage`,
+  `ReplayCompare`/`ReplayComparePage` with `CompareLayout` (`compareLayoutFor(width, height)`: `Twin` at Expanded width with at
+  least 480 dp of height, `FlipPeek` otherwise), `ReplaySection` (the result's entry: `WatchReplayRow`, or
+  `UnavailableWatchReplayRow` for a solve with no replay), `ShowErrorsToggle` (the top bar's Show errors switch) and `ReplayLeadLine`.
 - `core/testing/` (`:core:testing`) — test doubles and contract tests, test configurations only (package
   `com.ivandsky.puzzlebox.testing`): `repository/` (`FakeDailyRepository`,
   `FakeCompletionRepository`, `FakeIdentityService`, `FakeLeaderboardRepository`,
@@ -360,7 +398,8 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   budgeted `complete`: fill, givens until one solution, givens until the ladder finishes).
 - `games/zip-ui/`, `games/tango-ui/`, `games/queens-ui/`, `games/strands-ui/`, `games/sudoku-ui/` (`:games:<x>-ui`) — each game's play
   UI: one `*PlayController : GamePlayController`, one `*PlayUi : GamePlayUi`, the board
-  composables, and `*UiModule` (the game's `GamePlayUi`). Strands: `StrandsPlayController`,
+  composables, and `*UiModule` (the game's `GamePlayUi`); zip-ui also declares `ZipUiFlag` (`NumbersAndWalls`, `CutWrongPart`),
+  registered as the `zip-ui` set by `di/ZipUiFlagModule`. Strands: `StrandsPlayController`,
   `StrandsScreen`, `board/` (`StrandsCellDrawing` maps each `CellState` to its
   `StrandsBoardSpec` — `IdleSpec`, `FoundThemeSpec`, `FoundSpangramSpec`, `HintOutlinedSpec`,
   `HintOrderRevealedSpec` — plus `TraceOverlaySpec`, gesture/hit-test/sizing;
@@ -397,6 +436,9 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `HomeTodaySection` (`HomeTodaySummary` card with `TodayBadge`s + one CTA / rollover countdown)/`HomeStreakSection`/
   `HomeRecentSection`, `HomeLayout` (the shell maps `PanePolicy` to it). Home is the Today
   tab: `HomeSummaries` (rank callback + `HomeDuelsSummary` + the required `onOpenDay` and `onOpenStreak`) adds the rank and duels `SummaryLinkRow`s; `HomeStreakDoor` is the streak card's row into Ranks, and each Recent row and a day's detail open that day in Ranks.
+  `domain/` (`com.ivandsky.puzzlebox.home.domain`): `ObserveLatestSolvedToday` (the game whose official daily was solved most
+  recently on its own today, or null), `PlayTarget` (the game "Play today" opens), `GetAppUpdate` (`AppVersion` against the
+  installed `AppBuild` → `AppUpdate`).
 - `feature/play/impl/` (`:feature:play:impl`) — the one game-agnostic play surface (ADR-0006,
   ADR-0007; no `games:*` dependency): `PlaySessionStore` (Koin single: one `ActivePlay` per
   `PlaySlot`, `open(GameKey)`/`peek(slot)`/`retain(keys)`/`flush()`, `playable` games, pins a
@@ -406,7 +448,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   swapping it only while the move log is untouched), `SlotOpening` (saved row → today's stored puzzle, else its one fetch → past-day rebuilt board
   → Unavailable; undecodable row deleted), `SlotWriter` (per-slot 300 ms trailing-throttle
   saves, `discard` on solve), `WriteLane` (one Mutex-ordered lane for every saved-play I/O),
-  `LibraryRoute` + `LibraryViewModel` (the Games screen: `GamesTabs` pills over `GamesTab`
+  `LibraryRoute` + `LibraryViewModel` (the Games screen: `GamesUnderlineTabs` over `GamesTab`
   Dailies and Duels, the Duels body handed in as a `DuelsSlot`; the Dailies tab is a row per game with today's status;
   two-pane shows the list beside the selected game's `LibraryGamePage` — `ArchiveDayCard` (today, or the
   picked past day → `GameKey(game, day)`), `ArchiveMonthCalendar` (`ArchiveMonthNav` ‹ › + jumps,
@@ -420,12 +462,24 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   tagging a leg solve with its match), `friend/` (a friend's puzzle: `FromFriendsSection`,
   `EnterCodeSheet`, `FriendPuzzleRoute`, `CustomResultRoute`), `di/PlayModule`; `navigation/PlayEntries` (`playEntry`,
   `resultEntry`) and `navigation/GameEntry`; `random/` (`RandomPuzzleSheet`, the picker a game page's Random chip opens: `RandomPuzzleViewModel` picks one past day or New today puzzle by game and difficulty, a pick plays through `onPlay` or opens a card through `onOpenCode`); `GameStatsPanel` is the tablet side panel's content (`PlayStatsPanel`: timer, today's progress and the day board).
+  `flags/PlayFlag` (`ArchiveMonthSwipe`, `ResultHeroPolish`, `ZipDotPulse`, `MakeOwnLink`; the `play` set). `domain/`
+  (`com.ivandsky.puzzlebox.play.domain`, the use cases only play reads): `LoadPastDay` (a past day by date — cached, or
+  fetched once for an archive game — → the game's session blob as `PastDayOutcome`), `ObservePlayStats` (one slot's tablet
+  side-panel data → `PlayStats`), `nextUnsolved`, the archive reads `ObserveArchiveMonth`/`ObserveArchiveProgress`,
+  `ObserveResultInsights`, friend puzzles (`ObserveFriendPuzzles`, `SyncReceivedStatus`, `DeleteReceivedPuzzle`,
+  `ComputeCustomBoard`), `ListCommunityPuzzles`/`ReportPuzzle`, and a duel leg's `FinishLeg` and `ObserveLegTarget`;
+  `moments/` (`detectMoments` over `SolveFacts` → the strongest `Moment`s), `nextthing/` (`ObserveResultNextThing`, Result's
+  one read: the moments and the `NextThingChain` over `NextThingProviders` → one `NextThing`), `random/` (`LoadRandomPuzzle`
+  routes a `RandomFilter` to `LoadRandomDay` or `LoadRandomShared`) and `linkedin/` (`ObserveLinkedInPost`, `SubmitLinkedInResult`).
 - `feature/history/impl/` (`:feature:history:impl`, the Ranks hub; the module keeps its History name) —
   `navigation/RanksEntry` (the tab root `HistoryRootKey` and the pushed `HistoryKey`, both open the hub),
   `ranks/` (`RanksViewModel`, boards, player sheet, replay opt-in, `PlayThisDayRow` on a game's unplayed day, the Tune sheet with `TuneDefaultsBlock`; `di/HistoryModule`), `RanksTuneDefaults` (the player's defaults the app shell hands the Tune sheet), the replay
   compare helpers (`HistoryReplayCompare`, `ReplaySolve`), and the calendar and stats pieces the hub reuses
-  (`HistoryCalendar`, `HistoryStatsHeader`, `HistoryLayout`, mapped from `PanePolicy`). The History screen and its
-  timeline are deleted.
+  (`HistoryCalendar`, `HistoryStatsHeader`, `HistoryLayout`, mapped from `PanePolicy`). `domain/ranks/`
+  (`com.ivandsky.puzzlebox.history.domain.ranks`): `ObserveRankWindow`, `ObserveOverall` → `OverallState`/`OverallStandings`,
+  `GameWindowStandings`, `ObserveWindowRefresh`, `GetPlayerActions` → `PlayerActions`, `RankScope`, `ViewerStanding`,
+  `UnofficialPlace`. `flags/HistoryFlag` (`RanksFreshness`, `RanksTuneBoardOnly`, `WeekMonthPoints`, `GamesFilter`; the
+  `history` set). The History screen and its timeline are deleted.
 - `feature/profile/impl/` (`:feature:profile:impl`) — packages kept from the app:
   `app/screens/` (`ProfileRoute`, `ProfileScreen`, `ProfileViewModel(identityService,
   idTokenProvider, observeGameStats)`: the account from `IdentityService.current` and the
@@ -436,7 +490,8 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   Developer link to the catalog in debug builds), `profile/di/ProfileModule` (`profileModule`),
   `profile/navigation/ProfileEntry` (`profileEntry` and the Settings entry; `onBack` draws
   the back icon and `onOpenSettings` the gear, both required). The Google ID-token provider moved
-  to `:core:auth`.
+  to `:core:auth`. `profile/domain/linkedin/` holds the LinkedIn row's use cases: `ObserveLinkedInAccount` →
+  `LinkedInAccountView`, `CreateLinkedInLink`, `UpdateLinkedInPosting`.
 - `feature/create/impl/` (`:feature:create:impl`, ADR-0019; no `games:*` dependency; `published/` hosts `PublishedPuzzleRoute`) —
   `navigation/CreateEntries` (`EditorKey`, `PublishedPuzzleKey`; Create is not a tab: Community's Yours page hosts `CustomBody` over
   `CreateViewModel`: the draft list over `DraftRepository`, `NewPuzzleSheet`, `DraftActionsSheet`; the Studio is full screen),
@@ -448,7 +503,10 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   holder: open/edit/submit, clipboard offer, `onImported(draftId)`; one per screen that offers
   the sheet — the Custom body and the Studio) over `ImportDraftFromText`, with `ImportSheetActions`
   (its callbacks). `CreateViewModel.importSharedText` imports text another app shared.
-  Use cases in `core:domain`: `CreateDraft`, `ValidatePublish`, `ImportDraftFromText`.
+  Use cases in `create.domain` (`com.ivandsky.puzzlebox.create.domain`, bound in `createModule`): `ValidatePublish`/
+  `ValidatePublishDetails`, `CreateSharedPuzzle` → `PublishOutcome`, `UpdatePublishState`, `SyncSolvesCounts`, `CreateDraftCopy`
+  and `ImportDraftFromText` (whole-text import: `NotationText.parse` on `dispatchers.default`, and only a parsed draft is
+  stored, via `CreateDraft` + one `DraftRepository.upsert`, as an imported row → `ImportResult`). `CreateDraft` stays in `core:domain`.
 - `feature/compete/` (`:feature:compete:api`, `:feature:compete:impl`, ADR-0026; plugin
   `puzzlebox.android.feature.api` / `.feature.impl` + roborazzi) — api: `DuelKey`,
   `DuelRevealKey`, `competeNavKeys()`. Impl: `tab/` (`DuelsTab` + `DuelsTabViewModel`, the
@@ -457,8 +515,14 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `DuelSignInStep`), `share/` (`DuelCreatedSheet`, `InviteShare`), `duel/` (`DuelRoute` +
   `DuelViewModel` over one `ObserveDuel` flow, `DuelLegs`, `DuelInviteCard`, `DuelLegCard`),
   `reveal/` (`RevealRoute` + `RevealViewModel` driving `RevealMachine`, `RevealStage`,
-  `RevealSummary`, haptics, `RematchSheet`), `navigation/CompeteEntries`, `di/CompeteModule`.
-  Depends on compete:api, play:api, core:auth, data, domain, game and game-ui.
+  `RevealSummary`, haptics, `RematchSheet`), `navigation/CompeteEntries`, `di/CompeteModule`, `CompeteFlag` (`PastYouPhoto`;
+  the `compete` set). `domain/` (`com.ivandsky.puzzlebox.compete.domain`): `ObserveMyDuels` → `MyDuels`/`DuelRow`, `ObserveDuel`
+  → `DuelSnapshot`, `UpdateMatchSeat` (claim, cancel, decline: `SeatAction` → `SeatResult`), `RecordRevealSeen`, `RevealReady`,
+  the self duel's `CreateSelfDuel` over `ComputeSolvedPool` (`SelfDuelSettings`) and `DeleteSelfDuel`; `domain/lineup/` the add
+  sheet's picker (`ObservePickablePuzzles` over `CommunitySource`, `FriendSource`, `OwnSource` and `DailyArchiveSource`,
+  `PickerQuery`/`PickerFilter` → `PickerResult`, `LoadPuzzleByCode` → `CodeLookup`), `ResolveSelfLineup`, `RematchLineup`,
+  `SaveDuelPuzzles`, `ObserveLegTitles`.
+  Depends on compete:api, play:api, core:auth, data, domain, game, game-ui and result-ui.
 - `backend/firebase/` (`:backend:firebase`) — implements the `core:data` seams:
   `FirebaseIdentityService` over an internal `AuthGateway`/`FirebaseAuthGateway`,
   `FirestoreLeaderboardStore` + `FirestoreLeaderboardRepository` (dedupe on (uid, puzzleRef)),
@@ -473,15 +537,15 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
 - `PROFILE.md` — product frame, ranked care-axes, deploy targets, testing style.
 - `docs/puzzle-notation.md` — the `puzzlebox <game> v<n>` text format agents write (spec A23);
   every sample is pinned by `NotationDocTest` in `:tools:puzzle-cli`.
-- `docs/adr/` — ADR-0001…0028; 0001–0028 are summarized under Purpose.
+- `docs/adr/` — ADR-0001…0035, most summarized under Purpose.
 
 ## Entry points
 
 - `PuzzleBoxApplication.onCreate` — `startKoin` with `appModules` = `commonModule` +
-  `dataModule` + `firebaseBackendModule` + `domainModule` + `homeModule` + `historyModule` +
+  `dataModule` + `cloudSyncModule` + `firebaseBackendModule` + `domainModule` + `homeModule` + `historyModule` +
   `playModule` + `createModule` + `authModule(R.string.default_web_client_id)` + `profileModule` +
   `competeModule` + each game's
-  `*Module` and `*UiModule` (zip, queens, tango, strands, minisudoku) + `appModule` +
+  `*Module` and `*UiModule` (zip, queens, tango, strands, minisudoku) + `appModule` + `reminderModule` +
   `buildTypeReleaseFlagsModule`, plus `buildTypeGameModules`
   (`BuildTypeGameModules.kt` per source set: debug adds `sudokuModule` + `sudokuUiModule`,
   release is empty; `ReleaseGameModulesTest` in the testRelease source set), then starts `LeaderboardSubmitWatcher`,
@@ -492,11 +556,11 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
 - `PuzzleBoxApp` route table (`puzzleBoxEntryProvider`, entries contributed by each feature
   impl's `*Entry` builder; placement of every key is a row in `Placement.kt`, ADR-0027). Tab
   roots: HomeKey → `HomeRoute` (Today), PlayKey → `LibraryRoute` (Games, with
-  its Dailies, Duels and Custom pills), HistoryRootKey → `HistoryRoute` (History, no back arrow). Shell screens pushed on the current tab's stack: ProfileKey → `ProfileRoute`
+  its Dailies and Duels tabs), HistoryRootKey → the Ranks hub (`ranksEntry`; Ranks, no back arrow). Shell screens pushed on the current tab's stack: ProfileKey → `ProfileRoute`
   (slim, with a back icon and the gear) and SettingsKey → `SettingsRoute`. Pushed on a tab:
   EditorKey(draftId) → `EditorRoute` (the Studio; swaps to `TestSolveScreen` while
-  test-solving), PublishedPuzzleKey → `PublishedPuzzleRoute`, HistoryKey →
-  `HistoryRoute`, GameKey(game, day?) → `GameRoute` (from the library's day card or a history row),
+  test-solving), PublishedPuzzleKey → `PublishedPuzzleRoute`, HistoryKey → the same Ranks hub
+  with a back arrow, GameKey(game, day?) → `GameRoute` (from the library's day card or a history row),
   ResultKey → `ResultRoute` (replaces the game on solve; distinct enter transition),
   ReplayKey → `ReplayRoute` (opened from the result's Watch replay row),
   FriendPuzzleKey, CustomGameKey and CustomResultKey (a friend's puzzle), DuelKey →
@@ -509,8 +573,8 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   (`PanePolicy.isTwoPane(width, height)` mapped to `HomeLayout`/`PlayLayout`/`HistoryLayout`); the rail also carries the avatar.
 - Share target: the main manifest gives `MainActivity` a plain-text `SEND` intent filter.
   `MainActivity` (new intent or fresh start) → `SharedText.of` → `SharedTextStore.put` → `PuzzleBoxApp`'s
-  `pendingShare` → `Navigator.applySharedText()` (open Games' Custom pill, or the Community tab, from any
-  tab) → the Custom body's `CreateViewModel.importSharedText` takes the text and imports it
+  `pendingShare` → `Navigator.applySharedText()` (selects Community and pops it to its root, from any
+  tab; an open Profile layer closes first) → the Custom body's `CreateViewModel.importSharedText` takes the text and imports it
   while RESUMED.
 - `puzzle-cli` — `PuzzleCliKt.main` (`:tools:puzzle-cli`), run from `installDist`, never
   from the app: `puzzle-cli validate|solve <file>` → one JSON verdict line, exit code `CliExit`.
@@ -539,8 +603,8 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `FetchError` distinguishes Unavailable (degrade to cache) / Throttled / Untrusted.
 - **`DailySource.archiveSince` + `DailyRepository.day`** (ADR-0012) — a non-null start makes the
   source archive-capable; the by-date read is the one path for past days (`archiveRange`
-  bounds it). **`LoadPastDay`** (`core:domain`) wraps it for `feature:play:impl`'s
-  `SlotOpening` past-day build and `feature:history:impl`'s `HistoryDetailPane`.
+  bounds it). **`LoadPastDay`** (`feature:play:impl`, `play.domain`) wraps it for `SlotOpening`'s
+  past-day build and `LoadRandomDay`.
 - **`RankOrder`** (`core:game`, ADR-0013) — per-game `ScoreModel.rankOrder`; read by
   `RoomCompletionRepository` best queries and the Result verdict.
 - **`NavigationState` / `Navigator`** (`core:navigation`, ADR-0011) — pure per-tab reducer
@@ -604,8 +668,8 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
 - **`EditorNotation` / `NotationText`** (`core:game`, 00-interfaces §2.1/§2.8) — the text
   seam: a game opts in by implementing `EditorNotation<D>` on its `GameEditor`; callers go
   only through `NotationText.parse(text, registry)` → `NotationParse` (positions whole-text,
-  1-based). Two callers, one verdict (ADR-0021 §5): `ImportDraftFromText` (`core:domain`,
-  behind `ImportTextState`/`ImportSheetActions` in `feature:create:impl`) and `PuzzleCli`.
+  1-based). Two callers, one verdict (ADR-0021 §5): `ImportDraftFromText` (`feature:create:impl`, `create.domain`,
+  behind `ImportTextState`/`ImportSheetActions`) and `PuzzleCli`.
   Format doc: `docs/puzzle-notation.md`, pinned by `NotationDocTest`.
 - **`SharedTextStore`** (`core:data`, 00-interfaces §5.2) — in-memory handoff of shared text
   from `MainActivity` to Create's ViewModel (see Entry points); `FakeSharedTextStore` in
@@ -625,8 +689,10 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `MatchDocCodec`), `MatchLocalRepository` (what this device knows of a duel, Room),
   `MatchResultOutbox` + `MatchResultPoster` (pending result posts, retried at every app start
   and when `NetworkStatus` reports the network back; `AndroidNetworkStatus` in `app/match/` is
-  the one Android seam) + `MatchResultSync`. `core:domain` holds the use cases and the pure
-  outcome rules (`ComputeMatchOutcome`, `ComputeMatchLegs`); the outcome is derived on the
+  the one Android seam) + `MatchResultSync`. `core:domain` holds the shared duel use cases (`CreateMatch`,
+  `BuildSelfMatch`, `ObserveMatch`, `LoadLegPuzzle`) and the pure outcome rules (`ComputeMatchOutcome`, `ComputeMatchLegs`);
+  `feature:compete:impl`'s `compete.domain` holds the duel list and screen reads, seats, reveal, self duel and picker, and
+  `feature:play:impl`'s `play.domain` the leg finish (`FinishLeg`). The outcome is derived on the
   device from sealed results. A duel against your own first solves (`CreateSelfDuel`, the Past you opponent) stays on the
   device in `SelfMatchRepository`; `RoutingMatchRepository` sends its code there and every other call to the backend. `MatchRepositoryContract` and `MatchResultsContract` in
   `core:testing` pin the fake and the Firestore implementation to one behaviour. The Games
@@ -639,8 +705,9 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `core:database`'s `LinkedInDatabase`, and the fetch policy, ghost writer, import mapping and
   `LinkedInLink` (the one owner of link and pause state) in `core:data`'s `linkedin/`; an
   import writes a completion tagged `CompletionSource.LinkedIn`. The `FakeLinkedIn*` doubles live
-  in `core:testing`. Nothing is bound in Koin or drawn in the UI yet: Settings' LinkedIn row is
-  reserved by ADR-0027's owner table, and the `LinkedInAccount` flag stays off.
+  in `core:testing`. The screens read it through use cases bound in Koin: `core:domain`'s `linkedin/` (`ObserveLinkedInDay`,
+  `ObserveLinkedInDayView`, `SyncLinkedInDay`) for the day card and the boards, and `feature:profile:impl`'s
+  `ObserveLinkedInAccount` for Profile's LinkedIn row; the result post (ADR-0032) goes through play's `SubmitLinkedInResult`.
 - **`GoogleIdTokenProvider`** (`core:auth`) — the Credential Manager half of Google sign-in;
   the app binds it through `authModule`, and `feature:profile:impl` and `feature:compete:impl`
   (the New duel sheet's sign-in step) resolve it. `IdentityService` only sees the token.
@@ -668,9 +735,9 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   can leave it out; it holds no cookie or token column.
 - **Module graph guard** — `checkModuleGraph` (ADR-0008, see Layout) fails the build on a
   forbidden edge; `feature:create:impl` reaches games only through the registries.
-- **Structure rules** — `:konsist` S0–S10 / P1–P12 (see Layout); allowlists only shrink.
-- **Roborazzi** — plugin `puzzlebox.android.roborazzi` (app, designsystem, home, play, create,
-  compete, zip-ui, tango-ui, queens-ui, strands-ui, sudoku-ui) owns the switch (ADR-0033): by
+- **Structure rules** — `:konsist` S0–S12 / P1–P16, no S3 (see Layout); allowlists only shrink.
+- **Roborazzi** — plugin `puzzlebox.android.roborazzi` (app, designsystem, game-ui, result-ui, home, play, history, profile,
+  create, compete, zip-ui, tango-ui, queens-ui, strands-ui, sudoku-ui) owns the switch (ADR-0033): by
   default the screenshot classes (names containing `Golden` or `Screenshot`) do not run in any
   module; `-Proborazzi.record=true` runs them and writes review PNGs. Nothing is committed and
   nothing compares pixels; in that mode the test task is never up to date or cached. A UI ticket
@@ -686,14 +753,18 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
 ## Working test commands
 
 Counts are `@Test` annotation counts over each module's `src/test*/` trees at the pin
-(5964 total excl. `:konsist`) — not executions. Robolectric where device APIs are touched; `:app` needs `ANDROID_HOME`
+(12518 total excl. `:konsist` and `build-logic`) — not executions. Robolectric where device APIs are touched; `:app` needs `ANDROID_HOME`
 or `local.properties` (the SDK under the user's `Library` folder here); Gradle toolchain pinned to JVM 25
 via `gradle/gradle-daemon-jvm.properties`. Android modules run `testDebugUnitTest`, pure-JVM
 modules run `test`. The merge gate (ADR-0023) is
 
 `./gradlew assembleDebug test -x :app:testReleaseUnitTest -x :app:testBenchmarkUnitTest`
 
-which runs every module's debug unit tests, `:core:auth` and `:feature:compete:impl` included.
+which runs every module's debug unit tests, `:core:auth` and `:feature:compete:impl` included, except `:app`'s e2e
+package. Those classes (`com.ivandsky.puzzlebox.app.e2e`, plus `NativeGraphicsWarmUpTest`) run only in
+`./gradlew :app:e2eTest` (ADR-0035), after every other test task. The merge lane adds it when a batch touches `:app`,
+`:core:navigation`, a `:feature:*:api` module or the shared build setup (PROFILE `e2e:`); main's CI `ui` job runs
+`testUi :app:e2eTest`. Its golden classes render only with `./gradlew :app:e2eTest -Proborazzi.record=true`.
 `:app`'s release host tests (`app/src/testRelease`) run on main's CI and, for a change to
 release-only wiring, as `./gradlew :app:testReleaseUnitTest`. The
 same tests split in two: `testUi` (`:app`, `:feature:*`) and `testCore` (every other module). A
@@ -701,48 +772,52 @@ narrower run: `./gradlew assembleDebug testDebugUnitTest :core:game:test :games:
 :games:queens:test :games:tango:test :games:strands:test :games:sudoku:test :core:model:test
 :core:network:test :tools:puzzle-cli:test --continue`. Screenshots: add `-Proborazzi.record=true`.
 
-Structure rules (ADR-0009): `./gradlew :konsist:test` — runs the 21 in-module rules (S0–S9 without S3, P1–P12; 145 tests with the
+Structure rules (ADR-0009): `./gradlew :konsist:test` — runs the 28 in-module rules (S0–S12 without S3, P1–P16; 210 tests with the
 census and the engine tests), over the whole repo's sources (not in the count above; reruns
 when any source, build script or allowlist changes).
 
-- `:app:testDebugUnitTest` — 650 (DI graph, nav routes, saved-state restore, per-tab shell,
-  the placement table and the shell: `nav/PlacementTest`, `nav/ShellChromeTest`,
+- `:app:testDebugUnitTest` — 439, plus 6 in `app/src/testRelease` run by `:app:testReleaseUnitTest` (DI graph, nav
+  routes, saved-state restore, per-tab shell, the placement table and the shell: `nav/PlacementTest`, `nav/ShellChromeTest`,
   `nav/OpenOwnerTest`, `nav/LibraryRequestsTest`, `nav/TopLevelNavBarTest`,
-  `nav/TabSetWidthChangeTest`; E2E robot rows incl. `e2e/ShellTabsE2ETest`,
+  `nav/TabSetWidthChangeTest`; submit watcher, share target, browser screenshots)
+- `:app:e2eTest` — 243 (E2E robot rows incl. `e2e/ShellTabsE2ETest`,
   `e2e/ShellSummariesE2ETest`, `e2e/TabSetRestoreE2ETest`, `e2e/TabReselectE2ETest`,
   `e2e/ReachabilityInventoryE2ETest`, the duel flows `e2e/DuelFlowE2ETest` and
-  `e2e/DuelLinkE2ETest`, and `e2e/LinkedInArchiveE2ETest`; submit watcher, share target,
-  browser screenshots)
-- `:backend:firebase:testDebugUnitTest` — 109
+  `e2e/DuelLinkE2ETest`, the cloud sync worlds `e2e/CloudSync*E2ETest`, and `e2e/LinkedInArchiveE2ETest`)
+- `:backend:firebase:testDebugUnitTest` — 219
 - `:core:auth:testDebugUnitTest` — 7
-- `:core:common:testDebugUnitTest` — 8
-- `:core:data:testDebugUnitTest` — 261
-- `:core:database:testDebugUnitTest` — 33 (DAOs + migrations through 8→9; the LinkedIn database)
-- `:core:datastore:testDebugUnitTest` — 12
-- `:core:designsystem:testDebugUnitTest` — 139
-- `:core:domain:testDebugUnitTest` — 352
-- `:core:game:test` — 87
-- `:core:game-ui:testDebugUnitTest` — 977
-- `:core:navigation:testDebugUnitTest` — 29
-- `:core:network:test` — 54
-- `:core:model:test` — 10
-- `:core:testing`, `:feature:*:api` — 0
-- `:feature:home:impl:testDebugUnitTest` — 80
-- `:feature:history:impl:testDebugUnitTest` — 53
-- `:feature:play:impl:testDebugUnitTest` — 1005
-- `:feature:profile:impl:testDebugUnitTest` — 53
-- `:feature:create:impl:testDebugUnitTest` — 395
-- `:feature:compete:impl:testDebugUnitTest` — 184
-- `:games:zip:test` — 292; `:games:zip-ui:testDebugUnitTest` — 186
-- `:games:tango:test` — 375; `:games:tango-ui:testDebugUnitTest` — 235
-- `:games:queens:test` — 454; `:games:queens-ui:testDebugUnitTest` — 379
-- `:games:sudoku:test` — 265; `:games:sudoku-ui:testDebugUnitTest` — 287
-- `:games:strands:test` — 222; `:games:strands-ui:testDebugUnitTest` — 356
+- `:core:common:testDebugUnitTest` — 11
+- `:core:data:testDebugUnitTest` — 911
+- `:core:database:testDebugUnitTest` — 83 (DAOs + migrations; the LinkedIn database)
+- `:core:datastore:testDebugUnitTest` — 42
+- `:core:designsystem:testDebugUnitTest` — 400
+- `:core:domain:testDebugUnitTest` — 456
+- `:core:game:test` — 287
+- `:core:game-ui:testDebugUnitTest` — 365
+- `:core:result-ui:testDebugUnitTest` — 691
+- `:core:navigation:testDebugUnitTest` — 51
+- `:core:network:test` — 185
+- `:core:model:test` — 23
+- `:core:testing:testDebugUnitTest` — 4
+- `:feature:*:api`, `:benchmark` — 0
+- `:feature:home:impl:testDebugUnitTest` — 182
+- `:feature:history:impl:testDebugUnitTest` — 528
+- `:feature:play:impl:testDebugUnitTest` — 1453
+- `:feature:profile:impl:testDebugUnitTest` — 277
+- `:feature:create:impl:testDebugUnitTest` — 632
+- `:feature:compete:impl:testDebugUnitTest` — 920
+- `:games:zip:test` — 403; `:games:zip-ui:testDebugUnitTest` — 331
+- `:games:tango:test` — 487; `:games:tango-ui:testDebugUnitTest` — 310
+- `:games:queens:test` — 617; `:games:queens-ui:testDebugUnitTest` — 385
+- `:games:sudoku:test` — 361; `:games:sudoku-ui:testDebugUnitTest` — 400
+- `:games:strands:test` — 269; `:games:strands-ui:testDebugUnitTest` — 515
 - `:tools:puzzle-cli:test` — 25 (CLI contract, per-game CLI↔app parity, `NotationDocTest`; the
   fixtures live under each game's `src/test/resources/notation/`)
 - `node --test backend/firebase/hosting-test/` — share-code normalizer; needs Node, not
   Gradle, not in the count above
 - `./gradlew checkModuleGraph` — forbidden-edge guard (also run by `check`)
+- `./gradlew -p build-logic :convention:test` — 11 (`ModuleGraphGuardTest`, the guard's own tests; the included build
+  is outside the merge gate and not in the count above)
 
 ## Diagram
 
