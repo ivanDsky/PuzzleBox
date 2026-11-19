@@ -185,6 +185,8 @@ class ModuleGraphGuardTest {
         for (to in listOf(":core:database", ":core:datastore", ":core:network")) {
             assertNull(forbiddenEdgeReason(":core:data", to, "implementation"))
             assertNull(forbiddenEdgeReason(":app", to, "testImplementation"))
+            assertNull(forbiddenEdgeReason(":app", to, "androidTestImplementation"))
+            assertEquals(reason, forbiddenEdgeReason(":app", to, "debugImplementation"))
             assertEquals(reason, forbiddenEdgeReason(":app", to, "implementation"))
             assertEquals(reason, forbiddenEdgeReason(":core:domain", to, "implementation"))
             assertEquals(reason, forbiddenEdgeReason(":feature:play:impl", to, "testImplementation"))
@@ -211,8 +213,8 @@ class ModuleGraphGuardTest {
             forbiddenEdgeReason(":tools:puzzle-cli", ":core:database", "implementation"),
         )
         assertEquals(
-            "games must not know about features",
-            forbiddenEdgeReason(":games:zip-ui", ":feature:play:impl", "implementation"),
+            "feature api modules may depend on :core:navigation and :core:model only",
+            forbiddenEdgeReason(":feature:play:api", ":core:network", "implementation"),
         )
     }
 }
