@@ -62,15 +62,15 @@ internal fun UnderlineTabbedList(
             onPageSettled = { onTab(tabs[it]) },
         ) { page ->
             when (tabs[page]) {
-                // The scroll container clips at its top and bottom edges, so on the tablet it keeps room above the
-                // first card (a card gap, wider than the outline) and [OutlineRoom] below the last one, and
-                // [OutlineRoom] at each side so the selected card's outline stays inside the list's edges.
+                // The scroll container clips at its top and bottom edges, so each tab keeps a gap above its first row:
+                // a card gap on Dailies, the same as between two cards. The tablet also keeps [OutlineRoom] below the
+                // last card and at each side, so the selected card's outline stays inside the list's edges.
                 GamesTab.Dailies -> Column(
                     Modifier
                         .fillMaxSize()
                         .verticalScroll(scrolls.dailies)
                         .padding(horizontal = if (phone) Spacing.lg else OutlineRoom)
-                        .padding(top = if (phone) 0.dp else Spacing.md, bottom = if (phone) Spacing.xl else OutlineRoom),
+                        .padding(top = Spacing.md, bottom = if (phone) Spacing.xl else OutlineRoom),
                     verticalArrangement = Arrangement.spacedBy(Spacing.md),
                 ) {
                     if (phone && state.offline) OfflinePill()
@@ -80,7 +80,7 @@ internal fun UnderlineTabbedList(
                     Modifier
                         .fillMaxSize()
                         .padding(horizontal = if (phone) Spacing.lg else OutlineRoom)
-                        .padding(top = if (phone) 0.dp else Spacing.sm),
+                        .padding(top = Spacing.sm),
                 ) { duels.content(scrolls.duels, duelPrefill, onDuelPrefillTaken) }
             }
         }
