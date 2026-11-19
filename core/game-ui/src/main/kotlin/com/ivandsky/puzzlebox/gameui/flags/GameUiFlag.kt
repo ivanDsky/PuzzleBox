@@ -16,7 +16,7 @@ enum class GameUiFlag(override val label: String, override val releaseDefault: B
      * Hint polish (backlog #1172, #1174): the Hint button reads as a peer of Undo, and hint captions explain the step in a plain
      * sentence before any technique name. Read only in feature/play's DI or a game UI module's DI (ADR-0022 §3).
      */
-    HintPolish(label = "Calm hint button and plain hint captions", releaseDefault = false),
+    HintPolish(label = "Calm hint button and plain hint captions", releaseDefault = true),
     ;
 
     /** The entry's own name: the stored override's key in `release_flags`. Never change it. */

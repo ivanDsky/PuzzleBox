@@ -9,7 +9,7 @@ enum class FilterFlag(override val label: String, override val releaseDefault: B
      * Every filter is a dropdown chip that opens a bottom sheet of options: the Add puzzle picker, Community, Random puzzle
      * and Ranks. Read only in a ViewModel or a DI module (ADR-0022 §3).
      */
-    FilterSheets(label = "Filters as chips and sheets", releaseDefault = false),
+    FilterSheets(label = "Filters as chips and sheets", releaseDefault = true),
     ;
 
     /** The entry's own name: the stored override's key in `release_flags`. Never change it. */

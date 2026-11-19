@@ -14,7 +14,7 @@ enum class ReleaseFlag(override val label: String, override val releaseDefault: 
      * Sheets that opened other sheets become screens (epic nested-sheets): New duel is a screen on the phone and fills the
      * Duels pane on the tablet, and its Add puzzle step is a page of it. Read only in a ViewModel or a DI module (ADR-0022 §3).
      */
-    SheetScreens(label = "New duel as a screen", releaseDefault = false),
+    SheetScreens(label = "New duel as a screen", releaseDefault = true),
     ;
 
     /** The entry's own name: the stored override's key in `release_flags`. Never change it. */
