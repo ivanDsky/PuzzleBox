@@ -20,16 +20,21 @@ import com.ivandsky.puzzlebox.domain.di.domainModule
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
+import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
+import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
+import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -59,15 +64,16 @@ class ObserveResultRankFriendsTest {
         mapOf(LeaderboardRef("tango", day) to listOf(entry("a", 30), entry("b", 40), entry("me", 50), entry("c", 60))),
     )
 
-    private fun setting() = ObserveFriendDay(preferences, ObserveFriendUids(matches, identity), ObserveLinkedInDay(days, registry))
+    private fun setting(vararg records: CompletionRecord) =
+        ObserveFriendDay(preferences, ObserveFriendUids(matches, identity), ObserveLinkedInDay(days, registry), FakeCompletionRepository(records.toList()))
 
     /** The rank as [domainModule] builds it, given the app's answer [friendDay]. */
-    private fun rank(friendDay: ObserveFriendDay?) = koinApplication {
+    private fun rank(friendDay: ObserveFriendDay?, board: LeaderboardRepository = repo) = koinApplication {
         modules(
             domainModule,
             module {
                 single<IdentityService> { identity }
-                single<LeaderboardRepository> { repo }
+                single<LeaderboardRepository> { board }
                 single<GameRegistry> { registry }
                 single<GameCalendar> { FakeGameCalendar(day) }
                 single { ObserveFriendDay.Binding(friendDay) }
@@ -139,6 +145,21 @@ class ObserveResultRankFriendsTest {
             assertEquals(ResultRank.Hidden, awaitItem())
             assertEquals(ResultRank.Ranked(position = 3, count = 4, topPercent = 75), awaitItem())
             expectNoEvents()
+        }
+    }
+
+    @Test
+    fun `Friends ranks a player past the board's page by their own solve, among their friends`() = runTest {
+        // 99 strangers and the friend b fill the page of a board with more places; the player's solve is past it.
+        val page = (1..99).map { entry("s$it", it) } + entry("b", 100)
+        befriend("b")
+        val solve = CompletionRecord(
+            TestGames.Ref(tango, PuzzleKey.Daily(day, 12)), 120_000, hints = 0, stats = RecordStats(1, "{}"),
+            firstCompletedAt = Instant.parse("2026-11-07T08:00:00Z"), isRecord = true,
+        )
+        rank(setting(solve), FakeLeaderboardRepository(mapOf(LeaderboardRef("tango", day) to page))).test {
+            assertEquals(ResultRank.Ranked(position = 2, count = 2, topPercent = 100, amongFriends = true), lastRanked())
+            cancelAndIgnoreRemainingEvents()
         }
     }
 }

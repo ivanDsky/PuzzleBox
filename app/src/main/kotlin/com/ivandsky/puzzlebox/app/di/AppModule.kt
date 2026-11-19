@@ -90,6 +90,7 @@ val appModule = module {
                 preferences = get<UserPreferencesRepository>(),
                 friendUids = get<ObserveFriendUids>(),
                 linkedInDay = get<ObserveLinkedInDay>(),
+                completions = get<CompletionRepository>(),
             ),
         )
     }

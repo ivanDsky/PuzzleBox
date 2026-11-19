@@ -29,6 +29,7 @@ import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
+import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
@@ -126,6 +127,7 @@ class GamePageRankRowTest {
             FakeUserPreferencesRepository(ranksFriendsDefault = friendsSetting),
             ObserveFriendUids(matches, identity),
             ObserveLinkedInDay(FakeLinkedInDays(), registry),
+            FakeCompletionRepository(),
         )
     }
 

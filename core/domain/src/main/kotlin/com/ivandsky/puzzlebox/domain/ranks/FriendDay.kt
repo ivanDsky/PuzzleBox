@@ -5,13 +5,20 @@ import com.ivandsky.puzzlebox.data.leaderboard.BoardPage
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
+import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RankOrder
 
 /**
  * What Friends scope ranks one game day among (F20): the viewer's [friends] and the LinkedIn [connections] of that
- * [board]'s day as the phone holds them, null with LinkedIn off.
+ * [board]'s day as the phone holds them, null with LinkedIn off. [own] is the viewer's own records of the day: the
+ * board is read to its page, so one placed past it is on the day's board only through them (`beyondPageEntries`, A11).
  */
-data class FriendDay(val board: LeaderboardRef, val friends: Set<String>, val connections: LinkedInDayView?) {
+data class FriendDay(
+    val board: LeaderboardRef,
+    val friends: Set<String>,
+    val connections: LinkedInDayView?,
+    val own: List<CompletionRecord> = emptyList(),
+) {
 
     /** The viewer's [place] among the [count] friends and connections ranked on the day. */
     data class Standing(val place: Int, val count: Int)
@@ -19,10 +26,12 @@ data class FriendDay(val board: LeaderboardRef, val friends: Set<String>, val co
     /**
      * Where [viewer] stands on the day's [entries] as the hub's Friends board ranks them ([rankFriendBoard], the
      * pipeline the hub's boards are built through). Null when the viewer is not ranked on the day: no entry on the
-     * board and no LinkedIn result of their own for it.
+     * board (not even past its page, [own]) and no LinkedIn result of their own for it.
      */
     fun standing(entries: List<LeaderboardEntry>, viewer: Identity, order: RankOrder): Standing? {
-        val ranked = rankFriendBoard(board, BoardPage(entries, entries.size), order, friends + viewer.uid, connections, viewer)
+        val page = BoardPage(entries, entries.size)
+        val past = beyondPageEntries(listOf(BoardLoad.Loaded(board, order, page, final = false)), viewer, own)[board]
+        val ranked = rankFriendBoard(board, page, order, friends + viewer.uid, connections, viewer, past)
         return ranked.rows.firstOrNull { it.entry.uid == viewer.uid }?.let { Standing(it.rank, ranked.n) }
     }
 }

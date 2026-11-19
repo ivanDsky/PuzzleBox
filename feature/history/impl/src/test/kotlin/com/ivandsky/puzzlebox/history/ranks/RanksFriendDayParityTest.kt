@@ -75,7 +75,7 @@ class RanksFriendDayParityTest {
         }.let { (it.board.state as DailyBoardState.Ranked).lines!! }
     }
 
-    private fun RanksTestHub.friendDay() = ObserveFriendDay(preferences, ObserveFriendUids(matches, identity), ObserveLinkedInDay(linkedInDays, registry))
+    private fun RanksTestHub.friendDay() = ObserveFriendDay(preferences, ObserveFriendUids(matches, identity), ObserveLinkedInDay(linkedInDays, registry), completions)
 
     @Test
     fun `an entry point reports the viewer's place on the Friends day board the hub draws`() = runTest {
