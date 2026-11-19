@@ -38,8 +38,11 @@ internal data class RevealCard(
     val gapBesideBasis: Boolean get() = improvement != null && improvement.text != basis
 }
 
-/** The reveal's cast and its race: [cards] holds the settled puzzles only, in puzzle order. */
-internal data class RevealPlan(val me: Player, val opponent: Player, val cards: List<RevealCard>) {
+/**
+ * The reveal's cast and its race: [cards] holds the settled puzzles only, in puzzle order. [pastYouPhotoUrl] is the photo
+ * Past you's avatar wears in a self duel; null keeps the plain initial.
+ */
+internal data class RevealPlan(val me: Player, val opponent: Player, val cards: List<RevealCard>, val pastYouPhotoUrl: String? = null) {
     val legs: List<LegReveal> get() = cards.map { it.leg }
 
     /** A self duel: the opponent is the viewer's own first solves. */
@@ -49,13 +52,15 @@ internal data class RevealPlan(val me: Player, val opponent: Player, val cards: 
 /**
  * Maps [view] to the reveal's plan. My side comes from my outbox rows that count (Pending or Posted, as the outcome
  * counts them), the opponent's from [MatchView.theirs], and each verdict from [MatchView.outcome]: the domain rule
- * decides, nothing here compares times. A puzzle whose verdict is still Pending never enters the race.
+ * decides, nothing here compares times. A puzzle whose verdict is still Pending never enters the race. A self duel stores no
+ * photo of its own, so [RevealPlan.pastYouPhotoUrl] is the [pastYouPhotoUrl] the view model hands in: my own photo, null keeps the initial.
  */
 internal fun revealPlan(
     view: MatchView,
     nameOf: (GameId) -> String,
     rankOrderOf: (GameId) -> RankOrder,
     ownName: String? = null,
+    pastYouPhotoUrl: String? = null,
 ): RevealPlan {
     val match = view.match
     val seated = (if (match.challenger.uid == view.me) match.challenger else match.opponent) ?: Player(view.me, "You", null)
@@ -90,7 +95,7 @@ internal fun revealPlan(
             improvement = improvement,
         )
     }
-    return RevealPlan(me, opponent, cards)
+    return RevealPlan(me, opponent, cards, pastYouPhotoUrl = pastYouPhotoUrl.takeIf { match.isSelf })
 }
 
 private fun LegVerdict.decidedOnHints() = (this as? LegVerdict.Win)?.basis == LegBasis.Hints || (this as? LegVerdict.Loss)?.basis == LegBasis.Hints

@@ -2,6 +2,9 @@ package com.ivandsky.puzzlebox.compete.reveal
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.isEnabled
+import com.ivandsky.puzzlebox.compete.CompeteFlag
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.data.match.isSelf
@@ -77,6 +80,8 @@ internal class LegCompare(
     val opponent: String,
     val finalLead: Lead,
     val me: String = MY_NAME,
+    /** My photo for Past you's side of the compare (a self duel, flag on); null draws the initial. */
+    val pastYouPhotoUrl: String? = null,
 )
 
 private const val STOP_TIMEOUT_MS = 5_000L
@@ -98,10 +103,14 @@ internal class RevealViewModel(
     private val recordSeen: RecordRevealSeen,
     private val loadReplay: LoadSolveReplay,
     private val identity: IdentityService,
+    releaseFlags: ReleaseFlags,
 ) : ViewModel() {
 
     /** The race the machine plays for one run, and how the first run started. */
     private class Race(val plan: RevealPlan, val start: RevealStart, val rerun: Int)
+
+    /** Past you wears the player's photo in a self duel ([CompeteFlag.PastYouPhoto]), read once. */
+    private val pastYouPhoto: Boolean = releaseFlags.isEnabled(CompeteFlag.PastYouPhoto)
 
     private val shareCode: ShareCode? = ShareCode.parse(code)
     private val reruns = MutableStateFlow(0)
@@ -189,6 +198,7 @@ internal class RevealViewModel(
                     _compare.value = LegCompare(
                         leg, mineTimeline, theirTimeline, current.plan.opponent.name, lead,
                         me = if (current.plan.pastYou) current.plan.me.name else MY_NAME,
+                        pastYouPhotoUrl = current.plan.pastYouPhotoUrl,
                     )
                 mine == LegReplayLoad.Absent && theirs == LegReplayLoad.Absent -> withoutReplay.update { it + leg }
             }
@@ -212,7 +222,10 @@ internal class RevealViewModel(
             is MatchState.UpdateApp -> latest ?: return RevealUiState.UpdateApp
             is MatchState.SignedOut -> latest ?: return RevealUiState.SignedOut
         }
-        val plan = revealPlan(view, registry::displayName, registry::rankOrderOf, ownName = identity.current.value?.displayName)
+        val me = identity.current.value
+        val plan = revealPlan(
+            view, registry::displayName, registry::rankOrderOf, ownName = me?.displayName, pastYouPhotoUrl = me?.photoUrl.takeIf { pastYouPhoto },
+        )
         val current = race
         val next = when {
             current == null && plan.cards.isEmpty() -> return RevealUiState.Unsettled

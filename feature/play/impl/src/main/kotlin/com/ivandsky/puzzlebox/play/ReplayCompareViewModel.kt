@@ -58,7 +58,7 @@ internal class ReplayCompareViewModel(
     /** The game's replay board; null for a game that has none, which the page shows as no replay. */
     val board: GameReplayBoard? = ui[gameId]?.replayBoard
 
-    val names = CompareNames(key.myName, key.theirName, theirsPast = key.theirsPast)
+    val names = CompareNames(key.myName, key.theirName, theirsPast = key.theirsPast, theirsPastPhotoUrl = key.theirsPastPhotoUrl)
 
     /** The verdict the lead line ends on, as the surface that opened the page said it. */
     val finalLead: Lead? = when (key.lead) {

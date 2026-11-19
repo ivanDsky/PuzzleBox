@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.isEnabled
+import com.ivandsky.puzzlebox.compete.CompeteFlag
 import com.ivandsky.puzzlebox.compete.create.DuelChallenge
+import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.domain.DuelRow
 import com.ivandsky.puzzlebox.domain.ObserveMyDuels
@@ -38,6 +40,8 @@ internal data class DuelsTabState(
     val signedIn: Boolean,
     /** The name Past you's avatar takes its initial from: the viewer's own, "You" while signed out. */
     val selfName: String = SELF_NAME_FALLBACK,
+    /** The photo Past you's avatar draws over that initial: the viewer's own, null signed out, without one, or with the flag off. */
+    val selfPhotoUrl: String? = null,
     val now: Instant,
     /** The signed-in player's name, for the invite text; null while signed out. */
     val inviter: String?,
@@ -88,6 +92,11 @@ internal class DuelsTabViewModel(
     /** New duel opens as a screen, not a sheet ([ReleaseFlag.SheetScreens]): pushed on the phone, in the pane on the tablet. */
     val newDuelAsScreen: Boolean = releaseFlags.isEnabled(ReleaseFlag.SheetScreens)
 
+    /** Past you wears the signed-in player's photo ([CompeteFlag.PastYouPhoto]); the flag off, no one gets one. */
+    private val pastYouPhoto: Boolean = releaseFlags.isEnabled(CompeteFlag.PastYouPhoto)
+
+    private fun selfPhoto(who: Identity?): String? = who?.photoUrl?.takeIf { pastYouPhoto }
+
     /** The New duel being composed in the tablet's pane, or null. */
     val newDuel: StateFlow<NewDuelRequest?> = composing.asStateFlow()
 
@@ -107,6 +116,7 @@ internal class DuelsTabViewModel(
             rows = duels.rows,
             signedIn = who != null,
             selfName = who?.displayName ?: SELF_NAME_FALLBACK,
+            selfPhotoUrl = selfPhoto(who),
             now = now,
             inviter = who?.displayName,
             inFlight = pending.inFlight,
@@ -121,6 +131,7 @@ internal class DuelsTabViewModel(
                 rows = emptyList(),
                 signedIn = identity.current.value != null,
                 selfName = identity.current.value?.displayName ?: SELF_NAME_FALLBACK,
+                selfPhotoUrl = selfPhoto(identity.current.value),
                 now = clock(),
                 inviter = identity.current.value?.displayName,
             ),

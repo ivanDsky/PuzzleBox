@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.DuelRow
 import com.ivandsky.puzzlebox.domain.DuelRowKind
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.resultui.FakePhotos
 import com.ivandsky.puzzlebox.resultui.PastYouAvatar
 import java.time.Instant
 
@@ -33,11 +34,18 @@ private fun DuelOutcome.verb(): String = when (this) {
 }
 
 /**
- * One My duels row for a duel against Past you: the Past you avatar wearing [selfName]'s initial, its name over [selfDuelSub], and no deadline pill
+ * One My duels row for a duel against Past you: the Past you avatar wearing [selfName]'s initial (or the [selfPhotoUrl] photo), its name over [selfDuelSub], and no deadline pill
  * (a self duel never expires), then a chevron (my move), a trophy and a chevron (results ready) or my score (finished).
  */
 @Composable
-internal fun SelfDuelRow(row: DuelRow, selfName: String, onClick: () -> Unit, modifier: Modifier = Modifier, selected: Boolean = false) {
+internal fun SelfDuelRow(
+    row: DuelRow,
+    selfName: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    selected: Boolean = false,
+    selfPhotoUrl: String? = null,
+) {
     val scheme = MaterialTheme.colorScheme
     DuelRowShell(
         title = row.opponent?.name.orEmpty(),
@@ -46,7 +54,7 @@ internal fun SelfDuelRow(row: DuelRow, selfName: String, onClick: () -> Unit, mo
         modifier = modifier,
         selected = selected,
         fill = if (row.kind == DuelRowKind.RevealReady) lerp(scheme.surface, scheme.primaryContainer, RESULTS_READY_BLEND) else Color.Unspecified,
-        avatar = { PastYouAvatar(name = selfName, size = AvatarSize) },
+        avatar = { PastYouAvatar(name = selfName, size = AvatarSize, photoUrl = selfPhotoUrl) },
         trailing = {
             when (val kind = row.kind) {
                 DuelRowKind.RevealReady -> {
@@ -79,5 +87,16 @@ internal fun SelfDuelRowPreview() = PuzzleBoxTheme {
         SelfDuelRow(previewRow(DuelRowKind.RevealReady, 3), "I", onClick = {})
         SelfDuelRow(previewRow(DuelRowKind.Finished(2, 1), 3), "I", onClick = {})
         SelfDuelRow(previewRow(DuelRowKind.Finished(1, 2), 3), "I", onClick = {})
+    }
+}
+
+@PuzzleBoxPreviews
+@Composable
+internal fun SelfDuelRowPhotoPreview() = PuzzleBoxTheme {
+    FakePhotos {
+        Column {
+            SelfDuelRow(previewRow(DuelRowKind.YourMove, 1), "Ivan", onClick = {}, selfPhotoUrl = "https://example.test/ivan.jpg")
+            SelfDuelRow(previewRow(DuelRowKind.RevealReady, 3), "Ivan", onClick = {}, selfPhotoUrl = "https://example.test/ivan.jpg")
+        }
     }
 }

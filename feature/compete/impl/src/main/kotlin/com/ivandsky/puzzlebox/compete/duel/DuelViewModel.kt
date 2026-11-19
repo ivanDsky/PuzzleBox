@@ -5,6 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.isEnabled
+import com.ivandsky.puzzlebox.compete.CompeteFlag
 import com.ivandsky.puzzlebox.compete.create.DuelSignIn
 import com.ivandsky.puzzlebox.compete.create.DuelSignInStep
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -69,7 +72,11 @@ internal class DuelViewModel(
     dispatchers: DispatcherProvider,
     private val legTitles: ObserveLegTitles,
     private val saveDuelPuzzles: SaveDuelPuzzles,
+    releaseFlags: ReleaseFlags,
 ) : ViewModel() {
+
+    /** Past you wears the player's photo in the header ([CompeteFlag.PastYouPhoto]), read once. */
+    private val pastYouPhoto: Boolean = releaseFlags.isEnabled(CompeteFlag.PastYouPhoto)
 
     /** The boards of the duel's legs, for the tablet's detail column; kept while the screen is. */
     internal val legBoards: LegBoards = DuelLegBoards(loadLegPuzzle, plays, dispatchers)
@@ -116,11 +123,22 @@ internal class DuelViewModel(
             identity.current,
             removal.step,
             showTimeLeft,
-        ) { (duel, names), work, me, step, timeLeft -> build(shareCode, duel, names, work, me?.displayName, step, timeLeft) }
+        ) { (duel, names), work, me, step, timeLeft ->
+            build(shareCode, duel, names, work, me?.displayName, me?.photoUrl.takeIf { pastYouPhoto }, step, timeLeft)
+        }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DuelUiState.Loading)
     }
 
-    private fun build(code: ShareCode, duel: DuelSnapshot, names: Map<ShareCode, LegName>, work: Working, myName: String?, removal: RemovalStep, timeLeft: Boolean): DuelUiState {
+    private fun build(
+        code: ShareCode,
+        duel: DuelSnapshot,
+        names: Map<ShareCode, LegName>,
+        work: Working,
+        myName: String?,
+        myPhotoUrl: String?,
+        removal: RemovalStep,
+        timeLeft: Boolean,
+    ): DuelUiState {
         if (removal == RemovalStep.Removing) return DuelUiState.Loading
         return when (val match = duel.match) {
             MatchState.NotFound -> DuelUiState.NotFound
@@ -129,7 +147,7 @@ internal class DuelViewModel(
             is MatchState.SignedOut -> DuelUiState.Invite(
                 InviteKind.SignedOut, code, match.match?.let { inviteDetails(it, null, duel.solvedBefore, names) }, false, null, work.signIn,
             )
-            is MatchState.Loaded -> loaded(code, match.view, duel, names, work, myName, removal == RemovalStep.Asking, timeLeft)
+            is MatchState.Loaded -> loaded(code, match.view, duel, names, work, myName, myPhotoUrl, removal == RemovalStep.Asking, timeLeft)
         }
     }
 
@@ -140,6 +158,7 @@ internal class DuelViewModel(
         names: Map<ShareCode, LegName>,
         work: Working,
         myName: String?,
+        myPhotoUrl: String?,
         removeAsked: Boolean,
         timeLeftShown: Boolean,
     ): DuelUiState {
@@ -155,6 +174,7 @@ internal class DuelViewModel(
                 removeAsked = removeAsked,
                 timeLeftShown = timeLeftShown,
                 names = names,
+                pastYouPhotoUrl = myPhotoUrl,
             )
         }
         val kind = work.outcome ?: when {

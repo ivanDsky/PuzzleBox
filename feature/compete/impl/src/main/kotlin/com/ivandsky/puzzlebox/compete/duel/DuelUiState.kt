@@ -56,7 +56,8 @@ internal sealed interface DuelUiState {
      * A self duel also takes [firstSolvedAt] (the day past you set each score, by the puzzle's wire key), [myName]
      * (the signed-in name, null signed out), [removeAsked] (the remove-confirm showing) and [timeLeftShown] (the Play
      * setting: the leg timer counts down to past you's time). A custom puzzle is titled by its
-     * [names] entry and the page explains a puzzle taken down or offline.
+     * [names] entry and the page explains a puzzle taken down or offline. [pastYouPhotoUrl] is the player's own photo
+     * (null with CompeteFlag.PastYouPhoto off, signed out or no photo): a self duel's Past you wears it.
      */
     data class Participant(
         val view: MatchView,
@@ -66,6 +67,7 @@ internal sealed interface DuelUiState {
         val removeAsked: Boolean = false,
         val timeLeftShown: Boolean = true,
         val names: Map<ShareCode, LegName> = emptyMap(),
+        val pastYouPhotoUrl: String? = null,
     ) : DuelUiState
 
     data object NotFound : DuelUiState

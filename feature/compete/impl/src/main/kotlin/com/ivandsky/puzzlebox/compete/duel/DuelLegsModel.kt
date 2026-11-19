@@ -74,6 +74,8 @@ internal data class DuelLegsModel(
     val rows: List<LegRowModel>,
     val footer: DuelFooter,
     val self: Boolean = false,
+    /** My photo for a self duel's Past you avatar; null when not a self duel, the flag is off, or I have none. */
+    val pastYouPhotoUrl: String? = null,
 )
 
 /**
@@ -81,7 +83,8 @@ internal data class DuelLegsModel(
  * puzzle is the viewer's outbox row; otherwise a saved play makes it In progress, else New. The footer asks the
  * match's own reveal rule rather than restating it. A self duel names me [myName] (its stored "You" is a placeholder)
  * and shows each opponent line as the [dayOf] the puzzle's [firstSolvedAt]: past you's score is never read here.
- * [names] holds the custom puzzles' titles and authors where known; none keeps today's titles.
+ * [names] holds the custom puzzles' titles and authors where known; none keeps today's titles. A self duel's Past you
+ * carries [pastYouPhotoUrl], my own photo ([DuelLegsModel.pastYouPhotoUrl]); null keeps the initial. A self duel stores no photo of its own.
  */
 internal fun duelLegsModel(
     view: MatchView,
@@ -93,6 +96,7 @@ internal fun duelLegsModel(
     firstSolvedAt: Map<String, Instant> = emptyMap(),
     dayOf: (Instant) -> String = Instant::toString,
     names: Map<ShareCode, LegName> = emptyMap(),
+    pastYouPhotoUrl: String? = null,
 ): DuelLegsModel {
     val match = view.match
     val mine = view.mine.filter { it.result.uid == view.me }.associateBy { it.result.legIndex }
@@ -136,7 +140,7 @@ internal fun duelLegsModel(
         else -> match.opponent ?: Player(view.me, SELF_NAME, null)
     }
     val opponent = match.opponentOf(view.me) ?: Player("", "a friend", null)
-    return DuelLegsModel(me, opponent, rows, footer, self = match.isSelf)
+    return DuelLegsModel(me, opponent, rows, footer, self = match.isSelf, pastYouPhotoUrl = pastYouPhotoUrl.takeIf { match.isSelf })
 }
 
 private fun legTitle(ref: LegRef, gameName: String): String = when (ref) {

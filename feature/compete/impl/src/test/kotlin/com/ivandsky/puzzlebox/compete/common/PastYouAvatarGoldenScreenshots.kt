@@ -23,7 +23,9 @@ import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.resultui.FakePhotos
 import com.ivandsky.puzzlebox.resultui.PastYouAvatar
+import com.ivandsky.puzzlebox.resultui.PlayerAvatar
 import java.io.File
 import org.junit.Rule
 import org.junit.Test
@@ -46,6 +48,8 @@ class PastYouAvatarGoldenScreenshots {
 
     @Test fun `past you avatar light`() = avatar(dark = false)
     @Test fun `past you avatar dark`() = avatar(dark = true)
+    @Test fun `past you photo avatar light`() = photoAvatar(dark = false)
+    @Test fun `past you photo avatar dark`() = photoAvatar(dark = true)
 
     private fun avatar(dark: Boolean) {
         rule.showGolden(dark) {
@@ -60,7 +64,28 @@ class PastYouAvatarGoldenScreenshots {
         }
         rule.settleAndCapture("common", "past-you-avatar", "phone", dark)
     }
+
+    /** Past you wearing the player's own photo (ringed, with the mark) beside the plain "you" photo: the two stay apart. */
+    private fun photoAvatar(dark: Boolean) {
+        rule.showGolden(dark) {
+            FakePhotos {
+                Row(
+                    modifier = Modifier.padding(Spacing.lg),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    PlayerAvatar(name = "Ivan", photoUrl = PHOTO)
+                    PastYouAvatar(name = "Ivan", photoUrl = PHOTO)
+                    PlayerAvatar(name = "Ivan", photoUrl = PHOTO, size = 48.dp)
+                    PastYouAvatar(name = "Ivan", size = 48.dp, photoUrl = PHOTO)
+                }
+            }
+        }
+        rule.settleAndCapture("common", "past-you-photo-avatar", "phone", dark)
+    }
 }
+
+private const val PHOTO = "https://example.test/ivan.jpg"
 
 /**
  * Shows [content] the way the app's root Scaffold does in the [dark] or light theme, system animations off

@@ -21,6 +21,7 @@ import java.time.Instant
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -222,6 +223,30 @@ class RevealLegsTest {
         assertEquals("You win", plan.cards[0].pill)
         assertEquals("14 s quicker than your first solve", plan.cards[0].basis)
         assertEquals("15 s slower than your first solve", plan.cards[1].basis)
+    }
+
+    @Test
+    fun pastYouWearsThePhotoHandedInOnASelfDuelButNeverOnAFriendDuel() {
+        val friend = view(
+            legs = List(1) { legRef(it) },
+            verdicts = listOf(LegVerdict.Win(LegBasis.Time)),
+            mine = listOf(myRow(0)),
+            theirs = listOf(theirs(0)),
+        )
+        val self = friend.copy(
+            me = SelfSeats.ME,
+            mine = friend.mine.map { it.copy(result = it.result.copy(uid = SelfSeats.ME)) },
+            match = friend.match.copy(
+                challenger = Player(SelfSeats.ME, "You", null),
+                opponent = Player(SelfSeats.PAST, SelfSeats.PAST_NAME, null),
+            ),
+        )
+        fun photoOf(view: MatchView, url: String?) =
+            revealPlan(view, nameOf = { "Zip" }, rankOrderOf = { RankOrder.TimeThenHints }, pastYouPhotoUrl = url).pastYouPhotoUrl
+
+        assertEquals("https://example.com/me.png", photoOf(self, "https://example.com/me.png"))
+        assertNull("the flag-off path hands none in", photoOf(self, null))
+        assertNull("a friend is not past you", photoOf(friend, "https://example.com/me.png"))
     }
 
     @Test

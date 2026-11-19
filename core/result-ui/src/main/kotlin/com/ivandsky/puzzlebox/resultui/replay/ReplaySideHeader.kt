@@ -37,7 +37,7 @@ internal fun sideHeaderHeight(): Dp {
     return maxOf(MinSideHeaderHeight, lines)
 }
 
-/** Who a board belongs to: a [tint] disc with the initial (or the Past you avatar when [pastYouName] is set), the [name], and under it where that side stands. */
+/** Who a board belongs to: a [tint] disc with the initial (or the Past you avatar, with the viewer's [pastYouPhotoUrl] when it has one, when [pastYouName] is set), the [name], and under it where that side stands. */
 @Composable
 internal fun ReplaySideHeader(
     name: String,
@@ -48,6 +48,7 @@ internal fun ReplaySideHeader(
     reserveStatsLine: Boolean = false,
     modifier: Modifier = Modifier,
     pastYouName: String? = null,
+    pastYouPhotoUrl: String? = null,
 ) {
     Row(
         modifier.height(sideHeaderHeight()),
@@ -55,7 +56,7 @@ internal fun ReplaySideHeader(
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         if (pastYouName != null) {
-            PastYouAvatar(name = pastYouName, size = DiscSize)
+            PastYouAvatar(name = pastYouName, size = DiscSize, photoUrl = pastYouPhotoUrl)
         } else {
             Box(Modifier.size(DiscSize).background(tint, CircleShape), contentAlignment = Alignment.Center) {
                 Text(name.take(1).uppercase(), style = MaterialTheme.typography.labelLarge, color = onTint)

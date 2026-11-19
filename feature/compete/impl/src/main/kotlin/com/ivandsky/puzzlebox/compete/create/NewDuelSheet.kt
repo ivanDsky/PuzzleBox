@@ -128,7 +128,7 @@ private fun CreatePanel(state: NewDuelState, actions: NewDuelActions) {
     ) {
         Text("New duel", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
         NewDuelIntro(state.opponent)
-        if (state.selfOffered) PlayAgainstRow(state.opponent, state.selfName, actions.onOpponent)
+        if (state.selfOffered) PlayAgainstRow(state.opponent, state.selfName, actions.onOpponent, selfPhotoUrl = state.selfPhotoUrl)
         when (state.opponent) {
             Opponent.Friend -> FriendCreatePanel(state, actions)
             Opponent.PastYou -> SelfCreatePanel(state, actions)

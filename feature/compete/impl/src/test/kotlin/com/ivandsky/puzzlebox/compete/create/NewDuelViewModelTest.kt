@@ -26,6 +26,7 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
@@ -132,6 +133,7 @@ class NewDuelViewModelTest {
         zone = { zone },
         locale = { locale },
         legTitles = noLegTitles(),
+        releaseFlags = FakeReleaseFlags(),
     )
 
     private fun kotlinx.coroutines.test.TestScope.started(createMatch: CreateMatch = this@NewDuelViewModelTest.createMatch): NewDuelViewModel =

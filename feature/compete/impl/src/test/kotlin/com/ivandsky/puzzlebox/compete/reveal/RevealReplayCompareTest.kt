@@ -41,6 +41,7 @@ import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.resultui.DuelSideState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -107,6 +108,14 @@ class RevealReplayCompareTest {
         val past = compareKey("K7Q2MX", zip, LegCompare(0, null, null, "Past you", Lead.Mine), self = true)
         assertTrue(past.theirsPast)
         assertFalse(compareKey("K7Q2MX", zip, LegCompare(0, null, null, "Past you", Lead.Mine)).theirsPast)
+    }
+
+    @Test
+    fun thePastYouPhotoRidesTheKeyOnlyOnASelfDuel() {
+        val open = LegCompare(0, null, null, "Past you", Lead.Mine, pastYouPhotoUrl = "https://example.test/ann.jpg")
+
+        assertEquals("https://example.test/ann.jpg", compareKey("K7Q2MX", zip, open, self = true).theirsPastPhotoUrl)
+        assertNull(compareKey("K7Q2MX", zip, open).theirsPastPhotoUrl)
     }
 
     @Test
