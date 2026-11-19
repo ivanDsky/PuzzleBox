@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.gameui.flags.GameUiFlag
 import com.ivandsky.puzzlebox.history.flags.HistoryFlag
+import com.ivandsky.puzzlebox.play.PlayFlag
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
@@ -78,6 +79,7 @@ class DebugReleaseFlagsBindingTest {
             val keys = declared.map { it.key }
             assertTrue(keys.containsAll(HistoryFlag.entries.map { it.key }))
             assertTrue(keys.containsAll(GameUiFlag.entries.map { it.key }))
+            assertTrue(keys.containsAll(PlayFlag.entries.map { it.key }))
         } finally {
             stopKoin()
         }
