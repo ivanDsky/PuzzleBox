@@ -19,4 +19,11 @@ fun interface TechniqueWalker {
      * map. Never throws.
      */
     fun techniqueCounts(puzzle: Puzzle): Map<TechniqueId, Int>
+
+    /**
+     * Version of this walker's technique set: bump it when the set of ids it reports or the meaning
+     * of an id changes. The index pass records it in every index it writes, so a shipped index
+     * names the technique set it was built with.
+     */
+    val techniqueSetVersion: Int get() = 1
 }

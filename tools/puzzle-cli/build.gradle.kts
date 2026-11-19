@@ -1,5 +1,5 @@
 // Runnable pure-JVM developer tool (ADR-0021): `validate` (and later `solve`) over
-// `puzzlebox <game> v<n>` text, run from installDist without Gradle. Ships nowhere.
+// `puzzlebox <game> v<n>` text and the by-hand `index` pass, run from installDist without Gradle. Ships nowhere.
 plugins {
     alias(libs.plugins.puzzlebox.jvm.library)
     alias(libs.plugins.kotlin.serialization)
@@ -13,6 +13,8 @@ dependencies {
     implementation(projects.games.tango)
     implementation(projects.games.sudoku)
     implementation(projects.games.strands)
+    implementation(projects.core.network)
+    implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.serialization.json)
 }
 
