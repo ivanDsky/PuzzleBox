@@ -48,7 +48,7 @@ serial. The Tab is a two-pane layout (840 dp wide, wider than tall, at least 480
 - Games: the selected game's page sits beside the list, so there is no Back on it; `leaveGame` and the
   archive journey take it only on one pane. A game card is open once its name shows twice (card and
   page title), because the page beside the list belongs to the game selected before it.
-- Ranks: there are no board dots, so a tab is ready on its "Tune ranks" button, and board swipes
+- Ranks: there are no board dots, so a tab is ready on its When chip (text "When", or the picked window), and board swipes
   run in the right pane (60% to 90% of the width) instead of across the screen.
 - Zip: only a digit inside the board pane is a waypoint; the stats panel beside it has digits too.
 
