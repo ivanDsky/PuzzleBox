@@ -833,6 +833,7 @@ class HomeViewModelTest {
             FakeUserPreferencesRepository(ranksFriendsDefault = friends),
             ObserveFriendUids(matches, identity),
             ObserveLinkedInDay(FakeLinkedInDays(), TestGames.registry(listOf(zip, tango))),
+            FakeCompletionRepository(),
         )
     }
 

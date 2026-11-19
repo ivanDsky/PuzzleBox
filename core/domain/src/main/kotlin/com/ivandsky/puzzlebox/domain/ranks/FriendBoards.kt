@@ -29,7 +29,7 @@ fun BoardPage.friendBoard(
 }
 
 /**
- * [page] as a Friends board, ranked: [friendBoard], then [rankBoard] by [order]. Places run 1..n among the friends
+ * [page] as a Friends board, ranked: [friendBoard] (with the [viewerEntry] it names), then [rankBoard] by [order]. Places run 1..n among the friends
  * and the connections who played, and N counts them.
  */
 fun rankFriendBoard(
@@ -39,7 +39,8 @@ fun rankFriendBoard(
     players: Set<String>,
     connections: LinkedInDayView?,
     viewer: Identity?,
-): RankedBoard = page.friendBoard(players, connections, viewer).let { rankBoard(board, it.entries, order, it.count) }
+    viewerEntry: LeaderboardEntry? = null,
+): RankedBoard = page.friendBoard(players, connections, viewer, viewerEntry).let { rankBoard(board, it.entries, order, it.count) }
 
 /**
  * These boards as the Friends scope ranks them (F18, F21): every loaded board is its [friendBoard] among [players],

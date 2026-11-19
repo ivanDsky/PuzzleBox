@@ -2,6 +2,12 @@ package com.ivandsky.puzzlebox.history.ranks
 
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
+import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
+import com.ivandsky.puzzlebox.domain.ObserveResultRank
+import com.ivandsky.puzzlebox.domain.ResultRank
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.history.HistoryTestSupport
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
 import com.ivandsky.puzzlebox.history.domain.ranks.RankScope
@@ -73,6 +79,25 @@ class RanksFriendsBeyondPageTest {
             assertEquals("$day", listOf("Maya" to 1, "Ann" to 2), rows.map { it.name to it.rank })
             // A board row of their own, not the device-only row of a solve that cannot post.
             assertFalse("$day", rows.single { it.isSelf }.unofficial)
+        }
+    }
+
+    @Test
+    fun `the Friends chip on Result, Today and the game page reads the place the Friends Day board draws for that viewer`() = runTest {
+        for (day in beyond) {
+            val h = hub()
+            val drawn = rowsOf(h.viewModel().friends(Window.Day, day)).single { it.isSelf }.rank
+            val chip = ObserveResultRank(
+                ObserveLeaderboard(h.identity, h.leaderboard, h.registry, h.calendar),
+                h.registry,
+                ObserveFriendDay(h.preferences, ObserveFriendUids(h.matches, h.identity), ObserveLinkedInDay(h.linkedInDays, h.registry), h.completions),
+            )
+            h.preferences.setRanksFriendsDefault(true)
+
+            val reported = chip(ZIP, day).first { it is ResultRank.Ranked && it.amongFriends } as ResultRank.Ranked
+
+            assertEquals("$day", 2, drawn)
+            assertEquals("$day", ResultRank.Ranked(position = drawn, count = 2, topPercent = 100, amongFriends = true), reported)
         }
     }
 

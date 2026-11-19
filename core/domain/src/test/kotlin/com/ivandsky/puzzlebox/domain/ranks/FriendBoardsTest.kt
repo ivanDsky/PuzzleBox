@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 /** F18: Friends scope ranks the viewer and their friends among themselves, on every board and in Overall. */
@@ -171,6 +172,22 @@ class FriendBoardsTest {
         assertEquals(emptyMap<LeaderboardRef, LeaderboardEntry>(), short.ownBeyondPage(solved(zip, 30_000), solved(tango, 30_000)))
         assertEquals(emptyMap<LeaderboardRef, LeaderboardEntry>(), fullPage(last = entry("ann", zip, 20_000)).ownBeyondPage(solved(zip, 30_000)))
         assertEquals(emptyMap<LeaderboardRef, LeaderboardEntry>(), fullPage(last = entry("bea", zip, 20_000)).ownBeyondPage(solved(zip, 30_000, official = false)))
+    }
+
+    @Test
+    fun `an entry point reports the place the hub's Friends day board gives a viewer who placed past the full page`() {
+        val page = fullPage(last = entry("bea", zip, 20_000))
+        val own = page.ownBeyondPage(solved(zip, 30_000))
+        val entries = (page.boards.single() as BoardLoad.Loaded).page.entries
+
+        val hub = ranked(page.amongFriends(friends, viewer = me, viewerEntries = own)).single()
+        val reported = FriendDay(zip, friends - "ann", null, listOf(solved(zip, 30_000))).standing(entries, me, order)
+        val withoutSolve = FriendDay(zip, friends - "ann", null).standing(entries, me, order)
+
+        assertEquals(FriendDay.Standing(hub.rows.single { it.entry.uid == "ann" }.rank, hub.n), reported)
+        assertEquals(FriendDay.Standing(place = 2, count = 2), reported)
+        // No solve of their own on the phone: the board has nothing of the viewer, as before.
+        assertNull(withoutSolve)
     }
 
     private companion object {
