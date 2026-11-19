@@ -48,6 +48,8 @@ class ZipPlayController(
     private val now: () -> Instant = Instant::now,
     /** Ticket 06: the refusal/trim messages the shared caption slot shows. */
     val feedback: ZipFeedback = ZipFeedback(env.scope),
+    /** Backlog #1585 (flag CutWrongPart): the finger sliding back onto the wrong part of the line cuts it there. */
+    val cutWrongPart: Boolean = false,
 ) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback by feedback {
 
     var session by mutableStateOf<ZipSession?>(null)

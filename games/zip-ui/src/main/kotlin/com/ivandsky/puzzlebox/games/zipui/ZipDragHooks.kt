@@ -14,7 +14,12 @@ import com.ivandsky.puzzlebox.games.zip.engine.ZipRules
  * gesture-layer law (ticket 26 R1): draw-back retracts by one, tap retracts deliberately,
  * and the hook no longer participates in either.
  */
-class ZipDragHooks(private val board: ZipBoard) : DragTraceHooks {
+class ZipDragHooks internal constructor(
+    private val board: ZipBoard,
+    private val wrongPart: ZipWrongPart?,
+) : DragTraceHooks {
+
+    constructor(board: ZipBoard) : this(board, wrongPart = null)
 
     override fun canExtend(path: List<GridCell>, next: GridCell): Boolean {
         val cell = cellOf(next)
@@ -44,6 +49,9 @@ class ZipDragHooks(private val board: ZipBoard) : DragTraceHooks {
                 board.neighbors(cell).count { (!drawn[it.idx] || it == step) && !board.blocked(cell, it) } < needs
         }
     }
+
+    /** With the cut-the-wrong-part flag on ([ZipWrongPart], ticket 1585); off, no earlier cell can be cut to. */
+    override fun cutFrom(path: List<GridCell>): Int = wrongPart?.cutFrom(path.map(::cellOf)) ?: path.size
 
     private fun cellOf(cell: GridCell) = Cell(cell.row * board.n + cell.col)
 }

@@ -60,13 +60,15 @@ internal fun zipBoardOutlineShape(n: Int): Shape = GenericShape { size, _ ->
 
 /**
  * Zip's one play registration (ADR-0001): its controller, its board and its play screen.
+ * [cutWrongPart] is asked as a puzzle opens: the release flag of backlog #1585, read in the DI module.
  */
-class ZipPlayUi : GamePlayUi {
+class ZipPlayUi(private val cutWrongPart: () -> Boolean = { false }) : GamePlayUi {
     override val gameId: GameId get() = ZipDefinition.id
 
     override val brand: GameBrand get() = ZipBrand
 
-    override fun createController(env: PlayEnvironment): GamePlayController = ZipPlayController(env)
+    override fun createController(env: PlayEnvironment): GamePlayController =
+        ZipPlayController(env, cutWrongPart = cutWrongPart())
 
     override val tutorial: List<TutorialStep> get() = ZipTutorial.steps
 
@@ -207,7 +209,9 @@ private fun ZipBoard(controller: ZipPlayController, paneCap: Dp?, modifier: Modi
         }
         controller.clearHintArrow()
     }
-    val hooks = remember(puzzle) { ZipDragHooks(puzzle.board) }
+    val hooks = remember(puzzle, controller.cutWrongPart) {
+        ZipDragHooks(puzzle.board, if (controller.cutWrongPart) ZipWrongPart(puzzle) else null)
+    }
     // Walls never change mid-play; a stable list lets the board skip them on each accepted cell.
     val walls = remember(puzzle) { zipWallOverlays(model) }
     // Snapshot state read only inside ZipPipes' draw: a moving finger redraws, never recomposes.

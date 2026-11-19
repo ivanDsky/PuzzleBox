@@ -55,6 +55,14 @@ fun interface DragTraceHooks {
      * prefers the one that strands nothing (ticket 1572). Games without a fill rule keep false.
      */
     fun strands(path: List<GridCell>, next: GridCell): Boolean = false
+
+    /**
+     * The index in [path] of the earliest cell a finger sliding back onto the line may cut it back
+     * to (ticket 1585); every earlier traced cell stays a wall, and so does any cell when the answer
+     * is `path.size`. The stroke asks only once the finger is nearly at the middle of a traced cell
+     * beside the tail, so a game may answer with a search. Games with nothing to cut keep `path.size`.
+     */
+    fun cutFrom(path: List<GridCell>): Int = path.size
 }
 
 /**
@@ -62,10 +70,11 @@ fun interface DragTraceHooks {
  * is anchored at the committed [path]'s end. Gesture contract (R1):
  * - **Drawing never cancels.** Past the touch slop the stroke is a drag: hook-approved
  *   cells extend, everything else is reported Refused. The drawn path is a wall: dragging
- *   onto the cell before the tail steps back one cell ([DragEvent.Retract]), the only way
- *   onto the line, and every other traced cell is refused — never cut back to, crossed or
- *   picked up. The line steers by where the finger is relative to its end, not by
- *   which cell it is over ([DragTraceStroke]). Releasing keeps the trace exactly as drawn; no event fires on
+ *   onto the cell before the tail steps back one cell ([DragEvent.Retract]), and every other
+ *   traced cell is refused — never crossed or picked up — unless the hooks let the line be
+ *   cut back to it ([DragTraceHooks.cutFrom]). The line steers
+ *   by where the finger is relative to its end, not by which cell it is over
+ *   ([DragTraceStroke]). Releasing keeps the trace exactly as drawn; no event fires on
  *   release.
  * - **Tap retracts.** Down+up within the touch slop on a traced cell trims the path back
  *   through it ([DragEvent.Retract]); on the first traced cell it empties the trace to
