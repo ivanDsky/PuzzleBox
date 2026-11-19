@@ -1,0 +1,2 @@
+app/src/debug/kotlin/com/ivandsky/puzzlebox/app/debug/haptics/HapticsLabPanel.kt  # S13 Ruling #1700, 2026-11-19: debug-only haptics lab looks the Vibrator up to play it past the Vibration switch on purpose (see S9); release compiles none of it
+app/src/debug/kotlin/com/ivandsky/puzzlebox/app/debug/haptics/HapticsLabVibratorRows.kt  # S13 Ruling #1700, 2026-11-19: debug-only haptics lab plays raw Vibrator effects as its evidence; release compiles none of it
