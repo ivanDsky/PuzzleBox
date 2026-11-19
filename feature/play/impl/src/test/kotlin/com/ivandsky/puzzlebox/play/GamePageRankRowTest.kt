@@ -105,6 +105,7 @@ class GamePageRankRowTest {
                 },
                 module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
+                flagsOff,
             )
         }
         composeRule.setContent { PuzzleBoxTheme(darkTheme = false) { GamePageRankRow(game, onOpen = onOpen) } }
