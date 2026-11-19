@@ -22,9 +22,8 @@ internal data class CommunityNotice(val id: Int, val message: String)
 
 /**
  * The New today section. [game] and
- * [difficulty] are the filters picked (null is All, and Any difficulty); [signInPrompt] is the sign-in dialog a
- * signed-out Report opens, with [signIn] saying how the last try went. With [filterSheets] on, the filters are two chips that
- * open option sheets instead of the ⋮ menu.
+ * [difficulty] are the filters picked (null is All, and Any difficulty), shown as two chips that open option sheets;
+ * [signInPrompt] is the sign-in dialog a signed-out Report opens, with [signIn] saying how the last try went.
  */
 internal data class CommunityState(
     val games: List<GameChoice> = emptyList(),
@@ -34,5 +33,4 @@ internal data class CommunityState(
     val signInPrompt: Boolean = false,
     val signIn: BoardSignIn = BoardSignIn.Idle,
     val notice: CommunityNotice? = null,
-    val filterSheets: Boolean = false,
 )

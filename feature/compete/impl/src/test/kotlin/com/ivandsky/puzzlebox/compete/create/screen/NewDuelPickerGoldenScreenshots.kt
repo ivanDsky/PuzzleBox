@@ -13,8 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
-import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
@@ -73,7 +71,6 @@ class NewDuelPickerGoldenScreenshots {
 
     @Test fun `friend phone light`() = golden("friend", adding(friend()), tablet = false, dark = false)
     @Test fun `friend phone dark`() = golden("friend", adding(friend()), tablet = false, dark = true)
-    @Test fun `friend filters phone light`() = golden("friend-filters", adding(friend()), tablet = false, dark = false, filters = true)
     @Test fun `past you phone light`() = golden("past-you", adding(custom()), tablet = false, dark = false)
     @Test fun `past you phone dark`() = golden("past-you", adding(custom()), tablet = false, dark = true)
 
@@ -85,7 +82,7 @@ class NewDuelPickerGoldenScreenshots {
 
     private fun adding(state: NewDuelState) = state.copy(lineup = state.lineup.openAdd())
 
-    private fun golden(name: String, state: NewDuelState, tablet: Boolean, dark: Boolean, filters: Boolean = false) {
+    private fun golden(name: String, state: NewDuelState, tablet: Boolean, dark: Boolean) {
         rule.showGolden(dark) {
             NewDuelScreen(state, NO_ACTIONS, onBack = {}, pane = tablet) { picker, onClose ->
                 PuzzlePickerPage(
@@ -95,10 +92,6 @@ class NewDuelPickerGoldenScreenshots {
                     viewModel = if (picker.pastYou) koinViewModel<AddPuzzleViewModel>(qualifier = PAST_YOU_PICKER) else koinViewModel<AddPuzzleViewModel>(),
                 )
             }
-        }
-        if (filters) {
-            rule.mainClock.advanceTimeBy(SETTLE_MS)
-            rule.onNodeWithTag("duel.lineup.filter").performClick()
         }
         rule.settleAndCapture("new-duel-picker", "new-duel-picker-$name", if (tablet) "tablet" else "phone", dark)
     }

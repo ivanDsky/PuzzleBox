@@ -17,7 +17,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -153,12 +153,11 @@ class PastYouLineupLayoutTest {
         assertTrue("clipped text: $clipped", clipped.isEmpty())
     }
 
-    /** The sheet's tiles, field, filter button, the chips it opens, and the first result; the results are a lazy list, so only the one in view is placed. */
+    /** The sheet's tiles, field, chips, and the first result; the results are a lazy list, so only the one in view is placed. */
     private fun assertSheetControlsAreAtLeast48dp() {
-        rule.openFilters()
         val minPx = with(rule.density) { MIN_TARGET.toPx() }
-        val tags = GAMES.flatMap { listOf("duel.lineup.sheet.game.${it.id.value}", "duel.lineup.chip.game.${it.id.value}") } +
-            listOf("duel.lineup.filter", "duel.lineup.filter.clear", "duel.lineup.chip.pastdays", "duel.lineup.chip.friends", "duel.lineup.search", "duel.lineup.pick.add.${SOLVED_ROWS.first().entry.ref.wire}")
+        val tags = GAMES.map { "duel.lineup.sheet.game.${it.id.value}" } +
+            listOf(PickerFilterPage.Source.tag, PickerFilterPage.Games.tag, "duel.lineup.search", "duel.lineup.pick.add.${SOLVED_ROWS.first().entry.ref.wire}")
         for (tag in tags) {
             val target = rule.onNodeWithTag(tag).performScrollTo().fetchSemanticsNode().touchBoundsInRoot
             assertTrue("$tag is ${target.width}x${target.height} px", target.width >= minPx - 1 && target.height >= minPx - 1)
@@ -171,18 +170,16 @@ class PastYouLineupLayoutTest {
         panel(restoration = restoration)
         openSheet()
         rule.onNodeWithTag("duel.lineup.search").performTextInput("crown")
-        rule.openFilters()
-        rule.onNodeWithTag("duel.lineup.chip.game.${TANGO.value}").performClick()
-        rule.waitForIdle()
-        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("1 found")
+        rule.pickInPage(PickerFilterPage.Games, "duel.lineup.chip.game.${TANGO.value}")
+        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("1 puzzle")
 
         restoration.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
         rule.onNodeWithTag("duel.lineup.sheet").assertExists()
         rule.onNodeWithTag("duel.lineup.search").assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("crown")))
-        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("1 found")
-        rule.onNodeWithTag("duel.lineup.chip.game.${TANGO.value}").assertIsSelected()
+        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("1 puzzle")
+        rule.onNodeWithTag(PickerFilterPage.Games.tag).assertTextContains("Tango")
         rule.onNodeWithTag("duel.lineup.pick.${FRIEND_TANGO.entry.ref.wire}").assertExists()
         rule.onNodeWithTag("duel.lineup.pick.${ZIP_DAILY.entry.ref.wire}").assertDoesNotExist()
         rule.onNodeWithTag("duel.lineup.header").assertTextEquals("Puzzles, in order · 3 of 10")
@@ -194,14 +191,14 @@ class PastYouLineupLayoutTest {
         openSheet()
         rule.onNodeWithTag("duel.lineup.search").performTextInput("crown")
         rule.waitForIdle()
-        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("1 found")
+        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("1 puzzle")
 
         editor = editor.dismiss()
         rule.waitForIdle()
         openSheet()
 
         rule.onNodeWithTag("duel.lineup.search").assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("")))
-        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("Recently solved first")
+        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("3 puzzles · Recently solved first")
     }
 
     @Test

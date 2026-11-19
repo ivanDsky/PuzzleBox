@@ -77,7 +77,7 @@ class PuzzlePickerPagePastYouTest {
 
         rule.onNodeWithTag("duel.lineup.sheet.game.${ZIP.value}").assertTextContains("Zip · 2 solved", substring = true).assertIsEnabled()
         rule.onNodeWithTag("duel.lineup.sheet.game.${MINI.value}").assertTextContains("Mini Sudoku · 0 solved", substring = true).assertIsNotEnabled()
-        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("Recently solved first")
+        rule.onNodeWithTag("duel.lineup.count").assertTextEquals("${SOLVED_ROWS.size} puzzles · Recently solved first")
         SOLVED_ROWS.forEach { rule.onNodeWithTag("duel.lineup.pick.${it.entry.ref.wire}").assertExists() }
         rule.onNodeWithTag("duel.lineup.offline").assertDoesNotExist()
         rule.onNodeWithTag("duel.lineup.lookup").assertDoesNotExist()

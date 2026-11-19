@@ -30,10 +30,10 @@ import org.koin.compose.koinInject
 private val RESULTS_MAX_HEIGHT = 420.dp
 
 /**
- * "Or one exact puzzle": a field that searches name, author and code, a filter button right of it that opens the chips
- * that narrow it under the field, and the puzzles that pass, newest first (Past you's: the ones solved last first). [added] is what the lineup already
- * holds; Add calls [onAdd] with the puzzle. The query and whether the chips are open live in [viewModel], so the field, the rows and the chips all survive a
- * rotation; the panel clears them when the sheet closes. With FilterSheets on, chips take the panel's place: they open their options as a sheet, or, with [onOpenFilter] set (the add sheet, which must not stack a sheet), tell it which group to show as a page.
+ * "Or one exact puzzle": a field that searches name, author and code, the filter chips under it that
+ * narrow it, and the puzzles that pass, newest first (Past you's: the ones solved last first). [added] is what the lineup already
+ * holds; Add calls [onAdd] with the puzzle. The query lives in [viewModel], so the field, the rows and the chips all survive a
+ * rotation; the sheet clears it when it closes. The chips open their options as a sheet, or, with [onOpenFilter] set (the add sheet, which must not stack a sheet), tell it which group to show as a page.
  */
 @Composable
 internal fun ExactPuzzleSearch(
@@ -51,7 +51,7 @@ internal fun ExactPuzzleSearch(
         Text("Or one exact puzzle", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Column {
             PickerSearchRow(state, viewModel)
-            if (state.filterSheets) PickerFilterChips(state, games, viewModel, Modifier.padding(top = Spacing.sm), onOpenFilter) else PickerFilterPanel(state, games, viewModel)
+            PickerFilterChips(state, games, viewModel, Modifier.padding(top = Spacing.sm), onOpenFilter)
         }
         PickerStatusLines(state, onRetry = viewModel::lookUp, onClearFilters = viewModel::clearFilters)
         if (state.loaded && state.rows.isNotEmpty()) {

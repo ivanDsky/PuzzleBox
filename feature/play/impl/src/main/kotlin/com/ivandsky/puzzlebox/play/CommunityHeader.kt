@@ -17,11 +17,10 @@ import com.ivandsky.puzzlebox.designsystem.LargeTopBarTitle
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 
 /**
- * The Community tab's head: its name and one line of what it holds, with Enter code at the end and, after it,
- * [trailing] (the phone's filter ⋮ slot).
+ * The Community tab's head: its name and one line of what it holds, with Enter code at the end.
  */
 @Composable
-internal fun CommunityHeader(onEnterCode: () -> Unit, modifier: Modifier = Modifier, trailing: (@Composable () -> Unit)? = null) {
+internal fun CommunityHeader(onEnterCode: () -> Unit, modifier: Modifier = Modifier) {
     Row(modifier.fillMaxWidth().heightIn(min = 64.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text("Community", style = MaterialTheme.typography.headlineLarge)
@@ -32,26 +31,19 @@ internal fun CommunityHeader(onEnterCode: () -> Unit, modifier: Modifier = Modif
             )
         }
         SecondaryButton(text = "Enter code", onClick = onEnterCode, modifier = Modifier.testTag("community.enterCode"))
-        trailing?.invoke()
     }
 }
 
 /**
- * The same head on Today's large top bar (MainTabsLargeBar): Enter code, then [trailing], then the phone's avatar at the
- * end. Enter code and [trailing] are one group, so the filter slot keeps hugging Enter code. On the tablet ([phone]
- * false) the bar reaches into the panes' gutters ([mainTabBarBleed]).
+ * The same head on Today's large top bar (MainTabsLargeBar): Enter code, then the phone's avatar at the end. On the
+ * tablet ([phone] false) the bar reaches into the panes' gutters ([mainTabBarBleed]).
  */
 @Composable
-internal fun CommunityLargeHeader(onEnterCode: () -> Unit, phone: Boolean, trailing: (@Composable () -> Unit)? = null) {
+internal fun CommunityLargeHeader(onEnterCode: () -> Unit, phone: Boolean) {
     LargeTopBar(
         title = { LargeTopBarTitle("Community") },
         modifier = Modifier.mainTabBarBleed(phone),
         subtitle = { LargeTopBarSubtitle("Puzzles from you and your friends") },
-        actions = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                SecondaryButton(text = "Enter code", onClick = onEnterCode, modifier = Modifier.testTag("community.enterCode"))
-                trailing?.invoke()
-            }
-        },
+        actions = { SecondaryButton(text = "Enter code", onClick = onEnterCode, modifier = Modifier.testTag("community.enterCode")) },
     )
 }

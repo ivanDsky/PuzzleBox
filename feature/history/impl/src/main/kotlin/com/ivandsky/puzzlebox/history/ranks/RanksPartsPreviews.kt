@@ -16,7 +16,6 @@ import androidx.compose.ui.graphics.ColorProducer
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.tabular
-import com.ivandsky.puzzlebox.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.game.GameSession
 import com.ivandsky.puzzlebox.game.replay.GameReplay
 import com.ivandsky.puzzlebox.game.replay.MoveLog
@@ -44,7 +43,7 @@ import com.ivandsky.puzzlebox.model.GameId
 private fun RanksTopBarPreview() {
     RanksPreviewHost {
         Box(Modifier.padding(Spacing.lg)) {
-            RanksTopBar(label = tuneLabel(RankScope.Friends, RanksSelection.Window.Week), onTune = {}) {
+            RanksTopBar(onTune = {}) {
                 Text("Zip", style = MaterialTheme.typography.titleLarge)
             }
         }

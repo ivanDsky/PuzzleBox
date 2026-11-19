@@ -238,12 +238,16 @@ internal fun ShellRobot.openZipRanks() {
     awaitTag("route.ranks")
 }
 
-/** Picks [scope] (Friends, Global) and [window] (Day, Week, Month) on the hub's tune sheet, then closes the sheet. */
+/** Picks [scope] (Friends, Global) on the Who chip and [window] (Day, Week, Month) on the When chip; each pick closes its own sheet. */
 internal fun ShellRobot.tuneRanks(scope: String, window: String) {
-    tap("ranks.tune")
-    tap("ranks.tune.scope.$scope")
-    tap("ranks.tune.window.$window")
-    closeSheet()
+    pickRanksFilter("ranks.filter.who", "ranks.tune.scope.$scope")
+    pickRanksFilter("ranks.filter.when", "ranks.tune.window.$window")
+}
+
+private fun ShellRobot.pickRanksFilter(chip: String, row: String) {
+    tap(chip)
+    tap(row)
+    awaitLooper { !shows("$chip.sheet") }
 }
 
 /** System back while a bottom sheet is up: the sheet is a window of its own, so the press is the sheet's, not the screen's under it. */

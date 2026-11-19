@@ -1,13 +1,11 @@
 package com.ivandsky.puzzlebox.compete.create.lineup
 
-import com.ivandsky.puzzlebox.common.flags.FilterFlag
 import com.ivandsky.puzzlebox.compete.create.QUEENS
 import com.ivandsky.puzzlebox.compete.create.TANGO
 import com.ivandsky.puzzlebox.domain.lineup.Freshness
 import com.ivandsky.puzzlebox.domain.lineup.PickablePuzzle
 import com.ivandsky.puzzlebox.domain.lineup.PickerResult
 import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -207,20 +205,6 @@ class AddPuzzleViewModelTest {
         assertFalse(friend.state.value.pastYou)
         assertEquals("", friend.state.value.query.text)
         assertEquals(listOf("Zip #12"), titles(past))
-    }
-
-    @Test
-    fun `filterSheets follows the FilterSheets flag from the first emission, off when no flags are given`() = watching {
-        val off = AddPuzzleViewModel(pickerOf(rows), NO_LOOKUP)
-        val on = AddPuzzleViewModel(pickerOf(rows), NO_LOOKUP, releaseFlags = FakeReleaseFlags(FilterFlag.FilterSheets))
-        val unrelated = AddPuzzleViewModel(pickerOf(rows), NO_LOOKUP, releaseFlags = FakeReleaseFlags())
-        assertFalse(off.state.value.filterSheets)
-        assertTrue("before the first list", on.state.value.filterSheets)
-        assertFalse(unrelated.state.value.filterSheets)
-
-        watch(on)
-
-        assertTrue("after the list loads", on.state.value.filterSheets)
     }
 
     @Test

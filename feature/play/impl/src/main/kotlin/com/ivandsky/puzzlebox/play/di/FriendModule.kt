@@ -42,7 +42,7 @@ val friendModule = module {
     factory { SyncReceivedStatus(get(), get()) }
     viewModel { (key: FriendPuzzleKey) -> FriendPuzzleViewModel(key, get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { (key: CustomResultKey) -> CustomResultViewModel(key, get(), get(), get(), get(), get(), get(), get(), get(), releaseFlags = get()) }
-    viewModel { CommunityViewModel(get(), get(), get(), get(), get(), get(), System::currentTimeMillis, releaseFlags = get()) }
+    viewModel { CommunityViewModel(get(), get(), get(), get(), get(), get(), System::currentTimeMillis) }
 }
 
 private const val OPEN_BUDGET_MS = 5_000L

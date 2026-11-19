@@ -28,7 +28,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.common.flags.FilterFlag
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.Difficulty.Level
 import kotlinx.coroutines.runBlocking
@@ -67,9 +66,9 @@ class CommunityFilterChipsTest {
         }
     }
 
-    private fun show(fontScale: Float = 1f, flagOn: Boolean = true) {
+    private fun show(fontScale: Float = 1f) {
         stopKoin()
-        startKoin { modules(module { viewModel { if (flagOn) fixture.viewModel(FilterFlag.FilterSheets) else fixture.viewModel() } }) }
+        startKoin { modules(module { viewModel { fixture.viewModel() } }) }
         rule.setContent { Host(fontScale) }
         rule.waitForIdle()
     }
@@ -98,13 +97,11 @@ class CommunityFilterChipsTest {
     private fun top(tag: String) = rule.onNodeWithTag(tag).getUnclippedBoundsInRoot().top
 
     @Test
-    fun `with the flag on the chips show, and the menu and the active line do not`() {
+    fun `the chips show with the game and difficulty names`() {
         show()
 
         rule.onNodeWithTag("community.filter.game").assertIsDisplayed().assertTextEquals("Game")
         rule.onNodeWithTag("community.filter.difficulty").assertIsDisplayed().assertTextEquals("Difficulty")
-        rule.onNodeWithTag("community.filter.menu").assertDoesNotExist()
-        rule.onNodeWithTag("community.filter.active").assertDoesNotExist()
     }
 
     @Test
@@ -154,6 +151,9 @@ class CommunityFilterChipsTest {
                 .assertExists()
         }
         assertEquals(0, rule.onAllNodesWithTag("community.filter.difficulty.expert").fetchSemanticsNodes().size)
+        rule.onNode(hasTestTag("difficulty.expert") and hasAnyAncestor(hasTestTag("community.filter.difficulty.sheet")), useUnmergedTree = true).assertDoesNotExist()
+        rule.onNode(hasAnyAncestor(hasTestTag("community.filter.difficulty.any")) and hasTestTag("difficulty.easy"), useUnmergedTree = true)
+            .assertDoesNotExist()
         tap("community.filter.difficulty.hard")
 
         rule.onNodeWithTag("community.filter.difficulty").assertTextEquals("Hard")
@@ -219,7 +219,7 @@ class CommunityFilterChipsTest {
     fun `an empty list with no filter on keeps the plain empty message and no Clear filters`() {
         val none = CommunityFixture()
         stopKoin()
-        startKoin { modules(module { viewModel { none.viewModel(FilterFlag.FilterSheets) } }) }
+        startKoin { modules(module { viewModel { none.viewModel() } }) }
         rule.setContent { Host(1f) }
         rule.waitForIdle()
 
@@ -244,7 +244,7 @@ class CommunityFilterChipsTest {
     fun `an open sheet is still open after a rotation, with the pick kept`() {
         val restoration = StateRestorationTester(rule)
         stopKoin()
-        startKoin { modules(module { viewModel { fixture.viewModel(FilterFlag.FilterSheets) } }) }
+        startKoin { modules(module { viewModel { fixture.viewModel() } }) }
         restoration.setContent { Host(1f) }
         rule.waitForIdle()
         tap("community.filter.game")
@@ -268,23 +268,51 @@ class CommunityFilterChipsTest {
 
     @Test
     @Config(sdk = [34], qualifiers = "w1280dp-h800dp-420dpi")
-    fun `the tablet head shows New today and its count with no menu, and the chips sit below it`() {
+    fun `the tablet head shows New today and its count, and the chips sit below it`() {
         show()
 
         rule.onNodeWithText("New today").assertIsDisplayed()
         rule.onNodeWithTag("library.friends.count").assertTextEquals("6")
-        rule.onNodeWithTag("community.filter.menu").assertDoesNotExist()
         assertTrue(top("community.head") < top("community.filter.game"))
         rule.onNodeWithTag("community.filter.game").assertIsDisplayed()
     }
 
     @Test
-    fun `with the flag off the menu stays and there are no chips`() {
-        show(flagOn = false)
+    fun `a game and a difficulty together narrow the list and both sheets check the picks`() {
+        show()
 
-        rule.onNodeWithTag("community.filter.menu").assertIsDisplayed()
-        rule.onNodeWithTag("community.filter.game").assertDoesNotExist()
-        rule.onNodeWithTag("community.filter.count").assertDoesNotExist()
+        tap("community.filter.game")
+        tap("community.filter.game.alpha")
+        assertEquals(listOf("AAA111", "AAA222", "AAA333"), rows())
+        tap("community.filter.difficulty")
+        tap("community.filter.difficulty.hard")
+
+        assertEquals(listOf("AAA111"), rows())
+        tap("community.filter.game")
+        rule.onNodeWithTag("community.filter.game.alpha").assertIsSelected()
+        tap("community.filter.game.sheet.close")
+        tap("community.filter.difficulty")
+        rule.onNodeWithTag("community.filter.difficulty.hard").assertIsSelected()
+    }
+
+    @Test
+    fun `Any difficulty clears the difficulty and keeps the game, and All games then clears the game`() {
+        show()
+        tap("community.filter.game")
+        tap("community.filter.game.alpha")
+        tap("community.filter.difficulty")
+        tap("community.filter.difficulty.easy")
+        assertEquals(listOf("AAA222"), rows())
+
+        tap("community.filter.difficulty")
+        tap("community.filter.difficulty.any")
+        rule.onNodeWithTag("community.filter.difficulty").assertTextEquals("Difficulty")
+        rule.onNodeWithTag("community.filter.game").assertTextEquals("Alpha")
+        assertEquals(listOf("AAA111", "AAA222", "AAA333"), rows())
+
+        tap("community.filter.game")
+        tap("community.filter.game.all")
+        assertEquals(6, rows().size)
     }
 
     private companion object {

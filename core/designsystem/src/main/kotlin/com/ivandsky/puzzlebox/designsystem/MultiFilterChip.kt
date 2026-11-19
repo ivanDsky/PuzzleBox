@@ -1,11 +1,7 @@
 package com.ivandsky.puzzlebox.designsystem
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -32,14 +28,7 @@ fun <T> MultiFilterChip(
     tag: String? = null,
     allTag: String? = null,
 ) {
-    var open by rememberSaveable { mutableStateOf(false) }
-    val announce by rememberUpdatedState(onOpenChange)
-    // True while the sheet is up, false when it goes (or the chip does); a restored open sheet is announced again.
-    DisposableEffect(open) {
-        val up = open
-        if (up) announce(true)
-        onDispose { if (up) announce(false) }
-    }
+    var open by rememberFilterSheetOpen(onOpenChange)
 
     DropdownFilterChip(
         label = filterChipLabel(name, options.filter { it.value in selected }.map { it.label }),

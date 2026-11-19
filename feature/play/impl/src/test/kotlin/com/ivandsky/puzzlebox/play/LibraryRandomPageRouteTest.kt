@@ -205,7 +205,11 @@ class LibraryRandomPageRouteTest {
 
         pageRandom().performScrollTo().performClick()
         awaitTag("random.sheet")
+        tap("random.filter.game")
+        awaitTag("random.game.${game.value}")
         composeRule.onNodeWithTag("random.game.${game.value}").assertIsSelected()
+        tap("random.filter.game.page.back")
+        awaitTag("random.unsolved")
         composeRule.onNodeWithTag("random.unsolved").assertIsOn()
         tap("random.pick")
         composeRule.waitUntil(TIMEOUT_MS) { played.isNotEmpty() }

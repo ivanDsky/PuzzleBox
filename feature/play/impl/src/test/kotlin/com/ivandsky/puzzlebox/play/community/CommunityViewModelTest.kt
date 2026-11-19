@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.play.community
 
-import com.ivandsky.puzzlebox.common.flags.FilterFlag
 import com.ivandsky.puzzlebox.data.repository.CommunityFilter
 import com.ivandsky.puzzlebox.game.editor.Difficulty.Level
 import kotlinx.coroutines.Dispatchers
@@ -202,16 +201,10 @@ class CommunityViewModelTest {
     }
 
     @Test
-    fun `the filter sheets flag shows in the state and is off without it`() = runTest {
-        assertTrue(fixture.viewModel(FilterFlag.FilterSheets).state.value.filterSheets)
-        assertFalse(fixture.viewModel().state.value.filterSheets)
-    }
-
-    @Test
-    fun `the picks behave the same with the flag on, and the checked game again does not reload`() = runTest {
+    fun `the checked game again does not reload, and the checked difficulty again drops it`() = runTest {
         fixture.publish("AAA111", NOW - HOUR, difficulty = Level.Hard)
         fixture.publish("BBB222", NOW - 2 * HOUR, game = BETA, difficulty = Level.Easy)
-        val viewModel = fixture.viewModel(FilterFlag.FilterSheets)
+        val viewModel = fixture.viewModel()
 
         viewModel.pickGame(BETA)
         viewModel.pickGame(BETA)
@@ -222,6 +215,5 @@ class CommunityViewModelTest {
         viewModel.pickDifficulty(DifficultyChoice.Easy)
         assertNull("a re-tap of the checked difficulty drops it", viewModel.state.value.difficulty)
         assertEquals(BETA, viewModel.state.value.game)
-        assertTrue(viewModel.state.value.filterSheets)
     }
 }

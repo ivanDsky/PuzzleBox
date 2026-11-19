@@ -23,6 +23,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.history.CalendarState
@@ -42,7 +43,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** Ranks' Who and When as chips with FilterSheets on (epic picker-filters, ticket 07), through the real [RanksScreen]. The flag-off screen is in the older Ranks tests. */
+/** Ranks' Who and When as chips (epic picker-filters, ticket 07), through the real [RanksScreen]. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w360dp-h640dp-mdpi")
@@ -67,7 +68,6 @@ class RanksFilterChipsTest {
             boardCount = places.size,
             calendar = CalendarState(shownDay = today, earliestDay = today.minusDays(30), daysWithRows = setOf(today), gamesPerDay = 1, today = today),
             places = places,
-            filterSheets = true,
         ),
     )
 
@@ -189,11 +189,10 @@ class RanksFilterChipsTest {
     }
 
     @Test
-    fun `the top bar has no tune label even while tuned, and the tune icon opens a sheet with the Defaults block and no toggles`() {
+    fun `while tuned the tune icon opens a sheet with the Defaults block and no toggles`() {
         state = state.copy(scope = RankScope.Friends, window = Window.Week)
         show()
 
-        assertEquals(0, count("ranks.tune.label"))
         node("ranks.filter.who").assertTextEquals("Friends")
         node("ranks.filter.when").assertTextEquals("Week")
 
@@ -213,12 +212,15 @@ class RanksFilterChipsTest {
     }
 
     @Test
-    fun `with the flag off there are no chips and the label is back`() {
-        state = state.copy(filterSheets = false, scope = RankScope.Friends)
+    fun `a Defaults pick in the tune sheet leaves the board's own scope alone`() {
         show()
+        tap("ranks.tune")
 
-        assertEquals(0, count("ranks.filter.who") + count("ranks.filter.when"))
-        node("ranks.tune.label").assertIsDisplayed()
+        tap("ranks.tune.defaults.scope.Friends")
+        composeRule.waitForIdle()
+
+        node("ranks.tune.sheet").assertIsDisplayed()
+        assertEquals(emptyList<RankScope>(), scopePicks)
     }
 
     @Test
@@ -235,16 +237,12 @@ class RanksFilterChipsTest {
     }
 
     @Test
-    fun `on a phone the board gives up at most 56 dp to the chip row`() {
-        state = state.copy(filterSheets = false)
+    fun `on a phone the chip row takes at most 56 dp above the calendar`() {
         show()
-        val without = node("ranks.board").getBoundsInRoot().top
 
-        state = state.copy(filterSheets = true)
-        composeRule.waitForIdle()
-        val with = node("ranks.board").getBoundsInRoot().top
-
-        assertTrue("moved ${with - without}", with > without && with - without <= 56.dp)
+        // The row and the padding above it: what the board's start used to lose when the chips came on.
+        val taken = node("ranks.calendar").getBoundsInRoot().top - node("ranks.filter.who").getBoundsInRoot().top + Spacing.sm
+        assertTrue("took $taken", taken > 0.dp && taken <= 56.dp)
     }
 
     @Test

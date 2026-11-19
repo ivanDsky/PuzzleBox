@@ -261,7 +261,7 @@ class NewDuelScreenPickerTest {
 
         rule.onNodeWithTag("duel.lineup.picker").assertIsDisplayed()
         rule.onNodeWithTag("duel.lineup.search").assertTextContains("crown")
-        rule.onNodeWithTag("duel.lineup.count").assertTextContains("found", substring = true)
+        rule.onNodeWithTag("duel.lineup.count").assertTextContains("2 puzzles")
     }
 
     @Test
@@ -271,7 +271,7 @@ class NewDuelScreenPickerTest {
         openAdd()
 
         rule.onNodeWithTag("duel.lineup.picker").assertIsDisplayed()
-        rule.onNodeWithTag("duel.lineup.count").assertTextContains("Recently solved first")
+        rule.onNodeWithTag("duel.lineup.count").assertTextContains("Recently solved first", substring = true)
     }
 
     @Test

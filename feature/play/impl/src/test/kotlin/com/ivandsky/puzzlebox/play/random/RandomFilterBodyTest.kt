@@ -25,7 +25,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The Random body with the chips on, driven with fixed states (epic picker-filters, ticket 06): busy and the tablet's two panes. */
+/** The Random body driven with fixed states (epic picker-filters, ticket 06): busy and the tablet's two panes. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w1280dp-h800dp-420dpi")
@@ -41,7 +41,7 @@ class RandomFilterBodyTest {
     private fun show(state: () -> RandomPuzzleState, layout: PlayLayout = PlayLayout.SinglePane, onOpen: (RandomFilterPage) -> Unit = {}) =
         rule.setContent {
             PuzzleBoxTheme {
-                RandomPuzzleContent(state(), games, layout, RandomPuzzleActions({}, {}, {}, {}, {}), filterSheets = true, onOpenFilter = onOpen)
+                RandomPuzzleContent(state(), games, layout, RandomPuzzleActions({}, {}, {}, {}, {}), onOpenFilter = onOpen)
             }
         }
 

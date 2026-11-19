@@ -85,16 +85,8 @@ internal fun CommunityTabsPreview() = Tabs(Loaded, FriendPreviewCards, yours = 3
 
 @PuzzleBoxPreviews
 @Composable
-internal fun CommunityTabsFilteredPreview() = Tabs(Loaded.copy(game = GameId("zip")), FriendPreviewCards, yours = 3)
-
-@PuzzleBoxPreviews
-@Composable
-internal fun CommunityTabsChipsPreview() = Tabs(Loaded.copy(filterSheets = true), FriendPreviewCards, yours = 3)
-
-@PuzzleBoxPreviews
-@Composable
-internal fun CommunityTabsChipsFilteredPreview() =
-    Tabs(Loaded.copy(filterSheets = true, game = GameId("zip"), difficulty = DifficultyChoice.Hard), FriendPreviewCards, yours = 3)
+internal fun CommunityTabsFilteredPreview() =
+    Tabs(Loaded.copy(game = GameId("zip"), difficulty = DifficultyChoice.Hard), FriendPreviewCards, yours = 3)
 
 @PuzzleBoxPreviews
 @Composable

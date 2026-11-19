@@ -106,7 +106,7 @@ class NewDuelHostPickerTest {
         openAdd()
         rule.onNodeWithTag("duel.lineup.search").performTextInput("crown")
         rule.waitForIdle()
-        rule.onNodeWithTag("duel.lineup.count").assertTextContains("1 found")
+        rule.onNodeWithTag("duel.lineup.count").assertTextContains("1 puzzle")
 
         rule.onNodeWithTag("duel.lineup.picker.back").performClick()
         rule.waitForIdle()
@@ -114,7 +114,7 @@ class NewDuelHostPickerTest {
         openAdd()
 
         rule.onNodeWithTag("duel.lineup.search").assertTextContains("")
-        rule.onNodeWithTag("duel.lineup.count").assertTextContains("Newest first")
+        rule.onNodeWithTag("duel.lineup.count").assertTextContains("2 puzzles · Newest first")
     }
 
     @Test
@@ -128,7 +128,7 @@ class NewDuelHostPickerTest {
         openAdd()
 
         rule.onNodeWithTag("duel.lineup.picker").assertIsDisplayed()
-        rule.onNodeWithTag("duel.lineup.count").assertTextContains("Recently solved first")
+        rule.onNodeWithTag("duel.lineup.count").assertTextContains("Recently solved first", substring = true)
         rule.onNodeWithTag("duel.lineup.sheet").assertDoesNotExist()
     }
 }

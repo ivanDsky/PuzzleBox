@@ -20,8 +20,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The phone's Community as three tabs (M12-4), light and dark: New today filled, filtered (the active line) and empty
- * (with Make a puzzle); Friends filled and empty; Yours filled and empty. The filter ⋮ is in the head only on New today.
+ * The phone's Community as three tabs (M12-4), light and dark: New today filled, filtered (the chips reading the picks) and empty
+ * (with Make a puzzle); Friends filled and empty; Yours filled and empty. The filter chips are in New today's list only.
  * Yours' list is a stand-in ([previewYoursSlot]): the real one is create's. Goldens in `snapshots/community-tabs/`.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -71,7 +71,7 @@ class CommunityTabsGoldenScreenshots {
             rule.onNodeWithTag(tab).performClick()
             rule.mainClock.advanceTimeBy(1_000)
             rule.onNodeWithTag(tab).assertIsSelected()
-            rule.onNodeWithTag("community.filter.menu").assertDoesNotExist()
+            rule.onNodeWithTag("community.filter.game").assertDoesNotExist()
         }
         rule.settleAndCapture("community-tabs", name, "phone", dark)
     }

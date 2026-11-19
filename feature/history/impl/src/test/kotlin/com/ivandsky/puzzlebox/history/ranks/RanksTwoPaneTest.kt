@@ -96,7 +96,6 @@ class RanksTwoPaneTest {
         onShowCalendar: (LocalDate, Boolean) -> Unit = { _, _ -> },
         yourSolve: YourSolve? = null,
         places: List<BoardPlace> = this.places,
-        filterSheets: Boolean = false,
     ) {
         val state = RanksUiState(
             RanksBoardSlice("Zip · today", RankOrder.TimeThenHints, DailyBoardState.Ranked(rows)),
@@ -105,7 +104,6 @@ class RanksTwoPaneTest {
             calendar = calendar,
             places = places,
             yourSolve = yourSolve,
-            filterSheets = filterSheets,
         )
         composeRule.setContent {
             PuzzleBoxTheme {
@@ -127,21 +125,12 @@ class RanksTwoPaneTest {
     }
 
     @Test
-    fun `with the chips on the right pane has Who and When above the board and no tune label`() {
-        show(filterSheets = true)
+    fun `the right pane has Who and When above the board`() {
+        show()
 
         composeRule.onNodeWithTag("ranks.filter.who").assertIsDisplayed()
         composeRule.onNodeWithTag("ranks.filter.when").assertIsDisplayed()
-        assertEquals(0, composeRule.onAllNodesWithTag("ranks.tune.label").fetchSemanticsNodes().size)
         assertTrue(bounds("ranks.filter.who").bottom <= bounds("ranks.board").top)
-    }
-
-    @Test
-    fun `with the chips off the right pane has no chips`() {
-        show()
-
-        composeRule.onAllNodesWithTag("ranks.filter.who").assertCountEquals(0)
-        composeRule.onAllNodesWithTag("ranks.filter.when").assertCountEquals(0)
     }
 
     @Test

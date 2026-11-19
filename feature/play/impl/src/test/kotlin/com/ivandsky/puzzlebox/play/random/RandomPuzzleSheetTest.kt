@@ -26,7 +26,6 @@ import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.testDispatchers
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
@@ -77,7 +76,7 @@ class RandomPuzzleSheetTest {
             LoadRandomDay(daily, FakeCompletionRepository(), LoadPastDay(daily, registry), registry, random),
             LoadRandomShared(ListCommunityPuzzles(FakeSharedPuzzleRepository(), FakeHiddenPuzzles(), FakeIdentityService(Identity("me", "Me", null))) { 0L }, random),
         )
-        return RandomPuzzleViewModel(preset, load, RandomPickMemory(), testDispatchers(), FakeReleaseFlags())
+        return RandomPuzzleViewModel(preset, load, RandomPickMemory(), testDispatchers())
     }
 
     private fun mountSheet(layout: PlayLayout = PlayLayout.SinglePane, preset: GameId = alpha) {
@@ -91,11 +90,26 @@ class RandomPuzzleSheetTest {
 
     private fun node(tag: String) = composeRule.onNodeWithTag(tag)
 
+    /** A tap, then a second of clock for the option page's swap and its return. */
+    private fun tap(tag: String) {
+        node(tag).performClick()
+        composeRule.mainClock.advanceTimeBy(SETTLE_MS)
+        composeRule.waitForIdle()
+    }
+
+    /** Opens the [filter] chip's option page and picks the row for [option]. */
+    private fun choose(filter: String, option: String) {
+        tap("random.filter.$filter")
+        tap("random.$filter.$option")
+    }
+
     @Test
     fun `Not solved yet is on and the preset game is chosen`() {
         mountSheet(preset = beta)
 
         node("random.unsolved").assertIsOn()
+        node("random.filter.game").assertTextContains("Beta")
+        tap("random.filter.game")
         node("random.game.beta").assertIsSelected()
     }
 
@@ -103,8 +117,8 @@ class RandomPuzzleSheetTest {
         // The preset is the other game, so a chip the pick ignores keeps drawing that one.
         mountSheet(preset = if (game == alpha) beta else alpha)
 
-        node("random.game.${game.value}").performClick()
-        node("random.game.${game.value}").assertIsSelected()
+        choose("game", game.value)
+        node("random.filter.game").assertTextContains(game.value.replaceFirstChar(Char::uppercase))
         node("random.pick").performClick()
         composeRule.waitUntil(TIMEOUT_MS) { opened.isNotEmpty() }
 
@@ -161,7 +175,7 @@ class RandomPuzzleSheetTest {
         composeRule.waitUntil(TIMEOUT_MS) { opened.isNotEmpty() }
         composeRule.waitForIdle()
 
-        node("random.game.any").assertIsEnabled()
+        node("random.filter.game").assertIsEnabled()
         node("random.pick").assertIsEnabled()
     }
 
@@ -169,7 +183,7 @@ class RandomPuzzleSheetTest {
     fun `offline says so, keeps the sheet and leaves the filters unchanged`() {
         days.forEach { daily.setDay(alpha, it, DailyDay.Failed(FetchError.Unavailable())) }
         mountSheet()
-        node("random.game.alpha").performClick()
+        choose("game", "alpha")
         node("random.unsolved").performClick()
 
         node("random.pick").performClick()
@@ -177,7 +191,7 @@ class RandomPuzzleSheetTest {
 
         node("random.status").assertTextContains("You're offline. Try again when you're back.")
         node("random.sheet").assertExists()
-        node("random.game.alpha").assertIsSelected()
+        node("random.filter.game").assertTextContains("Alpha")
         node("random.unsolved").assertIsOff()
         node("random.pick").assertIsEnabled()
         assertTrue(opened.isEmpty())
@@ -199,8 +213,7 @@ class RandomPuzzleSheetTest {
         var picks = 0
         show(stateOf(RandomPhase.Picking), PlayLayout.SinglePane) { picks++ }
 
-        node("random.game.any").assertIsNotEnabled()
-        node("random.game.alpha").assertIsNotEnabled()
+        node("random.filter.game").assertIsNotEnabled()
         node("random.unsolved").assertIsNotEnabled()
         node("random.pick").performClick()
 
@@ -211,12 +224,12 @@ class RandomPuzzleSheetTest {
     fun `on a tablet the chips are left and Not solved yet, Pick and status are right`() {
         show(stateOf(RandomPhase.Said(RandomMessage.Throttled)), PlayLayout.TwoPane)
 
-        node("random.game.any").assertExists()
-        composeRule.onNodeWithTag("random.game.any", useUnmergedTree = true).assertExists()
+        node("random.filter.game").assertExists()
+        composeRule.onNodeWithTag("random.filter.game", useUnmergedTree = true).assertExists()
         listOf("random.unsolved", "random.pick", "random.status").forEach {
             composeRule.onNode(hasTestTag(it) and hasAnyAncestor(hasTestTag("random.right"))).assertExists()
         }
-        composeRule.onNode(hasTestTag("random.game.any") and hasAnyAncestor(hasTestTag("random.left"))).assertExists()
+        composeRule.onNode(hasTestTag("random.filter.game") and hasAnyAncestor(hasTestTag("random.left"))).assertExists()
         composeRule.onNode(hasTestTag("random.pick") and hasAnyAncestor(hasTestTag("random.left"))).assertDoesNotExist()
     }
 
@@ -230,5 +243,6 @@ class RandomPuzzleSheetTest {
 
     private companion object {
         const val TIMEOUT_MS = 5_000L
+        const val SETTLE_MS = 1000L
     }
 }

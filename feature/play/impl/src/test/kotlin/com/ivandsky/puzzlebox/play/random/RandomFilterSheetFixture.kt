@@ -9,7 +9,6 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Density
-import com.ivandsky.puzzlebox.common.flags.FilterFlag
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
@@ -28,7 +27,6 @@ import com.ivandsky.puzzlebox.play.community.CommunityFixture
 import com.ivandsky.puzzlebox.play.community.HOUR
 import com.ivandsky.puzzlebox.play.community.NOW
 import com.ivandsky.puzzlebox.play.testDispatchers
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -37,7 +35,7 @@ import kotlin.random.Random
 import kotlinx.coroutines.runBlocking
 
 /**
- * The real Random sheet over the real view model with the FilterSheets flag on, for the chip tests: New today has alpha Easy (AAA111)
+ * The real Random sheet over the real view model, for the chip tests: New today has alpha Easy (AAA111)
  * and Hard (BBB222) and beta Easy (CCC333); Past puzzles also offers gamma. The view model's preset is alpha.
  */
 internal class RandomFilterSheetFixture(private val rule: ComposeContentTestRule) {
@@ -67,7 +65,7 @@ internal class RandomFilterSheetFixture(private val rule: ComposeContentTestRule
             LoadRandomDay(daily, FakeCompletionRepository(), LoadPastDay(daily, registry), registry, random),
             LoadRandomShared(ListCommunityPuzzles(community.shared, community.hidden, identity) { NOW }, random),
         )
-        viewModel = RandomPuzzleViewModel(ALPHA, load, RandomPickMemory(), testDispatchers(), FakeReleaseFlags(FilterFlag.FilterSheets))
+        viewModel = RandomPuzzleViewModel(ALPHA, load, RandomPickMemory(), testDispatchers())
         val content: @Composable () -> Unit = {
             PuzzleBoxTheme {
                 CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, fontScale)) {

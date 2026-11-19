@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.common.flags
 /**
  * The main tabs' top bars (backlog #1597). Declared here because three modules read it (feature/play's Games and
  * Community, feature/history's Ranks, and the app's shell for the avatar): the lowest module they share (ADR-0022
- * amendment 2026-11-18, decision 3), as [FilterFlag] is.
+ * amendment 2026-11-18, decision 3).
  */
 enum class TopBarFlag(override val label: String, override val releaseDefault: Boolean) : ReleaseFlagKey {
     /**

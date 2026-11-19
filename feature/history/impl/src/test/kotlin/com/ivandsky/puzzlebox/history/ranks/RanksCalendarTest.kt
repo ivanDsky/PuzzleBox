@@ -12,6 +12,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -104,7 +105,8 @@ class RanksCalendarTest {
     fun `the expanded month shows the stats strip`() {
         show(state(week.copy(expanded = true)))
 
-        composeRule.onNodeWithTag("history.stats").assertIsDisplayed()
+        // The chip row above the calendar pushes the strip under this small window's fold.
+        composeRule.onNodeWithTag("history.stats").performScrollTo().assertIsDisplayed()
     }
 
     @Test

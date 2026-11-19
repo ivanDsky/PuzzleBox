@@ -19,11 +19,9 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
-import com.ivandsky.puzzlebox.common.flags.FilterFlag
 import com.ivandsky.puzzlebox.compete.create.GAMES
 import com.ivandsky.puzzlebox.compete.create.newDuelBrands
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import org.junit.After
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -45,7 +43,7 @@ private const val SHEET = "duel.lineup.sheet"
 private val TILE = "duel.lineup.sheet.game.${GAMES.first().id.value}"
 private const val BACK_SETTLE_MS = 1_000L
 
-/** The Add puzzle sheet with FilterSheets on: a chip swaps its options in as a page of that same sheet, never a second sheet over it. */
+/** The Add puzzle sheet: a chip swaps its options in as a page of that same sheet, never a second sheet over it. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp-420dpi")
 class PickerFilterAddSheetTest {
@@ -67,7 +65,7 @@ class PickerFilterAddSheetTest {
         startKoin {
             modules(module {
                 single { newDuelBrands() }
-                viewModel { AddPuzzleViewModel(pickerOf(listOf(CROWN_JEWELS, CROWN_TANGO, OLD_CROWN, MY_GRID)), NO_LOOKUP, releaseFlags = FakeReleaseFlags(FilterFlag.FilterSheets)) }
+                viewModel { AddPuzzleViewModel(pickerOf(listOf(CROWN_JEWELS, CROWN_TANGO, OLD_CROWN, MY_GRID)), NO_LOOKUP) }
             })
         }
         val content: @Composable () -> Unit = {

@@ -30,8 +30,8 @@ import org.koin.core.parameter.parametersOf
  * the sheet hid, [onOpen] gets it and the sheet goes back to idle; an outcome that opened nothing says why in the sheet
  * and leaves the filters as they were. A swipe or the scrim cancels a pick in flight, then [onDismiss] runs.
  *
- * With the view model's [RandomPuzzleViewModel.filterSheets] the Game and Difficulty chips swap the sheet's content for their option
- * page in place ([FilterPageSwap]); the open page survives a rotation, and Back (the arrow or the system's) returns to the chips.
+ * The Game and Difficulty chips swap the sheet's content for their option page in place ([FilterPageSwap]); the open
+ * page survives a rotation, and Back (the arrow or the system's) returns to the chips.
  *
  * Motion: the sheet's **Slide in / Slide out** and the scrim's **Fade** are ModalBottomSheet's own.
  */
@@ -96,12 +96,8 @@ internal fun RandomPuzzleSheet(
         sheetState = sheetState,
     ) {
         val shown = if (state.source == RandomSource.Past) games else communityGames
-        if (viewModel.filterSheets) {
-            FilterPageSwap(page, onBack = { page = null }, pageContent = { RandomFilterPageContent(it, state, shown, actions, onBack = { page = null }) }) {
-                RandomPuzzleContent(state, shown, layout, actions, filterSheets = true, onOpenFilter = { page = it })
-            }
-        } else {
-            RandomPuzzleContent(state, shown, layout, actions)
+        FilterPageSwap(page, onBack = { page = null }, pageContent = { RandomFilterPageContent(it, state, shown, actions, onBack = { page = null }) }) {
+            RandomPuzzleContent(state, shown, layout, actions, onOpenFilter = { page = it })
         }
     }
 }

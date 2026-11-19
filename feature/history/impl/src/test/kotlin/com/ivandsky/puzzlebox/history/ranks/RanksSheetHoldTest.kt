@@ -45,14 +45,14 @@ class RanksSheetHoldTest {
 
     private val visibility = FakeVisibilityRepository()
 
-    private fun show(flags: FakeReleaseFlags, filterSheets: Boolean = false) {
+    private fun show(flags: FakeReleaseFlags) {
         val viewModel = ReplayOptInViewModel(visibility, flags)
         viewModel.rankedRow(true)
         composeRule.setContent {
             val ask by viewModel.show.collectAsStateWithLifecycle()
             PuzzleBoxTheme {
                 RanksScreen(
-                    hub.copy(filterSheets = filterSheets),
+                    hub,
                     RanksActions(onSignIn = {}, onSwipe = {}, onSheetOpen = viewModel::hold),
                     replayOptIn = ask,
                     tuneDefaults = previewTuneDefaults(),
@@ -100,7 +100,7 @@ class RanksSheetHoldTest {
 
     @Test
     fun `with SheetScreens on, the question that turns up over the Who sheet waits and shows when it closes`() {
-        show(FakeReleaseFlags(ReleaseFlag.SheetScreens), filterSheets = true)
+        show(FakeReleaseFlags(ReleaseFlag.SheetScreens))
         composeRule.onNodeWithTag("ranks.filter.who").performClick()
         composeRule.onNodeWithTag("ranks.filter.who.sheet").assertIsDisplayed()
 
