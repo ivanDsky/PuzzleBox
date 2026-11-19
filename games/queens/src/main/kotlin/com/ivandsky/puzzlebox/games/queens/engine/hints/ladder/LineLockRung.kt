@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.queens.engine.hints.ladder
 
 import com.ivandsky.puzzlebox.game.editor.Difficulty
+import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 
 /**
@@ -18,6 +19,7 @@ object LineLockRung : QueensRung {
     override val id: String = "line-lock"
     override val level: Difficulty.Level = Difficulty.Level.Medium
     override val captionKey: String = "queens.hint.rung.line-lock"
+    override val trainerId: TechniqueId = TechniqueId("line-lock")
 
     override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> =
         found(puzzle, candidates).proofs(order(puzzle))

@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.queens.engine.hints.ladder
 
 import com.ivandsky.puzzlebox.game.editor.Difficulty
+import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 
 /**
@@ -16,6 +17,7 @@ class LongLookAheadRung(private val cheap: List<QueensRung>) : QueensRung {
     override val id: String = "long-look-ahead"
     override val level: Difficulty.Level = Difficulty.Level.Expert
     override val captionKey: String = "queens.hint.rung.long-look-ahead"
+    override val trainerId: TechniqueId = TechniqueId("long-look-ahead")
 
     override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> =
         LookAheadChain.Probe(puzzle, candidates, cheap).breaks(LookAheadChain.CAP)

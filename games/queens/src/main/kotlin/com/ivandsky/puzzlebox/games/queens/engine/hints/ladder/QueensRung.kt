@@ -1,10 +1,18 @@
 package com.ivandsky.puzzlebox.games.queens.engine.hints.ladder
 
 import com.ivandsky.puzzlebox.game.editor.LadderRung
+import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 
 /** A Queens [LadderRung]: one deduction technique, applied one step at a time. */
 interface QueensRung : LadderRung {
+    /**
+     * The Trainer's stable id for this technique (spec data-3), or null for a rung that is no
+     * Trainer technique. Each rung states it, never derived from [id], an ordinal or a class
+     * name: stored progress and the technique index key on it, so a shipped id never changes.
+     */
+    val trainerId: TechniqueId?
+
     /** Every deduction this rung finds, deterministic (lowest unit, then lowest cell), each with the cells it read. */
     fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof>
 

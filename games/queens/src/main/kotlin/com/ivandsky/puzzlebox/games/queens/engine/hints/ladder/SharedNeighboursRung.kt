@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.queens.engine.hints.ladder
 
 import com.ivandsky.puzzlebox.game.editor.Difficulty
+import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 
 /**
@@ -15,6 +16,7 @@ object SharedNeighboursRung : QueensRung {
     override val id: String = "shared-neighbours"
     override val level: Difficulty.Level = Difficulty.Level.Medium
     override val captionKey: String = "queens.hint.rung.shared-neighbours"
+    override val trainerId: TechniqueId = TechniqueId("shared-squares")
 
     /** Lazy: one unit at a time, so [step] stops at the first. */
     override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> = sequence {

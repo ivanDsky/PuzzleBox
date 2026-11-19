@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.queens.engine.hints.ladder
 
 import com.ivandsky.puzzlebox.game.editor.Difficulty
+import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 
 /**
@@ -20,6 +21,7 @@ object LeftoverQueenRung : QueensRung {
     override val id: String = "leftover-queen"
     override val level: Difficulty.Level = Difficulty.Level.Hard
     override val captionKey: String = "queens.hint.rung.leftover-queen"
+    override val trainerId: TechniqueId = TechniqueId("leftover-queen")
 
     /** Bounds the band search (lab `LEFT_MAXK`) so the rung stays cheap on 11×11. */
     private const val MAX_BAND = 4
