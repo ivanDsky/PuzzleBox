@@ -21,7 +21,7 @@ import kotlinx.coroutines.flow.stateIn
  * still coming back (A23).
  *
  * Saved state holds the page the player is on, a position and never a number: after process death the facts are
- * computed again and the story reopens on that page, kept inside the cards.
+ * computed again and the story reopens on that page, kept inside the cards and the Share page after them.
  */
 internal class RecapViewModel(
     private val period: RecapPeriod,
@@ -50,7 +50,7 @@ internal class RecapViewModel(
             RecapUiState.Empty
         } else {
             val saved = savedState.get<Int>(PAGE_KEY) ?: 0
-            RecapUiState.Ready(period, cards, initialPage = saved.coerceIn(0, cards.lastIndex))
+            RecapUiState.Ready(period, cards, initialPage = saved.coerceIn(0, cards.size))
         }
 
     private companion object {

@@ -190,12 +190,12 @@ class RecapViewModelTest {
     }
 
     @Test
-    fun `a saved page past the cards is kept inside them`() = runTest {
+    fun `a saved page past the cards is kept on the share page after them`() = runTest {
         val cards = listOf(solved(1), solved(2))
 
         viewModel(SavedStateHandle(mapOf("recap.page" to 7)), listOf(FakeRecapFactProvider(cards))).uiState.test {
             assertEquals(RecapUiState.Loading, awaitItem())
-            assertEquals(1, (awaitItem() as RecapUiState.Ready).initialPage)
+            assertEquals(2, (awaitItem() as RecapUiState.Ready).initialPage)
         }
     }
 
