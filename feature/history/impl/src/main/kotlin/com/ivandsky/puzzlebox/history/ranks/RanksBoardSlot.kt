@@ -61,15 +61,15 @@ internal fun RanksBoardSlot(
             ),
         )
         if (morph == null) {
-            if (slice.friendsAlone) RanksFriendsHint(UnderBoard)
+            slice.friendsHint?.let { RanksFriendsHint(it, UnderBoard) }
             MorphCell(slice.note) { note -> note?.let { RanksBoardNote(it, UnderBoard) } }
             // The minute's change of wording is the same line, so only its arrival and removal frost.
             MorphCell(slice.freshness, identity = { it != null }) { line -> line?.let { RanksBoardNote(it, UnderBoard, FRESHNESS_TAG) } }
         } else {
             if (morph.from.friendsAlone || morph.to.friendsAlone) {
                 val height = Modifier.sharedHeight(morph.from.friendsAlone, morph.to.friendsAlone, morph.progress)
-                ScrubCell(morph.from.friendsAlone, morph.to.friendsAlone, morph.progress, height) { alone ->
-                    if (alone) RanksFriendsHint(UnderBoard)
+                ScrubCell(morph.from.friendsHint, morph.to.friendsHint, morph.progress, height) { hint ->
+                    hint?.let { RanksFriendsHint(it, UnderBoard) }
                 }
             }
             if (morph.from.note != null || morph.to.note != null) {

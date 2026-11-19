@@ -4,7 +4,9 @@ import androidx.lifecycle.SavedStateHandle
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.domain.ranks.RankScope
+import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
@@ -154,6 +156,29 @@ class RanksFriendsDefaultTest {
         hub.befriend("maya")
         val filled = withTimeout(5_000) { viewModel.uiState.first { (it.board.state as? DailyBoardState.Ranked)?.rows?.size == 2 }.board }
         assertFalse(filled.friendsAlone)
+    }
+
+    /** Bug it catches: every game's Friends board, Strands' included, being told its hint may offer LinkedIn. */
+    @Test
+    fun `a Friends board offers LinkedIn in its hint only when its game's source is a LinkedIn one`() = runTest {
+        val hub = RanksTestHub(
+            FakeLeaderboardRepository(
+                mapOf(
+                    LeaderboardRef("zip", today) to listOf(entry("u1", 70_000)),
+                    LeaderboardRef("tango", today) to listOf(entry("u1", 70_000)),
+                ),
+            ),
+        )
+        hub.daily.setLinkedInGameType(ZIP, 6)
+
+        suspend fun boardOf(game: GameId): RanksBoardSlice {
+            val viewModel = hub.viewModel(opening = RanksSelection.opening(RanksBoard.Game(game), null))
+            viewModel.setScope(RankScope.Friends)
+            return withTimeout(5_000) { viewModel.uiState.first { it.scope == RankScope.Friends && it.board.state is DailyBoardState.Ranked }.board }
+        }
+
+        assertTrue(boardOf(ZIP).linkedIn)
+        assertFalse(boardOf(TANGO).linkedIn)
     }
 
     @Test

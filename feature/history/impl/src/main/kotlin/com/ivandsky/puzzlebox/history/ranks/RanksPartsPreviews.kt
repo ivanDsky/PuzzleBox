@@ -95,7 +95,7 @@ private fun RanksBoardFreshnessPreview() {
 @PuzzleBoxPreviews
 @Composable
 private fun RanksFriendsHintPreview() {
-    RanksPreviewHost { Box(Modifier.padding(Spacing.lg)) { RanksFriendsHint() } }
+    RanksPreviewHost { Box(Modifier.padding(Spacing.lg)) { RanksFriendsHint(friendsHintText(withLinkedIn = true)) } }
 }
 
 @PuzzleBoxPreviews

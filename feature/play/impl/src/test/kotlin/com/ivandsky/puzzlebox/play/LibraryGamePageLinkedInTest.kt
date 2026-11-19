@@ -87,7 +87,7 @@ class LibraryGamePageLinkedInTest {
 
     private fun card() = LinkedInCardState(view, onResume = { resumes++ }, onRetry = { retries++ }, onReconnect = { reconnects++ })
 
-    private fun show(card: LinkedInCardState?, shown: () -> Boolean = { true }) {
+    private fun show(card: LinkedInCardState?, shown: () -> Boolean = { true }, row: LibraryRowModel = this.row) {
         composeRule.setContent {
             PuzzleBoxTheme {
                 if (shown()) {
@@ -123,6 +123,21 @@ class LibraryGamePageLinkedInTest {
             },
             useUnmergedTree = true,
         ).assertCountEquals(0)
+    }
+
+    /** Bug it catches: a connected player seeing "Synced with LinkedIn" on Strands' page, a game LinkedIn does not have. */
+    @Test
+    fun aGameThatIsNotOnLinkedInDrawsNoChipAndNeverCollectsTheView() {
+        view.value = status(LinkedInDayStatus.Idle)
+        show(card(), row = row.copy(linkedInGame = false))
+        composeRule.waitForIdle()
+        composeRule.onAllNodes(
+            SemanticsMatcher("a linkedin node") {
+                it.config.getOrNull(SemanticsProperties.TestTag)?.startsWith("linkedin.") == true
+            },
+            useUnmergedTree = true,
+        ).assertCountEquals(0)
+        assertEquals(0, view.subscriptionCount.value)
     }
 
     @Test

@@ -45,6 +45,7 @@ internal fun LibraryGamePage(
     onRandom: ((GameId) -> Unit)? = null,
 ) {
     val game = row.card.game
+    val linkedInCard = linkedIn?.takeIf { row.linkedInGame }
     val shown = page?.takeIf { it.game == game }
     val past = shown?.picked
     // This game's source, not the library's: another game's failed today says nothing about it.
@@ -64,7 +65,7 @@ internal fun LibraryGamePage(
                 onPlay = { onPlay(game, past?.date) },
                 onRetry = onRetry,
                 onBackToToday = calendar.onBackToToday,
-                linkedIn = linkedIn?.let { card -> { LinkedInCardSlot(card) } },
+                linkedIn = linkedInCard?.let { card -> { LinkedInCardSlot(card) } },
             )
         },
         calendar = {
@@ -107,7 +108,7 @@ internal fun LibraryGamePage(
             GamePageRankRow(
                 game,
                 onOpen = { onOpenRanks(game, past?.date ?: row.cardDay) },
-                linkedIn = linkedIn != null,
+                linkedIn = linkedInCard != null,
                 picked = past?.date,
                 cardDay = row.cardDay,
             )
