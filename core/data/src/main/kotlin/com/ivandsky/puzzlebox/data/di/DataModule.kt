@@ -112,8 +112,9 @@ val dataModule = module {
     single<PublishedPuzzleRepository> { RoomPublishedPuzzleRepository(get(), get()) }
     // Friends' puzzles opened here; they keep playing offline after their author unpublishes.
     single<ReceivedPuzzleRepository> { RoomReceivedPuzzleRepository(get(), get()) }
-    // This device's memory of duels (invite opened, reveal seen, dismissed).
-    single<MatchLocalRepository> { RoomMatchLocalRepository(get()) }
+    // This device's memory of duels (invite opened, reveal seen, dismissed); a seen reveal is stamped with the signed-in
+    // account, whose other devices learn it through the reveals kind.
+    single<MatchLocalRepository> { RoomMatchLocalRepository(get(), get()) }
     single<MatchResultOutbox> { RoomMatchResultOutbox(get()) }
     // Duel results post from the outbox; the duel screen pokes the same instance to retry now. The identity,
     // the NetworkStatus and the process scope are supplied by app and the backend.

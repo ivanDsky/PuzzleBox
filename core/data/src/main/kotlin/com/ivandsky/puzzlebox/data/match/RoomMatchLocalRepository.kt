@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.data.match
 
+import com.ivandsky.puzzlebox.data.cloud.OwnerScope
 import com.ivandsky.puzzlebox.database.MatchLocalDao
 import com.ivandsky.puzzlebox.database.MatchLocalEntity
 import com.ivandsky.puzzlebox.model.ShareCode
@@ -11,10 +12,13 @@ import kotlinx.coroutines.flow.map
 /**
  * Room adapter of [MatchLocalRepository] over `matches_local` ([dao]). Instants are epoch ms; a
  * role name this version does not know reads as [LocalRole.Invite]; a row whose code no longer
- * parses is skipped. [clock] stamps `openedAt` of new rows.
+ * parses is skipped. [clock] stamps `openedAt` of new rows. A first reveal is stamped with
+ * [OwnerScope.writer], the account whose cloud space shares it with the account's other devices
+ * (#1542); readers see every row, whoever saw it.
  */
 internal class RoomMatchLocalRepository(
     private val dao: MatchLocalDao,
+    private val owners: OwnerScope,
     private val clock: () -> Instant = Instant::now,
 ) : MatchLocalRepository {
 
@@ -46,7 +50,7 @@ internal class RoomMatchLocalRepository(
                 dismissed = false,
             ),
         )
-        dao.markRevealSeen(code.value, at.toEpochMilli(), myScore, theirScore)
+        dao.markRevealSeen(code.value, at.toEpochMilli(), myScore, theirScore, owners.writer())
     }
 
     override suspend fun dismiss(code: ShareCode) = dao.dismiss(code.value)

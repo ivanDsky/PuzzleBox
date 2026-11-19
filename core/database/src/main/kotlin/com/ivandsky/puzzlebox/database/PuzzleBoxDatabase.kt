@@ -20,7 +20,7 @@ import androidx.room.RoomDatabase
         SelfMatchEntity::class,
         SelfPastLegEntity::class,
     ],
-    version = 15,
+    version = 16,
     exportSchema = true,
 )
 abstract class PuzzleBoxDatabase : RoomDatabase() {

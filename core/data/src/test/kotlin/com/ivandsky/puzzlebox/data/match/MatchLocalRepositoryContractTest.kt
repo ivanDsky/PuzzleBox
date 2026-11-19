@@ -4,6 +4,7 @@ import androidx.room.Room
 import com.ivandsky.puzzlebox.testing.room.RoomQueryThread
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.testing.cloud.FakeOwnerScope
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
 import java.time.Instant
 import kotlinx.coroutines.Dispatchers
@@ -35,7 +36,7 @@ class MatchLocalRepositoryContractTest(private val adapter: String) {
 
     private val repository: MatchLocalRepository by lazy {
         when (adapter) {
-            ROOM -> RoomMatchLocalRepository(database().matchLocalDao(), clock)
+            ROOM -> RoomMatchLocalRepository(database().matchLocalDao(), FakeOwnerScope(writer = "uid-ada"), clock)
             else -> FakeMatchLocalRepository(clock)
         }
     }

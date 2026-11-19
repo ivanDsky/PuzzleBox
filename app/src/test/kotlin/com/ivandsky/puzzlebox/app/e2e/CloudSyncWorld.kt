@@ -20,6 +20,7 @@ import com.ivandsky.puzzlebox.data.cloud.SyncedKind
 import com.ivandsky.puzzlebox.data.di.dataModule
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInDays
+import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.network.NetworkStatus
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
@@ -189,8 +190,8 @@ internal class CloudSyncWorld(
                 single { puzzleDb }
                 single { linkedInDb }
                 single { SyncStateDataSource(syncState) }
-                // The records store is the Room one the app ships. Its class is internal to core:data, so it is asked of
-                // a nested data graph that shares this graph's database, registry and owner scope.
+                // The records and duel-memory stores are the Room ones the app ships. Their classes are internal to
+                // core:data, so they are asked of a nested data graph that shares this graph's database, registry and owner scope.
                 single(named(DATA)) {
                     val outer = getKoin()
                     koinApplication {
@@ -206,6 +207,7 @@ internal class CloudSyncWorld(
                     }.koin
                 } onClose { it?.close() }
                 single<CompletionRepository> { get<Koin>(named(DATA)).get() }
+                single<MatchLocalRepository> { get<Koin>(named(DATA)).get() }
                 edges()
             },
             FakeReleaseFlags(),

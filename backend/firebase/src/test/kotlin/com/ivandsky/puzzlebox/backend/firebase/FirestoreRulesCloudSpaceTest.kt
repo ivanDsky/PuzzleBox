@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.backend.firebase
 
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
+import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
 import com.ivandsky.puzzlebox.data.repository.COMMUNITY_LIST_LIMIT
 import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
@@ -85,7 +86,7 @@ class FirestoreRulesCloudSpaceTest {
         )
         assertEquals("only the two allow lines", 2, Regex("""\ballow """).findAll(block).count())
         assertEquals(
-            setOf("completions", "drafts", "published", "received", "boards", "replays"),
+            setOf("completions", "drafts", "published", "received", "boards", "replays", "reveals"),
             quoted(Regex("""return kind in \[(.*?)];""").find(block)!!.groupValues[1]),
         )
         assertTrue(block.contains("d.updatedAt == request.time"))
@@ -125,6 +126,7 @@ class FirestoreRulesCloudSpaceTest {
                     "formatVersion", "updatedAt", "game", "day", "profileKey", "readAtMs", "complete", "rows",
                 ),
                 "validReplayDoc" to setOf("formatVersion", "updatedAt", "replay"),
+                "validRevealDoc" to setOf("formatVersion", "updatedAt", "seenAtMs", "myScore", "theirScore"),
             ),
             KIND_FUNCTIONS.associateWith { listIn(functionBody(block, it), "hasOnly") },
         )
@@ -153,6 +155,7 @@ class FirestoreRulesCloudSpaceTest {
             listIn(functionBody(block, "validBoardDoc"), "hasAll"),
         )
         assertEquals(setOf("replay"), listIn(functionBody(block, "validReplayDoc"), "hasAll"))
+        assertEquals(setOf("seenAtMs"), listIn(functionBody(block, "validRevealDoc"), "hasAll"))
     }
 
     @Test
@@ -209,6 +212,7 @@ class FirestoreRulesCloudSpaceTest {
             "validReceivedDoc" to "isShareCode(docId)",
             "validBoardDoc" to "docId.matches('^[a-z0-9]{1,32}_[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9a-f]{16}\$')",
             "validReplayDoc" to "docId.matches('^[0-9a-f]{32}\$')",
+            "validRevealDoc" to "isShareCode(docId)",
         )
         assertEquals(KIND_FUNCTIONS.toSet(), patterns.keys)
         for ((function, pattern) in patterns) {
@@ -248,6 +252,22 @@ class FirestoreRulesCloudSpaceTest {
         assertTrue("the replay is bytes", body.contains("d.replay is bytes"))
         assertTrue("the cap is the duel replay's", body.contains("d.replay.size() <= 12288"))
         assertTrue("an empty replay is refused", body.contains("d.replay.size() > 0"))
+    }
+
+    @Test
+    fun `a reveal is written once under its share code, with scores of at most ten legs`() {
+        val block = spaceBlock()
+        assertTrue("reveals are in the closed list", "reveals" in kindList(block))
+        assertTrue(functionBody(block, "validSpaceDoc").contains("kind == 'reveals' && validRevealDoc(d)"))
+        val body = functionBody(block, "validRevealDoc")
+        assertTrue("the seen time is a non-negative int", body.contains("d.seenAtMs is int") && body.contains("d.seenAtMs >= 0"))
+        for (score in listOf("myScore", "theirScore")) {
+            assertTrue("$score is optional and bounded", body.contains("(!('$score' in d) || isRevealScore(d.$score))"))
+            assertTrue("$score never changes", body.contains("d.get('$score', null) == resource.data.get('$score', null)"))
+        }
+        assertTrue("a new doc or an identical re-put", body.contains("(request.method == 'create'\n            || (d.seenAtMs"))
+        assertTrue("the seen time never changes", body.contains("d.seenAtMs == resource.data.seenAtMs"))
+        assertTrue("a score is at most the duel's legs", functionBody(block, "isRevealScore").contains("s <= ${Match.MAX_LEGS}"))
     }
 
     @Test
@@ -439,6 +459,7 @@ class FirestoreRulesCloudSpaceTest {
         const val SPACE_MATCH = "match /users/{uid}/{kind}/{docId} {"
         val KIND_FUNCTIONS = listOf(
             "validCompletionsDoc", "validDraftDoc", "validPublishedDoc", "validReceivedDoc", "validBoardDoc", "validReplayDoc",
+            "validRevealDoc",
         )
         val TOMBSTONE_FUNCTIONS = listOf("validDraftDoc", "validReceivedDoc")
     }

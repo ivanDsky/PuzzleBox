@@ -54,7 +54,7 @@ rules_version = '2';
 // Layout: matchQuota/{uid} = {day, count, last} — match creates on one UTC day, capped at 20;
 //   `last` names the code the bump is for, so one bump covers one create.
 // Layout (ADR-0029): users/{uid}/{kind}/{docId} — the account's own cloud space, owner-only (read, list,
-//   write and delete) on the closed kinds completions, drafts, published, received, boards and replays.
+//   write and delete) on the closed kinds completions, drafts, published, received, boards, replays and reveals.
 //   Every write stamps updatedAt = request.time and carries only that kind's keys, with size caps.
 
 service cloud.firestore {
@@ -520,7 +520,7 @@ service cloud.firestore {
       }
 
       function isSpaceKind() {
-        return kind in ['completions', 'drafts', 'published', 'received', 'boards', 'replays'];
+        return kind in ['completions', 'drafts', 'published', 'received', 'boards', 'replays', 'reveals'];
       }
 
       // Writes are merge-sets, so a tombstone written over a live doc leaves both shapes' keys; each
@@ -534,7 +534,8 @@ service cloud.firestore {
             || (kind == 'published' && validPublishedDoc(d))
             || (kind == 'received' && validReceivedDoc(d))
             || (kind == 'boards' && validBoardDoc(d))
-            || (kind == 'replays' && validReplayDoc(d)));
+            || (kind == 'replays' && validReplayDoc(d))
+            || (kind == 'reveals' && validRevealDoc(d)));
       }
 
       // Eight documents per month, `yyyy-MM-1000` to `yyyy-MM-1007`: a record's sync id picks its bucket, so every
@@ -657,6 +658,28 @@ service cloud.firestore {
           && d.replay is bytes
           && d.replay.size() > 0
           && d.replay.size() <= 12288;
+      }
+
+      // One document per duel whose reveal the account has seen, named by its share code (#1542): when it was first
+      // seen and, when that reveal kept them, the puzzles each side won (at most a duel's ten legs). Write-once: the
+      // account's first reveal wins on every device, so an update may only repeat it (a retried upload). The check is
+      // `request.method == 'create'` rather than `resource == null`: the Rules Test API cannot send a null resource.
+      function validRevealDoc(d) {
+        return d.keys().hasOnly(['formatVersion', 'updatedAt', 'seenAtMs', 'myScore', 'theirScore'])
+          && d.keys().hasAll(['seenAtMs'])
+          && isShareCode(docId)
+          && d.seenAtMs is int
+          && d.seenAtMs >= 0
+          && (!('myScore' in d) || isRevealScore(d.myScore))
+          && (!('theirScore' in d) || isRevealScore(d.theirScore))
+          && (request.method == 'create'
+            || (d.seenAtMs == resource.data.seenAtMs
+              && d.get('myScore', null) == resource.data.get('myScore', null)
+              && d.get('theirScore', null) == resource.data.get('theirScore', null)));
+      }
+
+      function isRevealScore(s) {
+        return s is int && s >= 0 && s <= 10;
       }
 
       function isTombstone(d) {

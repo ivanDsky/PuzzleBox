@@ -533,12 +533,14 @@ existing `results (create)` row):
 
 ## account space
 
-`users/{uid}/{kind}/{docId}` (ADR-0029): owner-only, closed over six kinds, `updatedAt` must be the server time,
+`users/{uid}/{kind}/{docId}` (ADR-0029): owner-only, closed over seven kinds, `updatedAt` must be the server time,
 per-kind key lists and size caps. Request time is `2026-11-07T12:00:00Z`; no other document is read, so no mocks.
 Drafts, received puzzles and replays carry bytes (`blob`, `bytes`, `replay`), which the Rules Test API's JSON cannot express, so their
 live shapes are covered only on the deny side (a string where bytes belong); their allow side, the 64 KiB,
 8 KiB and 12 288-byte replay bounds, the replay sync-id doc id shape and a merge-set tombstone over a live doc were checked on the local Firestore emulator instead.
 Tombstones (`deleted`, `deletedAtMs`) stand for the draft and received kinds in the allow and name-cap cases.
+A reveal doc (#1542) is write-once: an update passes only when it repeats the stored `seenAtMs` and scores (a retried
+upload), so the update rows carry the stored doc as `resource`.
 
 | Expect | Method | Path | Auth | Case |
 |---|---|---|---|---|
@@ -597,6 +599,25 @@ Tombstones (`deleted`, `deletedAtMs`) stand for the draft and received kinds in 
 | allow | delete | `users/alice/drafts/3f2b8c1e-5d4a-4b7e-9c1d-0a1b2c3d4e5f` | alice | owner deletes a draft |
 | allow | delete | `users/alice/boards/zip_2026-11-07_0123456789abcdef` | alice | owner deletes a board |
 | allow | delete | `users/alice/replays/sync-1` | alice | owner deletes a replays doc |
+| allow | create | `users/alice/reveals/K7Q2MX` | alice | owner creates a reveal doc |
+| allow | create | `users/alice/reveals/K7Q2MX` | alice | owner creates a reveal doc without scores |
+| allow | create | `users/alice/reveals/K7Q2MX` | alice | reveal doc with scores of ten legs |
+| allow | update | `users/alice/reveals/K7Q2MX` | alice | owner re-puts the same reveal |
+| allow | get | `users/alice/reveals/K7Q2MX` | alice | owner gets a reveal doc |
+| allow | delete | `users/alice/reveals/K7Q2MX` | alice | owner deletes a reveal doc |
+| deny | create | `users/alice/reveals/K7Q2MX` | bob | other uid creates a reveal doc |
+| deny | get | `users/alice/reveals/K7Q2MX` | bob | other uid gets a reveal doc |
+| deny | create | `users/alice/reveals/k7q2mx` | alice | reveal doc under a lowercase code |
+| deny | create | `users/alice/reveals/0123456789abcdef0123456789abcdef` | alice | reveal doc under a sync id |
+| deny | create | `users/alice/reveals/K7Q2MX` | alice | reveal doc with an extra key |
+| deny | create | `users/alice/reveals/K7Q2MX` | alice | reveal doc without seenAtMs |
+| deny | create | `users/alice/reveals/K7Q2MX` | alice | reveal doc whose seenAtMs is a string |
+| deny | create | `users/alice/reveals/K7Q2MX` | alice | reveal doc with a negative seenAtMs |
+| deny | create | `users/alice/reveals/K7Q2MX` | alice | reveal doc with a score of eleven |
+| deny | create | `users/alice/reveals/K7Q2MX` | alice | reveal doc with a negative score |
+| deny | update | `users/alice/reveals/K7Q2MX` | alice | reveal update that moves seenAtMs |
+| deny | update | `users/alice/reveals/K7Q2MX` | alice | reveal update that changes a score |
+| deny | update | `users/alice/reveals/K7Q2MX` | alice | reveal update that adds scores to a reveal without them |
 | deny | delete | `users/alice/drafts/3f2b8c1e-5d4a-4b7e-9c1d-0a1b2c3d4e5f` | bob | other uid deletes a draft |
 | deny | delete | `users/alice/boards/zip_2026-11-07_0123456789abcdef` | bob | other uid deletes a board |
 | deny | delete | `users/alice/drafts/3f2b8c1e-5d4a-4b7e-9c1d-0a1b2c3d4e5f` | — | signed-out delete |
@@ -688,6 +709,11 @@ a row's keys and the caps, and a completions record's key, and nothing more.
 | deny | get | `puzzles/K7Q2MX/comments/c1` | bob | signed-in read of a puzzle's unknown subcollection |
 
 ## Last run
+
+2026-11-18, local `firestore.rules` with the reveals kind (#1542; not deployed; the run uses the local source on the
+Rules Test API), three batches: **468 cases, 468/468 passed**, exit 0. The 449 cases of the 2026-11-16 run are
+unchanged and all pass. The 19 new `account space` reveal rows cover the write-once doc; against the rules before
+this change 6 of the 19 failed, each an expected allow (an unknown kind is denied).
 
 2026-11-16, local `firestore.rules` with the community puzzle rules (not deployed; the run uses the local
 source on the Rules Test API), three batches: **449 cases, 449/449 passed**, exit 0. The 380 cases of the
@@ -1090,6 +1116,25 @@ PASS  DENY  [account space] 1001 completion records
 PASS  ALLOW  [account space] owner deletes a draft
 PASS  ALLOW  [account space] owner deletes a board
 PASS  ALLOW  [account space] owner deletes a replays doc
+PASS  ALLOW  [account space] owner creates a reveal doc
+PASS  ALLOW  [account space] owner creates a reveal doc without scores
+PASS  ALLOW  [account space] reveal doc with scores of ten legs
+PASS  ALLOW  [account space] owner re-puts the same reveal
+PASS  ALLOW  [account space] owner gets a reveal doc
+PASS  ALLOW  [account space] owner deletes a reveal doc
+PASS  DENY  [account space] other uid creates a reveal doc
+PASS  DENY  [account space] other uid gets a reveal doc
+PASS  DENY  [account space] reveal doc under a lowercase code
+PASS  DENY  [account space] reveal doc under a sync id
+PASS  DENY  [account space] reveal doc with an extra key
+PASS  DENY  [account space] reveal doc without seenAtMs
+PASS  DENY  [account space] reveal doc whose seenAtMs is a string
+PASS  DENY  [account space] reveal doc with a negative seenAtMs
+PASS  DENY  [account space] reveal doc with a score of eleven
+PASS  DENY  [account space] reveal doc with a negative score
+PASS  DENY  [account space] reveal update that moves seenAtMs
+PASS  DENY  [account space] reveal update that changes a score
+PASS  DENY  [account space] reveal update that adds scores to a reveal without them
 PASS  DENY  [account space] other uid deletes a draft
 PASS  DENY  [account space] other uid deletes a board
 PASS  DENY  [account space] signed-out delete
@@ -1160,5 +1205,5 @@ PASS  DENY  [account space (hardening)] published doc with an unlisted extra key
 PASS  DENY  [deny-all] signed-in read of an unmatched path
 PASS  DENY  [deny-all] signed-in write of an unmatched path
 PASS  DENY  [deny-all] signed-in read of a puzzle's unknown subcollection
-449/449 passed
+468/468 passed
 ```

@@ -157,6 +157,13 @@
       "deleted": true,
       "deletedAtMs": 1794052800000
     },
+    "spaceReveal": {
+      "formatVersion": 1,
+      "updatedAt": "2026-11-07T12:00:00Z",
+      "seenAtMs": 1794052800000,
+      "myScore": 3,
+      "theirScore": 1
+    },
     "spaceBoard": {
       "formatVersion": 1,
       "updatedAt": "2026-11-07T12:00:00Z",
@@ -8863,6 +8870,246 @@
       "resource": {
         "formatVersion": 1,
         "updatedAt": "2026-11-07T12:00:00Z"
+      }
+    },
+    {
+      "group": "account space",
+      "name": "owner creates a reveal doc",
+      "expect": "allow",
+      "method": "create",
+      "path": "users/alice/reveals/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "spaceReveal"
+      }
+    },
+    {
+      "group": "account space",
+      "name": "owner creates a reveal doc without scores",
+      "expect": "allow",
+      "method": "create",
+      "path": "users/alice/reveals/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "formatVersion": 1,
+        "updatedAt": "2026-11-07T12:00:00Z",
+        "seenAtMs": 1794052800000
+      }
+    },
+    {
+      "group": "account space",
+      "name": "reveal doc with scores of ten legs",
+      "expect": "allow",
+      "method": "create",
+      "path": "users/alice/reveals/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "spaceReveal",
+        "myScore": 10,
+        "theirScore": 0
+      }
+    },
+    {
+      "group": "account space",
+      "name": "owner re-puts the same reveal",
+      "expect": "allow",
+      "method": "update",
+      "path": "users/alice/reveals/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "spaceReveal"
+      },
+      "resource": {
+        "$fixture": "spaceReveal",
+        "updatedAt": "2026-11-06T12:00:00Z"
+      }
+    },
+    {
+      "group": "account space",
+      "name": "owner gets a reveal doc",
+      "expect": "allow",
+      "method": "get",
+      "path": "users/alice/reveals/K7Q2MX",
+      "auth": "alice",
+      "resource": {
+        "$fixture": "spaceReveal"
+      }
+    },
+    {
+      "group": "account space",
+      "name": "owner deletes a reveal doc",
+      "expect": "allow",
+      "method": "delete",
+      "path": "users/alice/reveals/K7Q2MX",
+      "auth": "alice",
+      "resource": {
+        "$fixture": "spaceReveal"
+      }
+    },
+    {
+      "group": "account space",
+      "name": "other uid creates a reveal doc",
+      "expect": "deny",
+      "method": "create",
+      "path": "users/alice/reveals/K7Q2MX",
+      "auth": "bob",
+      "data": {
+        "$fixture": "spaceReveal"
+      }
+    },
+    {
+      "group": "account space",
+      "name": "other uid gets a reveal doc",
+      "expect": "deny",
+      "method": "get",
+      "path": "users/alice/reveals/K7Q2MX",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "spaceReveal"
+      }
+    },
+    {
+      "group": "account space",
+      "name": "reveal doc under a lowercase code",
+      "expect": "deny",
+      "method": "create",
+      "path": "users/alice/reveals/k7q2mx",
+      "auth": "alice",
+      "data": {
+        "$fixture": "spaceReveal"
+      }
+    },
+    {
+      "group": "account space",
+      "name": "reveal doc under a sync id",
+      "expect": "deny",
+      "method": "create",
+      "path": "users/alice/reveals/0123456789abcdef0123456789abcdef",
+      "auth": "alice",
+      "data": {
+        "$fixture": "spaceReveal"
+      }
+    },
+    {
+      "group": "account space",
+      "name": "reveal doc with an extra key",
+      "expect": "deny",
+      "method": "create",
+      "path": "users/alice/reveals/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "spaceReveal",
+        "dismissed": true
+      }
+    },
+    {
+      "group": "account space",
+      "name": "reveal doc without seenAtMs",
+      "expect": "deny",
+      "method": "create",
+      "path": "users/alice/reveals/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "formatVersion": 1,
+        "updatedAt": "2026-11-07T12:00:00Z",
+        "myScore": 3,
+        "theirScore": 1
+      }
+    },
+    {
+      "group": "account space",
+      "name": "reveal doc whose seenAtMs is a string",
+      "expect": "deny",
+      "method": "create",
+      "path": "users/alice/reveals/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "spaceReveal",
+        "seenAtMs": "1794052800000"
+      }
+    },
+    {
+      "group": "account space",
+      "name": "reveal doc with a negative seenAtMs",
+      "expect": "deny",
+      "method": "create",
+      "path": "users/alice/reveals/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "spaceReveal",
+        "seenAtMs": -1
+      }
+    },
+    {
+      "group": "account space",
+      "name": "reveal doc with a score of eleven",
+      "expect": "deny",
+      "method": "create",
+      "path": "users/alice/reveals/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "spaceReveal",
+        "myScore": 11
+      }
+    },
+    {
+      "group": "account space",
+      "name": "reveal doc with a negative score",
+      "expect": "deny",
+      "method": "create",
+      "path": "users/alice/reveals/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "spaceReveal",
+        "theirScore": -1
+      }
+    },
+    {
+      "group": "account space",
+      "name": "reveal update that moves seenAtMs",
+      "expect": "deny",
+      "method": "update",
+      "path": "users/alice/reveals/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "spaceReveal",
+        "seenAtMs": 1794056400000
+      },
+      "resource": {
+        "$fixture": "spaceReveal",
+        "updatedAt": "2026-11-06T12:00:00Z"
+      }
+    },
+    {
+      "group": "account space",
+      "name": "reveal update that changes a score",
+      "expect": "deny",
+      "method": "update",
+      "path": "users/alice/reveals/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "spaceReveal",
+        "myScore": 2
+      },
+      "resource": {
+        "$fixture": "spaceReveal",
+        "updatedAt": "2026-11-06T12:00:00Z"
+      }
+    },
+    {
+      "group": "account space",
+      "name": "reveal update that adds scores to a reveal without them",
+      "expect": "deny",
+      "method": "update",
+      "path": "users/alice/reveals/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "spaceReveal"
+      },
+      "resource": {
+        "formatVersion": 1,
+        "updatedAt": "2026-11-06T12:00:00Z",
+        "seenAtMs": 1794052800000
       }
     },
     {

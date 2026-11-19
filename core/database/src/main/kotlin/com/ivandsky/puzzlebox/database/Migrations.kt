@@ -292,5 +292,6 @@ object Migrations {
             MIGRATION_12_13,
             MIGRATION_13_14,
             SelfMatchMigration.MIGRATION_14_15,
+            RevealSyncMigration.MIGRATION_15_16,
         )
 }
