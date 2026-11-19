@@ -157,4 +157,21 @@ class GameBoardPointsTest {
 
         assertTrue(points(boards(loaded(ref(0), *page, count = 400))).none { it.isSelf })
     }
+
+    @Test
+    fun `a friend's LinkedIn-only day averages into their one row, matched by name as on a day`() {
+        val global = boards(
+            loaded(ref(0), entry("u1", 60_000), entry("maya", 70_000)),
+            loaded(ref(1), entry("u1", 80_000)),
+        )
+        val mayaOnLinkedIn = LinkedInGhost("ref-maya", " MAYA ", 50_000, hintFree = true, flawless = false)
+        val saved = mapOf(ref(1) to LinkedInDayView(LinkedInDayStatus.Idle, LinkedInBoardView.Shown(listOf(mayaOnLinkedIn))))
+
+        val friends = global.amongFriends(setOf("u1", "maya"), saved, ann)
+        val rows = rows(friends.toGameBoardState(ZIP, RankOrder.TimeThenHints, Window.Month, ann.uid))
+
+        assertEquals(listOf("maya", "u1"), rows.map { it.playerId })
+        assertEquals(BoardRowValue.Average(60_000, 0.0), rows[0].scoreValue)
+        assertEquals("Maya", rows[0].name)
+    }
 }

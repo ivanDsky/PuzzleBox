@@ -13,7 +13,10 @@ import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** #1743: the viewer's own LinkedIn result counts on a Friends board the way a connection's does (ADR-0031 §11). */
+/**
+ * #1743: the viewer's own LinkedIn result counts on a Friends board the way a connection's does (ADR-0031 §11).
+ * #1746: on a window a friend's LinkedIn-only days add to their one row.
+ */
 class ConnectionBoardsTest {
 
     private val ann = Identity("u1", "Ann", null)
@@ -70,5 +73,44 @@ class ConnectionBoardsTest {
         val standing = FriendDay(board, setOf("bea"), day(imported = 50_000)).standing(listOf(zed, bea), ann, RankOrder.TimeThenHints)
 
         assertEquals(FriendDay.Standing(place = 1, count = 2), standing)
+    }
+
+    private val nextDay = LeaderboardRef("tango", LocalDate.of(2026, 11, 15))
+    private val players = setOf("u1", "bea", "cy")
+
+    private fun loaded(ref: LeaderboardRef, page: BoardPage) = BoardLoad.Loaded(ref, RankOrder.TimeThenHints, page, final = false)
+
+    private fun linkedIn(memberRef: String, name: String, timeMs: Long) = LinkedInGhost(memberRef, name, timeMs, hintFree = true, flawless = false)
+
+    /** The first day holds [first] as the PuzzleBox board has them, the next one only [onLinkedIn], each as the Friends board counts them. */
+    private fun window(first: List<LeaderboardEntry>, vararg onLinkedIn: LinkedInGhost) = listOf(
+        loaded(board, BoardPage(first, first.size).friendBoard(players, connections = null, ann)),
+        loaded(nextDay, BoardPage(emptyList(), 0).friendBoard(players, day(imported = null, *onLinkedIn), ann)),
+    )
+
+    @Test
+    fun `a friend with a PuzzleBox day and a LinkedIn-only day is one row that adds both`() {
+        val rows = windowStandings(window(listOf(zed, bea), linkedIn("ref-bea", "Bea", 50_000)), ann, emptyList()).rows
+
+        assertEquals(listOf("bea"), rows.map { it.uid })
+        assertEquals(2, rows.single().games)
+        assertEquals(2 * percentilePoints(1, 1), rows.single().total, 1e-9)
+        assertEquals("Bea", rows.single().displayName)
+    }
+
+    @Test
+    fun `a connection named like the viewer is someone else on a window, as on a day`() {
+        val rows = windowStandings(window(listOf(entry("u1", "Ann", 70_000)), linkedIn("ref-ann", "Ann", 50_000)), ann, emptyList()).rows
+
+        assertEquals(setOf("u1", connectionUid("ref-ann")), rows.map { it.uid }.toSet())
+    }
+
+    @Test
+    fun `a connection named like two friends is not known to be either, so it stays its own row`() {
+        val twins = listOf(bea, entry("cy", "bea", 65_000))
+
+        val rows = windowStandings(window(twins, linkedIn("ref-bea", "Bea", 50_000)), ann, emptyList()).rows
+
+        assertEquals(setOf("bea", "cy", connectionUid("ref-bea")), rows.map { it.uid }.toSet())
     }
 }

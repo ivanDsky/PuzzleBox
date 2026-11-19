@@ -60,10 +60,11 @@ class ObserveOverall(
 /**
  * Ranks [loaded] by points (A10): Overall over every game's boards, and a game's Week or Month over that game's days
  * (WeekMonthPoints). [me], when signed in, is placed past a board's read page where [records] hold an official solve
- * of that board but the page has no row of theirs (A11), and is named from the profile where no page names them.
+ * of that board but the page has no row of theirs (A11), and is named from the profile where no page names them. A
+ * friend's connection is the friend ([withConnectionsAsFriends]), so their days played only on LinkedIn are in their row.
  */
 fun windowStandings(loaded: List<BoardLoad.Loaded>, me: Identity?, records: List<CompletionRecord>): OverallStandings {
-    val ranked = loaded.map { rankBoard(it.board, it.page.entries, it.order, it.page.count) }
+    val ranked = loaded.withConnectionsAsFriends(me?.uid).map { rankBoard(it.board, it.page.entries, it.order, it.page.count) }
     if (me == null) return overall(ranked, viewerUid = null, viewerBeyondPage = emptySet())
     val standings = overall(ranked, me.uid, beyondPage(loaded, me, records))
     // `overall` has no name for a viewer on no page; the profile has.
