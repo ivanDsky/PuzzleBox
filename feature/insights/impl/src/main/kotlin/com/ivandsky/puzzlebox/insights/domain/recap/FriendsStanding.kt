@@ -11,7 +11,7 @@ import java.time.LocalDate
  */
 internal sealed interface FriendsStanding {
 
-    /** Signed out, a year (until the yearly recap fills that branch), nothing played, or the read found no friends: the story has no friends card (A12). */
+    /** Signed out, nothing played, no friends found, or a year with fewer than [ResolveFriendsStanding.MIN_KEPT_WEEKS] kept weeks: the story has no friends card (A12). */
     data object NotApplicable : FriendsStanding
 
     /** A state the story shows as a card. */
@@ -20,8 +20,12 @@ internal sealed interface FriendsStanding {
     /** The friends read is still out: the card holds its place and says so quietly. */
     data object Reading : Shown
 
-    /** [game] earned the viewer the most Friends Overall points over the period: [points] of them. */
-    data class Loaded(val game: GameId, val points: Double) : Shown
+    /**
+     * [game] earned the viewer the most Friends Overall points over the period: [points] of them. A year has no month
+     * window to read, so its [points] are the average a day over its [weeks] kept weeks and say "based on [weeks]
+     * weeks" (A12, A19); a month's [weeks] is null and its points are the window's total.
+     */
+    data class Loaded(val game: GameId, val points: Double, val weeks: Int? = null) : Shown
 
     /** The month just ended is still taking late results among friends; they settle on [settlesOn] (A21), so no number is said yet. */
     data class Settling(val settlesOn: LocalDate) : Shown

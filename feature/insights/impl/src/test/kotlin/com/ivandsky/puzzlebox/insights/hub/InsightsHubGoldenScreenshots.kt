@@ -24,6 +24,8 @@ class InsightsHubGoldenScreenshots {
     @get:Rule
     val rule = createAndroidComposeRule<ComponentActivity>()
 
+    private val years = listOf(RecapPeriod.Year(2026), RecapPeriod.Year(2025), RecapPeriod.Year(2024))
+
     private val months = listOf(
         RecapPeriod.Month(YearMonth.of(2026, 11)),
         RecapPeriod.Month(YearMonth.of(2026, 10)),
@@ -43,6 +45,9 @@ class InsightsHubGoldenScreenshots {
 
     @Config(qualifiers = GOLDEN_TABLET)
     @Test fun `list tablet dark`() = capture("list", "tablet", dark = true)
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `list with years phone light`() = capture("list-years", "phone", dark = false, state = InsightsHubUiState.Ready(years + months))
 
     @Config(qualifiers = GOLDEN_PHONE)
     @Test fun `restoring phone light`() = capture("restoring", "phone", dark = false, state = InsightsHubUiState.Restoring)

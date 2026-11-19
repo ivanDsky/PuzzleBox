@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.insights.di
 
 import com.ivandsky.puzzlebox.common.di.flagSet
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendsOverall
+import com.ivandsky.puzzlebox.insights.domain.rankhistory.ObserveRankHistory
 import com.ivandsky.puzzlebox.insights.domain.recap.ComputePeriodFacts
 import com.ivandsky.puzzlebox.insights.domain.recap.ObserveDueRecap
 import com.ivandsky.puzzlebox.insights.domain.recap.ObserveRecap
@@ -26,8 +27,9 @@ import org.koin.dsl.module
 /**
  * Insights feature wiring: the feature's release flags ([InsightsFlag]), the recap and stats use cases and the view
  * models of the hub, of a recap story, of its share card and of the stats page. The friends standing
- * ([ResolveFriendsStanding]) is the one recap read that goes to the network, kept apart from the local providers. A
- * story's period and a stats page's game arrive as Koin parameters, so each opened month or game has its own.
+ * ([ResolveFriendsStanding]) is the one recap read that goes to the network for a month, kept apart from the local
+ * providers; a year's comes from the kept weekly history ([ObserveRankHistory]). A story's period and a stats page's
+ * game arrive as Koin parameters, so each opened month, year or game has its own.
  * The share files (renderer, Uris, cleaner) are singletons over the app's cache directory; [RecapShareCleaner] is the
  * one :app starts. [ObserveDueRecap] is the one use case :app reads, for Home's recap card. Use cases that several features share come from :core:domain's `insightsDomainModule`.
  */
@@ -36,11 +38,14 @@ val insightsModule: Module = module {
 
     factory { ReplaySolveFacts(computeStreak = get(), puzzleDay = get(), registry = get()) }
     factory { ComputePeriodFacts(computeStreak = get(), replaySolveFacts = get(), registry = get()) }
+    factory { ObserveRankHistory(identity = get(), store = get()) }
     factory {
         val friendsOverall = get<ObserveFriendsOverall>()
+        val rankHistory = get<ObserveRankHistory>()
         ResolveFriendsStanding(
             identity = get(),
             friendsOverall = { window, games -> friendsOverall(window, games) },
+            rankHistory = { game -> rankHistory(game) },
             puzzleDay = get(),
         )
     }
@@ -57,9 +62,9 @@ val insightsModule: Module = module {
     single { RecapShareUris(androidContext()) }
     single { RecapShareCleaner(renderer = get(), scope = get()) }
 
-    viewModel { InsightsHubViewModel(observeRecapAvailability = get(), cloudSync = get()) }
+    viewModel { InsightsHubViewModel(observeRecapAvailability = get(), cloudSync = get(), releaseFlags = get()) }
     viewModel { params ->
-        RecapViewModel(period = params.get(), observeRecap = get(), cloudSync = get(), savedState = get())
+        RecapViewModel(period = params.get(), observeRecap = get(), cloudSync = get(), puzzleDay = get(), savedState = get())
     }
     viewModel { params ->
         val uris = get<RecapShareUris>()

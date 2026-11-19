@@ -63,6 +63,7 @@ private fun RecapFact(
 ) {
     when (card) {
         is RecapCard.Solved -> SolvedCardFact(card, gameName, modifier)
+        is RecapCard.Month -> MonthCardFact(card, gameName, modifier)
         is RecapCard.Fastest -> FastestCardFact(card, gameName, onWatchReplay, modifier)
         is RecapCard.Streak -> StreakCardFact(card, modifier)
         is RecapCard.HintFree -> HintFreeCardFact(card, modifier)

@@ -8,24 +8,25 @@ import com.ivandsky.puzzlebox.insights.flags.InsightsFlag
 import com.ivandsky.puzzlebox.navigation.Navigator
 
 /**
- * Home's recap card, behind [InsightsFlag.MonthlyRecap] (ADR-0022): the slot for the [due] recap while the flag is in
- * [enabled], the recap is due and its period is not in [dismissed]; null otherwise, and Home draws no card. Opening
- * pushes that period's [InsightsRecapKey] as a layer page and dismissing reports its period id to [dismiss].
- * The one gate, so the card never shows before the flag turns on (A2, A3).
+ * Home's recap card, behind the recap flags (ADR-0022): the first of the [due] recaps, the year before the month, whose
+ * flag is in [enabled] ([InsightsFlag.YearRecap] for a year, [InsightsFlag.MonthlyRecap] for a month) and whose period
+ * is not in [dismissed]; null otherwise, and Home draws no card. On Jan 1–3 both can be due: Home shows the year, and
+ * the month once the year is dismissed. Opening pushes that period's [InsightsRecapKey] as a layer page and dismissing
+ * reports its period id to [dismiss]. The one gate, so a card never shows before its flag turns on (A2, A3).
  */
 internal fun recapSlot(
     enabled: Set<ReleaseFlagKey>,
-    due: DueRecap?,
+    due: List<DueRecap>,
     dismissed: Set<String>,
     navigator: Navigator,
     dismiss: (periodId: String) -> Unit,
-): RecapSlot? =
-    if (InsightsFlag.MonthlyRecap !in enabled || due == null || due.periodId in dismissed) {
-        null
-    } else {
-        RecapSlot(
-            label = due.label,
-            onOpen = { navigator.pushLayer(InsightsRecapKey(due.periodId)) },
-            onDismiss = { dismiss(due.periodId) },
-        )
-    }
+): RecapSlot? {
+    val shown = due.firstOrNull { it.flag() in enabled && it.periodId !in dismissed } ?: return null
+    return RecapSlot(
+        label = shown.label,
+        onOpen = { navigator.pushLayer(InsightsRecapKey(shown.periodId)) },
+        onDismiss = { dismiss(shown.periodId) },
+    )
+}
+
+private fun DueRecap.flag(): InsightsFlag = if (yearly) InsightsFlag.YearRecap else InsightsFlag.MonthlyRecap

@@ -15,7 +15,7 @@ import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 
 // The Best game among friends page and its tablet list fact, light and dark: a best game, results still settling, and
-// the read that could not finish.
+// the read that could not finish; and a year's best game from its kept weeks.
 
 private val Zip = GameId("zip")
 private val Queens = GameId("queens")
@@ -26,6 +26,7 @@ private fun name(game: GameId): String = Names.getValue(game)
 
 private val Reading = RecapCard.Friends(FriendsStanding.Reading)
 private val Loaded = RecapCard.Friends(FriendsStanding.Loaded(Queens, points = 1_340.0))
+private val LoadedYear = RecapCard.Friends(FriendsStanding.Loaded(Queens, points = 212.0, weeks = 6))
 private val Settling = RecapCard.Friends(FriendsStanding.Settling(LocalDate.of(2026, 12, 4)))
 private val Unavailable = RecapCard.Friends(FriendsStanding.Unavailable)
 
@@ -39,6 +40,12 @@ private fun FriendsCardPageReadingPreview() = PuzzleBoxTheme {
 @Composable
 private fun FriendsCardPageLoadedPreview() = PuzzleBoxTheme {
     Surface(color = MaterialTheme.colorScheme.background) { FriendsCardPage(Loaded, "November 2026", ::name) }
+}
+
+@PuzzleBoxPreviews
+@Composable
+private fun FriendsCardPageLoadedYearPreview() = PuzzleBoxTheme {
+    Surface(color = MaterialTheme.colorScheme.background) { FriendsCardPage(LoadedYear, "2026 so far", ::name) }
 }
 
 @PuzzleBoxPreviews

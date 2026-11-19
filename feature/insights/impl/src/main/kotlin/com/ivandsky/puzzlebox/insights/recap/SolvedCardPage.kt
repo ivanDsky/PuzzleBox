@@ -75,9 +75,22 @@ internal fun SolvedCardPage(
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
         )
+        card.importedDays?.let { days -> ImportedDaysLine(days) }
         Spacer(Modifier.height(Spacing.xl))
         SolvedPerGameRows(card.perGame, gameName, Modifier.widthIn(max = MaxTextWidth))
     }
+}
+
+/** What a year built from imported results alone covers (A22), a quiet line under the total. */
+@Composable
+private fun ImportedDaysLine(days: Int) {
+    Text(
+        text = importedDaysLine(days),
+        modifier = Modifier.padding(top = Spacing.sm).testTag("recap.solved.imported"),
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+    )
 }
 
 /** Each game's solves in the period, in the app's game order, as one rounded block. Shared by the story and the tablet list. */
@@ -137,6 +150,7 @@ internal fun SolvedCardFact(card: RecapCard.Solved, gameName: (GameId) -> String
                 color = MaterialTheme.colorScheme.primary,
             )
         }
+        card.importedDays?.let { days -> ImportedDaysLine(days) }
         SolvedPerGameRows(card.perGame, gameName)
     }
 }

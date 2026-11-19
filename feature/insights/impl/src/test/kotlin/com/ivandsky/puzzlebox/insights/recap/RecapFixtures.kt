@@ -18,6 +18,8 @@ internal object RecapFixtures {
     val gameName: (GameId) -> String = { names.getValue(it) }
 
     val november = RecapPeriod.Month(YearMonth.of(2026, 11))
+    val year2026 = RecapPeriod.Year(2026)
+    val year2025 = RecapPeriod.Year(2025)
 
     val solved = RecapCard.Solved(
         total = 42,
@@ -67,9 +69,23 @@ internal object RecapFixtures {
     /** The friends read could not finish. */
     val friendsUnavailable = RecapCard.Friends(FriendsStanding.Unavailable)
 
-    val ready = RecapUiState.Ready(period = november, cards = listOf(solved, secondSolved), initialPage = 0)
+    /** A year of play: March, its busiest month, and the month a streak began. */
+    val march = RecapCard.Month(YearMonth.of(2026, 3), solved = 42, fastestGame = zip, fastestTimeMs = 58_000)
+    val april = RecapCard.Month(YearMonth.of(2026, 4), solved = 9, fastestGame = queens, fastestTimeMs = 141_000)
+
+    /** A year built from imported results alone: 312 puzzle days. */
+    val solvedImported = solved.copy(importedDays = 312)
+
+    /** A year's best game among friends from six kept weeks. */
+    val friendsLoadedYear = RecapCard.Friends(FriendsStanding.Loaded(queens, points = 212.0, weeks = 6))
+
+    val ready = RecapUiState.Ready(period = november, title = "November 2026", cards = listOf(solved, secondSolved), initialPage = 0)
 }
 
 /** A ready recap over [cards], opening on the first. */
 internal fun readyOf(vararg cards: RecapCard) =
-    RecapUiState.Ready(period = RecapFixtures.november, cards = cards.toList(), initialPage = 0)
+    RecapUiState.Ready(period = RecapFixtures.november, title = "November 2026", cards = cards.toList(), initialPage = 0)
+
+/** A ready yearly recap titled [title] ("2026 so far", "2025") over [cards], opening on the first. */
+internal fun readyYear(title: String, vararg cards: RecapCard) =
+    RecapUiState.Ready(period = RecapFixtures.year2026, title = title, cards = cards.toList(), initialPage = 0)

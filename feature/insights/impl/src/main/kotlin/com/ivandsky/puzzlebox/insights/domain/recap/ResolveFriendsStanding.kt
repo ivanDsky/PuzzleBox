@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.insights.domain.recap
 import com.ivandsky.puzzlebox.common.log.FailureLog
 import com.ivandsky.puzzlebox.common.log.LogcatFailureLog
 import com.ivandsky.puzzlebox.data.identity.IdentityService
+import com.ivandsky.puzzlebox.data.rankhistory.RankHistoryStore
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.guardedAsk
 import com.ivandsky.puzzlebox.domain.ranks.OverallStandings
@@ -29,8 +30,12 @@ import kotlinx.coroutines.flow.first
  * fetches; a second reading of it would be a second definition of a friend. So a signed-in viewer's card holds its
  * place as [FriendsStanding.Reading] until the read answers, and is dropped then if no friend turns up on its boards.
  *
- * - A year is [FriendsStanding.NotApplicable]: its branch reads the kept weekly rank history and arrives with the
- *   yearly recap (#1611).
+ * - A year has no Ranks window. It is answered from the kept weekly rank history ([rankHistory]) alone: for each game
+ *   the viewer solved in the year, the average of the kept points a day over the weeks that start in the year, and the
+ *   best average wins (a tie goes to the game listed first). A game with fewer than [MIN_KEPT_WEEKS] kept weeks is not
+ *   counted; no game left means [FriendsStanding.NotApplicable], which is every year before the history began (A12).
+ *   The history is on this device, so [start] already has the settled answer, never [FriendsStanding.Reading], and the
+ *   card does not move or appear later. A kept week's value is read as kept, never recomputed (A19).
  * - Signed out, or nothing played in the period: [FriendsStanding.NotApplicable] (A12), known locally.
  * - On days 1–3 of the month after the period's, the month just ended is still taking late results, so [start] is
  *   [FriendsStanding.Settling] with the 4th straight away, with no wait (A21). It matches the rule that makes a board
@@ -47,6 +52,7 @@ import kotlinx.coroutines.flow.first
 internal class ResolveFriendsStanding(
     private val identity: IdentityService,
     private val friendsOverall: (RankWindow, List<GameId>) -> Flow<OverallState>,
+    private val rankHistory: (GameId) -> Flow<List<RankHistoryStore.Week>>,
     private val puzzleDay: GetPuzzleDay,
     private val failures: FailureLog = LogcatFailureLog,
     private val timeout: Duration = READ_TIMEOUT,
@@ -55,17 +61,19 @@ internal class ResolveFriendsStanding(
     /**
      * The state the story opens with for [period], from what the phone knows: [FriendsStanding.Reading] when [invoke]
      * has a read to make, [FriendsStanding.Settling] when the month is settling (the read then only checks for friends), or
-     * [FriendsStanding.NotApplicable] when the card does not apply.
+     * [FriendsStanding.NotApplicable] when the card does not apply. A year is answered here for good, from the local
+     * kept weeks ([FriendsStanding.Loaded] or [FriendsStanding.NotApplicable]), so it is why this suspends.
      */
-    fun start(period: RecapPeriod, played: List<GameId>): FriendsStanding {
-        if (period.rankWindow == null || identity.current.value == null || played.isEmpty()) return FriendsStanding.NotApplicable
+    suspend fun start(period: RecapPeriod, played: List<GameId>): FriendsStanding {
+        if (identity.current.value == null || played.isEmpty()) return FriendsStanding.NotApplicable
+        if (period is RecapPeriod.Year) return keptWeeks(period, played)
         return settling(period) ?: FriendsStanding.Reading
     }
 
     /** The settled state for [period], reading the boards of the [played] games: those the viewer solved in it, in the app's game order. */
     suspend operator fun invoke(period: RecapPeriod, played: List<GameId>): FriendsStanding {
         val begun = start(period, played)
-        if (begun == FriendsStanding.NotApplicable) return begun
+        if (begun !is FriendsStanding.Reading && begun !is FriendsStanding.Settling) return begun
         val window = period.rankWindow ?: return FriendsStanding.NotApplicable
         val viewer = identity.current.value?.uid ?: return FriendsStanding.NotApplicable
         val settling = begun as? FriendsStanding.Settling
@@ -84,6 +92,16 @@ internal class ResolveFriendsStanding(
             states.none { state -> state.rows().any { it.uid != viewer } } -> FriendsStanding.NotApplicable
             else -> settling ?: best(reads, viewer)
         }
+    }
+
+    /** The year's best game from the kept weeks of the [played] games; none with enough weeks is no card. */
+    private suspend fun keptWeeks(year: RecapPeriod.Year, played: List<GameId>): FriendsStanding {
+        val averages = played.mapNotNull { game ->
+            val weeks = guardedAsk(failures, TAG, "kept rank history") { rankHistory(game).first() }.orEmpty()
+                .filter { it.weekStart in year }
+            if (weeks.size < MIN_KEPT_WEEKS) null else FriendsStanding.Loaded(game, weeks.map { it.pointsPerDay }.average(), weeks.size)
+        }
+        return averages.maxByOrNull { it.points } ?: FriendsStanding.NotApplicable
     }
 
     /** The late-results state while [period] is the month just ended and it is still before the settle day, else null. */
@@ -109,8 +127,11 @@ internal class ResolveFriendsStanding(
         return FriendsStanding.Loaded(game, points)
     }
 
-    private companion object {
+    internal companion object {
         const val TAG = "ResolveFriendsStanding"
+
+        /** Fewer kept weeks than this say too little about a year for a best game (A12). */
+        const val MIN_KEPT_WEEKS = 4
 
         /** The day of the next month friends' results settle on (A21): the first day every board of the month is final. */
         const val SETTLE_DAY = 4

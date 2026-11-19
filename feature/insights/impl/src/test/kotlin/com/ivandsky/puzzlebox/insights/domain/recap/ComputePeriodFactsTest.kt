@@ -363,4 +363,50 @@ class ComputePeriodFactsTest {
         assertEquals(stats().first().bestStreak, facts(november).longestStreak?.days)
         assertEquals(stats(alpha).first().bestStreak, facts(november, alpha).longestStreak?.days)
     }
+
+    @Test
+    fun `a year groups its counted solves by month with the month's fastest solve`() = runTest {
+        fixture.store(
+            fixture.solve(alpha, day(3, 1), time = 90_000),
+            fixture.solve(beta, day(3, 2), time = 40_000),
+            fixture.solve(alpha, day(3, 3), time = 40_000, hints = 1),
+            fixture.solve(alpha, day(5, 2), time = 70_000),
+            fixture.playAgain(alpha, day(7, 1)),
+            fixture.solve(alpha, day(12, 31, year = 2025)),
+        )
+
+        assertEquals(
+            listOf(
+                MonthFacts(YearMonth.of(2026, 3), solved = 3, fastestGame = beta, fastestTimeMs = 40_000),
+                MonthFacts(YearMonth.of(2026, 5), solved = 1, fastestGame = alpha, fastestTimeMs = 70_000),
+            ),
+            facts(RecapPeriod.Year(2026)).months,
+        )
+    }
+
+    @Test
+    fun `a month period carries no month breakdown`() = runTest {
+        fixture.store(fixture.solve(alpha, day(11, 1)))
+
+        assertEquals(emptyList<MonthFacts>(), facts(november).months)
+    }
+
+    @Test
+    fun `a year of imports alone counts its distinct puzzle days`() = runTest {
+        fixture.store(
+            fixture.imported(alpha, day(3, 1, year = 2025)),
+            fixture.imported(beta, day(3, 1, year = 2025)),
+            fixture.imported(alpha, day(4, 2, year = 2025)),
+        )
+
+        assertEquals(2, facts(RecapPeriod.Year(2025)).importedDays)
+    }
+
+    @Test
+    fun `a year that holds an app solve says nothing about imported days`() = runTest {
+        fixture.store(fixture.imported(alpha, day(3, 1)), fixture.solve(alpha, day(3, 2)))
+
+        assertNull(facts(RecapPeriod.Year(2026)).importedDays)
+        assertNull(facts(november).importedDays)
+    }
 }

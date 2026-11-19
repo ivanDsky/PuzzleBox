@@ -25,7 +25,6 @@ import com.ivandsky.puzzlebox.designsystem.TwoColumnFrame
 import com.ivandsky.puzzlebox.designsystem.TwoColumnMinWidth
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
-import com.ivandsky.puzzlebox.insights.label
 import com.ivandsky.puzzlebox.insights.share.RecapShareContent
 import com.ivandsky.puzzlebox.insights.share.RecapShareState
 import com.ivandsky.puzzlebox.model.GameId
@@ -107,7 +106,7 @@ private fun RecapReady(
     val pageCount = state.cards.size + if (share == null) 0 else 1
     val pagerState = rememberPagerState(initialPage = state.initialPage.coerceAtMost(pageCount - 1)) { pageCount }
     LaunchedEffect(pagerState) { snapshotFlow { pagerState.currentPage }.collect(onPage) }
-    val periodLabel = state.period.label()
+    val periodLabel = state.title
     BoxWithConstraints(modifier.fillMaxSize()) {
         if (maxWidth >= TwoColumnMinWidth) {
             val scope = rememberCoroutineScope()

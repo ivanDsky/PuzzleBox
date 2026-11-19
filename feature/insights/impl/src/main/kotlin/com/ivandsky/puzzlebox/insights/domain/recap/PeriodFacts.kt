@@ -41,4 +41,11 @@ internal data class PeriodFacts(
      * month 2 is relative to month 1.
      */
     val moments: List<Moment>,
+    /** For a year: its months that have a counted solve, January first. Empty for a month, which has no months in it. */
+    val months: List<MonthFacts> = emptyList(),
+    /**
+     * For a year built only from imported results: the puzzle days they cover, so the story can say "From 312 imported
+     * days" (A22). Null for a month, for a year with any solve made in the app, and for a year with no solve.
+     */
+    val importedDays: Int? = null,
 )
