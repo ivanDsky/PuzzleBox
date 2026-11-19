@@ -164,6 +164,35 @@ tasks.withType<Test>().matching { it.name == "testReleaseUnitTest" }.configureEa
     filter.includeTestsMatching("com.ivandsky.puzzlebox.app.ReleaseShareLinksTest")
 }
 
+// The e2e tier (ADR-0035): the classes under com.ivandsky.puzzlebox.app.e2e run in e2eTest, not in
+// testDebugUnitTest, so `test` (the merge gate) skips them. The merge lane adds e2eTest to a batch's
+// suite when the batch touches :app, :core:navigation, a :feature:*:api module or the shared build
+// setup (PROFILE `e2e:`), and main's CI runs it after every merge. It reuses the debug unit-test
+// classes, classpath, inputs and test JVM settings.
+val e2eClasses = "com/ivandsky/puzzlebox/app/e2e/**"
+tasks.withType<Test>().matching { it.name == "testDebugUnitTest" }.configureEach { exclude(e2eClasses) }
+tasks.register<Test>("e2eTest") {
+    group = "verification"
+    description = "Runs :app's e2e tests (com.ivandsky.puzzlebox.app.e2e) on the debug unit-test classpath."
+    val unitTest = tasks.named<Test>("testDebugUnitTest").get()
+    testClassesDirs = unitTest.testClassesDirs
+    classpath = unitTest.classpath
+    // AGP's test config (test_config.properties on the classpath) holds only paths: the resource APK,
+    // merged manifest and assets it names are inputs of testDebugUnitTest, so a resource- or
+    // manifest-only change must rerun e2eTest too.
+    inputs.files(unitTest.inputs.files).withPropertyName("debugUnitTestInputs")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    jvmArgs(unitTest.jvmArgs.orEmpty())
+    jvmArgumentProviders.addAll(unitTest.jvmArgumentProviders)
+    systemProperties(unitTest.systemProperties)
+    maxHeapSize = unitTest.maxHeapSize
+    // The warm-up runs in this JVM too: the e2e classes are the ones that reach the native runtime.
+    include(e2eClasses, "com/ivandsky/puzzlebox/app/NativeGraphicsWarmUpTest*")
+    // Never beside :app's other tests, nor (root build file) any other module's: the e2e classes
+    // time out when starved of CPU.
+    mustRunAfter(tasks.withType<Test>().matching { it.name != name })
+}
+
 dependencies {
     implementation(projects.backend.firebase)
     implementation(projects.core.auth)

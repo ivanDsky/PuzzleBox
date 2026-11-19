@@ -1,6 +1,6 @@
 # ADR-0023 — CI runs on main only; PRs merge without a status check
 
-Date: 2026-11-07 · Status: accepted · Supersedes: ADR-0022 decision 1 ("CI judges every merge") · Golden parts superseded by ADR-0033 (2026-11-17: no committed goldens, no verify)
+Date: 2026-11-07 · Status: accepted · Supersedes: ADR-0022 decision 1 ("CI judges every merge") · Golden parts superseded by ADR-0033 (2026-11-17: no committed goldens, no verify) · `:app` e2e tier split out of `test` by ADR-0035 (2026-11-19)
 
 ## Context
 ADR-0022 made `pr-check` (`./gradlew assembleDebug test`) main's required status check, with
@@ -51,6 +51,9 @@ user, the PR is a place to read the change, not a test gate.
    ghost avatar on the Ranks hub made it `LinkedInGhostIsolationE2ETest`'s first decode (8 of 20
    runs aborted under CPU load). `DrainTestApplication.onCreate` now decodes one PNG on the SDK
    main thread, so no test depends on order (0 of 20 aborted).
+   *Amendment 2026-11-19 (ADR-0035):* the `ui` job runs `testUi :app:e2eTest`. `:app`'s e2e
+   classes moved out of `testDebugUnitTest` into `:app:e2eTest`, so the job still runs every test
+   it ran before.
 3. **The merge gate is local.** Before an agent merges a slice PR, the full suite
    (`./gradlew assembleDebug test`) must be green on the PR branch rebased onto fresh
    `origin/main`, and the `review-change` fast tier must be clean. A rebase that pulls in new
@@ -103,6 +106,10 @@ user, the PR is a place to read the change, not a test gate.
      - Scratch worktrees live under `.git/agent-builds/lane/wt`; IDEs and backups should
        exclude that path.
      - The lane needs `local.properties` or `ANDROID_HOME`.
+   *Amendment 2026-11-19 (ADR-0035):* `test` no longer runs `:app`'s e2e classes. The lane adds
+   `./gradlew :app:e2eTest` to a batch's suite when the batch touches `:app`, `:core:navigation`,
+   a `:feature:*:api` module or the shared build setup (PROFILE `e2e:`). Every other batch merges
+   on the gate alone, and main's `ui` job runs the tier after every merge.
 4. **A red main stops merges.** The next PR is either a `git revert` of the culprit squash
    commit or a one-line obvious fix forward. Other merges wait until main is green again.
    *Amendment 2026-11-11:* nobody waits for main's run.

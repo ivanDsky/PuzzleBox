@@ -26,7 +26,8 @@ jobs:
   # :konsist (ADR-0009). Screenshot classes are review renders, not tests: the default run skips
   # them and nothing compares pixels (ADR-0033). :app's NativeGraphicsWarmUpTest keeps the
   # Robolectric native runtime from aborting the test JVM now that no golden warms it up
-  # (ADR-0023).
+  # (ADR-0023). The ui shard also runs :app:e2eTest, the e2e tier that `test` skips and the merge
+  # lane runs only for batches that touch the shell (ADR-0035). It shares the shard's :app compile.
   test:
     # A dispatch from another branch would publish unmerged code as the latest release.
     if: github.ref == 'refs/heads/main'
@@ -39,7 +40,7 @@ jobs:
           - shard: core
             tasks: assembleDebug testCore
           - shard: ui
-            tasks: testUi
+            tasks: testUi :app:e2eTest
     env:
       # Robolectric's Android runtime jars (android-all-instrumented) for every SDK the tests run on,
       # as Robolectric 4.17 names them: 32 and 34 come from `@Config(sdk = …)`, 37 is targetSdk, the
