@@ -165,5 +165,12 @@ private fun rememberVisibilitySlot(repository: VisibilityRepository): Visibility
 @Composable
 private fun rememberRanksTuneDefaults(visibility: VisibilityRepository, preferences: UserPreferencesRepository): RanksTuneDefaults =
     remember(visibility, preferences) {
-        RanksTuneDefaults(visibility.ownTier, visibility::setOwnTier, preferences.ranksFriendsDefault, preferences::setRanksFriendsDefault)
+        RanksTuneDefaults(
+            visibility.ownTier,
+            visibility::setOwnTier,
+            preferences.ranksFriendsDefault,
+            preferences::setRanksFriendsDefault,
+            preferences.ranksLinkedInDefault,
+            preferences::setRanksLinkedInDefault,
+        )
     }

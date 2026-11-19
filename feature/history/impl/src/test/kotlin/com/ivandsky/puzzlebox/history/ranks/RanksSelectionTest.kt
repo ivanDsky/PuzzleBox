@@ -15,6 +15,9 @@ class RanksSelectionTest {
 
     private val landing = RanksSelection()
 
+    /** The boards LinkedIn games lists when Queens is not one of the LinkedIn games. */
+    private val linkedInBoards = listOf(RanksBoard.Overall, RanksBoard.Game(ZIP), RanksBoard.Game(TANGO))
+
     @Test
     fun `a fresh selection is Overall, today, Global, calendar folded`() {
         assertEquals(RanksBoard.Overall, landing.board)
@@ -22,6 +25,7 @@ class RanksSelectionTest {
         assertEquals(RankScope.Global, landing.scope)
         assertEquals(null, landing.day)
         assertEquals(false, landing.calendarExpanded)
+        assertEquals(RanksSelection.Games.All, landing.games)
     }
 
     @Test
@@ -82,8 +86,37 @@ class RanksSelectionTest {
             .setScope(RankScope.Friends)
             .showCalendar(LocalDate.of(2026, 11, 6), expanded = true)
 
-        assertEquals(landing, busy.reset(RankScope.Global))
-        assertEquals(landing.setScope(RankScope.Friends), busy.reset(RankScope.Friends))
+        assertEquals(landing, busy.reset(RankScope.Global, RanksSelection.Games.All))
+        assertEquals(landing.setScope(RankScope.Friends), busy.reset(RankScope.Friends, RanksSelection.Games.All))
+    }
+
+    @Test
+    fun `reset lands on the player's default games`() {
+        val busy = landing.pickBoard(RanksBoard.Game(ZIP)).setGames(RanksSelection.Games.LinkedIn, linkedInBoards)
+
+        assertEquals(landing.copy(games = RanksSelection.Games.LinkedIn), busy.reset(RankScope.Global, RanksSelection.Games.LinkedIn))
+    }
+
+    @Test
+    fun `setGames keeps a board the picked games still list`() {
+        val onZip = landing.pickBoard(RanksBoard.Game(ZIP))
+
+        assertEquals(onZip.copy(games = RanksSelection.Games.LinkedIn), onZip.setGames(RanksSelection.Games.LinkedIn, linkedInBoards))
+    }
+
+    @Test
+    fun `setGames moves a board the picked games hide to Overall`() {
+        val onQueens = landing.pickBoard(RanksBoard.Game(QUEENS))
+
+        assertEquals(landing.copy(games = RanksSelection.Games.LinkedIn), onQueens.setGames(RanksSelection.Games.LinkedIn, linkedInBoards))
+    }
+
+    @Test
+    fun `land sets the default games only when the open board is still listed`() {
+        assertEquals(landing.copy(games = RanksSelection.Games.LinkedIn), landing.land(RanksSelection.Games.LinkedIn, linkedInBoards))
+
+        val linkToQueens = landing.pickBoard(RanksBoard.Game(QUEENS))
+        assertEquals(linkToQueens, linkToQueens.land(RanksSelection.Games.LinkedIn, linkedInBoards))
     }
 
     @Test

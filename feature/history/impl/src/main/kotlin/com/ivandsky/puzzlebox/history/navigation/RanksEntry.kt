@@ -100,6 +100,7 @@ private fun RanksRoute(
             onNudgeShown = viewModel::markSwipeNudgeSeen,
             onScope = viewModel::setScope,
             onWindow = viewModel::setWindow,
+            onGames = viewModel::setGames,
             onShowCalendar = viewModel::showCalendar,
             onSelectDay = viewModel::selectDay,
             onPlayAgain = playGame,

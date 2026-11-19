@@ -34,8 +34,10 @@ class TuneSheetTest {
 
     private val ownTier = MutableStateFlow<OwnTier>(OwnTier.Chosen(VisibilityTier.Board))
     private val friendsDefault = MutableStateFlow(true)
+    private val linkedInDefault = MutableStateFlow(false)
     private val tierPicks = mutableListOf<VisibilityTier>()
     private val friendsPicks = mutableListOf<Boolean>()
+    private val linkedInPicks = mutableListOf<Boolean>()
     private var dismissed = 0
 
     private val defaults = RanksTuneDefaults(
@@ -43,10 +45,12 @@ class TuneSheetTest {
         onSelectTier = { tierPicks += it; ownTier.value = OwnTier.Chosen(it) },
         friendsDefault = friendsDefault,
         onSelectFriendsDefault = { friendsPicks += it; friendsDefault.value = it },
+        linkedInDefault = linkedInDefault,
+        onSelectLinkedInDefault = { linkedInPicks += it; linkedInDefault.value = it },
     )
 
-    private fun show() {
-        composeRule.setContent { PuzzleBoxTheme { TuneSheet(defaults, onDismiss = { dismissed++ }) } }
+    private fun show(gamesFilter: Boolean = false) {
+        composeRule.setContent { PuzzleBoxTheme { TuneSheet(defaults, gamesFilter, onDismiss = { dismissed++ }) } }
     }
 
     @Test
@@ -107,5 +111,34 @@ class TuneSheetTest {
         show()
 
         composeRule.onNodeWithTag("ranks.tune.defaults").assertExists()
+    }
+
+    @Test
+    fun `picking LinkedIn games as the default writes it once and keeps the sheet open`() {
+        show(gamesFilter = true)
+
+        composeRule.onNodeWithTag("ranks.tune.defaults.games.LinkedIn").performScrollTo().performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(listOf(true), linkedInPicks)
+        composeRule.onNodeWithTag("ranks.tune.sheet").assertIsDisplayed()
+        assertEquals(0, dismissed)
+    }
+
+    @Test
+    fun `the Games default shows the stored pick`() {
+        linkedInDefault.value = true
+        show(gamesFilter = true)
+
+        composeRule.onNodeWithTag("ranks.tune.defaults.games.LinkedIn").assertIsSelected()
+        composeRule.onNodeWithTag("ranks.tune.defaults.games.All").assertIsNotSelected()
+    }
+
+    @Test
+    fun `with the Games filter off the Defaults block has no Games row`() {
+        show(gamesFilter = false)
+
+        composeRule.onNodeWithTag("ranks.tune.defaults.games.LinkedIn").assertDoesNotExist()
+        composeRule.onNodeWithTag("ranks.tune.defaults.games.All").assertDoesNotExist()
     }
 }

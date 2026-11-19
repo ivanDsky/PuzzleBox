@@ -29,6 +29,13 @@ enum class HistoryFlag(override val label: String, override val releaseDefault: 
      * average of the days played (backlog #1698). Read only in a ViewModel or a DI module (ADR-0022 §3).
      */
     WeekMonthPoints(label = "Week and Month boards add up daily points", releaseDefault = false),
+
+    /**
+     * Ranks gets a third filter, Games (backlog #1707): All games, or LinkedIn games only, so Overall and the game list can
+     * leave Strands out. It combines with Who and When and can be saved as a default. Read only in a ViewModel or a DI
+     * module (ADR-0022 §3).
+     */
+    GamesFilter(label = "Ranks Games filter (All games or LinkedIn games)", releaseDefault = false),
     ;
 
     /** The entry's own name: the stored override's key in `release_flags`. Never change it. */

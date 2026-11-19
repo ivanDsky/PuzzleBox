@@ -27,10 +27,7 @@ import com.ivandsky.puzzlebox.domain.ranks.RankWindow
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.history.CalendarState
-import com.ivandsky.puzzlebox.history.DayReplays
-import com.ivandsky.puzzlebox.history.DayReplaysLoader
 import com.ivandsky.puzzlebox.history.HistoryDayRow
-import com.ivandsky.puzzlebox.history.HistoryReplays
 import com.ivandsky.puzzlebox.history.flags.HistoryFlag
 import com.ivandsky.puzzlebox.history.historyRows
 import com.ivandsky.puzzlebox.model.GameId
@@ -49,9 +46,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 
@@ -87,8 +82,15 @@ internal class RanksViewModel(
 ) : ViewModel() {
 
     private val saver = RanksSelectionSaver(savedState)
-    private val landing = RanksLanding(preferences, observeFriendUids().map { it.isNotEmpty() }, viewModelScope)
-    private val _selection = MutableStateFlow(saver.restore(opening, rankBoards(registry)))
+    private val boards = rankBoards(registry)
+
+    /** The Games filter (GamesFilter), read once like [tuneBoardOnly]: off, the hub counts All games whatever was saved or stored. */
+    private val gamesFilter = releaseFlags.isEnabled(HistoryFlag.GamesFilter)
+
+    /** The games LinkedIn feeds: the ones the LinkedIn games pick keeps. */
+    private val isLinkedInGame: (GameId) -> Boolean = { daily.linkedInGameTypeId(it) != null }
+    private val landing = RanksLanding(preferences, observeFriendUids().map { it.isNotEmpty() }, gamesFilter, viewModelScope)
+    private val _selection = MutableStateFlow(saver.restore(opening, boards).let { if (gamesFilter) it else it.copy(games = RanksSelection.Games.All) })
     val selection: StateFlow<RanksSelection> = _selection.asStateFlow()
 
     /** False until a fresh hub has its landing scope; a restored selection has nothing to wait for. */
@@ -97,10 +99,7 @@ internal class RanksViewModel(
     init {
         if (!landed.value) {
             viewModelScope.launch {
-                val initial = _selection.value
-                val stored = landing.stored.first()
-                // A scope picked meanwhile wins over the landing scope.
-                _selection.update { if (it == initial) it.setScope(stored) else it }
+                landing.land(_selection, ::boardsOf)
                 landed.value = true
             }
         }
@@ -108,8 +107,11 @@ internal class RanksViewModel(
 
     private val signInHolder = RanksSignInHolder(identity, idTokens)
     private val viewer = identity.current
-    private val boards = rankBoards(registry)
+
     private val games: List<GameId> = boards.filterIsInstance<RanksBoard.Game>().map { it.id }
+
+    /** The boards [games] lists: the swipe, the dots, the title menu and the tablet's list all walk these. */
+    private fun boardsOf(games: RanksSelection.Games) = boards.listed(games, isLinkedInGame)
 
     /** The window the hub reads: the picked day, or the latest "today" of any game, following the rollover. */
     private val window: Flow<RankWindow> = selection
@@ -159,72 +161,43 @@ internal class RanksViewModel(
         .map { historyRows(it, registry, playRegistry, currentYear = LocalDate.now(clock).year) }
         .distinctUntilChanged()
 
-    private val dayReplays = DayReplaysLoader(viewModelScope, loadReplay)
-
     private val calendarState: Flow<CalendarState> = calendarStateOf(history, selection, today(), games)
-
-    /** The viewer's solve of the game board's day: only on a game's Day board, and only once solved. */
-    private val yourSolve: Flow<YourSolve?> = combine(
-        history,
-        selection.map { Triple(it.board, it.window, it.day) }.distinctUntilChanged(),
-        today(),
-    ) { rows, (board, kind, picked), today ->
-        if (board !is RanksBoard.Game || kind != RanksSelection.Window.Day) {
-            null
-        } else {
-            rows.solvedOn(board, picked ?: today)
-        }
-    }.distinctUntilChanged().onEach(dayReplays::open).flatMapLatest { row ->
-        if (row == null) flowOf(null) else dayReplays.replays.map { YourSolve(row, it.of(row), playRegistry[row.gameId]) }
-    }
-
-    /** The viewer's solved row of [board]'s game on [day], the one rule behind both Your solve and Play this day. */
-    private fun List<HistoryDayRow>.solvedOn(board: RanksBoard.Game, day: LocalDate): HistoryDayRow? =
-        firstOrNull { it.gameId == board.id && it.day == day && it.record != null }
-
-    /** What Play this day opens, if anything: the game board's day when the viewer has no solve of it (see [playThisDay]). */
-    private val playThisDay: Flow<PlayThisDay?> = combine(
-        history,
-        selection.map { Triple(it.board, it.window, it.day) }.distinctUntilChanged(),
-        today(),
-    ) { rows, (board, kind, picked), today ->
-        val day = picked ?: today
-        val solved = board is RanksBoard.Game && rows.solvedOn(board, day) != null
-        playThisDay(board, kind, day, solved, (board as? RanksBoard.Game)?.let { daily.archiveRange(it.id) }, today)
-    }.distinctUntilChanged()
+    private val solves = RanksSolves(history, selection, today(), daily, playRegistry, loadReplay, viewModelScope)
 
     /** The picked game's own stats; Overall has none, so no game's best time can stand for another's. */
     private val stats: Flow<GameStats?> = selection.map { it.board }.distinctUntilChanged().flatMapLatest { board ->
         if (board is RanksBoard.Game) observeGameStats(board.id) else flowOf(null)
     }
 
-    private val local = combine(calendarState, stats, yourSolve, nudge, playThisDay, ::Local)
+    private val local = combine(calendarState, stats, solves.yourSolve, nudge, solves.playThisDay, ::Local)
 
-    private val slices = RanksBoardSlices(boards, window, scopedBoards::of, observeOverall, viewer, history, calendar, registry, { daily.linkedInGameTypeId(it) != null }, BoardGhosts(linkedIn), freshness, weekMonthPoints)
+    private val slices = RanksBoardSlices(boards, window, scopedBoards::of, observeOverall, viewer, history, calendar, registry, isLinkedInGame, BoardGhosts(linkedIn), freshness, weekMonthPoints)
 
     /**
-     * Every board as its slot draws it in the picked scope, with that scope: the one a swipe scrubs to is already
-     * there, and the scope the hub names is always the one its boards and places answer. In Friends they carry
+     * Every board as its slot draws it in the picked scope and games, with both: the one a swipe scrubs to is already
+     * there, and the scope and games the hub names are always the ones its boards and places answer. In Friends they carry
      * the LinkedIn connections the phone holds.
      */
-    private val scoped: Flow<Pair<RankScope, List<RanksBoardSlice>>> = landed.filter { it }.flatMapLatest {
-        selection.map { Triple(it.window, it.day, it.scope) }.distinctUntilChanged()
-    }.flatMapLatest { (kind, day, scope) -> slices.observe(kind, day, scope).map { scope to it } }
+    private val scoped: Flow<Triple<RankScope, RanksSelection.Games, List<RanksBoardSlice>>> = landed.filter { it }.flatMapLatest {
+        selection.map { SliceKey(it.window, it.day, it.scope, it.games) }.distinctUntilChanged()
+    }.flatMapLatest { (kind, day, scope, games) -> slices.observe(kind, day, scope, games).map { Triple(scope, games, it) } }
 
     val uiState: StateFlow<RanksUiState> = combine(
         scoped,
         signInHolder.status,
-        selection.map { boards.indexOf(it.board) }.distinctUntilChanged(),
+        selection.map { it.board }.distinctUntilChanged(),
         local,
         selection.map { it.window }.distinctUntilChanged(),
-    ) { (scope, slices), signIn, position, local, kind ->
+    ) { (scope, games, slices), signIn, board, local, kind ->
+        val listed = boardsOf(games)
+        val position = listed.indexOf(board).coerceAtLeast(0)
         val slice = slices.getOrElse(position) { slices.first() }
-        val places = boardPlaces(boards, registry, playRegistry::brandOf, slices)
-        RanksUiState(slice, signIn, position, boards.size, local.calendar, local.stats, local.yourSolve, scope, kind, places, local.nudge, slices, local.playThisDay, largeBar, weekMonthPoints)
+        val places = boardPlaces(listed, registry, playRegistry::brandOf, slices)
+        RanksUiState(slice, signIn, position, listed.size, local.calendar, local.stats, local.yourSolve, scope, kind, places, local.nudge, slices, local.playThisDay, largeBar, weekMonthPoints, games, gamesFilter)
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
-        RanksUiState(overallSlice(RanksSelection.Window.Day, null, OverallState.Loading, null), largeBar = largeBar, weekMonthPoints = weekMonthPoints),
+        RanksUiState(overallSlice(RanksSelection.Window.Day, null, OverallState.Loading, null), largeBar = largeBar, weekMonthPoints = weekMonthPoints, games = _selection.value.games, gamesFilter = gamesFilter),
     )
 
     /** Applies one of [RanksSelection]'s transitions; the policy stays in the value. */
@@ -232,9 +205,9 @@ internal class RanksViewModel(
         saver.save(_selection.updateAndGet(change))
     }
 
-    /** A second tab reselect: back to the landing choice, on the player's default scope. */
+    /** A second tab reselect: back to the landing choice, on the player's default scope and games. */
     fun resetSelection() {
-        select { it.reset(landing.scope.value) }
+        select { it.reset(landing.scope.value, landing.games.value) }
     }
 
     /** The tune sheet's scope pick. */
@@ -247,9 +220,14 @@ internal class RanksViewModel(
         select { it.setWindow(window) }
     }
 
+    /** The Games pick (GamesFilter): that board stays when it is still listed, else the hub moves to Overall. */
+    fun setGames(games: RanksSelection.Games) {
+        select { it.setGames(games, boardsOf(games)) }
+    }
+
     /** A swipe on the board: [delta] boards along the hub's boards, not past either end. A swipe is the lesson the nudge teaches. */
     fun swipe(delta: Int) {
-        select { it.step(delta, boards) }
+        select { it.step(delta, boardsOf(it.games)) }
         markSwipeNudgeSeen()
     }
 
@@ -281,10 +259,10 @@ internal class RanksViewModel(
     private fun today(): Flow<LocalDate> =
         if (games.isEmpty()) flowOf(LocalDate.now(clock)) else combine(games.map(calendar::observeToday)) { days -> days.max() }
 
-    /** The replays of [row]'s day only: a switch never flashes the last day's. */
-    private fun DayReplays.of(row: HistoryDayRow): HistoryReplays = if (key == row.key) replays else HistoryReplays.Hidden
-
     private data class Local(val calendar: CalendarState, val stats: GameStats?, val yourSolve: YourSolve?, val nudge: Boolean, val playThisDay: PlayThisDay?)
+
+    /** What re-reads the slices: the window and day, the scope, and the games they count. */
+    private data class SliceKey(val kind: RanksSelection.Window, val day: LocalDate?, val scope: RankScope, val games: RanksSelection.Games)
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L

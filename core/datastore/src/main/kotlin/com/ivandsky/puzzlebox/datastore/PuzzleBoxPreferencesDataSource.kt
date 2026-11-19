@@ -26,6 +26,8 @@ data class PuzzleBoxPreferences(
     val showReplayErrors: Boolean,
     /** Whether the Ranks hub opens on Friends rather than Global; Friends until switched. */
     val ranksFriendsDefault: Boolean,
+    /** Whether the Ranks hub opens on LinkedIn games only rather than All games; All games until switched. */
+    val ranksLinkedInDefault: Boolean,
     /** Whether the app plays haptics at all; on until switched off. */
     val vibration: Boolean,
     /** Whether a duel against yourself shows the time left to beat; on until switched off. */
@@ -36,7 +38,8 @@ data class PuzzleBoxPreferences(
  * Owns the Preferences DataStore keys. Reads tolerate a missing or corrupt value by
  * falling back to [ThemeMode.SYSTEM]; writes store the enum name so the file stays
  * human-readable and forward-compatible. Seen tutorials are one string set of game ids.
- * Auto-show, replay errors, the Ranks Friends default vibration and the self-duel time-left switch are plain booleans, true while the key is absent.
+ * Auto-show, replay errors, the Ranks Friends default vibration and the self-duel time-left switch are plain booleans, true while the key is absent;
+ * the Ranks LinkedIn games default is one too, false while the key is absent (All games).
  */
 class PuzzleBoxPreferencesDataSource(
     private val dataStore: DataStore<Preferences>,
@@ -49,6 +52,7 @@ class PuzzleBoxPreferencesDataSource(
             autoShowWitness = preferences[KEY_AUTO_SHOW_WITNESS] ?: true,
             showReplayErrors = preferences[KEY_SHOW_REPLAY_ERRORS] ?: true,
             ranksFriendsDefault = preferences[KEY_RANKS_FRIENDS_DEFAULT] ?: true,
+            ranksLinkedInDefault = preferences[KEY_RANKS_LINKEDIN_DEFAULT] ?: false,
             vibration = preferences[KEY_VIBRATION] ?: true,
             showSelfDuelTimeLeft = preferences[KEY_SHOW_SELF_DUEL_TIME_LEFT] ?: true,
         )
@@ -81,6 +85,10 @@ class PuzzleBoxPreferencesDataSource(
         dataStore.edit { preferences -> preferences[KEY_RANKS_FRIENDS_DEFAULT] = friends }
     }
 
+    suspend fun setRanksLinkedInDefault(linkedIn: Boolean) {
+        dataStore.edit { preferences -> preferences[KEY_RANKS_LINKEDIN_DEFAULT] = linkedIn }
+    }
+
     suspend fun setVibration(on: Boolean) {
         dataStore.edit { preferences -> preferences[KEY_VIBRATION] = on }
     }
@@ -105,6 +113,7 @@ class PuzzleBoxPreferencesDataSource(
         val KEY_AUTO_SHOW_WITNESS = booleanPreferencesKey("auto_show_witness")
         val KEY_SHOW_REPLAY_ERRORS = booleanPreferencesKey("show_replay_errors")
         val KEY_RANKS_FRIENDS_DEFAULT = booleanPreferencesKey("ranks_friends_default")
+        val KEY_RANKS_LINKEDIN_DEFAULT = booleanPreferencesKey("ranks_linkedin_default")
         val KEY_VIBRATION = booleanPreferencesKey("vibration")
     }
 }

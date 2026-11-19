@@ -21,10 +21,12 @@ internal fun RanksPreviewHost(modifier: Modifier = Modifier, content: @Composabl
     }
 }
 
-/** The Tune sheet's defaults for a preview or a test: a chosen Duel tier, the hub landing on Friends, writes ignored. */
+/** The Tune sheet's defaults for a preview or a test: a chosen Duel tier, the hub landing on Friends and All games, writes ignored. */
 internal fun previewTuneDefaults() = RanksTuneDefaults(
     ownTier = MutableStateFlow(OwnTier.Chosen(VisibilityTier.Duel)),
     onSelectTier = {},
     friendsDefault = MutableStateFlow(true),
     onSelectFriendsDefault = {},
+    linkedInDefault = MutableStateFlow(false),
+    onSelectLinkedInDefault = {},
 )

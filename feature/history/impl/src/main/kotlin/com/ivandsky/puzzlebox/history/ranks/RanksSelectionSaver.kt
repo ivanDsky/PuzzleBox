@@ -11,6 +11,7 @@ internal const val SCOPE_KEY = "ranks.scope"
 internal const val DAY_KEY = "ranks.day"
 internal const val SHOWN_DAY_KEY = "ranks.shownDay"
 internal const val EXPANDED_KEY = "ranks.expanded"
+internal const val GAMES_KEY = "ranks.games"
 
 private const val OVERALL = "overall"
 private const val GAME_PREFIX = "game:"
@@ -35,6 +36,7 @@ internal class RanksSelectionSaver(private val handle: SavedStateHandle) {
         handle[DAY_KEY] = selection.day?.toString()
         handle[SHOWN_DAY_KEY] = selection.shownDay?.toString()
         handle[EXPANDED_KEY] = selection.calendarExpanded
+        handle[GAMES_KEY] = selection.games.name
     }
 
     /**
@@ -51,6 +53,8 @@ internal class RanksSelectionSaver(private val handle: SavedStateHandle) {
                 day = handle.get<String>(DAY_KEY)?.let(LocalDate::parse),
                 calendarExpanded = handle.get<Boolean>(EXPANDED_KEY) ?: false,
                 shownDay = handle.get<String>(SHOWN_DAY_KEY)?.let(LocalDate::parse),
+                // A selection saved before the Games filter existed holds none: it was All games.
+                games = handle.get<String>(GAMES_KEY)?.let(RanksSelection.Games::valueOf) ?: RanksSelection.Games.All,
             )
         }.getOrDefault(fallback)
     }
