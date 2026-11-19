@@ -164,6 +164,22 @@
       "myScore": 3,
       "theirScore": 1
     },
+    "spaceTrainer": {
+      "formatVersion": 1,
+      "updatedAt": "2026-11-07T12:00:00Z",
+      "techniques": {
+        "naked-pair": {
+          "mark": "mastered",
+          "inRow": 3,
+          "answeredAtMs": 1794052800000
+        },
+        "x-wing": {
+          "mark": "practicing",
+          "inRow": 1,
+          "answeredAtMs": 1794052700000
+        }
+      }
+    },
     "spaceBoard": {
       "formatVersion": 1,
       "updatedAt": "2026-11-07T12:00:00Z",
@@ -9110,6 +9126,540 @@
         "formatVersion": 1,
         "updatedAt": "2026-11-06T12:00:00Z",
         "seenAtMs": 1794052800000
+      }
+    },
+    {
+      "group": "account space",
+      "name": "owner creates a trainer doc",
+      "expect": "allow",
+      "method": "create",
+      "path": "users/alice/trainer/zip",
+      "auth": "alice",
+      "data": {
+        "$fixture": "spaceTrainer"
+      }
+    },
+    {
+      "group": "account space",
+      "name": "trainer doc with 32 techniques",
+      "expect": "allow",
+      "method": "create",
+      "path": "users/alice/trainer/zip",
+      "auth": "alice",
+      "data": {
+        "$fixture": "spaceTrainer",
+        "techniques": {
+          "tech-00": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-01": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-02": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-03": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-04": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-05": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-06": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-07": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-08": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-09": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-10": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-11": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-12": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-13": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-14": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-15": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-16": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-17": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-18": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-19": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-20": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-21": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-22": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-23": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-24": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-25": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-26": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-27": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-28": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-29": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-30": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-31": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          }
+        }
+      }
+    },
+    {
+      "group": "account space",
+      "name": "trainer doc with an empty techniques map",
+      "expect": "allow",
+      "method": "create",
+      "path": "users/alice/trainer/zip",
+      "auth": "alice",
+      "data": {
+        "$fixture": "spaceTrainer",
+        "techniques": {}
+      }
+    },
+    {
+      "group": "account space",
+      "name": "owner re-puts a trainer doc",
+      "expect": "allow",
+      "method": "update",
+      "path": "users/alice/trainer/zip",
+      "auth": "alice",
+      "data": {
+        "$fixture": "spaceTrainer",
+        "techniques": {
+          "hint-a": {
+            "mark": "mastered",
+            "inRow": 3,
+            "answeredAtMs": 1794052800000
+          }
+        }
+      },
+      "resource": {
+        "$fixture": "spaceTrainer",
+        "updatedAt": "2026-11-06T12:00:00Z"
+      }
+    },
+    {
+      "group": "account space",
+      "name": "owner gets a trainer doc",
+      "expect": "allow",
+      "method": "get",
+      "path": "users/alice/trainer/zip",
+      "auth": "alice",
+      "resource": {
+        "$fixture": "spaceTrainer"
+      }
+    },
+    {
+      "group": "account space",
+      "name": "owner deletes a trainer doc",
+      "expect": "allow",
+      "method": "delete",
+      "path": "users/alice/trainer/zip",
+      "auth": "alice",
+      "resource": {
+        "$fixture": "spaceTrainer"
+      }
+    },
+    {
+      "group": "account space",
+      "name": "other uid creates a trainer doc",
+      "expect": "deny",
+      "method": "create",
+      "path": "users/alice/trainer/zip",
+      "auth": "bob",
+      "data": {
+        "$fixture": "spaceTrainer"
+      }
+    },
+    {
+      "group": "account space",
+      "name": "other uid gets a trainer doc",
+      "expect": "deny",
+      "method": "get",
+      "path": "users/alice/trainer/zip",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "spaceTrainer"
+      }
+    },
+    {
+      "group": "account space",
+      "name": "trainer doc under an uppercase game id",
+      "expect": "deny",
+      "method": "create",
+      "path": "users/alice/trainer/Zip",
+      "auth": "alice",
+      "data": {
+        "$fixture": "spaceTrainer"
+      }
+    },
+    {
+      "group": "account space",
+      "name": "trainer doc under a game id with an underscore",
+      "expect": "deny",
+      "method": "create",
+      "path": "users/alice/trainer/zip_2",
+      "auth": "alice",
+      "data": {
+        "$fixture": "spaceTrainer"
+      }
+    },
+    {
+      "group": "account space",
+      "name": "trainer doc with an extra key",
+      "expect": "deny",
+      "method": "create",
+      "path": "users/alice/trainer/zip",
+      "auth": "alice",
+      "data": {
+        "$fixture": "spaceTrainer",
+        "extra": 1
+      }
+    },
+    {
+      "group": "account space",
+      "name": "trainer doc without techniques",
+      "expect": "deny",
+      "method": "create",
+      "path": "users/alice/trainer/zip",
+      "auth": "alice",
+      "data": {
+        "formatVersion": 1,
+        "updatedAt": "2026-11-07T12:00:00Z"
+      }
+    },
+    {
+      "group": "account space",
+      "name": "trainer doc whose techniques is a list",
+      "expect": "deny",
+      "method": "create",
+      "path": "users/alice/trainer/zip",
+      "auth": "alice",
+      "data": {
+        "$fixture": "spaceTrainer",
+        "techniques": []
+      }
+    },
+    {
+      "group": "account space",
+      "name": "trainer doc with 33 techniques",
+      "expect": "deny",
+      "method": "create",
+      "path": "users/alice/trainer/zip",
+      "auth": "alice",
+      "data": {
+        "$fixture": "spaceTrainer",
+        "techniques": {
+          "tech-00": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-01": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-02": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-03": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-04": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-05": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-06": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-07": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-08": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-09": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-10": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-11": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-12": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-13": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-14": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-15": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-16": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-17": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-18": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-19": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-20": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-21": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-22": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-23": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-24": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-25": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-26": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-27": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-28": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-29": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-30": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-31": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          },
+          "tech-32": {
+            "mark": "practicing",
+            "inRow": 1,
+            "answeredAtMs": 1794052800000
+          }
+        }
+      }
+    },
+    {
+      "group": "account space",
+      "name": "trainer doc with an uppercase technique key",
+      "expect": "deny",
+      "method": "create",
+      "path": "users/alice/trainer/zip",
+      "auth": "alice",
+      "data": {
+        "$fixture": "spaceTrainer",
+        "techniques": {
+          "Hint-a": {
+            "mark": "mastered",
+            "inRow": 3,
+            "answeredAtMs": 1794052800000
+          }
+        }
+      }
+    },
+    {
+      "group": "account space",
+      "name": "trainer doc with a technique key holding a space",
+      "expect": "deny",
+      "method": "create",
+      "path": "users/alice/trainer/zip",
+      "auth": "alice",
+      "data": {
+        "$fixture": "spaceTrainer",
+        "techniques": {
+          "hint a": {
+            "mark": "mastered",
+            "inRow": 3,
+            "answeredAtMs": 1794052800000
+          }
+        }
       }
     },
     {

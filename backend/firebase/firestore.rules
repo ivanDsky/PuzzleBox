@@ -54,7 +54,7 @@ rules_version = '2';
 // Layout: matchQuota/{uid} = {day, count, last} — match creates on one UTC day, capped at 20;
 //   `last` names the code the bump is for, so one bump covers one create.
 // Layout (ADR-0029): users/{uid}/{kind}/{docId} — the account's own cloud space, owner-only (read, list,
-//   write and delete) on the closed kinds completions, drafts, published, received, boards, replays and reveals.
+//   write and delete) on the closed kinds completions, drafts, published, received, boards, replays, reveals and trainer.
 //   Every write stamps updatedAt = request.time and carries only that kind's keys, with size caps.
 
 service cloud.firestore {
@@ -520,7 +520,7 @@ service cloud.firestore {
       }
 
       function isSpaceKind() {
-        return kind in ['completions', 'drafts', 'published', 'received', 'boards', 'replays', 'reveals'];
+        return kind in ['completions', 'drafts', 'published', 'received', 'boards', 'replays', 'reveals', 'trainer'];
       }
 
       // Writes are merge-sets, so a tombstone written over a live doc leaves both shapes' keys; each
@@ -535,7 +535,8 @@ service cloud.firestore {
             || (kind == 'received' && validReceivedDoc(d))
             || (kind == 'boards' && validBoardDoc(d))
             || (kind == 'replays' && validReplayDoc(d))
-            || (kind == 'reveals' && validRevealDoc(d)));
+            || (kind == 'reveals' && validRevealDoc(d))
+            || (kind == 'trainer' && validTrainerDoc(d)));
       }
 
       // Eight documents per month, `yyyy-MM-1000` to `yyyy-MM-1007`: a record's sync id picks its bucket, so every
@@ -680,6 +681,21 @@ service cloud.firestore {
 
       function isRevealScore(s) {
         return s is int && s >= 0 && s <= 10;
+      }
+
+      // One document per game with the account's trainer progress (#1634), named by the game id. `techniques` maps a
+      // technique id (`[a-z0-9-]+`) to `{mark: 'practicing'|'mastered', inRow: int >= 0, answeredAtMs: int >= 0}`; a
+      // technique still new is absent. The client merges per technique (the higher mark wins, `inRow` follows the
+      // later `answeredAtMs`) and re-puts the whole doc, so there is no write-once check. Rules cannot loop over a
+      // map's values, so only the map's size and its keys (through a join) are checked here; the value shape is the
+      // codec's contract, as with `completions.records`.
+      function validTrainerDoc(d) {
+        return d.keys().hasOnly(['formatVersion', 'updatedAt', 'techniques'])
+          && d.keys().hasAll(['techniques'])
+          && docId.matches('^[a-z0-9]{1,32}$')
+          && d.techniques is map
+          && d.techniques.size() <= 32
+          && d.techniques.keys().join(',').matches('^([a-z0-9-]{1,40}(,[a-z0-9-]{1,40})*)?$');
       }
 
       function isTombstone(d) {
