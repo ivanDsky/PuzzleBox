@@ -72,7 +72,7 @@ object SudokuStepper {
     }
 
     /** One rung's singles over a mistake-free [board]; every list is in units order, then ascending digit or cell. */
-    private class Scan(
+    internal class Scan(
         private val geometry: SudokuGeometry,
         private val board: SudokuBoard,
         private val candidates: IntArray,

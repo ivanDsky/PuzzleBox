@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuSessionCodec
 import com.ivandsky.puzzlebox.games.sudoku.editor.SudokuEditor
+import com.ivandsky.puzzlebox.games.sudoku.engine.trainer.SudokuTechniqueWalker
 import com.ivandsky.puzzlebox.games.sudoku.render.SudokuRendererModel
 
 /** The plugin for one Sudoku game; both games share the engine and differ only in [definition]. */
@@ -41,4 +42,6 @@ fun sudokuPlugin(definition: SudokuDefinition): GamePlugin<SudokuState, SudokuSe
         replay = SudokuReplay,
         // The game's own data, so every construction of the Mini Sudoku plugin posts and the classic never does.
         linkedInPlay = definition.linkedInPlay,
+        // Mini only: the walk's rungs are the 6x6 catalog, and the Trainer leaves the 9x9 out (spec §6).
+        techniqueWalker = SudokuTechniqueWalker.takeIf { definition.id == SudokuGames.MINI.id },
     )

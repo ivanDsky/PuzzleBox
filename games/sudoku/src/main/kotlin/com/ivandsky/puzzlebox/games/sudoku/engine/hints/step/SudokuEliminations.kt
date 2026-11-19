@@ -55,7 +55,7 @@ internal object SudokuEliminations {
      * Claiming: a line whose digit sits in one box strikes it from the rest of that box; the line is the unit.
      * The evidence is the cells of the unit that still hold the digit.
      */
-    private fun intersections(geometry: SudokuGeometry, candidates: IntArray, pointing: Boolean): List<SudokuStep.Elimination> {
+    fun intersections(geometry: SudokuGeometry, candidates: IntArray, pointing: Boolean): List<SudokuStep.Elimination> {
         val technique = if (pointing) SudokuTechnique.POINTING else SudokuTechnique.CLAIMING
         val found = mutableListOf<SudokuStep.Elimination>()
         for (unit in geometry.units) {
@@ -88,7 +88,7 @@ internal object SudokuEliminations {
     }
 
     /** Two open cells of a unit holding only the same two digits strike both from the unit's other open cells. */
-    private fun nakedPairs(geometry: SudokuGeometry, candidates: IntArray): List<SudokuStep.Elimination> {
+    fun nakedPairs(geometry: SudokuGeometry, candidates: IntArray): List<SudokuStep.Elimination> {
         val found = mutableListOf<SudokuStep.Elimination>()
         for (unit in geometry.units) {
             val open = geometry.cellsOf(unit).filter { candidates[it] != 0 }
@@ -106,7 +106,7 @@ internal object SudokuEliminations {
     }
 
     /** Two digits whose only homes in a unit are the same two cells strike every other digit from those cells. */
-    private fun hiddenPairs(geometry: SudokuGeometry, candidates: IntArray): List<SudokuStep.Elimination> {
+    fun hiddenPairs(geometry: SudokuGeometry, candidates: IntArray): List<SudokuStep.Elimination> {
         val found = mutableListOf<SudokuStep.Elimination>()
         for (unit in geometry.units) {
             val cells = geometry.cellsOf(unit)
