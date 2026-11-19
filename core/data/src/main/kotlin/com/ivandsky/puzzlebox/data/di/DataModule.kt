@@ -86,7 +86,7 @@ val MatchRemote: Qualifier = named("match.remote")
  * transport and the preferences DataStore come from the included source modules.
  */
 val dataModule = module {
-    includes(databaseModule, networkModule, datastoreModule)
+    includes(databaseModule, networkModule, datastoreModule, trainerStoreModule)
     // Per-game "today": the daily fetch and the hub cues share one calendar.
     single<GameCalendar> { CadenceGameCalendar(get()) }
     // The shared fetch of today's puzzle must outlive the screen that asked for it.

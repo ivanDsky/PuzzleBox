@@ -33,6 +33,7 @@ import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendsOverall
 import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
 import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
 import com.ivandsky.puzzlebox.domain.ranks.SubmitDailyReplay
+import com.ivandsky.puzzlebox.domain.trainer.RecordAnswer
 import java.time.Instant
 import java.util.UUID
 import kotlin.random.Random
@@ -120,6 +121,7 @@ val domainModule = module {
             random = Random.Default,
         )
     }
+    factory { RecordAnswer(progress = get()) }
     factory { SyncLinkedInDay(days = get()) }
     factory { ObserveLinkedInDay(days = get(), registry = get()) }
     factory { ObserveLinkedInDayView(observe = get(), sync = get(), link = get(), days = get()) }
