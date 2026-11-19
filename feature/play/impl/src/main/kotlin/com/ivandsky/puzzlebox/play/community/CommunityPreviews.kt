@@ -15,7 +15,7 @@ import com.ivandsky.puzzlebox.model.ShareCode
 private val Zip = GameBrand(AccentSlot.Blue, GameGlyphs.Zip)
 private val Tango = GameBrand(AccentSlot.Orange, GameGlyphs.Tango)
 
-private val Games = listOf(GameChoice(GameId("zip"), "Zip"), GameChoice(GameId("tango"), "Tango"))
+private val Games = listOf(GameChoice(GameId("zip"), "Zip", Zip), GameChoice(GameId("tango"), "Tango", Tango))
 
 private val Actions = CommunityActions(onOpen = {}, onReport = {}, onGame = {}, onDifficulty = {}, onClearFilters = {}, onRetry = {})
 
@@ -23,10 +23,10 @@ private fun row(code: String, game: String, brand: GameBrand, title: String, lev
     CommunityRowModel(checkNotNull(ShareCode.parse(code)), game, brand, title, author = "Maya", difficulty = level, age = age)
 
 @Composable
-private fun Section(phase: CommunityPhase) {
+private fun Section(phase: CommunityPhase, filterSheets: Boolean = false, game: GameId? = null) {
     PuzzleBoxTheme {
         Surface {
-            LazyColumn { communitySection(CommunityState(games = Games, phase = phase), Actions) }
+            LazyColumn { communitySection(CommunityState(games = Games, game = game, phase = phase, filterSheets = filterSheets), Actions) }
         }
     }
 }
@@ -49,3 +49,19 @@ internal fun CommunitySectionEmptyPreview() = Section(CommunityPhase.Loaded(empt
 @PuzzleBoxPreviews
 @Composable
 internal fun CommunitySectionOfflinePreview() = Section(CommunityPhase.Offline)
+
+@PuzzleBoxPreviews
+@Composable
+internal fun CommunitySectionChipsPreview() = Section(
+    CommunityPhase.Loaded(
+        listOf(
+            row("K7Q2MX", "Zip", Zip, "Spiral staircase", Difficulty.Level.Hard, "5 min ago"),
+            row("P4R8NT", "Tango", Tango, "Sun and moon", null, "2 h ago"),
+        ),
+    ),
+    filterSheets = true,
+)
+
+@PuzzleBoxPreviews
+@Composable
+internal fun CommunitySectionFilteredEmptyPreview() = Section(CommunityPhase.Loaded(emptyList()), filterSheets = true, game = GameId("zip"))

@@ -4,6 +4,9 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
+import com.ivandsky.puzzlebox.common.flags.FilterFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.repository.CommunityFilter
 import com.ivandsky.puzzlebox.data.repository.CommunityListResult
@@ -38,11 +41,12 @@ internal class CommunityViewModel(
     private val identity: IdentityService,
     idTokens: GoogleIdTokenProvider,
     private val clock: () -> Long,
+    releaseFlags: ReleaseFlags? = null,
 ) : ViewModel() {
 
     private val choices = games.all.filter { it.editor != null }.map {
         val id = it.definition.id
-        GameChoice(id, games.displayName(id))
+        GameChoice(id, games.displayName(id), plays.brandOf(id))
     }
     private val shipped = choices.map { it.id }.toSet()
     private val signInHolder = BoardSignInHolder(identity, idTokens)
@@ -50,7 +54,9 @@ internal class CommunityViewModel(
     private var loading: Job? = null
     private var noticeCount = 0
 
-    private val current = MutableStateFlow(CommunityState(games = choices))
+    private val current = MutableStateFlow(
+        CommunityState(games = choices, filterSheets = releaseFlags?.isEnabled(FilterFlag.FilterSheets) == true),
+    )
 
     val state: StateFlow<CommunityState> = current.asStateFlow()
 

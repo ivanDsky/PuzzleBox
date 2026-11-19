@@ -11,12 +11,13 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.play.community.CommunityActions
 import com.ivandsky.puzzlebox.play.community.CommunityState
 import com.ivandsky.puzzlebox.play.community.communityBody
-import com.ivandsky.puzzlebox.play.community.communityFilterLine
+import com.ivandsky.puzzlebox.play.community.communityFilters
 
 /**
- * The phone Community's New today tab: a list of its own on [listState] with no head (the tab names it). The line
- * naming an active filter comes first, then [state]'s rows or its loading, empty, offline or refused message. The empty
- * message offers "Make a puzzle" through [onMake] (null: there is no Yours tab to go to).
+ * The phone Community's New today tab: a list of its own on [listState] with no head (the tab names it). The filters
+ * come first (the chips with the count, or the line naming an active filter), then [state]'s rows or its loading,
+ * empty, offline or refused message. The empty message offers "Make a puzzle" through [onMake] (null: there is no
+ * Yours tab to go to).
  */
 @Composable
 internal fun CommunityNewTodayPage(
@@ -31,7 +32,7 @@ internal fun CommunityNewTodayPage(
         state = listState,
         contentPadding = PaddingValues(top = Spacing.md, bottom = Spacing.xl),
     ) {
-        communityFilterLine(state, actions)
+        communityFilters(state, actions)
         communityBody(state, actions, onMake)
     }
 }
