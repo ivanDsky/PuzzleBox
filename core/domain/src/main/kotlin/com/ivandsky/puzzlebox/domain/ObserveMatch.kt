@@ -34,10 +34,15 @@ import kotlinx.coroutines.flow.transformLatest
  * seat in a self duel, signed in or out, else the account; a viewer without a seat gets the match document alone.
  * The viewer's seat shows the account's current photo, not the one the match stored.
  *
+ * A puzzle I played on another device has no outbox row here, only my entry in the match's `progress`: its result is
+ * read from my own result document, kept for the collector's life, and listed as a Posted row of mine
+ * ([MatchView.mine]), so every screen counts it as taken. While such a read is Offline the puzzle is known played but
+ * its result is not, so the state is [MatchState.Offline] rather than a duel that offers the puzzle again.
+ *
  * The only caller of the sealed result read: an opponent's leg is read
  * once its progress names it and my own result for it is Posted, or the match has closed (a leg one player never
  * finished is lost to them, so the other's time must show), and a revealed result is kept for the collector's life.
- * A read that is Offline or Sealed after the close is tried again every [CLOSE_READ_RETRY]. Late and LocalOnly rows
+ * A read that is Offline or Sealed after the close is tried again every [READ_RETRY]. Late and LocalOnly rows
  * are listed but never counted, nor is a Pending one once the match has closed. The view re-reads and re-emits at each
  * future time boundary (`closesAt`, and `deadline` while unclaimed) with no upstream change. Writes nothing and holds
  * no listener of its own.
@@ -55,6 +60,7 @@ class ObserveMatch(
     operator fun invoke(code: ShareCode): Flow<MatchState> =
         identity.current.map { it?.uid to it?.photoUrl }.distinctUntilChanged().flatMapLatest { (uid, photo) ->
             val revealed = HashMap<Int, LegResult>()
+            val played = HashMap<Int, LegResult>()
             repo.observe(code).transformLatest { fetch ->
                 when (fetch) {
                     MatchFetch.NotFound -> emit(MatchState.NotFound)
@@ -64,7 +70,7 @@ class ObserveMatch(
                     is MatchFetch.Found -> when (val me = fetch.match.mySeat(uid)) {
                         // The match document alone: the rules let anyone `get` it, and it holds no results.
                         null -> emit(MatchState.SignedOut(fetch.match))
-                        else -> emitAll(observeAs(code, fetch.match.withPhotoOf(me, photo), me, revealed))
+                        else -> emitAll(observeAs(code, fetch.match.withPhotoOf(me, photo), me, revealed, played))
                     }
                 }
             }
@@ -77,22 +83,55 @@ class ObserveMatch(
         return copy(challenger = challenger.wearing(), opponent = opponent?.wearing())
     }
 
-    private fun observeAs(code: ShareCode, match: Match, me: String, revealed: MutableMap<Int, LegResult>): Flow<MatchState> =
+    private fun observeAs(
+        code: ShareCode,
+        match: Match,
+        me: String,
+        revealed: MutableMap<Int, LegResult>,
+        played: MutableMap<Int, LegResult>,
+    ): Flow<MatchState> =
         combine(outbox.observe(code), local.observeAll()) { rows, locals ->
             rows.filter { it.result.uid == me } to locals.firstOrNull { it.code == code }
-        }.transformLatest { (mine, cached) ->
+        }.transformLatest { (queued, cached) ->
             var now = clock()
-            var seen = theirLegs(code, match, me, mine, revealed, now)
-            emit(MatchState.Loaded(view(match, me, mine, seen.legs, cached, now)))
-            var next = nextWake(match, now, seen.unread)
-            while (next != null) {
+            while (true) {
+                val away = playedElsewhere(code, match, me, queued, played)
+                val mine = (queued + away.rows).sortedBy { it.result.legIndex }
+                val seen = theirLegs(code, match, me, mine, revealed, now)
+                emit(if (away.unread) MatchState.Offline else MatchState.Loaded(view(match, me, mine, seen.legs, cached, now)))
+                val next = nextWake(match, now, away.unread || seen.unread) ?: break
                 delay(Duration.between(now, next).toKotlinDuration())
                 now = clock()
-                seen = theirLegs(code, match, me, mine, revealed, now)
-                emit(MatchState.Loaded(view(match, me, mine, seen.legs, cached, now)))
-                next = nextWake(match, now, seen.unread)
             }
         }
+
+    /** What [playedElsewhere] made: the Posted rows, and whether a read the rules allow came back Offline. */
+    private class Away(val rows: List<OutboxResult>, val unread: Boolean)
+
+    /**
+     * One Posted row for each puzzle of mine that the match's `progress` holds but this device's outbox ([queued])
+     * does not: played on another device. Its result is read once from my own result document, which its owner may
+     * read. A read that finds nothing (Missing, Sealed) adds no row; the progress batch writes the result with it.
+     */
+    private suspend fun playedElsewhere(
+        code: ShareCode,
+        match: Match,
+        me: String,
+        queued: List<OutboxResult>,
+        kept: MutableMap<Int, LegResult>,
+    ): Away {
+        val here = queued.mapTo(HashSet()) { it.result.legIndex }
+        var unread = false
+        val rows = match.progress[me].orEmpty().filter { it in match.legs.indices && it !in here }.sorted().mapNotNull { leg ->
+            val result = kept[leg] ?: when (val read = repo.readResult(code, leg, me)) {
+                is ResultRead.Found -> read.result.also { kept[leg] = it }
+                ResultRead.Offline -> null.also { unread = true }
+                ResultRead.Missing, ResultRead.Sealed -> null
+            }
+            result?.let { OutboxResult(code, it, ResultPostState.Posted, attempts = 0) }
+        }
+        return Away(rows, unread)
+    }
 
     /** What [theirLegs] saw, and whether a read the rules allow came back Offline and so wants another try. */
     private class Seen(val legs: List<LegSeen>, val unread: Boolean)
@@ -148,15 +187,18 @@ class ObserveMatch(
     }
 
     /**
-     * When to look again: the earliest of `closesAt` and, while unclaimed, `deadline` still after [now]; once both have
-     * passed, [CLOSE_READ_RETRY] on while a read is [unread], else null.
+     * When to look again: the earliest of `closesAt` and, while unclaimed, `deadline` still after [now], or [READ_RETRY]
+     * on while a read is [unread] (an opponent's after the close, or one of mine played elsewhere); else null.
      */
     private fun nextWake(match: Match, now: Instant, unread: Boolean): Instant? =
-        listOfNotNull(match.closesAt, match.deadline.takeIf { match.opponent == null }).filter { it > now }.minOrNull()
-            ?: now.plus(CLOSE_READ_RETRY).takeIf { unread }
+        listOfNotNull(
+            match.closesAt,
+            match.deadline.takeIf { match.opponent == null },
+            now.plus(READ_RETRY).takeIf { unread },
+        ).filter { it > now }.minOrNull()
 
     private companion object {
-        /** How long after the close an Offline read of their result waits before the next try. */
-        val CLOSE_READ_RETRY: Duration = Duration.ofSeconds(10)
+        /** How long an Offline read waits before the next try. */
+        val READ_RETRY: Duration = Duration.ofSeconds(10)
     }
 }

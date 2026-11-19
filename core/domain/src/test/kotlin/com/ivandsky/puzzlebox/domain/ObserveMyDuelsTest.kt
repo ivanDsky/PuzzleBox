@@ -113,6 +113,14 @@ class ObserveMyDuelsTest {
         }
     }
 
+    /** [player] played [leg] on another device: the server has the result and the progress entry, this outbox nothing. */
+    private suspend fun playsElsewhere(player: Player, code: ShareCode, leg: Int) {
+        val viewer = server.signedInUid
+        server.signedInUid = player.uid
+        server.post(code, result(player.uid, leg))
+        server.signedInUid = viewer
+    }
+
     private suspend fun ReceiveTurbine<MyDuels>.latest(testScope: TestScope): MyDuels {
         testScope.testScheduler.runCurrent()
         return expectMostRecentItem()
@@ -218,6 +226,31 @@ class ObserveMyDuelsTest {
             val row = latest(this@runTest).rows.single()
             assertEquals(1, row.legsDone)
             assertEquals(2, row.theirDone)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    /** The other device's plays are only on the server: this device's outbox holds nothing for the duel. */
+    @Test
+    fun aRowCountsPuzzlesIPlayedOnAnotherDeviceFromMyProgressWithoutAnyRead() = runTest {
+        val partway = code("K7Q2M1")
+        val finished = code("K7Q2M2")
+        duel(partway, legCount = 3, claimedBy = bob)
+        duel(finished, claimedBy = bob)
+        playsElsewhere(ann, partway, 0)
+        for (leg in 0..1) {
+            playsElsewhere(ann, finished, leg)
+            playsElsewhere(bob, finished, leg)
+        }
+        viewAs(ann)
+        observe().test {
+            val rows = latest(this@runTest).rows.associateBy { it.code }
+            assertEquals(DuelRowKind.YourMove, rows.getValue(partway).kind)
+            assertEquals(1, rows.getValue(partway).legsDone)
+            assertEquals(DuelRowKind.RevealReady, rows.getValue(finished).kind)
+            assertEquals(2, rows.getValue(finished).legsDone)
+            assertEquals(2, rows.getValue(finished).theirDone)
+            assertEquals(0, sealedReads)
             cancelAndIgnoreRemainingEvents()
         }
     }
