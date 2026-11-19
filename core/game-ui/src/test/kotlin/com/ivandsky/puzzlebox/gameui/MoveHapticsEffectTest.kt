@@ -16,7 +16,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** S2: a game's classified move plays its one haptic and never for the board as first seen. */
+/** S2: a game's classified move plays its one haptic and never for the board as first seen; a fast run of ticks thins out (#1686). */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34])
@@ -38,13 +38,16 @@ class MoveHapticsEffectTest {
     private var hostState by mutableIntStateOf(0)
     private var compositions = 0
 
+    /** The effect's clock, in ms: moved by the test only. */
+    private var now = 0L
+
     private fun setEffect(classify: (Int, Int) -> MoveHaptic?) {
         composeRule.setContent {
             CompositionLocalProvider(LocalHapticFeedback provides haptics) {
                 val host = hostState
                 compositions++
                 // A lambda that captures composition state is a new instance each time, as a real caller's may be.
-                MoveHapticsEffect({ snapshot + host * 0 }, classify)
+                MoveHapticsEffect({ snapshot + host * 0 }, classify, now = { now })
             }
         }
         composeRule.waitForIdle()
@@ -138,5 +141,50 @@ class MoveHapticsEffectTest {
 
         assertEquals(listOf(HapticFeedbackType.TextHandleMove), played)
         assertEquals(before, compositions)
+    }
+
+    @Test
+    fun `a tick within 80 ms of the last tick played is dropped`() {
+        setEffect(byParity)
+
+        change(2)
+        now = 79
+        change(4)
+        assertEquals("a fast drag's second step", listOf(HapticFeedbackType.TextHandleMove), played)
+
+        // Measured from the tick played, not the one dropped.
+        now = 80
+        change(6)
+        assertEquals(listOf(HapticFeedbackType.TextHandleMove, HapticFeedbackType.TextHandleMove), played)
+    }
+
+    @Test
+    fun `ticks 80 ms apart all play`() {
+        setEffect(byParity)
+
+        listOf(2, 4, 6).forEach { to ->
+            change(to)
+            now += 80
+        }
+
+        assertEquals(List(3) { HapticFeedbackType.TextHandleMove }, played)
+    }
+
+    @Test
+    fun `a refusal right after a tick still buzzes and does not restart the gap`() {
+        setEffect(byParity)
+
+        change(2)
+        now = 10
+        change(3)
+        now = 20
+        change(5)
+        now = 80
+        change(6)
+
+        assertEquals(
+            listOf(HapticFeedbackType.TextHandleMove, HapticFeedbackType.Reject, HapticFeedbackType.Reject, HapticFeedbackType.TextHandleMove),
+            played,
+        )
     }
 }

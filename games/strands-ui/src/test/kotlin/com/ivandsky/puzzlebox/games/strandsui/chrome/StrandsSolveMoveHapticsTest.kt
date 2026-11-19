@@ -20,6 +20,7 @@ import com.ivandsky.puzzlebox.gameui.LocalSolveRestOnBoard
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import java.time.Duration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
@@ -29,11 +30,13 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import org.robolectric.shadows.ShadowSystemClock
 
 /**
  * The board's move haptics: a word ticks
  * per letter joined and once when found, a refused word buzzes once, and the solving lift buzzes
- * only the solve confirm from the rest.
+ * only the solve confirm from the rest. Each letter and lift comes [PACE] after the last, slower than the shared
+ * tick gap (#1686), so every tick is heard.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -92,12 +95,14 @@ class StrandsSolveMoveHapticsTest {
         rule.waitForIdle()
         // One frame per letter: a single gesture would recompose once, and the effect would see one step.
         path.drop(1).forEach { at ->
+            ShadowSystemClock.advanceBy(PACE)
             rule.onNodeWithTag("strands.board").performTouchInput { moveTo(centreOf(at)) }
             rule.waitForIdle()
         }
     }
 
     private fun lift() {
+        ShadowSystemClock.advanceBy(PACE)
         rule.onNodeWithTag("strands.board").performTouchInput { up() }
         rule.waitForIdle()
     }
@@ -142,5 +147,6 @@ class StrandsSolveMoveHapticsTest {
 
     private companion object {
         const val STEP_MS = 16L
+        val PACE: Duration = Duration.ofMillis(100)
     }
 }

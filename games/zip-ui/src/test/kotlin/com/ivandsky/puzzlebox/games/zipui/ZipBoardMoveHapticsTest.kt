@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import java.time.Duration
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -27,6 +28,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import org.robolectric.shadows.ShadowSystemClock
 
 /**
  * S2 on the real Zip board: each committed read ticks, a refused step buzzes, the solve is one
@@ -34,6 +36,8 @@ import org.robolectric.annotation.GraphicsMode
  *
  * The seam reads the board once per frame, so the steps one gesture injection lands in a single frame are one read
  * and tick once. A gesture only starts once the finger moves, so each stroke opens with a move in the same injection.
+ * Each injection is [PACE] after the last on the device's clock, slower than the shared tick gap (#1686), so every
+ * read that ticks is heard; the gap itself is MoveHapticsEffectTest's, on a clock it holds.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -72,8 +76,9 @@ class ZipBoardMoveHapticsTest {
         composeRule.waitForIdle()
     }
 
-    /** One gesture injection per call, so each count below is exact. */
+    /** One gesture injection per call, [PACE] after the last, so each count below is exact. */
     private fun drag(block: TouchInjectionScope.() -> Unit) {
+        ShadowSystemClock.advanceBy(PACE)
         composeRule.onNodeWithTag("play.board").performTouchInput(block)
         composeRule.waitForIdle()
     }
@@ -189,5 +194,10 @@ class ZipBoardMoveHapticsTest {
         composeRule.runOnIdle { controller.undo() }
         composeRule.waitForIdle()
         assertEquals(ticks, played)
+    }
+
+    private companion object {
+        /** A finger's pace, slower than the shared tick gap. */
+        val PACE: Duration = Duration.ofMillis(100)
     }
 }

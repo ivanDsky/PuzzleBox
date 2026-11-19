@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.gameui.LocalSolveRestOnBoard
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import java.time.Duration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
@@ -24,6 +25,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import org.robolectric.shadows.ShadowSystemClock
 
 /**
  * Nav-rethink 130: Queens' solve moment starts at the solve (the crowns run inside it) and hands off
@@ -75,6 +77,8 @@ class QueensSolveMomentTest {
         val board = rule.runOnIdle { checkNotNull(controller.board) }
         commit { QueensPlayFixtures.solution.dropLast(1).forEach { board.place(it) } }
         rule.mainClock.advanceTimeBy(1_000)
+        // The move ticks keep the device's clock, which the compose clock does not move: the setup's tick is a second back too.
+        ShadowSystemClock.advanceBy(Duration.ofMillis(1_000))
         buzzes.clear()
         return board
     }
