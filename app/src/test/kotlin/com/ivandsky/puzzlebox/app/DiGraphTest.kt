@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.compete.domain.ComputeSolvedPool
 import com.ivandsky.puzzlebox.compete.domain.CreateSelfDuel
 import com.ivandsky.puzzlebox.compete.domain.DeleteSelfDuel
 import com.ivandsky.puzzlebox.compete.domain.ObserveDuel
@@ -375,6 +376,8 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<ObservePickablePuzzles>())
             assertNotNull(koin.get<ObserveSolvedPuzzles>())
             assertNotNull(koin.get<LoadPuzzleByCode>())
+            // The solved pool behind the self-duel create, Past you's search and the New duel sheet's self-duel counts.
+            assertNotNull(koin.get<ComputeSolvedPool>())
             // The tablet play side panel's stats and the board gate beneath them.
             assertNotNull(koin.get<ObserveLeaderboard>())
             assertNotNull(koin.get<ObserveResultInsights>())

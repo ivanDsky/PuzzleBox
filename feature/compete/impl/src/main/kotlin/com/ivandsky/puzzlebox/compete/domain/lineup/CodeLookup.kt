@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain.lineup
+package com.ivandsky.puzzlebox.compete.domain.lineup
 
 /** What looking up a typed or pasted share code concluded (spec A4, A20). */
 sealed interface CodeLookup {

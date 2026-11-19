@@ -2,12 +2,12 @@ package com.ivandsky.puzzlebox.compete.create.lineup
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ivandsky.puzzlebox.compete.domain.lineup.CodeLookup
+import com.ivandsky.puzzlebox.compete.domain.lineup.Freshness
 import com.ivandsky.puzzlebox.compete.domain.lineup.LoadPuzzleByCode
+import com.ivandsky.puzzlebox.compete.domain.lineup.PickerQuery
+import com.ivandsky.puzzlebox.compete.domain.lineup.PickerResult
 import com.ivandsky.puzzlebox.data.match.LegRef
-import com.ivandsky.puzzlebox.domain.lineup.CodeLookup
-import com.ivandsky.puzzlebox.domain.lineup.Freshness
-import com.ivandsky.puzzlebox.domain.lineup.PickerQuery
-import com.ivandsky.puzzlebox.domain.lineup.PickerResult
 import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode

@@ -3,9 +3,9 @@ package com.ivandsky.puzzlebox.compete.create.lineup
 import com.ivandsky.puzzlebox.compete.create.QUEENS
 import com.ivandsky.puzzlebox.compete.create.TANGO
 import com.ivandsky.puzzlebox.compete.create.ZIP
+import com.ivandsky.puzzlebox.compete.domain.lineup.PickablePuzzle
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.domain.lineup.ExactPuzzle
-import com.ivandsky.puzzlebox.domain.lineup.PickablePuzzle
 import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate

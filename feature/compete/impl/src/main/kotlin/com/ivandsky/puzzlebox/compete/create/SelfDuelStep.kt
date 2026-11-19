@@ -2,9 +2,9 @@ package com.ivandsky.puzzlebox.compete.create
 
 import com.ivandsky.puzzlebox.common.log.FailureLog
 import com.ivandsky.puzzlebox.common.log.LogcatFailureLog
+import com.ivandsky.puzzlebox.compete.domain.ComputeSolvedPool
 import com.ivandsky.puzzlebox.compete.domain.CreateSelfDuel
 import com.ivandsky.puzzlebox.compete.domain.SelfDuelSettings
-import com.ivandsky.puzzlebox.domain.ComputeSolvedPool
 import com.ivandsky.puzzlebox.domain.CreateOutcome
 import com.ivandsky.puzzlebox.domain.lineup.LineupEntry
 import kotlinx.coroutines.CancellationException

@@ -28,9 +28,9 @@ import com.ivandsky.puzzlebox.compete.create.STRANDS
 import com.ivandsky.puzzlebox.compete.create.TANGO
 import com.ivandsky.puzzlebox.compete.create.ZIP
 import com.ivandsky.puzzlebox.compete.create.newDuelBrands
+import com.ivandsky.puzzlebox.compete.domain.lineup.PickablePuzzle
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.lineup.AnyGame
-import com.ivandsky.puzzlebox.domain.lineup.PickablePuzzle
 import com.ivandsky.puzzlebox.model.GameId
 import org.junit.After
 import org.junit.Assert.assertEquals

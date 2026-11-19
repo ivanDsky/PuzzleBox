@@ -5,7 +5,6 @@ import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.repository.COMMUNITY_WINDOW_MS
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.domain.lineup.ExactPuzzle
-import com.ivandsky.puzzlebox.domain.lineup.PickablePuzzle
 import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine

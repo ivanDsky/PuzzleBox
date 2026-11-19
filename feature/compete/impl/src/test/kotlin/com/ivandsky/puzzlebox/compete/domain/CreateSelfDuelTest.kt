@@ -7,7 +7,6 @@ import com.ivandsky.puzzlebox.data.match.ResultRead
 import com.ivandsky.puzzlebox.data.match.SelfSeats
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
-import com.ivandsky.puzzlebox.domain.ComputeSolvedPool
 import com.ivandsky.puzzlebox.domain.CreateOutcome
 import com.ivandsky.puzzlebox.domain.lineup.AnyGame
 import com.ivandsky.puzzlebox.domain.lineup.ExactPuzzle

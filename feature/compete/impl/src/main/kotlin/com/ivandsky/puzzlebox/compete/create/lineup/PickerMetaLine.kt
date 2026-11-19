@@ -7,8 +7,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.ivandsky.puzzlebox.compete.domain.lineup.PickablePuzzle
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.domain.lineup.PickablePuzzle
 import com.ivandsky.puzzlebox.resultui.DifficultyLabel
 
 /** A pickable puzzle's small print on one line: its size, its level with the mark beside the word, then its code, dot-separated. */

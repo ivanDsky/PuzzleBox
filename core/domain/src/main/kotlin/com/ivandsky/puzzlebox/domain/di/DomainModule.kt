@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.domain.di
 
 import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
 import com.ivandsky.puzzlebox.domain.ComputeMatchLegs
-import com.ivandsky.puzzlebox.domain.ComputeSolvedPool
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.CreateDraft
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
@@ -115,7 +114,6 @@ val domainModule = module {
     }
     factory { ValidateExactPuzzles(shared = get()) }
     factory { CreateMatch(repo = get(), local = get(), draw = get(), identity = get(), random = Random.Default, validateExact = get()) }
-    factory { ComputeSolvedPool(registry = get(), completions = get(), received = get()) }
     factory { ImportDraftFromText(registry = get(), createDraft = get(), drafts = get(), dispatchers = get()) }
     factory { ValidatePublish() }
     factory {

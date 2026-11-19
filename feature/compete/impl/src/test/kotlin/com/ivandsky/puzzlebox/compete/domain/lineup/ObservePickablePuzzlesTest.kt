@@ -9,10 +9,6 @@ import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
 import com.ivandsky.puzzlebox.data.repository.CommunityFilter
 import com.ivandsky.puzzlebox.data.repository.CommunityListResult
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
-import com.ivandsky.puzzlebox.domain.lineup.Freshness
-import com.ivandsky.puzzlebox.domain.lineup.PickablePuzzle
-import com.ivandsky.puzzlebox.domain.lineup.PickerQuery
-import com.ivandsky.puzzlebox.domain.lineup.PickerResult
 import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
