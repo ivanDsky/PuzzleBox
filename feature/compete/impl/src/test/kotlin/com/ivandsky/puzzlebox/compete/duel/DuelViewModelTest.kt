@@ -48,6 +48,9 @@ import com.ivandsky.puzzlebox.domain.DeleteSelfDuel
 import com.ivandsky.puzzlebox.domain.buildSelfMatch
 import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.compete.CompeteFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
@@ -118,6 +121,7 @@ class DuelViewModelTest {
     private fun viewModel(
         rawCode: String = code.value,
         plays: SavedPlayRepository = FakeSavedPlayRepository(),
+        releaseFlags: ReleaseFlags = FakeReleaseFlags(),
     ) = DuelViewModel(
         code = rawCode,
         observeDuel = ObserveDuel(
@@ -148,6 +152,7 @@ class DuelViewModelTest {
         dispatchers = DefaultDispatcherProvider(),
         legTitles = ObserveLegTitles(received, published, sharedPuzzles),
         saveDuelPuzzles = SaveDuelPuzzles { savedOnAccept += it; OpenOutcome.NotFound },
+        releaseFlags = releaseFlags,
     )
 
     private fun TestScope.started(vm: DuelViewModel): DuelViewModel {
@@ -633,6 +638,27 @@ class DuelViewModelTest {
         val state = vm.state.value as DuelUiState.Participant
 
         assertNull(state.myName)
+    }
+
+    @Test
+    fun aSelfDuelCarriesThePlayersPhotoForPastYouOnlyBehindTheFlag() = runTest {
+        selfDuel(ann)
+        identity.currentIdentity = Identity(ann.uid, ann.name, "https://example.test/ann.jpg")
+
+        val on = started(viewModel(selfCode.value, releaseFlags = FakeReleaseFlags(CompeteFlag.PastYouPhoto))).state.value as DuelUiState.Participant
+        val off = started(viewModel(selfCode.value)).state.value as DuelUiState.Participant
+
+        assertEquals("https://example.test/ann.jpg", on.pastYouPhotoUrl)
+        assertNull(off.pastYouPhotoUrl)
+    }
+
+    @Test
+    fun aSignedOutSelfDuelHasNoPhotoEvenWithTheFlagOn() = runTest {
+        selfDuel(null)
+
+        val state = started(viewModel(selfCode.value, releaseFlags = FakeReleaseFlags(CompeteFlag.PastYouPhoto))).state.value as DuelUiState.Participant
+
+        assertNull(state.pastYouPhotoUrl)
     }
 
     @Test

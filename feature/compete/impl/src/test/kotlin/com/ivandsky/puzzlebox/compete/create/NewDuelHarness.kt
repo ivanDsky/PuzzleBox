@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.compete.create
 import android.content.Context
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
+import com.ivandsky.puzzlebox.compete.CompeteFlag
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.domain.ComputeMatchLegs
 import com.ivandsky.puzzlebox.domain.ComputeSolvedPool
@@ -16,6 +17,7 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
@@ -34,8 +36,11 @@ import java.time.ZoneOffset
 import java.util.Locale
 import kotlin.random.Random
 
-/** A [NewDuelViewModel] over fakes, for the tests that show New duel on its real view model: Ann signed in, two games with an archive. */
-internal class NewDuelHarness(signedIn: Boolean = true) {
+/**
+ * A [NewDuelViewModel] over fakes, for the tests that show New duel on its real view model: Ann signed in (with [photoUrl]),
+ * two games with an archive, and the [flags] on.
+ */
+internal class NewDuelHarness(signedIn: Boolean = true, photoUrl: String? = null, vararg flags: CompeteFlag) {
     private val today = LocalDate.of(2026, 11, 9)
     private val registry = TestGames.registry(listOf(alpha, beta))
     private val calendar = FakeGameCalendar(today)
@@ -48,7 +53,7 @@ internal class NewDuelHarness(signedIn: Boolean = true) {
     private val completions = FakeCompletionRepository()
     private val received = FakeReceivedPuzzleRepository()
     private val local = FakeMatchLocalRepository()
-    private val ann = Identity(uid = "ann", displayName = "Ann", photoUrl = null)
+    private val ann = Identity(uid = "ann", displayName = "Ann", photoUrl = photoUrl)
     val identity = FakeIdentityService(ann.takeIf { signedIn })
     val server = FakeMatchRepository().apply { signedInUid = ann.uid.takeIf { signedIn } }
     val self = FakeSelfMatchRepository()
@@ -84,6 +89,7 @@ internal class NewDuelHarness(signedIn: Boolean = true) {
             zone = { ZoneOffset.UTC },
             locale = { Locale.US },
             legTitles = noLegTitles(),
+            releaseFlags = FakeReleaseFlags(*flags),
         )
     }
 

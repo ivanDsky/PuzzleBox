@@ -43,7 +43,7 @@ internal fun RevealSummary(
     noReplay: Set<Int> = emptySet(),
     onCompare: (Int) -> Unit = {},
 ) {
-    CompositionLocalProvider(LocalPastYouName provides summary.me.takeIf { summary.pastYou }) {
+    CompositionLocalProvider(LocalPastYou provides PastYouLook(summary.me, summary.pastYouPhotoUrl).takeIf { summary.pastYou }) {
         Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerLow).testTag("reveal.summary")) {
             RevealTopBar(summary.me, summary.opponent, summary.rows.size, onBack)
             if (wide) {

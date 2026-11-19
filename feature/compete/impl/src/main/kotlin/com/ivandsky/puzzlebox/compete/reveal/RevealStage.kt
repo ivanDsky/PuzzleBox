@@ -64,7 +64,7 @@ internal fun RevealStage(
         else -> "Final"
     }
     val index = (phase as? RevealPhase.Leg)?.index ?: plan.cards.lastIndex
-    CompositionLocalProvider(LocalPastYouName provides plan.me.name.takeIf { plan.pastYou }) {
+    CompositionLocalProvider(LocalPastYou provides PastYouLook(plan.me.name, plan.pastYouPhotoUrl).takeIf { plan.pastYou }) {
         Column(
             modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerLow).testTag("reveal.stage"),
             horizontalAlignment = Alignment.CenterHorizontally,

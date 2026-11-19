@@ -14,6 +14,8 @@ import kotlinx.serialization.Serializable
  * The page labels the sides [myName] and [theirName] (the surface picks the words) and, with a [lead] (one of
  * [LEAD_MINE], [LEAD_THEIRS], [LEAD_LEVEL]), ends its lead line on that verdict. [theirsPast] says the right side is
  * the player's own past solve (a duel against yourself), so it wears Past you's mark; a friend's name never decides that.
+ * [theirsPastPhotoUrl] is the player's photo for that avatar, set only by the surface that shows photos there (a flag's
+ * decision, made before the key is built); null draws the initial.
  */
 @Serializable
 @SerialName("com.ivandsky.puzzlebox.play.api.ReplayCompare")
@@ -30,6 +32,7 @@ data class ReplayCompareKey(
     val legIndex: Int = 0,
     val lead: String? = null,
     val theirsPast: Boolean = false,
+    val theirsPastPhotoUrl: String? = null,
 ) : NavKey {
 
     /** The [ReplayKey] of the left side. */
@@ -46,7 +49,15 @@ data class ReplayCompareKey(
         const val LEAD_LEVEL = "level"
 
         /** The compare of [mine] against [theirs], which must name the same puzzle and differ only in kind. */
-        fun of(mine: ReplayKey, theirs: ReplayKey, myName: String, theirName: String, lead: String? = null, theirsPast: Boolean = false): ReplayCompareKey {
+        fun of(
+            mine: ReplayKey,
+            theirs: ReplayKey,
+            myName: String,
+            theirName: String,
+            lead: String? = null,
+            theirsPast: Boolean = false,
+            theirsPastPhotoUrl: String? = null,
+        ): ReplayCompareKey {
             require(mine.copy(kind = theirs.kind) == theirs) { "a compare is of one puzzle's solves: $mine against $theirs" }
             return ReplayCompareKey(
                 gameId = mine.gameId,
@@ -61,6 +72,7 @@ data class ReplayCompareKey(
                 legIndex = mine.legIndex,
                 lead = lead,
                 theirsPast = theirsPast,
+                theirsPastPhotoUrl = theirsPastPhotoUrl,
             )
         }
     }

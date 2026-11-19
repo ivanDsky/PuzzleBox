@@ -82,6 +82,7 @@ internal fun DuelLegs(
             firstSolvedAt = state.firstSolvedAt,
             dayOf = time::day,
             names = state.names,
+            pastYouPhotoUrl = state.pastYouPhotoUrl,
         )
     }
     val legs = view.match.legs
@@ -158,7 +159,7 @@ internal fun LegsHeader(content: LegsContent) {
             Box {
                 PlayerAvatar(model.me.name, model.me.photoUrl, size = AvatarSize)
                 if (model.self) {
-                    PastYouAvatar(model.me.name, Modifier.padding(start = AvatarOverlap), AvatarSize)
+                    PastYouAvatar(model.me.name, Modifier.padding(start = AvatarOverlap), AvatarSize, model.pastYouPhotoUrl)
                 } else {
                     PlayerAvatar(
                         name = model.opponent.name,

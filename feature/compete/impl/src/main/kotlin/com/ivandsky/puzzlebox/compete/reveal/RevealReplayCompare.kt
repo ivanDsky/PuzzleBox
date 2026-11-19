@@ -41,6 +41,7 @@ internal fun compareKey(code: String, game: GameId, open: LegCompare, self: Bool
             Lead.Level -> ReplayCompareKey.LEAD_LEVEL
         },
         theirsPast = self,
+        theirsPastPhotoUrl = open.pastYouPhotoUrl.takeIf { self },
     )
 
 /**

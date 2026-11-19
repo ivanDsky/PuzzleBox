@@ -34,7 +34,7 @@ internal fun NewDuelForm(state: NewDuelState, actions: NewDuelActions, modifier:
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             NewDuelIntro(state.opponent)
-            if (state.selfOffered) PlayAgainstRow(state.opponent, state.selfName, actions.onOpponent)
+            if (state.selfOffered) PlayAgainstRow(state.opponent, state.selfName, actions.onOpponent, selfPhotoUrl = state.selfPhotoUrl)
             when (state.opponent) {
                 Opponent.Friend -> FriendChoices(state, actions, sheetPicker = false)
                 Opponent.PastYou -> SelfChoices(state, actions, sheetPicker = false)

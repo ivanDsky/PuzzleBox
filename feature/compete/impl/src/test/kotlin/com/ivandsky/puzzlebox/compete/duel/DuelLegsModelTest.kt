@@ -188,6 +188,18 @@ class DuelLegsModelTest {
     }
 
     @Test
+    fun pastYouWearsThePhotoHandedInOnASelfDuelButNeverOnAFriendDuel() {
+        val self = selfView(legs = 1, done = emptySet())
+        val friend = view(match(legs = 1))
+        fun photoOf(view: MatchView, url: String?) =
+            duelLegsModel(view, emptyMap(), createdAt, { "Zip" }, { RankOrder.TimeThenHints }, pastYouPhotoUrl = url).pastYouPhotoUrl
+
+        assertEquals("https://example.com/me.png", photoOf(self, "https://example.com/me.png"))
+        assertNull("the flag-off path hands none in", photoOf(self, null))
+        assertNull("a friend is not past you", photoOf(friend, "https://example.com/me.png"))
+    }
+
+    @Test
     fun aSelfDuelNeverWaitsOnAnyoneAndOffersTheResultsOnceIPlayedEveryPuzzle() {
         val playing = model(selfView(legs = 2, done = setOf(0)))
         val played = model(selfView(legs = 2, done = setOf(0, 1)))

@@ -45,6 +45,7 @@ internal fun ReplayTwin(
                     tint = if (isMine) colors.primary else colors.tertiary,
                     onTint = if (isMine) colors.onPrimary else colors.onTertiary,
                     pastYouName = names.mine.takeIf { !isMine && names.theirsPast },
+                    pastYouPhotoUrl = names.theirsPastPhotoUrl.takeIf { !isMine },
                     reserveStatsLine = true,
                 )
                 Spacer(Modifier.height(SideHeaderGap))

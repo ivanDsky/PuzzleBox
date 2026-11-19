@@ -49,6 +49,9 @@ import com.ivandsky.puzzlebox.game.replay.ReplayOutcome
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.model.SolveReplay
+import com.ivandsky.puzzlebox.compete.CompeteFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.replay.FixtureSession
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
@@ -166,7 +169,7 @@ class RevealViewModelTest {
         )
     }
 
-    private fun viewModel(load: LoadSolveReplay = loadReplay()) = RevealViewModel(
+    private fun viewModel(load: LoadSolveReplay = loadReplay(), releaseFlags: ReleaseFlags = FakeReleaseFlags()) = RevealViewModel(
         code = code.value,
         reducedMotion = false,
         zone = ZoneOffset.UTC,
@@ -177,6 +180,7 @@ class RevealViewModelTest {
         recordSeen = RecordRevealSeen(counted) { createdAt.plusSeconds(3_600) },
         loadReplay = load,
         identity = identity,
+        releaseFlags = releaseFlags,
     )
 
     private fun TestScope.started(vm: RevealViewModel): RevealViewModel {
@@ -359,6 +363,17 @@ class RevealViewModelTest {
         val now = running(vm)
         assertEquals("both first solves lack a replay", setOf(0, 1), now.noReplay)
         assertEquals("so neither leg offers Compare", emptySet<Int>(), now.compareLegs)
+    }
+
+    @Test
+    fun aSelfRevealCarriesThePlayersPhotoForPastYouOnlyBehindTheFlag() = runTest {
+        identity.currentIdentity = Identity("ann", "Ann", "https://example.test/ann.jpg")
+        val on = started(viewModel(releaseFlags = FakeReleaseFlags(CompeteFlag.PastYouPhoto)))
+        val off = started(viewModel())
+        matches.value = loaded(revealed = setOf(0, 1), of = selfMatch)
+
+        assertEquals("https://example.test/ann.jpg", running(on).race.pastYouPhotoUrl)
+        assertNull(running(off).race.pastYouPhotoUrl)
     }
 
     @Test

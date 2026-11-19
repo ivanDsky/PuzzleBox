@@ -35,6 +35,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
+import com.ivandsky.puzzlebox.resultui.FakePhotos
 import com.ivandsky.puzzlebox.resultui.PastYouAvatar
 
 private val CHOICE_WIDTH = 72.dp
@@ -47,11 +48,17 @@ private const val DASH_OFF = 4f
 
 /**
  * "Play against": the label on the left and the two choices on the right, "A friend" (a dashed "?") and "Past you"
- * (your [selfName]'s initial with the past mark). The [selected] one wears a primary ring that crossfades over
+ * (your [selfName]'s initial with the past mark, or your [selfPhotoUrl] photo when there is one). The [selected] one wears a primary ring that crossfades over
  * [MotionTokens.SelectDuration] (instant with reduced motion) and its label turns bold.
  */
 @Composable
-internal fun PlayAgainstRow(selected: Opponent, selfName: String, onSelect: (Opponent) -> Unit, modifier: Modifier = Modifier) {
+internal fun PlayAgainstRow(
+    selected: Opponent,
+    selfName: String,
+    onSelect: (Opponent) -> Unit,
+    modifier: Modifier = Modifier,
+    selfPhotoUrl: String? = null,
+) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = "PLAY AGAINST",
@@ -62,7 +69,7 @@ internal fun PlayAgainstRow(selected: Opponent, selfName: String, onSelect: (Opp
         Row(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
             Choice("A friend", selected == Opponent.Friend, { onSelect(Opponent.Friend) }, "duel.opponent.friend") { UnknownFriend() }
             Choice("Past you", selected == Opponent.PastYou, { onSelect(Opponent.PastYou) }, "duel.opponent.self") {
-                PastYouAvatar(name = selfName, size = AVATAR)
+                PastYouAvatar(name = selfName, size = AVATAR, photoUrl = selfPhotoUrl)
             }
         }
     }
@@ -123,3 +130,9 @@ internal fun PlayAgainstRowFriendPreview() = PuzzleBoxTheme { PlayAgainstRow(Opp
 @PuzzleBoxPreviews
 @Composable
 internal fun PlayAgainstRowPastYouPreview() = PuzzleBoxTheme { PlayAgainstRow(Opponent.PastYou, "I", onSelect = {}) }
+
+@PuzzleBoxPreviews
+@Composable
+internal fun PlayAgainstRowPastYouPhotoPreview() = PuzzleBoxTheme {
+    FakePhotos { PlayAgainstRow(Opponent.PastYou, "Ivan", onSelect = {}, selfPhotoUrl = "https://example.test/ivan.jpg") }
+}

@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.resultui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -25,12 +26,13 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
-// Past you's avatar: the opponent's initial in the Them pair, with the history mark on its
-// lower right. The mark is a counter-clockwise arrow around a clock face, on the 24 grid.
+// Past you's avatar: the opponent's initial in the Them pair, or the player's own photo inside a Them-coloured ring,
+// with the history mark on its lower right. The mark is a counter-clockwise arrow around a clock face, on the 24 grid.
 private const val GRID = 24f
 private const val MARK_STROKE = 2.5f
 private const val MARK_SHARE = 0.36f
 private const val MARK_GLYPH_SHARE = 0.7f
+private val PhotoRing = 2.dp
 
 private val HistoryArrow = addPathNodes("M5 8.5V12H9.5M5 12A7 7 0 1 0 7.05 7.05")
 private val HistoryHands = addPathNodes("M12 8V12L14.5 13.5")
@@ -58,11 +60,26 @@ private val HistoryMark: ImageVector = ImageVector.Builder(
     )
     .build()
 
-/** Past you: the initial of [name] (the player's own) in the opponent pair, with the history mark at the lower right. */
+/**
+ * Past you: the initial of [name] (the player's own) in the opponent pair, with the history mark at the lower right. With a
+ * [photoUrl] the player's photo is drawn over the initial (as [PlayerAvatar] does) inside an opponent-coloured ring, so it
+ * still reads as the other side next to the player's own avatar. [fill] and [onFill] override the initial's pair, as on
+ * [PlayerAvatar].
+ */
 @Composable
-fun PastYouAvatar(name: String, modifier: Modifier = Modifier, size: Dp = 40.dp) {
+fun PastYouAvatar(
+    name: String,
+    modifier: Modifier = Modifier,
+    size: Dp = 40.dp,
+    photoUrl: String? = null,
+    fill: Color = Color.Unspecified,
+    onFill: Color = Color.Unspecified,
+) {
     Box(modifier = modifier.size(size)) {
-        PlayerAvatar(name = name, photoUrl = null, size = size, tone = DuelTone.Them)
+        PlayerAvatar(name = name, photoUrl = photoUrl, size = size, tone = DuelTone.Them, fill = fill, onFill = onFill)
+        if (photoUrl != null) {
+            Box(Modifier.matchParentSize().border(PhotoRing, MaterialTheme.colorScheme.secondary, CircleShape))
+        }
         PastMark(size = size * MARK_SHARE, modifier = Modifier.align(Alignment.BottomEnd))
     }
 }
@@ -86,8 +103,12 @@ private fun PastMark(size: Dp, modifier: Modifier) {
 @PuzzleBoxPreviews
 @Composable
 internal fun PastYouAvatarPreview() = PuzzleBoxTheme {
-    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-        PastYouAvatar(name = "Ivan")
-        PastYouAvatar(name = "Ivan", size = 48.dp)
+    FakePhotos {
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+            PastYouAvatar(name = "Ivan")
+            PastYouAvatar(name = "Ivan", size = 48.dp)
+            PlayerAvatar(name = "Ivan", photoUrl = "https://example.test/ivan.jpg", size = 48.dp)
+            PastYouAvatar(name = "Ivan", size = 48.dp, photoUrl = "https://example.test/ivan.jpg")
+        }
     }
 }
