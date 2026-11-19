@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.app.debug.flags.DebugReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.DeclaredFlags
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.gameui.flags.GameUiFlag
 import com.ivandsky.puzzlebox.history.flags.HistoryFlag
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -59,16 +60,24 @@ class DebugReleaseFlagsBindingTest {
         }
     }
 
-    /** An owner enum whose set the graph never registers reads as off even where its default is on; this catches it. */
+    /**
+     * An owner enum whose set the graph never registers reads as off even where its default is on, and a key that drifts
+     * from its entry's name strands the stored override; this catches both without naming a live flag.
+     */
     @Test
-    fun `debug graph declares every owner enum's flags`() {
+    fun `debug graph declares every owner enum's flags under their entry names`() {
         val koin = startKoin {
             androidContext(RuntimeEnvironment.getApplication())
             modules(PuzzleBoxApplication.appModules)
         }.koin
         try {
-            val keys = koin.get<DeclaredFlags>().all.map { it.key }
+            val declared = koin.get<DeclaredFlags>().all
+            val enumBacked = declared.filterIsInstance<Enum<*>>()
+            assertEquals(declared.size, enumBacked.size)
+            assertEquals(enumBacked.map { it.name }, declared.map { it.key })
+            val keys = declared.map { it.key }
             assertTrue(keys.containsAll(HistoryFlag.entries.map { it.key }))
+            assertTrue(keys.containsAll(GameUiFlag.entries.map { it.key }))
         } finally {
             stopKoin()
         }
