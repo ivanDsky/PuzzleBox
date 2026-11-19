@@ -1,7 +1,8 @@
-package com.ivandsky.puzzlebox.domain.moments
+package com.ivandsky.puzzlebox.play.domain.moments
 
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
+import com.ivandsky.puzzlebox.domain.moments.Moment
 import com.ivandsky.puzzlebox.domain.ranks.RankedBoard
 import com.ivandsky.puzzlebox.domain.ranks.rankBoard
 import com.ivandsky.puzzlebox.game.RankOrder

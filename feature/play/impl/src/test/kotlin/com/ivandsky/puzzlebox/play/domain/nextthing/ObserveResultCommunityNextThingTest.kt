@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain.nextthing
+package com.ivandsky.puzzlebox.play.domain.nextthing
 
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.model.PostState
@@ -15,6 +15,8 @@ import com.ivandsky.puzzlebox.domain.ObserveFriendPuzzles
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
+import com.ivandsky.puzzlebox.domain.nextthing.NextThing
+import com.ivandsky.puzzlebox.domain.nextthing.ResultNextThing
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord

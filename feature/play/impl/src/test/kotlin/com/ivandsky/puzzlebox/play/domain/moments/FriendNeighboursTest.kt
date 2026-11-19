@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain.moments
+package com.ivandsky.puzzlebox.play.domain.moments
 
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef

@@ -1,4 +1,6 @@
-package com.ivandsky.puzzlebox.domain.nextthing
+package com.ivandsky.puzzlebox.play.domain.nextthing
+
+import com.ivandsky.puzzlebox.domain.nextthing.NextThing
 
 /** The last rung: it always answers, so the chain ends on the countdown to the next set. */
 internal object DoneForTodayNextThingProvider : NextThingProvider {

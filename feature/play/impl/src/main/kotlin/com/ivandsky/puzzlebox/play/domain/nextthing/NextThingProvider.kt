@@ -1,4 +1,6 @@
-package com.ivandsky.puzzlebox.domain.nextthing
+package com.ivandsky.puzzlebox.play.domain.nextthing
+
+import com.ivandsky.puzzlebox.domain.nextthing.NextThing
 
 /** One rung of the next-thing chain (L3): it offers its next thing, or nothing. */
 internal interface NextThingProvider {

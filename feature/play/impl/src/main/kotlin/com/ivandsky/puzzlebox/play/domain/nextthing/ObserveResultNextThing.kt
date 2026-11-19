@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain.nextthing
+package com.ivandsky.puzzlebox.play.domain.nextthing
 
 import com.ivandsky.puzzlebox.common.log.FailureLog
 import com.ivandsky.puzzlebox.common.log.LogcatFailureLog
@@ -23,14 +23,16 @@ import com.ivandsky.puzzlebox.domain.TodayEntry
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.domain.isStreakDay
 import com.ivandsky.puzzlebox.domain.moments.Moment
-import com.ivandsky.puzzlebox.domain.moments.SolveFacts
-import com.ivandsky.puzzlebox.domain.moments.detectMoments
+import com.ivandsky.puzzlebox.domain.nextthing.NextThing
+import com.ivandsky.puzzlebox.domain.nextthing.ResultNextThing
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.domain.ranks.RankedBoard
 import com.ivandsky.puzzlebox.domain.ranks.rankBoard
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.play.domain.moments.SolveFacts
+import com.ivandsky.puzzlebox.play.domain.moments.detectMoments
 import java.time.LocalDate
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration

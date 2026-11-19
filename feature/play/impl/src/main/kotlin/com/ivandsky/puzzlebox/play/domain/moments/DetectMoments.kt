@@ -1,4 +1,6 @@
-package com.ivandsky.puzzlebox.domain.moments
+package com.ivandsky.puzzlebox.play.domain.moments
+
+import com.ivandsky.puzzlebox.domain.moments.Moment
 
 private val STREAK_MILESTONES = setOf(7, 30, 100)
 private const val TOP_PLACES = 3

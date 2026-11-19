@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain.nextthing
+package com.ivandsky.puzzlebox.play.domain.nextthing
 
 /**
  * Every provider of the next-thing chain: the one place a provider is registered. A new one is its own

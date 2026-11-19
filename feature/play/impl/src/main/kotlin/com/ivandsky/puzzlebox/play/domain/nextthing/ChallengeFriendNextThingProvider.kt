@@ -1,6 +1,7 @@
-package com.ivandsky.puzzlebox.domain.nextthing
+package com.ivandsky.puzzlebox.play.domain.nextthing
 
-import com.ivandsky.puzzlebox.domain.moments.friendNeighbours
+import com.ivandsky.puzzlebox.domain.nextthing.NextThing
+import com.ivandsky.puzzlebox.play.domain.moments.friendNeighbours
 
 /**
  * Rung 2, and Result's Challenge row (L4): the friend just above the player on today's Friends board, else the

@@ -1,8 +1,9 @@
-package com.ivandsky.puzzlebox.domain.nextthing
+package com.ivandsky.puzzlebox.play.domain.nextthing
 
 import com.ivandsky.puzzlebox.common.log.FailureLog
 import com.ivandsky.puzzlebox.domain.FriendPuzzleRow
 import com.ivandsky.puzzlebox.domain.FriendStatus
+import com.ivandsky.puzzlebox.domain.nextthing.NextThing
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
