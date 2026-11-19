@@ -14,11 +14,7 @@ dependencies {
     implementation(projects.core.designsystem)
     // GameUiFlag implements common's ReleaseFlagKey.
     implementation(projects.core.common)
-    // TodayStatus: todayStatusLine is the one status copy Home and the library share.
-    implementation(projects.core.domain)
 
-    implementation(libs.coil.compose)
-    implementation(libs.androidx.compose.material3.windowsizeclass)
     implementation(libs.kotlinx.coroutines.core)
 
     // RecordVerdictTest runs core:testing's shared RankOrderCases table (ADR-0013).

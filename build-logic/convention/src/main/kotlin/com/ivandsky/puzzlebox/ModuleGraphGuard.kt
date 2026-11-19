@@ -46,7 +46,8 @@ private val GUARDED_TASKS = setOf("check", "preBuild", "classes")
 
 /**
  * The forbidden edges of the module graph (docs/adr/0008-module-graph.md); `null` = allowed.
- * `:app` (the composition root) and `:backend:*` are otherwise unconstrained.
+ * `:app` (the composition root) is otherwise unconstrained, except that its non-test configurations
+ * may not declare storage; `:backend:*` is unconstrained except for the storage arm.
  * The `:konsist` verification family has zero edges in either direction, test configurations
  * included, so its arms sit before the `:core:testing` test-configuration exemption.
  */
@@ -100,9 +101,22 @@ internal fun forbiddenEdgeReason(from: String, to: String, configuration: String
         fromPath[0] == "games" && toPath[0] == "games" && fromPath[1] != "${toPath[1]}-ui" ->
             "a game module may depend on no other game (only games:x-ui -> games:x)"
 
+        // Layer order inside core (ADR-0034): the play kit and the games stay off the data layer.
+        (from == ":core:game-ui" || fromPath[0] == "games") && to in OFF_LIMITS_TO_PLAY_KIT ->
+            "the play kit and games:* declare no edge to :core:domain, :core:data or :core:result-ui (ADR-0034)"
+
+        to in STORAGE_MODULES && from != ":core:data" &&
+            !(from == ":app" && configuration.contains("test", ignoreCase = true)) ->
+            "storage and network modules are declared only by :core:data (ADR-0034)"
+
+        from == ":core:designsystem" -> ":core:designsystem is the leaf; it depends on no module (ADR-0034)"
+
         else -> null
     }
 }
+
+private val OFF_LIMITS_TO_PLAY_KIT = setOf(":core:domain", ":core:data", ":core:result-ui")
+private val STORAGE_MODULES = setOf(":core:database", ":core:datastore", ":core:network")
 
 /** Fails with every collected violation; violation-free modules pass. */
 abstract class CheckModuleGraphTask : DefaultTask() {
