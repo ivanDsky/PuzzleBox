@@ -152,7 +152,7 @@ val playModule = module {
     // The memory forgets the last pick with the process.
     single { RandomPickMemory() }
     // The preset game is the one parameter: the page whose Random opened the sheet.
-    viewModel { params -> RandomPuzzleViewModel(params.get<GameId>(), get(), get(), get()) }
+    viewModel { params -> RandomPuzzleViewModel(params.get<GameId>(), get(), get(), get(), releaseFlags = getOrNull()) }
     // How to play opens the rules sheet over the live play for a game with rules copy.
     single { HowToPlayRules() }
     factory {
