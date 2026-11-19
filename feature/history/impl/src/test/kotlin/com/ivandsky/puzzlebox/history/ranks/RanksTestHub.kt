@@ -56,13 +56,15 @@ internal class RanksTestHub(
     val today: LocalDate = LocalDate.of(2026, 11, 13),
     /** The player's stored default scope: Global here, so a test names Friends when it means it. */
     friendsDefault: Boolean = false,
+    /** The player's stored default games: All games here, so a test names LinkedIn games when it means it. */
+    linkedInDefault: Boolean = false,
     /** When set, the stored default does not arrive until it completes, like a DataStore read that has not returned yet. */
     private val storedDefaultGate: CompletableDeferred<Unit>? = null,
 ) {
     val identity = FakeIdentityService(initial = identity)
     val calendar = FakeGameCalendar(today)
     val completions = FakeCompletionRepository()
-    val preferences = FakeUserPreferencesRepository(ranksFriendsDefault = friendsDefault)
+    val preferences = FakeUserPreferencesRepository(ranksFriendsDefault = friendsDefault, ranksLinkedInDefault = linkedInDefault)
     val daily = FakeDailyRepository()
     /** What the phone holds of the viewer's LinkedIn days; read only by a [viewModel] built with LinkedIn on. */
     val linkedInDays = FakeLinkedInDays()

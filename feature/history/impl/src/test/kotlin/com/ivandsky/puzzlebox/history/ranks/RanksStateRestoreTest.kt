@@ -64,6 +64,23 @@ class RanksStateRestoreTest {
     }
 
     @Test
+    fun `the Games pick round-trips through the handle`() {
+        val handle = SavedStateHandle()
+        RanksSelectionSaver(handle).save(picked.copy(games = RanksSelection.Games.LinkedIn))
+
+        assertEquals(RanksSelection.Games.LinkedIn, RanksSelectionSaver(handle).restore(RanksSelection(), boards).games)
+    }
+
+    @Test
+    fun `a selection saved before the Games filter existed restores as All games`() {
+        val handle = SavedStateHandle()
+        RanksSelectionSaver(handle).save(picked)
+        handle.remove<String>(GAMES_KEY)
+
+        assertEquals(picked, RanksSelectionSaver(handle).restore(RanksSelection(), boards))
+    }
+
+    @Test
     fun `an unpicked day restores as null, so the board keeps following the rollover`() {
         val handle = SavedStateHandle()
         RanksSelectionSaver(handle).save(RanksSelection(board = RanksBoard.Game(ZIP)))

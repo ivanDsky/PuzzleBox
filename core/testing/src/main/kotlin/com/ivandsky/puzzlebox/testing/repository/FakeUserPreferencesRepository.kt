@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.update
 /**
  * In-memory [UserPreferencesRepository] with the real one's semantics: one theme mode,
  * a per-game tutorial-seen flag that starts false and, once marked, stays set, and the
- * witness auto-show and replay-errors switches, both on by default, the Ranks Friends default (on) and vibration (on) and the self-duel time-left switch (on). Every change re-emits. [seen] reads the marked
+ * witness auto-show and replay-errors switches, both on by default, the Ranks Friends default (on), the Ranks LinkedIn games default (off) and vibration (on) and the self-duel time-left switch (on). Every change re-emits. [seen] reads the marked
  * games synchronously for assertions.
  */
 class FakeUserPreferencesRepository(
@@ -22,6 +22,7 @@ class FakeUserPreferencesRepository(
     autoShowWitness: Boolean = true,
     showReplayErrors: Boolean = true,
     ranksFriendsDefault: Boolean = true,
+    ranksLinkedInDefault: Boolean = false,
     vibration: Boolean = true,
     showSelfDuelTimeLeft: Boolean = true,
     private val themeReadFails: Boolean = false,
@@ -32,6 +33,7 @@ class FakeUserPreferencesRepository(
     private val autoShow = MutableStateFlow(autoShowWitness)
     private val replayErrors = MutableStateFlow(showReplayErrors)
     private val ranksFriends = MutableStateFlow(ranksFriendsDefault)
+    private val ranksLinkedIn = MutableStateFlow(ranksLinkedInDefault)
     private val vibrationOn = MutableStateFlow(vibration)
     private val selfDuelTimeLeft = MutableStateFlow(showSelfDuelTimeLeft)
 
@@ -68,6 +70,12 @@ class FakeUserPreferencesRepository(
 
     override suspend fun setRanksFriendsDefault(friends: Boolean) {
         ranksFriends.value = friends
+    }
+
+    override val ranksLinkedInDefault: Flow<Boolean> = ranksLinkedIn
+
+    override suspend fun setRanksLinkedInDefault(linkedIn: Boolean) {
+        ranksLinkedIn.value = linkedIn
     }
 
     override val vibration: Flow<Boolean> = vibrationOn

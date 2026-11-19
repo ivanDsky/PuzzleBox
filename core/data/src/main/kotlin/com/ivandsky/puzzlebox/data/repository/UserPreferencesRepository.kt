@@ -38,6 +38,11 @@ interface UserPreferencesRepository {
 
     suspend fun setRanksFriendsDefault(friends: Boolean)
 
+    /** Whether the Ranks hub opens on LinkedIn games only (true) or All games (false, until switched); a restored selection still wins. */
+    val ranksLinkedInDefault: Flow<Boolean>
+
+    suspend fun setRanksLinkedInDefault(linkedIn: Boolean)
+
     /** Whether the app plays any haptic; true until switched off. Gates every one, whatever the game's own feel says. */
     val vibration: Flow<Boolean>
 

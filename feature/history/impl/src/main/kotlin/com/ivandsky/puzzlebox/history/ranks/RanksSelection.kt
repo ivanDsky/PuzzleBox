@@ -6,7 +6,7 @@ import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 
 /**
- * What the player picked in the hub: the [board], the [window] and [scope] it ranks over, the
+ * What the player picked in the hub: the [board], the [window] and [scope] it ranks over, the [games] it counts, the
  * [day] (null = each game's calendar today, so the midnight rollover needs no write here) and
  * whether the calendar is open to the month, at the week or month holding [shownDay] (null = the picked day's, else today's). The view model holds one of these; every control
  * changes it through the transitions below and every other state derives from it.
@@ -18,6 +18,7 @@ internal data class RanksSelection(
     val day: LocalDate? = null,
     val calendarExpanded: Boolean = false,
     val shownDay: LocalDate? = null,
+    val games: Games = Games.All,
 ) {
     /** The span the player chose; the domain's [RankWindow] is that span at an anchor day, which [day] and the calendar supply. */
     enum class Window {
@@ -31,6 +32,12 @@ internal data class RanksSelection(
             Week -> RankWindow.Week(anchor)
             Month -> RankWindow.Month(anchor)
         }
+    }
+
+    /** The games the hub counts and lists: every game, or only the LinkedIn games (GamesFilter), which leaves Strands out. [label] is how the chip and the Tune default name it. */
+    enum class Games(val label: String) {
+        All("All games"),
+        LinkedIn("LinkedIn games"),
     }
 
     companion object {
@@ -68,6 +75,12 @@ internal data class RanksSelection(
 
     fun setScope(scope: RankScope) = copy(scope = scope)
 
-    /** Back to the landing choice: Overall, today, the player's default [scope]. The calendar folds too. */
-    fun reset(scope: RankScope) = RanksSelection(scope = scope)
+    /** The Games pick: the board stays when it is still [listed] under [games], else the hub moves to Overall. */
+    fun setGames(games: Games, listed: List<RanksBoard>) = copy(games = games, board = board.takeIf { it in listed } ?: RanksBoard.Overall)
+
+    /** The player's default [games] as a fresh hub opens: kept only when the open board is [listed] under it, so a link to a game it would hide keeps All games. */
+    fun land(games: Games, listed: List<RanksBoard>) = if (board in listed) copy(games = games) else this
+
+    /** Back to the landing choice: Overall, today, the player's default [scope] and [games]. The calendar folds too. */
+    fun reset(scope: RankScope, games: Games) = RanksSelection(scope = scope, games = games)
 }

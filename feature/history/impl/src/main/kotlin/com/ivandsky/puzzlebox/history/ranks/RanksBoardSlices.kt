@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.shareIn
 
 private const val OVERALL_CAPTION = "Points from every game's Ranks. Higher is better."
+private const val LINKEDIN_OVERALL_CAPTION = "Points from the LinkedIn games' Ranks. Higher is better."
 
 /** A game's Week or Month caption when it adds up its days' points (WeekMonthPoints). */
 internal const val WEEK_MONTH_POINTS_CAPTION = "Points from each day's Ranks. Higher is better."
@@ -40,6 +41,8 @@ internal const val WEEK_MONTH_POINTS_CAPTION = "Points from each day's Ranks. Hi
  * Overall rank friends among themselves, with the LinkedIn connections ([ghosts]) counted on every one. With [freshness]
  * a game's Friends Day board also says when its LinkedIn part was last read, and the boards are drawn again each minute to keep it current.
  * With [weekMonthPoints] a game's Week and Month rank by its daily place points summed, as Overall sums every game's.
+ * Under [RanksSelection.Games.LinkedIn] the list holds only the LinkedIn games ([isLinkedInGame]) and Overall sums only
+ * their boards; each game's own board is the same, and nothing is read that the shared window boards do not already hold.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class RanksBoardSlices(
@@ -56,13 +59,13 @@ internal class RanksBoardSlices(
     private val freshness: RanksFreshness? = null,
     private val weekMonthPoints: Boolean = false,
 ) {
-    private val games = boards.filterIsInstance<RanksBoard.Game>().map { it.id }
+    private val gameIds = boards.filterIsInstance<RanksBoard.Game>().map { it.id }
 
     // A game's day turning over changes what its unofficial row may say, so it projects the boards again.
-    private val rollover: Flow<Unit> = if (games.isEmpty()) flowOf(Unit) else combine(games.map(calendar::observeToday)) { }
+    private val rollover: Flow<Unit> = if (gameIds.isEmpty()) flowOf(Unit) else combine(gameIds.map(calendar::observeToday)) { }
 
-    /** The boards of a [kind] window as [scope] ranks them; [day] is the picked day their titles name, null for today. */
-    fun observe(kind: RanksSelection.Window, day: LocalDate?, scope: RankScope): Flow<List<RanksBoardSlice>> = window.flatMapLatest { window ->
+    /** The boards of a [kind] window as [scope] ranks them, listed and counted as [games] says; [day] is the picked day their titles name, null for today. */
+    fun observe(kind: RanksSelection.Window, day: LocalDate?, scope: RankScope, games: RanksSelection.Games): Flow<List<RanksBoardSlice>> = window.flatMapLatest { window ->
         // Null until this window's boards answer in this scope: neither the last window's nor the other scope's show as these.
         val answered = ghosts.counted(scope, scopedBoards(scope).map { it?.takeIf { (of, _) -> of == window }?.second }, viewer)
         // The line is only on a Friends Day board, so only there is a minute worth redrawing for.
@@ -72,8 +75,8 @@ internal class RanksBoardSlices(
             rollover
         }
         fun drawn(inScope: Flow<BoardGhosts.Counted?>) =
-            combine(inScope, observeOverall(inScope.mapNotNull { it?.counted }), viewer, history, updates) { inWindow, overall, me, rows, _ ->
-                slicesOf(kind, day, scope, inWindow, overall, me, rows)
+            combine(inScope, observeOverall(inScope.mapNotNull { it?.counted?.among(games, isLinkedInGame) }), viewer, history, updates) { inWindow, overall, me, rows, _ ->
+                slicesOf(kind, day, scope, games, inWindow, overall, me, rows)
             }
         if (scope == RankScope.Global) {
             drawn(answered)
@@ -91,6 +94,7 @@ internal class RanksBoardSlices(
         kind: RanksSelection.Window,
         day: LocalDate?,
         scope: RankScope,
+        games: RanksSelection.Games,
         inWindow: BoardGhosts.Counted?,
         overall: OverallState,
         me: Identity?,
@@ -101,9 +105,10 @@ internal class RanksBoardSlices(
         val photos = if (friends) inWindow?.photos().orEmpty() else emptyMap()
         val points = if (weekMonthPoints && !oneDay) pointsOf(me, rows) else null
         // Leaderboard rows carry no photo: every slice's own row joins the signed-in account's, after the connections' pictures.
-        return boards.map { board ->
+        return boards.listed(games, isLinkedInGame).map { board ->
             when (board) {
-                RanksBoard.Overall -> overallSlice(kind, day, overall, me?.uid).let { if (friends) it.inFriendsCounted(photos) else it }
+                RanksBoard.Overall -> overallSlice(kind, day, overall, me?.uid, if (games == RanksSelection.Games.LinkedIn) LINKEDIN_OVERALL_CAPTION else OVERALL_CAPTION)
+                    .let { if (friends) it.inFriendsCounted(photos) else it }
                 is RanksBoard.Game -> {
                     val slice = game(board.id, kind, day, if (oneDay) inWindow?.plain else inWindow?.counted, me, rows, points)
                     when {
@@ -144,11 +149,11 @@ internal class RanksBoardSlices(
     }
 }
 
-/** Overall's slice of a [kind] window (titled for [day]) in [state], as [selfUid] sees it. */
-internal fun overallSlice(kind: RanksSelection.Window, day: LocalDate?, state: OverallState, selfUid: String?) = RanksBoardSlice(
+/** Overall's slice of a [kind] window (titled for [day]) in [state], as [selfUid] sees it, under [caption]. */
+internal fun overallSlice(kind: RanksSelection.Window, day: LocalDate?, state: OverallState, selfUid: String?, caption: String = OVERALL_CAPTION) = RanksBoardSlice(
     title = boardTitle("Overall", kind, day),
     order = RankOrder.TimeThenHints,
     state = state.toDailyBoardState(selfUid),
-    caption = OVERALL_CAPTION,
+    caption = caption,
     note = state.boardNote(),
 )

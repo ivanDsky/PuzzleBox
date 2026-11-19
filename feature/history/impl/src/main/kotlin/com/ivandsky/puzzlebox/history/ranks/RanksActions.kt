@@ -20,6 +20,7 @@ internal data class RanksActions(
     val onNudgeShown: () -> Unit = {},
     val onScope: (RankScope) -> Unit = {},
     val onWindow: (RanksSelection.Window) -> Unit = {},
+    val onGames: (RanksSelection.Games) -> Unit = {},
     val onShowCalendar: (day: LocalDate, expanded: Boolean) -> Unit = { _, _ -> },
     val onSelectDay: (LocalDate?) -> Unit = {},
     val onPlayAgain: (GameId, LocalDate) -> Unit = { _, _ -> },

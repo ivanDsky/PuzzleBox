@@ -9,13 +9,18 @@ import com.ivandsky.puzzlebox.designsystem.FilterOption
 import com.ivandsky.puzzlebox.designsystem.SingleFilterChip
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.ranks.RankScope
+import com.ivandsky.puzzlebox.history.ranks.RanksSelection.Games
 import com.ivandsky.puzzlebox.history.ranks.RanksSelection.Window
 
 // The rows carry the tags today's tune segments do; the first row of each (Global, Day) is the chip's "all" row.
 private val ScopeOptions = listOf(FilterOption(RankScope.Friends, "Friends", tag = "ranks.tune.scope.Friends"))
 private val WindowOptions = listOf(Window.Week, Window.Month).map { FilterOption(it, it.name, tag = "ranks.tune.window.${it.name}") }
+private val GamesOptions = listOf(FilterOption(Games.LinkedIn, Games.LinkedIn.label, tag = "ranks.tune.games.LinkedIn"))
 
-/** Who and When as single-pick chips. [onOpenChange] hears each sheet open and close so the screen can hold other sheets back. */
+/**
+ * Who and When as single-pick chips, and with GamesFilter on Games (All games or LinkedIn games) as a third.
+ * [onOpenChange] hears each sheet open and close so the screen can hold other sheets back.
+ */
 @Composable
 internal fun RanksFilterChips(state: RanksUiState, actions: RanksActions, onOpenChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
     FilterChipRow(modifier.testTag("ranks.filters").padding(top = Spacing.sm)) {
@@ -39,5 +44,17 @@ internal fun RanksFilterChips(state: RanksUiState, actions: RanksActions, onOpen
             tag = "ranks.filter.when",
             allTag = "ranks.tune.window.Day",
         )
+        if (state.gamesFilter) {
+            SingleFilterChip(
+                name = "Games",
+                allLabel = Games.All.label,
+                options = GamesOptions,
+                selected = state.games.takeIf { it != Games.All },
+                onSelect = { actions.onGames(it ?: Games.All) },
+                onOpenChange = onOpenChange,
+                tag = "ranks.filter.games",
+                allTag = "ranks.tune.games.All",
+            )
+        }
     }
 }

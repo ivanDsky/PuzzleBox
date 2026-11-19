@@ -27,22 +27,27 @@ import com.ivandsky.puzzlebox.designsystem.SegmentedToggle
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.history.RanksTuneDefaults
+import com.ivandsky.puzzlebox.history.ranks.RanksSelection.Games
 import kotlinx.coroutines.launch
 
 /**
- * The Defaults block of the tune sheet: the scope the hub opens on (Friends or Global) and the player's visibility tier,
- * both the stored values Settings holds. A pick writes through [defaults] and the sheet stays open; it does not change the
- * scope shown now, that is Who. While the tier is [OwnTier.Unknown] none is selected and the steps are disabled.
+ * The Defaults block of the tune sheet: the scope the hub opens on (Friends or Global), with [gamesFilter] (GamesFilter)
+ * the games it opens on (All games or LinkedIn games), and the player's visibility tier, all stored values. A pick writes
+ * through [defaults] and the sheet stays open; it does not change what is shown now, that is Who, When and Games. While the
+ * tier is [OwnTier.Unknown] none is selected and the steps are disabled.
  */
 @Composable
-internal fun TuneDefaultsBlock(defaults: RanksTuneDefaults, modifier: Modifier = Modifier) {
+internal fun TuneDefaultsBlock(defaults: RanksTuneDefaults, gamesFilter: Boolean, modifier: Modifier = Modifier) {
     val friends by defaults.friendsDefault.collectAsStateWithLifecycle(initialValue = true)
+    val linkedIn by defaults.linkedInDefault.collectAsStateWithLifecycle(initialValue = false)
     val own by defaults.ownTier.collectAsStateWithLifecycle(initialValue = OwnTier.Unknown)
     val writer = rememberCoroutineScope()
     TuneDefaults(
         friendsDefault = friends,
+        gamesDefault = if (!gamesFilter) null else if (linkedIn) Games.LinkedIn else Games.All,
         own = own,
         onScope = { writer.launch { defaults.onSelectFriendsDefault(it == RankScope.Friends) } },
+        onGames = { writer.launch { defaults.onSelectLinkedInDefault(it == Games.LinkedIn) } },
         onTier = { writer.launch { defaults.onSelectTier(it) } },
         modifier = modifier,
     )
@@ -51,8 +56,10 @@ internal fun TuneDefaultsBlock(defaults: RanksTuneDefaults, modifier: Modifier =
 @Composable
 private fun TuneDefaults(
     friendsDefault: Boolean,
+    gamesDefault: Games?,
     own: OwnTier,
     onScope: (RankScope) -> Unit,
+    onGames: (Games) -> Unit,
     onTier: (VisibilityTier) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -75,6 +82,17 @@ private fun TuneDefaults(
             tag = { "ranks.tune.defaults.scope.${it.name}" },
             modifier = Modifier.fillMaxWidth(),
         )
+        if (gamesDefault != null) {
+            Text("Games", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            SegmentedToggle(
+                options = Games.entries,
+                selected = gamesDefault,
+                onSelect = onGames,
+                label = { it.label },
+                tag = { "ranks.tune.defaults.games.${it.name}" },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
         Text("Who can see you", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         TierChoices(selected = own.effective, enabled = own != OwnTier.Unknown, onSelect = onTier)
     }
@@ -125,6 +143,6 @@ private val MinRowHeight = 48.dp
 @Composable
 private fun TuneDefaultsPreview() {
     RanksPreviewHost {
-        TuneDefaultsBlock(previewTuneDefaults())
+        TuneDefaultsBlock(previewTuneDefaults(), gamesFilter = true)
     }
 }

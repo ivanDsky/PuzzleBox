@@ -152,6 +152,21 @@ class PuzzleBoxPreferencesDataSourceTest {
     }
 
     @Test
+    fun `the Ranks hub defaults to All games and a LinkedIn games pick survives a new data source over the same file`() = runTest {
+        val file = tempFile()
+        val firstScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + SupervisorJob())
+        val firstProcess = PuzzleBoxPreferencesDataSource(
+            PreferenceDataStoreFactory.create(scope = firstScope) { file },
+        )
+        assertFalse(firstProcess.preferences.first().ranksLinkedInDefault)
+
+        firstProcess.setRanksLinkedInDefault(true)
+        firstScope.cancel()
+
+        assertTrue(newDataSource(file).preferences.first().ranksLinkedInDefault)
+    }
+
+    @Test
     fun `vibration is on until switched off and an off survives a new data source over the same file`() = runTest {
         val file = tempFile()
         val firstScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + SupervisorJob())

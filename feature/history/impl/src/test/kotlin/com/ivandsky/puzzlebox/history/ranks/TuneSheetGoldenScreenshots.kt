@@ -44,11 +44,13 @@ abstract class TuneSheetGoldenScreenshots(private val device: String) {
         onSelectTier = {},
         friendsDefault = MutableStateFlow(true),
         onSelectFriendsDefault = {},
+        linkedInDefault = MutableStateFlow(false),
+        onSelectLinkedInDefault = {},
     )
 
     internal fun capture(name: String, dark: Boolean) {
         rule.showGolden(dark) {
-            TuneSheet(defaults, onDismiss = {})
+            TuneSheet(defaults, gamesFilter = false, onDismiss = {})
         }
         rule.settleAndCapture("ranks", name, device, dark)
     }

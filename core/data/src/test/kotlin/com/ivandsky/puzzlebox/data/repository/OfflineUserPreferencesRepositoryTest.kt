@@ -118,6 +118,18 @@ class OfflineUserPreferencesRepositoryTest {
     }
 
     @Test
+    fun `ranks open on All games until the player picks LinkedIn games`() = runTest {
+        val repository = newRepository()
+        assertFalse(repository.ranksLinkedInDefault.first())
+
+        repository.setRanksLinkedInDefault(true)
+        assertTrue(repository.ranksLinkedInDefault.first())
+
+        repository.setRanksLinkedInDefault(false)
+        assertFalse(repository.ranksLinkedInDefault.first())
+    }
+
+    @Test
     fun `vibration is on until switched off`() = runTest {
         val repository = newRepository()
         assertTrue(repository.vibration.first())

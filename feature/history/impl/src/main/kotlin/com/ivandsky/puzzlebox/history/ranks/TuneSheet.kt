@@ -16,28 +16,28 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.history.RanksTuneDefaults
 
 /**
- * The tune sheet: the Defaults block ([TuneDefaultsBlock], fed by [defaults]) alone, since the filter chips own Who and When.
- * [onDismiss] closes it.
+ * The tune sheet: the Defaults block ([TuneDefaultsBlock], fed by [defaults]) alone, since the filter chips own Who, When
+ * and Games; [gamesFilter] (GamesFilter) adds the Games default to the block. [onDismiss] closes it.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun TuneSheet(defaults: RanksTuneDefaults, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+internal fun TuneSheet(defaults: RanksTuneDefaults, gamesFilter: Boolean, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
     // The sheet opens whole instead of half way, so the Defaults block is not cut off.
     val state = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     AppModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier.testTag("ranks.tune.sheet"), sheetState = state) {
-        TuneChoices(defaults)
+        TuneChoices(defaults, gamesFilter)
     }
 }
 
 @Composable
-private fun TuneChoices(defaults: RanksTuneDefaults) {
+private fun TuneChoices(defaults: RanksTuneDefaults, gamesFilter: Boolean) {
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg)) {
-        TuneDefaultsBlock(defaults)
+        TuneDefaultsBlock(defaults, gamesFilter)
     }
 }
 
 @PuzzleBoxPreviews
 @Composable
 private fun TuneChoicesPreview() {
-    RanksPreviewHost { TuneChoices(previewTuneDefaults()) }
+    RanksPreviewHost { TuneChoices(previewTuneDefaults(), gamesFilter = true) }
 }
