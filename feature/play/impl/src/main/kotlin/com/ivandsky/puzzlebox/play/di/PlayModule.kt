@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.TopBarFlag
 import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
+import com.ivandsky.puzzlebox.domain.ranks.LoadFriendsPastPage
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
@@ -197,6 +198,7 @@ val playModule = module {
             puzzleDay = get(),
             nextRollover = get(),
             communityPuzzles = get(),
+            friendsPast = get<LoadFriendsPastPage.Binding>().loader,
         )
     }
     // The flag-as-parameter rule again: with it off the result never touches LinkedIn. The Post button's flag is

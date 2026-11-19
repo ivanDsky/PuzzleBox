@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayStatus
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
 import com.ivandsky.puzzlebox.game.RankOrder
 import java.time.LocalDate
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -69,7 +70,7 @@ class ConnectionBoardsTest {
     }
 
     @Test
-    fun `the entry points place the viewer on their LinkedIn-only day as the hub's Friends board does`() {
+    fun `the entry points place the viewer on their LinkedIn-only day as the hub's Friends board does`() = runTest {
         val standing = FriendDay(board, setOf("bea"), day(imported = 50_000)).standing(listOf(zed, bea), ann, RankOrder.TimeThenHints)
 
         assertEquals(FriendDay.Standing(place = 1, count = 2), standing)
