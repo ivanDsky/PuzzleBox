@@ -16,7 +16,10 @@ import kotlin.math.floor
  * cell and skips none:
  *
  * - The finger nearly at the middle of the cell before the tail: the trace steps back one cell
- *   ([DragEvent.Retract]). Any other traced cell is a wall, never cut back to, crossed or picked up.
+ *   ([DragEvent.Retract]). Where the line turns at that cell, the finger nearly at the middle of the
+ *   cell before the turn steps it back too: a finger backing round a corner cuts across the corner
+ *   cell and never comes near its middle. Any other traced cell is a wall, never cut back to,
+ *   crossed or picked up.
  * - The finger [DragTraceSteer.StepOut] past the tail: the trace steps into the neighbour in the
  *   finger's direction on the axis it is further along. When that step would strand a free cell
  *   ([DragTraceHooks.strands]) and the neighbour on the other axis would not, the finger must be
@@ -103,7 +106,7 @@ internal class DragTraceStroke(
             cell == tail -> steering = true
             cell in path -> refuse(cell)
             takes(cell) -> steering = true
-            tail != null && abs(cell.row - tail.row) == 1 && abs(cell.col - tail.col) == 1 -> steering = true
+            tail != null && diagonal(cell, tail) -> steering = true
             else -> refuse(cell)
         }
     }
@@ -116,16 +119,26 @@ internal class DragTraceStroke(
     private fun stepBack(finger: Offset): Boolean {
         val tail = path.last()
         val previous = path.getOrNull(path.lastIndex - 1) ?: return false
-        val offset = offsetFromTail(finger, tail)
-        val towardRow = previous.row - tail.row
-        val towardCol = previous.col - tail.col
-        val along = offset.x * towardCol + offset.y * towardRow
-        val sideways = abs(offset.x * towardRow) + abs(offset.y * towardCol)
-        if (along < DragTraceSteer.StepBack || sideways > DragTraceSteer.StepBackSideways) return false
+        val beforeTurn = path.getOrNull(path.lastIndex - 2)?.takeIf { diagonal(it, tail) }
+        val back = nearlyAtMiddle(finger, of = previous, from = tail) ||
+            (beforeTurn != null && nearlyAtMiddle(finger, of = beforeTurn, from = previous))
+        if (!back) return false
         path = path.dropLast(1)
         emit(DragEvent.Retract(path.lastIndex))
         return true
     }
+
+    /** The finger is [DragTraceSteer.StepBack] from [from]'s centre toward its neighbour [of], near the line between them. */
+    private fun nearlyAtMiddle(finger: Offset, of: GridCell, from: GridCell): Boolean {
+        val offset = offsetFromTail(finger, from)
+        val towardRow = of.row - from.row
+        val towardCol = of.col - from.col
+        val along = offset.x * towardCol + offset.y * towardRow
+        val sideways = abs(offset.x * towardRow) + abs(offset.y * towardCol)
+        return along >= DragTraceSteer.StepBack && sideways <= DragTraceSteer.StepBackSideways
+    }
+
+    private fun diagonal(a: GridCell, b: GridCell) = abs(a.row - b.row) == 1 && abs(a.col - b.col) == 1
 
     private fun stepForward(finger: Offset): Boolean {
         val tail = path.last()
@@ -211,7 +224,10 @@ internal object DragTraceSteer {
     /** A finger leaning at least this share of its reach (within 15° of the diagonal) means either step. */
     const val DiagonalLean: Float = 0.58f
 
-    /** The finger this far toward the cell before the tail, nearly at its middle, steps back... */
+    /**
+     * The finger this far toward the cell before the tail, nearly at its middle, steps back; where the
+     * line turns at that cell, as far from it toward the cell before the turn steps back too...
+     */
     const val StepBack: Float = 0.9f
 
     /** ...unless it is further than this off the line to that cell. */
