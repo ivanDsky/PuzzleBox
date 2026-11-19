@@ -3,9 +3,9 @@ package com.ivandsky.puzzlebox.history.ranks
 import androidx.lifecycle.SavedStateHandle
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
-import com.ivandsky.puzzlebox.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
+import com.ivandsky.puzzlebox.history.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository

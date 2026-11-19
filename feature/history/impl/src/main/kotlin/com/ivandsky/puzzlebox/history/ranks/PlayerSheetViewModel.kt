@@ -8,10 +8,10 @@ import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.domain.CreateMatch
 import com.ivandsky.puzzlebox.domain.CreateOutcome
 import com.ivandsky.puzzlebox.domain.DuelSettings
-import com.ivandsky.puzzlebox.domain.ranks.GetPlayerActions
-import com.ivandsky.puzzlebox.domain.ranks.PlayerActions
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.history.domain.ranks.GetPlayerActions
+import com.ivandsky.puzzlebox.history.domain.ranks.PlayerActions
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import kotlinx.coroutines.Job

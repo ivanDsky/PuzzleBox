@@ -17,9 +17,9 @@ import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
-import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
-import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
-import com.ivandsky.puzzlebox.domain.ranks.ObserveWindowRefresh
+import com.ivandsky.puzzlebox.history.domain.ranks.ObserveOverall
+import com.ivandsky.puzzlebox.history.domain.ranks.ObserveRankWindow
+import com.ivandsky.puzzlebox.history.domain.ranks.ObserveWindowRefresh
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.history.HistoryTestSupport

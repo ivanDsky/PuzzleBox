@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain.ranks
+package com.ivandsky.puzzlebox.history.domain.ranks
 
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -6,6 +6,10 @@ import com.ivandsky.puzzlebox.data.leaderboard.BoardPage
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntries
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
+import com.ivandsky.puzzlebox.domain.ranks.BoardLoad
+import com.ivandsky.puzzlebox.domain.ranks.RankWindowBoards
+import com.ivandsky.puzzlebox.domain.ranks.amongFriends
+import com.ivandsky.puzzlebox.domain.ranks.rankBoard
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine

@@ -1,12 +1,12 @@
-package com.ivandsky.puzzlebox.domain.ranks
+package com.ivandsky.puzzlebox.history.domain.ranks
 
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
-import com.ivandsky.puzzlebox.domain.ranks.PlayerActions.Challenge
-import com.ivandsky.puzzlebox.domain.ranks.PlayerActions.Watch
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.history.domain.ranks.PlayerActions.Challenge
+import com.ivandsky.puzzlebox.history.domain.ranks.PlayerActions.Watch
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository

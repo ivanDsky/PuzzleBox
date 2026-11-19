@@ -7,9 +7,9 @@ import com.ivandsky.puzzlebox.domain.ComputeMatchLegs
 import com.ivandsky.puzzlebox.domain.CreateMatch
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.lineup.ValidateExactPuzzles
-import com.ivandsky.puzzlebox.domain.ranks.GetPlayerActions
-import com.ivandsky.puzzlebox.domain.ranks.PlayerActions
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.history.domain.ranks.GetPlayerActions
+import com.ivandsky.puzzlebox.history.domain.ranks.PlayerActions
 import com.ivandsky.puzzlebox.history.ranks.PlayerSheetViewModel.Challenge
 import com.ivandsky.puzzlebox.history.ranks.PlayerSheetViewModel.Target
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar

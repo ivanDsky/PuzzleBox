@@ -1,11 +1,11 @@
 package com.ivandsky.puzzlebox.history.ranks
 
-import com.ivandsky.puzzlebox.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.domain.ranks.RankWindow
 import com.ivandsky.puzzlebox.history.HistoryTestSupport
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.QUEENS
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
+import com.ivandsky.puzzlebox.history.domain.ranks.RankScope
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Test

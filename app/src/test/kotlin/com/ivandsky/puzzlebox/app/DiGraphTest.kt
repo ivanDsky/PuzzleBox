@@ -63,11 +63,7 @@ import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
-import com.ivandsky.puzzlebox.domain.ranks.GetPlayerActions
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
-import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
-import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
-import com.ivandsky.puzzlebox.domain.ranks.ObserveWindowRefresh
 import com.ivandsky.puzzlebox.game.DailySource
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
@@ -75,6 +71,10 @@ import com.ivandsky.puzzlebox.games.queensui.editor.QueensEditorUi
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
+import com.ivandsky.puzzlebox.history.domain.ranks.GetPlayerActions
+import com.ivandsky.puzzlebox.history.domain.ranks.ObserveOverall
+import com.ivandsky.puzzlebox.history.domain.ranks.ObserveRankWindow
+import com.ivandsky.puzzlebox.history.domain.ranks.ObserveWindowRefresh
 import com.ivandsky.puzzlebox.home.HomeViewModel
 import com.ivandsky.puzzlebox.home.domain.GetAppUpdate
 import com.ivandsky.puzzlebox.home.domain.ObserveLatestSolvedToday

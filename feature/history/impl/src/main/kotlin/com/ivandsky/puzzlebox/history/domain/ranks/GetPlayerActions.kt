@@ -1,11 +1,11 @@
-package com.ivandsky.puzzlebox.domain.ranks
+package com.ivandsky.puzzlebox.history.domain.ranks
 
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.visibility.TierLookup
 import com.ivandsky.puzzlebox.data.visibility.VisibilityRepository
-import com.ivandsky.puzzlebox.domain.ranks.PlayerActions.Challenge
-import com.ivandsky.puzzlebox.domain.ranks.PlayerActions.Watch
+import com.ivandsky.puzzlebox.history.domain.ranks.PlayerActions.Challenge
+import com.ivandsky.puzzlebox.history.domain.ranks.PlayerActions.Watch
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import kotlinx.coroutines.flow.first
 

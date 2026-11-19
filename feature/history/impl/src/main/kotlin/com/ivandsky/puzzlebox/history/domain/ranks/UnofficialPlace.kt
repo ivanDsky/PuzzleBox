@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain.ranks
+package com.ivandsky.puzzlebox.history.domain.ranks
 
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.game.BestScore

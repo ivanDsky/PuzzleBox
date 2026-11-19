@@ -1,6 +1,8 @@
-package com.ivandsky.puzzlebox.domain.ranks
+package com.ivandsky.puzzlebox.history.domain.ranks
 
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
+import com.ivandsky.puzzlebox.domain.ranks.RankedBoard
+import com.ivandsky.puzzlebox.domain.ranks.pointsBeyondPage
 import kotlin.math.roundToLong
 
 /** Players ranked by total percentile points over a window's boards (A10). */

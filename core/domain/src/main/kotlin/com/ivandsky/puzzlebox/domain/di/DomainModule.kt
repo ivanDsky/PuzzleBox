@@ -28,12 +28,8 @@ import com.ivandsky.puzzlebox.domain.lineup.ValidateExactPuzzles
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
-import com.ivandsky.puzzlebox.domain.ranks.GetPlayerActions
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
-import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
-import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
-import com.ivandsky.puzzlebox.domain.ranks.ObserveWindowRefresh
 import com.ivandsky.puzzlebox.domain.ranks.SubmitDailyReplay
 import java.time.Instant
 import java.util.UUID
@@ -73,10 +69,6 @@ val domainModule = module {
         )
     }
     factory { ObserveLeaderboard(identity = get(), leaderboard = get(), registry = get(), calendar = get()) }
-    factory {
-        ObserveRankWindow(identity = get(), leaderboard = get(), finalBoards = get(), registry = get(), calendar = get())
-    }
-    factory { ObserveWindowRefresh(network = get()) }
     // The app decides whether there is a Friends/Global setting to follow; with none the rank is Global.
     factory { ObserveResultRank(leaderboard = get(), registry = get(), friendDay = get<ObserveFriendDay.Binding>().reader) }
     factory {
@@ -98,9 +90,7 @@ val domainModule = module {
             clock = { Instant.now() },
         )
     }
-    factory { ObserveOverall(identity = get(), completions = get()) }
     factory { ObserveFriendUids(matches = get(), identity = get()) }
-    factory { GetPlayerActions(visibility = get(), completions = get()) }
     factory {
         SubmitDailyReplay(
             completions = get(),

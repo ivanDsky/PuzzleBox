@@ -1,5 +1,8 @@
-package com.ivandsky.puzzlebox.domain.ranks
+package com.ivandsky.puzzlebox.history.domain.ranks
 
+import com.ivandsky.puzzlebox.domain.ranks.percentilePoints
+import com.ivandsky.puzzlebox.domain.ranks.pointsBeyondPage
+import com.ivandsky.puzzlebox.domain.ranks.rankBoard
 import com.ivandsky.puzzlebox.testing.repository.OverallCases
 import java.util.TimeZone
 import org.junit.After

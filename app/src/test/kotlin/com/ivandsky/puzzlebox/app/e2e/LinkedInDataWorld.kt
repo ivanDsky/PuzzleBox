@@ -18,7 +18,6 @@ import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.database.linkedin.LinkedInDatabase
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
-import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.PuzzleRef
@@ -27,14 +26,17 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInAccountSession
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInAccountSource
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInBoard
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInOwnResult
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInPhotoSource
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
+import com.ivandsky.puzzlebox.history.domain.ranks.ObserveRankWindow
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInAccountSource
+import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInPhotoSource
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInSessionCookies
 import java.time.Clock
 import java.time.Duration
@@ -44,8 +46,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.koin.android.ext.koin.androidContext
-import com.ivandsky.puzzlebox.game.linkedin.LinkedInPhotoSource
-import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInPhotoSource
 import org.koin.core.Koin
 import org.koin.core.KoinApplication
 import org.koin.core.module.Module

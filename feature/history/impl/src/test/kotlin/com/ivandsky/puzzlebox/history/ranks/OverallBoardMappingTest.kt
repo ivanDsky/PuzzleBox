@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.history.ranks
 
-import com.ivandsky.puzzlebox.domain.ranks.OverallStandings
-import com.ivandsky.puzzlebox.domain.ranks.OverallState
+import com.ivandsky.puzzlebox.history.domain.ranks.OverallStandings
+import com.ivandsky.puzzlebox.history.domain.ranks.OverallState
 import com.ivandsky.puzzlebox.resultui.board.BoardRowValue
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
 import org.junit.Assert.assertEquals

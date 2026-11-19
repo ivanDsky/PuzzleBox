@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain.ranks
+package com.ivandsky.puzzlebox.history.domain.ranks
 
 /** What the viewer may do with another player from a board row (A19, A21). */
 data class PlayerActions(val challenge: Challenge, val watch: Watch) {

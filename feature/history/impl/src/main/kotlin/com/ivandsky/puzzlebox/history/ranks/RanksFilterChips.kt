@@ -8,7 +8,7 @@ import com.ivandsky.puzzlebox.designsystem.FilterChipRow
 import com.ivandsky.puzzlebox.designsystem.FilterOption
 import com.ivandsky.puzzlebox.designsystem.SingleFilterChip
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.domain.ranks.RankScope
+import com.ivandsky.puzzlebox.history.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.history.ranks.RanksSelection.Games
 import com.ivandsky.puzzlebox.history.ranks.RanksSelection.Window
 
