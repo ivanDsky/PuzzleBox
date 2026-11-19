@@ -19,6 +19,7 @@ import com.ivandsky.puzzlebox.home.HomeDuelsSummary
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.home.HomeSummaries
+import com.ivandsky.puzzlebox.home.RecapSlot
 import com.ivandsky.puzzlebox.home.navigation.homeEntry
 import com.ivandsky.puzzlebox.insights.api.InsightsRecapKey
 import com.ivandsky.puzzlebox.insights.navigation.insightsEntry
@@ -67,7 +68,8 @@ import java.time.LocalDate
  * Today's day and streak summaries open the hub ([homeSummaries]), and the hub takes [tuneDefaults] for its Tune sheet.
  * Profile's own pages (Settings, the LinkedIn login, the catalog) stack on Profile inside the layer above the tabs
  * ([Navigator.pushLayer]). [onOpenInsights] (null: Insights is off, see [insightsOpener]) is Profile's Insights row;
- * the hub opens a month's recap as a layer page too.
+ * the hub opens a month's recap as a layer page too. [recap] (null: none due or the flag is off, see [recapSlot]) is
+ * the card Home's Today list shows for the month just ended.
  */
 internal fun puzzleBoxEntryProvider(
     navigator: Navigator,
@@ -83,12 +85,13 @@ internal fun puzzleBoxEntryProvider(
     visibility: VisibilitySlot,
     tuneDefaults: RanksTuneDefaults,
     onOpenInsights: (() -> Unit)? = null,
+    recap: RecapSlot? = null,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
     homeEntry(
         navigator,
         homeLayout,
         title = topLevelDestinations.first { it.key == HomeKey }.label,
-        summaries = homeSummaries(navigator, duels, libraryRequests),
+        summaries = homeSummaries(navigator, duels, libraryRequests, recap),
     )
     ranksEntry(navigator, historyLayout, linkedIn = true, tuneDefaults = tuneDefaults)
     playEntry(
@@ -158,6 +161,7 @@ internal fun homeSummaries(
     navigator: Navigator,
     duels: DuelsSlot?,
     libraryRequests: LibraryRequests,
+    recap: RecapSlot? = null,
 ): HomeSummaries = HomeSummaries(
     onOpenRank = { game -> openRanks(navigator)(game, null) },
     duels = duels?.let {
@@ -168,4 +172,5 @@ internal fun homeSummaries(
     },
     onOpenDay = { day: String -> navigator.openOnOwnerTab(HistoryKey(gameId = null, day = day)) },
     onOpenStreak = { navigator.openOnOwnerTab(HistoryKey(calendarExpanded = true)) },
+    recap = recap,
 )

@@ -14,21 +14,23 @@ import com.ivandsky.puzzlebox.model.GameId
  * chevron, that reports its tap. A null [onOpenRank] or [duels] means that row is not offered.
  * [onOpenRank] gets the game of the rank row; the duels row shows only above zero [duels].
  * [onOpenDay] (an ISO day) and [onOpenStreak] are the doors to Ranks from the day and streak summaries.
+ * A non-null [recap] adds the recap card above them, for the month just ended.
  */
 class HomeSummaries(
     val onOpenRank: ((GameId) -> Unit)?,
     val duels: HomeDuelsSummary?,
     val onOpenDay: (String) -> Unit,
     val onOpenStreak: () -> Unit,
+    val recap: RecapSlot? = null,
 )
 
 /** The player's place on the board of the game they solved last today; [position] is 1-based. */
 internal data class TodayRank(val gameId: GameId, val gameName: String, val position: Int)
 
 /**
- * The summary rows: today's rank when [HomeUiState.rank] is set and [HomeSummaries.onOpenRank]
- * is offered, and the duels waiting on the player when the count is above zero. Emits nothing
- * at all when neither shows, so the list keeps no gap. The rows enter as list item [index].
+ * The summary rows: the recap card when [HomeSummaries.recap] is set, today's rank when [HomeUiState.rank] is set and
+ * [HomeSummaries.onOpenRank] is offered, and the duels waiting on the player when the count is above zero. Emits
+ * nothing at all when none shows, so the list keeps no gap. The rows enter as list item [index].
  */
 @Composable
 internal fun HomeSummaryRows(state: HomeUiState, summaries: HomeSummaries, index: Int, modifier: Modifier = Modifier) {
@@ -36,9 +38,11 @@ internal fun HomeSummaryRows(state: HomeUiState, summaries: HomeSummaries, index
     val onOpenRank = summaries.onOpenRank
     val duelsSummary = summaries.duels
     val duels = duelsSummary?.needYou?.invoke() ?: 0
+    val recap = summaries.recap
     val showRank = rank != null && onOpenRank != null
-    if (!showRank && duels <= 0) return
+    if (recap == null && !showRank && duels <= 0) return
     Column(modifier.staggerIn(index), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        if (recap != null) HomeRecapCard(recap)
         if (rank != null && onOpenRank != null) {
             SummaryLinkRow(
                 text = "Today's rank: #${rank.position} on ${rank.gameName}",

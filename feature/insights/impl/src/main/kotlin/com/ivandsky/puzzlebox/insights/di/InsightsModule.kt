@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.insights.di
 
 import com.ivandsky.puzzlebox.common.di.flagSet
 import com.ivandsky.puzzlebox.insights.domain.recap.ComputePeriodFacts
+import com.ivandsky.puzzlebox.insights.domain.recap.ObserveDueRecap
 import com.ivandsky.puzzlebox.insights.domain.recap.ObserveRecap
 import com.ivandsky.puzzlebox.insights.domain.recap.ObserveRecapAvailability
 import com.ivandsky.puzzlebox.insights.flags.InsightsFlag
@@ -14,14 +15,15 @@ import org.koin.dsl.module
 /**
  * Insights feature wiring: the feature's release flags ([InsightsFlag]), the recap use cases and the view models of
  * the hub and of a recap story. A story's period arrives as a Koin parameter, so each opened month has its own.
- * Use cases that several features share come from :core:domain's `insightsDomainModule`.
+ * [ObserveDueRecap] is the one use case :app reads, for Home's recap card. Use cases that several features share come from :core:domain's `insightsDomainModule`.
  */
 val insightsModule: Module = module {
     flagSet("insights", InsightsFlag.entries)
 
     factory { ComputePeriodFacts() }
     factory { ObserveRecap(observeGameHistory = get(), computePeriodFacts = get(), registry = get()) }
-    factory { ObserveRecapAvailability(observeGameHistory = get()) }
+    factory { ObserveRecapAvailability(observeGameHistory = get(), calendar = get(), registry = get()) }
+    factory { ObserveDueRecap(availability = get()) }
 
     viewModel { InsightsHubViewModel(observeRecapAvailability = get(), cloudSync = get()) }
     viewModel { params ->

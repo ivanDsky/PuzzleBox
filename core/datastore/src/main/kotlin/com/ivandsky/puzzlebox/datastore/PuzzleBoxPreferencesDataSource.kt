@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.model.ThemeRead
 import java.io.IOException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 /** Everything the app keeps in its Preferences DataStore file. */
@@ -39,7 +40,8 @@ data class PuzzleBoxPreferences(
  * falling back to [ThemeMode.SYSTEM]; writes store the enum name so the file stays
  * human-readable and forward-compatible. Seen tutorials are one string set of game ids.
  * Auto-show, replay errors, the Ranks Friends default vibration and the self-duel time-left switch are plain booleans, true while the key is absent;
- * the Ranks LinkedIn games default is one too, false while the key is absent (All games).
+ * the Ranks LinkedIn games default is one too, false while the key is absent (All games). Dismissed recap cards are
+ * one string set of period ids, empty while the key is absent.
  */
 class PuzzleBoxPreferencesDataSource(
     private val dataStore: DataStore<Preferences>,
@@ -97,6 +99,16 @@ class PuzzleBoxPreferencesDataSource(
         dataStore.edit { preferences -> preferences[KEY_SHOW_SELF_DUEL_TIME_LEFT] = on }
     }
 
+    /** Ids of the recaps whose Today card the player dismissed; empty while the key was never written. */
+    val recapsDismissed: Flow<Set<String>> =
+        dataStore.data.map { it[KEY_RECAPS_DISMISSED].orEmpty() }.distinctUntilChanged()
+
+    suspend fun dismissRecap(periodId: String) {
+        dataStore.edit { preferences ->
+            preferences[KEY_RECAPS_DISMISSED] = preferences[KEY_RECAPS_DISMISSED].orEmpty() + periodId
+        }
+    }
+
     /** A game's own boolean setting; [default] while it was never written. */
     fun gameFlag(game: GameId, name: String, default: Boolean): Flow<Boolean> =
         dataStore.data.map { it[gameFlagKey(game, name)] ?: default }
@@ -115,6 +127,7 @@ class PuzzleBoxPreferencesDataSource(
         val KEY_RANKS_FRIENDS_DEFAULT = booleanPreferencesKey("ranks_friends_default")
         val KEY_RANKS_LINKEDIN_DEFAULT = booleanPreferencesKey("ranks_linkedin_default")
         val KEY_VIBRATION = booleanPreferencesKey("vibration")
+        val KEY_RECAPS_DISMISSED = stringSetPreferencesKey("recaps_dismissed")
     }
 }
 

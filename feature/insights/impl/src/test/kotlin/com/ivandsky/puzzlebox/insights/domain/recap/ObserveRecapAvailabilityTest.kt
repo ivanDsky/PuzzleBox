@@ -12,7 +12,7 @@ import org.junit.Test
 class ObserveRecapAvailabilityTest {
 
     private val fixture = RecapHistoryFixture()
-    private val availability = ObserveRecapAvailability(fixture.observeHistory)
+    private val availability = fixture.availability()
 
     private fun month(year: Int, month: Int) = RecapPeriod.Month(YearMonth.of(year, month))
 
