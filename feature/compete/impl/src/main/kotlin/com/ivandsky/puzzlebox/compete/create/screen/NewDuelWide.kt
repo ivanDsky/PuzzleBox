@@ -29,9 +29,9 @@ import com.ivandsky.puzzlebox.compete.create.lineup.LineupPickerModel
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 
-// The weights the tablet add sheet splits its tiles and its search by.
-private const val FORM_WEIGHT = 2f
-private const val PICKER_WEIGHT = 3f
+// The weights the wide screen splits the form and the picker by: half each.
+private const val FORM_WEIGHT = 1f
+private const val PICKER_WEIGHT = 1f
 
 /**
  * The form over its Create bar with the picker beside it, for a screen wide enough for both. With no row targeted
