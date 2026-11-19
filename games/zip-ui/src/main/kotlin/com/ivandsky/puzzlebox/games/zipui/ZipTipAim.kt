@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.zipui
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.isUnspecified
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.gameui.DragTraceHooks
 import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.gameui.TipDirection
@@ -20,7 +21,9 @@ private const val TurnLeashCells = 0.1f
  * on a step out of the tail that Zip would take — a cell [DragTraceHooks.canExtend] accepts,
  * or the previous cell — so it follows the finger from the tail centre out, whichever side of
  * the centre line the finger rides. A wall, the board edge, a used cell or an out-of-order
- * waypoint is no step: the end never leans at one.
+ * waypoint is no step: the end never leans at one, and a finger clearly inside one
+ * ([MotionTokens.Trace.ClearlyInCells]) rests the end on the tail, where the stroke holds the
+ * line, rather than leaning it into a side step the finger is not in.
  *
  * The end keeps to the axis the finger travels along. A finger passing a centre off the
  * centre line is, for a moment, nearer a side step than the one it follows; taking that step
@@ -69,7 +72,20 @@ internal class ZipTipAim {
         val turning = if (Arms[nearest].alongRow) abs(heading.x) > abs(heading.y) else abs(heading.y) > abs(heading.x)
         val pick = if (kept >= 0 && !(nearestGap < keptGap && turning)) kept else nearest
         alongRow = Arms[pick].alongRow
-        return TraceTip(kinds[pick] ?: return null, cells[pick] ?: return null, Arms[pick].extentOf(offset))
+        val extent = if (heldAt(offset)) 0f else Arms[pick].extentOf(offset)
+        return TraceTip(kinds[pick] ?: return null, cells[pick] ?: return null, extent)
+    }
+
+    /** Is the finger clearly inside the cell past the tail on its larger axis, and is that cell no step? */
+    private fun heldAt(offset: Offset): Boolean {
+        val alongX = abs(offset.x) >= abs(offset.y)
+        if ((if (alongX) abs(offset.x) else abs(offset.y)) < MotionTokens.Trace.ClearlyInCells) return false
+        val ahead = when {
+            alongX -> if (offset.x >= 0f) TipDirection.East else TipDirection.West
+            offset.y >= 0f -> TipDirection.South
+            else -> TipDirection.North
+        }
+        return kinds[Arms.indexOf(ahead)] == null
     }
 
     private fun survey(path: List<GridCell>, tail: GridCell, hooks: DragTraceHooks) {

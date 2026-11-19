@@ -48,6 +48,13 @@ sealed interface DragEvent {
 fun interface DragTraceHooks {
     /** May the trace step onto [next] given [path]? (adjacency/walls/revisit — game rules) */
     fun canExtend(path: List<GridCell>, next: GridCell): Boolean
+
+    /**
+     * Would stepping onto [next] from the tail of [path] cut a free cell beside the tail off
+     * from ever being filled? When a finger cuts a corner between two open steps, the stroke
+     * prefers the one that strands nothing (ticket 1572). Games without a fill rule keep false.
+     */
+    fun strands(path: List<GridCell>, next: GridCell): Boolean = false
 }
 
 /**

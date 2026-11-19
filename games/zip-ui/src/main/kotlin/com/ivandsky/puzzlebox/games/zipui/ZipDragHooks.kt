@@ -28,5 +28,22 @@ class ZipDragHooks(private val board: ZipBoard) : DragTraceHooks {
         return label == null || label == path.count { board.isWaypoint(cellOf(it)) } + 1 // I5
     }
 
+    /**
+     * A free cell beside the tail is cut off once it has fewer free neighbours than it needs: a
+     * way in and a way out, or only a way in for the last number. [next], the new tail, counts.
+     */
+    override fun strands(path: List<GridCell>, next: GridCell): Boolean {
+        val tail = cellOf(path.last())
+        val step = cellOf(next)
+        val drawn = BooleanArray(board.cellCount)
+        for (cell in path) drawn[cellOf(cell).idx] = true
+        drawn[step.idx] = true
+        return board.neighbors(tail).any { cell ->
+            val needs = if (cell == board.waypoints.last()) 1 else 2
+            !drawn[cell.idx] && !board.blocked(tail, cell) &&
+                board.neighbors(cell).count { (!drawn[it.idx] || it == step) && !board.blocked(cell, it) } < needs
+        }
+    }
+
     private fun cellOf(cell: GridCell) = Cell(cell.row * board.n + cell.col)
 }

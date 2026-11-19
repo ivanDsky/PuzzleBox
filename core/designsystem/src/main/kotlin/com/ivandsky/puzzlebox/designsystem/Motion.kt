@@ -242,6 +242,11 @@ object MotionTokens {
         // step: it can not reach the next centre before the cell commits.
         const val TipMaxCells = 0.9f
 
+        // A finger this far from the tail centre (0.2 past the shared edge) is clearly inside the
+        // next cell; a graze short of it is not. In a cell the line can not enter, the stroke
+        // holds the line and the tip rests on the tail rather than leaning sideways.
+        const val ClearlyInCells = 0.7f
+
         // Head Ø as a multiple of the line width.
         const val HeadScale = 1.2f
 

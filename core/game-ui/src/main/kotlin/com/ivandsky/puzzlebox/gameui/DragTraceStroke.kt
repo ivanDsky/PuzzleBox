@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.gameui
 
 import androidx.compose.ui.geometry.Offset
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -17,14 +18,20 @@ import kotlin.math.floor
  * - The finger nearly at the middle of the cell before the tail: the trace steps back one cell
  *   ([DragEvent.Retract]). Any other traced cell is a wall, never cut back to, crossed or picked up.
  * - The finger [DragTraceSteer.StepOut] past the tail: the trace steps into the neighbour in the
- *   finger's direction on the axis it is further along; when the hooks refuse that one, into the
- *   neighbour on the other axis the finger leans [DragTraceSteer.TurnLean] toward.
+ *   finger's direction on the axis it is further along. When that step would strand a free cell
+ *   ([DragTraceHooks.strands]) and the neighbour on the other axis would not, the finger must be
+ *   [DragTraceSteer.ClearlyIn] first; then a finger near the diagonal ([DragTraceSteer.DiagonalLean])
+ *   turns through the corner, a clearly sideways one takes the stranding step it means.
+ * - The hooks refuse that step: the trace turns into the neighbour on the other axis the finger
+ *   leans [DragTraceSteer.TurnLean] toward, or, once the finger is clearly in the refused cell, as
+ *   far into the side cell. Heading back toward the cell before the tail never turns.
  * - Both refused: the trace stays, and [DragEvent.Refused] shows only once the finger is a full
  *   cell past the tail toward a blocked cell, at most once per [moveTo].
  *
- * The finger steers only once it has been in the tail's cell or has taken a cell the hooks accept
- * (a touch-down on the tail, or a drag into it); a drawn cell elsewhere is refused and never picks
- * the line up, and any other cell the hooks refuse is reported [DragEvent.Refused] when entered.
+ * The finger steers only once it has been in the tail's cell, a cell diagonal to it, or has taken a
+ * cell the hooks accept (a touch-down on the tail, or a drag into it); a drawn cell elsewhere is
+ * refused and never picks the line up, and any other cell the hooks refuse is reported
+ * [DragEvent.Refused] when entered.
  */
 internal class DragTraceStroke(
     private val geometry: GridGeometry,
@@ -85,12 +92,18 @@ internal class DragTraceStroke(
         at = to
     }
 
-    /** A finger not yet steering comes into [cell]: the tail takes it over, a drawn cell is a wall, a cell the hooks accept is taken. */
+    /**
+     * A finger not yet steering comes into [cell]: the tail takes it over, a drawn cell is a wall, a
+     * cell the hooks accept is taken, and a cell diagonal to the tail is an ambiguous fresh touch that
+     * steers, so the first step out of the tail is chosen as for a finger cutting that corner.
+     */
     private fun enter(cell: GridCell) {
+        val tail = path.lastOrNull()
         when {
-            cell == path.lastOrNull() -> steering = true
+            cell == tail -> steering = true
             cell in path -> refuse(cell)
             takes(cell) -> steering = true
+            tail != null && abs(cell.row - tail.row) == 1 && abs(cell.col - tail.col) == 1 -> steering = true
             else -> refuse(cell)
         }
     }
@@ -122,10 +135,19 @@ internal class DragTraceStroke(
         if (reach < DragTraceSteer.StepOut) return false
 
         val main = neighbour(tail, horizontal = horizontalIsMain, offset = offset)
-        if (takes(main)) return true
+        val side = neighbour(tail, horizontal = !horizontalIsMain, offset = offset)
         val lean = if (horizontalIsMain) abs(offset.y) else abs(offset.x)
-        if (lean >= DragTraceSteer.TurnLean && takes(neighbour(tail, horizontal = !horizontalIsMain, offset = offset))) return true
-        if (reach >= DragTraceSteer.RefuseReach && main != path.getOrNull(path.lastIndex - 1)) refuse(main)
+        if (opens(main)) {
+            val contested = opens(side) && hooks.strands(path, main) && !hooks.strands(path, side)
+            if (!contested) return takes(main)
+            if (reach < DragTraceSteer.ClearlyIn) return false
+            return takes(if (lean >= reach * DragTraceSteer.DiagonalLean) side else main)
+        }
+        // Heading back along the line is a step back in the making, never a turn off it.
+        if (main == path.getOrNull(path.lastIndex - 1)) return false
+        val turnLean = if (reach < DragTraceSteer.ClearlyIn) DragTraceSteer.TurnLean else DragTraceSteer.ClearlyIn
+        if (lean >= turnLean && takes(side)) return true
+        if (reach >= DragTraceSteer.RefuseReach) refuse(main)
         return false
     }
 
@@ -136,8 +158,10 @@ internal class DragTraceStroke(
         else -> GridCell(tail.row + if (offset.y > 0f) 1 else -1, tail.col)
     }
 
+    private fun opens(cell: GridCell) = geometry.isValid(cell) && cell !in path && hooks.canExtend(path, cell)
+
     private fun takes(cell: GridCell): Boolean {
-        if (!geometry.isValid(cell) || cell in path || !hooks.canExtend(path, cell)) return false
+        if (!opens(cell)) return false
         extend(cell)
         return true
     }
@@ -174,8 +198,18 @@ internal object DragTraceSteer {
     /** The finger this far past the tail's centre on its larger axis steps the line forward. */
     const val StepOut: Float = 0.55f
 
-    /** Past this lean on the other axis, a refused forward step turns onto that axis instead. */
+    /** Past this lean on the other axis, a refused forward step turns onto that axis instead... */
     const val TurnLean: Float = 0.15f
+
+    /**
+     * ...until the finger is this far into the refused cell, 0.2 past the shared edge: clearly in a
+     * cell the line can not enter, the line holds until the finger is as far into the side cell.
+     * Also how far a finger must be in before a step that strands a cell is told from its rival.
+     */
+    const val ClearlyIn: Float = MotionTokens.Trace.ClearlyInCells
+
+    /** A finger leaning at least this share of its reach (within 15° of the diagonal) means either step. */
+    const val DiagonalLean: Float = 0.58f
 
     /** The finger this far toward the cell before the tail, nearly at its middle, steps back... */
     const val StepBack: Float = 0.9f
