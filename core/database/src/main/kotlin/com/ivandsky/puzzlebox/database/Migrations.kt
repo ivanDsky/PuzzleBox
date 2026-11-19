@@ -294,5 +294,6 @@ object Migrations {
             SelfMatchMigration.MIGRATION_14_15,
             RevealSyncMigration.MIGRATION_15_16,
             RankHistoryMigration.MIGRATION_16_17,
+            TrainerMigration.MIGRATION_17_18,
         )
 }
