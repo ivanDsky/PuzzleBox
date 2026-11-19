@@ -12,8 +12,8 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatus
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatusTracker
 import com.ivandsky.puzzlebox.data.leaderboard.inSubmitWindow
-import com.ivandsky.puzzlebox.domain.ObservePlayStats
-import com.ivandsky.puzzlebox.domain.PlayStats
+import com.ivandsky.puzzlebox.play.domain.ObservePlayStats
+import com.ivandsky.puzzlebox.play.domain.PlayStats
 import com.ivandsky.puzzlebox.domain.TodayLeaderboard
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.game.GameRegistry

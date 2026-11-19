@@ -1,8 +1,8 @@
 package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
-import com.ivandsky.puzzlebox.domain.ArchiveDay
-import com.ivandsky.puzzlebox.domain.ObserveArchiveMonth
+import com.ivandsky.puzzlebox.play.domain.ArchiveDay
+import com.ivandsky.puzzlebox.play.domain.ObserveArchiveMonth
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import java.time.YearMonth

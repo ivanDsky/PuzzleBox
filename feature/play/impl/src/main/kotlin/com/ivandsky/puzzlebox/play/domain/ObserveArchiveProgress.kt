@@ -1,7 +1,9 @@
-package com.ivandsky.puzzlebox.domain
+package com.ivandsky.puzzlebox.play.domain
 
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
+import com.ivandsky.puzzlebox.domain.ObserveGameHistory
+import com.ivandsky.puzzlebox.domain.isSolvedDaily
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.flow.Flow

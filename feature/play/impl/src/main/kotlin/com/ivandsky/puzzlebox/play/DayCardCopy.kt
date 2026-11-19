@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.designsystem.formatDuration
-import com.ivandsky.puzzlebox.domain.ArchiveDay
+import com.ivandsky.puzzlebox.play.domain.ArchiveDay
 import com.ivandsky.puzzlebox.domain.PastDayStatus
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.gameui.pastDayAction

@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.colors
-import com.ivandsky.puzzlebox.domain.ArchiveDay
+import com.ivandsky.puzzlebox.play.domain.ArchiveDay
 import com.ivandsky.puzzlebox.domain.PastDayStatus
 import java.time.LocalDate
 import org.junit.Assert.assertTrue
