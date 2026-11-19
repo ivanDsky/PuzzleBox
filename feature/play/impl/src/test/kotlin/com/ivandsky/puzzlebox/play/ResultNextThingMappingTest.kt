@@ -3,9 +3,9 @@ package com.ivandsky.puzzlebox.play
 import com.ivandsky.puzzlebox.domain.moments.Moment
 import com.ivandsky.puzzlebox.domain.nextthing.NextThing
 import com.ivandsky.puzzlebox.domain.nextthing.ResultNextThing
-import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.resultui.ResultPrimaryAction
 import java.time.Instant
 import java.time.LocalDate
 import org.junit.Assert.assertEquals

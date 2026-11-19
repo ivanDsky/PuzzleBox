@@ -48,8 +48,6 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.TutorialStep
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
-import com.ivandsky.puzzlebox.gameui.replay.ReplayTags
-import com.ivandsky.puzzlebox.gameui.replay.ReplayUnavailable
 import com.ivandsky.puzzlebox.history.HistoryDayRow
 import com.ivandsky.puzzlebox.history.HistoryReplays
 import com.ivandsky.puzzlebox.history.ReplaySolve
@@ -57,6 +55,8 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
+import com.ivandsky.puzzlebox.resultui.replay.ReplayTags
+import com.ivandsky.puzzlebox.resultui.replay.ReplayUnavailable
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import java.time.LocalDate
 import org.junit.Assert.assertEquals

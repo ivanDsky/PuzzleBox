@@ -26,13 +26,13 @@ import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
-import com.ivandsky.puzzlebox.gameui.ResultScreen
-import com.ivandsky.puzzlebox.gameui.replay.ReplaySection
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.CustomResultKey
 import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.play.shareText
+import com.ivandsky.puzzlebox.resultui.ResultScreen
+import com.ivandsky.puzzlebox.resultui.replay.ReplaySection
 import java.time.Instant
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf

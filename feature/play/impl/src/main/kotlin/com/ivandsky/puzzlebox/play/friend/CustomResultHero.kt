@@ -9,14 +9,14 @@ import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
-import com.ivandsky.puzzlebox.gameui.ResultBelowCardRows
 import com.ivandsky.puzzlebox.gameui.ResultCommunity
-import com.ivandsky.puzzlebox.gameui.ResultHeroActions
 import com.ivandsky.puzzlebox.gameui.ResultHeroChip
-import com.ivandsky.puzzlebox.gameui.ResultHeroFacts
-import com.ivandsky.puzzlebox.gameui.ResultHeroScreen
-import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
-import com.ivandsky.puzzlebox.gameui.replay.ReplaySection
+import com.ivandsky.puzzlebox.resultui.ResultBelowCardRows
+import com.ivandsky.puzzlebox.resultui.ResultHeroActions
+import com.ivandsky.puzzlebox.resultui.ResultHeroFacts
+import com.ivandsky.puzzlebox.resultui.ResultHeroScreen
+import com.ivandsky.puzzlebox.resultui.ResultPrimaryAction
+import com.ivandsky.puzzlebox.resultui.replay.ReplaySection
 
 /**
  * A community puzzle's result as the daily's hero page (Result hero polish): the same hero card, chip row and action row,

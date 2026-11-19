@@ -8,10 +8,10 @@ import com.ivandsky.puzzlebox.game.replay.ReplayFacts
 import com.ivandsky.puzzlebox.game.replay.ReplayMove
 import com.ivandsky.puzzlebox.game.replay.ReplayOutcome
 import com.ivandsky.puzzlebox.game.replay.Timeline
-import com.ivandsky.puzzlebox.gameui.replay.ReplaySectionState
-import com.ivandsky.puzzlebox.gameui.replay.ReplayUnavailable
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.resultui.replay.ReplaySectionState
+import com.ivandsky.puzzlebox.resultui.replay.ReplayUnavailable
 import com.ivandsky.puzzlebox.testing.replay.FixtureSession
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures.GAME

@@ -46,8 +46,8 @@ import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.domain.GameStats
-import com.ivandsky.puzzlebox.gameui.FreezeCount
-import com.ivandsky.puzzlebox.gameui.WeekStrip
+import com.ivandsky.puzzlebox.resultui.FreezeCount
+import com.ivandsky.puzzlebox.resultui.WeekStrip
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt

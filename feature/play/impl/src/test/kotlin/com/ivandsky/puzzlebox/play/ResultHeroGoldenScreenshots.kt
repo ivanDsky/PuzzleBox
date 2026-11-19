@@ -17,12 +17,12 @@ import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
-import com.ivandsky.puzzlebox.gameui.ResultHeroActions
-import com.ivandsky.puzzlebox.gameui.ResultHeroFacts
-import com.ivandsky.puzzlebox.gameui.ResultHeroScreen
-import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.friend.UnderUpBar
+import com.ivandsky.puzzlebox.resultui.ResultHeroActions
+import com.ivandsky.puzzlebox.resultui.ResultHeroFacts
+import com.ivandsky.puzzlebox.resultui.ResultHeroScreen
+import com.ivandsky.puzzlebox.resultui.ResultPrimaryAction
 import java.time.LocalDate
 import org.junit.Rule
 import org.junit.Test

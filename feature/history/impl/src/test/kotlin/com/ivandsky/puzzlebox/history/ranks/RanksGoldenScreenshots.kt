@@ -7,7 +7,6 @@ import com.ivandsky.puzzlebox.domain.ranks.OverallState
 import com.ivandsky.puzzlebox.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
-import com.ivandsky.puzzlebox.gameui.replay.ReplayUnavailable
 import com.ivandsky.puzzlebox.history.CalendarState
 import com.ivandsky.puzzlebox.history.GOLDEN_PHONE
 import com.ivandsky.puzzlebox.history.GOLDEN_TABLET
@@ -21,6 +20,7 @@ import com.ivandsky.puzzlebox.resultui.board.DailyBoardLine
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
 import com.ivandsky.puzzlebox.resultui.board.GhostRowModel
+import com.ivandsky.puzzlebox.resultui.replay.ReplayUnavailable
 import java.time.LocalDate
 import org.junit.Rule
 import org.junit.Test

@@ -13,12 +13,12 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
-import com.ivandsky.puzzlebox.gameui.replay.CompareNames
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
-import com.ivandsky.puzzlebox.gameui.replay.ReplayCopy
-import com.ivandsky.puzzlebox.gameui.replay.ReplayFlipTags
-import com.ivandsky.puzzlebox.gameui.replay.ReplayTags
+import com.ivandsky.puzzlebox.resultui.replay.CompareNames
+import com.ivandsky.puzzlebox.resultui.replay.ReplayCopy
+import com.ivandsky.puzzlebox.resultui.replay.ReplayFlipTags
+import com.ivandsky.puzzlebox.resultui.replay.ReplayTags
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import org.junit.Assert.assertTrue
 import org.junit.Rule

@@ -227,6 +227,8 @@ dependencies {
     // CloudSyncWorld: a device's own sync-state file, so two devices on one cloud share no bookkeeping.
     testImplementation(projects.core.datastore)
     testImplementation(projects.core.testing)
+    // FullReplayE2ETest finds the replay player by its ReplayTags and ReplayCopy.
+    testImplementation(projects.core.resultUi)
     testImplementation(libs.koin.test)
     testImplementation(libs.koin.test.junit4)
     // LinkedInArchiveE2ETest: the production LinkedIn transport (linkedInFeedTransport, which

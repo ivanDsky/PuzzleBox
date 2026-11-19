@@ -19,11 +19,11 @@ import com.ivandsky.puzzlebox.game.replay.ReplayFrame
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
-import com.ivandsky.puzzlebox.gameui.replay.ReplaySectionState
-import com.ivandsky.puzzlebox.gameui.replay.ReplayTags
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.FakePlayUi
+import com.ivandsky.puzzlebox.resultui.replay.ReplaySectionState
+import com.ivandsky.puzzlebox.resultui.replay.ReplayTags
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import java.time.Instant
 import org.junit.Assert.assertEquals

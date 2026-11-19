@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.history
 
 import com.ivandsky.puzzlebox.game.replay.Timeline
-import com.ivandsky.puzzlebox.gameui.replay.ReplayUnavailable
+import com.ivandsky.puzzlebox.resultui.replay.ReplayUnavailable
 
 /** The replays of the open History day. [Hidden] when the day has no stored solve; [Unavailable] when neither solve has one (S11). */
 sealed interface HistoryReplays {

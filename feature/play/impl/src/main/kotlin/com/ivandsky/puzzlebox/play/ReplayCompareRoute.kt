@@ -9,14 +9,14 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ivandsky.puzzlebox.gameui.replay.CompareLayout
-import com.ivandsky.puzzlebox.gameui.replay.CompareNames
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
-import com.ivandsky.puzzlebox.gameui.replay.ReplayComparePage
-import com.ivandsky.puzzlebox.gameui.replay.ReplayEmptyPage
-import com.ivandsky.puzzlebox.gameui.replay.compareLayoutFor
 import com.ivandsky.puzzlebox.game.replay.Lead
 import com.ivandsky.puzzlebox.play.api.ReplayCompareKey
+import com.ivandsky.puzzlebox.resultui.replay.CompareLayout
+import com.ivandsky.puzzlebox.resultui.replay.CompareNames
+import com.ivandsky.puzzlebox.resultui.replay.ReplayComparePage
+import com.ivandsky.puzzlebox.resultui.replay.ReplayEmptyPage
+import com.ivandsky.puzzlebox.resultui.replay.compareLayoutFor
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
