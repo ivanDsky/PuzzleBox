@@ -159,6 +159,7 @@ class LibraryRandomPageRouteTest {
                     }
                 },
                 hubOffFriendDay,
+                flagsOff,
                 module { single<DispatcherProvider> { testDispatchers() } },
             )
         }

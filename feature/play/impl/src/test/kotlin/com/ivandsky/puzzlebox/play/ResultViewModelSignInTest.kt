@@ -25,6 +25,7 @@ import com.ivandsky.puzzlebox.play.friend.FriendPuzzleBoard
 import com.ivandsky.puzzlebox.play.friend.oneGoogleAccount
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -111,6 +112,7 @@ class ResultViewModelSignInTest {
             completions = completions,
             loadReplay = loadSolveReplay(fakes.games, daily, completions),
             nextThing = lazy { error("this test never reads the next thing") },
+            releaseFlags = FakeReleaseFlags(),
             daily = daily,
         )
     }

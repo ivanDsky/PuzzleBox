@@ -38,6 +38,7 @@ import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.play.di.playModule
+import com.ivandsky.puzzlebox.play.flagsOff
 import com.ivandsky.puzzlebox.play.hubOffFriendDay
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
@@ -124,6 +125,7 @@ class GameEntryTest {
                 // After playModule, whose own FinishLeg would replace this one.
                 module { factory { FinishLeg(FakeMatchResultOutbox(), FakeSelfMatchRepository(), FakeIdentityService()) { Instant.EPOCH } } },
                 hubOffFriendDay,
+                flagsOff,
             )
         }
     }

@@ -21,7 +21,6 @@ import com.ivandsky.puzzlebox.play.MatchLegResultViewModel
 import com.ivandsky.puzzlebox.play.MatchLegViewModel
 import com.ivandsky.puzzlebox.play.HintPolish
 import com.ivandsky.puzzlebox.play.HowToPlayRules
-import com.ivandsky.puzzlebox.play.PlayFlag
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.PlayStatsViewModel
 import com.ivandsky.puzzlebox.play.ReplayCompareViewModel
@@ -50,6 +49,7 @@ import com.ivandsky.puzzlebox.play.domain.linkedin.SubmitLinkedInResult
 import com.ivandsky.puzzlebox.play.domain.random.LoadRandomDay
 import com.ivandsky.puzzlebox.play.domain.random.LoadRandomPuzzle
 import com.ivandsky.puzzlebox.play.domain.random.LoadRandomShared
+import com.ivandsky.puzzlebox.play.flags.PlayFlag
 import com.ivandsky.puzzlebox.play.random.RandomPickMemory
 import com.ivandsky.puzzlebox.play.random.RandomPuzzleViewModel
 import java.time.Instant
@@ -144,7 +144,7 @@ val playModule = module {
             get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
             linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
             identity = get(),
-            releaseFlags = getOrNull(),
+            releaseFlags = get(),
         )
     }
     viewModel { (key: GameKey) -> GameViewModel(key, get(), get(), get(), get()) }
@@ -164,13 +164,13 @@ val playModule = module {
             linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
         )
     }
-    single { HintPolish(enabled = getOrNull<ReleaseFlags>()?.isEnabled(GameUiFlag.HintPolish) == true) }
+    single { HintPolish(enabled = get<ReleaseFlags>().isEnabled(GameUiFlag.HintPolish)) }
     // ZipDotPulse (backlog #1151) too: the Zip board's next number pulses its own dot while it is on.
-    single { ZipDotPulse(enabled = getOrNull<ReleaseFlags>()?.isEnabled(PlayFlag.ZipDotPulse) == true) }
+    single { ZipDotPulse(enabled = get<ReleaseFlags>().isEnabled(PlayFlag.ZipDotPulse)) }
     // The memory forgets the last pick with the process.
     single { RandomPickMemory() }
     // The preset game is the one parameter: the page whose Random opened the sheet.
-    viewModel { params -> RandomPuzzleViewModel(params.get<GameId>(), get(), get(), get(), releaseFlags = getOrNull()) }
+    viewModel { params -> RandomPuzzleViewModel(params.get<GameId>(), get(), get(), get(), releaseFlags = get()) }
     // How to play opens the rules sheet over the live play for a game with rules copy.
     single { HowToPlayRules() }
     factory {
@@ -179,7 +179,7 @@ val playModule = module {
             history = get(),
             computeStreak = get(),
             puzzleDay = get(),
-            slowTail = getOrNull<ReleaseFlags>()?.isEnabled(PlayFlag.ResultHeroPolish) == true,
+            slowTail = get<ReleaseFlags>().isEnabled(PlayFlag.ResultHeroPolish),
         )
     }
     factory {
@@ -196,7 +196,7 @@ val playModule = module {
             puzzleDay = get(),
             nextRollover = get(),
             communityPuzzles = get(),
-            showDayTotal = getOrNull<ReleaseFlags>()?.isEnabled(PlayFlag.ResultHeroPolish) == true,
+            showDayTotal = get<ReleaseFlags>().isEnabled(PlayFlag.ResultHeroPolish),
         )
     }
     // The flag-as-parameter rule again: with it off the result never touches LinkedIn. The Post button's flag is
@@ -219,7 +219,7 @@ val playModule = module {
             board = get(),
             completions = get(),
             loadReplay = get(),
-            releaseFlags = getOrNull(),
+            releaseFlags = get(),
             observePost = if (linkedIn) get() else null,
             submitPost = if (linkedIn) get() else null,
             nextThing = inject(),

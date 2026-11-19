@@ -55,7 +55,7 @@ class RandomPuzzleViewModelTest {
     private val gate = CompletableDeferred<Unit>()
 
     /** New today's list waits at [gate] when [held]; every other call is the fake's own. */
-    private fun viewModel(seed: Int = 1, held: Boolean = false, flags: ReleaseFlags? = null): RandomPuzzleViewModel {
+    private fun viewModel(seed: Int = 1, held: Boolean = false, flags: ReleaseFlags = FakeReleaseFlags()): RandomPuzzleViewModel {
         val registry = TestGames.registry(listOf(alpha, beta))
         val repository = if (held) {
             object : SharedPuzzleRepository by shared {
@@ -207,10 +207,9 @@ class RandomPuzzleViewModelTest {
     }
 
     @Test
-    fun `filterSheets follows the FilterSheets flag and is off without one`() {
+    fun `filterSheets follows the FilterSheets flag`() {
         assertTrue(viewModel(flags = FakeReleaseFlags(FilterFlag.FilterSheets)).filterSheets)
         assertFalse(viewModel(flags = FakeReleaseFlags()).filterSheets)
-        assertFalse(viewModel().filterSheets)
     }
 
     @Test

@@ -26,6 +26,7 @@ import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.testDispatchers
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
@@ -76,7 +77,7 @@ class RandomPuzzleSheetTest {
             LoadRandomDay(daily, FakeCompletionRepository(), LoadPastDay(daily, registry), registry, random),
             LoadRandomShared(ListCommunityPuzzles(FakeSharedPuzzleRepository(), FakeHiddenPuzzles(), FakeIdentityService(Identity("me", "Me", null))) { 0L }, random),
         )
-        return RandomPuzzleViewModel(preset, load, RandomPickMemory(), testDispatchers())
+        return RandomPuzzleViewModel(preset, load, RandomPickMemory(), testDispatchers(), FakeReleaseFlags())
     }
 
     private fun mountSheet(layout: PlayLayout = PlayLayout.SinglePane, preset: GameId = alpha) {
