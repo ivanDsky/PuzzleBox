@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.compete.CompeteFlag
 import com.ivandsky.puzzlebox.compete.create.NewDuelViewModel
 import com.ivandsky.puzzlebox.compete.create.lineup.AddPuzzleViewModel
 import com.ivandsky.puzzlebox.compete.create.lineup.PAST_YOU_PICKER
+import com.ivandsky.puzzlebox.compete.domain.CreateSelfDuel
 import com.ivandsky.puzzlebox.compete.domain.DeleteSelfDuel
 import com.ivandsky.puzzlebox.compete.domain.ObserveDuel
 import com.ivandsky.puzzlebox.compete.domain.ObserveMyDuels
@@ -26,6 +27,7 @@ import com.ivandsky.puzzlebox.domain.lineup.ObserveSolvedPuzzles
 import java.time.Instant
 import java.time.ZoneId
 import java.util.Locale
+import kotlin.random.Random
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -34,13 +36,13 @@ import org.koin.dsl.module
  * Compete feature wiring. ObserveMatch and LoadSolveReplay come from :core:domain's domainModule and the identity
  * service from the app's aggregation. Compete's own use cases are defined here: the Duels tab's rows
  * ([ObserveMyDuels]), the duel page ([ObserveDuel]), its seat moves ([UpdateMatchSeat]) and self-duel removal
- * ([DeleteSelfDuel]), the reveal's seen mark ([RecordRevealSeen]), and the leg titles and saved duel puzzles
- * ([ObserveLegTitles], [SaveDuelPuzzles]). The Duels tab's, the New duel sheet's, the add-puzzle searches' (a
- * friend's, and Past you's under its own qualifier), the duel screen's, the reveal's and the rematch sheet's view
- * models are bound here (the duel screen's by its code; the reveal's by its code and the screen's reduced motion,
- * zone and locale; the rematch's by the duel it repeats). The result sync comes from the app, which binds it to the
- * result poster. The feature's release flags ([CompeteFlag]) are declared here; the view models that read them take
- * the app's ReleaseFlags.
+ * ([DeleteSelfDuel]), the reveal's seen mark ([RecordRevealSeen]), the leg titles and saved duel puzzles
+ * ([ObserveLegTitles], [SaveDuelPuzzles]), and the self-duel create ([CreateSelfDuel]). The Duels tab's, the New
+ * duel sheet's, the add-puzzle searches' (a friend's, and Past you's under its own qualifier), the duel screen's,
+ * the reveal's and the rematch sheet's view models are bound here (the duel screen's by its code; the reveal's by
+ * its code and the screen's reduced motion, zone and locale; the rematch's by the duel it repeats). The result sync
+ * comes from the app, which binds it to the result poster. The feature's release flags ([CompeteFlag]) are declared
+ * here; the view models that read them take the app's ReleaseFlags.
  */
 val competeModule: Module = module {
     flagSet("compete", CompeteFlag.entries)
@@ -53,6 +55,17 @@ val competeModule: Module = module {
     factory { UpdateMatchSeat(repo = get(), local = get(), identity = get()) }
     factory { RecordRevealSeen(local = get(), clock = { Instant.now() }) }
     factory { ObserveLegTitles(received = get(), published = get(), shared = get()) }
+    factory {
+        CreateSelfDuel(
+            pool = get(),
+            completions = get(),
+            received = get(),
+            self = get(),
+            local = get(),
+            clock = { Instant.now() },
+            random = Random.Default,
+        )
+    }
     viewModel {
         DuelsTabViewModel(observeMyDuels = get(), updateSeat = get(), identity = get(), clock = { Instant.now() }, releaseFlags = get())
     }

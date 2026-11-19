@@ -4,11 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.common.log.FailureLog
 import com.ivandsky.puzzlebox.common.log.LogcatFailureLog
+import com.ivandsky.puzzlebox.compete.domain.CreateSelfDuel
 import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.data.match.isSelf
 import com.ivandsky.puzzlebox.domain.CreateMatch
 import com.ivandsky.puzzlebox.domain.CreateOutcome
-import com.ivandsky.puzzlebox.domain.CreateSelfDuel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow

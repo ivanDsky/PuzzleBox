@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain.lineup
+package com.ivandsky.puzzlebox.compete.domain.lineup
 
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.MatchLeg

@@ -1,11 +1,9 @@
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ComputeSolvedPool.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/CreateDraftCopy.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/CreateSelfDuel.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/CreateSharedPuzzle.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ImportDraftFromText.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ImportResult.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/PublishOutcome.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/SelfDuelSettings.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/SyncSolvesCounts.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/UpdatePublishState.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ValidatePublish.kt  # P14
@@ -23,9 +21,6 @@ core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/lineup/PickablePuzzle.
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/lineup/PickerFilter.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/lineup/PickerQuery.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/lineup/PickerResult.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/lineup/ResolveSelfLineup.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/lineup/SelfDraw.kt  # P14
-core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/lineup/SelfLeg.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/lineup/SourceRows.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ranks/GameWindowStandings.kt  # P14
 core/domain/src/main/kotlin/com/ivandsky/puzzlebox/domain/ranks/GetPlayerActions.kt  # P14

@@ -1,9 +1,12 @@
-package com.ivandsky.puzzlebox.domain.lineup
+package com.ivandsky.puzzlebox.compete.domain.lineup
 
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.domain.ComputeSolvedPool
+import com.ivandsky.puzzlebox.domain.lineup.AnyGame
+import com.ivandsky.puzzlebox.domain.lineup.ExactPuzzle
+import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId

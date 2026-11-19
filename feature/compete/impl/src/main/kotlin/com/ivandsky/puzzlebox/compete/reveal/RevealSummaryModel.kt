@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.compete.reveal
 
+import com.ivandsky.puzzlebox.compete.domain.SelfDuelSettings
 import com.ivandsky.puzzlebox.compete.domain.lineup.rematchLineup
 import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.designsystem.formatDuration
@@ -8,7 +9,6 @@ import com.ivandsky.puzzlebox.domain.LegBasis
 import com.ivandsky.puzzlebox.domain.LegVerdict
 import com.ivandsky.puzzlebox.domain.MatchVerdict
 import com.ivandsky.puzzlebox.domain.Outcome
-import com.ivandsky.puzzlebox.domain.SelfDuelSettings
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.resultui.DuelSideState
 import java.time.Instant

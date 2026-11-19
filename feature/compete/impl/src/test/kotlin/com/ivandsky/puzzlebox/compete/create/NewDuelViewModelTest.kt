@@ -4,9 +4,10 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
+import com.ivandsky.puzzlebox.compete.domain.CreateSelfDuel
 import com.ivandsky.puzzlebox.data.identity.Identity
-import com.ivandsky.puzzlebox.data.match.DAILY_MATCH_CAP
 import com.ivandsky.puzzlebox.data.match.CreateResult
+import com.ivandsky.puzzlebox.data.match.DAILY_MATCH_CAP
 import com.ivandsky.puzzlebox.data.match.MatchDraft
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.PuzzleCodeCheck
@@ -14,7 +15,6 @@ import com.ivandsky.puzzlebox.domain.ComputeMatchLegs
 import com.ivandsky.puzzlebox.domain.ComputeSolvedPool
 import com.ivandsky.puzzlebox.domain.CreateMatch
 import com.ivandsky.puzzlebox.domain.CreateOutcome
-import com.ivandsky.puzzlebox.domain.CreateSelfDuel
 import com.ivandsky.puzzlebox.domain.DuelSettings
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
