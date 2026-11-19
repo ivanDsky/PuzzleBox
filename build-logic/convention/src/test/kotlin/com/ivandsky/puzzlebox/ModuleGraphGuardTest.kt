@@ -162,4 +162,57 @@ class ModuleGraphGuardTest {
             forbiddenEdgeReason(":app", ":benchmark", "implementation"),
         )
     }
+
+    @Test
+    fun playKitAndGamesStayOffTheDataLayer() {
+        val reason =
+            "the play kit and games:* declare no edge to :core:domain, :core:data or :core:result-ui (ADR-0034)"
+        for (to in listOf(":core:domain", ":core:data", ":core:result-ui")) {
+            assertEquals(reason, forbiddenEdgeReason(":core:game-ui", to, "implementation"))
+            assertEquals(reason, forbiddenEdgeReason(":games:zip-ui", to, "testImplementation"))
+            assertEquals(reason, forbiddenEdgeReason(":games:zip", to, "api"))
+        }
+        assertNull(forbiddenEdgeReason(":core:result-ui", ":core:domain", "implementation"))
+        assertNull(forbiddenEdgeReason(":core:result-ui", ":core:game-ui", "api"))
+        assertNull(forbiddenEdgeReason(":games:zip-ui", ":core:game-ui", "implementation"))
+        assertNull(forbiddenEdgeReason(":core:game-ui", ":core:testing", "testImplementation"))
+        assertNull(forbiddenEdgeReason(":core:game-ui", ":core:common", "implementation"))
+    }
+
+    @Test
+    fun onlyCoreDataDeclaresStorage() {
+        val reason = "storage and network modules are declared only by :core:data (ADR-0034)"
+        for (to in listOf(":core:database", ":core:datastore", ":core:network")) {
+            assertNull(forbiddenEdgeReason(":core:data", to, "implementation"))
+            assertNull(forbiddenEdgeReason(":app", to, "testImplementation"))
+            assertEquals(reason, forbiddenEdgeReason(":app", to, "implementation"))
+            assertEquals(reason, forbiddenEdgeReason(":core:domain", to, "implementation"))
+            assertEquals(reason, forbiddenEdgeReason(":feature:play:impl", to, "testImplementation"))
+            assertEquals(reason, forbiddenEdgeReason(":backend:firebase", to, "implementation"))
+        }
+    }
+
+    @Test
+    fun designsystemIsTheLeaf() {
+        val reason = ":core:designsystem is the leaf; it depends on no module (ADR-0034)"
+        assertEquals(reason, forbiddenEdgeReason(":core:designsystem", ":core:model", "implementation"))
+        assertEquals(reason, forbiddenEdgeReason(":core:designsystem", ":core:testing", "testImplementation"))
+        assertNull(forbiddenEdgeReason(":core:game-ui", ":core:designsystem", "implementation"))
+    }
+
+    @Test
+    fun earlierArmsWinOverTheLayerArms() {
+        assertEquals(
+            "nothing may depend on the composition root :app",
+            forbiddenEdgeReason(":core:designsystem", ":app", "implementation"),
+        )
+        assertEquals(
+            "tools may depend on :core:game, non-UI games:* and test-only :core:testing (ADR-0021)",
+            forbiddenEdgeReason(":tools:puzzle-cli", ":core:database", "implementation"),
+        )
+        assertEquals(
+            "games must not know about features",
+            forbiddenEdgeReason(":games:zip-ui", ":feature:play:impl", "implementation"),
+        )
+    }
 }
