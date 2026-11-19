@@ -11,9 +11,9 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 
 /** What a Friends board with only the viewer on it says to do next, set under the board so the list is never a bare one. Plain text: it is not a button. */
 @Composable
-internal fun RanksFriendsHint(modifier: Modifier = Modifier) {
+internal fun RanksFriendsHint(text: String, modifier: Modifier = Modifier) {
     Text(
-        "Duel someone or connect LinkedIn to fill Friends",
+        text,
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier
@@ -22,3 +22,7 @@ internal fun RanksFriendsHint(modifier: Modifier = Modifier) {
             .padding(vertical = Spacing.md),
     )
 }
+
+/** LinkedIn connections fill Friends only on a LinkedIn game's board; on any other the only way in is a duel. */
+internal fun friendsHintText(withLinkedIn: Boolean): String =
+    if (withLinkedIn) "Duel someone or connect LinkedIn to fill Friends" else "Duel someone to fill Friends"

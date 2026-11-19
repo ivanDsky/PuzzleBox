@@ -4,9 +4,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.Dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -80,6 +83,33 @@ class RanksBoardSlotTest {
 
         assertEquals(noteRest, noteLeaving)
         assertEquals(hintRest, hintLeaving)
+    }
+
+    /** Bug it catches: the Friends hint offering "connect LinkedIn" on a game that has no LinkedIn (Strands), or dropping it on a game that has. */
+    @Test
+    fun `the Friends hint offers LinkedIn only on a board of a LinkedIn game`() {
+        slice = alone.copy(linkedIn = true)
+        show()
+        composeRule.onNodeWithTag("ranks.board.friendsHint").assertTextEquals("Duel someone or connect LinkedIn to fill Friends")
+
+        slice = alone.copy(linkedIn = false)
+        composeRule.onNodeWithTag("ranks.board.friendsHint").assertTextEquals("Duel someone to fill Friends")
+    }
+
+    /** Bug it catches: a scrub between a LinkedIn game and Strands drawing both boards' hints in one board's words. */
+    @Test
+    fun `a scrub between two hints draws each board's own words`() {
+        val strands = alone.copy(linkedIn = false)
+        val zip = alone.copy(linkedIn = true)
+        show()
+
+        slice = strands
+        progress = 0.5f
+        morph = RanksBoardMorph(strands, zip) { progress }
+
+        val words = composeRule.onAllNodesWithTag("ranks.board.friendsHint").fetchSemanticsNodes()
+            .flatMap { it.config.getOrNull(SemanticsProperties.Text).orEmpty().map { text -> text.text } }
+        assertEquals(setOf("Duel someone to fill Friends", "Duel someone or connect LinkedIn to fill Friends"), words.toSet())
     }
 
     private val fresh = noted.copy(freshness = "LinkedIn updated 5 min ago")

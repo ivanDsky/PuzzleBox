@@ -197,7 +197,7 @@ internal class RanksViewModel(
 
     private val local = combine(calendarState, stats, yourSolve, nudge, playThisDay, ::Local)
 
-    private val slices = RanksBoardSlices(boards, window, scopedBoards::of, observeOverall, viewer, history, calendar, registry, BoardGhosts(linkedIn), freshness)
+    private val slices = RanksBoardSlices(boards, window, scopedBoards::of, observeOverall, viewer, history, calendar, registry, { daily.linkedInGameTypeId(it) != null }, BoardGhosts(linkedIn), freshness)
 
     /**
      * Every board as its slot draws it in the picked scope, with that scope: the one a swipe scrubs to is already

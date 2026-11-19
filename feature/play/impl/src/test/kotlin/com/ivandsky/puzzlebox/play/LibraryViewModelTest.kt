@@ -280,6 +280,17 @@ class LibraryViewModelTest {
         assertEquals(beta, vm.uiState.value.selected)
     }
 
+    /** Bug it catches: Strands (NYT, no LinkedIn feed) getting the LinkedIn sync chip on its game page because the chip was offered to every row. */
+    @Test
+    fun `only a game whose source is a LinkedIn one offers the LinkedIn lines on its row`() {
+        daily.setLinkedInGameType(alpha, 6)
+
+        val vm = observedVm()
+
+        assertTrue(vm.row(alpha).linkedInGame)
+        assertFalse(vm.row(beta).linkedInGame)
+    }
+
     /** Leaves the library past the stop grace, then returns: every state it emits on the way back. */
     private fun LibraryViewModel.leaveAndReturn(): List<LibraryUiState> {
         screen.cancel()

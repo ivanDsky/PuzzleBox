@@ -62,22 +62,6 @@ internal data class LibraryUiState(
     val offline: Boolean,
 )
 
-/**
- * One game in the library: its [card] (status null = still loading; puzzle number =
- * [today]), today's puzzle number, its archive [progress] (null for a game without an
- * archive, or before it loads), its [stats] and its three how-to-play [rules].
- */
-internal data class LibraryRowModel(
-    val card: GameCardModel,
-    val today: Int?,
-    val progress: ArchiveProgress?,
-    val stats: GameStats,
-    val rules: List<String>,
-) {
-    /** The day the card shows with nothing picked: the latest published day, null until the archive loads. */
-    val cardDay: LocalDate? get() = progress?.range?.endInclusive
-}
-
 /** An open lesson: [game]'s tutorial running in [session]. */
 internal data class OpenLesson(val game: GameId, val session: TutorialSession)
 
@@ -136,6 +120,7 @@ class LibraryViewModel(
             progress = null,
             stats = GameStats(0, 0, 0, 0, null, null, null, order),
             rules = gameRules(game),
+            linkedInGame = daily.linkedInGameTypeId(game) != null,
         )
     }
 

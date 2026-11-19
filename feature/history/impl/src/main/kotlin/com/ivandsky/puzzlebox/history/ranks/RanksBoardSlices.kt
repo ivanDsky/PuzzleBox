@@ -44,6 +44,7 @@ internal class RanksBoardSlices(
     private val history: Flow<List<HistoryDayRow>>,
     private val calendar: GameCalendar,
     private val registry: GameRegistry,
+    private val isLinkedInGame: (GameId) -> Boolean,
     private val ghosts: BoardGhosts,
     private val freshness: RanksFreshness? = null,
 ) {
@@ -121,6 +122,7 @@ internal class RanksBoardSlices(
             order = order,
             state = inWindow.toGameBoardState(game, order, kind, me?.uid).withUnofficialRow(unofficial),
             note = inWindow.gameBoardNote(game, kind),
+            linkedIn = isLinkedInGame(game),
         )
     }
 }
