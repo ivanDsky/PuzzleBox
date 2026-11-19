@@ -8,7 +8,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
-/** RanksTuneBoardOnly decides whether the Tune sheet drops its Defaults block (backlog #1547); off in release. */
+/** RanksTuneBoardOnly decides whether the Tune sheet drops its Defaults block (backlog #1547); on in release since 0.38.1. */
 class RanksViewModelTuneFlagTest {
 
     @get:Rule

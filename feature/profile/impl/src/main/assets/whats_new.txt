@@ -2,6 +2,12 @@
 # A release adds its entry at the top in the same commit as its version bump.
 # "## <version> <date>" starts a release; "- " starts a note; "#" lines are comments.
 
+## 0.38.1 2026-11-19
+- Ranks has no Tune icon now: Opens on and Who can see you live in Settings only.
+- Haptics now play in dialogs, bottom sheets, popups and dropdown menus too, and Settings, Haptics, Vibration turns them off.
+- The light tick when you place a mark now plays on phones whose system dropped it.
+- Strands no longer mentions LinkedIn.
+
 ## 0.38.0 2026-11-18
 - New duel is now its own screen. Adding a puzzle to a duel opens beside it on a tablet, not in a second sheet.
 - Filters are now dropdown buttons: tap one to pick from a list, or several at once for Source and Games, in Add puzzle, Community, Random puzzle and Ranks.
@@ -13,6 +19,8 @@
 - A duel result you have seen on one device now shows as seen on your others, and a puzzle you played on another device counts in the duel.
 - On a phone, the first card in Games keeps a gap under the tab strip.
 - A Past you rematch that fails no longer talks about an invite.
+- Vibration now plays on Samsung One UI phones, where the system had dropped it.
+- You can watch your own replay of a duel puzzle you played on your other device.
 
 ## 0.37.0 2026-11-18
 - There is a new What's new page: open it from Settings, under About.
