@@ -26,8 +26,8 @@ import androidx.compose.ui.unit.offset
 import com.ivandsky.puzzlebox.designsystem.LocalTabFadingIn
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 
-// The push travels a twelfth of the width: enough to read as forward, not a full slide. The month grid's slide uses it too.
-internal const val PUSH_TRAVEL_DIVISOR = 12
+// The push travels a twelfth of the width: enough to read as forward, not a full slide.
+private const val PUSH_TRAVEL_DIVISOR = 12
 
 /**
  * True where the Games right pane crossfades and the tablet's Games list sits beside it: blocks

@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.play
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
 
 /** The grid always shows six Monday-first weeks, so a month change never moves the legend. */
@@ -14,12 +15,20 @@ internal data class MonthJump(val label: String, val month: YearMonth, val selec
 /**
  * The month calendar's arithmetic over an archive [range] (#1 .. today, 06-a §Month calendar):
  * ‹ › step a month inside it, the jumps reach #1's month, each year (keeping the shown
- * month-of-year, clamped) and today's month, and [grid] lays a month out Monday first.
+ * month-of-year, clamped) and today's month, and [grid] lays a month out Monday first. [monthAt] and [indexOf] number the
+ * [monthCount] months from [first], the swiping calendar's pages.
  */
 internal class ArchiveMonthNav(private val range: ClosedRange<LocalDate>) {
 
     val first: YearMonth = YearMonth.from(range.start)
     val last: YearMonth = YearMonth.from(range.endInclusive)
+
+    val monthCount: Int = ChronoUnit.MONTHS.between(first, last).toInt() + 1
+
+    /** [month]'s place from [first] (0), clamped into the archive. */
+    fun indexOf(month: YearMonth): Int = ChronoUnit.MONTHS.between(first, clamp(month)).toInt()
+
+    fun monthAt(index: Int): YearMonth = first.plusMonths(index.toLong())
 
     fun clamp(month: YearMonth): YearMonth = month.coerceIn(first, last)
 

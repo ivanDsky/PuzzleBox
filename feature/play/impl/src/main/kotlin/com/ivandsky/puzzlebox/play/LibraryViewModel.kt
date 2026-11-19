@@ -43,6 +43,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -204,22 +205,22 @@ class LibraryViewModel(
             LibraryUiState(seed, selected.value, offline = false),
         )
 
+    // Live, so the debug flag's switch applies without a restart.
+    private val swipe: Flow<Boolean> = releaseFlags?.enabled?.map(::swipeOf)?.distinctUntilChanged() ?: flowOf(false)
+
     @OptIn(ExperimentalCoroutinesApi::class)
     internal val page: StateFlow<ArchivePageState?> =
-        combine(selected, month, picked, ::Triple)
-            .flatMapLatest { (game, shown, day) -> archiveMonth.page(game, shown, day, calendar) }
+        combine(selected, month, picked, swipe) { game, shown, day, beside -> archiveMonth.page(game, shown, day, calendar, beside) }
+            .flatMapLatest { it }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
     /**
-     * How the calendar's grid changes month (backlog #1551): the crossfade, or with [PlayFlag.ArchiveMonthSlide] the slide.
-     * Live, so the debug flag's switch applies on the next month change without a restart.
+     * Whether the calendar's months swipe (backlog #1668, [PlayFlag.ArchiveMonthSwipe]): the grid follows the finger and
+     * ‹ › slide it the same way, and [page] carries the months either side so a swipe shows the next one at once. Off, a
+     * month change is #1551's crossfade.
      */
-    internal val monthTransition: StateFlow<ArchiveMonthTransition> = if (releaseFlags == null) {
-        MutableStateFlow(ArchiveMonthTransition.Crossfade)
-    } else {
-        releaseFlags.enabled.map(::transitionOf)
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), transitionOf(releaseFlags.enabled.value))
-    }
+    internal val monthSwipe: StateFlow<Boolean> =
+        swipe.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), releaseFlags?.let { swipeOf(it.enabled.value) } ?: false)
 
     /** The day card's LinkedIn view; no stop grace, so a sync still in its debounce dies with the card. */
     internal val linkedInView: StateFlow<LinkedInDayView?> = linkedIn
@@ -292,7 +293,6 @@ class LibraryViewModel(
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
 
-        fun transitionOf(on: Set<ReleaseFlagKey>) =
-            if (PlayFlag.ArchiveMonthSlide in on) ArchiveMonthTransition.Slide else ArchiveMonthTransition.Crossfade
+        fun swipeOf(on: Set<ReleaseFlagKey>) = PlayFlag.ArchiveMonthSwipe in on
     }
 }

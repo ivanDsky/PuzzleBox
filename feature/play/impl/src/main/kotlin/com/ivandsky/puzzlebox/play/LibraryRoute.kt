@@ -76,7 +76,7 @@ internal fun LibraryRoute(
     val lesson by viewModel.lesson.collectAsStateWithLifecycle()
     val page by viewModel.page.collectAsStateWithLifecycle()
     val month by viewModel.shownMonth.collectAsStateWithLifecycle()
-    val monthTransition by viewModel.monthTransition.collectAsStateWithLifecycle()
+    val monthSwipe by viewModel.monthSwipe.collectAsStateWithLifecycle()
     // The card collects the view itself, so the route never starts a LinkedIn read.
     val linkedInCard = rememberLinkedInCard(viewModel, onReconnectLinkedIn)
     val friends by viewModel.friends.collectAsStateWithLifecycle()
@@ -99,7 +99,7 @@ internal fun LibraryRoute(
         onStopOrDispose { }
     }
     Box(modifier.fillMaxSize().testTag("route.library")) {
-        CompositionLocalProvider(LocalArchiveMonthTransition provides monthTransition) {
+        CompositionLocalProvider(LocalArchiveMonthSwipe provides monthSwipe) {
             LibraryScreen(
                 state = state,
                 page = page,
