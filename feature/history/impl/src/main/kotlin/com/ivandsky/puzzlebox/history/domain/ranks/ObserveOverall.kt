@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.domain.ranks.RankWindowBoards
 import com.ivandsky.puzzlebox.domain.ranks.amongFriends
 import com.ivandsky.puzzlebox.domain.ranks.rankBoard
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -68,18 +69,40 @@ class ObserveOverall(
 fun windowStandings(loaded: List<BoardLoad.Loaded>, me: Identity?, records: List<CompletionRecord>): OverallStandings {
     val ranked = loaded.map { rankBoard(it.board, it.page.entries, it.order, it.page.count) }
     if (me == null) return overall(ranked, viewerUid = null, viewerBeyondPage = emptySet())
-    val official = records.mapNotNullTo(HashSet()) { record ->
-        LeaderboardEntries.fromRecord(record, me.uid, me.displayName)?.let { LeaderboardRef.fromPuzzleRefKey(it.puzzleRef) }
-    }
-    // A11: at the cap with an official solve of the viewer's own but no row, they placed beyond the page.
-    val beyondPage = loaded.filter { load ->
-        load.page.entries.size >= BoardPage.PAGE_SIZE &&
-            load.board in official &&
-            load.page.entries.none { it.uid == me.uid }
-    }.mapTo(HashSet()) { it.board }
-    val standings = overall(ranked, me.uid, beyondPage)
+    val standings = overall(ranked, me.uid, beyondPage(loaded, me, records))
     // `overall` has no name for a viewer on no page; the profile has.
     return standings.copy(
         rows = standings.rows.map { if (it.uid == me.uid && it.displayName.isEmpty()) it.copy(displayName = me.displayName) else it },
     )
 }
+
+/**
+ * How many of [loaded]'s days the viewer solved ([records]) but stands [ViewerStanding.Unofficial] on, as each day's
+ * board marks them: the days a game's Week or Month leaves out of their points (ADR-0031 §11). [inWindow] is the
+ * client's one submit-window rule. A board A11 places them past the page on counts for them, so it is not one of these.
+ */
+fun unofficialDays(loaded: List<BoardLoad.Loaded>, me: Identity?, records: List<CompletionRecord>, inWindow: (LeaderboardRef) -> Boolean): Int {
+    if (me == null) return 0
+    val solves = records.mapNotNull { record -> record.board()?.let { it to record } }.toMap()
+    val counted = beyondPage(loaded, me, records)
+    return loaded.count { load ->
+        load.board !in counted &&
+            viewerStanding(solves[load.board], inWindow(load.board), load.page, me.uid, load.order) is ViewerStanding.Unofficial
+    }
+}
+
+/** A11: the boards at the cap where the viewer has an official solve of their own but no row, so they placed beyond the page. */
+private fun beyondPage(loaded: List<BoardLoad.Loaded>, me: Identity, records: List<CompletionRecord>): Set<LeaderboardRef> {
+    val official = records.mapNotNullTo(HashSet()) { record ->
+        LeaderboardEntries.fromRecord(record, me.uid, me.displayName)?.let { LeaderboardRef.fromPuzzleRefKey(it.puzzleRef) }
+    }
+    return loaded.filter { load ->
+        load.page.entries.size >= BoardPage.PAGE_SIZE &&
+            load.board in official &&
+            load.page.entries.none { it.uid == me.uid }
+    }.mapTo(HashSet()) { it.board }
+}
+
+/** The daily board this record's day is on; null for a puzzle with no day. */
+private fun CompletionRecord.board(): LeaderboardRef? =
+    (puzzleRef.key as? PuzzleKey.Daily)?.let { LeaderboardRef(puzzleRef.gameId.value, it.date) }

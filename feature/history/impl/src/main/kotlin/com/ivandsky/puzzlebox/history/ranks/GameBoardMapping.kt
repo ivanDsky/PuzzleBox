@@ -62,6 +62,13 @@ internal fun RankWindowBoards?.gameBoardNote(game: GameId, kind: Window): String
     return if (loaded in 1 until boards.size) "$loaded of ${boards.size} days" else null
 }
 
+/** What to say under a points week or month when [days] of the viewer's solved days in it are unofficial, so earn nothing. */
+internal fun unofficialDaysNote(days: Int): String? = when (days) {
+    0 -> null
+    1 -> "1 solved day is unofficial and earns no points"
+    else -> "$days solved days are unofficial and earn no points"
+}
+
 private const val WITH_LINKEDIN = "with LinkedIn connections"
 
 /**
