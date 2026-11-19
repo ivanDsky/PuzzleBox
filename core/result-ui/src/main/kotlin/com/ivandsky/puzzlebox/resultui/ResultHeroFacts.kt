@@ -15,6 +15,8 @@ import com.ivandsky.puzzlebox.gameui.RecordVerdict
  * compares with the game's best, and any value, even [SamePuzzleSolves.None], draws that line larger.
  * [community], when given, makes this a community puzzle's hero: Hints reads "0" rather than "None" and its chips follow it
  * in place of the Today and Average chips.
+ * [firstSolveNoGap] (#1762): a first solve of this puzzle that is not a new best leads with its rank among the player's
+ * solves of the game rather than the gap to their best; the view model reads the release flag.
  */
 data class ResultHeroFacts(
     val timeMs: Long,
@@ -36,4 +38,5 @@ data class ResultHeroFacts(
     val challenge: ResultPrimaryAction.ChallengeFriend?,
     val samePuzzle: SamePuzzleSolves?,
     val community: ResultCommunity? = null,
+    val firstSolveNoGap: Boolean = false,
 )

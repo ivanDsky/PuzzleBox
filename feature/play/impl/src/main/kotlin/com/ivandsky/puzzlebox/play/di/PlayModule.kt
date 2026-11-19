@@ -225,6 +225,7 @@ val playModule = module {
             submitPost = if (linkedIn) get() else null,
             nextThing = inject(),
             daily = get(),
+            firstSolveNoGap = get<ReleaseFlags>().isEnabled(PlayFlag.FirstSolveNoGap),
         )
     }
     viewModel { (key: ReplayKey) -> ReplayViewModel(key, get(), get(), get(), get(), get()) }

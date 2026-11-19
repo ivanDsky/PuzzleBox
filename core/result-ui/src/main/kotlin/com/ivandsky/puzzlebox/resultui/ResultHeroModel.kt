@@ -144,13 +144,17 @@ internal fun resultHeroModel(
 
 /**
  * The line under the time when there is no compare row. With the same-puzzle comparison on ([ResultHeroFacts.samePuzzle])
- * nothing shows until those solves are read; without an earlier solve it is the game-wide wording. A practice puzzle has none.
+ * nothing shows until those solves are read; without an earlier solve it is the game-wide wording, except that
+ * [ResultHeroFacts.firstSolveNoGap] swaps a not-best solve's gap to the best for its rank line (none until the insights
+ * land). A practice puzzle has none.
  */
 private fun bestLine(facts: ResultHeroFacts, verdict: RecordVerdict?): String? {
     val same = facts.samePuzzle
     return when {
         facts.practice -> null
         same != null && !same.read -> null
+        facts.firstSolveNoGap && !facts.playAgain && verdict == RecordVerdict.NotBest && same != null && same.previous == null ->
+            facts.insights?.let { heroRankLine(facts.rankOrder, it.spread, facts.game) }
         else -> heroBestLine(
             verdict = if (facts.playAgain) RecordVerdict.PlayAgain else verdict,
             previousBest = facts.previousBest,
