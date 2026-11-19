@@ -13,7 +13,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Goldens for the readable Zip board at rest (nav-rethink B3): thinner round-capped walls
- * that stop at the board edge, the outline drawn as a wall, and the ring on the next number,
+ * that stop at the board edge, the outline drawn as a wall, and no mark on the next number,
  * light and dark. They are the board to hold against the approved token sheets.
  * Rendered with `-Proborazzi.record=true` into `games/zip-ui/snapshots/` (untracked review
  * captures).

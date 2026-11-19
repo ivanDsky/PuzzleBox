@@ -48,11 +48,10 @@ private val cellCorner = RoundedCornerShape(10.dp)
  * into neighbor dots. Sizes come from [ZipBoardSpec] fractions of the cell. Resting by
  * contract (A8): the waypoint pop when the trace reaches a dot animates only in the live
  * game — the play screen passes [animated] (false under reduced motion); previews and
- * read-only boards stay static. [nextNumberAlpha] is the opacity of the ring on the next
- * number to reach, read as it is drawn: the play screen passes its pulse, everything else
- * leaves the ring full. With ZipDotPulse there is no ring: the next number's circle and label
- * hold the trace colour, and [halo], when a live board passes it, is where a soft ripple is
- * in its cycle (0 to 1), read as it is drawn. Without [halo] the circle is simply still.
+ * read-only boards stay static. The next number to reach is marked only by ZipDotPulse:
+ * its circle and label hold the trace colour, and [halo], when a live board passes it, is
+ * where a soft ripple is in its cycle (0 to 1), read as it is drawn. Without [halo] the
+ * circle is simply still. Boards without ZipDotPulse, and static previews, draw no mark.
  */
 @Composable
 fun ZipCellDecor(
@@ -61,7 +60,6 @@ fun ZipCellDecor(
     col: Int,
     modifier: Modifier = Modifier,
     animated: Boolean = false,
-    nextNumberAlpha: () -> Float = { 1f },
     halo: (() -> Float)? = null,
 ) {
     val glow = LocalZipDotPulse.current
@@ -79,7 +77,7 @@ fun ZipCellDecor(
         isHint = model.hintHighlight == idx,
         isRejected = model.rejection?.cellIdx == idx,
     )
-    ZipCell(face, modifier, animated, nextNumberAlpha, glow, halo)
+    ZipCell(face, modifier, animated, glow, halo)
 }
 
 /** What one cell draws; equal faces let [ZipCell] skip recomposition. */
@@ -103,7 +101,6 @@ internal fun ZipCell(
     face: ZipCellFace,
     modifier: Modifier,
     animated: Boolean,
-    nextNumberAlpha: () -> Float,
     glow: Boolean = false,
     halo: (() -> Float)? = null,
 ) {
@@ -114,7 +111,7 @@ internal fun ZipCell(
     val isHint = face.isHint
     val isRejected = face.isRejected
     val board = LocalBoardColors.current
-    // With ZipDotPulse the ring is gone: the target's own circle holds the trace colour, with a halo round it.
+    // With ZipDotPulse the target's own circle holds the trace colour, with a halo round it.
     val glowing = glow && face.isNextTarget
     val scheme = MaterialTheme.colorScheme
 
@@ -153,19 +150,6 @@ internal fun ZipCell(
         if (isRejected) {
             Box(Modifier.fillMaxSize().background(scheme.errorContainer.copy(alpha = 0.7f), cellCorner))
         }
-        if (!glow && face.isNextTarget) {
-            // Its own node, so a pulsing alpha repaints this cell alone and recomposes nothing.
-            Box(
-                Modifier.fillMaxSize().testTag("play.next_number_ring").drawBehind {
-                    drawCircle(
-                        color = board.boardTarget,
-                        radius = size.minDimension * ZipBoardSpec.nextNumberRingRadiusFraction,
-                        alpha = nextNumberAlpha(),
-                        style = Stroke(ZipBoardSpec.nextNumberRingWeight.toPx()),
-                    )
-                },
-            )
-        }
         if (glowing && halo != null) {
             // Its own node, so the waves repaint this cell alone and recompose nothing. They start at the circle's edge.
             Box(
@@ -178,7 +162,7 @@ internal fun ZipCell(
                             color = board.boardTarget,
                             radius = edge * (1f + ZipBoardSpec.haloGrowth * spread),
                             alpha = ZipBoardSpec.haloAlpha * (1f - spread),
-                            style = Stroke(ZipBoardSpec.nextNumberRingWeight.toPx() * ZipBoardSpec.haloWeightFactor),
+                            style = Stroke(ZipBoardSpec.nextNumberStrokeWeight.toPx() * ZipBoardSpec.haloWeightFactor),
                         )
                     }
                 },
@@ -188,9 +172,8 @@ internal fun ZipCell(
         // unvisited and start in the waypointDot role, a traced dot in the blue on-path
         // role (D2, round 3). The label always rides the ring's state color on the
         // surface hole (both roles ≥4.5 on boardSurface in each theme); filled
-        // disks are gone. The next target wears its own ring (above), so the dot keeps its
-        // state color; with ZipDotPulse the target's circle and label hold the trace colour
-        // instead. Previews render the static state.
+        // disks are gone. With ZipDotPulse the next target's circle and label hold the
+        // trace colour instead. Previews render the static state.
         val ringColor = if (glowing) board.boardTarget else if (inPath) board.waypointDotOnPath else board.waypointDot
         if (face.isWaypoint) {
             Box(

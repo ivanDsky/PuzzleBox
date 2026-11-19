@@ -97,11 +97,10 @@ internal object ZipBoardSpec {
     /** U1 §4: board outline corner radius, measured 0.35–0.4 cell (midpoint picked). */
     const val boardOutlineRadiusFraction = 0.375f
 
-    /** The ring round the next number to reach: its radius as a fraction of the pitch, and its stroke. */
-    const val nextNumberRingRadiusFraction = 0.42f
-    val nextNumberRingWeight = 3.dp
+    /** The base stroke of the next number's halo; [haloWeightFactor] scales it. */
+    val nextNumberStrokeWeight = 3.dp
 
-    /** ZipDotPulse's halo: ripples out of the target's circle, each [haloGrowth] wider at its end and fading from [haloAlpha]; the stroke is [haloWeightFactor] x the ring's. */
+    /** ZipDotPulse's halo: ripples out of the target's circle, each [haloGrowth] wider at its end and fading from [haloAlpha]; the stroke is [haloWeightFactor] x [nextNumberStrokeWeight]. */
     const val haloWaves = 2
     const val haloGrowth = 0.55f
     const val haloAlpha = 0.55f

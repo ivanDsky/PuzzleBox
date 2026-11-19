@@ -214,8 +214,6 @@ private fun ZipBoard(controller: ZipPlayController, paneCap: Dp?, modifier: Modi
     val finger = remember { mutableStateOf<Offset?>(null) }
     val nextNumberLive = !reducedMotion && model.cells.any { it.isNextTarget }
     val glow = LocalZipDotPulse.current
-    // One of the two runs: the ring's fade (stills under a finger) or, with ZipDotPulse, the halo (never does).
-    val ringAlpha = rememberNextNumberPulse(held = { finger.value != null }, enabled = nextNumberLive && !glow)
     val halo = rememberNextNumberHalo(enabled = nextNumberLive && glow)
     val cap = paneCap ?: PhoneBoardCap
     Box(modifier) {
@@ -228,7 +226,7 @@ private fun ZipBoard(controller: ZipPlayController, paneCap: Dp?, modifier: Modi
             edgeOverlays = walls,
             underlay = { ZipPipes(model, { finger.value }, hooks, animate = !reducedMotion) },
             cellContent = { row, col ->
-                ZipCellDecor(model, row, col, animated = !reducedMotion, nextNumberAlpha = ringAlpha, halo = halo)
+                ZipCellDecor(model, row, col, animated = !reducedMotion, halo = halo)
             },
             onPointer = { finger.value = it },
             wallWeight = LocalBoardGeometry.current.wallWeight,

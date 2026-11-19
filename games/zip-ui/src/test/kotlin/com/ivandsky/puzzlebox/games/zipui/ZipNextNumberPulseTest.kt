@@ -4,7 +4,6 @@ import android.content.Context
 import android.provider.Settings
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.captureToImage
@@ -13,7 +12,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ApplicationProvider
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.designsystem.LightBoardTokens
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.DragEvent
 import com.ivandsky.puzzlebox.gameui.GridCell
@@ -34,9 +32,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The ring on the next number to reach, on the real play screen (nav-rethink B3, ticket 42): it pulses in a loop while the board is idle, holds still while a
- * drag is held and under reduced motion. With ZipDotPulse (backlog #1151) there is no ring: the number's circle holds the trace colour and a halo
- * ripples out of it, and the halo never stills for a finger: it runs while drawing too.
+ * The halo on the next number to reach, on the real play screen (nav-rethink B3, ticket 42; backlog #1151).
+ * With ZipDotPulse the number's circle holds the trace colour and a halo ripples out of it, never stilling for
+ * a finger: it runs while drawing too. Without ZipDotPulse, and on static boards, there is no next-number mark.
  *
  * The fixture's start cell is traced before the screen shows, so the next number is "2" in the
  * middle cell (2, 2) throughout. The clock is paused and stepped by hand.
@@ -82,27 +80,6 @@ class ZipNextNumberPulseTest {
         // No frame is run here: the board is laid out and at rest, the pulse has not taken a step.
     }
 
-    /**
-     * The board's pixel where the ring of cell ([row], [col]) would be: on the line through the
-     * cell's centre, around [RING_RADIUS] of a cell to the right, the pixel deepest inside the
-     * stroke (the least red one, the target colour having no red), so an anti-aliased edge
-     * pixel is never the sample.
-     */
-    private fun ringPixel(row: Int = 2, col: Int = 2): Color {
-        val pixels = composeRule.onNodeWithTag("play.board").captureToImage().toPixelMap()
-        val pitch = pixels.width / 5f
-        val y = (pitch * (row + 0.5f)).toInt()
-        val from = (pitch * (col + 0.5f + RING_RADIUS - RING_SEARCH)).toInt()
-        val to = (pitch * (col + 0.5f + RING_RADIUS + RING_SEARCH)).toInt()
-        return (from..to).map { pixels[it, y] }.minBy { it.red }
-    }
-
-    /** The ring pixel every [STEP_MS] over a little more than one pulse cycle. */
-    private fun ringOverACycle(): List<Color> = List(14) {
-        composeRule.mainClock.advanceTimeBy(STEP_MS)
-        ringPixel()
-    }
-
     /** Every pixel of the next number's cell (2, 2): any swell or colour shift of its dot changes it. */
     private fun dotCell(): List<Int> {
         val pixels = composeRule.onNodeWithTag("play.board").captureToImage().toPixelMap()
@@ -120,45 +97,10 @@ class ZipNextNumberPulseTest {
         Offset(width * (col + 0.5f) / 5, height * (row + 0.5f) / 5)
 
     @Test
-    fun `the idle ring pulses in the target colour and no cell recomposes for it`() {
+    fun `without ZipDotPulse the live board draws no next-number mark`() {
         show()
-        assertEquals("at rest the ring is the full target colour", LightBoardTokens.boardTarget, ringPixel())
-        val recomposed = mutableListOf<Int>()
-        cellComposed = { recomposed += it }
-
-        val seen = ringOverACycle()
-
-        assertTrue("the ring should fade and return over a cycle, saw $seen", seen.distinct().size > 3)
-        assertEquals("the pulse is drawn, never recomposed", emptyList<Int>(), recomposed)
-    }
-
-    @Test
-    fun `the pulse holds still while a drag is held and starts again when the finger lifts`() {
-        show()
-        composeRule.mainClock.advanceTimeBy(300) // into the fade, so a pause has something to stop
-
-        composeRule.onNodeWithTag("play.board").performTouchInput {
-            down(cellAt(width, height, 0, 0))
-            moveTo(cellAt(width, height, 0, 1))
-        }
-        composeRule.mainClock.advanceTimeBy(SETTLE_MS)
-        val held = ringOverACycle()
-
-        assertEquals("a held drag shows the full, still ring", listOf(LightBoardTokens.boardTarget), held.distinct())
-
-        composeRule.onNodeWithTag("play.board").performTouchInput { up() }
-        val lifted = ringOverACycle()
-
-        assertTrue("the pulse should run again after the lift, saw $lifted", lifted.distinct().size > 3)
-    }
-
-    @Test
-    fun `with reduced motion the ring is there and never pulses`() {
-        show(reducedMotion = true)
-
-        val seen = ringOverACycle()
-
-        assertEquals(listOf(LightBoardTokens.boardTarget), seen.distinct())
+        composeRule.onNodeWithTag("play.next_number_ring").assertDoesNotExist()
+        composeRule.onNodeWithTag("play.next_number_halo").assertDoesNotExist()
     }
 
     @Test
@@ -173,7 +115,6 @@ class ZipNextNumberPulseTest {
 
         assertTrue("the halo should ripple over a cycle, saw ${seen.distinct().size} looks", seen.distinct().size > 3)
         assertEquals("the pulse is drawn, never recomposed", emptyList<Int>(), recomposed)
-        composeRule.onNodeWithTag("play.next_number_ring").assertDoesNotExist()
     }
 
     @Test
@@ -207,8 +148,6 @@ class ZipNextNumberPulseTest {
     }
 
     private companion object {
-        const val RING_RADIUS = 0.42f
-        const val RING_SEARCH = 0.04f
         const val STEP_MS = 100L
         const val SETTLE_MS = 400L
     }

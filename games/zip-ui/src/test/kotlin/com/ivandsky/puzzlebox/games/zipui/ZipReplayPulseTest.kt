@@ -109,10 +109,10 @@ class ZipReplayPulseTest {
     }
 
     @Test
-    fun `the replay's next number is still without ZipDotPulse`() {
+    fun `the replay's next number has no mark without ZipDotPulse`() {
         show(dotPulse = false)
-
-        assertEquals(1, cellOverACycle().distinct().size)
+        rule.onNodeWithTag("play.next_number_ring").assertDoesNotExist()
+        rule.onNodeWithTag("play.next_number_halo").assertDoesNotExist()
     }
 
     private companion object {
