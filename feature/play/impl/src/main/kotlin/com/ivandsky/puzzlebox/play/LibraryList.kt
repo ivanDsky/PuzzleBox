@@ -38,7 +38,8 @@ import com.ivandsky.puzzlebox.model.GameId
  * offline pill and each row carries a chevron.
  *
  * With a [duels] slot the list is tabbed instead: the header stays put over the shared underline strip over a swipeable
- * pager ([UnderlineTabbedList]), the [tab]'s body filling the rest: Dailies and Duels. Each tab keeps its own scroll,
+ * pager ([UnderlineTabbedList]), the [tab]'s body filling the rest: Dailies and Duels, and Train with a [train] slot. A
+ * [tab] the strip does not list (Train saved, then its slot gone) shows Dailies. Each tab keeps its own scroll,
  * Dailies on [scroll] and Duels on [duelsScroll], which the Duels body lays its list out on; a tab change ([onTab])
  * scrolls nothing back to the top. The friend puzzles live on the app's Community tab, so there is no From friends
  * carousel in the tabs. The Duels body is handed the pending [duelPrefill] and reports it taken ([onDuelPrefillTaken]).
@@ -56,6 +57,7 @@ internal fun LibraryList(
     headerAction: @Composable () -> Unit = {},
     friends: @Composable () -> Unit = {},
     duels: DuelsSlot? = null,
+    train: TrainSlot? = null,
     tab: GamesTab = GamesTab.Dailies,
     onTab: (GamesTab) -> Unit = {},
     duelsScroll: LazyListState = rememberLazyListState(),
@@ -64,22 +66,24 @@ internal fun LibraryList(
     largeBar: Boolean = false,
 ) {
     val phone = layout == PlayLayout.SinglePane
+    val shownTab = tab.orDailies(gamesTabs(trainShown = train != null))
     // Only the list on screen glides: a tab change already snaps the other ones back to their tops.
-    val onDuels by rememberUpdatedState(duels != null && tab == GamesTab.Duels)
+    val onDuels by rememberUpdatedState(duels != null && shownTab == GamesTab.Duels)
+    val onTrain by rememberUpdatedState(duels != null && shownTab == GamesTab.Train)
     OnTabReselect {
-        if (onDuels) duelsScroll.animateScrollToItem(0) else scroll.animateScrollTo(0)
+        if (onDuels) duelsScroll.animateScrollToItem(0) else if (!onTrain) scroll.animateScrollTo(0)
     }
     if (duels != null) {
         UnderlineTabbedList(
             state, phone, GamesScrolls(scroll, duelsScroll), onRow, modifier,
             header = {
                 if (largeBar) {
-                    GamesLargeBar(tab.subtitle(), phone, headerAction)
+                    GamesLargeBar(shownTab.subtitle(), phone, headerAction)
                 } else {
-                    Box(if (phone) Modifier.padding(horizontal = Spacing.lg) else Modifier) { ListHeader(tab.subtitle(), headerAction) }
+                    Box(if (phone) Modifier.padding(horizontal = Spacing.lg) else Modifier) { ListHeader(shownTab.subtitle(), headerAction) }
                 }
             },
-            duels, tab, onTab, duelPrefill, onDuelPrefillTaken,
+            duels, train, shownTab, onTab, duelPrefill, onDuelPrefillTaken,
             headerGap = if (largeBar) 0.dp else Spacing.md,
         )
         return

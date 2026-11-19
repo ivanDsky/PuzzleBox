@@ -28,6 +28,7 @@ import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.CustomSlot
 import com.ivandsky.puzzlebox.play.DuelsSlot
+import com.ivandsky.puzzlebox.play.TrainSlot
 import com.ivandsky.puzzlebox.profile.settings.VisibilitySlot
 import com.ivandsky.puzzlebox.data.visibility.VisibilityRepository
 import com.ivandsky.puzzlebox.play.PlaySessionStore
@@ -51,7 +52,7 @@ import org.koin.compose.koinInject
  * [codeDraft] and [onCodeDraftTaken] reach the Community code sheet: a draft opens it.
  * [libraryRequests] is the one-shot Games request: Games reads its pending value and takes it.
  * [duels], when given, adds the Duels tab and
- * lets Enter code open a duel. [custom] fills the Community tab, and [makeOne] backs the
+ * lets Enter code open a duel, and [train], when given, adds the Train tab after it. [custom] fills the Community tab, and [makeOne] backs the
  * Make-one doors on the game page and the Result. The shell draws the
  * avatar ([ShellAvatar]) over [identityService]'s signed-in player: in Today's header on the
  * phone (and every main tab's, with [mainTabBars]), at the rail's bottom on the tablet. Settings is reached through Profile's gear.
@@ -69,6 +70,7 @@ internal fun PuzzleBoxNavShell(
     codeDraft: () -> String? = { null },
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
+    train: TrainSlot? = null,
     libraryRequests: LibraryRequests = rememberLibraryRequests(),
     store: PlaySessionStore = koinInject(),
     identityService: IdentityService = koinInject(),
@@ -96,6 +98,7 @@ internal fun PuzzleBoxNavShell(
             codeDraft = codeDraft,
             onCodeDraftTaken = onCodeDraftTaken,
             duels = duels,
+            train = train,
             custom = custom,
             makeOne = makeOne,
             libraryRequests = libraryRequests,

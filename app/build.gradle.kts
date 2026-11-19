@@ -234,6 +234,8 @@ dependencies {
     implementation(projects.feature.compete.impl)
     implementation(projects.feature.insights.api)
     implementation(projects.feature.insights.impl)
+    // The Train tab's pane and its Koin module; the Games tab hosts the pane through a slot the app builds.
+    implementation(projects.feature.train.impl)
 
     implementation(libs.androidx.activity.compose)
     // Ticket 08: the system splash hold (installSplashScreen) that MainActivity keeps on screen.

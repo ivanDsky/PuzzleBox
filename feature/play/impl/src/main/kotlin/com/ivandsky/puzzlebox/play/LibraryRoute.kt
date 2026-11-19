@@ -50,7 +50,7 @@ import org.koin.core.parameter.parametersOf
  * The game page shows its rank as a summary row that calls [onOpenRanks].
  * With [linkedIn] the day card shows the LinkedIn lines, and [onReconnectLinkedIn] opens its login.
  * [onMakeOne] puts "Make one" on each game page. The friend puzzles and Custom's list are the app's Community
- * tab ([CommunityRoute]); Games shows Dailies and Duels.
+ * tab ([CommunityRoute]); Games shows Dailies and Duels, and Train with a [train] slot.
  * Each game page's calendar has Random: it opens the random sheet for that game, and its
  * pick plays a past day through [onPlay], as a fresh play again when it is already solved, or opens a New today puzzle's card through [onOpenCode], the sheet closing first.
  */
@@ -64,6 +64,7 @@ internal fun LibraryRoute(
     codeDraft: String? = null,
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
+    train: TrainSlot? = null,
     request: LibraryRequest? = null,
     onRequestTaken: () -> Unit = {},
     linkedIn: Boolean = false,
@@ -122,6 +123,7 @@ internal fun LibraryRoute(
                 onOpenFriend = onOpenCode,
                 onRemoveFriend = viewModel::removeFriend,
                 duels = duels,
+                train = train,
                 request = request,
                 onRequestTaken = onRequestTaken,
                 linkedIn = linkedInCard,

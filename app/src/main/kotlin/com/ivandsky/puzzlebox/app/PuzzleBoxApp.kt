@@ -73,7 +73,8 @@ import org.koin.compose.koinInject
  * [navigator]'s selected tab, so it always names the tab that owns the screen on top, or the
  * tab under the Profile layer while that is open.
  * The Play tab carries a dot while any of today's games is in progress.
- * The shell hands Community its Custom body ([rememberCustomSlot]) and the Make-one doors their action ([MakeOne]).
+ * The shell hands Community its Custom body ([rememberCustomSlot]), Games its Train tab ([rememberTrainSlot], none
+ * while no game has a trainer) and the Make-one doors their action ([MakeOne]).
  * Play is immersive: while the screen on top is immersive ([isImmersive]: a
  * board or a result, a duel's leg board or result, or a duel's reveal) neither bar nor rail
  * shows, and back is the way out.
@@ -149,6 +150,7 @@ fun PuzzleBoxApp(
         todaySet().map { entries -> entries.any { it.status is TodayStatus.InProgress } }
     }.collectAsStateWithLifecycle(initialValue = false)
     val duels = rememberDuelsSlot(navigator, playLayout)
+    val train = rememberTrainSlot()
     val custom = rememberCustomSlot(navigator)
     val makeOne = rememberMakeOne(navigator)
     val badged = playTabBadged(anyInProgress, duelsNeedYou = duels.needYou())
@@ -223,6 +225,7 @@ fun PuzzleBoxApp(
                         codeDraft = { codeDraft },
                         onCodeDraftTaken = { codeDraft = null },
                         duels = duels,
+                        train = train,
                         custom = custom,
                         makeOne = makeOne,
                         libraryRequests = libraryRequests,
