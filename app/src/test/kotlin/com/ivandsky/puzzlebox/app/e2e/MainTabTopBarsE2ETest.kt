@@ -79,7 +79,9 @@ abstract class MainTabTopBarsE2ETest(private val phone: Boolean) {
         // The phone's avatar rides in each tab's own bar; the tablet's stays on the rail.
         assertEquals("$key avatars in the bar", if (phone) 1 else 0, avatarsInBar)
         if (phone) assertChromeActions()
-        return Bars(bounds(route, "topbar.title"), bounds(route, "topbar.large"), bounds(route, FIRST_CONTENT.getValue(key)))
+        // Ranks opens on its filter chip row on the phone; the tablet's chips sit in the other pane, so its calendar is first.
+        val first = if (key == HistoryRootKey && phone) RANKS_FILTERS else FIRST_CONTENT.getValue(key)
+        return Bars(bounds(route, "topbar.title"), bounds(route, "topbar.large"), bounds(route, first))
     }
 
     private fun ShellRobot.bounds(route: String, tag: String): Rect {
@@ -99,6 +101,7 @@ abstract class MainTabTopBarsE2ETest(private val phone: Boolean) {
     private companion object {
         const val TIMEOUT_MS = 5_000L
         const val AVATAR = "shell.avatar"
+        const val RANKS_FILTERS = "ranks.filters"
 
         // Sub-pixel layout rounding only.
         const val TOLERANCE_PX = 1f
@@ -110,7 +113,7 @@ abstract class MainTabTopBarsE2ETest(private val phone: Boolean) {
             HistoryRootKey to "route.ranks",
         )
 
-        // What each tab shows first under its bar: Today's summary card, the underline tabs, Ranks' calendar.
+        // What each tab shows first under its bar: Today's summary card, the underline tabs, Ranks' calendar (its chip row on the phone).
         val FIRST_CONTENT: Map<NavKey, String> = mapOf(
             HomeKey to "home.today",
             PlayKey to "underline.tabs",
