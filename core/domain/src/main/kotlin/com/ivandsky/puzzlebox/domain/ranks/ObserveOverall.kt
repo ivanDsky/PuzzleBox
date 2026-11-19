@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.history.domain.ranks
+package com.ivandsky.puzzlebox.domain.ranks
 
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -6,21 +6,16 @@ import com.ivandsky.puzzlebox.data.leaderboard.BoardPage
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntries
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
-import com.ivandsky.puzzlebox.domain.ranks.BoardLoad
-import com.ivandsky.puzzlebox.domain.ranks.RankWindowBoards
-import com.ivandsky.puzzlebox.domain.ranks.amongFriends
-import com.ivandsky.puzzlebox.domain.ranks.rankBoard
 import com.ivandsky.puzzlebox.game.CompletionRecord
-import com.ivandsky.puzzlebox.model.PuzzleKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.onStart
 
 /**
- * Overall standings with their completeness (A11, A12), derived from the hub's one shared
- * window-boards flow: it attaches no listener and reads nothing of its own, so the read
- * budget (A23) stays [ObserveRankWindow]'s.
+ * Overall standings with their completeness (A11, A12), derived from the window-boards flow it is given (the hub's one
+ * shared collection, or [ObserveFriendsOverall]'s own): it attaches no listener and reads nothing of its own, so the
+ * read budget (A23) stays [ObserveRankWindow]'s.
  */
 class ObserveOverall(
     private val identity: IdentityService,
@@ -77,22 +72,10 @@ fun windowStandings(loaded: List<BoardLoad.Loaded>, me: Identity?, records: List
 }
 
 /**
- * How many of [loaded]'s days the viewer solved ([records]) but stands [ViewerStanding.Unofficial] on, as each day's
- * board marks them: the days a game's Week or Month leaves out of their points (ADR-0031 §11). [inWindow] is the
- * client's one submit-window rule. A board A11 places them past the page on counts for them, so it is not one of these.
+ * A11: the boards at the cap where the viewer has an official solve of their own ([records]) but no row, so they placed
+ * beyond the page. Their points count those boards; a board the viewer is unofficial on is not one of them.
  */
-fun unofficialDays(loaded: List<BoardLoad.Loaded>, me: Identity?, records: List<CompletionRecord>, inWindow: (LeaderboardRef) -> Boolean): Int {
-    if (me == null) return 0
-    val solves = records.mapNotNull { record -> record.board()?.let { it to record } }.toMap()
-    val counted = beyondPage(loaded, me, records)
-    return loaded.count { load ->
-        load.board !in counted &&
-            viewerStanding(solves[load.board], inWindow(load.board), load.page, me.uid, load.order) is ViewerStanding.Unofficial
-    }
-}
-
-/** A11: the boards at the cap where the viewer has an official solve of their own but no row, so they placed beyond the page. */
-private fun beyondPage(loaded: List<BoardLoad.Loaded>, me: Identity, records: List<CompletionRecord>): Set<LeaderboardRef> {
+fun beyondPage(loaded: List<BoardLoad.Loaded>, me: Identity, records: List<CompletionRecord>): Set<LeaderboardRef> {
     val official = records.mapNotNullTo(HashSet()) { record ->
         LeaderboardEntries.fromRecord(record, me.uid, me.displayName)?.let { LeaderboardRef.fromPuzzleRefKey(it.puzzleRef) }
     }
@@ -102,7 +85,3 @@ private fun beyondPage(loaded: List<BoardLoad.Loaded>, me: Identity, records: Li
             load.page.entries.none { it.uid == me.uid }
     }.mapTo(HashSet()) { it.board }
 }
-
-/** The daily board this record's day is on; null for a puzzle with no day. */
-private fun CompletionRecord.board(): LeaderboardRef? =
-    (puzzleRef.key as? PuzzleKey.Daily)?.let { LeaderboardRef(puzzleRef.gameId.value, it.date) }

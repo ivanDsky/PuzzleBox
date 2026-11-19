@@ -16,9 +16,11 @@ import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendBoards
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
-import com.ivandsky.puzzlebox.history.domain.ranks.ObserveOverall
-import com.ivandsky.puzzlebox.history.domain.ranks.ObserveRankWindow
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendsOverall
+import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
+import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
 import com.ivandsky.puzzlebox.history.domain.ranks.ObserveWindowRefresh
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
@@ -97,6 +99,18 @@ internal class RanksTestHub(
         override fun instant(): Instant = now
     }
 
+    /** The phone's LinkedIn days as the hub reads them with LinkedIn on. */
+    private fun linkedInView() = ObserveLinkedInDayView(ObserveLinkedInDay(linkedInDays, registry), SyncLinkedInDay(linkedInDays, 500), FakeLinkedInLink(), linkedInDays)
+
+    /** The domain's Friends Overall over the same fakes and clock as [viewModel] built with LinkedIn on: a second caller of the hub's pipeline. */
+    fun friendsOverall() = ObserveFriendsOverall(
+        ObserveRankWindow(this.identity, leaderboard, FakeFinalBoardStore(), registry, calendar, clock),
+        ObserveFriendUids(matches, this.identity),
+        this.identity,
+        ObserveFriendBoards(linkedInView()),
+        ObserveOverall(this.identity, completions),
+    )
+
     fun viewModel(
         linkedIn: Boolean = false,
         releaseFlags: ReleaseFlags = FakeReleaseFlags(),
@@ -124,7 +138,7 @@ internal class RanksTestHub(
             registry = registry,
             daily = daily,
             clock = clock,
-            linkedIn = ObserveLinkedInDayView(ObserveLinkedInDay(linkedInDays, registry), SyncLinkedInDay(linkedInDays, 500), FakeLinkedInLink(), linkedInDays).takeIf { linkedIn },
+            linkedIn = linkedInView().takeIf { linkedIn },
             releaseFlags = releaseFlags,
             savedState = savedState,
             opening = opening,

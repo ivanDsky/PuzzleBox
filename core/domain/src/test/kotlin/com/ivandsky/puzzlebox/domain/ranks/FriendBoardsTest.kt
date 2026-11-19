@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.history.domain.ranks
+package com.ivandsky.puzzlebox.domain.ranks
 
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.BoardPage
@@ -8,13 +8,6 @@ import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInBoardView
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayStatus
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
-import com.ivandsky.puzzlebox.domain.ranks.BoardLoad
-import com.ivandsky.puzzlebox.domain.ranks.FriendDay
-import com.ivandsky.puzzlebox.domain.ranks.RankWindowBoards
-import com.ivandsky.puzzlebox.domain.ranks.RankedBoard
-import com.ivandsky.puzzlebox.domain.ranks.amongFriends
-import com.ivandsky.puzzlebox.domain.ranks.connectionUid
-import com.ivandsky.puzzlebox.domain.ranks.rankBoard
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService

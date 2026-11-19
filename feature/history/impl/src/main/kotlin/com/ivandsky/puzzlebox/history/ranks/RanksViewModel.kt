@@ -17,16 +17,17 @@ import com.ivandsky.puzzlebox.domain.LoadSolveReplay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendBoards
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.domain.ranks.RankWindow
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.history.CalendarState
 import com.ivandsky.puzzlebox.history.HistoryDayRow
-import com.ivandsky.puzzlebox.history.domain.ranks.ObserveOverall
-import com.ivandsky.puzzlebox.history.domain.ranks.ObserveRankWindow
+import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
+import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
 import com.ivandsky.puzzlebox.history.domain.ranks.ObserveWindowRefresh
-import com.ivandsky.puzzlebox.history.domain.ranks.OverallState
+import com.ivandsky.puzzlebox.domain.ranks.OverallState
 import com.ivandsky.puzzlebox.history.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.history.flags.HistoryFlag
 import com.ivandsky.puzzlebox.history.historyRows
@@ -121,7 +122,7 @@ internal class RanksViewModel(
         .distinctUntilChanged()
 
     private val reads = RanksWindowReads(observeRankWindow, observeWindowRefresh, window, games, viewModelScope)
-    private val scopedBoards = RanksScopedBoards(reads.boards, observeFriendUids, viewer, viewModelScope)
+    private val scopedBoards = RanksScopedBoards(reads.boards, observeFriendUids, viewer, ObserveFriendBoards(linkedIn), viewModelScope)
 
     /** The Tune sheet shows the board's choices only: the Defaults block stays in Settings (RanksTuneBoardOnly). */
     val tuneBoardOnly: Boolean = releaseFlags.isEnabled(HistoryFlag.RanksTuneBoardOnly)
@@ -171,7 +172,7 @@ internal class RanksViewModel(
 
     private val local = combine(calendarState, stats, solves.yourSolve, nudge, solves.playThisDay, ::Local)
 
-    private val slices = RanksBoardSlices(boards, window, scopedBoards::of, observeOverall, viewer, history, calendar, registry, isLinkedInGame, BoardGhosts(linkedIn), freshness, weekMonthPoints)
+    private val slices = RanksBoardSlices(boards, window, scopedBoards::of, observeOverall, viewer, history, calendar, registry, isLinkedInGame, freshness, weekMonthPoints)
 
     /**
      * Every board as its slot draws it in the picked scope and games, with both: the one a swipe scrubs to is already

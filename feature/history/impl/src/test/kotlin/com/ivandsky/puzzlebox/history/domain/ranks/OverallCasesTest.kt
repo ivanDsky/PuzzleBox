@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.history.domain.ranks
 
+import com.ivandsky.puzzlebox.domain.ranks.overall
 import com.ivandsky.puzzlebox.domain.ranks.percentilePoints
 import com.ivandsky.puzzlebox.domain.ranks.pointsBeyondPage
 import com.ivandsky.puzzlebox.domain.ranks.rankBoard

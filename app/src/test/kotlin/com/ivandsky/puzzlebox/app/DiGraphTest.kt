@@ -75,8 +75,8 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import com.ivandsky.puzzlebox.history.domain.ranks.GetPlayerActions
-import com.ivandsky.puzzlebox.history.domain.ranks.ObserveOverall
-import com.ivandsky.puzzlebox.history.domain.ranks.ObserveRankWindow
+import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
+import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
 import com.ivandsky.puzzlebox.history.domain.ranks.ObserveWindowRefresh
 import com.ivandsky.puzzlebox.home.HomeViewModel
 import com.ivandsky.puzzlebox.home.domain.GetAppUpdate

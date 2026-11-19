@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.flow.transformLatest
 
 /**
- * When the hub's window asks [ObserveRankWindow] to read what failed again (A24): at once on a
+ * When the hub's window asks [com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow] to read what failed again (A24): at once on a
  * manual pull and on the false-to-true edge of [NetworkStatus.online], and, while any board is
  * Unavailable and the device is online, on one exponential backoff for the whole window (not one
  * per board). A pull or a reconnect restarts that schedule; going offline pauses it.

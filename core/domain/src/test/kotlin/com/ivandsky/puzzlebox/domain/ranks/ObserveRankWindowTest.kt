@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.history.domain.ranks
+package com.ivandsky.puzzlebox.domain.ranks
 
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.Identity
@@ -8,9 +8,6 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
-import com.ivandsky.puzzlebox.domain.ranks.BoardLoad
-import com.ivandsky.puzzlebox.domain.ranks.RankWindow
-import com.ivandsky.puzzlebox.domain.ranks.RankWindowBoards
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder

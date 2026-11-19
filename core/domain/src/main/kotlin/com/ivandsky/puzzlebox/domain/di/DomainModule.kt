@@ -26,8 +26,12 @@ import com.ivandsky.puzzlebox.domain.lineup.ValidateExactPuzzles
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendBoards
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendsOverall
+import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
+import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
 import com.ivandsky.puzzlebox.domain.ranks.SubmitDailyReplay
 import java.time.Instant
 import java.util.UUID
@@ -89,6 +93,12 @@ val domainModule = module {
         )
     }
     factory { ObserveFriendUids(matches = get(), identity = get()) }
+    factory { ObserveRankWindow(identity = get(), leaderboard = get(), finalBoards = get(), registry = get(), calendar = get()) }
+    factory { ObserveOverall(identity = get(), completions = get()) }
+    factory { ObserveFriendBoards(linkedIn = get()) }
+    factory {
+        ObserveFriendsOverall(observeRankWindow = get(), observeFriendUids = get(), identity = get(), friendBoards = get(), observeOverall = get())
+    }
     factory {
         SubmitDailyReplay(
             completions = get(),

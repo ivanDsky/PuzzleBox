@@ -30,9 +30,9 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
-import com.ivandsky.puzzlebox.history.domain.ranks.ObserveOverall
-import com.ivandsky.puzzlebox.history.domain.ranks.ObserveRankWindow
-import com.ivandsky.puzzlebox.history.domain.ranks.OverallState
+import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
+import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
+import com.ivandsky.puzzlebox.domain.ranks.OverallState
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.SolveReplay
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInAccountSource

@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.history.domain.ranks
+package com.ivandsky.puzzlebox.domain.ranks
 
 /** What the Overall view may honestly say about a window (A12): [Partial] and [Offline] are never final. */
 sealed interface OverallState {
