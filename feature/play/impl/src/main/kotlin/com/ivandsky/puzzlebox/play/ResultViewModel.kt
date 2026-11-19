@@ -11,7 +11,6 @@ import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.LoadSolveReplay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
-import com.ivandsky.puzzlebox.play.domain.ObserveResultInsights
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.ResultInsights
@@ -19,9 +18,6 @@ import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.domain.TodayEntry
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
-import com.ivandsky.puzzlebox.play.domain.linkedin.ObserveLinkedInPost
-import com.ivandsky.puzzlebox.play.domain.linkedin.SubmitLinkedInResult
-import com.ivandsky.puzzlebox.domain.nextthing.ObserveResultNextThing
 import com.ivandsky.puzzlebox.domain.nextUnsolved
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -33,8 +29,12 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
-import com.ivandsky.puzzlebox.play.friend.FriendPuzzleBoard
+import com.ivandsky.puzzlebox.play.domain.ObserveResultInsights
+import com.ivandsky.puzzlebox.play.domain.linkedin.ObserveLinkedInPost
+import com.ivandsky.puzzlebox.play.domain.linkedin.SubmitLinkedInResult
+import com.ivandsky.puzzlebox.play.domain.nextthing.ObserveResultNextThing
 import com.ivandsky.puzzlebox.play.flags.PlayFlag
+import com.ivandsky.puzzlebox.play.friend.FriendPuzzleBoard
 import com.ivandsky.puzzlebox.resultui.LinkedInPostRowState
 import com.ivandsky.puzzlebox.resultui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.resultui.SamePuzzleSolves
@@ -48,8 +48,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map

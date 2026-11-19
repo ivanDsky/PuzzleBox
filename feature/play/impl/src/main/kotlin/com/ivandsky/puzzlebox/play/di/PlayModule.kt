@@ -5,10 +5,7 @@ import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
-import com.ivandsky.puzzlebox.play.domain.DeleteReceivedPuzzle
 import com.ivandsky.puzzlebox.domain.ObserveFriendPuzzles
-import com.ivandsky.puzzlebox.play.domain.ObserveResultInsights
-import com.ivandsky.puzzlebox.domain.nextthing.ObserveResultNextThing
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.gameui.flags.GameUiFlag
 import com.ivandsky.puzzlebox.model.GameId
@@ -16,11 +13,11 @@ import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.CustomGameViewModel
 import com.ivandsky.puzzlebox.play.GamePageRankViewModel
 import com.ivandsky.puzzlebox.play.GameViewModel
+import com.ivandsky.puzzlebox.play.HintPolish
+import com.ivandsky.puzzlebox.play.HowToPlayRules
 import com.ivandsky.puzzlebox.play.LibraryViewModel
 import com.ivandsky.puzzlebox.play.MatchLegResultViewModel
 import com.ivandsky.puzzlebox.play.MatchLegViewModel
-import com.ivandsky.puzzlebox.play.HintPolish
-import com.ivandsky.puzzlebox.play.HowToPlayRules
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.PlayStatsViewModel
 import com.ivandsky.puzzlebox.play.ReplayCompareViewModel
@@ -37,15 +34,18 @@ import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
 import com.ivandsky.puzzlebox.play.api.ReplayCompareKey
 import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
+import com.ivandsky.puzzlebox.play.domain.DeleteReceivedPuzzle
 import com.ivandsky.puzzlebox.play.domain.FinishLeg
 import com.ivandsky.puzzlebox.play.domain.LoadPastDay
 import com.ivandsky.puzzlebox.play.domain.ObserveArchiveMonth
 import com.ivandsky.puzzlebox.play.domain.ObserveArchiveProgress
 import com.ivandsky.puzzlebox.play.domain.ObserveLegTarget
 import com.ivandsky.puzzlebox.play.domain.ObservePlayStats
+import com.ivandsky.puzzlebox.play.domain.ObserveResultInsights
 import com.ivandsky.puzzlebox.play.domain.ReportPuzzle
 import com.ivandsky.puzzlebox.play.domain.linkedin.ObserveLinkedInPost
 import com.ivandsky.puzzlebox.play.domain.linkedin.SubmitLinkedInResult
+import com.ivandsky.puzzlebox.play.domain.nextthing.ObserveResultNextThing
 import com.ivandsky.puzzlebox.play.domain.random.LoadRandomDay
 import com.ivandsky.puzzlebox.play.domain.random.LoadRandomPuzzle
 import com.ivandsky.puzzlebox.play.domain.random.LoadRandomShared
@@ -65,15 +65,16 @@ import org.koin.dsl.module
  * (ADR-0001: one registration per game); the repositories (the tutorial-seen preferences
  * included) and the calendar from :core:data's dataModule, and the shared use cases (today's
  * set, history, stats, the rollover) from :core:domain's domainModule. The result's insights
- * ([ObserveResultInsights], Play's own) and next thing (a :core:domain use case) are defined
- * here: their Boolean follows [PlayFlag.ResultHeroPolish], and :core:domain reads no flag
- * (ADR-0022). The tablet stats panel's identity and leaderboard come from the backend module.
- * This module names no game; friend puzzles' wiring is [friendModule], From friends' [ObserveFriendPuzzles] and
- * [DeleteReceivedPuzzle] are here, as are Play's own use cases: the archive month and progress,
- * the tablet stats panel's [ObservePlayStats], a duel leg's [FinishLeg] and [ObserveLegTarget],
- * Report's [ReportPuzzle], the result's LinkedIn post ([ObserveLinkedInPost], [SubmitLinkedInResult]),
- * a past day's [LoadPastDay], and the random pick ([LoadRandomDay], [LoadRandomShared], [LoadRandomPuzzle]),
- * which shuffles with [Random.Default]. The feature's release flags ([PlayFlag]) are declared here.
+ * ([ObserveResultInsights]) and next thing ([ObserveResultNextThing]), both Play's own, are
+ * defined here: their Boolean follows [PlayFlag.ResultHeroPolish], and :core:domain reads no
+ * flag (ADR-0022). The tablet stats panel's identity and leaderboard come from the backend
+ * module. This module names no game; friend puzzles' wiring is [friendModule]. From friends'
+ * [ObserveFriendPuzzles] and [DeleteReceivedPuzzle] are here, as are Play's own use cases: the
+ * archive month and progress, the tablet stats panel's [ObservePlayStats], a duel leg's
+ * [FinishLeg] and [ObserveLegTarget], Report's [ReportPuzzle], the result's LinkedIn post
+ * ([ObserveLinkedInPost], [SubmitLinkedInResult]), a past day's [LoadPastDay], and the random
+ * pick ([LoadRandomDay], [LoadRandomShared], [LoadRandomPuzzle]), which shuffles with
+ * [Random.Default]. The feature's release flags ([PlayFlag]) are declared here.
  *
  * [PlaySessionStore] is a single so live plays outlive their entries' compositions. Its
  * slot opening and every slot's writer share ONE [WriteLane], so a released slot's final

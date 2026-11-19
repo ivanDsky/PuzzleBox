@@ -2,7 +2,7 @@ package com.ivandsky.puzzlebox.domain.moments
 
 /**
  * One celebrated fact about a counted solve (L1). The kinds are a closed set, declared strongest first;
- * [detectMoments] returns them in that order.
+ * Play's detectMoments returns them in that order.
  */
 sealed interface Moment {
 

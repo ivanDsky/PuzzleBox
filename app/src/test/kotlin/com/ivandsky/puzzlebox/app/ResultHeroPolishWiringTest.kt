@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.app
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.play.domain.ObserveResultInsights
-import com.ivandsky.puzzlebox.domain.nextthing.ObserveResultNextThing
+import com.ivandsky.puzzlebox.play.domain.nextthing.ObserveResultNextThing
 import com.ivandsky.puzzlebox.play.flags.PlayFlag
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService

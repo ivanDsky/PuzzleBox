@@ -1,9 +1,10 @@
-package com.ivandsky.puzzlebox.domain.nextthing
+package com.ivandsky.puzzlebox.play.domain.nextthing
 
 import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
 import com.ivandsky.puzzlebox.domain.FriendPuzzleRow
 import com.ivandsky.puzzlebox.domain.GameHistoryDay
 import com.ivandsky.puzzlebox.domain.TodayEntry
+import com.ivandsky.puzzlebox.domain.nextthing.NextThing
 import com.ivandsky.puzzlebox.domain.ranks.RankedBoard
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.Instant
