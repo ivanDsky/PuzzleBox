@@ -13,14 +13,13 @@ import com.ivandsky.puzzlebox.games.zip.Wall
 import com.ivandsky.puzzlebox.games.zip.WallDirection
 
 // The readable Zip board (nav-rethink B3), at rest: what the board tokens the user approved
-// look like on a real Zip board. The ring on the next number is shown still; it pulses only on
-// the live play board.
+// look like on a real Zip board. It shows no next-number mark: only the live play board does.
 
 /**
  * A 6×6 board part-way through: the trace has passed "1" and "2" and stopped one cell short
- * of "3", which wears the next-number ring with a wall on two of its sides. One wall runs
- * into the top edge and one into the right edge next to the corner, where a round wall cap
- * would poke out of an unclipped board.
+ * of "3", the next number to reach. This static board carries no mark on it. A wall runs on
+ * two of its sides. One wall runs into the top edge and one into the right edge next to the
+ * corner, where a round wall cap would poke out of an unclipped board.
  */
 internal fun zipReadablePreviewModel() = zipPreviewModel(
     n = 6,
