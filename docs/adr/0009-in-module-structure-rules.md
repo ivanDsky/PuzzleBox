@@ -1,6 +1,6 @@
 # ADR-0009 — In-module structure rules (`:konsist`)
 
-Date: 2026-11-04 · Status: accepted · Source: structure-rules run (S0 S1 S2 S4 S5 P1–P7); P8 from the navigation-ux run (spec A5); P9 from the nav-ia run (ADR-0027); P10 from the LinkedIn account run (ADR-0028); S6 from the sudoku run (spec A12); S7 from the Queens app-theme fix; S8 from the consistency polish run (spec S1); S9 from the Vibration switch (P3-07); S10 from the sheet fling fix (#1510, #1535); S11 from the flaky-test quarantine (ADR-0023 amendment 2026-11-18); S12 from the popup haptics gate (#1719); P11 from the ci-warnings run (#850); P12 and the P10 narrowing from the LinkedIn result post run (ADR-0032); P13 from the LinkedInPush flag that a rebase brought back with no reader (#1337, #1339); P14 and the P4 widening from the code-quality review (item 7, single-feature use cases leave `:core:domain`); P15 and P16 from the owner-flags move (ADR-0022 amendment 2026-11-18)
+Date: 2026-11-04 · Status: accepted · Source: structure-rules run (S0 S1 S2 S4 S5 P1–P7); P8 from the navigation-ux run (spec A5); P9 from the nav-ia run (ADR-0027); P10 from the LinkedIn account run (ADR-0028); S6 from the sudoku run (spec A12); S7 from the Queens app-theme fix; S8 from the consistency polish run (spec S1); S9 from the Vibration switch (P3-07); S10 from the sheet fling fix (#1510, #1535); S11 from the flaky-test quarantine (ADR-0023 amendment 2026-11-18); S12 from the popup haptics gate (#1719); P11 from the ci-warnings run (#850); P12 and the P10 narrowing from the LinkedIn result post run (ADR-0032); P13 from the LinkedInPush flag that a rebase brought back with no reader (#1337, #1339); P14 and the P4 widening from the code-quality review (item 7, single-feature use cases leave `:core:domain`); P15 and P16 from the owner-flags move (ADR-0022 amendment 2026-11-18); S13 from the One UI vibrator path (#1686, #1700)
 
 ## Context
 ADR-0008 guards the edges between modules. It says nothing about what is inside a module:
@@ -73,7 +73,7 @@ returns these findings:
 - **Worker contract.** Fix a violation by splitting or moving code. Rules, allowlists and
   fixtures are protected files: a worker does not edit them to make a test pass.
 
-Entries on record at the time of writing: S1 64, S2 6, S4 25, S5 4, S9 1, P1 6, P2 1, P5 4, P6 1, P14 107.
+Entries on record at the time of writing: S1 64, S2 6, S4 25, S5 4, S9 1, S13 2, P1 6, P2 1, P5 4, P6 1, P14 107.
 S0, S6, S7, S8, S10, S11, S12, P3, P4, P7, P8, P9, P10, P11, P12, P13, P15 and P16 have none.
 *Amendment 2026-11-19 (#1740):* the item-7 move PRs (#1649 through #1740) moved every P14 file, and `allowlists/P14.txt` is empty.
 
@@ -87,7 +87,7 @@ prose rules; the tests are their mechanical form and add no stricter bar:
 - Rule 20, one public top-level type per file (private helpers, extensions, typealiases and
   previews excepted): S1.
 
-The other rules (S0, S4, S5, S6, S7, S8, S9, S10, S11, S12, P1, P4–P14, P15, P16) have no payload twin. Dependency direction between
+The other rules (S0, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, P1, P4–P14, P15, P16) have no payload twin. Dependency direction between
 modules stays in ADR-0008.
 
 ### Adding a rule
@@ -237,8 +237,8 @@ Every haptic goes through `LocalHapticFeedback`, the one choke point the Vibrati
   `HapticFeedbackConstantsCompat` (an import or a use, so `ViewCompat.performHapticFeedback` with the androidx constant is caught), a `performHapticFeedback` call on a receiver named `view` or `LocalView.current`, or a
   `performHapticFeedback(` call whose first argument is a number. A name that only contains one of them is not matched.
   The violation is the file. Test source sets are not scanned.
-- **Accepted misses:** a View reached under another name, a `Vibrator` or `VibrationEffect` used directly, and a call
-  whose number comes from a named constant are not seen.
+- **Accepted misses:** a View reached under another name and a call whose number comes from a named constant are not
+  seen. A `Vibrator` played directly is S13's.
 - **Allowlist:** Ruling (#1686, 2026-11-19): the debug-only Haptics lab's `HapticsLabPlatformRows.kt` plays the
   platform constants on the View, past the gate on purpose. Release compiles none of it, and the constants
   (`CLOCK_TICK`, `KEYBOARD_TAP`, `VIRTUAL_KEY`) are the evidence the lab exists to collect. Every platform call stays in
@@ -276,6 +276,23 @@ inside the popup window (a window brings its own platform haptics).
   `ExposedDropdownMenu(` call, bare or qualified. The `App…` wrappers are not matched. The violation is the file.
 - **Accepted misses:** a call through an import alias.
 - **How to fix:** call `AppPopup` or `AppDropdownMenu` from `core:designsystem`.
+
+## S13
+Every buzz the app plays on the `Vibrator` goes through `VibratorHapticFeedback`, which `VibrationGate` wraps, so the
+Vibration switch silences it (#1686).
+
+- **Scope:** production files of every module except `app/src/main/kotlin/com/ivandsky/puzzlebox/app/VibratorHapticFeedback.kt`,
+  the one file that plays the Vibrator.
+- **Detection:** in the file's code (comments and string contents removed), a `vibrate(` call, the name
+  `VibratorManager`, the constant `VIBRATOR_SERVICE` or `VIBRATOR_MANAGER_SERVICE`, or a `getSystemService(` call that
+  takes `Vibrator::class`. A name that only contains one of them is not matched, and `VibrationEffect` alone is not
+  (building an effect plays nothing). The violation is the file. Test source sets are not scanned.
+- **Accepted misses:** a Vibrator reached through a call or type the patterns do not name (a service name given as a
+  string literal, an import alias, a `vibrate` call on a Vibrator another file passed in under a different verb).
+- **Allowlist:** Ruling (#1700, 2026-11-19): the debug-only Haptics lab's `HapticsLabPanel.kt` looks the Vibrator up and
+  `HapticsLabVibratorRows.kt` plays raw effects on it, past the gate on purpose (the same lab S9 allows). Release compiles none of it.
+- **How to fix:** play through `LocalHapticFeedback.current.performHapticFeedback(HapticFeedbackType.…)`; a new kind the
+  system drops on a device gets a mapping in `VibratorHapticFeedback`.
 
 ## P1
 Every production file's package is under its module's package root.
