@@ -49,6 +49,7 @@ import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.data.visibility.HiddenPuzzles
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.domain.AppBuild
+import com.ivandsky.puzzlebox.domain.ComputeSolvedPool
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GetFeaturedGame
 import com.ivandsky.puzzlebox.domain.GetNextRollover
@@ -375,6 +376,8 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<ObservePickablePuzzles>())
             assertNotNull(koin.get<ObserveSolvedPuzzles>())
             assertNotNull(koin.get<LoadPuzzleByCode>())
+            // The solved pool behind the self-duel create, Past you's search and the New duel sheet's self-duel counts.
+            assertNotNull(koin.get<ComputeSolvedPool>())
             // The tablet play side panel's stats and the board gate beneath them.
             assertNotNull(koin.get<ObserveLeaderboard>())
             assertNotNull(koin.get<ObserveResultInsights>())
