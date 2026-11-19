@@ -67,4 +67,13 @@ class QueensTrainerSnippetsTest {
             assertEquals(hint.callout, spotlight.callout)
         }
     }
+
+    @Test
+    fun `a snippet's prompt names its technique and whether to place a queen or cross a square`() {
+        for (snippet in QueensTrainerFixtures.snippets) {
+            val name = trainer.catalog().first { it.id == snippet.technique }.name
+            val verb = if (snippet.placesQueen) "Place a queen" else "Cross a square"
+            assertEquals("$verb that $name proves", snippet.prompt)
+        }
+    }
 }

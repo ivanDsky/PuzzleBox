@@ -69,4 +69,11 @@ internal class OfflineUserPreferencesRepository(
     override suspend fun setShowSelfDuelTimeLeft(on: Boolean) {
         dataSource.setShowSelfDuelTimeLeft(on)
     }
+
+    override val lastTrainGame: Flow<GameId?> =
+        dataSource.preferences.map { it.lastTrainGame }.distinctUntilChanged()
+
+    override suspend fun setLastTrainGame(game: GameId) {
+        dataSource.setLastTrainGame(game)
+    }
 }

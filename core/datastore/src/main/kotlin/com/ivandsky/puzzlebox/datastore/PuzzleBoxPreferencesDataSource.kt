@@ -33,6 +33,8 @@ data class PuzzleBoxPreferences(
     val vibration: Boolean,
     /** Whether a duel against yourself shows the time left to beat; on until switched off. */
     val showSelfDuelTimeLeft: Boolean,
+    /** The game the Train tab last had picked; null until the player picks one. */
+    val lastTrainGame: GameId?,
 )
 
 /**
@@ -57,6 +59,7 @@ class PuzzleBoxPreferencesDataSource(
             ranksLinkedInDefault = preferences[KEY_RANKS_LINKEDIN_DEFAULT] ?: false,
             vibration = preferences[KEY_VIBRATION] ?: true,
             showSelfDuelTimeLeft = preferences[KEY_SHOW_SELF_DUEL_TIME_LEFT] ?: true,
+            lastTrainGame = preferences[KEY_LAST_TRAIN_GAME]?.let(::GameId),
         )
     }
 
@@ -99,6 +102,10 @@ class PuzzleBoxPreferencesDataSource(
         dataStore.edit { preferences -> preferences[KEY_SHOW_SELF_DUEL_TIME_LEFT] = on }
     }
 
+    suspend fun setLastTrainGame(game: GameId) {
+        dataStore.edit { preferences -> preferences[KEY_LAST_TRAIN_GAME] = game.value }
+    }
+
     /** Ids of the recaps whose Today card the player dismissed; empty while the key was never written. */
     val recapsDismissed: Flow<Set<String>> =
         dataStore.data.map { it[KEY_RECAPS_DISMISSED].orEmpty() }.distinctUntilChanged()
@@ -128,6 +135,7 @@ class PuzzleBoxPreferencesDataSource(
         val KEY_RANKS_LINKEDIN_DEFAULT = booleanPreferencesKey("ranks_linkedin_default")
         val KEY_VIBRATION = booleanPreferencesKey("vibration")
         val KEY_RECAPS_DISMISSED = stringSetPreferencesKey("recaps_dismissed")
+        val KEY_LAST_TRAIN_GAME = stringPreferencesKey("last_train_game")
     }
 }
 

@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain.trainer
+package com.ivandsky.puzzlebox.train.domain
 
 import com.ivandsky.puzzlebox.data.trainer.TechniqueProgress
 import com.ivandsky.puzzlebox.data.trainer.TechniqueProgress.Mark

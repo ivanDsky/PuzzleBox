@@ -31,4 +31,7 @@ internal object QueensTrainerCatalog {
         val id = rung.trainerId ?: return@mapNotNull null
         TrainerTechnique(id, names.getValue(id), QueensStepCopy.technique(rung.captionKey))
     }
+
+    /** The list's name for [id], the one the round's prompt uses. */
+    fun name(id: TechniqueId): String = names.getValue(id)
 }

@@ -13,6 +13,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -151,6 +152,18 @@ class OfflineUserPreferencesRepositoryTest {
 
         repository.setShowSelfDuelTimeLeft(true)
         assertTrue(repository.showSelfDuelTimeLeft.first())
+    }
+
+    @Test
+    fun `the last Train game is none until picked and follows each pick`() = runTest {
+        val repository = newRepository()
+        assertNull(repository.lastTrainGame.first())
+
+        repository.setLastTrainGame(queens)
+        assertEquals(queens, repository.lastTrainGame.first())
+
+        repository.setLastTrainGame(zip)
+        assertEquals(zip, repository.lastTrainGame.first())
     }
 
     @Test

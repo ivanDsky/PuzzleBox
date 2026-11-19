@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.update
 /**
  * In-memory [UserPreferencesRepository] with the real one's semantics: one theme mode,
  * a per-game tutorial-seen flag that starts false and, once marked, stays set, and the
- * witness auto-show and replay-errors switches, both on by default, the Ranks Friends default (on), the Ranks LinkedIn games default (off) and vibration (on) and the self-duel time-left switch (on). Every change re-emits. [seen] reads the marked
+ * witness auto-show and replay-errors switches, both on by default, the Ranks Friends default (on), the Ranks LinkedIn games default (off), vibration (on), the self-duel time-left switch (on) and the game the Train tab last had picked (none). Every change re-emits. [seen] reads the marked
  * games synchronously for assertions.
  */
 class FakeUserPreferencesRepository(
@@ -26,6 +26,7 @@ class FakeUserPreferencesRepository(
     vibration: Boolean = true,
     showSelfDuelTimeLeft: Boolean = true,
     private val themeReadFails: Boolean = false,
+    lastTrainGame: GameId? = null,
 ) : UserPreferencesRepository {
 
     private val theme = MutableStateFlow(themeMode)
@@ -36,6 +37,7 @@ class FakeUserPreferencesRepository(
     private val ranksLinkedIn = MutableStateFlow(ranksLinkedInDefault)
     private val vibrationOn = MutableStateFlow(vibration)
     private val selfDuelTimeLeft = MutableStateFlow(showSelfDuelTimeLeft)
+    private val trainGame = MutableStateFlow(lastTrainGame)
 
     /** The games whose tutorial is marked seen right now. */
     val seen: Set<GameId> get() = seenGames.value
@@ -88,5 +90,11 @@ class FakeUserPreferencesRepository(
 
     override suspend fun setShowSelfDuelTimeLeft(on: Boolean) {
         selfDuelTimeLeft.value = on
+    }
+
+    override val lastTrainGame: Flow<GameId?> = trainGame
+
+    override suspend fun setLastTrainGame(game: GameId) {
+        trainGame.value = game
     }
 }

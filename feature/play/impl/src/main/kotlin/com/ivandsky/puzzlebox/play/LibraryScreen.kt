@@ -138,12 +138,14 @@ internal fun LibraryScreen(
                 GamesList(onRow, Modifier.width(400.dp))
             }
             Spacer(Modifier.width(Spacing.xl))
-            // The Duels tab's right pane is a duel, never a game's page; going back to Dailies shows the selected game again.
-            // Train has no right pane yet, so it draws none. It fades with the tabs: the pager's own progress drives it.
+            // The Duels and Train tabs' right panes are a duel and the open technique, never a game's page; going back
+            // to Dailies shows the selected game again. Each fades with the tabs: the pager's own progress drives it.
             TabFadePane(link, Modifier.weight(1f).fillMaxHeight().then(if (largeBar) Modifier.padding(top = Spacing.lg) else Modifier)) { index ->
                 val paneTab = tabs[index]
                 if (duels != null && paneTab == GamesTab.Duels) {
                     duels.pane(Modifier.fillMaxSize())
+                } else if (train != null && paneTab == GamesTab.Train) {
+                    train.pane(Modifier.fillMaxSize())
                 } else if (paneTab != GamesTab.Train && selected != null) {
                     LibraryPane(LibraryPaneFrame(selected, page, month)) { shown ->
                         Page(shown.row, onBack = null, shown.page, shown.month)

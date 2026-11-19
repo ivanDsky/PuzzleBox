@@ -29,4 +29,7 @@ internal object TangoTrainerCatalog {
     val techniques: List<TrainerTechnique> = TangoStepRung.entries.map { rung ->
         TrainerTechnique(rung.trainerId, names.getValue(rung.trainerId), TangoStepCopy.technique(rung))
     }
+
+    /** The list's name for [id], the one the round's prompt uses. */
+    fun name(id: TechniqueId): String = names.getValue(id)
 }

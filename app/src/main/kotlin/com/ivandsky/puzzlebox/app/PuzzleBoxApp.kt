@@ -150,7 +150,7 @@ fun PuzzleBoxApp(
         todaySet().map { entries -> entries.any { it.status is TodayStatus.InProgress } }
     }.collectAsStateWithLifecycle(initialValue = false)
     val duels = rememberDuelsSlot(navigator, playLayout)
-    val train = rememberTrainSlot()
+    val train = rememberTrainSlot(playLayout)
     val custom = rememberCustomSlot(navigator)
     val makeOne = rememberMakeOne(navigator)
     val badged = playTabBadged(anyInProgress, duelsNeedYou = duels.needYou())

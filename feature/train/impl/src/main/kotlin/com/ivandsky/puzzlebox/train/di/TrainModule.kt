@@ -1,11 +1,30 @@
 package com.ivandsky.puzzlebox.train.di
 
+import com.ivandsky.puzzlebox.game.trainer.TechniqueId
+import com.ivandsky.puzzlebox.gameui.trainer.TrainerGame
+import com.ivandsky.puzzlebox.train.domain.RecordAnswer
+import com.ivandsky.puzzlebox.train.round.RoundViewModel
+import com.ivandsky.puzzlebox.train.tab.TrainViewModel
 import org.koin.core.module.Module
+import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 /**
- * Train feature wiring. It binds nothing yet: the technique list's and the snippet round's view models and the progress
- * use cases land in later tickets of the Trainer epic. The Trainer registry (the games that have a trainer) is the app's
- * binding, next to the other game registries, so this module never names a game.
+ * Train feature wiring: the answer use case, the pane's view model (the game row, the technique list, the open
+ * technique) and the round's, one per game and technique, which takes its [TrainerGame] and technique id as parameters.
+ * The Trainer registry (the games that have a trainer), the progress store and the puzzle source are bound by the app
+ * and the core modules, so this module never names a game.
  */
-val trainModule: Module = module { }
+val trainModule: Module = module {
+    factory { RecordAnswer(progress = get()) }
+    viewModel { TrainViewModel(registry = get(), prefs = get(), progress = get(), savedState = get()) }
+    viewModel { params ->
+        RoundViewModel(
+            game = params.get<TrainerGame>(),
+            technique = params.get<TechniqueId>(),
+            source = get(),
+            recordAnswer = get(),
+            dispatchers = get(),
+        )
+    }
+}

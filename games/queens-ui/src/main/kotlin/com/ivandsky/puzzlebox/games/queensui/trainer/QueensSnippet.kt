@@ -19,4 +19,7 @@ internal data class QueensSnippet(val puzzle: QueensPuzzle, val cut: QueensSnipp
 
     /** True when the target step stands a queen on its last cell; false when it crosses squares out. */
     val placesQueen: Boolean get() = cut.step.result is QueensStep.Deduction.Result.LastCell
+
+    override val prompt: String
+        get() = (if (placesQueen) "Place a queen" else "Cross a square") + " that ${QueensTrainerCatalog.name(technique)} proves"
 }
