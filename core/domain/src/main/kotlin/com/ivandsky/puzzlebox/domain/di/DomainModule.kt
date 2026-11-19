@@ -37,7 +37,7 @@ import org.koin.dsl.module
  * Use-case wiring: stateless factories over :core:data's repositories and the app's
  * [com.ivandsky.puzzlebox.game.GameRegistry], except [SyncTodayPuzzles] — a single, so
  * every surface reads the same failed fetches. Today's leaderboard day is the device's
- * local date, read when the board (re)starts. A new draft's id (blank) is a random
+ * local date, read when the board (re)starts. A blank draft's id is a random
  * UUID and its timestamp the wall clock. A duel's draw shuffles with [Random.Default].
  */
 val domainModule = module {
