@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.games.sudokuui
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.games.sudoku.SudokuDefinition
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
@@ -32,7 +32,7 @@ class SudokuHintModeWiringTest {
 
     private val defaultDispatcher = Dispatchers.Unconfined
 
-    private fun koinWith(vararg flags: ReleaseFlag): Koin = koinApplication {
+    private fun koinWith(vararg flags: ReleaseFlagKey): Koin = koinApplication {
         modules(miniSudokuUiModule, sudokuUiModule, module {
             single<DispatcherProvider> {
                 object : DispatcherProvider {

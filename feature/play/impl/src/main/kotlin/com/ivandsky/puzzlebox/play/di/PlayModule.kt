@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.play.domain.DeleteReceivedPuzzle
 import com.ivandsky.puzzlebox.domain.ObserveFriendPuzzles
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
+import com.ivandsky.puzzlebox.gameui.flags.GameUiFlag
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.CustomGameViewModel
@@ -137,7 +138,7 @@ val playModule = module {
             linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
         )
     }
-    single { HintPolish(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.HintPolish) == true) }
+    single { HintPolish(enabled = getOrNull<ReleaseFlags>()?.isEnabled(GameUiFlag.HintPolish) == true) }
     // ZipDotPulse (backlog #1151) too: the Zip board's next number pulses its own dot while it is on.
     single { ZipDotPulse(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.ZipDotPulse) == true) }
     // The memory forgets the last pick with the process.

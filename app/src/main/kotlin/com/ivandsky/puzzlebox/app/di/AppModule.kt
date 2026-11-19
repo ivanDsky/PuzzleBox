@@ -18,6 +18,7 @@ import com.ivandsky.puzzlebox.domain.ranks.SubmitDailyReplay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
+import com.ivandsky.puzzlebox.gameui.flags.GameUiFlag
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -122,6 +123,8 @@ val appModule = module {
     flagSet("common", ReleaseFlag.entries)
     // Declared in core:common, registered here for the same reason.
     flagSet("filters", FilterFlag.entries)
+    // Declared in core:game-ui, which has no Koin, so registered here too.
+    flagSet("game-ui", GameUiFlag.entries)
 
     // The installed build GetAppUpdate compares against; debug never checks.
     single {
