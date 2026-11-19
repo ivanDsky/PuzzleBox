@@ -15,6 +15,9 @@ internal sealed interface RecapUiState {
     /** The period has nothing to recap. */
     data object Empty : RecapUiState
 
-    /** The story: [cards] in order, opening on the page at [initialPage] (a saved position, kept inside the cards). */
-    data class Ready(val period: RecapPeriod, val cards: List<RecapCard>, val initialPage: Int) : RecapUiState
+    /**
+     * The story: [cards] in order, opening on the page at [initialPage] (a saved position, kept inside the cards).
+     * [title] is what every card names the period as, "2026 so far" for a year under way (A22).
+     */
+    data class Ready(val period: RecapPeriod, val title: String, val cards: List<RecapCard>, val initialPage: Int) : RecapUiState
 }

@@ -71,6 +71,7 @@ class RecapViewModelTest {
             FailureLog { _, _, _ -> },
         ),
         cloudSync = cloudSync,
+        puzzleDay = fixture.puzzleDay,
         savedState = savedState,
     )
 
@@ -91,6 +92,7 @@ class RecapViewModelTest {
             assertEquals(
                 RecapUiState.Ready(
                     period = november,
+                    title = november.title(fixture.puzzleDay()),
                     cards = listOf(
                         RecapCard.Solved(2, listOf(RecapCard.Solved.PerGame(alpha, 1), RecapCard.Solved.PerGame(beta, 1))),
                     ),
@@ -196,7 +198,7 @@ class RecapViewModelTest {
 
         viewModel(SavedStateHandle(mapOf("recap.page" to 2)), listOf(provider)).uiState.test {
             assertEquals(RecapUiState.Loading, awaitItem())
-            assertEquals(RecapUiState.Ready(november, cards, initialPage = 2), awaitItem())
+            assertEquals(RecapUiState.Ready(november, november.title(fixture.puzzleDay()), cards, initialPage = 2), awaitItem())
         }
     }
 

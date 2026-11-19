@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.domain.insights.di
 
-import com.ivandsky.puzzlebox.domain.insights.rankhistory.ObserveRankHistory
 import com.ivandsky.puzzlebox.domain.insights.rankhistory.SyncRankHistory
 import org.koin.core.module.Module
 import org.koin.dsl.module
@@ -19,5 +18,4 @@ val insightsDomainModule: Module = module {
             friendsOverall = get(),
         )
     }
-    factory { ObserveRankHistory(identity = get(), store = get()) }
 }

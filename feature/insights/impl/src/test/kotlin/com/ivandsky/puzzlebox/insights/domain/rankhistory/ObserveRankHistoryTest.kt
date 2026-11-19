@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain.insights.rankhistory
+package com.ivandsky.puzzlebox.insights.domain.rankhistory
 
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.rankhistory.RankHistoryStore

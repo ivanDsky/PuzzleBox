@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.model.GameId
+import java.time.YearMonth
 
 /**
  * Folds the full game history ([com.ivandsky.puzzlebox.domain.ObserveGameHistory]) into one period's [PeriodFacts]. It
@@ -48,8 +49,22 @@ internal class ComputePeriodFacts(
             longestHintFreeRun = HintFreeRun.longestOf(counted, registry.all.map { it.definition.id }),
             totalTimeMs = counted.sumOf { it.solve.time },
             moments = momentsOf(history, period, scope),
+            months = if (period is RecapPeriod.Year) monthsOf(counted) else emptyList(),
+            importedDays = importedDaysOf(counted, period),
         )
     }
+
+    /** One [MonthFacts] per month of the year's [counted] solves, January first; the quickest is by time, then fewer hints, then the earlier day. */
+    private fun monthsOf(counted: List<GameHistoryDay>): List<MonthFacts> =
+        counted.groupBy { YearMonth.from(it.day) }.toSortedMap().map { (month, days) ->
+            val best = days.minWith(compareBy<GameHistoryDay>({ it.solve.time }, { it.solve.hints }, { it.day }))
+            MonthFacts(month = month, solved = days.size, fastestGame = best.gameId, fastestTimeMs = best.solve.time)
+        }
+
+    /** The puzzle days a year of only imported solves covers; null when [period] is a month, or any counted solve was made in the app, or none was. */
+    private fun importedDaysOf(counted: List<GameHistoryDay>, period: DaySpan): Int? =
+        counted.takeIf { period is RecapPeriod.Year && it.isNotEmpty() && it.all { day -> day.solve.source == CompletionSource.LinkedIn } }
+            ?.distinctBy { it.day }?.size
 
     /**
      * The Moments of the period's solves, from the replay of the whole history: all games feed a streak or a set, and

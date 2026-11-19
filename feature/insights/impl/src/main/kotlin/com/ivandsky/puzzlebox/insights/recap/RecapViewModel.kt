@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
 import com.ivandsky.puzzlebox.data.cloud.restoring
+import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.insights.domain.recap.ObserveRecap
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapPeriod
@@ -26,6 +27,8 @@ import kotlinx.coroutines.flow.transformWhile
  * story swaps it in. Pages already there do not move and the player keeps their place; only the progress strip gains a
  * step. A friends answer that adds no card changes nothing.
  *
+ * The title every card carries is read from the puzzle day when the story is ready ([RecapUiState.Ready.title]).
+ *
  * Saved state holds the page the player is on, a position and never a number: after process death the facts are
  * computed again and the story reopens on that page, kept inside the cards and the Share page after them.
  */
@@ -33,6 +36,7 @@ internal class RecapViewModel(
     private val period: RecapPeriod,
     private val observeRecap: ObserveRecap,
     private val cloudSync: CloudSync,
+    private val puzzleDay: GetPuzzleDay,
     private val savedState: SavedStateHandle,
 ) : ViewModel() {
 
@@ -62,7 +66,7 @@ internal class RecapViewModel(
             RecapUiState.Empty
         } else {
             val saved = savedState.get<Int>(PAGE_KEY) ?: 0
-            RecapUiState.Ready(period, cards, initialPage = saved.coerceIn(0, cards.size))
+            RecapUiState.Ready(period, period.title(puzzleDay()), cards, initialPage = saved.coerceIn(0, cards.size))
         }
 
     private companion object {

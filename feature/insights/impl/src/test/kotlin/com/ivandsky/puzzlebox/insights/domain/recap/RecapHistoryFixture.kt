@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.insights.domain.recap
 
 import com.ivandsky.puzzlebox.common.log.FailureLog
 import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.data.rankhistory.RankHistoryStore
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GameHistoryDay
@@ -53,18 +54,20 @@ internal class RecapHistoryFixture(now: Instant = Instant.parse("2026-12-15T12:0
 
     /**
      * The friends read over scripted answers: by default a signed-out viewer, so no friends card; [viewer] signs one
-     * in, and [friendsOverall] answers each (window, games) read. [today] is
+     * in, [friendsOverall] answers each (window, games) read and [rankHistory] each game's kept weeks. [today] is
      * the puzzle day's clock, the recap's settle rule reads it.
      */
     fun resolveFriends(
         viewer: Identity? = null,
         friendsOverall: (RankWindow, List<GameId>) -> Flow<OverallState> = { _, _ -> flowOf(OverallState.SignedOut) },
+        rankHistory: (GameId) -> Flow<List<RankHistoryStore.Week>> = { flowOf(emptyList()) },
         today: GetPuzzleDay = puzzleDay,
         failures: FailureLog = FailureLog { _, _, _ -> },
         timeout: Duration = 15.seconds,
     ) = ResolveFriendsStanding(
         identity = FakeIdentityService(viewer),
         friendsOverall = friendsOverall,
+        rankHistory = rankHistory,
         puzzleDay = today,
         failures = failures,
         timeout = timeout,

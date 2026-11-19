@@ -64,7 +64,6 @@ import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
-import com.ivandsky.puzzlebox.domain.insights.rankhistory.ObserveRankHistory
 import com.ivandsky.puzzlebox.domain.insights.rankhistory.SyncRankHistory
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
@@ -497,7 +496,6 @@ class DiGraphTest : KoinTest {
         try {
             val koin = koinApp.koin
             assertNotNull(koin.get<SyncRankHistory>())
-            assertNotNull(koin.get<ObserveRankHistory>())
             assertNotNull(koin.get<RankHistoryStarter>())
         } finally {
             stopKoin()

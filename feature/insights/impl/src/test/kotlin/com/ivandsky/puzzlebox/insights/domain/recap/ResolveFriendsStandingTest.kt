@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.insights.domain.recap
 
 import com.ivandsky.puzzlebox.common.log.FailureLog
 import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.data.rankhistory.RankHistoryStore
 import com.ivandsky.puzzlebox.domain.ranks.OverallStandings
 import com.ivandsky.puzzlebox.domain.ranks.OverallState
 import com.ivandsky.puzzlebox.domain.ranks.RankWindow
@@ -177,10 +178,78 @@ class ResolveFriendsStandingTest {
         assertEquals(FriendsStanding.NotApplicable, resolve(emptyMap())(november, emptyList()))
     }
 
+    private val year = RecapPeriod.Year(2026)
+
+    /** [count] kept weeks of [game] from Jan 5 2026 on, each worth [pointsPerDay]. */
+    private fun kept(game: GameId, count: Int, pointsPerDay: Double, from: LocalDate = LocalDate.of(2026, 1, 5)) =
+        (0 until count).map { RankHistoryStore.Week("me", game, from.plusWeeks(it.toLong()), pointsPerDay, friendCount = 3) }
+
+    private fun resolveYear(weeks: Map<GameId, List<RankHistoryStore.Week>>, viewer: Identity? = me) = fixture.resolveFriends(
+        viewer = viewer,
+        friendsOverall = { window, games ->
+            reads += window to games
+            flowOf(OverallState.Empty)
+        },
+        rankHistory = { game -> flowOf(weeks[game].orEmpty()) },
+        today = fixture.puzzleDayAt("2026-12-22T12:00:00Z"),
+    )
+
     @Test
-    fun `a year is not applicable until the yearly recap fills it`() = runTest {
-        assertEquals(FriendsStanding.NotApplicable, resolve(emptyMap())(RecapPeriod.Year(2026), listOf(alpha)))
+    fun `a year with six kept weeks is the average a day over them, based on six weeks, without a network read`() = runTest {
+        val resolve = resolveYear(mapOf(alpha to kept(alpha, 6, 30.0)))
+
+        assertEquals(FriendsStanding.Loaded(alpha, points = 30.0, weeks = 6), resolve.start(year, listOf(alpha)))
+        assertEquals(FriendsStanding.Loaded(alpha, points = 30.0, weeks = 6), resolve(year, listOf(alpha)))
         assertEquals(emptyList<Pair<RankWindow, List<GameId>>>(), reads)
+    }
+
+    @Test
+    fun `the average is over the kept weeks, not recomputed from the boards`() = runTest {
+        val weeks = kept(alpha, 2, 10.0) + kept(alpha, 2, 20.0, from = LocalDate.of(2026, 3, 2))
+
+        assertEquals(FriendsStanding.Loaded(alpha, points = 15.0, weeks = 4), resolveYear(mapOf(alpha to weeks)).start(year, listOf(alpha)))
+    }
+
+    @Test
+    fun `fewer than four kept weeks is no friends card`() = runTest {
+        assertEquals(FriendsStanding.NotApplicable, resolveYear(mapOf(alpha to kept(alpha, 3, 50.0))).start(year, listOf(alpha)))
+    }
+
+    @Test
+    fun `weeks outside the year are ignored`() = runTest {
+        val weeks = kept(alpha, 3, 50.0) + kept(alpha, 5, 50.0, from = LocalDate.of(2025, 6, 2))
+
+        assertEquals(FriendsStanding.NotApplicable, resolveYear(mapOf(alpha to weeks)).start(year, listOf(alpha)))
+        assertEquals(
+            FriendsStanding.Loaded(alpha, points = 50.0, weeks = 5),
+            resolveYear(mapOf(alpha to weeks)).start(RecapPeriod.Year(2025), listOf(alpha)),
+        )
+    }
+
+    @Test
+    fun `a year from imports alone, with no kept weeks, has no friends card`() = runTest {
+        assertEquals(FriendsStanding.NotApplicable, resolveYear(emptyMap()).start(RecapPeriod.Year(2025), listOf(alpha)))
+    }
+
+    @Test
+    fun `the game with the highest average wins, the first listed on a tie`() = runTest {
+        val weeks = mapOf(alpha to kept(alpha, 4, 20.0), beta to kept(beta, 5, 25.0))
+        assertEquals(FriendsStanding.Loaded(beta, points = 25.0, weeks = 5), resolveYear(weeks).start(year, listOf(alpha, beta)))
+
+        val tied = mapOf(alpha to kept(alpha, 4, 20.0), beta to kept(beta, 6, 20.0))
+        assertEquals(FriendsStanding.Loaded(alpha, points = 20.0, weeks = 4), resolveYear(tied).start(year, listOf(alpha, beta)))
+    }
+
+    @Test
+    fun `a year signed out has no friends card even with kept weeks`() = runTest {
+        assertEquals(FriendsStanding.NotApplicable, resolveYear(mapOf(alpha to kept(alpha, 6, 30.0)), viewer = null).start(year, listOf(alpha)))
+    }
+
+    @Test
+    fun `a kept history that cannot be read is no friends card`() = runTest {
+        val resolve = fixture.resolveFriends(viewer = me, rankHistory = { flow { throw IOException("disk") } })
+
+        assertEquals(FriendsStanding.NotApplicable, resolve.start(year, listOf(alpha)))
     }
 
     @Test

@@ -22,11 +22,13 @@ class RecapSlotTest {
 
     private val navigator = Navigator(puzzleBoxNavigationState())
     private val on = FakeReleaseFlags(InsightsFlag.MonthlyRecap).enabled.value
-    private val october = DueRecap("2026-10", "October 2026")
+    private val both = FakeReleaseFlags(InsightsFlag.MonthlyRecap, InsightsFlag.YearRecap).enabled.value
+    private val october = DueRecap("2026-10", "October 2026", yearly = false)
+    private val year = DueRecap("2026", "2026", yearly = true)
     private val dismissedPeriods = mutableListOf<String>()
 
     private fun slot(
-        due: DueRecap? = october,
+        due: List<DueRecap> = listOf(october),
         dismissed: Set<String> = emptySet(),
         enabled: Set<ReleaseFlagKey> = on,
     ) = recapSlot(enabled, due, dismissed, navigator) { dismissedPeriods += it }
@@ -38,7 +40,7 @@ class RecapSlotTest {
 
     @Test
     fun `nothing due is no card`() {
-        assertNull(slot(due = null))
+        assertNull(slot(due = emptyList()))
     }
 
     @Test
@@ -67,5 +69,37 @@ class RecapSlotTest {
 
         assertEquals(listOf("2026-10"), dismissedPeriods)
         assertEquals(emptyList<Any>(), navigator.state.layer)
+    }
+
+    @Test
+    fun `a year is never shown while only the monthly recap is on`() {
+        assertNull(slot(due = listOf(year), enabled = on))
+        assertEquals("October 2026", slot(due = listOf(year, october), enabled = on)!!.label)
+    }
+
+    @Test
+    fun `a month is not shown while only the yearly recap is on`() {
+        val onlyYear = FakeReleaseFlags(InsightsFlag.YearRecap).enabled.value
+
+        assertNull(slot(enabled = onlyYear))
+        assertEquals("2026", slot(due = listOf(year, october), enabled = onlyYear)!!.label)
+    }
+
+    @Test
+    fun `the year is shown before the month, and the month once the year is dismissed`() {
+        assertEquals("2026", slot(due = listOf(year, october), enabled = both)!!.label)
+        assertEquals("October 2026", slot(due = listOf(year, october), dismissed = setOf("2026"), enabled = both)!!.label)
+        assertNull(slot(due = listOf(year, october), dismissed = setOf("2026", "2026-10"), enabled = both))
+    }
+
+    @Test
+    fun `opening the year pushes its recap and dismissing reports its id`() {
+        val shown = slot(due = listOf(year), enabled = both)!!
+
+        shown.onOpen()
+        shown.onDismiss()
+
+        assertEquals(listOf(InsightsRecapKey("2026")), navigator.state.layer)
+        assertEquals(listOf("2026"), dismissedPeriods)
     }
 }

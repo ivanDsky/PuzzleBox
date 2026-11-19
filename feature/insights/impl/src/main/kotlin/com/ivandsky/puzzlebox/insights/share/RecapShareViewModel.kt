@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.data.cloud.restoring
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapPeriod
+import com.ivandsky.puzzlebox.insights.recap.title
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,7 +39,7 @@ internal class RecapShareViewModel(
     private val uriOf: (File) -> Uri,
 ) : ViewModel() {
 
-    private val title = period.shareTitle(puzzleDay())
+    private val title = period.title(puzzleDay())
     private val attempt = MutableStateFlow(Attempt.Idle)
     private val chooser = Channel<Intent>(Channel.BUFFERED)
 

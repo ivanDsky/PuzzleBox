@@ -127,6 +127,30 @@ class RecapGoldenScreenshots {
     @Test fun `friends settling tablet dark`() = capture("friends-settling", "tablet", dark = true, state = readyOf(RecapFixtures.solved, RecapFixtures.friendsSettling).copy(initialPage = 1))
 
     @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `month phone light`() = capture("month", "phone", dark = false, state = readyYear("2026 so far", RecapFixtures.march))
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `month phone dark`() = capture("month", "phone", dark = true, state = readyYear("2026 so far", RecapFixtures.march))
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `month tablet light`() = capture("month", "tablet", dark = false, state = readyYear("2026 so far", RecapFixtures.solved, RecapFixtures.march, RecapFixtures.april).copy(initialPage = 1))
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `year so far totals phone light`() = capture("year-so-far", "phone", dark = false, state = readyYear("2026 so far", RecapFixtures.solved, RecapFixtures.march))
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `year so far totals phone dark`() = capture("year-so-far", "phone", dark = true, state = readyYear("2026 so far", RecapFixtures.solved, RecapFixtures.march))
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `year imported phone light`() = capture("year-imported", "phone", dark = false, state = readyYear("2025", RecapFixtures.solvedImported, RecapFixtures.march))
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `year friends phone light`() = capture("year-friends", "phone", dark = false, state = readyYear("2026 so far", RecapFixtures.friendsLoadedYear))
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `year friends phone dark`() = capture("year-friends", "phone", dark = true, state = readyYear("2026 so far", RecapFixtures.friendsLoadedYear))
+
+    @Config(qualifiers = GOLDEN_PHONE)
     @Test fun `restoring phone light`() = capture("restoring", "phone", dark = false, state = RecapUiState.Restoring)
 
     @Config(qualifiers = GOLDEN_PHONE)

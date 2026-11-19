@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.domain.insights.rankhistory
+package com.ivandsky.puzzlebox.insights.domain.rankhistory
 
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.rankhistory.RankHistoryStore
@@ -12,13 +12,13 @@ import kotlinx.coroutines.flow.mapLatest
 
 /**
  * The signed-in player's kept weekly Friends rank for one game, oldest week first, read from this device only. It never
- * writes and never reaches the cloud: [SyncRankHistory] is what keeps weeks. Signed out it is empty, and an account
+ * writes and never reaches the cloud: [com.ivandsky.puzzlebox.domain.insights.rankhistory.SyncRankHistory] is what keeps weeks. Signed out it is empty, and an account
  * change reads the new account's weeks.
  *
  * The store has no live query, so each account is read once per collection; a week kept after that shows on the next
  * collection.
  */
-class ObserveRankHistory(
+internal class ObserveRankHistory(
     private val identity: IdentityService,
     private val store: RankHistoryStore,
 ) {

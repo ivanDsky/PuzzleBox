@@ -80,6 +80,15 @@ internal fun FriendsCardPage(
                         color = MaterialTheme.colorScheme.onSurface,
                         textAlign = TextAlign.Center,
                     )
+                    state.weeks?.let { weeks ->
+                        Text(
+                            text = weeksNote(weeks),
+                            modifier = Modifier.testTag("recap.friends.weeks"),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
                 }
                 is FriendsStanding.Settling -> {
                     Text(
@@ -129,10 +138,13 @@ internal fun FriendsCardFact(
             modifier = Modifier.padding(vertical = Spacing.sm),
         )
         when (val state = card.state) {
-            is FriendsStanding.Loaded -> RecapFactRows(
-                rows = listOf(RecapFactRow("recap.friends.fact.game", gameName(state.game), state.pointsText())),
-                tag = "recap.friends.fact",
-            )
+            is FriendsStanding.Loaded -> {
+                RecapFactRows(
+                    rows = listOf(RecapFactRow("recap.friends.fact.game", gameName(state.game), state.pointsText())),
+                    tag = "recap.friends.fact",
+                )
+                state.weeks?.let { weeks -> FriendsFactNote(weeksNote(weeks)) }
+            }
             FriendsStanding.Reading -> FriendsFactNote(ReadingHeadline)
             is FriendsStanding.Settling -> FriendsFactNote(state.headline())
             FriendsStanding.Unavailable -> FriendsFactNote(UnavailableHeadline)
@@ -163,7 +175,11 @@ private fun FriendsStanding.Shown.tag(): String = when (this) {
     FriendsStanding.Unavailable -> "unavailable"
 }
 
-private fun FriendsStanding.Loaded.pointsText(): String = String.format(Locale.ROOT, "%,.0f pts", points)
+/** A month's points are the window's total; a year's are the average a day over its kept weeks (A12). */
+private fun FriendsStanding.Loaded.pointsText(): String =
+    String.format(Locale.ROOT, if (weeks == null) "%,.0f pts" else "%,.0f pts a day", points)
+
+private fun weeksNote(weeks: Int): String = "Based on $weeks weeks"
 
 private fun FriendsStanding.Settling.headline(): String = "Results settle on the ${settlesOn.dayOfMonth.ordinal()}"
 

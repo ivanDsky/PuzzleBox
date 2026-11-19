@@ -23,6 +23,10 @@ import kotlinx.coroutines.flow.flow
  * slot as [FriendsStanding.Reading] (or [FriendsStanding.Settling]) when it applies, so the story has the length it will keep. When the read answers, a
  * second emission is the same story with that card settled in place; it is left out when nothing changed. Only an
  * answer that finds no friends takes the card out again.
+ *
+ * A year is the same chain over the year's days, with its month cards after the totals ([MonthsRecapFactProvider]). Its
+ * friends card comes from the kept weekly history on the device, so it is already settled in the first emission (or
+ * absent) and there is no second one.
  */
 internal class ObserveRecap(
     private val observeGameHistory: ObserveGameHistory,
@@ -40,7 +44,7 @@ internal class ObserveRecap(
         val begun = resolveFriends.start(period, played)
         val localStory = story(local.copy(friends = begun))
         emit(localStory)
-        if (begun == FriendsStanding.NotApplicable) return@flow
+        if (begun !is FriendsStanding.Reading && begun !is FriendsStanding.Settling) return@flow
         val settledStory = story(local.copy(friends = resolveFriends(period, played)))
         if (settledStory != localStory) emit(settledStory)
     }

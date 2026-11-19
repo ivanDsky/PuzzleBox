@@ -31,9 +31,9 @@ import com.ivandsky.puzzlebox.insights.domain.recap.RecapPeriod
 import com.ivandsky.puzzlebox.insights.label
 
 /**
- * The Insights hub: a bar with a back arrow over the months that have a recap, newest first. [onOpen] opens one
- * month's story; [onBack] leaves the hub. [onOpenStats] adds the "Stats for all games" row above the months and opens the
- * all-games stats page; null (the page is dark) leaves the row out.
+ * The Insights hub: a bar with a back arrow over the years and then the months that have a recap, newest first.
+ * [onOpen] opens one period's story; [onBack] leaves the hub. [onOpenStats] adds the "Stats for all games" row above
+ * the periods and opens the all-games stats page; null (the page is dark) leaves the row out.
  */
 @Composable
 internal fun InsightsHubScreen(
@@ -64,13 +64,13 @@ internal fun InsightsHubScreen(
                 message = "Solve a puzzle and its month shows up here.",
                 modifier = Modifier.fillMaxSize().testTag("insights.hub.empty"),
             )
-            is InsightsHubUiState.Ready -> MonthList(state.periods, onOpen, onOpenStats)
+            is InsightsHubUiState.Ready -> PeriodList(state.periods, onOpen, onOpenStats)
         }
     }
 }
 
 @Composable
-private fun MonthList(periods: List<RecapPeriod>, onOpen: (RecapPeriod) -> Unit, onOpenStats: (() -> Unit)?) {
+private fun PeriodList(periods: List<RecapPeriod>, onOpen: (RecapPeriod) -> Unit, onOpenStats: (() -> Unit)?) {
     LazyColumn(
         modifier = Modifier.maxContentWidth().testTag("insights.hub.list"),
         contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.sm),
@@ -80,7 +80,8 @@ private fun MonthList(periods: List<RecapPeriod>, onOpen: (RecapPeriod) -> Unit,
             item(key = "stats") { HubRow("Stats for all games", onClick = onOpenStats, tag = "insights.hub.stats") }
         }
         items(periods, key = { it.id }) { period ->
-            HubRow(period.label(), onClick = { onOpen(period) }, tag = "insights.hub.month.${period.id}")
+            val kind = if (period is RecapPeriod.Year) "year" else "month"
+            HubRow(period.label(), onClick = { onOpen(period) }, tag = "insights.hub.$kind.${period.id}")
         }
     }
 }

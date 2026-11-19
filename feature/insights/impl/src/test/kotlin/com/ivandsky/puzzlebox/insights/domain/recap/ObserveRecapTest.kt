@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.insights.domain.recap
 import app.cash.turbine.test
 import com.ivandsky.puzzlebox.common.log.FailureLog
 import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.data.rankhistory.RankHistoryStore
 import com.ivandsky.puzzlebox.domain.ranks.OverallStandings
 import com.ivandsky.puzzlebox.domain.ranks.OverallState
 import com.ivandsky.puzzlebox.model.GameId
@@ -290,5 +291,53 @@ class ObserveRecapTest {
             assertEquals(false, story.any { it is RecapCard.Friends })
             awaitComplete()
         }
+    }
+
+    @Test
+    fun `a year's friends card comes from the kept weeks in the first emission and there is no second`() = runTest {
+        fixture.store(fixture.solve(alpha, LocalDate.of(2026, 3, 1)))
+        val weeks = (0 until 6).map { RankHistoryStore.Week("me", alpha, LocalDate.of(2026, 1, 5).plusWeeks(it.toLong()), 40.0, friendCount = 2) }
+        val recap = ObserveRecap(
+            fixture.observeHistory,
+            fixture.computePeriodFacts,
+            fixture.registry,
+            fixture.resolveFriends(viewer = Identity("me", "Me", photoUrl = null), rankHistory = { flowOf(weeks) }),
+        )
+
+        recap(RecapPeriod.Year(2026)).test {
+            val friends = awaitItem().filterIsInstance<RecapCard.Friends>().single()
+            assertEquals(FriendsStanding.Loaded(alpha, points = 40.0, weeks = 6), friends.state)
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun `a year of imports has no friends card and says how many days it covers`() = runTest {
+        fixture.store(fixture.imported(alpha, LocalDate.of(2025, 3, 1)), fixture.imported(beta, LocalDate.of(2025, 3, 1)), fixture.imported(alpha, LocalDate.of(2025, 4, 2)))
+        val recap = ObserveRecap(
+            fixture.observeHistory,
+            fixture.computePeriodFacts,
+            fixture.registry,
+            fixture.resolveFriends(viewer = Identity("me", "Me", photoUrl = null)),
+        )
+
+        recap(RecapPeriod.Year(2025)).test {
+            val cards = awaitItem()
+            assertEquals(emptyList<RecapCard>(), cards.filterIsInstance<RecapCard.Friends>())
+            assertEquals(2, cards.filterIsInstance<RecapCard.Solved>().single().importedDays)
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun `a year's month cards follow the totals`() = runTest {
+        fixture.store(fixture.solve(alpha, LocalDate.of(2026, 3, 1)), fixture.solve(alpha, LocalDate.of(2026, 5, 2)))
+
+        val cards = defaultRecap(RecapPeriod.Year(2026)).first()
+
+        val solvedAt = cards.indexOfFirst { it is RecapCard.Solved }
+        val months = cards.filterIsInstance<RecapCard.Month>()
+        assertEquals(listOf(YearMonth.of(2026, 3), YearMonth.of(2026, 5)), months.map { it.month })
+        assertEquals(solvedAt + 1, cards.indexOf(months.first()))
     }
 }
