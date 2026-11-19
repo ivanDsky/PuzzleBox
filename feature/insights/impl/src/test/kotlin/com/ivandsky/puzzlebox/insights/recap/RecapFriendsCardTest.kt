@@ -15,6 +15,7 @@ import androidx.compose.ui.test.swipeLeft
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.friendsLoaded
+import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.friendsReading
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.friendsSettling
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.friendsUnavailable
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.gameName
@@ -48,6 +49,15 @@ class RecapFriendsCardTest {
     }
 
     @Test
+    fun `a read that is still out holds the page with a quiet line and no number`() {
+        show(friendsReading)
+
+        rule.onNodeWithTag("recap.friends.reading").assertIsDisplayed().assertTextContains("Checking how your friends did\u2026")
+        rule.onNodeWithText("Best game among friends").assertIsDisplayed()
+        rule.onNodeWithTag("recap.friends.points").assertDoesNotExist()
+    }
+
+    @Test
     fun `a settling month says results settle on the 4th and shows no number`() {
         show(friendsSettling)
 
@@ -69,7 +79,7 @@ class RecapFriendsCardTest {
         rule.setContent {
             PuzzleBoxTheme {
                 RecapFactList(
-                    cards = listOf(friendsLoaded, friendsSettling, friendsUnavailable),
+                    cards = listOf(friendsLoaded, friendsSettling, friendsUnavailable, friendsReading),
                     current = 0,
                     gameName = gameName,
                     onSelect = {},
@@ -81,11 +91,13 @@ class RecapFriendsCardTest {
         rule.onNodeWithTag("recap.friends.fact.game").assertTextContains("Queens").assertTextContains("1,340 pts")
         rule.onNodeWithTag("recap.fact.1").assertTextContains("Results settle on the 4th")
         rule.onNodeWithTag("recap.fact.2").assertTextContains("Can't load right now")
+        rule.onNodeWithTag("recap.fact.3").assertTextContains("Checking how your friends did\u2026")
     }
 
     @Test
-    fun `a friends card that joins an open story is added at the end and the page stays`() {
-        var state by mutableStateOf<RecapUiState>(RecapFixtures.ready)
+    fun `a friends card that settles in an open story keeps the strip and the page`() {
+        val withReading = RecapFixtures.ready.copy(cards = listOf(RecapFixtures.solved, friendsReading, RecapFixtures.secondSolved))
+        var state by mutableStateOf<RecapUiState>(withReading)
         rule.setContent {
             PuzzleBoxTheme {
                 RecapScreen(state, "November 2026", gameName, onPage = {}, onWatchReplay = {}, onClose = {})
@@ -93,14 +105,13 @@ class RecapFriendsCardTest {
         }
         rule.onNodeWithTag("recap.pager").performTouchInput { swipeLeft() }
         rule.waitForIdle()
-        rule.onNodeWithTag("recap.progress").assertContentDescriptionEquals("Card 2 of 2")
+        rule.onNodeWithTag("recap.friends.reading").assertIsDisplayed()
+        rule.onNodeWithTag("recap.progress").assertContentDescriptionEquals("Card 2 of 3")
 
-        state = RecapFixtures.ready.copy(cards = RecapFixtures.ready.cards + friendsUnavailable)
+        state = withReading.copy(cards = listOf(RecapFixtures.solved, friendsLoaded, RecapFixtures.secondSolved))
         rule.waitForIdle()
 
         rule.onNodeWithTag("recap.progress").assertContentDescriptionEquals("Card 2 of 3")
-        rule.onNodeWithTag("recap.pager").performTouchInput { swipeLeft() }
-        rule.waitForIdle()
-        rule.onNodeWithTag("recap.friends.unavailable").assertIsDisplayed()
+        rule.onNodeWithTag("recap.friends.loaded").assertIsDisplayed()
     }
 }

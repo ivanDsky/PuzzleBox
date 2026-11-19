@@ -18,12 +18,11 @@ import kotlinx.coroutines.flow.flow
  * 1 never waits on the network. A provider that throws is logged and adds no card; the rest still show. A period with
  * nothing to say is an empty list.
  *
- * The one network fact, the friends standing, is resolved outside those providers ([ResolveFriendsStanding]) and the
- * flow has two emissions for it. The first is the local story, with the friends answer still
- * [FriendsStanding.Reading], so it is out as soon as the history is read. The second, when the answer lands, is the
- * same story with the friends card in its place at the end; it is left out when the answer adds no card (A12), so a
- * period with nothing to add emits once. Everything before the friends card is identical in both, so a story that
- * keeps the first and swaps in the second moves no page: the card only joins at the end.
+ * The one network fact, the friends standing, is resolved outside those providers ([ResolveFriendsStanding]). The
+ * first emission is the whole local story, out as soon as the history is read, with the friends card already in its
+ * slot as [FriendsStanding.Reading] when it applies, so the story has the length it will keep. When the read answers, a
+ * second emission is the same story with that card settled in place; it is left out when nothing changed. Only an
+ * answer that finds no friends takes the card out again.
  */
 internal class ObserveRecap(
     private val observeGameHistory: ObserveGameHistory,
@@ -37,11 +36,13 @@ internal class ObserveRecap(
     operator fun invoke(period: RecapPeriod): Flow<List<RecapCard>> = flow {
         val facts = computePeriodFacts(observeGameHistory().first(), period)
         val local = RecapInput(facts = facts, games = registry.all.map { it.definition.id })
-        val localStory = story(local)
-        emit(localStory)
         val played = local.inGameOrder(facts.solvedByGame).map { (game, _) -> game }
-        val fullStory = story(local.copy(friends = resolveFriends(period, played)))
-        if (fullStory != localStory) emit(fullStory)
+        val begun = resolveFriends.start(period, played)
+        val localStory = story(local.copy(friends = begun))
+        emit(localStory)
+        if (begun != FriendsStanding.Reading) return@flow
+        val settledStory = story(local.copy(friends = resolveFriends(period, played)))
+        if (settledStory != localStory) emit(settledStory)
     }
 
     private suspend fun story(input: RecapInput): List<RecapCard> =

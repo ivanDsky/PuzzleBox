@@ -10,6 +10,6 @@ internal val RecapFactProviders: List<RecapFactProvider> = listOf(
     StreakRecapFactProvider,
     HintFreeRecapFactProvider,
     MomentsRecapFactProvider,
-    TotalTimeRecapFactProvider,
     FriendsRecapFactProvider,
+    TotalTimeRecapFactProvider,
 )

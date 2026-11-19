@@ -4,12 +4,12 @@ import com.ivandsky.puzzlebox.model.GameId
 
 /**
  * What every recap fact provider reads: the period's [facts], the app's [games] in the order a card lists them, and the
- * [friends] answer, which is [FriendsStanding.Reading] until the friends read lands and only the friends card looks at.
+ * [friends] state, which only the friends card looks at.
  */
 internal data class RecapInput(
     val facts: PeriodFacts,
     val games: List<GameId>,
-    val friends: FriendsStanding = FriendsStanding.Reading,
+    val friends: FriendsStanding = FriendsStanding.NotApplicable,
 ) {
 
     /**

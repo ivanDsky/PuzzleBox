@@ -220,18 +220,22 @@ class RecapViewModelTest {
     }
 
     @Test
-    fun `the friends card joins the story at the end when its read lands, and no page moves`() = runTest {
+    fun `the friends card holds its place while its read is out and settles there, no page moves`() = runTest {
         fixture.store(fixture.solve(alpha, day(1)))
         val gate = CompletableDeferred<Unit>()
         val friends = fixture.resolveFriends(
             viewer = Identity("me", "Me", photoUrl = null),
-            friendUids = { flowOf(setOf("maya")) },
             friendsOverall = { _, _ ->
                 flow {
                     gate.await()
                     emit(
                         OverallState.Complete(
-                            OverallStandings(listOf(OverallStandings.Row("me", "Me", place = 1, total = 310.0, games = 4, truncated = false))),
+                            OverallStandings(
+                                listOf(
+                                    OverallStandings.Row("me", "Me", place = 1, total = 310.0, games = 4, truncated = false),
+                                    OverallStandings.Row("maya", "Maya", place = 2, total = 200.0, games = 4, truncated = false),
+                                ),
+                            ),
                         ),
                     )
                 }
@@ -242,30 +246,32 @@ class RecapViewModelTest {
         viewModel(saved, providers = listOf(SolvedRecapFactProvider, FriendsRecapFactProvider), resolveFriends = friends).uiState.test {
             assertEquals(RecapUiState.Loading, awaitItem())
             val local = awaitItem() as RecapUiState.Ready
-            assertEquals(listOf(RecapCard.Solved(1, listOf(RecapCard.Solved.PerGame(alpha, 1)))), local.cards)
+            val solved = RecapCard.Solved(1, listOf(RecapCard.Solved.PerGame(alpha, 1)))
+            assertEquals(listOf(solved, RecapCard.Friends(FriendsStanding.Reading)), local.cards)
 
             gate.complete(Unit)
 
             val full = awaitItem() as RecapUiState.Ready
-            assertEquals(local.cards + RecapCard.Friends(FriendsStanding.Loaded(alpha, 310.0)), full.cards)
+            assertEquals(listOf(solved, RecapCard.Friends(FriendsStanding.Loaded(alpha, 310.0))), full.cards)
             assertEquals(local.initialPage, full.initialPage)
             expectNoEvents()
         }
     }
 
     @Test
-    fun `an offline friends read leaves the story and adds the card in its own place`() = runTest {
+    fun `an offline friends read leaves the story and turns the card Unavailable in its own place`() = runTest {
         fixture.store(fixture.solve(alpha, day(1)))
         val friends = fixture.resolveFriends(
             viewer = Identity("me", "Me", photoUrl = null),
-            friendUids = { flowOf(setOf("maya")) },
             friendsOverall = { _, _ -> flowOf(OverallState.Offline(standings = null)) },
         )
 
         viewModel(providers = listOf(SolvedRecapFactProvider, FriendsRecapFactProvider), resolveFriends = friends).uiState.test {
             assertEquals(RecapUiState.Loading, awaitItem())
-            assertEquals(1, (awaitItem() as RecapUiState.Ready).cards.size)
-            assertEquals(RecapCard.Friends(FriendsStanding.Unavailable), (awaitItem() as RecapUiState.Ready).cards.last())
+            assertEquals(2, (awaitItem() as RecapUiState.Ready).cards.size)
+            val settled = (awaitItem() as RecapUiState.Ready).cards
+            assertEquals(2, settled.size)
+            assertEquals(RecapCard.Friends(FriendsStanding.Unavailable), settled.last())
         }
     }
 }

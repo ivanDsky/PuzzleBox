@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.common.log.LogcatFailureLog
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.guardedAsk
+import com.ivandsky.puzzlebox.domain.ranks.OverallStandings
 import com.ivandsky.puzzlebox.domain.ranks.OverallState
 import com.ivandsky.puzzlebox.domain.ranks.RankWindow
 import com.ivandsky.puzzlebox.model.GameId
@@ -19,52 +20,66 @@ import kotlinx.coroutines.flow.first
 
 /**
  * Answers the one question the friends card needs, [FriendsStanding], and is the only recap code that reaches for the
- * network. [ObserveRecap] runs it after the local story is out, so nothing here can delay or fail a local card.
+ * network. It works in two steps, so the card's place in the story is known before any read: [start] decides from what
+ * the phone knows whether the card applies and holds its place, and [invoke] settles it. [ObserveRecap] tells the local
+ * story with [start]'s answer and runs [invoke] after, so nothing here can delay or fail a local card.
+ *
+ * Who the friends are is not asked here. Friends Overall ([friendsOverall]) counts the duel partners and the LinkedIn
+ * connections of the period's days (F21) through its own friend boards, and that source needs the boards the read
+ * fetches; a second reading of it would be a second definition of a friend. So a signed-in viewer's card holds its
+ * place as [FriendsStanding.Reading] until the read answers, and is dropped then if no friend turns up on its boards.
  *
  * - A year is [FriendsStanding.NotApplicable]: its branch reads the kept weekly rank history and arrives with the
  *   yearly recap (#1611).
- * - Signed out, or with no friends: [FriendsStanding.NotApplicable] (A12). Friends are [friendUids], the duel partners
- *   the Ranks hub's Friends scope is built from; no board is read to find out.
- * - On days 1–3 of the month after the period's, the month just ended is still taking late results, so the answer is
- *   [FriendsStanding.Settling] with the 4th, and no board is read (A21). It matches the rule that makes a board final
- *   three UTC days after its puzzle day.
- * - Otherwise each game the viewer solved in the period is read through [friendsOverall] over the period's
- *   [RecapPeriod.rankWindow], one read per game, together. The best game is the one with the most points for the viewer;
- *   a tie goes to the game listed first. A game the viewer has no row on adds nothing.
+ * - Signed out, or nothing played in the period: [FriendsStanding.NotApplicable] (A12), known locally.
+ * - On days 1–3 of the month after the period's, the month just ended is still taking late results, so the state is
+ *   [FriendsStanding.Settling] with the 4th straight away, and no board is read (A21). It matches the rule that makes a
+ *   board final three UTC days after its puzzle day.
+ * - Otherwise [FriendsStanding.Reading], and each game the viewer solved in the period is read through [friendsOverall]
+ *   over the period's [RecapPeriod.rankWindow], one read per game, together. If no board shows anyone but the viewer
+ *   the answer is [FriendsStanding.NotApplicable]. Else the best game is the one with the most points for the viewer; a
+ *   tie goes to the game listed first. A game the viewer has no row on adds nothing.
  * - A read that is only partial or offline cannot name a best game, so any such read, a failure, or the whole answer
  *   taking longer than [timeout] is [FriendsStanding.Unavailable] (A16), never a number that a later read could change.
  */
 internal class ResolveFriendsStanding(
     private val identity: IdentityService,
-    private val friendUids: () -> Flow<Set<String>>,
     private val friendsOverall: (RankWindow, List<GameId>) -> Flow<OverallState>,
     private val puzzleDay: GetPuzzleDay,
     private val failures: FailureLog = LogcatFailureLog,
     private val timeout: Duration = READ_TIMEOUT,
 ) {
 
-    /** The friends answer for [period], reading the boards of the [played] games: those the viewer solved in it, in the app's game order. */
-    suspend operator fun invoke(period: RecapPeriod, played: List<GameId>): FriendsStanding {
-        val window = period.rankWindow ?: return FriendsStanding.NotApplicable
-        val viewer = identity.current.value?.uid
-        if (viewer == null || played.isEmpty()) return FriendsStanding.NotApplicable
-        return guardedAsk(failures, TAG, "friends standing", timeout) { answer(period, window, viewer, played) }
-            ?: FriendsStanding.Unavailable
+    /**
+     * The state the story opens with for [period], from what the phone knows: [FriendsStanding.Reading] when [invoke]
+     * has a read to make, [FriendsStanding.Settling] or [FriendsStanding.NotApplicable] when it has not.
+     */
+    fun start(period: RecapPeriod, played: List<GameId>): FriendsStanding {
+        if (period.rankWindow == null || identity.current.value == null || played.isEmpty()) return FriendsStanding.NotApplicable
+        return settling(period) ?: FriendsStanding.Reading
     }
 
-    private suspend fun answer(period: RecapPeriod, window: RankWindow, viewer: String, played: List<GameId>): FriendsStanding {
-        if (friendUids().first().isEmpty()) return FriendsStanding.NotApplicable
-        settling(period)?.let { return it }
+    /** The settled state for [period], reading the boards of the [played] games: those the viewer solved in it, in the app's game order. */
+    suspend operator fun invoke(period: RecapPeriod, played: List<GameId>): FriendsStanding {
+        val begun = start(period, played)
+        if (begun != FriendsStanding.Reading) return begun
+        val window = period.rankWindow ?: return FriendsStanding.NotApplicable
+        val viewer = identity.current.value?.uid ?: return FriendsStanding.NotApplicable
+        return guardedAsk(failures, TAG, "friends standing", timeout) { answer(window, viewer, played) } ?: FriendsStanding.Unavailable
+    }
+
+    private suspend fun answer(window: RankWindow, viewer: String, played: List<GameId>): FriendsStanding {
         val reads = coroutineScope { played.map { game -> async { game to settled(window, game) } }.awaitAll() }
         val states = reads.map { it.second }
         return when {
             OverallState.SignedOut in states -> FriendsStanding.NotApplicable
             states.any { it !is OverallState.Complete && it != OverallState.Empty } -> FriendsStanding.Unavailable
+            states.none { state -> state.rows().any { it.uid != viewer } } -> FriendsStanding.NotApplicable
             else -> best(reads, viewer)
         }
     }
 
-    /** The late-results answer while [period] is the month just ended and it is still before the settle day, else null. */
+    /** The late-results state while [period] is the month just ended and it is still before the settle day, else null. */
     private fun settling(period: RecapPeriod): FriendsStanding.Settling? {
         val month = (period as? RecapPeriod.Month)?.month ?: return null
         val today = puzzleDay()
@@ -76,9 +91,11 @@ internal class ResolveFriendsStanding(
     private suspend fun settled(window: RankWindow, game: GameId): OverallState =
         friendsOverall(window, listOf(game)).first { it != OverallState.Loading && it !is OverallState.Partial }
 
+    private fun OverallState.rows(): List<OverallStandings.Row> = (this as? OverallState.Complete)?.standings?.rows.orEmpty()
+
     private fun best(reads: List<Pair<GameId, OverallState>>, viewer: String): FriendsStanding {
         val mine = reads.mapNotNull { (game, state) ->
-            val row = (state as? OverallState.Complete)?.standings?.rows?.firstOrNull { it.uid == viewer && it.games > 0 }
+            val row = state.rows().firstOrNull { it.uid == viewer && it.games > 0 }
             row?.let { game to it.total }
         }
         val (game, points) = mine.maxByOrNull { it.second } ?: return FriendsStanding.NotApplicable

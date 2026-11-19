@@ -12,18 +12,19 @@ class FriendsRecapFactProviderTest {
         FriendsRecapFactProvider.cards(RecapInput(emptyFacts(), games = listOf(alpha), friends = friends))
 
     @Test
-    fun `every shown answer is a card, in the state it came to`() = runTest {
+    fun `every shown state is a card, as it is`() = runTest {
         val loaded = FriendsStanding.Loaded(alpha, 410.0)
+        val reading = FriendsStanding.Reading
         val settling = FriendsStanding.Settling(LocalDate.of(2026, 12, 4))
 
+        assertEquals(listOf(RecapCard.Friends(reading)), cardsOf(reading))
         assertEquals(listOf(RecapCard.Friends(loaded)), cardsOf(loaded))
         assertEquals(listOf(RecapCard.Friends(settling)), cardsOf(settling))
         assertEquals(listOf(RecapCard.Friends(FriendsStanding.Unavailable)), cardsOf(FriendsStanding.Unavailable))
     }
 
     @Test
-    fun `not applicable, and an answer not read yet, have no card`() = runTest {
+    fun `not applicable has no card`() = runTest {
         assertEquals(emptyList<RecapCard>(), cardsOf(FriendsStanding.NotApplicable))
-        assertEquals(emptyList<RecapCard>(), cardsOf(FriendsStanding.Reading))
     }
 }

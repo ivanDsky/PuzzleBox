@@ -97,6 +97,12 @@ class RecapGoldenScreenshots {
     @Test fun `total-time-year phone light`() = capture("total-time-year", "phone", dark = false, state = readyOf(RecapFixtures.totalTimeYear))
 
     @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `friends reading phone light`() = capture("friends-reading", "phone", dark = false, state = readyOf(RecapFixtures.friendsReading))
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `friends reading phone dark`() = capture("friends-reading", "phone", dark = true, state = readyOf(RecapFixtures.friendsReading))
+
+    @Config(qualifiers = GOLDEN_PHONE)
     @Test fun `friends loaded phone light`() = capture("friends-loaded", "phone", dark = false, state = readyOf(RecapFixtures.friendsLoaded))
 
     @Config(qualifiers = GOLDEN_PHONE)

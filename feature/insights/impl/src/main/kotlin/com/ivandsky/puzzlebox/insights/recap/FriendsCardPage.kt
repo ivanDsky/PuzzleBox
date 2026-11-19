@@ -22,9 +22,9 @@ import java.util.Locale
 
 /**
  * The Best game among friends page, in the state its friends read came to: the game that earned the most points
- * among friends, a note that this month's results settle on the 4th (A21), or "Can't load right now" in the card's own
- * place when the read could not finish (A16). The state arrives after the story opens, so this page is the one that
- * fills in late.
+ * among friends, a quiet line while the read is out, a note that this month's results settle on the 4th (A21), or "Can't load right now" in the card's own
+ * place when the read could not finish (A16). The page holds its place from the start of the story and fills in when the read
+ * answers.
  */
 @Composable
 internal fun FriendsCardPage(
@@ -59,6 +59,12 @@ internal fun FriendsCardPage(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             when (val state = card.state) {
+                FriendsStanding.Reading -> Text(
+                    text = ReadingHeadline,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
                 is FriendsStanding.Loaded -> {
                     Text(
                         text = gameName(state.game),
@@ -127,6 +133,7 @@ internal fun FriendsCardFact(
                 rows = listOf(RecapFactRow("recap.friends.fact.game", gameName(state.game), state.pointsText())),
                 tag = "recap.friends.fact",
             )
+            FriendsStanding.Reading -> FriendsFactNote(ReadingHeadline)
             is FriendsStanding.Settling -> FriendsFactNote(state.headline())
             FriendsStanding.Unavailable -> FriendsFactNote(UnavailableHeadline)
         }
@@ -144,11 +151,13 @@ private fun FriendsFactNote(text: String) {
 }
 
 private const val FriendsTitle = "Best game among friends"
+private const val ReadingHeadline = "Checking how your friends did\u2026"
 private const val UnavailableHeadline = "Can't load right now"
 private const val UnavailableNote = "Friends' results need a connection. The rest of your recap is ready."
 private const val SettlingNote = "Friends can still add to this month, so the best game shows once results are final."
 
 private fun FriendsStanding.Shown.tag(): String = when (this) {
+    FriendsStanding.Reading -> "reading"
     is FriendsStanding.Loaded -> "loaded"
     is FriendsStanding.Settling -> "settling"
     FriendsStanding.Unavailable -> "unavailable"

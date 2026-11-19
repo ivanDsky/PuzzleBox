@@ -24,9 +24,16 @@ private val Names = mapOf(Zip to "Zip", Queens to "Queens")
 
 private fun name(game: GameId): String = Names.getValue(game)
 
+private val Reading = RecapCard.Friends(FriendsStanding.Reading)
 private val Loaded = RecapCard.Friends(FriendsStanding.Loaded(Queens, points = 1_340.0))
 private val Settling = RecapCard.Friends(FriendsStanding.Settling(LocalDate.of(2026, 12, 4)))
 private val Unavailable = RecapCard.Friends(FriendsStanding.Unavailable)
+
+@PuzzleBoxPreviews
+@Composable
+private fun FriendsCardPageReadingPreview() = PuzzleBoxTheme {
+    Surface(color = MaterialTheme.colorScheme.background) { FriendsCardPage(Reading, "November 2026", ::name) }
+}
 
 @PuzzleBoxPreviews
 @Composable
@@ -51,6 +58,7 @@ private fun FriendsCardPageUnavailablePreview() = PuzzleBoxTheme {
 private fun FriendsCardFactPreview() = PuzzleBoxTheme {
     Surface(color = MaterialTheme.colorScheme.background) {
         Column(Modifier.padding(Spacing.lg)) {
+            FriendsCardFact(Reading, ::name)
             FriendsCardFact(Loaded, ::name)
             FriendsCardFact(Settling, ::name)
             FriendsCardFact(Unavailable, ::name)

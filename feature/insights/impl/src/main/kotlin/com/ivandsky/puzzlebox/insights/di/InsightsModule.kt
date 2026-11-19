@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.insights.di
 
 import com.ivandsky.puzzlebox.common.di.flagSet
-import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendsOverall
 import com.ivandsky.puzzlebox.insights.domain.recap.ComputePeriodFacts
 import com.ivandsky.puzzlebox.insights.domain.recap.ObserveDueRecap
@@ -34,11 +33,9 @@ val insightsModule: Module = module {
     factory { ReplaySolveFacts(computeStreak = get(), puzzleDay = get(), registry = get()) }
     factory { ComputePeriodFacts(computeStreak = get(), replaySolveFacts = get()) }
     factory {
-        val friendUids = get<ObserveFriendUids>()
         val friendsOverall = get<ObserveFriendsOverall>()
         ResolveFriendsStanding(
             identity = get(),
-            friendUids = { friendUids() },
             friendsOverall = { window, games -> friendsOverall(window, games) },
             puzzleDay = get(),
         )

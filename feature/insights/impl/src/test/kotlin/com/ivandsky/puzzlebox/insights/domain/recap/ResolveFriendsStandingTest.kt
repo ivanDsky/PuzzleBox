@@ -21,7 +21,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** The friends answer: the best game from standings, Settling on days 1–3, no card without friends, and every way a read can fail. */
+/** The friends answer: the best game from standings, Settling on days 1–3, no card signed out or without friends on the boards, and every way a read can fail. */
 class ResolveFriendsStandingTest {
 
     private val fixture = RecapHistoryFixture()
@@ -30,20 +30,26 @@ class ResolveFriendsStandingTest {
     private val reads = mutableListOf<Pair<RankWindow, List<GameId>>>()
     private val warnings = mutableListOf<String>()
 
+    /** A board of [rows]; with only the viewer on it, one friend with a few points joins, as the friends boards have. */
     private fun standings(vararg rows: Pair<String, Double>) = OverallState.Complete(
-        OverallStandings(rows.mapIndexed { index, (uid, total) -> OverallStandings.Row(uid, uid, index + 1, total, games = 10, truncated = false) }),
+        OverallStandings(
+            (if (rows.any { it.first != "me" }) rows.toList() else rows.toList() + ("maya" to 1.0))
+                .mapIndexed { index, (uid, total) -> OverallStandings.Row(uid, uid, index + 1, total, games = 10, truncated = false) },
+        ),
+    )
+
+    private fun onlyMe(total: Double) = OverallState.Complete(
+        OverallStandings(listOf(OverallStandings.Row("me", "Me", place = 1, total = total, games = 10, truncated = false))),
     )
 
     /** [answers] by game; a game not named has nobody on its boards. */
     private fun resolve(
         answers: Map<GameId, Flow<OverallState>>,
         viewer: Identity? = me,
-        friends: Set<String> = setOf("maya"),
         today: String = "2026-12-15T12:00:00Z",
         timeout: Duration = 15.seconds,
     ) = fixture.resolveFriends(
         viewer = viewer,
-        friendUids = { flowOf(friends) },
         friendsOverall = { window, games ->
             reads += window to games
             answers[games.single()] ?: flowOf(OverallState.Empty)
@@ -127,10 +133,34 @@ class ResolveFriendsStandingTest {
     }
 
     @Test
-    fun `no friends gives no card, even on a settling day, and reads nothing`() = runTest {
-        assertEquals(FriendsStanding.NotApplicable, resolve(emptyMap(), friends = emptySet())(november, listOf(alpha)))
-        assertEquals(FriendsStanding.NotApplicable, resolve(emptyMap(), friends = emptySet(), today = "2026-12-02T12:00:00Z")(november, listOf(alpha)))
+    fun `a read with nobody but the viewer on its boards drops the card`() = runTest {
+        val answers = mapOf(alpha to flowOf(onlyMe(120.0)), beta to flowOf(OverallState.Empty))
+
+        assertEquals(FriendsStanding.NotApplicable, resolve(answers)(november, listOf(alpha, beta)))
+    }
+
+    @Test
+    fun `friends that are only on the boards, as LinkedIn connections are, count the same as duel partners`() = runTest {
+        val answers = mapOf(alpha to flowOf(standings("me" to 120.0, "linkedin-friend" to 80.0)))
+
+        assertEquals(FriendsStanding.Loaded(alpha, 120.0), resolve(answers)(november, listOf(alpha)))
+    }
+
+    @Test
+    fun `start holds the card as Reading for a signed-in month with plays, and reads nothing`() = runTest {
+        assertEquals(FriendsStanding.Reading, resolve(emptyMap()).start(november, listOf(alpha)))
         assertEquals(emptyList<Pair<RankWindow, List<GameId>>>(), reads)
+    }
+
+    @Test
+    fun `start is not applicable signed out, for a year and with nothing played, and Settling on day 2`() = runTest {
+        assertEquals(FriendsStanding.NotApplicable, resolve(emptyMap(), viewer = null).start(november, listOf(alpha)))
+        assertEquals(FriendsStanding.NotApplicable, resolve(emptyMap()).start(RecapPeriod.Year(2026), listOf(alpha)))
+        assertEquals(FriendsStanding.NotApplicable, resolve(emptyMap()).start(november, emptyList()))
+        assertEquals(
+            FriendsStanding.Settling(LocalDate.of(2026, 12, 4)),
+            resolve(emptyMap(), today = "2026-12-02T12:00:00Z").start(november, listOf(alpha)),
+        )
     }
 
     @Test

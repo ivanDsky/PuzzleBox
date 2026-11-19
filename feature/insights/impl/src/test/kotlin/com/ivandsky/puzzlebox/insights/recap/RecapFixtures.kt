@@ -55,6 +55,9 @@ internal object RecapFixtures {
     /** A year of play: the hero runs to hundreds of hours, the widest the time format gets. */
     val totalTimeYear = RecapCard.TotalTime(totalMs = 512_461_000, solved = 981)
 
+    /** The friends read is still out: the card holds its place. */
+    val friendsReading = RecapCard.Friends(FriendsStanding.Reading)
+
     /** Queens earned the most points among friends. */
     val friendsLoaded = RecapCard.Friends(FriendsStanding.Loaded(queens, points = 1_340.0))
 
