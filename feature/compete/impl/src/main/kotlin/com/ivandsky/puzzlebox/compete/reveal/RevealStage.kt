@@ -30,9 +30,9 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.LegBasis
 import com.ivandsky.puzzlebox.domain.LegVerdict
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.gameui.DuelSideState
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.resultui.DuelSideState
 
 private val PhoneMaxWidth = 448.dp
 private val ScoreMaxWidth = 880.dp

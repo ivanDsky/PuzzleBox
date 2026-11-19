@@ -23,7 +23,7 @@ import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.editor.Verdict
-import com.ivandsky.puzzlebox.gameui.DifficultyLabel
+import com.ivandsky.puzzlebox.resultui.DifficultyLabel
 
 private val GradeIconSize = 16.dp
 

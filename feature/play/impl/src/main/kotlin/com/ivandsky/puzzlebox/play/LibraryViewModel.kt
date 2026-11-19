@@ -27,12 +27,12 @@ import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
-import com.ivandsky.puzzlebox.gameui.GameCardModel
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.TutorialSession
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.linkedin.libraryView
+import com.ivandsky.puzzlebox.resultui.GameCardModel
 import java.time.LocalDate
 import java.time.YearMonth
 import kotlinx.coroutines.CoroutineScope

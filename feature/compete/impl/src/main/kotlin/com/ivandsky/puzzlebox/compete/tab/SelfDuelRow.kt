@@ -6,7 +6,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
-import com.ivandsky.puzzlebox.gameui.PastYouAvatar
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.match.SelfSeats
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
@@ -14,6 +13,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.DuelRow
 import com.ivandsky.puzzlebox.domain.DuelRowKind
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.resultui.PastYouAvatar
 import java.time.Instant
 
 /** "You 1/3 · Best of 3" while playing or ready; "You won 2–1 · Best of 3" once finished and scored; else "Best of 3". */

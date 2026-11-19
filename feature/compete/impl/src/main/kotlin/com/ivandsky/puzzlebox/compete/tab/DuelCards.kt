@@ -18,8 +18,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.gameui.GameCardColors
-import com.ivandsky.puzzlebox.gameui.GameCardSurface
+import com.ivandsky.puzzlebox.resultui.GameCardColors
+import com.ivandsky.puzzlebox.resultui.GameCardSurface
 import java.time.Duration
 import java.time.Instant
 

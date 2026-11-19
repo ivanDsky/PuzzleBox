@@ -39,9 +39,7 @@ import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
-import com.ivandsky.puzzlebox.gameui.PlayAgainCopy
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
-import com.ivandsky.puzzlebox.gameui.bestScoreText
 import java.time.Instant
 
 private val PillMinHeight = 28.dp

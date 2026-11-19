@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.play
 
+import com.ivandsky.puzzlebox.resultui.DuelSideState
 import com.ivandsky.puzzlebox.resultui.replay.ReplaySectionState
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
@@ -25,7 +26,6 @@ import com.ivandsky.puzzlebox.domain.ObserveMatch
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.replay.ReplayOutcome
-import com.ivandsky.puzzlebox.gameui.DuelSideState
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.model.SolveReplay

@@ -5,7 +5,7 @@ import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.linkedin.linkedInScore
-import com.ivandsky.puzzlebox.gameui.bestScoreText
+import com.ivandsky.puzzlebox.resultui.bestScoreText
 
 private val Tags = BoardRowTags("daily_board.ghost", "daily_board.ghost", "daily_board.ghost.detail")
 

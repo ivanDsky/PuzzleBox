@@ -11,8 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.GameBrand
-import com.ivandsky.puzzlebox.gameui.GameFilterChip
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.resultui.GameFilterChip
 
 /** "Game" over a wrapping row of chips: Any first, then one per game in [games]. [game] null is Any; [enabled] false greys them. */
 @OptIn(ExperimentalLayoutApi::class)

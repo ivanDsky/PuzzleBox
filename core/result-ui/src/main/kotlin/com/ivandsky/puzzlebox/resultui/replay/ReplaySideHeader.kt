@@ -20,8 +20,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.gameui.PastYouAvatar
 import com.ivandsky.puzzlebox.game.replay.ReplayFacts
+import com.ivandsky.puzzlebox.resultui.PastYouAvatar
 
 private val MinSideHeaderHeight = 40.dp
 private val DiscSize = 28.dp

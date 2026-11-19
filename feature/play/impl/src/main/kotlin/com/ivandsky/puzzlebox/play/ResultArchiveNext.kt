@@ -4,10 +4,10 @@ import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.game.PuzzleRef
-import com.ivandsky.puzzlebox.gameui.SamePuzzleSolves
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.resultui.ResultPrimaryAction
+import com.ivandsky.puzzlebox.resultui.SamePuzzleSolves
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine

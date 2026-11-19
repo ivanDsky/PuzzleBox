@@ -18,10 +18,10 @@ import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
-import com.ivandsky.puzzlebox.gameui.GameCardModel
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.resultui.GameCardModel
 import java.time.LocalDate
 import org.junit.After
 import org.junit.Before

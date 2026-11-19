@@ -10,10 +10,10 @@ import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
-import com.ivandsky.puzzlebox.gameui.LinkedInPostRowState
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.friend.UnderUpBar
+import com.ivandsky.puzzlebox.resultui.LinkedInPostRowState
 import com.ivandsky.puzzlebox.resultui.ResultBelowCardRows
 import com.ivandsky.puzzlebox.resultui.ResultHeroActions
 import com.ivandsky.puzzlebox.resultui.ResultHeroFacts

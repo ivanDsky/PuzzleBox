@@ -10,7 +10,6 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.gameui.LinkedInPostRowState
 import com.ivandsky.puzzlebox.resultui.replay.WatchReplayRow
 
 // Previews of LinkedInPostRow — internal, light + dark inside PuzzleBoxTheme: every state, in enum order, at a phone's width,

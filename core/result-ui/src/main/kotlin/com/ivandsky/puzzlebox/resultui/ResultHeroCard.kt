@@ -53,7 +53,6 @@ import com.ivandsky.puzzlebox.designsystem.timePulse
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
-import com.ivandsky.puzzlebox.gameui.ResultHeroChip
 import kotlinx.coroutines.delay
 
 private const val HOUR_MS = 3_600_000L

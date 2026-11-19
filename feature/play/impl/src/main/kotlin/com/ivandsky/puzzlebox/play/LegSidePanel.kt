@@ -16,7 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.tabular
-import com.ivandsky.puzzlebox.gameui.FlatProgressBar
+import com.ivandsky.puzzlebox.resultui.FlatProgressBar
 import kotlin.time.Duration
 
 // The figure-and-unit row of the progress and hints cards, as tall as the reference draws it.

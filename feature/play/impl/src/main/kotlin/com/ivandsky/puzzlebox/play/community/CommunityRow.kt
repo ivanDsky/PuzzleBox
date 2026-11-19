@@ -22,9 +22,9 @@ import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.LocalSelectedRowCode
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.selectedRow
-import com.ivandsky.puzzlebox.gameui.DifficultyLabel
 import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
+import com.ivandsky.puzzlebox.resultui.DifficultyLabel
 
 private val RowMinHeight = 72.dp
 

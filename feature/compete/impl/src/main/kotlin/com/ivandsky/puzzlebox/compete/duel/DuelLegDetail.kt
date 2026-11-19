@@ -18,7 +18,7 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
-import com.ivandsky.puzzlebox.gameui.rankRuleText
+import com.ivandsky.puzzlebox.resultui.rankRuleText
 
 /** The least a shrunk board keeps; below it the column is taller than the pane and the page scrolls instead. */
 private val MinBoardSide = 160.dp

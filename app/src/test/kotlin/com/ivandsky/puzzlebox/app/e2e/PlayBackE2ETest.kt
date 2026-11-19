@@ -10,7 +10,6 @@ import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.gameui.DragEvent
 import com.ivandsky.puzzlebox.gameui.GridCell
-import com.ivandsky.puzzlebox.gameui.todayStatusLine
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zipui.ZipPlayController
@@ -21,6 +20,7 @@ import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
+import com.ivandsky.puzzlebox.resultui.todayStatusLine
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
 import org.junit.runner.RunWith

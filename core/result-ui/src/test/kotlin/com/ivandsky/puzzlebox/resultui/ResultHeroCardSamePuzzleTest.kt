@@ -11,7 +11,6 @@ import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.gameui.GameBrand
-import com.ivandsky.puzzlebox.gameui.SamePuzzleSolves
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule

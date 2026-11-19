@@ -1,6 +1,6 @@
 package com.ivandsky.puzzlebox.compete.reveal
 
-import com.ivandsky.puzzlebox.gameui.DuelSideState
+import com.ivandsky.puzzlebox.resultui.DuelSideState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

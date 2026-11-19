@@ -1,6 +1,6 @@
 package com.ivandsky.puzzlebox.resultui.board
 
-import com.ivandsky.puzzlebox.gameui.PlayAgainCopy
+import com.ivandsky.puzzlebox.resultui.PlayAgainCopy
 
 /**
  * A12: shown under the rows. [Posting], [Deferred] and [Rejected] tell how this player's

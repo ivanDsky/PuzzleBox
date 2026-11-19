@@ -20,7 +20,7 @@ import com.ivandsky.puzzlebox.designsystem.ScrubCell
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.gameui.rankRuleText
+import com.ivandsky.puzzlebox.resultui.rankRuleText
 
 // Whether the board was between two boards when it was last composed: the rows it lands on are already on screen.
 private class Handover(var scrubbed: Boolean = false)

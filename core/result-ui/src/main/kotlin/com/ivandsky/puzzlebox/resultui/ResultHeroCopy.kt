@@ -5,9 +5,7 @@ import com.ivandsky.puzzlebox.domain.SpreadScope
 import com.ivandsky.puzzlebox.domain.TimeSpread
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.gameui.PlayAgainCopy
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
-import com.ivandsky.puzzlebox.gameui.bestScoreText
 import java.time.DayOfWeek
 import java.time.format.TextStyle
 import java.util.Locale

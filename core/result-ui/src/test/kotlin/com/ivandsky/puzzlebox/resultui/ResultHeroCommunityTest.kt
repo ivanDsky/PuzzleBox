@@ -18,9 +18,6 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
-import com.ivandsky.puzzlebox.gameui.ResultCommunity
-import com.ivandsky.puzzlebox.gameui.ResultHeroChip
-import com.ivandsky.puzzlebox.gameui.SamePuzzleSolves
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue

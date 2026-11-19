@@ -12,8 +12,8 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import com.ivandsky.puzzlebox.compete.reveal.RevealMachine.Companion.IntroMs
 import com.ivandsky.puzzlebox.domain.LegBasis
 import com.ivandsky.puzzlebox.domain.LegVerdict
-import com.ivandsky.puzzlebox.gameui.DuelSideState
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.resultui.DuelSideState
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test

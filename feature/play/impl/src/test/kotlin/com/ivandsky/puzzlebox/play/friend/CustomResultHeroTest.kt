@@ -20,10 +20,10 @@ import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
-import com.ivandsky.puzzlebox.gameui.SamePuzzleSolves
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.game.VariantId
+import com.ivandsky.puzzlebox.resultui.SamePuzzleSolves
 import java.time.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull

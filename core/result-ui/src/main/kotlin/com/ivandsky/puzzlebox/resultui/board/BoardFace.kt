@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.resultui.board
 
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.gameui.rankRuleText
+import com.ivandsky.puzzlebox.resultui.rankRuleText
 
 /**
  * One board as [DailyBoard] draws it, for a morph between two (see [BoardMorph]): the same [title], [order], [state],

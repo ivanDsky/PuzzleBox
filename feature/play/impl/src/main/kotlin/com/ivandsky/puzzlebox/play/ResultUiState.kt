@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.play
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
-import com.ivandsky.puzzlebox.gameui.SamePuzzleSolves
+import com.ivandsky.puzzlebox.resultui.SamePuzzleSolves
 import com.ivandsky.puzzlebox.resultui.replay.ReplaySectionState
 import java.time.Instant
 

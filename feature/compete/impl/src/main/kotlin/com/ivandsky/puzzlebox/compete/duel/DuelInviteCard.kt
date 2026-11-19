@@ -36,7 +36,7 @@ import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
-import com.ivandsky.puzzlebox.gameui.PlayerAvatar
+import com.ivandsky.puzzlebox.resultui.PlayerAvatar
 import org.koin.compose.koinInject
 
 /** What the card's buttons do: the route turns each into a seat call, a sign-in or a pop. */

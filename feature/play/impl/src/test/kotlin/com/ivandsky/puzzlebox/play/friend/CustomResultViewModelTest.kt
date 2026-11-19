@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.play.friend
 
+import com.ivandsky.puzzlebox.resultui.SamePuzzleSolves
 import com.ivandsky.puzzlebox.resultui.replay.ReplaySectionState
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
@@ -31,7 +32,6 @@ import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.gameui.SamePuzzleSolves
 import com.ivandsky.puzzlebox.data.visibility.HiddenPuzzles
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository

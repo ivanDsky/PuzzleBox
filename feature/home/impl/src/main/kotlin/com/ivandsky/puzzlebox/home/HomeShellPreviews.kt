@@ -16,9 +16,9 @@ import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
-import com.ivandsky.puzzlebox.gameui.PlayerAvatar
-import com.ivandsky.puzzlebox.gameui.WeekDay
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.resultui.PlayerAvatar
+import com.ivandsky.puzzlebox.resultui.WeekDay
 import java.time.Instant
 import java.time.LocalDate
 

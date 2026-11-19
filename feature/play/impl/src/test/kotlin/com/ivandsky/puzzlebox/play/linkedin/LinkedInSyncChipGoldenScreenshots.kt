@@ -20,7 +20,6 @@ import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayStatus
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead.Rejected.Kind
 import com.ivandsky.puzzlebox.gameui.GameBrand
-import com.ivandsky.puzzlebox.gameui.GameCardModel
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.ArchiveDayCard
 import com.ivandsky.puzzlebox.play.GOLDEN_PHONE
@@ -28,6 +27,7 @@ import com.ivandsky.puzzlebox.play.LibraryRowModel
 import com.ivandsky.puzzlebox.play.libraryCardColors
 import com.ivandsky.puzzlebox.play.settleAndCapture
 import com.ivandsky.puzzlebox.play.showGolden
+import com.ivandsky.puzzlebox.resultui.GameCardModel
 import java.time.LocalDate
 import org.junit.Rule
 import org.junit.Test

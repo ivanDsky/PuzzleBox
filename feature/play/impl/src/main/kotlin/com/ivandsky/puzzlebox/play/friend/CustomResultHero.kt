@@ -9,10 +9,10 @@ import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
-import com.ivandsky.puzzlebox.gameui.ResultCommunity
-import com.ivandsky.puzzlebox.gameui.ResultHeroChip
 import com.ivandsky.puzzlebox.resultui.ResultBelowCardRows
+import com.ivandsky.puzzlebox.resultui.ResultCommunity
 import com.ivandsky.puzzlebox.resultui.ResultHeroActions
+import com.ivandsky.puzzlebox.resultui.ResultHeroChip
 import com.ivandsky.puzzlebox.resultui.ResultHeroFacts
 import com.ivandsky.puzzlebox.resultui.ResultHeroScreen
 import com.ivandsky.puzzlebox.resultui.ResultPrimaryAction

@@ -7,7 +7,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
-import com.ivandsky.puzzlebox.gameui.SamePuzzleSolves
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.ResultHeroGoldenScreenshots.Companion.BRAND
 import com.ivandsky.puzzlebox.play.ResultHeroGoldenScreenshots.Companion.facts
@@ -16,6 +15,7 @@ import com.ivandsky.puzzlebox.resultui.ResultHeroActions
 import com.ivandsky.puzzlebox.resultui.ResultHeroFacts
 import com.ivandsky.puzzlebox.resultui.ResultHeroScreen
 import com.ivandsky.puzzlebox.resultui.ResultPrimaryAction
+import com.ivandsky.puzzlebox.resultui.SamePuzzleSolves
 import java.time.LocalDate
 import org.junit.Rule
 import org.junit.Test

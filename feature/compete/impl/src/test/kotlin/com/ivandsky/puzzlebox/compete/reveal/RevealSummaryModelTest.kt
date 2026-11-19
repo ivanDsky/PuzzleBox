@@ -10,9 +10,9 @@ import com.ivandsky.puzzlebox.domain.MatchVerdict
 import com.ivandsky.puzzlebox.domain.Outcome
 import com.ivandsky.puzzlebox.domain.lineup.AnyGame
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.gameui.DuelSideState
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.resultui.DuelSideState
 import java.time.Instant
 import java.time.LocalDate
 import org.junit.Assert.assertEquals

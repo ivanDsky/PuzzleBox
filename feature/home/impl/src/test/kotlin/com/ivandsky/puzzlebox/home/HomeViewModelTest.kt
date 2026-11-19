@@ -44,7 +44,7 @@ import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.ScoreModel
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
-import com.ivandsky.puzzlebox.gameui.WeekDay
+import com.ivandsky.puzzlebox.resultui.WeekDay
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey

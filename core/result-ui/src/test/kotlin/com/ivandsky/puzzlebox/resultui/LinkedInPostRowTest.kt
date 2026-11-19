@@ -12,7 +12,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.gameui.LinkedInPostRowState
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test

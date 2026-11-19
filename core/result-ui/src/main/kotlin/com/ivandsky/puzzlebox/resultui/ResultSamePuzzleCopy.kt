@@ -3,8 +3,6 @@ package com.ivandsky.puzzlebox.resultui
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.gameui.SamePuzzleSolves
-import com.ivandsky.puzzlebox.gameui.bestScoreText
 import kotlin.math.abs
 
 /**

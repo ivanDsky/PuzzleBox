@@ -7,10 +7,10 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.gameui.CompletionRecordEmitter
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.SolveReplay
+import com.ivandsky.puzzlebox.resultui.CompletionRecordEmitter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

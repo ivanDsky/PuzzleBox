@@ -1,8 +1,8 @@
 package com.ivandsky.puzzlebox.compete.reveal
 
 import com.ivandsky.puzzlebox.domain.LegVerdict
-import com.ivandsky.puzzlebox.gameui.DuelSideState
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.resultui.DuelSideState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

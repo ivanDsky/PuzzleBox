@@ -10,10 +10,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.gameui.DifficultyIcon
 import com.ivandsky.puzzlebox.gameui.GameBrand
-import com.ivandsky.puzzlebox.gameui.GameFilterChip
 import com.ivandsky.puzzlebox.play.community.DifficultyChoice
+import com.ivandsky.puzzlebox.resultui.DifficultyIcon
+import com.ivandsky.puzzlebox.resultui.GameFilterChip
 
 /** "Difficulty" over single-select chips: Any, then each [DifficultyChoice] with its level's mark. [difficulty] null is Any; [enabled] false greys them. */
 @OptIn(ExperimentalLayoutApi::class)

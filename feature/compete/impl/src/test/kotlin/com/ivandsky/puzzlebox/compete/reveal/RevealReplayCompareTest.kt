@@ -22,7 +22,6 @@ import com.ivandsky.puzzlebox.domain.LegVerdict
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.replay.Lead
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
-import com.ivandsky.puzzlebox.gameui.DuelSideState
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
@@ -39,6 +38,7 @@ import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.ReplayCompareKey
 import com.ivandsky.puzzlebox.play.api.ReplayKey
+import com.ivandsky.puzzlebox.resultui.DuelSideState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

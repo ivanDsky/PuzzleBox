@@ -4,8 +4,8 @@ import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.play.domain.ArchiveDay
 import com.ivandsky.puzzlebox.domain.PastDayStatus
 import com.ivandsky.puzzlebox.domain.TodayStatus
-import com.ivandsky.puzzlebox.gameui.pastDayAction
-import com.ivandsky.puzzlebox.gameui.pastDayStatusLine
+import com.ivandsky.puzzlebox.resultui.pastDayAction
+import com.ivandsky.puzzlebox.resultui.pastDayStatusLine
 
 // The words of the day card's lines. The status line comes in two parts so a day switch moves only the part that
 // differs: "Solved" stays put and its time morphs.

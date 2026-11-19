@@ -14,7 +14,7 @@ dependencies {
     // ObserveGameStats (the header's "Playing since").
     implementation(projects.core.domain)
     // PlayerAvatar for the header.
-    implementation(projects.core.gameUi)
+    implementation(projects.core.resultUi)
     // GoogleIdTokenProvider: the sign-in seam the VM asks for a token.
     implementation(projects.core.auth)
     // DispatcherProvider for the LinkedIn session.

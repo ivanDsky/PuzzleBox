@@ -31,10 +31,10 @@ import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.navLiftSource
 import com.ivandsky.puzzlebox.designsystem.tabular
-import com.ivandsky.puzzlebox.gameui.SkeletonLine
-import com.ivandsky.puzzlebox.gameui.todayStatusLine
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.api.GameKey
+import com.ivandsky.puzzlebox.resultui.SkeletonLine
+import com.ivandsky.puzzlebox.resultui.todayStatusLine
 
 private val Inset = Spacing.sm
 private val BadgeColumnGap = 4.dp

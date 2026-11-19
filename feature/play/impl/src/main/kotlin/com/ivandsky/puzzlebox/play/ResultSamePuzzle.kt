@@ -6,7 +6,7 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.gameui.SamePuzzleSolves
+import com.ivandsky.puzzlebox.resultui.SamePuzzleSolves
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf

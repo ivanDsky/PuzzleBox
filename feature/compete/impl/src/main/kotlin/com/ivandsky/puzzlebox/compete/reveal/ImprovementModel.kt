@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.compete.reveal
 
 import com.ivandsky.puzzlebox.designsystem.formatDuration
-import com.ivandsky.puzzlebox.gameui.DuelSideState
+import com.ivandsky.puzzlebox.resultui.DuelSideState
 
 /** Whether a puzzle took less, more or the same whole seconds than your first solve of it. */
 internal enum class Trend { Quicker, Slower, Same }

@@ -7,13 +7,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.gameui.SamePuzzleSolves
 import com.ivandsky.puzzlebox.play.ResultHeroGoldenScreenshots.Companion.BRAND
 import com.ivandsky.puzzlebox.play.ResultHeroGoldenScreenshots.Companion.facts
 import com.ivandsky.puzzlebox.play.friend.UnderUpBar
 import com.ivandsky.puzzlebox.resultui.ResultHeroActions
 import com.ivandsky.puzzlebox.resultui.ResultHeroFacts
 import com.ivandsky.puzzlebox.resultui.ResultHeroScreen
+import com.ivandsky.puzzlebox.resultui.SamePuzzleSolves
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith

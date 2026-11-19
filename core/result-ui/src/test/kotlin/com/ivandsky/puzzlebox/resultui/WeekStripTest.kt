@@ -10,7 +10,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.requiredWidth
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.gameui.WeekDay
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Rule

@@ -21,8 +21,11 @@ dependencies {
     implementation(projects.core.domain)
     // RankOrder in DuelCompare's public signature (19b) and the leg game ids (36).
     implementation(projects.core.game)
-    // PlayerAvatar, DuelCompare and the shared game-ui kit (36).
+    // GameBrand, GameGlyph, the play registry and the rest of the shared game-ui kit (36).
     implementation(projects.core.gameUi)
+    // PlayerAvatar, DuelCompare and the game cards (36). The reveal golden screenshots draw the
+    // replay compare page (CompareLayout, ReplayComparePage).
+    implementation(projects.core.resultUi)
 
     // collectAsStateWithLifecycle in the Duels tab and reveal screens (30).
     implementation(libs.androidx.lifecycle.runtime.compose)
@@ -32,6 +35,4 @@ dependencies {
     implementation(libs.koin.android)
 
     testImplementation(projects.core.testing)
-    // The reveal golden screenshots draw the replay compare page (CompareLayout, ReplayComparePage).
-    testImplementation(projects.core.resultUi)
 }

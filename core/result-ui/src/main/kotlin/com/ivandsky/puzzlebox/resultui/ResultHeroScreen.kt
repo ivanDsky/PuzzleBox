@@ -25,7 +25,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.GameBrand
-import com.ivandsky.puzzlebox.gameui.ResultHeroChip
 
 /** Below this pane height the page top-aligns and tightens, as the old result screen does. */
 private val CompactHeight = 480.dp

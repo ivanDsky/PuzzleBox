@@ -24,7 +24,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.gameui.PastYouAvatar
 import com.ivandsky.puzzlebox.designsystem.DuelTone
 import com.ivandsky.puzzlebox.designsystem.MaxContentWidth
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -33,8 +32,9 @@ import com.ivandsky.puzzlebox.designsystem.maxContentWidth
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
-import com.ivandsky.puzzlebox.gameui.PlayerAvatar
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.resultui.PastYouAvatar
+import com.ivandsky.puzzlebox.resultui.PlayerAvatar
 import java.time.Instant
 import org.koin.compose.koinInject
 

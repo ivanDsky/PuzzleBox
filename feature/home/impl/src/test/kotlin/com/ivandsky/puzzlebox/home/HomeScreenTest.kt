@@ -24,6 +24,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
+import com.ivandsky.puzzlebox.resultui.WeekDay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
@@ -33,7 +34,6 @@ import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
-import com.ivandsky.puzzlebox.gameui.WeekDay
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.Instant
 import java.time.LocalDate

@@ -20,7 +20,7 @@ internal const val UNPLAYED_ALPHA = 0.28f
 /**
  * The colour of each [MoveKind] in the seek bars, indexed by ordinal: Normal [normal] (primary unless a compare side
  * brings its own tint), Undo outline, Hint secondary, Mistake error. Hint is secondary because neither side tint
- * (primary, tertiary) may be taken for it; [ReplayHintBadge] wears the same role.
+ * (primary, tertiary) may be taken for it; [com.ivandsky.puzzlebox.gameui.replay.ReplayHintBadge] wears the same role.
  */
 internal fun kindColors(colors: ColorScheme, normal: Color = colors.primary): Array<Color> =
     arrayOf(normal, colors.outline, colors.secondary, colors.error)

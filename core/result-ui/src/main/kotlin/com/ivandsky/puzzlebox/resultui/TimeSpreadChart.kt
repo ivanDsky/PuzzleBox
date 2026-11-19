@@ -38,7 +38,6 @@ import com.ivandsky.puzzlebox.designsystem.beatDelayMs
 import com.ivandsky.puzzlebox.designsystem.entranceSettled
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.tabular
-import com.ivandsky.puzzlebox.gameui.PlayAgainCopy
 import kotlin.math.abs
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch

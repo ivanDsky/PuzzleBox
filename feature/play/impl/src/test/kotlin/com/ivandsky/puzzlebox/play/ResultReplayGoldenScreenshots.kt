@@ -18,8 +18,6 @@ import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.replay.Timeline
 import com.ivandsky.puzzlebox.domain.LegVerdict
-import com.ivandsky.puzzlebox.gameui.DuelSide
-import com.ivandsky.puzzlebox.gameui.DuelSideState
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
@@ -39,6 +37,8 @@ import com.ivandsky.puzzlebox.play.friend.CustomStanding
 import com.ivandsky.puzzlebox.play.friend.PreviewBoardAuthor
 import com.ivandsky.puzzlebox.play.friend.UnderUpBar
 import com.ivandsky.puzzlebox.play.friend.previewBoardRow
+import com.ivandsky.puzzlebox.resultui.DuelSide
+import com.ivandsky.puzzlebox.resultui.DuelSideState
 import com.ivandsky.puzzlebox.resultui.ResultBelowCardRows
 import com.ivandsky.puzzlebox.resultui.ResultColumnMaxWidth
 import com.ivandsky.puzzlebox.resultui.ResultHeroActions

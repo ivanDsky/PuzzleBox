@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.home
 import com.ivandsky.puzzlebox.domain.GameHistoryDay
 import com.ivandsky.puzzlebox.domain.weekEnding
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
-import com.ivandsky.puzzlebox.gameui.WeekDay
+import com.ivandsky.puzzlebox.resultui.WeekDay
 import java.time.LocalDate
 
 /**

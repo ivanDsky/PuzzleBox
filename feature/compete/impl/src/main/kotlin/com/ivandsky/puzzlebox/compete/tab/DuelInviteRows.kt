@@ -30,7 +30,7 @@ import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.DuelRow
-import com.ivandsky.puzzlebox.gameui.PlayerAvatar
+import com.ivandsky.puzzlebox.resultui.PlayerAvatar
 import java.time.Instant
 
 /**
