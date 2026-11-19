@@ -56,7 +56,9 @@ import com.ivandsky.puzzlebox.gameui.walkCells
  * The Zip editor's board: the play board's look (dots, pipe, outline) over the controller's
  * [ZipEditorController.shown] draft, with a stroke gesture that draws the author's path in the
  * Path step, and the step tabs and actions ([ZipEditorTools]) below the grid. The [verdict] and
- * the card's witness choice ([ZipEditorController.overlay]) are drawn by [ZipDiagnosticsLayer].
+ * the card's witness choice ([ZipEditorController.overlay]) show as one tint under the board
+ * ([ZipDiffTint]), the chosen solution as the board's pipe, and the blamed cells over it
+ * ([ZipDiagnosticsLayer]).
  */
 @Composable
 fun ZipEditorBoard(
@@ -65,14 +67,14 @@ fun ZipEditorBoard(
     verdict: Verdict = Verdict.Checking,
 ) {
     val board by controller.shown.collectAsState()
-    val model = remember(board) { rendererModel(board) }
     val step by controller.step.collectAsState()
     val overlay by controller.overlay.collectAsState()
     // The last settled verdict, so the witness holds while a new analysis runs.
     val settled = remember { mutableStateOf<Verdict?>(null) }
     SideEffect { if (verdict != Verdict.Checking) settled.value = verdict }
     val held = if (verdict == Verdict.Checking) settled.value else verdict
-    val diagnostics = zipDiagnostics(verdict, held, overlay)
+    val diagnostics = zipDiagnostics(verdict, held, overlay, board.path)
+    val model = remember(board, diagnostics.witness) { rendererModel(board, diagnostics.witness) }
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         val shake = shakeOffset(controller)
         Box(
@@ -81,6 +83,7 @@ fun ZipEditorBoard(
                 .graphicsLayer { translationX = shake.value }
                 .testTag("zip.editor.board"),
         ) {
+            ZipDiffTint(diagnostics.diff, board.n)
             ZipBoard(model, Modifier.fillMaxSize())
             ZipDiagnosticsLayer(diagnostics, board.n)
             CellTags(board)
@@ -169,10 +172,11 @@ private fun Modifier.edgeGestures(controller: ZipEditorController, n: Int): Modi
         }
     }
 
-private fun rendererModel(board: ZipDraft): ZipRendererModel {
+/** The board as the play board draws it: [shown], when there is one, in place of the draft's path. */
+internal fun rendererModel(board: ZipDraft, shown: List<Int> = emptyList()): ZipRendererModel {
     val cells = board.waypoints.map(::Cell)
     val puzzle = ZipPuzzle(ZipEditor.variantOf(board), ZipBoardModel(board.n, board.walls, cells), solution = null)
-    return ZipRendererModel.of(ZipState(puzzle, board.path.map(::Cell)), null)
+    return ZipRendererModel.of(ZipState(puzzle, shown.ifEmpty { board.path }.map(::Cell)), null)
 }
 
 /** Down begins a stroke, each sample walks the cells between it and the last one, up commits. */
