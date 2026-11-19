@@ -5,13 +5,17 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.designsystem.AppModalBottomSheet
+import com.ivandsky.puzzlebox.designsystem.FilterPageSwap
 import com.ivandsky.puzzlebox.domain.random.RandomPick
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
@@ -25,6 +29,9 @@ import org.koin.core.parameter.parametersOf
  * offers it, else falls back to Any. Once a pick opened and
  * the sheet hid, [onOpen] gets it and the sheet goes back to idle; an outcome that opened nothing says why in the sheet
  * and leaves the filters as they were. A swipe or the scrim cancels a pick in flight, then [onDismiss] runs.
+ *
+ * With the view model's [RandomPuzzleViewModel.filterSheets] the Game and Difficulty chips swap the sheet's content for their option
+ * page in place ([FilterPageSwap]); the open page survives a rotation, and Back (the arrow or the system's) returns to the chips.
  *
  * Motion: the sheet's **Slide in / Slide out** and the scrim's **Fade** are ModalBottomSheet's own.
  */
@@ -43,6 +50,7 @@ internal fun RandomPuzzleSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     val state by viewModel.state.collectAsStateWithLifecycle()
+    var page by rememberSaveable { mutableStateOf<RandomFilterPage?>(null) }
     val opened = state.phase as? RandomPhase.Opened
     LaunchedEffect(opened) {
         val pick = opened?.pick ?: return@LaunchedEffect
@@ -87,6 +95,13 @@ internal fun RandomPuzzleSheet(
         modifier = modifier.testTag("random.sheet"),
         sheetState = sheetState,
     ) {
-        RandomPuzzleContent(state, if (state.source == RandomSource.Past) games else communityGames, layout, actions)
+        val shown = if (state.source == RandomSource.Past) games else communityGames
+        if (viewModel.filterSheets) {
+            FilterPageSwap(page, onBack = { page = null }, pageContent = { RandomFilterPageContent(it, state, shown, actions, onBack = { page = null }) }) {
+                RandomPuzzleContent(state, shown, layout, actions, filterSheets = true, onOpenFilter = { page = it })
+            }
+        } else {
+            RandomPuzzleContent(state, shown, layout, actions)
+        }
     }
 }

@@ -3,6 +3,9 @@ package com.ivandsky.puzzlebox.play.random
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.common.flags.FilterFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.domain.random.LoadRandomPuzzle
 import com.ivandsky.puzzlebox.domain.random.RandomFilter
 import com.ivandsky.puzzlebox.domain.random.RandomOutcome
@@ -26,6 +29,7 @@ internal class RandomPuzzleViewModel(
     private val load: LoadRandomPuzzle,
     private val memory: RandomPickMemory,
     private val dispatchers: DispatcherProvider,
+    releaseFlags: ReleaseFlags? = null,
 ) : ViewModel() {
     private val current = MutableStateFlow(
         RandomPuzzleState(RandomSource.Past, game, unsolvedOnly = true, difficulty = null, phase = RandomPhase.Idle),
@@ -33,6 +37,9 @@ internal class RandomPuzzleViewModel(
     private var running: Job? = null
 
     val state: StateFlow<RandomPuzzleState> = current.asStateFlow()
+
+    /** Game and Difficulty are chips with an option page inside the sheet, not two labelled chip rows. Read once: the sheet shows one look while it is up. */
+    val filterSheets: Boolean = releaseFlags?.isEnabled(FilterFlag.FilterSheets) == true
 
     fun chooseSource(source: RandomSource) = change { it.copy(source = source) }
 
