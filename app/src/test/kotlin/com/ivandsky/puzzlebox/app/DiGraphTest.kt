@@ -374,7 +374,7 @@ class DiGraphTest : KoinTest {
             // missing entry is a wiring bug, loudly here.
             val registry = koin.get<GameRegistry>()
             val games = (registry.all + registry.unlisted).map { it.definition.id.value }
-            assertEquals(listOf("zip", "tango", "queens", "strands", "minisudoku", "sudoku"), games)
+            assertEquals(listOf("zip", "tango", "queens", "minisudoku", "strands", "sudoku"), games)
             val playUis = koin.get<GamePlayRegistry>()
             for (id in games) assertNotNull("no play UI registered for $id", playUis[GameId(id)])
             // The one shared play session store resolves off the real graph.

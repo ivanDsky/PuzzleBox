@@ -153,8 +153,8 @@ internal fun requireEveryGamePlayable(games: GameRegistry, play: GamePlayRegistr
     }
 }
 
-/** Product order of the shipped games: Home's Today card and the picker list them in this order. */
-private val GAME_ORDER = listOf("zip", "tango", "queens", "strands", "minisudoku", "sudoku")
+/** Product order of the shipped games: the four LinkedIn games together, then Strands, then the debug-only Sudoku. */
+private val GAME_ORDER = listOf("zip", "tango", "queens", "minisudoku", "strands", "sudoku")
 
 /** [GAME_ORDER] rank; an unlisted game sorts after every listed one, then by id. */
 private val gameOrder: Comparator<GamePlugin<*, *, *>> =
