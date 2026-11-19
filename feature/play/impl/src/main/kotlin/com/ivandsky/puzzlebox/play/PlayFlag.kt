@@ -10,6 +10,13 @@ internal enum class PlayFlag(override val label: String, override val releaseDef
      * Read only in [LibraryViewModel] (ADR-0022 §3); the entry and the losing transition go once the check picks one.
      */
     ArchiveMonthSlide(label = "Archive month change slides in (off: crossfade)", releaseDefault = false),
+
+    /**
+     * Community's filter as a sheet (backlog #1548): off, Game and Difficulty are the head's ⋮ menu; on, a filter icon on New
+     * today's page opens a bottom sheet of chips and the filter in force shows as a chip that clears it. Read only in
+     * [com.ivandsky.puzzlebox.play.community.CommunityViewModel] (ADR-0022 §3); the entry and the ⋮ menu go once the check lands.
+     */
+    CommunityFilterSheet(label = "Community filter opens as a sheet (off: ⋮ menu)", releaseDefault = false),
     ;
 
     /** The entry's own name: the stored override's key in `release_flags`. Never change it. */

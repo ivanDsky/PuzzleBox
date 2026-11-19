@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.play.community
 
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
 import com.ivandsky.puzzlebox.data.repository.CommunityFilter
@@ -96,7 +97,7 @@ internal class CommunityFixture(signedIn: Boolean = true) {
         shared.signedInUid = before
     }
 
-    fun viewModel() = CommunityViewModel(
+    fun viewModel(releaseFlags: ReleaseFlags? = null) = CommunityViewModel(
         list = ListCommunityPuzzles(recording, hidden, identity, clock = { NOW }),
         reportPuzzle = ReportPuzzle(recording, hidden),
         games = games,
@@ -104,6 +105,7 @@ internal class CommunityFixture(signedIn: Boolean = true) {
         identity = identity,
         idTokens = dismissedGoogleSignIn,
         clock = { NOW },
+        releaseFlags = releaseFlags,
     )
 
     companion object {

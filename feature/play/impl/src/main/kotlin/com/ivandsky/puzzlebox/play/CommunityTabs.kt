@@ -111,8 +111,13 @@ internal fun CommunityTabs(
         UnderlineTab("Yours", "community.tab.yours", count = custom.yoursSummary().count),
     ).take(pages.size)
     Column(modifier) {
-        CommunityHeader(onEnterCode, Modifier.padding(start = Spacing.lg, end = Spacing.sm)) {
-            FilterSlot(link = link, state = state, actions = actions)
+        if (state.filterSheet) {
+            // The filter is New today's own bar below the head, so the head keeps no slot for it.
+            CommunityHeader(onEnterCode, Modifier.padding(horizontal = Spacing.lg))
+        } else {
+            CommunityHeader(onEnterCode, Modifier.padding(start = Spacing.lg, end = Spacing.sm)) {
+                FilterSlot(link = link, state = state, actions = actions)
+            }
         }
         UnderlineTabPager(
             tabs = tabs,

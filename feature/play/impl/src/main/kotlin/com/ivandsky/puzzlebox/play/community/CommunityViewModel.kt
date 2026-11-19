@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.repository.CommunityFilter
 import com.ivandsky.puzzlebox.data.repository.CommunityListResult
@@ -14,6 +16,7 @@ import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.play.PlayFlag
 import com.ivandsky.puzzlebox.play.board.BoardSignInHolder
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +30,8 @@ import kotlinx.coroutines.launch
  * game and a difficulty picked in the filter menu (All, then each game that has an editor; Any, then Easy to Hard).
  * Picking reloads the list; the difficulty picked again is dropped, and [clearFilters] drops both. Report
  * ([report]) hides a puzzle at once on this device and says so in a notice; signed out it opens the sign-in prompt instead and the player taps Report again.
+ * [releaseFlags] (null: every flag off) decides how the filter is reached, [CommunityState.filterSheet]; live, so a debug
+ * switch applies without a restart.
  *
  * A puzzle of a game this build cannot open is left out.
  */
@@ -38,11 +43,12 @@ internal class CommunityViewModel(
     private val identity: IdentityService,
     idTokens: GoogleIdTokenProvider,
     private val clock: () -> Long,
+    releaseFlags: ReleaseFlags? = null,
 ) : ViewModel() {
 
     private val choices = games.all.filter { it.editor != null }.map {
         val id = it.definition.id
-        GameChoice(id, games.displayName(id))
+        GameChoice(id, games.displayName(id), plays.brandOf(id))
     }
     private val shipped = choices.map { it.id }.toSet()
     private val signInHolder = BoardSignInHolder(identity, idTokens)
@@ -50,12 +56,17 @@ internal class CommunityViewModel(
     private var loading: Job? = null
     private var noticeCount = 0
 
-    private val current = MutableStateFlow(CommunityState(games = choices))
+    private val current = MutableStateFlow(
+        CommunityState(games = choices, filterSheet = releaseFlags?.isEnabled(PlayFlag.CommunityFilterSheet) == true),
+    )
 
     val state: StateFlow<CommunityState> = current.asStateFlow()
 
     init {
         viewModelScope.launch { signInHolder.status.collect { status -> current.update { it.copy(signIn = status) } } }
+        releaseFlags?.let { flags ->
+            viewModelScope.launch { flags.enabled.collect { on -> current.update { it.copy(filterSheet = PlayFlag.CommunityFilterSheet in on) } } }
+        }
         load()
     }
 

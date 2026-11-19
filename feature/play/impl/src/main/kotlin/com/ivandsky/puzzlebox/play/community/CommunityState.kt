@@ -23,7 +23,9 @@ internal data class CommunityNotice(val id: Int, val message: String)
 /**
  * The New today section. [game] and
  * [difficulty] are the filters picked (null is All, and Any difficulty); [signInPrompt] is the sign-in dialog a
- * signed-out Report opens, with [signIn] saying how the last try went.
+ * signed-out Report opens, with [signIn] saying how the last try went. [filterSheet] is how the filter is reached: a
+ * filter icon above the list that opens a sheet ([com.ivandsky.puzzlebox.play.PlayFlag.CommunityFilterSheet]), or
+ * false, the head's ⋮ menu.
  */
 internal data class CommunityState(
     val games: List<GameChoice> = emptyList(),
@@ -33,4 +35,5 @@ internal data class CommunityState(
     val signInPrompt: Boolean = false,
     val signIn: BoardSignIn = BoardSignIn.Idle,
     val notice: CommunityNotice? = null,
+    val filterSheet: Boolean = false,
 )

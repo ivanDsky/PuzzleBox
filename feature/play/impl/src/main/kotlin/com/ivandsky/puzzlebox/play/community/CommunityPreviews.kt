@@ -15,7 +15,7 @@ import com.ivandsky.puzzlebox.model.ShareCode
 private val Zip = GameBrand(AccentSlot.Blue, GameGlyphs.Zip)
 private val Tango = GameBrand(AccentSlot.Orange, GameGlyphs.Tango)
 
-private val Games = listOf(GameChoice(GameId("zip"), "Zip"), GameChoice(GameId("tango"), "Tango"))
+private val Games = listOf(GameChoice(GameId("zip"), "Zip", Zip), GameChoice(GameId("tango"), "Tango", Tango))
 
 private val Actions = CommunityActions(onOpen = {}, onReport = {}, onGame = {}, onDifficulty = {}, onClearFilters = {}, onRetry = {})
 
@@ -49,3 +49,20 @@ internal fun CommunitySectionEmptyPreview() = Section(CommunityPhase.Loaded(empt
 @PuzzleBoxPreviews
 @Composable
 internal fun CommunitySectionOfflinePreview() = Section(CommunityPhase.Offline)
+
+@Composable
+private fun Choices(game: GameId?, difficulty: DifficultyChoice?) {
+    PuzzleBoxTheme {
+        Surface {
+            CommunityFilterChoices(Games, game, difficulty, onGame = {}, onDifficulty = {})
+        }
+    }
+}
+
+@PuzzleBoxPreviews
+@Composable
+internal fun CommunityFilterChoicesPreview() = Choices(game = null, difficulty = null)
+
+@PuzzleBoxPreviews
+@Composable
+internal fun CommunityFilterChoicesPickedPreview() = Choices(game = GameId("zip"), difficulty = DifficultyChoice.Hard)
