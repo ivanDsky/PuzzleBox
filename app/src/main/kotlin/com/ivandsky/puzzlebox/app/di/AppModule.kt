@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.app.match.AndroidNetworkStatus
 import com.ivandsky.puzzlebox.common.di.flagSet
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.DeclaredFlags
+import com.ivandsky.puzzlebox.common.flags.FilterFlag
 import com.ivandsky.puzzlebox.common.flags.FlagSet
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.domain.AppBuild
@@ -119,6 +120,8 @@ val appModule = module {
     // The frozen central enum, until its last entry moves to its owner. Not in commonModule: its verify() rejects
     // FlagSet's String and List parameters.
     flagSet("common", ReleaseFlag.entries)
+    // Declared in core:common, registered here for the same reason.
+    flagSet("filters", FilterFlag.entries)
 
     // The installed build GetAppUpdate compares against; debug never checks.
     single {
