@@ -24,8 +24,8 @@ import com.ivandsky.puzzlebox.game.replay.ReplayFrame
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
-import com.ivandsky.puzzlebox.gameui.replay.ReplaySectionState
-import com.ivandsky.puzzlebox.gameui.replay.ReplayUnavailable
+import com.ivandsky.puzzlebox.resultui.replay.ReplaySectionState
+import com.ivandsky.puzzlebox.resultui.replay.ReplayUnavailable
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.SolveReplay
 import com.ivandsky.puzzlebox.play.api.GameKey

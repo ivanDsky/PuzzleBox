@@ -1,0 +1,46 @@
+package com.ivandsky.puzzlebox.resultui.replay
+
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.game.replay.Lead
+import com.ivandsky.puzzlebox.game.replay.Timeline
+import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
+
+/**
+ * Two-sided replay section. Draws nothing when both timelines are null. Both sides play from time 0 on one
+ * shared transport; a side that has ended stays on its last board. The lead line shows only when both sides
+ * have a replay, and its noun is [board].pieces. Needs a bounded height, like [ReplayPlayer].
+ * [CompareLayout.FlipPeek] shows one board at a time, centred, and flips to the other. [showErrors] false hides every
+ * rule-violation mark on both boards.
+ */
+@Composable
+fun ReplayCompare(
+    mine: Timeline?,
+    theirs: Timeline?,
+    board: GameReplayBoard,
+    names: CompareNames,
+    layout: CompareLayout,
+    modifier: Modifier = Modifier,
+    finalLead: Lead? = null,
+    showErrors: Boolean = true,
+) {
+    if (mine == null && theirs == null) return
+    val playback = rememberReplayPlayback(mine, theirs, finalLead, showErrors)
+    val state by rememberStableReplayState(playback)
+    val options = rememberReplayBoardOptions(state)
+    Column(modifier) {
+        if (mine != null && theirs != null) {
+            ReplayLeadLine(state, mine, theirs, names, board.pieces, Modifier.fillMaxWidth().padding(vertical = Spacing.xs))
+        }
+        val stage = Modifier.weight(1f).fillMaxWidth()
+        when (layout) {
+            CompareLayout.Twin -> ReplayTwin(state, playback, mine, theirs, board, options, names, stage)
+            CompareLayout.FlipPeek -> ReplayFlipPeek(state, playback, mine, theirs, board, options, names, stage)
+        }
+    }
+}

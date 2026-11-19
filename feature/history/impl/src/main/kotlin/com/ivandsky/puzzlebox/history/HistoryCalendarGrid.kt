@@ -27,7 +27,7 @@ import com.ivandsky.puzzlebox.designsystem.pressScale
 import com.ivandsky.puzzlebox.designsystem.pressTint
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.tabular
-import com.ivandsky.puzzlebox.gameui.DayRing
+import com.ivandsky.puzzlebox.resultui.DayRing
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth

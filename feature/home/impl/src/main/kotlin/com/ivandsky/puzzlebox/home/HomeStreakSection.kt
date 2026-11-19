@@ -18,9 +18,9 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.domain.GameStats
-import com.ivandsky.puzzlebox.gameui.FreezeCount
 import com.ivandsky.puzzlebox.gameui.WeekDay
-import com.ivandsky.puzzlebox.gameui.WeekStrip
+import com.ivandsky.puzzlebox.resultui.FreezeCount
+import com.ivandsky.puzzlebox.resultui.WeekStrip
 
 /**
  * The streak card (A8, identity §2.8): "N days in a row · Best M" from [stats] over the

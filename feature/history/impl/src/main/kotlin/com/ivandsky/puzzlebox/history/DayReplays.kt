@@ -2,7 +2,7 @@ package com.ivandsky.puzzlebox.history
 
 import com.ivandsky.puzzlebox.domain.LoadSolveReplay
 import com.ivandsky.puzzlebox.domain.SolveReplayRef
-import com.ivandsky.puzzlebox.gameui.replay.ReplayUnavailable
+import com.ivandsky.puzzlebox.resultui.replay.ReplayUnavailable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow

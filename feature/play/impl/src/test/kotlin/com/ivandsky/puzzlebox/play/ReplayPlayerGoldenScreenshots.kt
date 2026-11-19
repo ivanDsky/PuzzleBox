@@ -7,8 +7,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import com.ivandsky.puzzlebox.game.replay.Timeline
-import com.ivandsky.puzzlebox.gameui.replay.ReplayPage
-import com.ivandsky.puzzlebox.gameui.replay.ReplayTags
+import com.ivandsky.puzzlebox.resultui.replay.ReplayPage
+import com.ivandsky.puzzlebox.resultui.replay.ReplayTags
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import org.junit.Rule
 import org.junit.Test

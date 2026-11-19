@@ -34,12 +34,12 @@ import com.ivandsky.puzzlebox.game.replay.Lead
 import com.ivandsky.puzzlebox.game.replay.ReplayOutcome
 import com.ivandsky.puzzlebox.game.replay.Timeline
 import com.ivandsky.puzzlebox.gameui.DuelSideState
-import com.ivandsky.puzzlebox.gameui.replay.CompareLayout
-import com.ivandsky.puzzlebox.gameui.replay.CompareNames
-import com.ivandsky.puzzlebox.gameui.replay.ReplayComparePage
-import com.ivandsky.puzzlebox.gameui.replay.ReplayTags
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.resultui.replay.CompareLayout
+import com.ivandsky.puzzlebox.resultui.replay.CompareNames
+import com.ivandsky.puzzlebox.resultui.replay.ReplayComparePage
+import com.ivandsky.puzzlebox.resultui.replay.ReplayTags
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import java.io.File
 import java.time.Instant

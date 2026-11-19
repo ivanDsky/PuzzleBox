@@ -4,8 +4,8 @@ import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.domain.LoadSolveReplay
 import com.ivandsky.puzzlebox.domain.SolveReplayRef
 import com.ivandsky.puzzlebox.game.PuzzleRef
-import com.ivandsky.puzzlebox.gameui.replay.ReplaySectionState
-import com.ivandsky.puzzlebox.gameui.replay.ReplayUnavailable
+import com.ivandsky.puzzlebox.resultui.replay.ReplaySectionState
+import com.ivandsky.puzzlebox.resultui.replay.ReplayUnavailable
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine

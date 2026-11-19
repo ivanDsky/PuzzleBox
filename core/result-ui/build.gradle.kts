@@ -17,4 +17,7 @@ dependencies {
     // The daily board's leaderboard rows and today status; core:data arrives through domain's api.
     implementation(projects.core.domain)
     implementation(libs.kotlinx.coroutines.core)
+
+    // The replay tests build their timelines from core:testing's ReplayFixtures.
+    testImplementation(projects.core.testing)
 }

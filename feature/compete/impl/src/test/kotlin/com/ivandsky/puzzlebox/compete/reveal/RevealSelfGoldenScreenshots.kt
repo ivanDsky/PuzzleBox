@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.compete.reveal
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performSemanticsAction
-import com.ivandsky.puzzlebox.gameui.replay.ReplayTags
 import android.content.Context
 import android.content.res.Configuration
 import android.provider.Settings
@@ -33,11 +32,12 @@ import com.ivandsky.puzzlebox.domain.Outcome
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.replay.Lead
 import com.ivandsky.puzzlebox.gameui.DuelSideState
-import com.ivandsky.puzzlebox.gameui.replay.CompareLayout
-import com.ivandsky.puzzlebox.gameui.replay.CompareNames
-import com.ivandsky.puzzlebox.gameui.replay.ReplayComparePage
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.resultui.replay.CompareLayout
+import com.ivandsky.puzzlebox.resultui.replay.CompareNames
+import com.ivandsky.puzzlebox.resultui.replay.ReplayComparePage
+import com.ivandsky.puzzlebox.resultui.replay.ReplayTags
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import java.io.File
 import java.time.Instant

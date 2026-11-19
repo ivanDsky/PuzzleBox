@@ -27,15 +27,15 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.game.replay.Timeline
-import com.ivandsky.puzzlebox.gameui.replay.ReplayCopy
-import com.ivandsky.puzzlebox.gameui.replay.ReplayTags
-import com.ivandsky.puzzlebox.gameui.replay.ReplayUnavailable
 import com.ivandsky.puzzlebox.history.COMPARE
 import com.ivandsky.puzzlebox.history.COMPARE_DESCRIPTION
 import com.ivandsky.puzzlebox.history.FIRST_SOLVE
 import com.ivandsky.puzzlebox.history.HistoryReplays
 import com.ivandsky.puzzlebox.history.LATEST
 import com.ivandsky.puzzlebox.history.ReplaySolve
+import com.ivandsky.puzzlebox.resultui.replay.ReplayCopy
+import com.ivandsky.puzzlebox.resultui.replay.ReplayTags
+import com.ivandsky.puzzlebox.resultui.replay.ReplayUnavailable
 
 /** An icon button of the solve card: the least a finger can hit. */
 internal val SolveButtonSize = 48.dp

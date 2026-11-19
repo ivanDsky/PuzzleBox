@@ -7,10 +7,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ivandsky.puzzlebox.gameui.replay.ReplayCopy
-import com.ivandsky.puzzlebox.gameui.replay.ReplayEmptyPage
-import com.ivandsky.puzzlebox.gameui.replay.ReplayPage
 import com.ivandsky.puzzlebox.play.api.ReplayKey
+import com.ivandsky.puzzlebox.resultui.replay.ReplayCopy
+import com.ivandsky.puzzlebox.resultui.replay.ReplayEmptyPage
+import com.ivandsky.puzzlebox.resultui.replay.ReplayPage
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 

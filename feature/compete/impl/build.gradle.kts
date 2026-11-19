@@ -32,4 +32,6 @@ dependencies {
     implementation(libs.koin.android)
 
     testImplementation(projects.core.testing)
+    // The reveal golden screenshots draw the replay compare page (CompareLayout, ReplayComparePage).
+    testImplementation(projects.core.resultUi)
 }

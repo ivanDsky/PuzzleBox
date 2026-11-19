@@ -22,9 +22,11 @@ dependencies {
     implementation(projects.core.game)
     // The domain use cases appear in HomeViewModel's public constructor.
     api(projects.core.domain)
-    // GameGlyph, WeekStrip and the per-game brands (GamePlayRegistry) for the Today tiles,
+    // GameGlyph, WeekDay and the per-game brands (GamePlayRegistry) for the Today tiles,
     // streak card and recent chips.
     implementation(projects.core.gameUi)
+    // WeekStrip and FreezeCount on the streak card.
+    implementation(projects.core.resultUi)
     // GameId appears in Home's public composables.
     api(projects.core.model)
     testImplementation(projects.core.testing)
