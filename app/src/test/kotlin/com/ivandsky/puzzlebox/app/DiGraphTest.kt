@@ -40,15 +40,21 @@ import com.ivandsky.puzzlebox.data.visibility.HiddenPuzzles
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.domain.AppBuild
 import com.ivandsky.puzzlebox.domain.ComputeStreak
+import com.ivandsky.puzzlebox.domain.DeleteSelfDuel
 import com.ivandsky.puzzlebox.domain.GetFeaturedGame
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.LoadSolveReplay
+import com.ivandsky.puzzlebox.domain.ObserveDuel
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
+import com.ivandsky.puzzlebox.domain.RecordRevealSeen
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
+import com.ivandsky.puzzlebox.domain.UpdateMatchSeat
+import com.ivandsky.puzzlebox.domain.lineup.ObserveLegTitles
+import com.ivandsky.puzzlebox.domain.lineup.SaveDuelPuzzles
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
@@ -351,6 +357,14 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<ObserveLegTarget>())
             // The Duels tab's rows and its badge count.
             assertNotNull(koin.get<ObserveMyDuels>())
+            // The duel screen's page, seat moves and self-duel removal, the reveal's seen mark, and the
+            // leg titles and saved puzzles the duel and New duel screens read.
+            assertNotNull(koin.get<ObserveDuel>())
+            assertNotNull(koin.get<UpdateMatchSeat>())
+            assertNotNull(koin.get<DeleteSelfDuel>())
+            assertNotNull(koin.get<RecordRevealSeen>())
+            assertNotNull(koin.get<ObserveLegTitles>())
+            assertNotNull(koin.get<SaveDuelPuzzles>())
             // The tablet play side panel's stats and the board gate beneath them.
             assertNotNull(koin.get<ObserveLeaderboard>())
             assertNotNull(koin.get<ObserveResultInsights>())
