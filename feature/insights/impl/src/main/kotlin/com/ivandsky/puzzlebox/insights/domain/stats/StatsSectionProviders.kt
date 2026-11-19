@@ -6,5 +6,7 @@ package com.ivandsky.puzzlebox.insights.domain.stats
  * then the slot is absent and the page shows nothing for it.
  */
 internal val StatsSectionProviders: List<StatsSectionProvider> = listOf(
+    TimeTrendStatsSectionProvider,
     RecordsStatsSectionProvider,
+    HintFreeStatsSectionProvider,
 )

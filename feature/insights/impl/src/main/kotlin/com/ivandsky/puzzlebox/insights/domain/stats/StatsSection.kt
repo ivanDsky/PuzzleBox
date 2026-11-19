@@ -7,6 +7,12 @@ package com.ivandsky.puzzlebox.insights.domain.stats
  */
 internal sealed interface StatsSection {
 
+    /** The average solve time per week (per day for the Week range). Local, so always ready. */
+    data class TimeTrend(val state: SectionState<TimeTrendSeries>) : StatsSection
+
     /** Fastest per game, longest streak and longest hint-free run. Local, so always ready. */
     data class Records(val state: SectionState<StatsRecords>) : StatsSection
+
+    /** The share of hint-free solves per week (per day for the Week range). Local, so always ready. */
+    data class HintFreeRate(val state: SectionState<HintFreeRateSeries>) : StatsSection
 }

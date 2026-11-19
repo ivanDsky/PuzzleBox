@@ -4,8 +4,11 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import com.ivandsky.puzzlebox.insights.GOLDEN_PHONE
 import com.ivandsky.puzzlebox.insights.GOLDEN_TABLET
+import com.ivandsky.puzzlebox.insights.domain.stats.HintFreeRateSeries
 import com.ivandsky.puzzlebox.insights.domain.stats.SectionState
+import com.ivandsky.puzzlebox.insights.domain.stats.StatsGranularity
 import com.ivandsky.puzzlebox.insights.domain.stats.StatsRange
+import com.ivandsky.puzzlebox.insights.domain.stats.TimeTrendSeries
 import com.ivandsky.puzzlebox.insights.settleAndCapture
 import com.ivandsky.puzzlebox.insights.showGolden
 import org.junit.Rule
@@ -41,6 +44,25 @@ class StatsGoldenScreenshots {
 
     @Config(qualifiers = GOLDEN_TABLET)
     @Test fun `one game all tablet dark`() = capture("one-game-all", "tablet", dark = true, state = StatsFixtures.ready(StatsRange.All, StatsFixtures.queens))
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `lines phone light`() = capture("lines", "phone", dark = false, state = StatsFixtures.readyWithLines())
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `lines phone dark`() = capture("lines", "phone", dark = true, state = StatsFixtures.readyWithLines())
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `lines tablet dark`() = capture("lines", "tablet", dark = true, state = StatsFixtures.readyWithLines(StatsRange.All))
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `single points phone light`() = capture(
+        "single-points", "phone", dark = false,
+        state = StatsFixtures.readyWithLines(
+            StatsRange.Week,
+            trend = TimeTrendSeries(StatsGranularity.Day, StatsFixtures.trend.points.take(1)),
+            hintFree = HintFreeRateSeries(StatsGranularity.Day, StatsFixtures.hintFreeRate.points.take(1)),
+        ),
+    )
 
     @Config(qualifiers = GOLDEN_PHONE)
     @Test fun `unavailable phone light`() = capture("unavailable", "phone", dark = false, state = StatsFixtures.ready(state = SectionState.Unavailable))

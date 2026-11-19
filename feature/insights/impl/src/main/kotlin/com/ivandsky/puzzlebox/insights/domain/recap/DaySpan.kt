@@ -9,6 +9,9 @@ import java.time.LocalDate
  */
 internal interface DaySpan {
 
+    /** The span's first puzzle day. */
+    val first: LocalDate
+
     /** Whether the puzzle [day] falls inside the span. */
     operator fun contains(day: LocalDate): Boolean
 }
