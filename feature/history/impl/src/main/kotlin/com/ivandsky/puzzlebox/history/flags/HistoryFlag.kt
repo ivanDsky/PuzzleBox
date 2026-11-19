@@ -17,6 +17,12 @@ enum class HistoryFlag(override val label: String, override val releaseDefault: 
      * Read only in a ViewModel or a DI module (ADR-0022 §3).
      */
     RanksFreshness(label = "Ranks shows when LinkedIn was last read", releaseDefault = false),
+
+    /**
+     * The Ranks filter sheet holds only the board's own choices (backlog #1547): Who and When, without the Defaults block
+     * ("Opens on", "Who can see you"), which stay in Settings. Read only in a ViewModel or a DI module (ADR-0022 §3).
+     */
+    RanksTuneBoardOnly(label = "Ranks filter sheet without Defaults", releaseDefault = false),
     ;
 
     /** The entry's own name: the stored override's key in `release_flags`. Never change it. */

@@ -48,7 +48,7 @@ class TuneSheetTest {
         onSelectFriendsDefault = { friendsPicks += it; friendsDefault.value = it },
     )
 
-    private fun show(slot: RanksTuneDefaults) {
+    private fun show(slot: RanksTuneDefaults?) {
         composeRule.setContent {
             PuzzleBoxTheme {
                 TuneSheet(
@@ -115,5 +115,23 @@ class TuneSheetTest {
         VisibilityTier.entries.forEach {
             composeRule.onNodeWithTag("ranks.tune.defaults.tier.${it.storageName}").assertHeightIsAtLeast(48.dp)
         }
+    }
+
+    @Test
+    fun `without defaults the sheet holds Who and When only`() {
+        show(null)
+
+        composeRule.onNodeWithTag("ranks.tune.scope.Friends").assertIsSelected()
+        composeRule.onNodeWithTag("ranks.tune.window.Day").assertIsSelected()
+        composeRule.onNodeWithTag("ranks.tune.defaults").assertDoesNotExist()
+        composeRule.onNodeWithTag("ranks.tune.defaults.scope.Global").assertDoesNotExist()
+        composeRule.onNodeWithTag("ranks.tune.defaults.tier.board").assertDoesNotExist()
+    }
+
+    @Test
+    fun `with defaults the sheet still has the Defaults section`() {
+        show(defaults)
+
+        composeRule.onNodeWithTag("ranks.tune.defaults").assertExists()
     }
 }
