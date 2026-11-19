@@ -27,7 +27,6 @@ import com.ivandsky.puzzlebox.play.ResultViewModel
 import com.ivandsky.puzzlebox.play.SlotOpening
 import com.ivandsky.puzzlebox.play.SlotWriter
 import com.ivandsky.puzzlebox.play.WriteLane
-import com.ivandsky.puzzlebox.play.ZipDotPulse
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.MatchLegKey
@@ -171,8 +170,6 @@ val playModule = module {
         )
     }
     single { HintPolish(enabled = get<ReleaseFlags>().isEnabled(GameUiFlag.HintPolish)) }
-    // ZipDotPulse (backlog #1151) too: the Zip board's next number pulses its own dot while it is on.
-    single { ZipDotPulse(enabled = get<ReleaseFlags>().isEnabled(PlayFlag.ZipDotPulse)) }
     // MainTabsLargeBar (backlog #1597) too: Games and Community open on Today's large top bar while it is on.
     single { MainTabsLargeBar(enabled = get<ReleaseFlags>().isEnabled(TopBarFlag.MainTabsLargeBar)) }
     // The memory forgets the last pick with the process.

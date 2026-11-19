@@ -21,12 +21,6 @@ enum class PlayFlag(override val label: String, override val releaseDefault: Boo
     ResultHeroPolish(label = "Result hero polish", releaseDefault = true),
 
     /**
-     * Zip's next number pulses itself (backlog #1151): the number's own dot breathes in place of the separate ring that
-     * blinks round it. Read only in feature/play's DI, which hands the Zip board one Boolean (ADR-0022 §3, spec A2).
-     */
-    ZipDotPulse(label = "Zip next number pulses itself", releaseDefault = true),
-
-    /**
      * Game page's Make one as a link (backlog #1567): no full-width button; How to play ends with "Make your own <Game>"
      * beside "Open the lesson". Read only in [com.ivandsky.puzzlebox.play.LibraryViewModel] (ADR-0022 §3).
      */

@@ -15,7 +15,6 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.DragEvent
 import com.ivandsky.puzzlebox.gameui.GridCell
-import com.ivandsky.puzzlebox.gameui.LocalZipDotPulse
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
@@ -33,8 +32,8 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The halo on the next number to reach, on the real play screen (nav-rethink B3, ticket 42; backlog #1151).
- * With ZipDotPulse the number's circle holds the trace colour and a halo ripples out of it, never stilling for
- * a finger: it runs while drawing too. Without ZipDotPulse, and on static boards, there is no next-number mark.
+ * The number's circle holds the trace colour and a halo ripples out of it, never stilling for
+ * a finger: it runs while drawing too. Static boards draw no next-number mark (ZipStaticPreviewNoMarkTest).
  *
  * The fixture's start cell is traced before the screen shows, so the next number is "2" in the
  * middle cell (2, 2) throughout. The clock is paused and stepped by hand.
@@ -54,7 +53,7 @@ class ZipNextNumberPulseTest {
 
     private var cellComposed: (Int) -> Unit = {}
 
-    private fun show(reducedMotion: Boolean = false, dotPulse: Boolean = false) {
+    private fun show(reducedMotion: Boolean = false) {
         if (reducedMotion) {
             val context = ApplicationProvider.getApplicationContext<Context>()
             Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
@@ -62,10 +61,7 @@ class ZipNextNumberPulseTest {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                CompositionLocalProvider(
-                    LocalZipCellComposed provides { cellComposed(it) },
-                    LocalZipDotPulse provides dotPulse,
-                ) {
+                CompositionLocalProvider(LocalZipCellComposed provides { cellComposed(it) }) {
                     ZipPlayScreen(
                         controller = controller,
                         status = PlayBoardStatus.Ready,
@@ -97,15 +93,8 @@ class ZipNextNumberPulseTest {
         Offset(width * (col + 0.5f) / 5, height * (row + 0.5f) / 5)
 
     @Test
-    fun `without ZipDotPulse the live board draws no next-number mark`() {
+    fun `a halo ripples round the dot, no ring is drawn and no cell recomposes for it`() {
         show()
-        composeRule.onNodeWithTag("play.next_number_ring").assertDoesNotExist()
-        composeRule.onNodeWithTag("play.next_number_halo").assertDoesNotExist()
-    }
-
-    @Test
-    fun `with ZipDotPulse a halo ripples round the dot, no ring is drawn and no cell recomposes for it`() {
-        show(dotPulse = true)
         composeRule.onNodeWithTag("play.next_number_ring").assertDoesNotExist()
         composeRule.onNodeWithTag("play.next_number_halo").assertExists()
         val recomposed = mutableListOf<Int>()
@@ -118,8 +107,8 @@ class ZipNextNumberPulseTest {
     }
 
     @Test
-    fun `with ZipDotPulse the halo keeps rippling while a finger is down and drawing`() {
-        show(dotPulse = true)
+    fun `the halo keeps rippling while a finger is down and drawing`() {
+        show()
         composeRule.mainClock.advanceTimeBy(300)
 
         composeRule.onNodeWithTag("play.board").performTouchInput {
@@ -139,8 +128,8 @@ class ZipNextNumberPulseTest {
     }
 
     @Test
-    fun `with ZipDotPulse and reduced motion there is no halo and the circle is still`() {
-        show(reducedMotion = true, dotPulse = true)
+    fun `with reduced motion there is no halo and the circle is still`() {
+        show(reducedMotion = true)
         composeRule.onNodeWithTag("play.next_number_halo").assertDoesNotExist()
         composeRule.onNodeWithTag("play.next_number_ring").assertDoesNotExist()
 

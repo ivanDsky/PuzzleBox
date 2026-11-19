@@ -4,7 +4,6 @@ import android.content.Context
 import android.provider.Settings
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.toPixelMap
@@ -16,7 +15,6 @@ import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
-import com.ivandsky.puzzlebox.gameui.LocalZipDotPulse
 import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
 import com.ivandsky.puzzlebox.games.zip.ZipReplay
 import com.ivandsky.puzzlebox.games.zip.ZipReplayMove
@@ -31,8 +29,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The Zip replay board with ZipDotPulse on (backlog #1151): the next number to reach ripples a halo, as on the live
- * board, whether the replay plays or is paused; Reduce motion and the flag off leave it still. The start cell is traced,
+ * The Zip replay board: the next number to reach ripples a halo, as on the live board, whether the replay plays or is
+ * paused; Reduce motion leaves it still. A puzzle nobody has played (its givens thumbnail) marks nothing. The start cell is traced,
  * so the next number is "2" in the middle cell (row 2, column 2).
  */
 @RunWith(RobolectricTestRunner::class)
@@ -60,7 +58,7 @@ class ZipReplayPulseTest {
         )
     }
 
-    private fun show(dotPulse: Boolean, animate: Boolean = false, reducedMotion: Boolean = false) {
+    private fun show(animate: Boolean = false, reducedMotion: Boolean = false) {
         if (reducedMotion) {
             val context = ApplicationProvider.getApplicationContext<Context>()
             Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
@@ -68,14 +66,12 @@ class ZipReplayPulseTest {
         rule.mainClock.autoAdvance = false
         rule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                CompositionLocalProvider(LocalZipDotPulse provides dotPulse) {
-                    Box {
-                        ZipReplayBoard.Board(
-                            frame(),
-                            ReplayBoardOptions(animate = animate, showErrors = true),
-                            Modifier.size(320.dp).testTag(BOARD),
-                        )
-                    }
+                Box {
+                    ZipReplayBoard.Board(
+                        frame(),
+                        ReplayBoardOptions(animate = animate, showErrors = true),
+                        Modifier.size(320.dp).testTag(BOARD),
+                    )
                 }
             }
         }
@@ -90,29 +86,36 @@ class ZipReplayPulseTest {
     }
 
     @Test
-    fun `the replay's next number pulses with ZipDotPulse while paused`() = pulses(animate = false)
+    fun `the replay's next number pulses while paused`() = pulses(animate = false)
 
     @Test
-    fun `the replay's next number pulses with ZipDotPulse while playing`() = pulses(animate = true)
+    fun `the replay's next number pulses while playing`() = pulses(animate = true)
 
     private fun pulses(animate: Boolean) {
-        show(dotPulse = true, animate = animate)
+        show(animate = animate)
         val seen = cellOverACycle()
         assertTrue("the halo should ripple, saw ${seen.distinct().size} looks", seen.distinct().size > 3)
     }
 
     @Test
     fun `the replay's next number is still with Reduce motion`() {
-        show(dotPulse = true, reducedMotion = true)
+        show(reducedMotion = true)
 
         assertEquals(1, cellOverACycle().distinct().size)
     }
 
     @Test
-    fun `the replay's next number has no mark without ZipDotPulse`() {
-        show(dotPulse = false)
-        rule.onNodeWithTag("play.next_number_ring").assertDoesNotExist()
+    fun `a puzzle nobody has played marks no next number, though the first is still to reach`() {
+        val board = checkNotNull(ZipReplayBoard.givens(ZipPlayFixture.envelope()))
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            PuzzleBoxTheme(darkTheme = false) { Box { board.content(Modifier.size(320.dp).testTag(BOARD)) } }
+        }
+        rule.mainClock.advanceTimeBy(100)
+
+        rule.onNodeWithTag(BOARD).assertExists()
         rule.onNodeWithTag("play.next_number_halo").assertDoesNotExist()
+        rule.onNodeWithTag("play.next_number_ring").assertDoesNotExist()
     }
 
     private companion object {

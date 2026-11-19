@@ -30,21 +30,19 @@ internal fun ReplayCompareRoute(key: ReplayCompareKey, onBack: () -> Unit, modif
     val viewModel: ReplayCompareViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
     val state by viewModel.state.collectAsStateWithLifecycle()
     val showErrors by viewModel.showErrors.collectAsStateWithLifecycle()
-    ZipDotPulseHost {
-        ReplayCompareScreen(
-            state = state,
-            board = viewModel.board,
-            names = viewModel.names,
-            finalLead = viewModel.finalLead,
-            context = viewModel.context,
-            widthDp = LocalConfiguration.current.screenWidthDp,
-            heightDp = LocalConfiguration.current.screenHeightDp,
-            onBack = onBack,
-            showErrors = showErrors,
-            onShowErrorsChange = viewModel::setShowErrors,
-            modifier = modifier,
-        )
-    }
+    ReplayCompareScreen(
+        state = state,
+        board = viewModel.board,
+        names = viewModel.names,
+        finalLead = viewModel.finalLead,
+        context = viewModel.context,
+        widthDp = LocalConfiguration.current.screenWidthDp,
+        heightDp = LocalConfiguration.current.screenHeightDp,
+        onBack = onBack,
+        showErrors = showErrors,
+        onShowErrorsChange = viewModel::setShowErrors,
+        modifier = modifier,
+    )
 }
 
 /** The page of one [ReplayCompareState] at a window [widthDp] by [heightDp]. */

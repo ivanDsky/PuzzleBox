@@ -13,14 +13,14 @@ import androidx.compose.runtime.remember
 private const val HALO_WAVE_MILLIS = 1800
 
 /**
- * The halo of the next number to reach with ZipDotPulse (backlog #1151), for a board that shows it
+ * The halo of the next number to reach (backlog #1151), for a board that shows it
  * live (play, tutorial, replay): where in the wave cycle it is, 0 up to 1 and round again every
  * 1.8 s. It never waits for a finger, so it keeps going while a trace is drawn. With [enabled] false
  * (reduced motion, or no number left to reach) it returns null and nothing runs.
  *
  * Returns a reader to call in the draw phase: the halo repaints the one cell that draws it and
  * recomposes nothing. This is the one endless animation in a game module (konsist S6 allowlist):
- * the board's idle cue, not a response to an input. Boards without ZipDotPulse and static
+ * the board's idle cue, not a response to an input. Boards that do not mark the next number and static
  * previews draw no next-number mark at all.
  */
 @Composable
