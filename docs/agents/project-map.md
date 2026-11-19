@@ -93,7 +93,7 @@ any module but `:core:data` (and `:app` test configurations) → `:core:database
   `ObserveTodaySet` reports any of today's games in progress or a duel needs the player;
   holds the Enter-code draft and the one-shot `LibraryRequests`; the rail carries the avatar), `nav/` the shell
   (ADR-0011, ADR-0027): `TopLevelDestination.kt` (`topLevelDestinations` tab registry: key, label, icon,
-  test tag, `Tab`; the four-tab set Today, Games, Ranks, Community),
+  test tag, `Tab`; the four-tab set Today, Games, Community, Ranks),
   `PuzzleBoxNavigationState.kt` (fresh state, start tab first),
   `RememberNavigator.kt` (`rememberNavigator`, saved under `NAVIGATION_STATE_KEY`
   `"puzzlebox.navigation.v1"`, restored via `reconciledWith`; foreign/undecodable → fresh),
@@ -320,7 +320,7 @@ any module but `:core:data` (and `:app` test configurations) → `:core:database
   `HintCooldown` + `rememberHintCooldown` (the Hint button's wait; `LocalHintCooldown` null = none).
   `LocalRouteCaption` (a game's own caption wins) and `PlayBoardPane`.
   `replay/` (ADR-0030): the per-game `GameReplayBoard` contract with `ReplayPlaybackState`, `ReplayBoardOptions`,
-  `ReplayHintBadge` and `ReplayStepDirection` (games implement or read them; the player and compare chrome is in `:core:result-ui`).
+  `ReplayHintBadge` and `stepsForward`/`rememberStepsForward` (games implement or read them; the player and compare chrome is in `:core:result-ui`).
 - `core/result-ui/` (`:core:result-ui`, package `com.ivandsky.puzzlebox.resultui`, ADR-0034; api `:core:game-ui`, plus
   `:core:game`, `:core:designsystem`, `:core:common` and `:core:domain`) — the result, stats, day-board and replay UI the
   features share: `ResultHeroScreen` (daily result; `ResultMoments.kt`, `ResultMomentCard`), `ResultScreen` (friend result),
@@ -537,7 +537,7 @@ any module but `:core:data` (and `:app` test configurations) → `:core:database
 - `PROFILE.md` — product frame, ranked care-axes, deploy targets, testing style.
 - `docs/puzzle-notation.md` — the `puzzlebox <game> v<n>` text format agents write (spec A23);
   every sample is pinned by `NotationDocTest` in `:tools:puzzle-cli`.
-- `docs/adr/` — ADR-0001…0035, all summarized under Purpose.
+- `docs/adr/` — ADR-0001…0035, most summarized under Purpose.
 
 ## Entry points
 
@@ -614,7 +614,7 @@ any module but `:core:data` (and `:app` test configurations) → `:core:database
   `placementOf` throws for a key with no row. `isImmersive` (`Immersive.kt`) derives only the
   bar-hiding predicate from it. Konsist P9 fails a production `NavKey` without a row. The
   per-key table is never copied into docs.
-- **Tab set** (ADR-0027) — `topLevelDestinations` is the one registry: Today, Games, Ranks, Community. Create is no tab;
+- **Tab set** (ADR-0027) — `topLevelDestinations` is the one registry: Today, Games, Community, Ranks. Create is no tab;
   its root and `Tab.Create` stay only so an older saved state decodes (`reconciledWith` swaps it for Community).
   Features never read a flag for it: an entry takes a callback or a slot (`CustomSlot`, `MakeOne`) and the app passes it.
 - **Shell actions and the avatar** (ADR-0027) — `ShellAvatar` (`app/nav/ShellChrome.kt`) is the
