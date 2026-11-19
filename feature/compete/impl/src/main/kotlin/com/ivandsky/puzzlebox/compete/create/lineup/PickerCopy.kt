@@ -1,8 +1,8 @@
 package com.ivandsky.puzzlebox.compete.create.lineup
 
-import com.ivandsky.puzzlebox.domain.lineup.CodeLookup
+import com.ivandsky.puzzlebox.compete.domain.lineup.CodeLookup
+import com.ivandsky.puzzlebox.compete.domain.lineup.PickerQuery
 import com.ivandsky.puzzlebox.domain.lineup.ExactPuzzle
-import com.ivandsky.puzzlebox.domain.lineup.PickerQuery
 import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
 import com.ivandsky.puzzlebox.model.ShareCode
 

@@ -1,9 +1,5 @@
 package com.ivandsky.puzzlebox.compete.domain.lineup
 
-import com.ivandsky.puzzlebox.domain.lineup.Freshness
-import com.ivandsky.puzzlebox.domain.lineup.PickablePuzzle
-import com.ivandsky.puzzlebox.domain.lineup.PickerQuery
-
 /** Whether the row survives the add sheet's [query]: text over title, author and code, then the chip groups (AND across, OR within). */
 internal fun PickablePuzzle.passes(query: PickerQuery): Boolean =
     matches(query.text) &&

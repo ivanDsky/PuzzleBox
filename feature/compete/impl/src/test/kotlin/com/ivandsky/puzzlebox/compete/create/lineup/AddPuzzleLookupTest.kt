@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.compete.create.lineup
 
 import com.ivandsky.puzzlebox.compete.create.QUEENS
-import com.ivandsky.puzzlebox.domain.lineup.CodeLookup
+import com.ivandsky.puzzlebox.compete.domain.lineup.CodeLookup
 import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
 import com.ivandsky.puzzlebox.model.ShareCode
 import kotlinx.coroutines.CompletableDeferred

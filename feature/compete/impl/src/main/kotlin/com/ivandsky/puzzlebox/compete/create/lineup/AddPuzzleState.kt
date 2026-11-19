@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.compete.create.lineup
 
-import com.ivandsky.puzzlebox.domain.lineup.PickablePuzzle
-import com.ivandsky.puzzlebox.domain.lineup.PickerQuery
+import com.ivandsky.puzzlebox.compete.domain.lineup.PickablePuzzle
+import com.ivandsky.puzzlebox.compete.domain.lineup.PickerQuery
 
 /** One result of the add sheet and whether that puzzle is already in the lineup. */
 internal data class PickerEntry(val puzzle: PickablePuzzle, val added: Boolean)

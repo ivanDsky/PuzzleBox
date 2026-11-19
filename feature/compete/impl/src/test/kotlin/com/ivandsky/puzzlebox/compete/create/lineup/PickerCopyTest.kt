@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.compete.create.lineup
 
 import com.ivandsky.puzzlebox.compete.create.QUEENS
-import com.ivandsky.puzzlebox.domain.lineup.Freshness
+import com.ivandsky.puzzlebox.compete.domain.lineup.Freshness
 import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
 import org.junit.Assert.assertEquals
 import org.junit.Test

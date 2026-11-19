@@ -2,9 +2,9 @@ package com.ivandsky.puzzlebox.compete.create.lineup
 
 import com.ivandsky.puzzlebox.compete.create.QUEENS
 import com.ivandsky.puzzlebox.compete.create.TANGO
-import com.ivandsky.puzzlebox.domain.lineup.Freshness
-import com.ivandsky.puzzlebox.domain.lineup.PickablePuzzle
-import com.ivandsky.puzzlebox.domain.lineup.PickerResult
+import com.ivandsky.puzzlebox.compete.domain.lineup.Freshness
+import com.ivandsky.puzzlebox.compete.domain.lineup.PickablePuzzle
+import com.ivandsky.puzzlebox.compete.domain.lineup.PickerResult
 import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

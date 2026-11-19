@@ -8,13 +8,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.compete.create.DuelGame
+import com.ivandsky.puzzlebox.compete.domain.lineup.Freshness
 import com.ivandsky.puzzlebox.designsystem.Calendar
 import com.ivandsky.puzzlebox.designsystem.FilterOption
 import com.ivandsky.puzzlebox.designsystem.Globe
 import com.ivandsky.puzzlebox.designsystem.Hidden
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Sparkle
-import com.ivandsky.puzzlebox.domain.lineup.Freshness
 import com.ivandsky.puzzlebox.domain.lineup.PuzzleSource
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
