@@ -31,7 +31,8 @@ private data class SignInProgress(val running: Boolean = false, val message: Str
  * Settings state: the stored theme mode, the Games switches (live from [games]) and [AppBuild.versionName]; a pick is
  * saved through [preferences] and a switch through [games]. [visibility] (null: no Visibility section, repository untouched)
  * supplies and saves the player's own tier. [showRanksLinkedIn] (the app's RanksLinkedInDefault read) adds the Ranks
- * LinkedIn games switch; off, that preference is neither read nor written.
+ * LinkedIn games switch; off, that preference is neither read nor written. [choiceRows] (the ChoiceRows flag, read by
+ * DI) shows Appearance as radio rows.
  */
 internal class SettingsViewModel(
     private val preferences: UserPreferencesRepository,
@@ -41,6 +42,7 @@ internal class SettingsViewModel(
     private val idTokenProvider: GoogleIdTokenProvider,
     private val visibility: VisibilitySlot? = null,
     private val showRanksLinkedIn: Boolean = false,
+    private val choiceRows: Boolean = false,
 ) : ViewModel() {
 
     private val gamesSection: Flow<GamesSectionState> =
@@ -66,6 +68,7 @@ internal class SettingsViewModel(
                 ranksFriendsDefault = ranksFriends,
                 vibration = vibration,
                 showSelfDuelTimeLeft = timeLeft,
+                choiceRows = choiceRows,
             )
         }.combine(signIn) { state, progress ->
             state.copy(signingIn = progress.running, signInMessage = progress.message)
@@ -74,7 +77,7 @@ internal class SettingsViewModel(
         }.combine(identityService.current) { state, identity -> state.copy(signedIn = identity != null) }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = SettingsUiState(themeMode = ThemeMode.SYSTEM, versionName = appBuild.versionName),
+            initialValue = SettingsUiState(themeMode = ThemeMode.SYSTEM, versionName = appBuild.versionName, choiceRows = choiceRows),
         )
 
     /** Appearance: persisted; the app root re-themes from the stored mode. */
