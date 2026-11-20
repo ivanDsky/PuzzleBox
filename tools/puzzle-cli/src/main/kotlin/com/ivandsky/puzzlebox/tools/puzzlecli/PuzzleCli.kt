@@ -99,7 +99,7 @@ object PuzzleCli {
         io: IndexIo,
         out: (String) -> Unit,
         err: (String) -> Unit,
-    ): Int = IndexCommand(indexTargets(transport), clock, sleep, io, out, err).run(args)
+    ): Int = IndexCommand(indexTargets(transport), clock, sleep, io, out, err, progress = out).run(args)
 
     /** 0 ⇔ unique with no board-level publish block (§9.2); malformed text is 2. */
     private fun exitCode(verdict: CliVerdict): Int =

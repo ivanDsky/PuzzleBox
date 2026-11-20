@@ -21,9 +21,13 @@ import kotlinx.serialization.json.jsonObject
  *
  * ```
  * { "gridSize": 8,
- *   "colorGrid": [ { "colors": [0, 0, 1, ...] }, ... ],   // per-cell region ids, row-major
+ *   "colorGrid": [ { "colors": [0, 0, 1, ...] }, ... ],   // per-cell palette ids, row-major
  *   "solution":  [ { "row": 0, "col": 3 }, ... ] }        // official queens, 0-based
  * ```
+ *
+ * Palette ids need not be contiguous: early archive dailies skip ids (#8 uses 0..8 without 4
+ * on an 8 board). The `gridSize` distinct ids map in ascending order onto region ids
+ * 0 until gridSize, so a contiguous grid keeps its ids (and its canonical bytes).
  *
  * Unknown JSON fields are ignored — the parser is structural, not a schema. The result is
  * UNTRUSTED until the A13 gate runs (queens-02+): the independent solve must match the
@@ -69,20 +73,21 @@ object QueensWireParser {
         if (colorGrid.size != n) {
             return DecodeResult.Err(DecodeError.Malformed("colorGrid has ${colorGrid.size} rows, expected $n"))
         }
-        val regions = ArrayList<Int>(n * n)
+        val palette = ArrayList<Int>(n * n)
         colorGrid.forEachIndexed { row, entry ->
             val colors = entry.intArray("colors")
                 ?: return DecodeResult.Err(DecodeError.Malformed("colorGrid row $row missing or malformed colors"))
             if (colors.size != n) {
                 return DecodeResult.Err(DecodeError.Malformed("colorGrid row $row has ${colors.size} cells, expected $n"))
             }
-            colors.forEach { region ->
-                if (region !in 0 until n) {
-                    return DecodeResult.Err(DecodeError.Malformed("region id $region outside 0 until $n"))
-                }
-                regions += region
-            }
+            palette += colors
         }
+        val ids = palette.toSortedSet()
+        if (ids.first() < 0 || ids.size != n) {
+            return DecodeResult.Err(DecodeError.Malformed("colorGrid has palette ids $ids, expected $n non-negative ids"))
+        }
+        val regionOf = ids.withIndex().associate { (region, id) -> id to region }
+        val regions = palette.map { regionOf.getValue(it) }
 
         val solutionRows = payload.arrayOfObjects("solution")
             ?: return DecodeResult.Err(DecodeError.Malformed("missing or malformed solution"))

@@ -88,6 +88,25 @@ class QueensWireParserTest {
         assertEquals(ok(n8), ok(n8))
     }
 
+    /** Real Queens #8 (2024-05-08): eight palette ids 0..8 with no 4. */
+    @Test
+    fun `non-contiguous palette ids map in ascending order onto region ids`() {
+        val palette = listOf(
+            listOf(1, 1, 0, 0, 0, 0, 8, 8),
+            listOf(1, 0, 0, 6, 6, 0, 0, 8),
+            listOf(1, 0, 6, 6, 6, 6, 0, 8),
+            listOf(5, 0, 6, 6, 2, 6, 0, 8),
+            listOf(5, 0, 0, 6, 2, 2, 0, 8),
+            listOf(5, 5, 0, 0, 0, 2, 2, 8),
+            listOf(5, 5, 5, 5, 5, 3, 2, 7),
+            listOf(5, 5, 5, 3, 3, 3, 7, 7),
+        )
+        val solution = listOf(0 to 0, 1 to 2, 2 to 4, 3 to 6, 4 to 1, 5 to 3, 6 to 5, 7 to 7)
+        val dense = mapOf(0 to 0, 1 to 1, 2 to 2, 3 to 3, 5 to 4, 6 to 5, 7 to 6, 8 to 7)
+        val expected = ok(wire(8, palette.map { row -> row.map { dense.getValue(it) } }, solution))
+        assertEquals(expected, ok(wire(8, palette, solution)))
+    }
+
     @Test
     fun `malformed wire shapes are rejected`() {
         fun err(json: String): DecodeError = when (val r = parse(json)) {
@@ -109,7 +128,7 @@ class QueensWireParserTest {
         assertTrue(
             err("""{"gridSize": 8, "colorGrid": [[0,1],[1,3]]}""") is DecodeError.Malformed,
         )
-        // region id out of range on a known size
+        // fewer distinct palette ids than the board size
         assertTrue(
             err("""{"gridSize": 8, "colorGrid": [{"colors":[8,0,0,0,0,0,0,0]},{"colors":[0,0,0,0,0,0,0,0]},{"colors":[0,0,0,0,0,0,0,0]},{"colors":[0,0,0,0,0,0,0,0]},{"colors":[0,0,0,0,0,0,0,0]},{"colors":[0,0,0,0,0,0,0,0]},{"colors":[0,0,0,0,0,0,0,0]},{"colors":[0,0,0,0,0,0,0,0]}], "solution": [}""") is DecodeError.Malformed,
         )
