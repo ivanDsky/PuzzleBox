@@ -19,8 +19,11 @@ internal data class RecapShareContent(
     val tiles: List<Stat>,
 ) {
 
-    /** One headline number: its [value] and the [label] that names it; a tile also names the recap [card] whose colours it wears. */
-    data class Stat(val value: String, val label: String, val card: PaletteCard? = null)
+    /**
+     * One headline number: its [value] and the [label] that names it; a tile also names the recap [card] whose colours it wears.
+     * While a count-up changes [value], [fit] stays the final text, so the number is sized once, to what it will end as.
+     */
+    data class Stat(val value: String, val label: String, val card: PaletteCard? = null, val fit: String = value)
 
     /** What a screen reader says for the image, with final values: "Share image: October 2026, Ivan. 96 puzzles solved. Longest streak 23 days. …". */
     fun description(): String = buildString {

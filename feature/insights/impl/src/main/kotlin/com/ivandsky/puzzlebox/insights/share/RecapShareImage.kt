@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.insights.share
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -32,6 +33,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
@@ -111,6 +113,7 @@ private fun Hero(stat: RecapShareContent.Stat, palette: SharePalette, scale: (()
     ) {
         FitText(
             text = stat.value,
+            fit = stat.fit,
             style = MaterialTheme.typography.displayLarge.tabular().copy(fontSize = 380.sp, lineHeight = 380.sp, textAlign = TextAlign.Center),
             color = palette.hero,
             maxLines = 1,
@@ -154,6 +157,7 @@ private fun Tile(stat: RecapShareContent.Stat, palette: SharePalette, modifier: 
     ) {
         FitText(
             text = stat.value,
+            fit = stat.fit,
             style = MaterialTheme.typography.headlineLarge.tabular().copy(fontSize = 76.sp, lineHeight = 84.sp),
             color = colors.ink,
             maxLines = 1,
@@ -167,7 +171,9 @@ private fun Tile(stat: RecapShareContent.Stat, palette: SharePalette, modifier: 
 
 /**
  * Text that shrinks until it fits its width in [maxLines] lines, instead of clipping or leaving the image. It is drawn
- * once it fits, so the first, too-large layout is never seen or captured.
+ * once it fits, so the first, too-large layout is never seen or captured. The size is decided for [fit], the text the
+ * line will end as, and held while [text] counts up to it: a number is never hidden or resized mid-count. When [text]
+ * is not [fit], an invisible copy of [fit] is what gets laid out and shrunk.
  */
 @Composable
 private fun FitText(
@@ -177,21 +183,34 @@ private fun FitText(
     maxLines: Int,
     softWrap: Boolean,
     modifier: Modifier = Modifier,
+    fit: String = text,
 ) {
-    var scale by remember(text, style) { mutableStateOf(1f) }
-    var fitted by remember(text, style) { mutableStateOf(false) }
+    var scale by remember(fit, style) { mutableStateOf(1f) }
+    var fitted by remember(fit, style) { mutableStateOf(false) }
     val shown = style.copy(fontSize = style.fontSize * scale, lineHeight = style.lineHeight * scale)
-    Text(
-        text = text,
-        modifier = modifier.alpha(if (fitted) 1f else 0f).let { if (maxLines == 1) it.oneLine(shown) else it },
-        color = color,
-        style = shown,
-        maxLines = maxLines,
-        softWrap = softWrap,
-        onTextLayout = { layout ->
-            if (layout.didOverflowWidth || layout.didOverflowHeight) scale *= FitStep else fitted = true
-        },
-    )
+    val fitting = { layout: TextLayoutResult -> if (layout.didOverflowWidth || layout.didOverflowHeight) scale *= FitStep else fitted = true }
+    val box = Modifier.let { if (maxLines == 1) it.oneLine(shown) else it }
+    Box(modifier, propagateMinConstraints = true) {
+        if (text != fit) {
+            Text(
+                text = fit,
+                modifier = box.alpha(0f).clearAndSetSemantics {},
+                style = shown,
+                maxLines = maxLines,
+                softWrap = softWrap,
+                onTextLayout = fitting,
+            )
+        }
+        Text(
+            text = text,
+            modifier = box.alpha(if (fitted) 1f else 0f),
+            color = color,
+            style = shown,
+            maxLines = maxLines,
+            softWrap = softWrap,
+            onTextLayout = if (text == fit) fitting else { _ -> },
+        )
+    }
 }
 
 /**
