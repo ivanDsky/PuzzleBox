@@ -21,8 +21,20 @@ internal sealed interface RecapCard {
     /** Fastest solve: one [Row] per game played, in the app's game order. */
     data class Fastest(val rows: List<Row>) : RecapCard {
 
-        /** [game]'s quickest solve in the period: its time, the puzzle [day] and [puzzleNumber], and whether there is a replay to watch (an import has none). */
-        data class Row(val game: GameId, val timeMs: Long, val day: LocalDate, val puzzleNumber: Int?, val hasReplay: Boolean)
+        /**
+         * [game]'s quickest solve in the period: its time, the puzzle [day] and [puzzleNumber], and whether there is a replay to
+         * watch (an import has none). [solves] counts the game's solves in the period and [averageMs] is their average, null
+         * when there is one solve or the average is not above [timeMs]: then there is no average to beat.
+         */
+        data class Row(
+            val game: GameId,
+            val timeMs: Long,
+            val day: LocalDate,
+            val puzzleNumber: Int?,
+            val hasReplay: Boolean,
+            val averageMs: Long?,
+            val solves: Int,
+        )
     }
 
     /**

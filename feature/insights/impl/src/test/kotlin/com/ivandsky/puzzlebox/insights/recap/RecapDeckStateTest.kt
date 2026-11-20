@@ -179,5 +179,7 @@ class RecapDeckStateTest {
         day = java.time.LocalDate.of(2026, 11, 1),
         puzzleNumber = null,
         hasReplay = false,
+        averageMs = null,
+        solves = 1,
     )
 }

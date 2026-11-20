@@ -37,9 +37,9 @@ internal object RecapFixtures {
     /** Fastest solves: two games with a replay, one imported time without. */
     val fastest = RecapCard.Fastest(
         rows = listOf(
-            RecapCard.Fastest.Row(zip, timeMs = 58_000, day = LocalDate.of(2026, 11, 3), puzzleNumber = 212, hasReplay = true),
-            RecapCard.Fastest.Row(queens, timeMs = 141_000, day = LocalDate.of(2026, 11, 12), puzzleNumber = 190, hasReplay = true),
-            RecapCard.Fastest.Row(sudoku, timeMs = 312_000, day = LocalDate.of(2026, 11, 8), puzzleNumber = 77, hasReplay = false),
+            RecapCard.Fastest.Row(zip, timeMs = 58_000, day = LocalDate.of(2026, 11, 3), puzzleNumber = 212, hasReplay = true, averageMs = 91_000, solves = 6),
+            RecapCard.Fastest.Row(queens, timeMs = 141_000, day = LocalDate.of(2026, 11, 12), puzzleNumber = 190, hasReplay = true, averageMs = 215_000, solves = 4),
+            RecapCard.Fastest.Row(sudoku, timeMs = 312_000, day = LocalDate.of(2026, 11, 8), puzzleNumber = 77, hasReplay = false, averageMs = null, solves = 1),
         ),
     )
 

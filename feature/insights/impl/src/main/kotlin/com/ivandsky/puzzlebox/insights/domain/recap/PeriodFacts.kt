@@ -17,6 +17,8 @@ internal data class PeriodFacts(
     val solvedByGame: Map<GameId, Int>,
     /** Each game's quickest counted solve in the period (time, then fewer hints, then the earlier day); a game with no solve has no entry. */
     val fastestByGame: Map<GameId, FastestSolve>,
+    /** The floor of the mean play time of each game's counted solves in the period, imports included; a game with no solve has no entry. */
+    val averageTimeMsByGame: Map<GameId, Long> = emptyMap(),
     /**
      * The longest streak's part inside the period, frozen days included; null when no streak day falls in it. A streak
      * across the period's edge counts only the days on this side of it.

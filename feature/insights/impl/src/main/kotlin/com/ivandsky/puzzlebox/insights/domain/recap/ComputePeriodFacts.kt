@@ -43,6 +43,7 @@ internal class ComputePeriodFacts(
             solved = counted.size,
             solvedByGame = counted.groupingBy { it.gameId }.eachCount(),
             fastestByGame = counted.groupBy { it.gameId }.mapValues { (_, days) -> fastest(days) },
+            averageTimeMsByGame = counted.groupBy { it.gameId }.mapValues { (_, days) -> days.sumOf { it.solve.time } / days.size },
             longestStreak = longestStreak,
             longestStreakSolve = longestStreak?.let { lastSolveOf(it, counted) },
             freezesSpent = streaks.sumOf { it.frozen.size },

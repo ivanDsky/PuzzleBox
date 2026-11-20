@@ -49,9 +49,13 @@ fun swipeAxis(dx: Float, dy: Float, slop: Float): Orientation? = when {
  * can neither start nor take the drag over; [onDrag] hears each horizontal delta and [onEnd] the
  * whole horizontal travel and the release velocity (px, px/s), or no travel at all when the system
  * takes the touch away mid-swipe. Vertical, or a drag something else consumed first: the gesture is
- * left alone to its end.
+ * left alone to its end, and so is a horizontal one [canTake] refuses for its direction (the travel so far, px).
  */
-suspend fun PointerInputScope.detectSwipe(onDrag: (Float) -> Unit, onEnd: (dragPx: Float, velocityPx: Float) -> Unit) =
+suspend fun PointerInputScope.detectSwipe(
+    canTake: (travelPx: Float) -> Boolean = { true },
+    onDrag: (Float) -> Unit,
+    onEnd: (dragPx: Float, velocityPx: Float) -> Unit,
+) =
     awaitEachGesture {
         val down = awaitFirstDown(requireUnconsumed = false)
         val velocity = VelocityTracker().apply { addPointerInputChange(down) }
@@ -68,7 +72,7 @@ suspend fun PointerInputScope.detectSwipe(onDrag: (Float) -> Unit, onEnd: (dragP
                     if (change.isConsumed) return@awaitEachGesture
                     travel += change.positionChange()
                     when (swipeAxis(travel.x, travel.y, viewConfiguration.touchSlop)) {
-                        Orientation.Horizontal -> swiping = true
+                        Orientation.Horizontal -> if (canTake(travel.x)) swiping = true else return@awaitEachGesture
                         Orientation.Vertical -> return@awaitEachGesture
                         null -> {
                             // A parent sees the event after this one: ask again once everyone has.

@@ -17,17 +17,22 @@ class FastestRecapFactProviderTest {
     private fun solve(day: Int, timeMs: Long = 60_000, replay: Boolean = true) =
         FastestSolve(LocalDate.of(2026, 11, day), puzzleNumber = 100 + day, timeMs = timeMs, hasReplay = replay)
 
-    private fun input(fastest: Map<GameId, FastestSolve>, games: List<GameId> = listOf(alpha, beta)) = RecapInput(
+    private fun input(
+        fastest: Map<GameId, FastestSolve>,
+        games: List<GameId> = listOf(alpha, beta),
+        solves: Int = 1,
+        averages: Map<GameId, Long> = emptyMap(),
+    ) = RecapInput(
         facts = PeriodFacts(
-            period, scope = null, solved = fastest.size, solvedByGame = fastest.mapValues { 1 },
-            fastestByGame = fastest, longestStreak = null, freezesSpent = 0,
+            period, scope = null, solved = fastest.size * solves, solvedByGame = fastest.mapValues { solves },
+            fastestByGame = fastest, averageTimeMsByGame = averages, longestStreak = null, freezesSpent = 0,
             hintFree = 0, totalTimeMs = 0, moments = emptyList(),
         ),
         games = games,
     )
 
-    private fun row(game: GameId, solve: FastestSolve) =
-        RecapCard.Fastest.Row(game, solve.timeMs, solve.day, solve.puzzleNumber, solve.hasReplay)
+    private fun row(game: GameId, solve: FastestSolve, averageMs: Long? = null, solves: Int = 1) =
+        RecapCard.Fastest.Row(game, solve.timeMs, solve.day, solve.puzzleNumber, solve.hasReplay, averageMs, solves)
 
     @Test
     fun `a period with no solves has no card`() = runTest {
@@ -62,6 +67,36 @@ class FastestRecapFactProviderTest {
         assertEquals(
             listOf(RecapCard.Fastest(listOf(row(alpha, a), row(gone, g)))),
             FastestRecapFactProvider.cards(input(mapOf(gone to g, alpha to a))),
+        )
+    }
+
+    @Test
+    fun `a row carries the average it beat and the solves behind it`() = runTest {
+        val a = solve(3, 58_000)
+
+        assertEquals(
+            listOf(RecapCard.Fastest(listOf(row(alpha, a, averageMs = 136_000, solves = 28)))),
+            FastestRecapFactProvider.cards(input(mapOf(alpha to a), solves = 28, averages = mapOf(alpha to 136_000L))),
+        )
+    }
+
+    @Test
+    fun `a single solve has no average to beat`() = runTest {
+        val a = solve(3, 58_000)
+
+        assertEquals(
+            listOf(RecapCard.Fastest(listOf(row(alpha, a)))),
+            FastestRecapFactProvider.cards(input(mapOf(alpha to a), solves = 1, averages = mapOf(alpha to 58_000L))),
+        )
+    }
+
+    @Test
+    fun `an average that is not above the best is dropped`() = runTest {
+        val a = solve(3, 58_000)
+
+        assertEquals(
+            listOf(RecapCard.Fastest(listOf(row(alpha, a, averageMs = null, solves = 3)))),
+            FastestRecapFactProvider.cards(input(mapOf(alpha to a), solves = 3, averages = mapOf(alpha to 58_000L))),
         )
     }
 }

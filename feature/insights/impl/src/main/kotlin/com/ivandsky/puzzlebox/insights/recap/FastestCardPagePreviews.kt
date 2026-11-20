@@ -25,9 +25,9 @@ private fun name(game: GameId): String = Names.getValue(game)
 
 private val Month = RecapCard.Fastest(
     rows = listOf(
-        RecapCard.Fastest.Row(Zip, timeMs = 58_000, day = LocalDate.of(2026, 11, 3), puzzleNumber = 212, hasReplay = true),
-        RecapCard.Fastest.Row(Queens, timeMs = 141_000, day = LocalDate.of(2026, 11, 12), puzzleNumber = 190, hasReplay = true),
-        RecapCard.Fastest.Row(Sudoku, timeMs = 312_000, day = LocalDate.of(2026, 11, 8), puzzleNumber = null, hasReplay = false),
+        RecapCard.Fastest.Row(Zip, timeMs = 58_000, day = LocalDate.of(2026, 11, 3), puzzleNumber = 212, hasReplay = true, averageMs = 91_000, solves = 6),
+        RecapCard.Fastest.Row(Queens, timeMs = 141_000, day = LocalDate.of(2026, 11, 12), puzzleNumber = 190, hasReplay = true, averageMs = 215_000, solves = 6),
+        RecapCard.Fastest.Row(Sudoku, timeMs = 312_000, day = LocalDate.of(2026, 11, 8), puzzleNumber = null, hasReplay = false, averageMs = null, solves = 1),
     ),
 )
 
