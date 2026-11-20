@@ -191,6 +191,20 @@ class ComputePeriodFactsTest {
     }
 
     @Test
+    fun `the average is the floor of the mean of the counted solves, imports in and the rest out`() = runTest {
+        fixture.store(
+            fixture.solve(alpha, day(11, 1), time = 40_001),
+            fixture.imported(alpha, day(11, 2)).copy(time = 50_000),
+            fixture.solve(alpha, day(11, 3), time = 60_000),
+            fixture.playAgain(alpha, day(11, 3)).copy(time = 900_000),
+            fixture.solve(alpha, day(10, 31), time = 900_000),
+            fixture.solve(beta, day(11, 4), time = 70_000),
+        )
+
+        assertEquals(mapOf(alpha to 50_000L, beta to 70_000L), facts(november).averageTimeMsByGame)
+    }
+
+    @Test
     fun `an app solve has a replay`() = runTest {
         fixture.store(fixture.solve(alpha, day(11, 1)))
 
