@@ -52,7 +52,7 @@ class RecapShareImageTest {
 
     @Test
     fun `the longest values fit their tiles on one line in every style`() {
-        show(RecapShareContent.of("October 2026", "Ivan", ShareContract.longest), ShareStyle.Classic)
+        show(RecapShareContent.of("October 2026", "Ivan", ShareContract.longest, SolvedFixtures.gameName), ShareStyle.Classic)
         for (style in ShareStyle.entries) {
             this.style.value = style
             rule.waitForIdle()
@@ -67,7 +67,7 @@ class RecapShareImageTest {
 
     @Test
     fun `a long display name wraps by word inside the image and never loses a word`() {
-        show(RecapShareContent.of("October 2026", ShareContract.LONG_NAME, ShareContract.longest), ShareStyle.Classic)
+        show(RecapShareContent.of("October 2026", ShareContract.LONG_NAME, ShareContract.longest, SolvedFixtures.gameName), ShareStyle.Classic)
         rule.waitForIdle()
 
         val layout = layoutOf(ShareContract.LONG_NAME)
@@ -77,8 +77,23 @@ class RecapShareImageTest {
     }
 
     @Test
+    fun `a year's Strands at six solves keeps a readable count and its whole name in every style`() {
+        show(RecapShareContent.of("2026", "Ivan", ShareContract.year, SolvedFixtures.gameName), ShareStyle.Classic)
+        for (style in ShareStyle.entries) {
+            this.style.value = style
+            rule.waitForIdle()
+
+            val name = layoutOf("Strands")
+            assertEquals("$style Strands wraps", 1, name.lineCount)
+            assertFalse("$style Strands is ellipsized", name.isLineEllipsized(0))
+            assertEquals("$style Strands loses letters", "Strands".length, name.getLineEnd(0, visibleEnd = true))
+            assertTrue("$style the count is too small", layoutOf("6").layoutInput.style.fontSize.value >= ShareStripe.CountMin)
+        }
+    }
+
+    @Test
     fun `the image is read as one description with the final values`() {
-        val content = RecapShareContent.of("October 2026", "Ivan", ShareContract.default)
+        val content = RecapShareContent.of("October 2026", "Ivan", ShareContract.default, SolvedFixtures.gameName)
         show(content, ShareStyle.Night)
 
         rule.onNodeWithTag("recap.share.image").assertContentDescriptionEquals(content.description())

@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.insights.recap
 
-import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -25,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.RecapCard
+import com.ivandsky.puzzlebox.designsystem.RecapMotion
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.plate
 
@@ -32,7 +32,7 @@ import com.ivandsky.puzzlebox.designsystem.plate
  * Five game letters fanned like a hand of cards, the cover's art (prototype `.fanc`): Queens, Tango, Zip, Mini Sudoku and
  * Strands, each in its game's accent, laid out in a 300 × 180 box (560 × 200 when [wide]) scaled to fit the room. Every
  * tile sits in a ring of the cover's plate and then one of its ink, so it reads against the field whatever its colour.
- * From [startMs] on the tiles spread out of one stack, one every [FanStagger] ms (prototype `@keyframes fan`); under
+ * From [startMs] on the tiles spread out of one stack, one every [RecapMotion.FanStagger] ms (prototype `@keyframes fan`); under
  * reduced motion they sit fanned. Decoration only, so a screen reader skips it.
  */
 @Composable
@@ -48,7 +48,7 @@ internal fun RecapCoverFan(modifier: Modifier = Modifier, wide: Boolean = false,
             Letters.forEachIndexed { j, (slot, letter) ->
                 val k = j - Letters.lastIndex / 2
                 val accent = slot.colors()
-                val p by coverEntrance(startMs + j * FanStagger, tween(FanMs, easing = EasingSpring))
+                val p by coverEntrance(startMs + j * RecapMotion.FanStagger, tween(RecapMotion.FanMs, easing = RecapMotion.EasingSpring))
                 Box(
                     Modifier
                         .align(Alignment.Center)
@@ -112,8 +112,5 @@ private const val LetterSize = 34f
 /** The plate ring and the ink ring around a tile are each this wide (prototype `box-shadow: 0 0 0 2px, 0 0 0 4px`). */
 private val Ring = 2.dp
 
-// Prototype `@keyframes fan`: each tile rises from [Rise] below, on `--FanMs` after `--FanStagger` × its index.
+// Prototype `@keyframes fan`: each tile rises from [Rise] below, on [RecapMotion]'s fan clock.
 private val Rise = 40.dp
-private const val FanMs = 640
-private const val FanStagger = 60
-private val EasingSpring = CubicBezierEasing(0.34f, 1.3f, 0.64f, 1f)

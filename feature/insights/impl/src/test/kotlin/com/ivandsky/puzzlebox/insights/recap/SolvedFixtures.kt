@@ -34,6 +34,12 @@ internal object SolvedFixtures {
     /** Every solve without a hint, five games with 31 each. */
     val longest = RecapCard.Solved(155, games(31, 31, 31, 31, 31), hintFree = 155, longestHintFreeRun = 31)
 
+    /** A year: 1067 solves over the five games; Strands' 6 against Queens' 334 is the narrowest tile the share hand draws. */
+    val year = RecapCard.Solved(1067, games(334, 297, 288, 142, 6), hintFree = 902, longestHintFreeRun = 41)
+
+    /** Two games: Queens and Zip. */
+    val twoGames = RecapCard.Solved(58, listOf(RecapCard.Solved.PerGame(queens, 40), RecapCard.Solved.PerGame(zip, 18)), hintFree = 49, longestHintFreeRun = 9)
+
     val noHintFree = default.copy(hintFree = 0, longestHintFreeRun = null)
 
     /** A run the period has no single stretch to name. */

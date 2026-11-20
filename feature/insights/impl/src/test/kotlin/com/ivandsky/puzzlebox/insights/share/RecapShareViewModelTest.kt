@@ -44,7 +44,7 @@ class RecapShareViewModelTest {
     private val identity = FakeIdentityService(Identity(uid = "u1", displayName = "Ada", photoUrl = null))
     private val period = RecapPeriod.Year(2026)
     private val image = Bitmap.createBitmap(8, 12, Bitmap.Config.ARGB_8888).asImageBitmap()
-    private val content = RecapShareContent.of("2026 so far", "Ada", listOf(RecapFixtures.solved))
+    private val content = RecapShareContent.of("2026 so far", "Ada", listOf(RecapFixtures.solved), RecapFixtures.gameName)
 
     private fun viewModel(root: File = cache) = RecapShareViewModel(
         period = period,

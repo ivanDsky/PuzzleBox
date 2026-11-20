@@ -153,7 +153,7 @@ internal fun RecapStory(
                         monthPlace = monthPlaceOf(cards, page), displayName = displayName, onShare = { deck.forward() },
                     )
                 } else if (share != null) {
-                    ShareCardPage(cards, share, onShare, Modifier.fillMaxSize())
+                    ShareCardPage(cards, gameName, share, onShare, Modifier.fillMaxSize())
                 }
             }
             // A year deck keeps the foot's row on every card, so the deck does not resize between pages.

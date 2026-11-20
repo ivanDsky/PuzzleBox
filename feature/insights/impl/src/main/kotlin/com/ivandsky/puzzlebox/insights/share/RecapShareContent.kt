@@ -4,10 +4,11 @@ import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteCard
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.insights.recap.formatHeroDuration
 import com.ivandsky.puzzlebox.insights.recap.puzzles
+import com.ivandsky.puzzlebox.model.GameId
 
 /**
  * What the share image and the share text say about one recap: the [title] of its period, the player's own
- * [displayName] (null when signed out), one [hero] number, each game's share of the solves in [split] and the [tiles]
+ * [displayName] (null when signed out), one [hero] number, the solves of each game played in [games] and the [tiles]
  * under it. Only the player's own numbers get here (A9): a card about friends has no place in it, so no friend's name
  * or time can reach the image.
  */
@@ -15,9 +16,12 @@ internal data class RecapShareContent(
     val title: String,
     val displayName: String?,
     val hero: Stat?,
-    val split: List<RecapCard.Solved.PerGame>,
+    val games: List<GameCount>,
     val tiles: List<Stat>,
 ) {
+
+    /** One game the period has a solve of: its [name] and how many times it was [solved]. */
+    data class GameCount(val game: GameId, val name: String, val solved: Int)
 
     /**
      * One headline number: its [value] and the [label] that names it; a tile also names the recap [card] whose colours it wears.
@@ -25,13 +29,14 @@ internal data class RecapShareContent(
      */
     data class Stat(val value: String, val label: String, val card: PaletteCard? = null, val fit: String = value)
 
-    /** What a screen reader says for the image, with final values: "Share image: October 2026, Ivan. 96 puzzles solved. Longest streak 23 days. …". */
+    /** What a screen reader says for the image, with final values: "Share image: October 2026, Ivan. 96 puzzles solved. Longest streak 23 days. … Games: Queens 28, …". */
     fun description(): String = buildString {
         append("Share image: ").append(title)
         displayName?.let { append(", ").append(it) }
         append('.')
         hero?.let { append(' ').append(it.value).append(' ').append(it.label).append('.') }
         tiles.forEach { append(' ').append(it.label).append(' ').append(it.value).append('.') }
+        if (games.isNotEmpty()) append(" Games: ").append(games.joinToString { "${it.name} ${it.solved}" }).append('.')
     }
 
     /** The numbers as they read [progress] of the way through their count-up: each run of digits scaled, whole at 1. */
@@ -45,14 +50,14 @@ internal data class RecapShareContent(
 
         private val DIGITS = Regex("\\d+")
 
-        /** The headline numbers of [cards]; a card the recap has none of adds no number. */
-        fun of(title: String, displayName: String?, cards: List<RecapCard>): RecapShareContent {
+        /** The headline numbers of [cards], each game played named by [gameName]; a card the recap has none of adds no number. */
+        fun of(title: String, displayName: String?, cards: List<RecapCard>, gameName: (GameId) -> String): RecapShareContent {
             val solved = cards.filterIsInstance<RecapCard.Solved>().firstOrNull()
             return RecapShareContent(
                 title = title,
                 displayName = displayName?.takeIf { it.isNotBlank() },
                 hero = solved?.let { Stat(it.total.toString(), "${it.total.puzzles()} solved") },
-                split = solved?.perGame.orEmpty(),
+                games = solved?.perGame.orEmpty().filter { it.solved > 0 }.map { GameCount(it.game, gameName(it.game), it.solved) },
                 tiles = if (solved?.total == 1) emptyList() else tilesOf(solved, cards),
             )
         }
