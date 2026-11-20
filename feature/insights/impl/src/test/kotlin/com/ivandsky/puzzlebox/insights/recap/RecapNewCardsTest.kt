@@ -159,21 +159,48 @@ class RecapNewCardsTest {
     }
 
     @Test
-    fun `hint-free shows its count, its share and the solves that used a hint`() {
-        show(RecapFixtures.hintFree)
+    fun `solved reads the settled total, each game's count and the stripe's numbers`() {
+        show(RecapFixtures.solved)
 
-        rule.onNodeWithTag("recap.hintfree").assertIsDisplayed()
-        rule.onNodeWithTag("recap.hintfree.count").assertTextContains("36")
-        rule.onNodeWithTag("recap.hintfree.share").assertTextContains("Share of your solves").assertTextContains("86%")
-        rule.onNodeWithTag("recap.hintfree.hinted").assertTextContains("6")
+        rule.onNodeWithTag("recap.solved.total").assertContentDescriptionEquals("42 puzzles solved")
+        rule.onNodeWithTag("recap.solved.game.queens").assertContentDescriptionEquals("Queens, 15")
+        rule.onNodeWithTag("recap.hintfree.count").assertContentDescriptionEquals("36 without a hint")
+        rule.onNodeWithTag("recap.hintfree.share").assertTextContains("86% of solves")
+        rule.onNodeWithTag("recap.hintfree.hinted").assertTextContains("6 with a hint")
+        rule.onNodeWithTag("recap.hintfree.run").assertTextContains("Longest run: 9 in a row")
     }
 
     @Test
-    fun `hint-free one solve is singular and the full share`() {
-        show(RecapCard.HintFree(hintFree = 1, solved = 1))
+    fun `solved with every solve hint-free is the full share and has no hinted segment`() {
+        show(RecapCard.Solved(1, listOf(RecapCard.Solved.PerGame(RecapFixtures.zip, 1)), hintFree = 1, longestHintFreeRun = 1))
 
-        rule.onNodeWithTag("recap.hintfree.count").assertContentDescriptionEquals("1 solve without a hint")
-        rule.onNodeWithTag("recap.hintfree.share").assertTextContains("100%")
+        rule.onNodeWithTag("recap.hintfree.count").assertContentDescriptionEquals("1 without a hint")
+        rule.onNodeWithTag("recap.hintfree.share").assertTextContains("100% of solves")
+        rule.onNodeWithTag("recap.hintfree.hinted").assertDoesNotExist()
+    }
+
+    @Test
+    fun `solved with no hint-free solve shows no stripe`() {
+        show(RecapFixtures.solved.copy(hintFree = 0, longestHintFreeRun = null))
+
+        rule.onNodeWithTag("recap.solved.total").assertIsDisplayed()
+        rule.onNodeWithTag("recap.hintfree.count").assertDoesNotExist()
+        rule.onNodeWithTag("recap.hintfree.share").assertDoesNotExist()
+    }
+
+    @Test
+    fun `solved with no single run to name leaves out the longest run and keeps the hinted count`() {
+        show(RecapFixtures.solved.copy(longestHintFreeRun = null))
+
+        rule.onNodeWithTag("recap.hintfree.run").assertDoesNotExist()
+        rule.onNodeWithTag("recap.hintfree.hinted").assertTextContains("6 with a hint")
+    }
+
+    @Test
+    fun `solved says how many imported days a year covers`() {
+        show(RecapFixtures.solvedImported)
+
+        rule.onNodeWithTag("recap.solved.imported").assertTextContains("From 312 imported days")
     }
 
     @Test
@@ -218,8 +245,8 @@ class RecapNewCardsTest {
     }
 
     @Test
-    fun `nothing on the hint-free, moments or total time pages is a button`() {
-        show(RecapFixtures.hintFree)
+    fun `nothing on the solved page is a button`() {
+        show(RecapFixtures.solved)
         rule.onNode(hasClickAction()).assertDoesNotExist()
     }
 }

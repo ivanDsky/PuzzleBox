@@ -2,7 +2,11 @@ package com.ivandsky.puzzlebox.insights.recap
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.runtime.CompositionLocalProvider
 import com.ivandsky.puzzlebox.insights.GOLDEN_PHONE
+import com.ivandsky.puzzlebox.insights.GOLDEN_TABLET
+import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.gameName
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.ready
 import com.ivandsky.puzzlebox.insights.settleAndCapture
@@ -14,7 +18,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** Solved card renders on phone, light and dark. Goldens in `snapshots/recap/`. */
+/** Solved card renders: the five contract states on phone and tablet, light and dark, and the year pages. Goldens in `snapshots/recap/`. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34])
@@ -22,6 +26,66 @@ class SolvedCardGoldenScreenshots {
 
     @get:Rule
     val rule = createAndroidComposeRule<ComponentActivity>()
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `solved default phone light`() = state("default", SolvedFixtures.default, 7, "phone", dark = false)
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `solved default phone dark`() = state("default", SolvedFixtures.default, 7, "phone", dark = true)
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `solved default tablet light`() = state("default", SolvedFixtures.default, 7, "tablet", dark = false)
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `solved default tablet dark`() = state("default", SolvedFixtures.default, 7, "tablet", dark = true)
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `solved empty phone light`() = state("empty", SolvedFixtures.empty, 5, "phone", dark = false)
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `solved empty phone dark`() = state("empty", SolvedFixtures.empty, 5, "phone", dark = true)
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `solved empty tablet light`() = state("empty", SolvedFixtures.empty, 5, "tablet", dark = false)
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `solved empty tablet dark`() = state("empty", SolvedFixtures.empty, 5, "tablet", dark = true)
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `solved longest phone light`() = state("longest", SolvedFixtures.longest, 7, "phone", dark = false)
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `solved longest phone dark`() = state("longest", SolvedFixtures.longest, 7, "phone", dark = true)
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `solved longest tablet light`() = state("longest", SolvedFixtures.longest, 7, "tablet", dark = false)
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `solved longest tablet dark`() = state("longest", SolvedFixtures.longest, 7, "tablet", dark = true)
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `solved no hint free phone light`() = state("no-hint-free", SolvedFixtures.noHintFree, 7, "phone", dark = false)
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `solved no hint free phone dark`() = state("no-hint-free", SolvedFixtures.noHintFree, 7, "phone", dark = true)
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `solved no hint free tablet light`() = state("no-hint-free", SolvedFixtures.noHintFree, 7, "tablet", dark = false)
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `solved no hint free tablet dark`() = state("no-hint-free", SolvedFixtures.noHintFree, 7, "tablet", dark = true)
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `solved single run phone light`() = state("single-run", SolvedFixtures.singleRun, 7, "phone", dark = false)
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `solved single run phone dark`() = state("single-run", SolvedFixtures.singleRun, 7, "phone", dark = true)
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `solved single run tablet light`() = state("single-run", SolvedFixtures.singleRun, 7, "tablet", dark = false)
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `solved single run tablet dark`() = state("single-run", SolvedFixtures.singleRun, 7, "tablet", dark = true)
 
     @Config(qualifiers = GOLDEN_PHONE)
     @Test fun `year so far totals phone light`() = capture("year-so-far", "phone", dark = false, state = readyYear("2026 so far", RecapFixtures.solved, RecapFixtures.march))
@@ -32,15 +96,26 @@ class SolvedCardGoldenScreenshots {
     @Config(qualifiers = GOLDEN_PHONE)
     @Test fun `year imported phone light`() = capture("year-imported", "phone", dark = false, state = readyYear("2025", RecapFixtures.solvedImported, RecapFixtures.march))
 
+    /** The contract state [card], first of a strip of [strip] segments (the cards after it only fill the strip; the Share page is the last). */
+    private fun state(name: String, card: RecapCard.Solved, strip: Int, device: String, dark: Boolean) {
+        val others = listOf(RecapFixtures.fastest, RecapFixtures.streak, RecapFixtures.moments, RecapFixtures.friendsLoaded, RecapFixtures.totalTime)
+        val cards = listOf<RecapCard>(card) + others.take(strip - 2)
+        capture("solved-$name", device, dark, state = readyOf(*cards.toTypedArray()).copy(title = "October 2026"), periodLabel = "October 2026", names = SolvedFixtures.gameName)
+    }
+
     private fun capture(
         name: String,
         device: String,
         dark: Boolean,
         initialPage: Int = 0,
         state: RecapUiState = ready.copy(initialPage = initialPage),
+        periodLabel: String = "November 2026",
+        names: (GameId) -> String = gameName,
     ) {
         rule.showGolden(dark = dark) {
-            RecapScreen(state, "November 2026", gameName, onPage = {}, onWatchReplay = {}, onClose = {})
+            CompositionLocalProvider(LocalGameAccent provides SolvedFixtures.accentOf) {
+                RecapScreen(state, periodLabel, names, onPage = {}, onWatchReplay = {}, onClose = {})
+            }
         }
         rule.settleAndCapture("recap", name, device, dark)
     }

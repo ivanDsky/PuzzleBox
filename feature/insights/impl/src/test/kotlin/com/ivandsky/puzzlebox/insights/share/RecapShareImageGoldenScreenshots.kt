@@ -22,7 +22,7 @@ class RecapShareImageGoldenScreenshots {
     @get:Rule
     val rule = createAndroidComposeRule<ComponentActivity>()
 
-    private val cards = listOf(RecapFixtures.solved, RecapFixtures.totalTime, RecapFixtures.streak, RecapFixtures.hintFree, RecapFixtures.moments)
+    private val cards = listOf(RecapFixtures.solved, RecapFixtures.totalTime, RecapFixtures.streak, RecapFixtures.moments)
 
     @Test fun `month light`() = capture("month", "November 2026", "Ada", dark = false)
 

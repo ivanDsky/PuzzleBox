@@ -12,7 +12,7 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.model.GameId
 
-// The Puzzles solved page and its tablet list fact, light and dark. A preview never animates, so the count shows its end value.
+// The Puzzles solved page and its tablet list fact, light and dark. A preview never animates, so the count shows its end value; games read Neutral here.
 
 private val Zip = GameId("zip")
 private val Queens = GameId("queens")
@@ -29,7 +29,11 @@ private val Month = RecapCard.Solved(
         RecapCard.Solved.PerGame(Queens, 15),
         RecapCard.Solved.PerGame(Sudoku, 9),
     ),
+    hintFree = 36,
+    longestHintFreeRun = 12,
 )
+
+private val NoHintFree = Month.copy(hintFree = 0, longestHintFreeRun = null)
 
 private val OneSolve = RecapCard.Solved(total = 1, perGame = listOf(RecapCard.Solved.PerGame(Zip, 1)))
 
@@ -37,6 +41,12 @@ private val OneSolve = RecapCard.Solved(total = 1, perGame = listOf(RecapCard.So
 @Composable
 private fun SolvedCardPagePreview() = PuzzleBoxTheme {
     Surface(color = MaterialTheme.colorScheme.background) { SolvedCardPage(Month, "November 2026", ::name) }
+}
+
+@PuzzleBoxPreviews
+@Composable
+private fun SolvedCardPageNoHintFreePreview() = PuzzleBoxTheme {
+    Surface(color = MaterialTheme.colorScheme.background) { SolvedCardPage(NoHintFree, "November 2026", ::name) }
 }
 
 @PuzzleBoxPreviews
