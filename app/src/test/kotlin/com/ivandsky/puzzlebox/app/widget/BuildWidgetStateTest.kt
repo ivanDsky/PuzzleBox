@@ -6,13 +6,16 @@ import com.ivandsky.puzzlebox.domain.TodayEntry
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.model.GameId
+import java.time.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
 class BuildWidgetStateTest {
 
-    private val build = BuildWidgetState()
+    private val none = WidgetScoreboard(bestMs = emptyMap(), ranks = emptyMap(), newBest = emptySet(), nextRollover = null)
+
+    private fun build(today: List<TodayEntry>, stats: GameStats) = BuildWidgetState()(today, stats, none)
 
     private fun entry(id: String, status: TodayStatus) = TodayEntry(GameId(id), id.replaceFirstChar { it.uppercase() }, status)
     private val notStarted = TodayStatus.NotStarted
@@ -34,19 +37,43 @@ class BuildWidgetStateTest {
     private fun freezes(held: Int) = StreakFreezes(held = held, frozenDays = emptySet(), daysToNext = null, lastSolve = null)
 
     @Test
-    fun `rings keep Today's order and statuses`() {
+    fun `rings keep Today's order and statuses, with no best, rank or new best when none was read`() {
         val today = listOf(entry("zip", solved), entry("queens", inProgress), entry("tango", TodayStatus.Offline))
 
         val rings = build(today, stats()).rings
 
         assertEquals(
             listOf(
-                WidgetRing(GameId("zip"), "Zip", solved),
-                WidgetRing(GameId("queens"), "Queens", inProgress),
-                WidgetRing(GameId("tango"), "Tango", TodayStatus.Offline),
+                WidgetRing(GameId("zip"), "Zip", solved, bestMs = null, rank = WidgetRank.Missing, newBest = false),
+                WidgetRing(GameId("queens"), "Queens", inProgress, bestMs = null, rank = WidgetRank.Missing, newBest = false),
+                WidgetRing(GameId("tango"), "Tango", TodayStatus.Offline, bestMs = null, rank = WidgetRank.Missing, newBest = false),
             ),
             rings,
         )
+    }
+
+    @Test
+    fun `each ring takes its own best, rank and new best, and the state the rollover`() {
+        val rollover = Instant.parse("2026-11-21T08:00:00Z")
+        val scoreboard = WidgetScoreboard(
+            bestMs = mapOf(GameId("zip") to 41_000L),
+            ranks = mapOf(GameId("zip") to WidgetRank.Ranked(3, 12), GameId("queens") to WidgetRank.SignedOut),
+            newBest = setOf(GameId("zip")),
+            nextRollover = rollover,
+        )
+        val today = listOf(entry("zip", solved), entry("queens", solved), entry("tango", notStarted))
+
+        val state = BuildWidgetState()(today, stats(), scoreboard)
+
+        assertEquals(
+            listOf(
+                WidgetRing(GameId("zip"), "Zip", solved, bestMs = 41_000L, rank = WidgetRank.Ranked(3, 12), newBest = true),
+                WidgetRing(GameId("queens"), "Queens", solved, bestMs = null, rank = WidgetRank.SignedOut, newBest = false),
+                WidgetRing(GameId("tango"), "Tango", notStarted, bestMs = null, rank = WidgetRank.Missing, newBest = false),
+            ),
+            state.rings,
+        )
+        assertEquals(rollover, state.nextRollover)
     }
 
     @Test

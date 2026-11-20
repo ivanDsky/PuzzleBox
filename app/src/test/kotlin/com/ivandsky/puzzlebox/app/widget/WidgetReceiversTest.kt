@@ -54,7 +54,7 @@ class WidgetReceiversTest {
             modules(
                 module {
                     single { refresher }
-                    single { PuzzleBoxWidget(WidgetStateReader({ flow { error("no data") } }, { flow { error("no data") } }, BuildWidgetState())) }
+                    single { PuzzleBoxWidget(WidgetStateReader({ flow { error("no data") } }, { flow { error("no data") } }, testScoreboard(), BuildWidgetState())) }
                     single<WidgetRolloverAlarm> { alarm }
                     single {
                         ArmWidgetRollover({ listOf(ZoneId.of("America/Los_Angeles")) }, { true }, alarm, Clock.fixed(NOW, ZoneOffset.UTC))
