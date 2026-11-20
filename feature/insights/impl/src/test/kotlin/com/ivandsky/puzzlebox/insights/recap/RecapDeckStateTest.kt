@@ -152,7 +152,7 @@ class RecapDeckStateTest {
         val fastest = RecapCard.Fastest(
             listOf(fastestRow("queens"), fastestRow("zip"), fastestRow("tango")),
         )
-        val cards = listOf(RecapCard.Solved(total = 9, perGame = emptyList()), fastest, RecapCard.TotalTime(totalMs = 1, solved = 9))
+        val cards = listOf(RecapCard.Solved(total = 9, perGame = emptyList()), fastest, RecapFixtures.totalTime)
 
         val deck = RecapDeckState(pageCount = cards.size + 1)
 
@@ -161,7 +161,7 @@ class RecapDeckStateTest {
 
     @Test
     fun `each card and the Share page paint with their own palette entry`() {
-        val cards = listOf(RecapCard.Solved(total = 1, perGame = emptyList()), RecapCard.TotalTime(totalMs = 1, solved = 1))
+        val cards = listOf(RecapCard.Solved(total = 1, perGame = emptyList()), RecapFixtures.totalTime)
         val deck = RecapDeckState(pageCount = 3, coverFirst = true)
 
         assertEquals(PaletteEntry.Cover, recapPalette(cards, deck))

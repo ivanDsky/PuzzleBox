@@ -8,13 +8,15 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
+import com.ivandsky.puzzlebox.insights.domain.recap.RecapPeriod
 import java.time.LocalDate
+import java.time.YearMonth
 
 // The share image for a month and for a year still under way (A22), light and dark, drawn at a quarter of its real size.
 
 private val Cards = listOf(
     RecapCard.Solved(total = 42, perGame = emptyList()),
-    RecapCard.TotalTime(totalMs = 11_535_000, solved = 42),
+    RecapCard.TotalTime(totalMs = 11_535_000, solved = 42, days = emptyList(), period = RecapPeriod.Month(YearMonth.of(2026, 11))),
     RecapCard.Streak(days = 17, from = LocalDate.of(2026, 11, 3), to = LocalDate.of(2026, 11, 19), freezesSpent = 2),
     RecapCard.HintFree(hintFree = 36, solved = 42),
     RecapCard.Moments(personalBests = 5, firstSubX = 2, fullSets = 14, streakMilestones = listOf(7, 30)),

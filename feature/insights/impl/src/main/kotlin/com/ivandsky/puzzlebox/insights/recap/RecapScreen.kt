@@ -104,7 +104,7 @@ private fun RecapStateContent(
             tag = "recap.empty",
             modifier = modifier,
         )
-        is RecapUiState.Ready -> RecapReady(state, gameName, onPage, onWatchReplay, onClose, share, onShare, modifier)
+        is RecapUiState.Ready -> RiverScrubProvider { RecapReady(state, gameName, onPage, onWatchReplay, onClose, share, onShare, modifier) }
     }
 }
 
