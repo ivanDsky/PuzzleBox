@@ -27,40 +27,41 @@ import com.ivandsky.puzzlebox.app.R
 import com.ivandsky.puzzlebox.app.shortcut.ShortcutIntents
 
 /**
- * The wide filled Up next button: play triangle and one line of words, cut with an ellipsis before the button grows. Its tap
- * is its own, so it wins over the widget's open-Today tap behind it.
+ * The filled Up next button: play triangle (nothing is left to play when all is done) and one line of words, cut with an
+ * ellipsis before the button grows. Full width when [layout] is compact, else a pill that hugs its words, centred by the
+ * widget. Its tap is its own, so it wins over the widget's open-Today tap behind it.
  */
 @Composable
-internal fun WidgetUpNextRow(upNext: WidgetUpNext, colors: WidgetColors, modifier: GlanceModifier = GlanceModifier) {
+internal fun WidgetUpNextRow(upNext: WidgetUpNext, layout: WidgetLayout, colors: WidgetColors) {
     val context = LocalContext.current
     val button = upNextButton(upNext, context)
     val onPrimary = colors.of(R.color.widget_on_primary)
+    val playing = upNext != WidgetUpNext.Done
+    val width = if (layout.compact) GlanceModifier.fillMaxWidth() else GlanceModifier
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(BUTTON_HEIGHT)
+        modifier = width
+            .height(WidgetLayout.BUTTON_HEIGHT)
             .background(colors.of(R.color.widget_primary))
-            .cornerRadius(BUTTON_HEIGHT / 2)
-            .padding(horizontal = 16.dp)
+            .cornerRadius(WidgetLayout.BUTTON_HEIGHT / 2)
+            .padding(horizontal = if (layout.compact) 16.dp else 24.dp)
             .semantics { contentDescription = button.label }
             .clickable(actionStartActivity(ShortcutIntents.intent(context, button.target))),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Image(
-            provider = ImageProvider(R.drawable.widget_play),
-            contentDescription = null,
-            modifier = GlanceModifier.size(20.dp),
-            colorFilter = ColorFilter.tint(onPrimary),
-        )
+        if (playing) {
+            Image(
+                provider = ImageProvider(R.drawable.widget_play),
+                contentDescription = null,
+                modifier = GlanceModifier.size(20.dp),
+                colorFilter = ColorFilter.tint(onPrimary),
+            )
+        }
         Text(
             text = button.label,
-            modifier = GlanceModifier.padding(start = 6.dp),
+            modifier = if (playing) GlanceModifier.padding(start = 6.dp) else GlanceModifier,
             style = TextStyle(color = onPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold),
             maxLines = 1,
         )
     }
 }
-
-/** The 48dp touch-target floor; also the pill's height. */
-private val BUTTON_HEIGHT = 48.dp
