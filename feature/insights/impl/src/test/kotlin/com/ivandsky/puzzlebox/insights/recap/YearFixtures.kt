@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.insights.recap
 
+import com.ivandsky.puzzlebox.insights.domain.recap.MonthHighlight
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.YearMonth
@@ -19,9 +20,15 @@ internal object YearFixtures {
 
     private fun month(number: Int) = YearMonth.of(2026, number)
 
+    /** A month card whose quickest solve is its best against the average, and which leads with what most of it was. */
+    private fun card(month: YearMonth, solved: Int, game: GameId, timeMs: Long, underAveragePercent: Int) = RecapCard.Month(
+        month, solved, game, timeMs, underAveragePercent,
+        fastestGame = game, fastestTimeMs = timeMs, lead = MonthHighlight.Focus(game, solved, solved), also = null, moments = emptyList(),
+    )
+
     /** Month cards for the first [months] months of 2026 (September's quickest solve is Mini Sudoku's). */
     fun monthCards(months: Int = 12): List<RecapCard.Month> =
-        (1..months).map { RecapCard.Month(month(it), counts[it - 1], games[it - 1], times[it - 1], under[it - 1]) }
+        (1..months).map { card(month(it), counts[it - 1], games[it - 1], times[it - 1], under[it - 1]) }
 
     /** The finale of the first [months] months; the rest are empty tiles. */
     fun finale(months: Int = 12, total: Int = 625, importedDays: Int? = null) = RecapCard.YearFinale(
@@ -44,5 +51,5 @@ internal object YearFixtures {
         listOf<RecapCard>(if (imported) RecapFixtures.solvedImported else RecapFixtures.solved) +
             totals.filterNot { imported && it === RecapFixtures.friendsLoadedYear } + months + finale
 
-    val oneMonth = RecapCard.Month(month(10), solved = 1, bestGame = zip, bestTimeMs = 21_000, underAveragePercent = 0)
+    val oneMonth = card(month(10), solved = 1, game = zip, timeMs = 21_000, underAveragePercent = 0)
 }

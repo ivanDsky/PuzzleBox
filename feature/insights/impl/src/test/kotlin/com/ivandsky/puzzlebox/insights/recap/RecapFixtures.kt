@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.insights.recap
 
 import com.ivandsky.puzzlebox.insights.domain.recap.DayTally
 import com.ivandsky.puzzlebox.insights.domain.recap.FriendsStanding
+import com.ivandsky.puzzlebox.insights.domain.recap.MonthHighlight
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapPeriod
 import com.ivandsky.puzzlebox.model.GameId
@@ -75,8 +76,14 @@ internal object RecapFixtures {
     val friendsUnavailable = RecapCard.Friends(FriendsStanding.Unavailable)
 
     /** A year of play: March, its busiest month, and the month a streak began. */
-    val march = RecapCard.Month(YearMonth.of(2026, 3), solved = 42, bestGame = zip, bestTimeMs = 58_000, underAveragePercent = 31)
-    val april = RecapCard.Month(YearMonth.of(2026, 4), solved = 9, bestGame = queens, bestTimeMs = 141_000, underAveragePercent = 12)
+    val march = RecapCard.Month(
+        YearMonth.of(2026, 3), solved = 42, bestGame = zip, bestTimeMs = 58_000, underAveragePercent = 31,
+        fastestGame = zip, fastestTimeMs = 58_000, lead = MonthHighlight.Focus(zip, 42, 42), also = null, moments = emptyList(),
+    )
+    val april = RecapCard.Month(
+        YearMonth.of(2026, 4), solved = 9, bestGame = queens, bestTimeMs = 141_000, underAveragePercent = 12,
+        fastestGame = queens, fastestTimeMs = 141_000, lead = MonthHighlight.Focus(queens, 9, 9), also = null, moments = emptyList(),
+    )
 
     /** A year built from imported results alone: 312 puzzle days. */
     val solvedImported = solved.copy(importedDays = 312)
