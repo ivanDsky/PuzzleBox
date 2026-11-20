@@ -12,6 +12,7 @@ import com.ivandsky.puzzlebox.app.leaderboard.DailyReplayPublisher
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.app.reminder.ReminderAppHooks
 import com.ivandsky.puzzlebox.app.shortcut.ShortcutAppHooks
+import com.ivandsky.puzzlebox.app.widget.WidgetAppHooks
 import com.ivandsky.puzzlebox.data.match.MatchResultPoster
 import com.ivandsky.puzzlebox.backend.firebase.PendingCacheClear
 import com.ivandsky.puzzlebox.backend.firebase.firebaseBackendModule
@@ -81,6 +82,8 @@ class PuzzleBoxApplication : Application() {
         koin.get<ReminderAppHooks>().start()
         // The launcher long-press menu: published with the flag on, cleared with it off.
         koin.get<ShortcutAppHooks>().start()
+        // The home widget: switched by its flag, redrawn on every change and activity start while the app runs.
+        koin.get<WidgetAppHooks>().start()
     }
 
     companion object {
