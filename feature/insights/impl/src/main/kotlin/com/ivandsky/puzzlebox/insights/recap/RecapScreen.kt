@@ -42,6 +42,7 @@ import com.ivandsky.puzzlebox.model.GameId
  * [onPage] reports the page the story reaches; [onClose] leaves the recap. A window wide enough for two columns
  * ([TwoColumnMinWidth]) puts the story on the left and every fact as a list on the right. A [share] state adds the
  * Share page after the last card; [onShare] gets the image it captures. [onRetry] reads the recap again after an error.
+ * [coverRise] holds the cover's words back while the story grows out of its tile.
  */
 @Composable
 internal fun RecapScreen(
@@ -56,6 +57,7 @@ internal fun RecapScreen(
     share: RecapShareState? = null,
     onShare: (ImageBitmap, RecapShareContent) -> Unit = { _, _ -> },
     onRetry: () -> Unit = {},
+    coverRise: CoverRise? = null,
 ) {
     val reduced = rememberReducedMotion()
     val fade = if (reduced) {
@@ -71,7 +73,7 @@ internal fun RecapScreen(
         label = "recap.state",
         contentKey = { it::class },
     ) { shown ->
-        RecapStateContent(shown, periodLabel, gameName, onPage, onWatchReplay, onClose, displayName, share, onShare, onRetry)
+        RecapStateContent(shown, periodLabel, gameName, onPage, onWatchReplay, onClose, displayName, share, onShare, onRetry, coverRise)
     }
 }
 
@@ -87,6 +89,7 @@ private fun RecapStateContent(
     share: RecapShareState?,
     onShare: (ImageBitmap, RecapShareContent) -> Unit,
     onRetry: () -> Unit,
+    coverRise: CoverRise?,
     modifier: Modifier = Modifier,
 ) {
     when (state) {
@@ -108,7 +111,9 @@ private fun RecapStateContent(
             tag = "recap.empty",
             modifier = modifier,
         )
-        is RecapUiState.Ready -> RiverScrubProvider { RecapReady(state, gameName, onPage, onWatchReplay, onClose, displayName, share, onShare, modifier) }
+        is RecapUiState.Ready -> RiverScrubProvider {
+            RecapReady(state, gameName, onPage, onWatchReplay, onClose, displayName, share, onShare, coverRise, modifier)
+        }
     }
 }
 
@@ -167,11 +172,15 @@ private fun RecapReady(
     displayName: String?,
     share: RecapShareState?,
     onShare: (ImageBitmap, RecapShareContent) -> Unit,
+    coverRise: CoverRise?,
     modifier: Modifier = Modifier,
 ) {
     val pageCount = state.cards.size + if (share == null) 0 else 1
-    // A fresh open starts on the cover; a saved page past the first card resumes on that card.
-    val deck = rememberSaveable(saver = RecapDeckState.Saver) { RecapDeckState(pageCount, state.initialPage, coverFirst = true) }.also { it.resize(pageCount) }
+    // A fresh open starts on the cover; a saved page past the first card resumes on that card. A story grown out of its
+    // tile arrives by the grow, so its cards are not dealt in as well.
+    val deck = rememberSaveable(saver = RecapDeckState.Saver) {
+        RecapDeckState(pageCount, state.initialPage, coverFirst = true).also { if (coverRise?.grown == true) it.dealt() }
+    }.also { it.resize(pageCount) }
     LaunchedEffect(deck) { snapshotFlow { deck.page }.collect(onPage) }
     val periodLabel = state.title
     BoxWithConstraints(modifier.fillMaxSize()) {
@@ -193,6 +202,7 @@ private fun RecapReady(
                         share = share,
                         onShare = onShare,
                         twoPane = true,
+                        coverRise = coverRise,
                         modifier = column
                             .height(height)
                             .clip(MaterialTheme.shapes.extraLarge)
@@ -212,7 +222,7 @@ private fun RecapReady(
         } else {
             RecapStory(
                 state.cards, deck, state.period, periodLabel, gameName, onWatchReplay, onClose,
-                displayName = displayName, share = share, onShare = onShare,
+                displayName = displayName, share = share, onShare = onShare, coverRise = coverRise,
             )
         }
     }

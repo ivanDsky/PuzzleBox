@@ -56,7 +56,8 @@ import com.ivandsky.puzzlebox.model.GameId
  * top card's field fills the story behind them and the chrome takes its ink; [twoPane] insets the chrome a little more,
  * as a tablet's left pane does. The cover has no replay. Holding the deck hides that chrome, and the field with it, until
  * the touch lets go. With a [share] state the story ends on the Share page. System back steps back a card and, from the
- * cover or the first card, falls through to leave the recap.
+ * cover or the first card, falls through to leave the recap. A [coverRise] holds the cover's words back while the story
+ * grows out of its tile, then rises them in.
  */
 @Composable
 internal fun RecapStory(
@@ -72,6 +73,7 @@ internal fun RecapStory(
     share: RecapShareState? = null,
     onShare: (ImageBitmap, RecapShareContent) -> Unit = { _, _ -> },
     twoPane: Boolean = false,
+    coverRise: CoverRise? = null,
 ) {
     val palette = recapPalette(cards, deck)
     val reduced = rememberReducedMotion()
@@ -136,12 +138,15 @@ internal fun RecapStory(
             ) { at ->
                 val page = at - 1
                 if (at == 0) {
-                    RecapCover(
-                        title = coverTitle(period, periodLabel),
-                        hook = coverHook(period, cards.filterIsInstance<RecapCard.Solved>().firstOrNull()),
-                        name = displayName,
-                        afterDeal = deck.dealing,
-                    )
+                    if (coverRise?.waiting != true) {
+                        RecapCover(
+                            title = coverTitle(period, periodLabel),
+                            hook = coverHook(period, cards.filterIsInstance<RecapCard.Solved>().firstOrNull()),
+                            name = displayName,
+                            afterDeal = deck.dealing,
+                            modifier = coverRise?.modifier ?: Modifier,
+                        )
+                    }
                 } else if (page < cards.size) {
                     RecapCardPage(
                         cards[page], periodLabel, gameName, onWatchReplay, Modifier.fillMaxSize(),
