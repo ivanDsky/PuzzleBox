@@ -27,7 +27,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The story shell (strip, ↻ and close, the card deck) on the Streak card of a seven-page October story, at rest and held
- * to peek at Moments, on its Share page (last), loading and unable to open (error), on phone and tablet, light and dark. Goldens in `snapshots/story-shell/`.
+ * to peek at Moments, on its Share page (last), loading, unable to open (error) and bringing history back (restoring, no reference), on phone and tablet, light and dark. Goldens in `snapshots/story-shell/`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -96,6 +96,18 @@ class RecapShellGoldenScreenshots {
 
     @Config(qualifiers = GOLDEN_TABLET)
     @Test fun `error tablet dark`() = capture("error", "tablet", dark = true, state = RecapUiState.Error)
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `restoring phone light`() = capture("restoring", "phone", dark = false, state = RecapUiState.Restoring)
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `restoring phone dark`() = capture("restoring", "phone", dark = true, state = RecapUiState.Restoring)
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `restoring tablet light`() = capture("restoring", "tablet", dark = false, state = RecapUiState.Restoring)
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `restoring tablet dark`() = capture("restoring", "tablet", dark = true, state = RecapUiState.Restoring)
 
     private fun capture(name: String, device: String, dark: Boolean, held: Boolean = false, state: RecapUiState = October) {
         rule.showGolden(dark = dark) {

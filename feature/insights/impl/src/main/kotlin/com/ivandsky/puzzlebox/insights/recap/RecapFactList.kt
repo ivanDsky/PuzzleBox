@@ -35,7 +35,7 @@ import com.ivandsky.puzzlebox.model.GameId
 
 /**
  * The tablet's right column: every fact of the story as a list. The fact on the story's page is scrolled into view and
- * drawn as its card: the card's field, its ink and a strong ink border, as in the story; the others are plain rows with
+ * drawn as its card: the card's field, its ink and a strong border in the theme's text colour, as in the story; the others are plain rows with
  * a swatch of their card's colour. A tap on a fact calls [onSelect] with its position so the story jumps to its page.
  */
 @Composable
@@ -69,7 +69,7 @@ internal fun RecapFactList(
                 color = if (selected) field else MaterialTheme.colorScheme.surfaceContainerLow,
                 border = BorderStroke(
                     width = if (selected) SelectedBorder else NoBorder,
-                    color = if (selected) ink else MaterialTheme.colorScheme.outlineVariant,
+                    color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outlineVariant,
                 ),
             ) {
                 CompositionLocalProvider(LocalFactMarker provides FactMarkerStyle(field, ink, selected)) {

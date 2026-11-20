@@ -26,6 +26,7 @@ import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.EmptyState
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
+import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.TwoColumnFrame
 import com.ivandsky.puzzlebox.designsystem.TwoColumnMinWidth
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -112,15 +113,16 @@ private fun RecapStateContent(
 private fun RecapLoading(modifier: Modifier = Modifier) {
     BoxWithConstraints(modifier.fillMaxSize()) {
         if (maxWidth >= TwoColumnMinWidth) {
+            val paneHeight = maxHeight
             TwoColumnFrame(
-                paneHeight = maxHeight,
+                paneHeight = paneHeight,
                 tag = "recap.twoPane",
                 left = { column, height ->
                     Box(column.height(height).clip(MaterialTheme.shapes.extraLarge).background(MaterialTheme.colorScheme.surfaceContainerLow)) {
                         RecapLoadingSkeleton(Modifier.fillMaxSize())
                     }
                 },
-                right = { RecapFactSkeleton() },
+                right = { RecapFactSkeleton(Modifier.height(paneHeight - Spacing.lg * 2)) },
             )
         } else {
             RecapLoadingSkeleton(Modifier.fillMaxSize())
