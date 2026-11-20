@@ -11,7 +11,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.text.TextLayoutResult
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.insights.recap.LocalGameAccent
+import com.ivandsky.puzzlebox.insights.recap.LocalGameBrands
 import com.ivandsky.puzzlebox.insights.recap.SolvedFixtures
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -38,7 +38,7 @@ class RecapShareImageTest {
         style.value = shown
         rule.setContent {
             PuzzleBoxTheme {
-                CompositionLocalProvider(LocalGameAccent provides SolvedFixtures.accentOf) { RecapShareImage(content, style.value) }
+                CompositionLocalProvider(LocalGameBrands provides SolvedFixtures.brands) { RecapShareImage(content, style.value) }
             }
         }
     }

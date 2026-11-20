@@ -4,7 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
-import com.ivandsky.puzzlebox.insights.recap.LocalGameAccent
+import com.ivandsky.puzzlebox.insights.recap.LocalGameBrands
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures
 import com.ivandsky.puzzlebox.insights.recap.SolvedFixtures
 import com.ivandsky.puzzlebox.insights.settleAndCapture
@@ -72,7 +72,7 @@ class RecapShareImageGoldenScreenshots {
         style: ShareStyle = ShareStyle.Classic,
     ) {
         rule.showGolden(dark = dark) {
-            CompositionLocalProvider(LocalGameAccent provides SolvedFixtures.accentOf) {
+            CompositionLocalProvider(LocalGameBrands provides SolvedFixtures.brands) {
                 RecapShareImage(RecapShareContent.of(title, displayName, cards), style)
             }
         }

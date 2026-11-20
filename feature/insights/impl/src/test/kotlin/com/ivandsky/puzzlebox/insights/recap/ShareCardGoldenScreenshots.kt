@@ -76,7 +76,7 @@ class ShareCardGoldenScreenshots {
         val all = listOf(cards[0]) + shell + cards.drop(1)
         val name = if (longest) ShareContract.LONG_NAME else "Ivan"
         rule.showGolden(dark = dark) {
-            CompositionLocalProvider(LocalGameAccent provides SolvedFixtures.accentOf) {
+            CompositionLocalProvider(LocalGameBrands provides SolvedFixtures.brands) {
                 RecapScreen(
                     readyOf(*all.toTypedArray()).copy(title = "October 2026", initialPage = all.size),
                     "October 2026", SolvedFixtures.gameName,

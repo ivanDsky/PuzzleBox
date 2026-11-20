@@ -16,7 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
-import com.ivandsky.puzzlebox.insights.recap.LocalGameAccent
+import com.ivandsky.puzzlebox.insights.recap.LocalGameBrands
 
 /**
  * Each game's share of the solves as one pill per game, in the game's colour and as wide as its count, ringed in [ink]
@@ -24,7 +24,7 @@ import com.ivandsky.puzzlebox.insights.recap.LocalGameAccent
  */
 @Composable
 internal fun ShareSplitBar(split: List<RecapCard.Solved.PerGame>, ink: Color, track: Color, modifier: Modifier = Modifier) {
-    val accentOf = LocalGameAccent.current
+    val brands = LocalGameBrands.current
     Row(
         modifier.fillMaxWidth().height(BarHeight).clip(CircleShape).background(track).padding(TrackPadding),
         horizontalArrangement = Arrangement.spacedBy(SegmentGap),
@@ -35,7 +35,7 @@ internal fun ShareSplitBar(split: List<RecapCard.Solved.PerGame>, ink: Color, tr
                     .weight(row.solved.toFloat())
                     .fillMaxHeight()
                     .clip(CircleShape)
-                    .background(accentOf(row.game).colors().accent)
+                    .background(brands(row.game).accent.colors().accent)
                     .border(SegmentRing, ink, CircleShape),
             ) {}
         }
