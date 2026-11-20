@@ -97,7 +97,7 @@ private fun RowScope.Tile(tile: RecapCard.YearFinale.Tile, index: Int, plate: Co
             color = LocalContentColor.current.copy(alpha = if (empty) MutedAlpha else 1f),
         )
         if (wide && tile.game != null) {
-            GameGlyph(LocalGameBrands.current(tile.game), GameGlyphSize.Inline, Modifier.padding(top = Spacing.xs))
+            GameGlyph(LocalGameBrands.current(tile.game), GameGlyphSize.Tile, Modifier.padding(top = Spacing.xs))
             Text(gameName(tile.game), style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.sp), maxLines = 2, textAlign = TextAlign.Center)
         }
     }

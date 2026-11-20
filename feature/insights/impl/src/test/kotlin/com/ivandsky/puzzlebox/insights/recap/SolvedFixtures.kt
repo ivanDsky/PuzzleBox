@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.insights.recap
 
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
+import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.model.GameId
@@ -18,7 +19,9 @@ internal object SolvedFixtures {
     private val accents = mapOf(zip to AccentSlot.Blue, tango to AccentSlot.Orange, queens to AccentSlot.Violet, sudoku to AccentSlot.Teal, strands to AccentSlot.Pink)
 
     val gameName: (GameId) -> String = { names.getValue(it) }
-    val brands: (GameId) -> GameBrand = { GameBrand(accents.getValue(it), GameBrand.Neutral.glyph) }
+    /** What each game's own UI module registers: its accent and its real glyph. */
+    private val glyphs = mapOf(zip to GameGlyphs.Zip, tango to GameGlyphs.Tango, queens to GameGlyphs.Queens, sudoku to GameGlyphs.Sudoku, strands to GameGlyphs.Strands)
+    val brands: (GameId) -> GameBrand = { GameBrand(accents.getValue(it), glyphs.getValue(it)) }
 
     private fun games(vararg solves: Int) = listOf(queens, tango, zip, sudoku, strands).zip(solves.toList()).map { (game, n) -> RecapCard.Solved.PerGame(game, n) }
 
