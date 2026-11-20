@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.app.di.appModule
 import com.ivandsky.puzzlebox.app.di.buildTypeReleaseFlagsModule
 import com.ivandsky.puzzlebox.app.di.reminderModule
 import com.ivandsky.puzzlebox.app.di.shortcutModule
+import com.ivandsky.puzzlebox.app.di.widgetModule
 import com.ivandsky.puzzlebox.app.insights.RankHistoryStarter
 import com.ivandsky.puzzlebox.app.leaderboard.CustomBoardSubmitter
 import com.ivandsky.puzzlebox.app.leaderboard.DailyReplayPublisher
@@ -94,6 +95,6 @@ class PuzzleBoxApplication : Application() {
         }
 
         val appModules =
-            listOf(commonModule, dataModule, cloudSyncModule, firebaseBackendModule, domainModule, homeModule, historyModule, playModule, createModule, authModule(R.string.default_web_client_id), profileModule, competeModule, insightsModule, trainModule, zipModule, zipUiModule, queensModule, queensUiModule, tangoModule, tangoUiModule, strandsModule, strandsUiModule, miniSudokuModule, miniSudokuUiModule, appModule, reminderModule, shortcutModule, buildTypeReleaseFlagsModule) + buildTypeGameModules
+            listOf(commonModule, dataModule, cloudSyncModule, firebaseBackendModule, domainModule, homeModule, historyModule, playModule, createModule, authModule(R.string.default_web_client_id), profileModule, competeModule, insightsModule, trainModule, zipModule, zipUiModule, queensModule, queensUiModule, tangoModule, tangoUiModule, strandsModule, strandsUiModule, miniSudokuModule, miniSudokuUiModule, appModule, reminderModule, shortcutModule, widgetModule, buildTypeReleaseFlagsModule) + buildTypeGameModules
     }
 }
