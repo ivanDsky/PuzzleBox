@@ -7,6 +7,10 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneId
+import java.time.ZoneOffset
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -15,7 +19,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
-/** The start hook: the component switch by the flag, one redraw per change burst, one per activity start. */
+/** The start hook: the component switch by the flag, one redraw per change burst, one per activity start, the rollover alarm. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = DrainTestApplication::class)
 class WidgetAppHooksTest {
@@ -27,12 +31,21 @@ class WidgetAppHooksTest {
         refreshes++
         refreshFailure?.let { throw it }
     }
+    private val alarm = FakeWidgetRolloverAlarm()
+    private val armRollover = ArmWidgetRollover(
+        zones = { listOf(ZoneId.of("America/Los_Angeles")) },
+        hasWidgets = { true },
+        alarm = alarm,
+        clock = Clock.fixed(Instant.parse("2026-11-20T23:00:00Z"), ZoneOffset.UTC),
+    )
 
     private fun TestScope.hooks(enabled: Boolean, switch: WidgetComponentSwitch) = WidgetAppHooks(
         enabled = enabled,
         componentSwitch = switch,
         changes = changes,
         refresher = refresher,
+        armRollover = armRollover,
+        alarm = alarm,
         application = RuntimeEnvironment.getApplication(),
         scope = backgroundScope,
     ).also {
@@ -65,6 +78,35 @@ class WidgetAppHooksTest {
 
         assertEquals(listOf(false), switch.switched)
         assertEquals(0, refreshes)
+    }
+
+    @Test
+    fun `flag off cancels the rollover alarm and arms nothing, even on an activity start`() = runTest {
+        hooks(enabled = false, FakeWidgetComponentSwitch())
+
+        startActivity()
+        runCurrent()
+
+        assertEquals(1, alarm.cancels)
+        assertEquals(emptyList<Instant>(), alarm.scheduled)
+    }
+
+    @Test
+    fun `flag on arms the rollover at start and never cancels it`() = runTest {
+        hooks(enabled = true, FakeWidgetComponentSwitch())
+
+        assertEquals(listOf(ROLLOVER), alarm.scheduled)
+        assertEquals(0, alarm.cancels)
+    }
+
+    @Test
+    fun `each activity start arms the rollover once more`() = runTest {
+        hooks(enabled = true, FakeWidgetComponentSwitch())
+
+        startActivity()
+        runCurrent()
+
+        assertEquals(listOf(ROLLOVER, ROLLOVER), alarm.scheduled)
     }
 
     @Test
@@ -130,5 +172,9 @@ class WidgetAppHooksTest {
         runCurrent()
 
         assertEquals(1, refreshes)
+    }
+
+    private companion object {
+        val ROLLOVER: Instant = Instant.parse("2026-11-21T08:00:00Z")
     }
 }

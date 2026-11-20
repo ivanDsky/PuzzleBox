@@ -13,27 +13,35 @@ import kotlinx.coroutines.launch
 
 /**
  * The widget's app-start work. It switches the receiver by [enabled] once per start, so a flag-off build has no widget and
- * an earlier placed one goes away. With it on, it redraws the widget when [changes] emits (a burst within one second is
- * one redraw) and each time an activity starts, so opening the app never shows a stale widget behind it. The widget is a
- * convenience: a failed switch or redraw is logged, never a reason to fail the start or stop the collection.
+ * an earlier placed one goes away, and the rollover wake-up an earlier build left is cancelled. With it on, it redraws the
+ * widget when [changes] emits (a burst within one second is one redraw) and each time an activity starts, so opening the app
+ * never shows a stale widget behind it, and arms the rollover wake-up at the start and at each activity start. The widget is
+ * a convenience: a failed switch, redraw or arm is logged, never a reason to fail the start or stop the collection.
  */
 class WidgetAppHooks(
     private val enabled: Boolean,
     private val componentSwitch: WidgetComponentSwitch,
     private val changes: Flow<Unit>,
     private val refresher: WidgetRefresher,
+    private val armRollover: ArmWidgetRollover,
+    private val alarm: WidgetRolloverAlarm,
     private val application: Application,
     private val scope: CoroutineScope,
 ) {
 
     fun start() {
         scope.launch { switchComponent() }
-        if (!enabled) return
+        if (!enabled) {
+            scope.launch { cancelRollover() }
+            return
+        }
+        scope.launch { armRollover() }
         scope.launch { collectChanges() }
         application.registerActivityLifecycleCallbacks(
             object : Application.ActivityLifecycleCallbacks {
                 override fun onActivityStarted(activity: Activity) {
                     scope.launch { refresh() }
+                    scope.launch { armRollover() }
                 }
 
                 override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
@@ -51,6 +59,14 @@ class WidgetAppHooks(
             componentSwitch.setEnabled(enabled)
         } catch (e: Exception) {
             Log.w(TAG, "widget component not switched: ${e.message}")
+        }
+    }
+
+    private fun cancelRollover() {
+        try {
+            alarm.cancel()
+        } catch (e: Exception) {
+            Log.w(TAG, "widget rollover not cancelled: ${e.message}")
         }
     }
 
