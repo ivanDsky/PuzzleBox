@@ -13,7 +13,7 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toKotlinDuration
 
 /**
- * `index --out <dir> --checkpoint <file> [--until <yyyy-mm-dd>]` (ADR-0017 §5, §6 amendments):
+ * `index --out <dir> --checkpoint <file> [--until <yyyy-mm-dd>] [--pace <seconds>]` (ADR-0017 §5, §6 amendments):
  * walks every archive daily of each game whose plugin has a technique walker and writes that game's
  * technique index. The files go to `games/<game>-ui/src/main/resources/trainer/<game>-index.txt`,
  * which the drill sources read. It runs by hand, off the player's network, and never in CI: the
@@ -31,6 +31,8 @@ import kotlin.time.toKotlinDuration
  * @param targets the games to walk, paired with their walkers (see [IndexTargets.pair])
  * @param clock the instant "today" is read from, in each game's own calendar zone
  * @param sleep waits for a [Duration]; production passes `delay`
+ * @param progress one timestamped line per settled number (its checkpoint line); failures and skips
+ *   also go to [err], so the error stream alone lists everything that went wrong
  */
 class IndexCommand(
     private val targets: List<IndexTarget>,
@@ -39,6 +41,7 @@ class IndexCommand(
     private val io: IndexIo,
     private val out: (String) -> Unit,
     private val err: (String) -> Unit,
+    private val progress: (String) -> Unit = {},
 ) {
 
     private class Walk(val target: IndexTarget, val days: List<LocalDate>)
@@ -58,18 +61,24 @@ class IndexCommand(
         if (io.readText(options.checkpoint) != checkpoint.text()) io.writeText(options.checkpoint, checkpoint.text())
 
         val walks = targets.map { Walk(it, days(it, options.until)) }
+        val total = walks.sumOf { it.days.size }
+        var seen = 0
         for (walk in walks) {
             val game = walk.target.source.gameId
             for (day in walk.days) {
+                seen++
                 val number = checkNotNull(walk.target.source.puzzleNumber(day)) { "$game has no number for $day" }
                 if (checkpoint.settlement(game, number) != null) continue
-                val settlement = settle(walk.target, day, number)
+                val settlement = settle(walk.target, day, number, options.pace)
                 if (settlement == null) {
-                    err("stopped: $MAX_FAILURES_IN_A_ROW fetches in a row failed at $game #$number ($day). Rerun the same command to resume.")
+                    err("${clock.instant()} stopped: $MAX_FAILURES_IN_A_ROW fetches in a row failed at $game #$number ($day). Rerun the same command to resume.")
                     return CliExit.STOPPED
                 }
                 checkpoint = checkpoint.with(game, number, settlement)
-                io.appendLine(options.checkpoint, IndexCheckpoint.line(game, number, settlement))
+                val line = IndexCheckpoint.line(game, number, settlement)
+                io.appendLine(options.checkpoint, line)
+                progress("${clock.instant()} [$seen/$total] $day $line")
+                if (settlement is Settlement.Skip) err("${clock.instant()} $day $line")
             }
         }
         for (walk in walks) summarize(walk, checkpoint, options.out)
@@ -104,11 +113,11 @@ class IndexCommand(
      * A failure retries the same number, so the run of failures is this number's retries and any
      * settled number starts the next run at zero.
      */
-    private suspend fun settle(target: IndexTarget, day: LocalDate, number: Int): Settlement? {
+    private suspend fun settle(target: IndexTarget, day: LocalDate, number: Int, pace: Duration): Settlement? {
         var failed = 0
         while (true) {
             val fetched = target.source.fetchPast(day)
-            sleep(PACE)
+            sleep(pace)
             when (fetched) {
                 is FetchResult.Ok -> {
                     val counts = target.walker.techniqueCounts(fetched.value.puzzle)
@@ -123,7 +132,12 @@ class IndexCommand(
                     is FetchError.Untrusted -> return Settlement.Skip(SkipKind.Untrusted, IndexCheckpoint.oneLine(error.detail))
                     is FetchError.Throttled, is FetchError.Unavailable -> {
                         failed++
-                        if (failed >= MAX_FAILURES_IN_A_ROW) return null
+                        val what = "${clock.instant()} $day ${target.source.gameId} $number ${error::class.simpleName}"
+                        if (failed >= MAX_FAILURES_IN_A_ROW) {
+                            err("$what, failure $failed of $MAX_FAILURES_IN_A_ROW")
+                            return null
+                        }
+                        err("$what, failure $failed of $MAX_FAILURES_IN_A_ROW; retrying after ${LINKEDIN_THROTTLE_COOLDOWN.seconds} s")
                         sleep(LINKEDIN_THROTTLE_COOLDOWN.toKotlinDuration())
                     }
                 }
@@ -152,7 +166,7 @@ class IndexCommand(
 
     companion object {
         /** The usage line of `index`. */
-        const val USAGE: String = "puzzle-cli index --out <dir> --checkpoint <file> [--until <yyyy-mm-dd>]"
+        const val USAGE: String = "puzzle-cli index --out <dir> --checkpoint <file> [--until <yyyy-mm-dd>] [--pace <seconds>]"
 
         /** Wait after every fetch: the app's own LinkedIn budget is 6 calls a minute (`LinkedInCallBudget`, core:data). */
         val PACE: Duration = 10.seconds
