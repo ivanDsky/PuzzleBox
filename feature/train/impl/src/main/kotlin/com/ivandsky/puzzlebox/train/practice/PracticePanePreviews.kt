@@ -85,6 +85,8 @@ internal class StandInPracticeBoard(status: PracticeStatus) : PracticeBoard {
     override val status: StateFlow<PracticeStatus> = MutableStateFlow(status)
 
     override fun showMe() = Unit
+
+    override fun gotIt() = Unit
 }
 
 @Composable
@@ -114,6 +116,10 @@ private fun practicing(status: PracticeStatus) = PracticeState.Practicing(StandI
 @PuzzleBoxPreviews
 @Composable
 private fun PracticeFindNextMovePreview() = PracticePreviewFrame(practicing(PracticeStatus.FindNextMove))
+
+@PuzzleBoxPreviews
+@Composable
+private fun PracticeKeepGoingPreview() = PracticePreviewFrame(practicing(PracticeStatus.KeepGoing(left = 2, trained = true)))
 
 @PuzzleBoxPreviews
 @Composable

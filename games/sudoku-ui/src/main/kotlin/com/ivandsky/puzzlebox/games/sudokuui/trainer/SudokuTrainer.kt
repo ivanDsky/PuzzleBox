@@ -1,7 +1,11 @@
 package com.ivandsky.puzzlebox.games.sudokuui.trainer
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
@@ -11,6 +15,8 @@ import com.ivandsky.puzzlebox.games.sudoku.engine.trainer.SudokuPractice
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuStackedBoard
 import com.ivandsky.puzzlebox.gameui.trainer.DrillSource
 import com.ivandsky.puzzlebox.gameui.trainer.PracticeBoard
+import com.ivandsky.puzzlebox.gameui.trainer.PracticeSpotlight
+import com.ivandsky.puzzlebox.gameui.trainer.PracticeStatus
 import com.ivandsky.puzzlebox.gameui.trainer.TrainerGame
 import com.ivandsky.puzzlebox.gameui.trainer.TrainerTechnique
 import com.ivandsky.puzzlebox.model.GameId
@@ -49,10 +55,26 @@ internal class SudokuTrainer : TrainerGame {
         return SudokuPracticeBoard(decoded, start, technique, onTrainedTurn)
     }
 
-    /** The real play board's grid and keypad; the grid draws the status Spotlight, and the player's next input clears it. */
+    /**
+     * The real play board's grid and keypad. The grid draws [PracticeSpotlight] over its cells, with the Spotlight's digits
+     * measured in the grid's own style; the keypad sits outside it, so [SudokuPracticeBoard] refuses the moves the keypad
+     * sends while an explanation stands.
+     */
     @Composable
     override fun Board(board: PracticeBoard, modifier: Modifier) {
         val practice = board as? SudokuPracticeBoard ?: error("a Sudoku trainer was handed another game's practice board: $board")
-        SudokuStackedBoard(practice.state, modifier, tuned = true, eraseBeside = true, spotlight = practice.shown)
+        val status by practice.status.collectAsState()
+        SudokuStackedBoard(practice.state, modifier, tuned = true, eraseBeside = true) { restyle ->
+            val styled = remember(status, restyle) { status.restyled(restyle) }
+            PracticeSpotlight(practice, styled)
+        }
     }
+}
+
+/** [this] with its Spotlight, if it has one, passed through [restyle]. */
+private fun PracticeStatus.restyled(restyle: (Spotlight) -> Spotlight): PracticeStatus = when (this) {
+    is PracticeStatus.Right -> copy(spotlight = restyle(spotlight))
+    is PracticeStatus.Easier -> copy(spotlight = restyle(spotlight))
+    is PracticeStatus.Shown -> copy(spotlight = restyle(spotlight))
+    PracticeStatus.FindNextMove, is PracticeStatus.KeepGoing, is PracticeStatus.Wrong, PracticeStatus.Solved -> this
 }

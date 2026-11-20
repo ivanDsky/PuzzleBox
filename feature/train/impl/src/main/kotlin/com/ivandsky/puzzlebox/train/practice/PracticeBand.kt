@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,7 +45,7 @@ private class Band(val icon: ImageVector, val title: String, val why: String, va
  * outcome as it lands. [name] is the trained technique, which the instruction and the Right line name.
  */
 @Composable
-internal fun StatusBand(status: PracticeStatus, name: String, modifier: Modifier = Modifier) {
+internal fun StatusBand(status: PracticeStatus, name: String, onGotIt: () -> Unit, modifier: Modifier = Modifier) {
     val band = band(status, name)
     val shape = MaterialTheme.shapes.medium.copy(bottomStart = ZeroCornerSize, bottomEnd = ZeroCornerSize)
     Row(
@@ -64,6 +65,9 @@ internal fun StatusBand(status: PracticeStatus, name: String, modifier: Modifier
             Text(band.title, style = MaterialTheme.typography.titleSmall, color = band.content)
             Text(band.why, style = MaterialTheme.typography.bodySmall, color = band.content, maxLines = 3, overflow = TextOverflow.Ellipsis)
         }
+        if (status is PracticeStatus.Easier || status is PracticeStatus.Shown) {
+            TextButton(onClick = onGotIt, Modifier.testTag("train.gotIt")) { Text("Got it", color = band.content) }
+        }
     }
 }
 
@@ -74,22 +78,33 @@ private fun band(status: PracticeStatus, name: String): Band {
     return when (status) {
         PracticeStatus.FindNextMove ->
             Band(PuzzleIcons.Info, "Find the next move", "Play it on the board. Moves that use $name count.", quiet.first, quiet.second)
+        is PracticeStatus.KeepGoing -> Band(
+            PuzzleIcons.Info,
+            "Keep going",
+            "${status.left} more in this step.",
+            scheme.primaryContainer,
+            scheme.onPrimaryContainer,
+        )
         is PracticeStatus.Right -> Band(
             PuzzleIcons.Check,
             "Right",
-            if (status.trained) "That move uses $name, so it counts." else "An easier technique makes that move, so it does not count toward $name.",
+            if (status.trained) {
+                "That uses $name, so it counts. Find the next move."
+            } else {
+                "An easier technique makes that, so it does not count toward $name. Find the next move."
+            },
             scheme.primaryContainer,
             scheme.onPrimaryContainer,
         )
         is PracticeStatus.Easier -> Band(
             PuzzleIcons.Hint,
             "An easier move exists",
-            "That fits the puzzle, but it is undone. Look for ${status.technique} first.",
+            "That fits the puzzle, but it is undone. Look for ${status.technique} first. Then tap Got it.",
             scheme.tertiaryContainer,
             scheme.onTertiaryContainer,
         )
         is PracticeStatus.Wrong -> Band(PuzzleIcons.Undo, "Not there, undone", status.why, scheme.errorContainer, scheme.onErrorContainer)
-        is PracticeStatus.Shown -> Band(PuzzleIcons.Info, "Here is the next move", "It is on the board now. Find the one after it.", quiet.first, quiet.second)
+        is PracticeStatus.Shown -> Band(PuzzleIcons.Info, "Here is the next move", "Look at the board, then tap Got it.", quiet.first, quiet.second)
         PracticeStatus.Solved -> Band(PuzzleIcons.Check, "Solved", "Every square is placed.", quiet.first, quiet.second)
     }
 }

@@ -16,6 +16,12 @@ interface PracticeBoard {
     /** What the status band shows: the last move's outcome, or the standing instruction. */
     val status: StateFlow<PracticeStatus>
 
-    /** Plays the easiest step's Spotlight and makes that step on the board. */
+    /** Makes the easiest step on the board and reports it as [PracticeStatus.Shown]. Does nothing while an explanation stands. */
     fun showMe()
+
+    /**
+     * Dismisses a standing explanation ([PracticeStatus.Easier] or [PracticeStatus.Shown]): the status becomes
+     * [PracticeStatus.FindNextMove] and the board takes moves again. Does nothing otherwise.
+     */
+    fun gotIt()
 }

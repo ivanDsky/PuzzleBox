@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.sudokuui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -91,8 +92,8 @@ internal fun SudokuPlayScreen(
  * layout; the tutorial draws it untuned) keeps every key at the 48dp touch floor, shrinking the grid
  * first, and takes Clear out of the keypad: it sits in the control row.
  * The grid alone wears the solve moment's frame ([LocalSudokuSolveFrame]) and the game's glyph stamp ([LocalSudokuSolveStamp]),
- * so it pops and the keypad stays put. [spotlight] is the one the grid draws over its cells (the keypad never is covered):
- * the board state's own staged hint unless the Trainer's practice board hands in the status Spotlight it shows.
+ * so it pops and the keypad stays put. The grid draws the board state's own staged hint over its cells (the keypad never is
+ * covered); [overlay] is the Trainer's own layer over them, handed the grid's digit measuring ([SudokuGrid]).
  */
 @Composable
 internal fun SudokuStackedBoard(
@@ -102,7 +103,7 @@ internal fun SudokuStackedBoard(
     onGridWidth: (Dp) -> Unit = {},
     tuned: Boolean = false,
     eraseBeside: Boolean = false,
-    spotlight: Spotlight? = state.spotlight,
+    overlay: (@Composable BoxScope.(restyle: (Spotlight) -> Spotlight) -> Unit)? = null,
 ) {
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
         val size = state.session.board.geometry.size
@@ -115,7 +116,7 @@ internal fun SudokuStackedBoard(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Box(Modifier.size(layout.board).then(LocalSudokuSolveFrame.current), contentAlignment = Alignment.Center) {
-                SudokuGrid(state.model, state::select, Modifier.fillMaxSize(), spotlight = spotlight)
+                SudokuGrid(state.model, state::select, Modifier.fillMaxSize(), spotlight = state.spotlight, overlay = overlay)
                 LocalSudokuSolveStamp.current?.invoke()
             }
             // A pane-filling grid is height-bound: keys as wide as the pane would be slabs.

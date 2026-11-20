@@ -83,12 +83,13 @@ private fun PracticeBody(
     Column(Modifier.fillMaxSize()) {
         // The band and the board are one frame, centered in what the idea and Show me leave.
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-            BandOverBoard(band = { StatusBand(status, name) }, board = { boardContent(board, Modifier) })
+            BandOverBoard(band = { StatusBand(status, name, onGotIt = board::gotIt) }, board = { boardContent(board, Modifier) })
         }
         Spacer(Modifier.size(Spacing.md))
         IdeaBlock(line)
         Spacer(Modifier.size(Spacing.md))
-        SecondaryButton("Show me", onClick = board::showMe, Modifier.testTag("train.showMe"))
+        val explaining = status is PracticeStatus.Easier || status is PracticeStatus.Shown
+        SecondaryButton("Show me", onClick = board::showMe, Modifier.testTag("train.showMe"), enabled = !explaining)
     }
 }
 

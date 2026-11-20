@@ -13,7 +13,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
 import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayController
@@ -153,10 +152,10 @@ private fun BoxScope.TangoBoardArea(
  * two-pane toolbar pane, [PhoneBoardCap] otherwise. Draws nothing until [controller]
  * holds a session.
  *
- * The Trainer's practice board draws it too, through its own judge: [onTap], [onPlacement] and [spotlight] are
- * where the input goes and what the board overlays. The defaults are the controller's own, so the daily board is
- * unchanged. The renderer keeps the first lambdas it gets (it is keyed on [controller]), so they must stay valid
- * for the controller's lifetime.
+ * The Trainer's practice board draws it too, through its own judge: [onTap] and [onPlacement] are where the input
+ * goes, and [overlay] is the practice Spotlight layer over the grid. The defaults are the controller's own, so the
+ * daily board is unchanged. The renderer keeps the first lambdas it gets (it is keyed on [controller]), so they must
+ * stay valid for the controller's lifetime.
  */
 @Composable
 internal fun TangoBoard(
@@ -165,7 +164,7 @@ internal fun TangoBoard(
     modifier: Modifier,
     onTap: (Int) -> Unit = controller::onTap,
     onPlacement: (TangoPlacement) -> Unit = controller::onPlacement,
-    spotlight: () -> Spotlight? = { controller.spotlight },
+    overlay: (@Composable BoxScope.() -> Unit)? = null,
 ) {
     MoveHapticsEffect({ controller.session }, ::tangoMoveHaptic)
     // suppressedSets is a key: the settle debounce clears it 0.5 s after the last touch,
@@ -186,7 +185,8 @@ internal fun TangoBoard(
         TangoBoardRenderer(
             onTap = onTap,
             onPlacement = onPlacement,
-            spotlight = spotlight,
+            spotlight = { controller.spotlight },
+            overlay = overlay,
             guideGhosts = true,
         )
     }

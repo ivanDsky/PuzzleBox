@@ -1,8 +1,5 @@
 package com.ivandsky.puzzlebox.games.tangoui.trainer
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
@@ -49,15 +46,18 @@ import kotlinx.coroutines.launch
  * session from before the cycle with no verdict. A filled square is final: a tap on it, on a given, or on a finished
  * board does nothing. TalkBack's placement actions name their end state, so they are judged at once, with no cycle.
  *
- * **A step of several squares** (a full line, an equal pair) is Right square by square and reports
- * [TrainerVerdict.Right] once, on its first square, when its rung is the trained technique. The board remembers the
- * squares still to play and keeps judging them as that step's own, whatever the first squares changed on the board;
- * a Right move on another step replaces it. Show me finishes a step in progress (its turn was already reported, so
- * nothing is reported again), else makes the first whole step of the easiest rung and reports
- * [TrainerVerdict.ShowMe] when that rung is the trained technique.
+ * **A step of several squares** (a full line, an equal pair) is made square by square: [PracticeStatus.KeepGoing] after
+ * each one with the number left, [PracticeStatus.Right] (and [TrainerVerdict.Right], when its rung is the trained
+ * technique) only when the last is made. The board remembers the squares still to play and keeps judging them as that
+ * step's own, whatever the first squares changed on the board; a Right move on another step replaces it, and the
+ * unfinished step is never reported. Show me finishes a step in progress, else makes the first whole step of the easiest
+ * rung; either way it reports [TrainerVerdict.ShowMe] when that rung is the trained technique.
+ *
+ * **Explanations.** An easier move (undone) or Show me stands as [PracticeStatus.Easier] / [PracticeStatus.Shown] until
+ * [gotIt]: meanwhile every move and Show me is ignored, so no play goes on under an out-of-date explanation.
  *
  * Every report goes to [onTrainedTurn] only for a turn whose easiest rung was the trained technique: Right once per
- * step, [TrainerVerdict.Wrong] for a move that was undone. An undone move on another rung reports nothing.
+ * finished step, [TrainerVerdict.Wrong] for a move that was undone. An undone move on another rung reports nothing.
  *
  * Input and judging run on the caller's thread (the main one): a 6×6 board's rungs are cheap. [scope] times the cycle.
  */
@@ -86,12 +86,9 @@ internal class TangoPracticeBoard(
 
     override val status: StateFlow<PracticeStatus> = state.asStateFlow()
 
-    /**
-     * What the board overlays: the Spotlight of the last move's status, until the next input (as the daily hint's
-     * Spotlight goes at the next input). Compose state, so the board redraws when it changes.
-     */
-    var spotlight: Spotlight? by mutableStateOf(null)
-        private set
+    /** An explanation ([PracticeStatus.Easier], [PracticeStatus.Shown]) stands: the board takes no move until [gotIt]. */
+    private val explaining: Boolean
+        get() = state.value.let { it is PracticeStatus.Easier || it is PracticeStatus.Shown }
 
     private var playId = 0
     private var lastMove: Int? = null
@@ -114,8 +111,8 @@ internal class TangoPracticeBoard(
 
     /** A tap on the square [idx]: a step of its cycle, judged once the cycle settles. */
     fun onTap(idx: Int) {
-        spotlight = null
         if (cycle?.idx != idx) settle()
+        if (explaining) return
         val session = controller.session ?: return
         if (session.isComplete || puzzle.isGiven(idx)) return
         val open = cycle ?: if (session.grid()[idx] == null) Cycle(idx, session).also { cycle = it } else return
@@ -133,8 +130,8 @@ internal class TangoPracticeBoard(
 
     /** A TalkBack action naming [placement]'s end state: judged at once, with no cycle. */
     fun onPlacement(placement: TangoPlacement) {
-        spotlight = null
         settle()
+        if (explaining) return
         val session = controller.session ?: return
         val value = placement.value
         if (session.isComplete || value == null || puzzle.isGiven(placement.idx) || session.grid()[placement.idx] != null) return
@@ -144,6 +141,7 @@ internal class TangoPracticeBoard(
 
     override fun showMe() {
         settle()
+        if (explaining) return
         val session = controller.session ?: return
         if (session.isComplete) return
         val grid = session.grid()
@@ -153,14 +151,18 @@ internal class TangoPracticeBoard(
         if (progress != null) {
             shown = progress.spotlight
             progress.step.squares.filter { it.idx in progress.remaining }.forEach { place(it.idx, it.value) }
+            if (progress.trained) onTrainedTurn(TrainerVerdict.ShowMe)
         } else {
             val step = TangoPractice.show(puzzle, solution, grid, lastMove) ?: return
             shown = spotlightOf(step.squares.first().shown, grid)
             step.squares.forEach { place(it.idx, it.value) }
             if (step.rung?.trainerId == technique) onTrainedTurn(TrainerVerdict.ShowMe)
         }
-        spotlight = shown
         publish(PracticeStatus.Shown(shown))
+    }
+
+    override fun gotIt() {
+        if (explaining) state.value = PracticeStatus.FindNextMove
     }
 
     private fun place(idx: Int, value: TangoCell) {
@@ -177,31 +179,29 @@ internal class TangoPracticeBoard(
         if (value == null) controller.revertTo(open.base) else judge(open.base, open.idx, value)
     }
 
-    /** [value] now stands on [idx] of the board that was [base]: keep it when it is Right, else undo it and say why. */
+    /**
+     * [value] now stands on [idx] of the board that was [base]: keep it when it is Right, else undo it and say why.
+     * A Right square of a step with more to make says how many are left; the last one says Right.
+     */
     private fun judge(base: TangoSession, idx: Int, value: TangoCell) {
         val before = base.grid()
         inProgress?.takeIf { idx in it.remaining && it.step.contains(idx, value) }?.let { progress ->
             progress.remaining -= idx
-            if (progress.remaining.isEmpty()) inProgress = null
             lastMove = idx
-            publish(PracticeStatus.Right(progress.spotlight, progress.trained))
+            advance(progress)
             return
         }
         when (val verdict = TangoPractice.judge(puzzle, solution, before, technique, idx, value)) {
             is TangoPracticeVerdict.Right -> {
                 val shown = spotlightOf(checkNotNull(verdict.step.squareAt(idx)).shown, before)
                 val remaining = verdict.step.squares.map { it.idx }.filter { it != idx }.toMutableSet()
-                inProgress = remaining.takeIf { it.isNotEmpty() }?.let { InProgress(verdict.step, shown, verdict.trained, it) }
                 lastMove = idx
-                if (verdict.trained) onTrainedTurn(TrainerVerdict.Right)
-                spotlight = shown
-                publish(PracticeStatus.Right(shown, verdict.trained))
+                advance(InProgress(verdict.step, shown, verdict.trained, remaining))
             }
             is TangoPracticeVerdict.Easier -> {
                 controller.revertTo(base)
                 if (verdict.rung.trainerId == technique) onTrainedTurn(TrainerVerdict.Wrong)
                 val shown = spotlightOf(verdict.step.squares.first().shown, before)
-                spotlight = shown
                 publish(PracticeStatus.Easier(TangoTrainerCatalog.name(verdict.rung.trainerId), shown))
             }
             is TangoPracticeVerdict.Wrong -> {
@@ -211,6 +211,18 @@ internal class TangoPracticeBoard(
                 publish(PracticeStatus.Wrong(why))
             }
         }
+    }
+
+    /** A square of [progress] was made: keep going while squares are left, else the step is finished and Right. */
+    private fun advance(progress: InProgress) {
+        if (progress.remaining.isNotEmpty()) {
+            inProgress = progress
+            publish(PracticeStatus.KeepGoing(progress.remaining.size, progress.trained))
+            return
+        }
+        inProgress = null
+        if (progress.trained) onTrainedTurn(TrainerVerdict.Right)
+        publish(PracticeStatus.Right(progress.spotlight, progress.trained))
     }
 
     /** The game's own violation line for the move when it breaks a rule outright, else a plain one. */
@@ -224,12 +236,7 @@ internal class TangoPracticeBoard(
 
     /** [next] unless the board is solved, which has no Spotlight and the last word. */
     private fun publish(next: PracticeStatus) {
-        if (controller.isComplete) {
-            spotlight = null
-            state.value = PracticeStatus.Solved
-        } else {
-            state.value = next
-        }
+        state.value = if (controller.isComplete) PracticeStatus.Solved else next
     }
 
     private companion object {
