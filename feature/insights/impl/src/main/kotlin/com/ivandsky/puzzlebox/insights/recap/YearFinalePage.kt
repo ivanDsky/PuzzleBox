@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -38,7 +39,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteEntry
@@ -102,15 +105,17 @@ internal fun YearFinalePage(
                 }
                 if (wide) {
                     Row(Modifier.weight(1f).padding(vertical = Spacing.lg), horizontalArrangement = Arrangement.spacedBy(Spacing.xl)) {
-                        Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.SpaceBetween) {
-                            Hero(card.total, card.importedDays)
+                        Column(Modifier.weight(1f).fillMaxHeight()) {
+                            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+                                Column { Hero(card.total, card.importedDays, WideHeroFontSize) }
+                            }
                             Column(verticalArrangement = Arrangement.spacedBy(Spacing.md), content = actions)
                         }
                         tiles(Modifier.weight(1f).fillMaxHeight())
                     }
                 } else {
                     Spacer(Modifier.height(Spacing.lg))
-                    Hero(card.total, card.importedDays)
+                    Hero(card.total, card.importedDays, HeroFontSize)
                     Spacer(Modifier.height(Spacing.lg))
                     tiles(Modifier)
                     Spacer(Modifier.weight(1f))
@@ -123,11 +128,11 @@ internal fun YearFinalePage(
 }
 
 @Composable
-private fun Hero(total: Int, importedDays: Int?) {
+private fun Hero(total: Int, importedDays: Int?, fontSize: TextUnit) {
     RollingDigits(
         value = total.toLong(),
         modifier = Modifier.testTag("recap.finale.hero"),
-        style = MaterialTheme.typography.displayLarge.tabular().copy(fontSize = HeroFontSize, fontWeight = FontWeight.Bold, letterSpacing = (-1).sp),
+        style = MaterialTheme.typography.displayLarge.tabular().copy(fontSize = fontSize, fontWeight = FontWeight.Bold, letterSpacing = (-1).sp),
         contentDescription = "$total ${total.puzzles()} solved",
     )
     Text(
@@ -140,20 +145,33 @@ private fun Hero(total: Int, importedDays: Int?) {
     }
 }
 
-/** Twelve months as four columns of three: one tile each; a wide pane makes them tall and names each month's quickest game. */
+/**
+ * Twelve months as four columns of three, one tile each. A wide pane keeps the grid at the reference's proportions
+ * (tiles about half as wide as tall), centred in its space and capped in height, so a larger tablet gets a larger
+ * grid and not taller tiles; it also names each month's best game.
+ */
 @Composable
 private fun Tiles(months: List<RecapCard.YearFinale.Tile>, plate: Color, wide: Boolean, gameName: (GameId) -> String, modifier: Modifier) {
-    Column(modifier.testTag("recap.finale.tiles"), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        months.chunked(TileColumns).forEachIndexed { row, rowTiles ->
-            Row(
-                if (wide) Modifier.weight(1f) else Modifier,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                rowTiles.forEachIndexed { column, tile ->
-                    Tile(tile, row * TileColumns + column, plate, wide, gameName)
+    val grid: @Composable (Modifier) -> Unit = { gridModifier ->
+        Column(gridModifier.testTag("recap.finale.tiles"), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            months.chunked(TileColumns).forEachIndexed { row, rowTiles ->
+                Row(
+                    if (wide) Modifier.weight(1f) else Modifier,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
+                    rowTiles.forEachIndexed { column, tile ->
+                        Tile(tile, row * TileColumns + column, plate, wide, gameName)
+                    }
                 }
             }
         }
+    }
+    if (wide) {
+        Box(modifier, contentAlignment = Alignment.Center) {
+            grid(Modifier.heightIn(max = MaxGridHeight).aspectRatio(WideGridAspect, matchHeightConstraintsFirst = true))
+        }
+    } else {
+        grid(modifier)
     }
 }
 
@@ -166,7 +184,7 @@ private fun RowScope.Tile(tile: RecapCard.YearFinale.Tile, index: Int, plate: Co
     Column(
         Modifier
             .weight(1f)
-            .then(if (wide) Modifier.fillMaxHeight() else Modifier.aspectRatio(1f))
+            .then(if (wide) Modifier.fillMaxHeight() else Modifier.aspectRatio(PhoneTileAspect))
             .graphicsLayer {
                 val away = 1f - progress
                 translationX = away * with(density) { RecapMotion.YearTileFromX.toPx() }
@@ -181,20 +199,19 @@ private fun RowScope.Tile(tile: RecapCard.YearFinale.Tile, index: Int, plate: Co
             .padding(Spacing.sm)
             .semantics(mergeDescendants = true) {}
             .testTag("recap.finale.tile.${tile.month.monthValue}"),
-        verticalArrangement = Arrangement.SpaceBetween,
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(tile.month.shortName(), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp))
-        if (wide && tile.game != null) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                Box(Modifier.size(DotSize).background(LocalGameBrands.current(tile.game).accent.colors().accent, CircleShape))
-                Text(gameName(tile.game), style = MaterialTheme.typography.labelSmall, maxLines = 1)
-            }
-        }
         Text(
             text = if (empty) "–" else tile.solved.toString(),
-            style = MaterialTheme.typography.headlineMedium.tabular().copy(fontWeight = FontWeight.Bold),
+            style = (if (wide) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.titleMedium).tabular().copy(fontWeight = FontWeight.Bold),
             color = LocalContentColor.current.copy(alpha = if (empty) MutedAlpha else 1f),
         )
+        if (wide && tile.game != null) {
+            Box(Modifier.padding(top = Spacing.xs).size(DotSize).background(LocalGameBrands.current(tile.game).accent.colors().accent, CircleShape))
+            Text(gameName(tile.game), style = MaterialTheme.typography.labelSmall, maxLines = 2, textAlign = TextAlign.Center)
+        }
     }
 }
 
@@ -264,10 +281,16 @@ internal fun YearMonth.shortName(upper: Boolean = true): String =
     month.getDisplayName(TextStyle.SHORT_STANDALONE, Locale.getDefault()).let { if (upper) it.uppercase() else it }
 
 private val HeroFontSize = 88.sp
+private val WideHeroFontSize = 104.sp
 private val WideWidth = 600.dp
 private val ChipHeight = 96.dp
 private val ButtonHeight: Dp = 48.dp
 private val DotSize = 10.dp
 private const val TileColumns = 4
+
+/** The reference's wide grid: 376 x 550dp, tiles 88 x 178dp. */
+private const val WideGridAspect = 376f / 550f
+private const val PhoneTileAspect = 76f / 66f
+private val MaxGridHeight = 640.dp
 
 private const val MutedAlpha = 0.5f

@@ -52,13 +52,20 @@ class RecapYearCardsTest {
     private val finale = YearFixtures.finale(months = 10, total = 355)
 
     @Test
-    fun `a month card names the month, its count, its fastest solve and the game`() {
+    fun `a month card names the month, its count, its best game and how far under your average it was`() {
         show(march)
 
         rule.onNodeWithTag("recap.month.2026-03").assertIsDisplayed()
         rule.onNodeWithTag("recap.month.name").assertTextEquals("March")
-        rule.onNodeWithTag("recap.month.fastest").assertTextContains("0:58")
-        rule.onNodeWithTag("recap.month.game").assertTextContains("Zip")
+        rule.onNodeWithTag("recap.month.best").assertTextContains("Best against your average").assertTextContains("Zip 0:58")
+        rule.onNodeWithTag("recap.month.under").assertTextContains("31% under your average")
+    }
+
+    @Test
+    fun `a month that only matched its average says so instead of 0 percent`() {
+        show(YearFixtures.oneMonth)
+
+        rule.onNodeWithTag("recap.month.under").assertTextContains("Matched your average")
     }
 
     @Test

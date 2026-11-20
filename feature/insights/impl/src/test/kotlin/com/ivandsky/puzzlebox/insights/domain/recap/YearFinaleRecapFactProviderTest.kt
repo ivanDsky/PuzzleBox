@@ -10,7 +10,7 @@ import org.junit.Test
 class YearFinaleRecapFactProviderTest {
 
     private fun month(number: Int, solved: Int, game: com.ivandsky.puzzlebox.model.GameId = alpha, timeMs: Long = 60_000) =
-        MonthFacts(YearMonth.of(2026, number), solved, game, timeMs)
+        MonthFacts(YearMonth.of(2026, number), solved, game, timeMs, bestGame = game, bestTimeMs = timeMs, underAveragePercent = 0)
 
     private fun input(
         period: RecapPeriod,

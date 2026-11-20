@@ -46,6 +46,8 @@ class YearFinaleGoldenScreenshots {
     @Config(qualifiers = GOLDEN_TABLET) @Test fun `year finale tablet light`() = finale(year, "2026", "year-finale", "tablet", false)
     @Config(qualifiers = GOLDEN_TABLET) @Test fun `year finale tablet dark`() = finale(year, "2026", "year-finale", "tablet", true)
 
+    @Config(qualifiers = TABLET_WIDE) @Test fun `year finale tablet-wide light`() = finale(year, "2026", "year-finale", "tablet-wide", false)
+
     @Config(qualifiers = GOLDEN_PHONE) @Test fun `year finale so far phone light`() = finale(soFar, "2026 so far", "year-finale-so-far", "phone", false)
     @Config(qualifiers = GOLDEN_PHONE) @Test fun `year finale so far phone dark`() = finale(soFar, "2026 so far", "year-finale-so-far", "phone", true)
     @Config(qualifiers = GOLDEN_TABLET) @Test fun `year finale so far tablet light`() = finale(soFar, "2026 so far", "year-finale-so-far", "tablet", false)
@@ -77,3 +79,6 @@ class YearFinaleGoldenScreenshots {
         rule.settleAndCapture("recap", name, device, dark)
     }
 }
+
+/** The Galaxy Tab S9 Ultra, which the user reviews on: wider and taller than the 1280 x 800 tablet golden. */
+private const val TABLET_WIDE = "w1680dp-h1050dp-land-mdpi"
