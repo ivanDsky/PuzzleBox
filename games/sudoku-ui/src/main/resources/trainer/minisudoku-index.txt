@@ -1,0 +1,467 @@
+technique-index 1
+game minisudoku
+technique-set 1
+cutoff 2026-11-18
+1 hidden-single-box=5 hidden-single-line=4 last-cell=12 naked-single=1
+2 hidden-single-box=14 last-cell=10
+3 hidden-single-box=7 hidden-single-line=4 last-cell=12 naked-single=1
+4 hidden-single-box=15 last-cell=9
+5 hidden-single-box=13 hidden-single-line=1 last-cell=13
+6 hidden-single-box=8 hidden-single-line=2 last-cell=13
+7 hidden-single-box=9 hidden-single-line=3 last-cell=12
+8 hidden-single-box=6 hidden-single-line=6 last-cell=11 naked-single=2
+9 hidden-single-box=10 hidden-single-line=1 last-cell=12 naked-single=1
+10 hidden-single-box=7 hidden-single-line=5 last-cell=13 naked-single=1
+11 hidden-single-box=15 last-cell=11
+12 hidden-single-box=13 hidden-single-line=1 last-cell=10
+13 hidden-single-box=6 hidden-single-line=5 last-cell=12 naked-single=1
+14 hidden-single-box=10 hidden-single-line=2 last-cell=10
+15 hidden-single-box=8 hidden-single-line=2 last-cell=12
+16 hidden-single-box=12 hidden-single-line=2 last-cell=12
+17 hidden-single-box=15 hidden-single-line=1 last-cell=10
+18 hidden-single-box=11 last-cell=12 naked-single=1
+19 hidden-single-box=10 hidden-single-line=3 last-cell=13
+20 hidden-single-box=11 hidden-single-line=3 last-cell=12
+21 hidden-single-box=11 last-cell=9
+22 hidden-single-box=13 last-cell=10 naked-single=1
+23 hidden-single-box=10 hidden-single-line=4 last-cell=12
+24 hidden-single-box=14 hidden-single-line=3 last-cell=11
+25 hidden-single-box=9 last-cell=12 naked-single=3
+26 hidden-single-box=19 last-cell=9
+27 hidden-single-box=15 hidden-single-line=2 last-cell=11
+28 hidden-single-box=7 last-cell=11
+29 hidden-single-box=11 hidden-single-line=2 last-cell=11
+30 hidden-single-box=14 hidden-single-line=2 last-cell=9 naked-single=1
+31 hidden-single-box=16 last-cell=10
+32 hidden-single-box=16 hidden-single-line=1 last-cell=10
+33 hidden-single-box=8 hidden-single-line=5 last-cell=13
+34 hidden-single-box=12 hidden-single-line=3 last-cell=12
+35 hidden-single-box=7 last-cell=11
+36 hidden-single-box=8 hidden-single-line=4 last-cell=12
+37 hidden-single-box=12 hidden-single-line=2 last-cell=10
+38 hidden-single-box=9 hidden-single-line=4 last-cell=10 naked-single=1
+39 hidden-single-box=7 hidden-single-line=6 last-cell=12
+40 hidden-single-box=12 hidden-single-line=1 last-cell=11
+41 hidden-single-box=10 hidden-single-line=3 last-cell=11
+42 hidden-single-box=6 hidden-single-line=2 last-cell=11
+43 hidden-single-box=13 last-cell=10
+44 hidden-single-box=7 hidden-single-line=7 last-cell=12
+45 hidden-single-box=13 hidden-single-line=1 last-cell=10
+46 hidden-single-box=12 hidden-single-line=1 last-cell=13
+47 hidden-single-box=12 hidden-single-line=3 last-cell=11
+48 hidden-single-box=11 hidden-single-line=2 last-cell=12
+49 hidden-single-box=8 hidden-single-line=1 last-cell=11
+50 hidden-single-box=9 hidden-single-line=2 last-cell=12
+51 hidden-single-box=14 last-cell=10
+52 hidden-single-box=19 last-cell=9
+53 hidden-single-box=14 hidden-single-line=1 last-cell=11
+54 hidden-single-box=8 hidden-single-line=5 last-cell=11
+55 hidden-single-box=15 hidden-single-line=1 last-cell=11
+56 hidden-single-box=8 last-cell=12
+57 hidden-single-box=5 hidden-single-line=3 last-cell=12
+58 hidden-single-box=7 hidden-single-line=3 last-cell=12
+59 hidden-single-box=14 hidden-single-line=1 last-cell=11
+60 hidden-single-box=16 last-cell=9 naked-single=1
+61 hidden-single-box=13 hidden-single-line=2 last-cell=11
+62 hidden-single-box=15 hidden-single-line=1 last-cell=10
+63 hidden-single-box=7 hidden-single-line=2 last-cell=9
+64 hidden-single-box=6 hidden-single-line=2 last-cell=11 naked-single=1
+65 hidden-single-box=13 last-cell=11
+66 hidden-single-box=9 hidden-single-line=3 last-cell=11 naked-single=1
+67 hidden-single-box=13 hidden-single-line=3 last-cell=10
+68 hidden-single-box=9 hidden-single-line=3 last-cell=12
+69 hidden-single-box=14 hidden-single-line=1 last-cell=11
+70 hidden-single-box=9 last-cell=11
+71 hidden-single-box=8 last-cell=12
+72 hidden-single-box=13 last-cell=11
+73 hidden-single-box=12 hidden-single-line=2 last-cell=12
+74 hidden-single-box=13 hidden-single-line=3 last-cell=10
+75 hidden-single-box=10 hidden-single-line=5 last-cell=11
+76 hidden-single-box=16 hidden-single-line=1 last-cell=11
+77 hidden-single-box=6 hidden-single-line=3 last-cell=11
+78 hidden-single-box=6 hidden-single-line=3 last-cell=11
+79 hidden-single-box=11 hidden-single-line=5 last-cell=10 naked-single=1
+80 hidden-single-box=10 hidden-single-line=3 last-cell=12
+81 hidden-single-box=11 hidden-single-line=1 last-cell=12
+82 hidden-single-box=15 hidden-single-line=2 last-cell=9
+83 hidden-single-box=11 hidden-single-line=2 last-cell=10 naked-single=1
+84 hidden-single-box=7 hidden-single-line=1 last-cell=12
+85 hidden-single-box=8 hidden-single-line=2 last-cell=12
+86 hidden-single-box=11 last-cell=11
+87 hidden-single-box=14 hidden-single-line=1 last-cell=11
+88 hidden-single-box=15 hidden-single-line=2 last-cell=11
+89 hidden-single-box=14 hidden-single-line=3 last-cell=11
+90 hidden-single-box=13 hidden-single-line=2 last-cell=11 naked-single=1
+91 hidden-single-box=6 last-cell=12
+92 hidden-single-box=9 last-cell=11
+93 hidden-single-box=11 hidden-single-line=2 last-cell=11
+94 hidden-single-box=9 hidden-single-line=2 last-cell=10
+95 hidden-single-box=15 last-cell=11
+96 hidden-single-box=13 hidden-single-line=3 last-cell=12
+97 hidden-single-box=10 hidden-single-line=4 last-cell=12
+98 hidden-single-box=7 hidden-single-line=2 last-cell=11
+99 hidden-single-box=9 hidden-single-line=1 last-cell=10
+100 hidden-single-box=3 hidden-single-line=5 last-cell=13
+101 hidden-single-box=13 last-cell=11
+102 hidden-single-box=19 last-cell=9
+103 hidden-single-box=19 last-cell=9
+104 hidden-single-box=13 hidden-single-line=1 last-cell=11 naked-single=1
+105 hidden-single-box=7 last-cell=11
+106 hidden-single-box=8 last-cell=12
+107 hidden-single-box=8 hidden-single-line=4 last-cell=12
+108 hidden-single-box=9 hidden-single-line=2 last-cell=11 naked-single=2
+109 hidden-single-box=10 hidden-single-line=5 last-cell=11
+110 hidden-single-box=9 hidden-single-line=4 last-cell=12 naked-single=1
+111 hidden-single-box=11 hidden-single-line=3 last-cell=12 naked-single=1
+112 hidden-single-box=8 hidden-single-line=1 last-cell=10
+113 hidden-single-box=13 last-cell=9
+114 hidden-single-box=8 hidden-single-line=3 last-cell=11
+115 hidden-single-box=9 hidden-single-line=2 last-cell=11
+116 hidden-single-box=15 hidden-single-line=1 last-cell=10
+117 hidden-single-box=19 last-cell=9
+118 hidden-single-box=11 hidden-single-line=1 last-cell=12
+119 hidden-single-box=8 last-cell=12
+120 hidden-single-box=11 hidden-single-line=3 last-cell=10
+121 hidden-single-box=10 hidden-single-line=2 last-cell=11 naked-single=1
+122 hidden-single-box=14 last-cell=10
+123 hidden-single-box=11 hidden-single-line=3 last-cell=12
+124 hidden-single-box=15 hidden-single-line=2 last-cell=9
+125 hidden-single-box=11 hidden-single-line=3 last-cell=11 naked-single=2
+126 hidden-single-box=9 hidden-single-line=2 last-cell=11
+127 hidden-single-box=14 last-cell=10
+128 hidden-single-box=11 hidden-single-line=3 last-cell=12
+129 hidden-single-box=11 hidden-single-line=2 last-cell=12
+130 hidden-single-box=11 hidden-single-line=2 last-cell=11
+131 hidden-single-box=8 hidden-single-line=5 last-cell=13
+132 hidden-single-box=14 hidden-single-line=3 last-cell=11
+133 hidden-single-box=9 last-cell=11
+134 hidden-single-box=7 hidden-single-line=3 last-cell=12
+135 hidden-single-box=8 hidden-single-line=2 last-cell=12
+136 hidden-single-box=9 hidden-single-line=3 last-cell=12
+137 hidden-single-box=14 hidden-single-line=1 last-cell=11
+138 hidden-single-box=15 hidden-single-line=1 last-cell=11 naked-single=1
+139 hidden-single-box=11 hidden-single-line=3 last-cell=12
+140 hidden-single-box=8 hidden-single-line=2 last-cell=10
+141 hidden-single-box=7 hidden-single-line=2 last-cell=12
+142 hidden-single-box=10 hidden-single-line=1 last-cell=13
+143 hidden-single-box=10 hidden-single-line=2 last-cell=12
+144 hidden-single-box=14 hidden-single-line=2 last-cell=10
+145 hidden-single-box=14 hidden-single-line=2 last-cell=12
+146 hidden-single-box=13 hidden-single-line=3 last-cell=10
+147 hidden-single-box=7 hidden-single-line=1 last-cell=13
+148 hidden-single-box=12 hidden-single-line=1 last-cell=10 naked-single=1
+149 hidden-single-box=11 hidden-single-line=2 last-cell=11
+150 hidden-single-box=9 hidden-single-line=5 last-cell=12
+151 hidden-single-box=15 last-cell=11
+152 hidden-single-box=16 hidden-single-line=2 last-cell=10
+153 hidden-single-box=14 hidden-single-line=1 last-cell=11
+154 hidden-single-box=9 last-cell=11
+155 hidden-single-box=10 hidden-single-line=1 last-cell=11
+156 hidden-single-box=11 hidden-single-line=4 last-cell=11
+157 hidden-single-box=14 hidden-single-line=2 last-cell=10
+158 hidden-single-box=13 hidden-single-line=1 last-cell=10
+159 hidden-single-box=7 hidden-single-line=7 last-cell=12
+160 hidden-single-box=11 hidden-single-line=4 last-cell=11
+161 hidden-single-box=5 hidden-single-line=2 last-cell=13
+162 hidden-single-box=9 hidden-single-line=1 last-cell=11
+163 hidden-single-box=10 hidden-single-line=3 last-cell=10
+164 hidden-single-box=12 last-cell=12
+165 hidden-single-box=13 hidden-single-line=1 last-cell=12
+166 hidden-single-box=13 hidden-single-line=2 last-cell=11
+167 hidden-single-box=8 hidden-single-line=5 last-cell=12
+168 hidden-single-box=8 hidden-single-line=2 last-cell=10
+169 hidden-single-box=11 hidden-single-line=1 last-cell=11
+170 hidden-single-box=10 hidden-single-line=2 last-cell=12
+171 hidden-single-box=11 hidden-single-line=2 last-cell=11
+172 hidden-single-box=9 hidden-single-line=3 last-cell=11 naked-single=1
+173 hidden-single-box=12 hidden-single-line=3 last-cell=11
+174 hidden-single-box=9 hidden-single-line=5 last-cell=12
+175 hidden-single-box=11 last-cell=10
+176 hidden-single-box=11 last-cell=12 naked-single=1
+177 hidden-single-box=11 hidden-single-line=2 last-cell=11
+178 hidden-single-box=9 hidden-single-line=3 last-cell=12
+179 hidden-single-box=10 hidden-single-line=5 last-cell=11
+180 hidden-single-box=8 hidden-single-line=5 last-cell=11
+181 hidden-single-box=13 hidden-single-line=2 last-cell=12
+182 hidden-single-box=8 hidden-single-line=1 last-cell=11
+183 hidden-single-box=14 hidden-single-line=1 last-cell=11
+184 hidden-single-box=9 hidden-single-line=3 last-cell=11 naked-single=1
+185 hidden-single-box=12 hidden-single-line=1 last-cell=11
+186 hidden-single-box=15 hidden-single-line=2 last-cell=9
+187 hidden-single-box=12 hidden-single-line=3 last-cell=11
+188 hidden-single-box=16 hidden-single-line=1 last-cell=11
+189 hidden-single-box=7 hidden-single-line=2 last-cell=11
+190 hidden-single-box=9 last-cell=12 naked-single=1
+191 hidden-single-box=14 last-cell=11
+192 hidden-single-box=12 hidden-single-line=2 last-cell=10
+193 hidden-single-box=12 hidden-single-line=1 last-cell=11
+194 hidden-single-box=15 last-cell=11
+195 hidden-single-box=11 hidden-single-line=2 last-cell=13
+196 hidden-single-box=9 hidden-single-line=2 last-cell=11
+197 hidden-single-box=9 hidden-single-line=1 last-cell=11
+198 hidden-single-box=4 hidden-single-line=7 last-cell=13
+199 hidden-single-box=10 hidden-single-line=4 last-cell=12
+200 hidden-single-box=14 hidden-single-line=2 last-cell=10
+201 hidden-single-box=10 hidden-single-line=5 last-cell=11
+202 hidden-single-box=11 hidden-single-line=3 last-cell=12
+203 hidden-single-box=14 last-cell=10
+204 hidden-single-box=9 hidden-single-line=2 last-cell=11
+205 hidden-single-box=13 last-cell=11
+206 hidden-single-box=12 hidden-single-line=4 last-cell=10
+207 hidden-single-box=19 last-cell=9
+208 hidden-single-box=8 hidden-single-line=4 last-cell=12
+209 hidden-single-box=13 hidden-single-line=2 last-cell=11
+210 hidden-single-box=10 last-cell=12
+211 hidden-single-box=13 hidden-single-line=1 last-cell=10
+212 hidden-single-box=14 hidden-single-line=1 last-cell=9
+213 hidden-single-box=11 hidden-single-line=1 last-cell=12
+214 hidden-single-box=14 hidden-single-line=3 last-cell=11
+215 hidden-single-box=9 hidden-single-line=4 last-cell=11
+216 hidden-single-box=6 hidden-single-line=7 last-cell=13
+217 hidden-single-box=9 last-cell=11
+218 hidden-single-box=9 hidden-single-line=2 last-cell=12
+219 hidden-single-box=12 hidden-single-line=3 last-cell=9
+220 hidden-single-box=7 hidden-single-line=4 last-cell=12
+221 hidden-single-box=9 hidden-single-line=4 last-cell=11
+222 hidden-single-box=13 hidden-single-line=3 last-cell=10
+223 hidden-single-box=11 hidden-single-line=3 last-cell=12
+224 hidden-single-box=7 hidden-single-line=2 last-cell=10
+225 hidden-single-box=9 hidden-single-line=2 last-cell=11
+226 hidden-single-box=11 hidden-single-line=2 last-cell=11
+227 hidden-single-box=12 hidden-single-line=1 last-cell=11
+228 hidden-single-box=12 hidden-single-line=3 last-cell=11
+229 hidden-single-box=9 hidden-single-line=5 last-cell=12
+230 hidden-single-box=7 hidden-single-line=7 last-cell=12
+231 hidden-single-box=6 hidden-single-line=4 last-cell=12
+232 hidden-single-box=11 last-cell=11
+234 hidden-single-box=12 last-cell=12
+235 hidden-single-box=14 hidden-single-line=2 last-cell=10
+236 hidden-single-box=6 hidden-single-line=5 last-cell=12 naked-single=1
+237 hidden-single-box=16 hidden-single-line=2 last-cell=10
+238 hidden-single-box=9 hidden-single-line=2 last-cell=11
+239 hidden-single-box=8 last-cell=12
+240 hidden-single-box=10 last-cell=12
+241 hidden-single-box=15 last-cell=11
+242 hidden-single-box=13 last-cell=11
+243 hidden-single-box=10 hidden-single-line=3 last-cell=11
+244 hidden-single-box=13 hidden-single-line=2 last-cell=11
+245 hidden-single-box=6 hidden-single-line=3 last-cell=11
+246 hidden-single-box=14 last-cell=10
+247 hidden-single-box=9 hidden-single-line=2 last-cell=11
+248 hidden-single-box=9 hidden-single-line=2 last-cell=13
+249 hidden-single-box=11 hidden-single-line=2 last-cell=11
+250 hidden-single-box=9 hidden-single-line=2 last-cell=12 naked-single=1
+251 hidden-single-box=11 hidden-single-line=4 last-cell=11
+252 hidden-single-box=10 last-cell=10
+253 hidden-single-box=8 hidden-single-line=3 last-cell=11
+254 hidden-single-box=16 last-cell=10
+255 hidden-single-box=14 hidden-single-line=1 last-cell=11
+256 hidden-single-box=13 hidden-single-line=2 last-cell=11
+257 hidden-single-box=8 hidden-single-line=4 last-cell=11 naked-single=1
+258 hidden-single-box=10 hidden-single-line=4 last-cell=12
+259 hidden-single-box=9 last-cell=11
+260 hidden-single-box=9 hidden-single-line=1 last-cell=12
+261 hidden-single-box=11 hidden-single-line=2 last-cell=10 naked-single=1
+262 hidden-single-box=12 hidden-single-line=3 last-cell=11
+263 hidden-single-box=11 hidden-single-line=4 last-cell=11
+264 hidden-single-box=9 hidden-single-line=6 last-cell=11
+265 hidden-single-box=11 hidden-single-line=3 last-cell=12
+266 hidden-single-box=9 last-cell=11
+267 hidden-single-box=10 hidden-single-line=1 last-cell=11
+268 hidden-single-box=7 hidden-single-line=6 last-cell=11
+269 hidden-single-box=9 hidden-single-line=3 last-cell=12
+270 hidden-single-box=8 hidden-single-line=5 last-cell=11 naked-single=2
+271 hidden-single-box=10 hidden-single-line=3 last-cell=11
+272 hidden-single-box=11 hidden-single-line=4 last-cell=11
+273 hidden-single-box=8 last-cell=12
+274 hidden-single-box=11 hidden-single-line=1 last-cell=10
+275 hidden-single-box=14 last-cell=10
+276 hidden-single-box=11 hidden-single-line=2 last-cell=12
+277 hidden-single-box=14 last-cell=12
+278 hidden-single-box=9 hidden-single-line=5 last-cell=12
+279 hidden-single-box=12 hidden-single-line=3 last-cell=12
+280 hidden-single-box=8 hidden-single-line=1 last-cell=11
+281 hidden-single-box=9 hidden-single-line=1 last-cell=10
+282 hidden-single-box=13 hidden-single-line=2 last-cell=11
+283 hidden-single-box=10 hidden-single-line=5 last-cell=11
+284 hidden-single-box=5 hidden-single-line=4 last-cell=13 naked-single=2
+285 hidden-single-box=15 hidden-single-line=2 last-cell=11
+286 hidden-single-box=13 hidden-single-line=1 last-cell=12
+287 hidden-single-box=7 hidden-single-line=1 last-cell=12
+288 hidden-single-box=13 last-cell=10
+289 hidden-single-box=8 hidden-single-line=3 last-cell=12
+290 hidden-single-box=9 hidden-single-line=2 last-cell=12 naked-single=1
+291 hidden-single-box=9 hidden-single-line=5 last-cell=12
+292 hidden-single-box=15 hidden-single-line=2 last-cell=11
+293 hidden-single-box=10 hidden-single-line=4 last-cell=12
+294 hidden-single-box=8 hidden-single-line=1 last-cell=11
+295 hidden-single-box=14 last-cell=10
+296 hidden-single-box=11 hidden-single-line=2 last-cell=11
+297 hidden-single-box=11 hidden-single-line=2 last-cell=11
+298 hidden-single-box=8 hidden-single-line=5 last-cell=11
+299 hidden-single-box=12 hidden-single-line=3 last-cell=11
+300 hidden-single-box=15 hidden-single-line=1 last-cell=10
+301 hidden-single-box=7 hidden-single-line=2 last-cell=11
+302 hidden-single-box=6 hidden-single-line=4 last-cell=12
+303 hidden-single-box=14 hidden-single-line=1 last-cell=11
+304 hidden-single-box=10 hidden-single-line=2 last-cell=12
+305 hidden-single-box=12 hidden-single-line=3 last-cell=11
+306 hidden-single-box=11 hidden-single-line=4 last-cell=11
+307 hidden-single-box=13 hidden-single-line=3 last-cell=11
+308 hidden-single-box=8 last-cell=10
+309 hidden-single-box=13 last-cell=11
+310 hidden-single-box=14 last-cell=12
+311 hidden-single-box=16 last-cell=11
+312 hidden-single-box=12 hidden-single-line=3 last-cell=11
+313 hidden-single-box=14 hidden-single-line=2 last-cell=10
+314 hidden-single-box=10 hidden-single-line=5 last-cell=11 naked-single=1
+315 hidden-single-box=9 last-cell=11
+316 hidden-single-box=9 hidden-single-line=1 last-cell=12
+317 hidden-single-box=15 last-cell=9
+318 hidden-single-box=8 hidden-single-line=4 last-cell=12
+319 hidden-single-box=19 last-cell=9
+320 hidden-single-box=12 hidden-single-line=2 last-cell=12
+321 hidden-single-box=11 hidden-single-line=3 last-cell=12
+322 hidden-single-box=11 last-cell=9
+323 hidden-single-box=11 hidden-single-line=1 last-cell=10
+324 hidden-single-box=15 last-cell=9
+325 hidden-single-box=15 last-cell=11
+326 hidden-single-box=16 hidden-single-line=2 last-cell=10
+327 hidden-single-box=11 hidden-single-line=3 last-cell=11 naked-single=1
+328 hidden-single-box=9 hidden-single-line=4 last-cell=11
+329 hidden-single-box=8 hidden-single-line=1 last-cell=11
+330 hidden-single-box=9 hidden-single-line=3 last-cell=10
+331 hidden-single-box=10 hidden-single-line=3 last-cell=11
+332 hidden-single-box=14 hidden-single-line=1 last-cell=11
+333 hidden-single-box=13 hidden-single-line=3 last-cell=10
+334 hidden-single-box=13 hidden-single-line=1 last-cell=10
+335 hidden-single-box=13 hidden-single-line=1 last-cell=12
+336 hidden-single-box=8 last-cell=12
+337 hidden-single-box=11 last-cell=11
+338 hidden-single-box=9 hidden-single-line=2 last-cell=13
+339 hidden-single-box=14 last-cell=10
+340 hidden-single-box=13 hidden-single-line=1 last-cell=10 naked-single=2
+341 hidden-single-box=11 hidden-single-line=3 last-cell=12
+342 hidden-single-box=14 hidden-single-line=1 last-cell=11
+343 hidden-single-box=9 hidden-single-line=1 last-cell=10
+344 hidden-single-box=12 hidden-single-line=2 last-cell=10
+345 hidden-single-box=14 hidden-single-line=1 last-cell=9
+346 hidden-single-box=14 last-cell=10
+347 hidden-single-box=11 hidden-single-line=4 last-cell=11
+348 hidden-single-box=16 hidden-single-line=1 last-cell=11
+349 hidden-single-box=12 hidden-single-line=2 last-cell=12
+350 hidden-single-box=8 hidden-single-line=1 last-cell=11
+351 hidden-single-box=12 hidden-single-line=1 last-cell=11
+352 hidden-single-box=13 hidden-single-line=1 last-cell=10
+353 hidden-single-box=15 last-cell=9
+354 hidden-single-box=16 hidden-single-line=1 last-cell=11
+355 hidden-single-box=15 hidden-single-line=1 last-cell=12
+356 hidden-single-box=7 hidden-single-line=5 last-cell=13 naked-single=1
+357 hidden-single-box=11 last-cell=9
+358 hidden-single-box=8 hidden-single-line=2 last-cell=12
+359 hidden-single-box=16 last-cell=10
+360 hidden-single-box=16 last-cell=10
+361 hidden-single-box=10 hidden-single-line=3 last-cell=11
+362 hidden-single-box=7 hidden-single-line=5 last-cell=12 naked-single=2
+363 hidden-single-box=12 hidden-single-line=2 last-cell=11 naked-single=1
+364 hidden-single-box=6 hidden-single-line=2 last-cell=12
+365 hidden-single-box=6 hidden-single-line=4 last-cell=12
+366 hidden-single-box=11 hidden-single-line=2 last-cell=11
+367 hidden-single-box=14 last-cell=10
+368 hidden-single-box=11 hidden-single-line=3 last-cell=12
+369 hidden-single-box=8 hidden-single-line=4 last-cell=12
+370 hidden-single-box=11 hidden-single-line=4 last-cell=11
+371 hidden-single-box=4 hidden-single-line=4 last-cell=12
+372 hidden-single-box=13 hidden-single-line=1 last-cell=10
+373 hidden-single-box=10 hidden-single-line=2 last-cell=10
+374 hidden-single-box=11 hidden-single-line=4 last-cell=11
+375 hidden-single-box=11 hidden-single-line=3 last-cell=12
+376 hidden-single-box=11 hidden-single-line=2 last-cell=12 naked-single=1
+377 hidden-single-box=8 hidden-single-line=4 last-cell=13 naked-single=1
+378 hidden-single-box=5 hidden-single-line=3 last-cell=12
+379 hidden-single-box=11 hidden-single-line=1 last-cell=12
+380 hidden-single-box=10 hidden-single-line=1 last-cell=10 naked-single=1
+381 hidden-single-box=6 hidden-single-line=6 last-cell=11 naked-single=1
+382 hidden-single-box=14 last-cell=10
+383 hidden-single-box=7 hidden-single-line=5 last-cell=11 naked-single=1
+384 hidden-single-box=8 hidden-single-line=4 last-cell=12
+385 hidden-single-box=8 hidden-single-line=1 last-cell=11
+386 hidden-single-box=6 hidden-single-line=3 last-cell=13
+387 hidden-single-box=12 last-cell=12
+388 hidden-single-box=13 hidden-single-line=2 last-cell=11
+389 hidden-single-box=14 hidden-single-line=1 last-cell=11
+390 hidden-single-box=13 hidden-single-line=3 last-cell=10
+391 hidden-single-box=13 hidden-single-line=1 last-cell=12
+392 hidden-single-box=9 last-cell=11
+393 hidden-single-box=9 hidden-single-line=2 last-cell=11
+394 hidden-single-box=12 last-cell=11 naked-single=1
+395 hidden-single-box=9 hidden-single-line=2 last-cell=11
+396 hidden-single-box=11 hidden-single-line=3 last-cell=12
+397 hidden-single-box=14 hidden-single-line=1 last-cell=11
+398 hidden-single-box=9 hidden-single-line=3 last-cell=12
+399 hidden-single-box=7 hidden-single-line=1 last-cell=11 naked-single=1
+400 hidden-single-box=10 hidden-single-line=1 last-cell=11
+401 hidden-single-box=11 hidden-single-line=2 last-cell=11
+402 hidden-single-box=13 hidden-single-line=3 last-cell=10
+403 hidden-single-box=11 hidden-single-line=2 last-cell=13
+404 hidden-single-box=13 hidden-single-line=2 last-cell=11
+405 hidden-single-box=11 hidden-single-line=3 last-cell=11 naked-single=1
+406 hidden-single-box=9 hidden-single-line=1 last-cell=12
+407 hidden-single-box=15 last-cell=9
+408 hidden-single-box=14 hidden-single-line=1 last-cell=10
+409 hidden-single-box=13 hidden-single-line=2 last-cell=11
+410 hidden-single-box=11 hidden-single-line=2 last-cell=11
+411 hidden-single-box=9 hidden-single-line=4 last-cell=13
+412 hidden-single-box=11 hidden-single-line=4 last-cell=11
+413 hidden-single-box=6 hidden-single-line=1 last-cell=13
+414 hidden-single-box=6 hidden-single-line=3 last-cell=13
+415 hidden-single-box=10 hidden-single-line=2 last-cell=12
+416 hidden-single-box=16 last-cell=10
+417 hidden-single-box=12 hidden-single-line=1 last-cell=11
+418 hidden-single-box=10 hidden-single-line=4 last-cell=12
+419 hidden-single-box=11 hidden-single-line=3 last-cell=12
+420 hidden-single-box=7 hidden-single-line=1 last-cell=12
+421 hidden-single-box=12 hidden-single-line=2 last-cell=10
+422 hidden-single-box=9 hidden-single-line=5 last-cell=12
+423 hidden-single-box=9 hidden-single-line=3 last-cell=12
+424 hidden-single-box=10 hidden-single-line=2 last-cell=12
+425 hidden-single-box=11 hidden-single-line=1 last-cell=11 naked-single=1
+426 hidden-single-box=13 hidden-single-line=1 last-cell=12
+427 hidden-single-box=4 hidden-single-line=3 last-cell=12 naked-single=1
+428 hidden-single-box=11 last-cell=12
+429 hidden-single-box=14 last-cell=10
+430 hidden-single-box=13 hidden-single-line=1 last-cell=11
+431 hidden-single-box=6 hidden-single-line=4 last-cell=13 naked-single=1
+432 hidden-single-box=7 hidden-single-line=6 last-cell=13
+433 hidden-single-box=12 hidden-single-line=3 last-cell=11
+434 hidden-single-box=8 hidden-single-line=1 last-cell=11
+435 hidden-single-box=13 last-cell=10
+436 hidden-single-box=14 last-cell=10
+437 hidden-single-box=11 hidden-single-line=2 last-cell=11
+438 hidden-single-box=13 last-cell=11
+439 hidden-single-box=14 hidden-single-line=1 last-cell=11
+440 hidden-single-box=13 hidden-single-line=2 last-cell=11
+441 hidden-single-box=11 last-cell=9
+442 hidden-single-box=9 hidden-single-line=2 last-cell=11
+443 hidden-single-box=11 hidden-single-line=1 last-cell=12
+444 hidden-single-box=10 hidden-single-line=2 last-cell=12
+445 hidden-single-box=6 hidden-single-line=4 last-cell=11 naked-single=1
+446 hidden-single-box=14 hidden-single-line=1 last-cell=11
+447 hidden-single-box=3 hidden-single-line=8 last-cell=13 naked-single=2
+448 hidden-single-box=8 hidden-single-line=1 last-cell=11
+449 hidden-single-box=10 last-cell=12
+450 hidden-single-box=12 hidden-single-line=2 last-cell=10
+451 hidden-single-box=10 hidden-single-line=2 last-cell=12
+452 hidden-single-box=13 hidden-single-line=2 last-cell=11
+453 hidden-single-box=12 hidden-single-line=1 last-cell=11
+454 hidden-single-box=10 hidden-single-line=3 last-cell=13
+455 hidden-single-box=6 hidden-single-line=4 last-cell=10
+456 hidden-single-box=12 last-cell=10
+457 hidden-single-box=14 last-cell=10
+458 hidden-single-box=8 hidden-single-line=3 last-cell=11
+459 hidden-single-box=13 hidden-single-line=1 last-cell=9 naked-single=1
+460 hidden-single-box=15 last-cell=11
+461 hidden-single-box=11 hidden-single-line=2 last-cell=12 naked-single=1
+462 hidden-single-box=10 hidden-single-line=1 last-cell=11
+463 hidden-single-box=6 hidden-single-line=4 last-cell=12
+464 hidden-single-box=8 hidden-single-line=5 last-cell=11
