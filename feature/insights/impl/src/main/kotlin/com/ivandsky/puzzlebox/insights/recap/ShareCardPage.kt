@@ -31,6 +31,7 @@ import com.ivandsky.puzzlebox.insights.share.RecapShareContent
 import com.ivandsky.puzzlebox.insights.share.RecapShareImage
 import com.ivandsky.puzzlebox.insights.share.RecapShareState
 import com.ivandsky.puzzlebox.insights.share.ScaledToFit
+import com.ivandsky.puzzlebox.insights.share.ShareStyle
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -46,8 +47,12 @@ internal fun ShareCardPage(
     state: RecapShareState,
     onShare: (ImageBitmap, RecapShareContent) -> Unit,
     modifier: Modifier = Modifier,
+    style: ShareStyle = ShareStyle.Classic,
+    nameHidden: Boolean = false,
 ) {
-    val content = remember(cards, state.title, state.displayName) { RecapShareContent.of(state.title, state.displayName, cards) }
+    val content = remember(cards, state.title, state.displayName, nameHidden) {
+        RecapShareContent.of(state.title, state.displayName.takeUnless { nameHidden }, cards)
+    }
     val layer = rememberGraphicsLayer()
     val scope = rememberCoroutineScope()
     Column(
@@ -62,6 +67,7 @@ internal fun ShareCardPage(
             ScaledToFit(Modifier.clip(PreviewShape).border(1.dp, MaterialTheme.colorScheme.outlineVariant, PreviewShape)) {
                 RecapShareImage(
                     content,
+                    style,
                     Modifier.drawWithContent {
                         layer.record(size = IntSize(size.width.roundToInt(), size.height.roundToInt())) { this@drawWithContent.drawContent() }
                         drawLayer(layer)

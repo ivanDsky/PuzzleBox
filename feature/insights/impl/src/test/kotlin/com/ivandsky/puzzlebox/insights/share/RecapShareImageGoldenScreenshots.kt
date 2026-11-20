@@ -1,9 +1,12 @@
 package com.ivandsky.puzzlebox.insights.share
 
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
+import com.ivandsky.puzzlebox.insights.recap.LocalGameBrands
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures
+import com.ivandsky.puzzlebox.insights.recap.SolvedFixtures
 import com.ivandsky.puzzlebox.insights.settleAndCapture
 import com.ivandsky.puzzlebox.insights.showGolden
 import org.junit.Rule
@@ -36,8 +39,43 @@ class RecapShareImageGoldenScreenshots {
 
     @Test fun `few numbers dark`() = capture("few", "2026 so far", "A name that is much too long to fit on a single line of the image", dark = true, cards = listOf(RecapFixtures.solved, RecapFixtures.streak))
 
-    private fun capture(name: String, title: String, displayName: String?, dark: Boolean, cards: List<RecapCard> = this.cards) {
-        rule.showGolden(dark = dark) { RecapShareImage(RecapShareContent.of(title, displayName, cards)) }
+    @Test fun `classic light`() = capture("classic", "October 2026", "Ivan", dark = false, cards = ShareContract.default)
+
+    @Test fun `classic dark`() = capture("classic", "October 2026", "Ivan", dark = true, cards = ShareContract.default)
+
+    @Test fun `colour light`() = capture("colour", "October 2026", "Ivan", dark = false, cards = ShareContract.default, style = ShareStyle.Colour)
+
+    @Test fun `colour dark`() = capture("colour", "October 2026", "Ivan", dark = true, cards = ShareContract.default, style = ShareStyle.Colour)
+
+    @Test fun `night light`() = capture("night", "October 2026", "Ivan", dark = false, cards = ShareContract.default, style = ShareStyle.Night)
+
+    @Test fun `night dark`() = capture("night", "October 2026", "Ivan", dark = true, cards = ShareContract.default, style = ShareStyle.Night)
+
+    @Test fun `longest classic light`() = capture("longest-classic", "October 2026", ShareContract.LONG_NAME, dark = false, cards = ShareContract.longest)
+
+    @Test fun `longest colour dark`() = capture("longest-colour", "October 2026", ShareContract.LONG_NAME, dark = true, cards = ShareContract.longest, style = ShareStyle.Colour)
+
+    @Test fun `longest night light`() = capture("longest-night", "October 2026", ShareContract.LONG_NAME, dark = false, cards = ShareContract.longest, style = ShareStyle.Night)
+
+    @Test fun `empty classic dark`() = capture("empty-classic", "October 2026", "Ivan", dark = true, cards = ShareContract.empty)
+
+    @Test fun `empty night light`() = capture("empty-night", "October 2026", "Ivan", dark = false, cards = ShareContract.empty, style = ShareStyle.Night)
+
+    @Test fun `name hidden classic light`() = capture("name-hidden", "October 2026", null, dark = false, cards = ShareContract.default)
+
+    private fun capture(
+        name: String,
+        title: String,
+        displayName: String?,
+        dark: Boolean,
+        cards: List<RecapCard> = this.cards,
+        style: ShareStyle = ShareStyle.Classic,
+    ) {
+        rule.showGolden(dark = dark) {
+            CompositionLocalProvider(LocalGameBrands provides SolvedFixtures.brands) {
+                RecapShareImage(RecapShareContent.of(title, displayName, cards), style)
+            }
+        }
         rule.settleAndCapture("share", name, "image", dark)
     }
 }
