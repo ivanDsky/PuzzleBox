@@ -117,11 +117,11 @@ class SudokuTrainerSnippetsTest {
         val snippets = SudokuTrainerFixtures.snippets()
         for (snippet in snippets) {
             val name = trainer.catalog().first { it.id == snippet.technique }.name
-            val expected = if (snippet.cut.step is SudokuStep.Single) "Place the digit that $name proves" else "Remove a note that $name rules out"
+            val expected = if (snippet.cut.step is SudokuStep.Single) "Tap the square $name fills, then pick its digit" else "Tap a square, then pick a note $name rules out"
             assertEquals(expected, snippet.prompt)
         }
-        assertTrue(snippets.any { it.prompt.startsWith("Place the digit that") })
-        assertTrue(snippets.any { it.prompt.startsWith("Remove a note that") })
+        assertTrue(snippets.any { it.prompt.endsWith("pick its digit") })
+        assertTrue(snippets.any { it.prompt.startsWith("Tap a square, then pick a note") })
     }
 
     @Test

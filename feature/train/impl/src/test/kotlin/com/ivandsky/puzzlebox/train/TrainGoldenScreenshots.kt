@@ -23,6 +23,7 @@ import com.ivandsky.puzzlebox.train.drill.DrillState
 import com.ivandsky.puzzlebox.train.drill.standInDrillPlay
 import com.ivandsky.puzzlebox.train.drill.standInPlaying
 import com.ivandsky.puzzlebox.train.round.RoundPane
+import com.ivandsky.puzzlebox.train.round.StandInLine
 import com.ivandsky.puzzlebox.train.round.RoundState
 import com.ivandsky.puzzlebox.train.round.standInBoard
 import com.ivandsky.puzzlebox.train.round.standInQuestion
@@ -111,6 +112,7 @@ abstract class TrainGoldenScreenshots(private val device: String) {
         @Composable
         fun Round(state: RoundState, showBack: Boolean) = RoundPane(
             name = "Line lock",
+            line = StandInLine,
             state = state,
             showBack = showBack,
             onClose = {},

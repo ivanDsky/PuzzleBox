@@ -21,5 +21,7 @@ internal data class QueensSnippet(val puzzle: QueensPuzzle, val cut: QueensSnipp
     val placesQueen: Boolean get() = cut.step.result is QueensStep.Deduction.Result.LastCell
 
     override val prompt: String
-        get() = (if (placesQueen) "Place a queen" else "Cross a square") + " that ${QueensTrainerCatalog.name(technique)} proves"
+        get() = QueensTrainerCatalog.name(technique).let { name ->
+            if (placesQueen) "Tap the square where $name puts a queen" else "Tap a square $name rules out"
+        }
 }

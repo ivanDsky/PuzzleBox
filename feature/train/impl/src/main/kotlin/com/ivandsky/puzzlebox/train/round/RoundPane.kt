@@ -50,7 +50,8 @@ internal class RoundBoard(
 
 /**
  * A technique's round: [name] as the title, then by [state] a spinner while it builds or loads, the empty message, the
- * needs-a-connection or can't-load message, the snippet with its board and controls, or the summary. [showBack] adds a
+ * needs-a-connection or can't-load message, the snippet with its board and controls, or the summary. A snippet shows
+ * the technique's [line] (what the idea is) over its prompt (what to do). [showBack] adds a
  * back arrow to the title row (the phone, where the round covers the list); [onClose] is what back and the summary's
  * and the empty message's action do. [onTryAgain] is the needs-a-connection action, which fetches a puzzle,
  * [onTryAnother] the can't-load action, which opens a puzzle already on the device, and [onDrill] the summary's Play a
@@ -59,6 +60,7 @@ internal class RoundBoard(
 @Composable
 internal fun RoundPane(
     name: String,
+    line: String,
     state: RoundState,
     showBack: Boolean,
     onClose: () -> Unit,
@@ -78,7 +80,7 @@ internal fun RoundPane(
             RoundState.Empty -> RoundEmpty(name, onClose)
             RoundState.NeedsConnection -> RoundNeedsConnection(name, onTryAgain)
             is RoundState.CantLoad -> RoundCantLoad(name, onTryAnother)
-            is RoundState.Question -> RoundQuestion(state, board, onShowMe, onNext)
+            is RoundState.Question -> RoundQuestion(state, line, board, onShowMe, onNext)
             is RoundState.Summary -> RoundSummary(state, onClose, onDrill)
         }
     }
@@ -107,10 +109,27 @@ internal fun RoundHeader(name: String, position: Pair<Int, Int>?, showBack: Bool
     }
 }
 
+/**
+ * One snippet: the technique's [line], then the prompt and the note that a snippet takes one move, which the reveal
+ * then explains (players read the first reveal as a hint that came too early), the board, and the controls.
+ */
 @Composable
-private fun ColumnScope.RoundQuestion(state: RoundState.Question, board: RoundBoard, onShowMe: (Snippet) -> Unit, onNext: () -> Unit) {
+private fun ColumnScope.RoundQuestion(
+    state: RoundState.Question,
+    line: String,
+    board: RoundBoard,
+    onShowMe: (Snippet) -> Unit,
+    onNext: () -> Unit,
+) {
     val snippet = state.snippet
+    Text(line, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Spacer(Modifier.size(Spacing.sm))
     Text(snippet.prompt, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+    Text(
+        "One move, then the board shows why.",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
     Box(Modifier.weight(1f).fillMaxWidth().padding(vertical = Spacing.md), contentAlignment = Alignment.Center) {
         // One key per snippet, so the next board starts from its own state.
         key(state.index) {

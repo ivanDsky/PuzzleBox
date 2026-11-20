@@ -30,6 +30,6 @@ internal data class SudokuSnippet(
 
     override val prompt: String
         get() = SudokuTrainerCatalog.name(technique).let { name ->
-            if (placesDigit) "Place the digit that $name proves" else "Remove a note that $name rules out"
+            if (placesDigit) "Tap the square $name fills, then pick its digit" else "Tap a square, then pick a note $name rules out"
         }
 }

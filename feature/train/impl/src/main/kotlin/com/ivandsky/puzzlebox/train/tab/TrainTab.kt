@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.train.tab
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -10,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -46,7 +48,7 @@ internal fun TrainTabHost(twoPane: Boolean, drillPlay: DrillPlaySlot) {
     val open = current.open
     if (!twoPane && open != null) {
         BackHandler(onBack = vm::closeTechnique)
-        OpenTechniqueBody(open, vm, drillPlay, showBack = true)
+        OpenTechniqueBody(open, vm, drillPlay, showBack = true, modifier = Modifier.holdSideSwipes())
         return
     }
     val chips = rememberGameChips(current.games)
@@ -59,6 +61,15 @@ internal fun TrainTabHost(twoPane: Boolean, drillPlay: DrillPlaySlot) {
         onOpen = { vm.openTechnique(current.selected, it) },
         modifier = Modifier.fillMaxSize(),
     )
+}
+
+/**
+ * Takes every sideways drag inside the open round or drill, so a stroke across a board (a line of crosses) never swipes
+ * the Games pager to the next tab. A drag the board itself takes is already consumed and passes through untouched;
+ * taps never pass the touch slop, so they are never taken.
+ */
+private fun Modifier.holdSideSwipes(): Modifier = pointerInput(Unit) {
+    detectHorizontalDragGestures { change, _ -> change.consume() }
 }
 
 @Composable

@@ -42,6 +42,7 @@ internal fun RoundHost(
     }
     RoundPane(
         name = open.technique.name,
+        line = open.technique.line,
         state = state,
         showBack = showBack,
         onClose = onClose,
