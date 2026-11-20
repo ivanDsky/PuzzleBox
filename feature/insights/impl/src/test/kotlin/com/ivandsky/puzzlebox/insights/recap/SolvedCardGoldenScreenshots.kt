@@ -113,7 +113,7 @@ class SolvedCardGoldenScreenshots {
         names: (GameId) -> String = gameName,
     ) {
         rule.showGolden(dark = dark) {
-            CompositionLocalProvider(LocalGameAccent provides SolvedFixtures.accentOf) {
+            CompositionLocalProvider(LocalGameBrands provides SolvedFixtures.brands) {
                 RecapScreen(state, periodLabel, names, onPage = {}, onWatchReplay = {}, onClose = {})
             }
         }

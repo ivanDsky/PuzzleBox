@@ -63,7 +63,7 @@ class FastestCardGoldenScreenshots {
 
     private fun capture(state: String, device: String, dark: Boolean, card: RecapCard.Fastest, swipes: Int = 0) {
         rule.showGolden(dark = dark) {
-            CompositionLocalProvider(LocalGameAccent provides FastestFixtures.accentOf) {
+            CompositionLocalProvider(LocalGameBrands provides FastestFixtures.brands) {
                 RecapScreen(
                     FastestFixtures.story(card), "October 2026", FastestFixtures.gameName,
                     onPage = {}, onWatchReplay = {}, onClose = {},

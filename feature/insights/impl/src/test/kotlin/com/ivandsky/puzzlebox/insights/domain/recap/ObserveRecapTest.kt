@@ -174,7 +174,7 @@ class ObserveRecapTest {
             assertEquals(RecapCard.Friends(FriendsStanding.Reading), placeholder[4])
             val settled = awaitItem()
             assertEquals(placeholder.kinds(), settled.kinds())
-            assertEquals(RecapCard.Friends(FriendsStanding.Loaded(beta, 640.0)), settled[4])
+            assertEquals(RecapCard.Friends(FriendsStanding.Loaded(beta, 640.0, friendCount = 1, friendNames = listOf("maya"))), settled[4])
             awaitComplete()
         }
     }
@@ -200,7 +200,7 @@ class ObserveRecapTest {
             val settled = awaitItem()
             assertEquals(local.size, settled.size)
             assertEquals(local.filterNot { it is RecapCard.Friends }, settled.filterNot { it is RecapCard.Friends })
-            assertEquals(RecapCard.Friends(FriendsStanding.Loaded(beta, 640.0)), settled[4])
+            assertEquals(RecapCard.Friends(FriendsStanding.Loaded(beta, 640.0, friendCount = 1, friendNames = listOf("maya"))), settled[4])
             awaitComplete()
         }
     }
@@ -214,7 +214,7 @@ class ObserveRecapTest {
         recap(november).test {
             awaitItem()
             val settled = awaitItem()
-            assertEquals(RecapCard.Friends(FriendsStanding.Loaded(alpha, 300.0)), settled[4])
+            assertEquals(RecapCard.Friends(FriendsStanding.Loaded(alpha, 300.0, friendCount = 1, friendNames = listOf("linkedin:connection"))), settled[4])
             awaitComplete()
         }
     }
@@ -273,6 +273,7 @@ class ObserveRecapTest {
         recap(november).test {
             assertEquals(settling, awaitItem()[4])
             gate.complete(Unit)
+            assertEquals(RecapCard.Friends(FriendsStanding.Settling(LocalDate.of(2026, 12, 4), friendCount = 1, friendNames = listOf("maya"))), awaitItem()[4])
             awaitComplete()
         }
     }

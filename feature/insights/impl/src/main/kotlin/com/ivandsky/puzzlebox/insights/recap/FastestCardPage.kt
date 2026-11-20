@@ -45,7 +45,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteEntry
@@ -64,7 +63,7 @@ import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.launch
 
 /**
- * The Fastest solve page: one mini-card per game played, in game order, starting at [initialGame], each in the accent [accentOf] gives its game (Neutral until the route provides them). A swipe steps
+ * The Fastest solve page: one mini-card per game played, in game order, starting at [initialGame], each in the accent of its game's brand (Neutral until the route provides them). A swipe steps
  * through the games inside the card, the pips say where it is; past the last game a forward swipe (and before the first
  * a back one) is left to the deck. A tap is the deck's, so the replay pill is the only thing here that takes one (A5:
  * an imported time has no pill). Reduced motion crossfades between games.
@@ -77,9 +76,9 @@ internal fun FastestCardPage(
     onWatchReplay: (RecapCard.Fastest.Row) -> Unit,
     modifier: Modifier = Modifier,
     initialGame: Int = 0,
-    accentOf: (GameId) -> AccentSlot = LocalGameAccent.current,
 ) {
     val ink = PaletteEntry.Fastest.ink
+    val brands = LocalGameBrands.current
     val reduced = rememberReducedMotion()
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
@@ -139,7 +138,7 @@ internal fun FastestCardPage(
             Crossfade(game, Modifier.fillMaxSize(), animationSpec = if (reduced) tween(MotionTokens.ReducedFadeDuration) else tween(0), label = "game") { index ->
                 val row = card.rows[index]
                 FastestGameCard(
-                    row, gameName(row.game), accentOf(row.game).colors().accent,
+                    row, gameName(row.game), brands(row.game).accent.colors().accent,
                     startDelayMs = if (stepped > 0) StepDelayMs else 0,
                     onWatchReplay = { onWatchReplay(row) },
                     modifier = Modifier.fillMaxSize().graphicsLayer {

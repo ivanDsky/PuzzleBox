@@ -292,7 +292,7 @@ class RecapViewModelTest {
             gate.complete(Unit)
 
             val full = awaitItem() as RecapUiState.Ready
-            assertEquals(listOf(solved, RecapCard.Friends(FriendsStanding.Loaded(alpha, 310.0))), full.cards)
+            assertEquals(listOf(solved, RecapCard.Friends(FriendsStanding.Loaded(alpha, 310.0, friendCount = 1, friendNames = listOf("Maya")))), full.cards)
             assertEquals(local.initialPage, full.initialPage)
             expectNoEvents()
         }

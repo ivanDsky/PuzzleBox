@@ -67,14 +67,14 @@ class ResolveFriendsStandingTest {
             beta to flowOf(standings("maya" to 900.0, "me" to 520.0)),
         )
 
-        assertEquals(FriendsStanding.Loaded(beta, 520.0), resolve(answers)(november, listOf(alpha, beta)))
+        assertEquals(FriendsStanding.Loaded(beta, 520.0, friendCount = 1, friendNames = listOf("maya")), resolve(answers)(november, listOf(alpha, beta)))
     }
 
     @Test
     fun `a tie goes to the game listed first`() = runTest {
         val answers = mapOf(alpha to flowOf(standings("me" to 400.0)), beta to flowOf(standings("me" to 400.0)))
 
-        assertEquals(FriendsStanding.Loaded(alpha, 400.0), resolve(answers)(november, listOf(alpha, beta)))
+        assertEquals(FriendsStanding.Loaded(alpha, 400.0, friendCount = 1, friendNames = listOf("maya")), resolve(answers)(november, listOf(alpha, beta)))
     }
 
     @Test
@@ -94,7 +94,7 @@ class ResolveFriendsStandingTest {
         val onOne = mapOf(alpha to flowOf(OverallState.Empty), beta to flowOf(standings("me" to 80.0)))
         val onNone = mapOf(alpha to flowOf(OverallState.Empty), beta to flowOf(standings("maya" to 80.0)))
 
-        assertEquals(FriendsStanding.Loaded(beta, 80.0), resolve(onOne)(november, listOf(alpha, beta)))
+        assertEquals(FriendsStanding.Loaded(beta, 80.0, friendCount = 1, friendNames = listOf("maya")), resolve(onOne)(november, listOf(alpha, beta)))
         assertEquals(FriendsStanding.NotApplicable, resolve(onNone)(november, listOf(alpha, beta)))
     }
 
@@ -103,9 +103,37 @@ class ResolveFriendsStandingTest {
         val answers = mapOf(alpha to flowOf(standings("me" to 250.0, "linkedin-friend" to 80.0)))
 
         listOf("2026-12-01T12:00:00Z", "2026-12-02T12:00:00Z", "2026-12-03T12:00:00Z").forEach { day ->
-            assertEquals(FriendsStanding.Settling(LocalDate.of(2026, 12, 4)), resolve(answers, today = day)(november, listOf(alpha)))
+            assertEquals(FriendsStanding.Settling(LocalDate.of(2026, 12, 4), friendCount = 1, friendNames = listOf("linkedin-friend")), resolve(answers, today = day)(november, listOf(alpha)))
         }
-        assertEquals(FriendsStanding.Loaded(alpha, 250.0), resolve(answers, today = "2026-12-04T12:00:00Z")(november, listOf(alpha)))
+        assertEquals(FriendsStanding.Loaded(alpha, 250.0, friendCount = 1, friendNames = listOf("linkedin-friend")), resolve(answers, today = "2026-12-04T12:00:00Z")(november, listOf(alpha)))
+    }
+
+    @Test
+    fun `the winning game's friends are counted and named in board order without the viewer, the names capped at 30`() = runTest {
+        val crowd = (1..35).map { "friend$it" to 1.0 }
+        val answers = mapOf(
+            alpha to flowOf(standings("friend1" to 900.0, "me" to 300.0, "friend2" to 1.0)),
+            beta to flowOf(standings("me" to 520.0, *crowd.toTypedArray())),
+        )
+
+        val best = resolve(answers)(november, listOf(alpha, beta)) as FriendsStanding.Loaded
+
+        assertEquals(beta, best.game)
+        assertEquals(35, best.friendCount)
+        assertEquals(crowd.take(30).map { it.first }, best.friendNames)
+    }
+
+    @Test
+    fun `a settling month counts each friend once across the games it read`() = runTest {
+        val answers = mapOf(
+            alpha to flowOf(standings("me" to 1.0, "maya" to 1.0, "li" to 1.0)),
+            beta to flowOf(standings("maya" to 1.0, "me" to 1.0, "sam" to 1.0)),
+        )
+
+        val settling = resolve(answers, today = "2026-12-02T12:00:00Z")(november, listOf(alpha, beta)) as FriendsStanding.Settling
+
+        assertEquals(3, settling.friendCount)
+        assertEquals(listOf("maya", "li", "sam"), settling.friendNames)
     }
 
     @Test
@@ -131,8 +159,8 @@ class ResolveFriendsStandingTest {
         val october = RecapPeriod.Month(YearMonth.of(2026, 10))
         val december = RecapPeriod.Month(YearMonth.of(2026, 12))
 
-        assertEquals(FriendsStanding.Loaded(alpha, 90.0), resolve(answers, today = "2026-12-02T12:00:00Z")(october, listOf(alpha)))
-        assertEquals(FriendsStanding.Loaded(alpha, 90.0), resolve(answers, today = "2026-12-02T12:00:00Z")(december, listOf(alpha)))
+        assertEquals(FriendsStanding.Loaded(alpha, 90.0, friendCount = 1, friendNames = listOf("maya")), resolve(answers, today = "2026-12-02T12:00:00Z")(october, listOf(alpha)))
+        assertEquals(FriendsStanding.Loaded(alpha, 90.0, friendCount = 1, friendNames = listOf("maya")), resolve(answers, today = "2026-12-02T12:00:00Z")(december, listOf(alpha)))
     }
 
     @Test
@@ -153,7 +181,7 @@ class ResolveFriendsStandingTest {
     fun `friends that are only on the boards, as LinkedIn connections are, count the same as duel partners`() = runTest {
         val answers = mapOf(alpha to flowOf(standings("me" to 120.0, "linkedin-friend" to 80.0)))
 
-        assertEquals(FriendsStanding.Loaded(alpha, 120.0), resolve(answers)(november, listOf(alpha)))
+        assertEquals(FriendsStanding.Loaded(alpha, 120.0, friendCount = 1, friendNames = listOf("linkedin-friend")), resolve(answers)(november, listOf(alpha)))
     }
 
     @Test
@@ -276,7 +304,7 @@ class ResolveFriendsStandingTest {
             emit(standings("me" to 150.0))
         }
 
-        assertEquals(FriendsStanding.Loaded(alpha, 150.0), resolve(mapOf(alpha to partialThenDone))(november, listOf(alpha)))
+        assertEquals(FriendsStanding.Loaded(alpha, 150.0, friendCount = 1, friendNames = listOf("maya")), resolve(mapOf(alpha to partialThenDone))(november, listOf(alpha)))
     }
 
     @Test

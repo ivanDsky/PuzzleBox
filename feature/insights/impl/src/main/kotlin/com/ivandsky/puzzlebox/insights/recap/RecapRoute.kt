@@ -33,8 +33,7 @@ internal fun RecapRoute(periodId: String, onOpenReplay: (ReplayKey) -> Unit, onC
         onOpenReplay(ReplayKey.daily(row.game.value, row.day.toString(), row.puzzleNumber, latest = false))
     }
     val playRegistry = koinInject<GamePlayRegistry>()
-    val accentOf = remember(playRegistry) { { game: GameId -> playRegistry.brandOf(game).accent } }
-    CompositionLocalProvider(LocalGameAccent provides accentOf) { RecapContent(periodId, gameName, watchReplay, onClose) }
+    CompositionLocalProvider(LocalGameBrands provides playRegistry::brandOf) { RecapContent(periodId, gameName, watchReplay, onClose) }
 }
 
 @Composable
