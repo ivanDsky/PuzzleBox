@@ -43,6 +43,7 @@ internal fun previewRecap(
     opened = opened,
     onOpen = onOpen,
     onDismiss = onDismiss,
+    liftKey = periodId,
 )
 
 // Preview: the tile above another summary row at the 360 dp floor, then a long month name that must not clip, the opened

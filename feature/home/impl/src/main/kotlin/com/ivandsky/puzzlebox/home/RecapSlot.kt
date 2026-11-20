@@ -15,7 +15,8 @@ sealed interface RecapSlot {
      * The recap Today offers. [periodId] names it (`YYYY-MM`, `YYYY`) and [label] is the period as the player reads it
      * ("October 2026"); [yearly] draws a year. [solved] is its counted solves, [solvedByGame] each game's share of them
      * and [months] a year's count for each month. [opened]: the story was watched. [onOpen] opens the recap and
-     * [onDismiss] hides its tile for that period only.
+     * [onDismiss] hides its tile for that period only. [liftKey] is the nav key [onOpen] pushes, opaque here: the story
+     * grows out of the tile it marks.
      */
     class Due(
         val periodId: String,
@@ -27,5 +28,6 @@ sealed interface RecapSlot {
         val opened: Boolean,
         val onOpen: () -> Unit,
         val onDismiss: () -> Unit,
+        val liftKey: Any,
     ) : RecapSlot
 }

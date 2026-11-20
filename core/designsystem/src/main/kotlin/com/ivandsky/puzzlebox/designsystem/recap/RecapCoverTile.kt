@@ -55,6 +55,8 @@ import com.ivandsky.puzzlebox.designsystem.RecapMotion
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.field
 import com.ivandsky.puzzlebox.designsystem.ink
+import com.ivandsky.puzzlebox.designsystem.navLiftPulse
+import com.ivandsky.puzzlebox.designsystem.navLiftSource
 import com.ivandsky.puzzlebox.designsystem.plate
 import com.ivandsky.puzzlebox.designsystem.rememberCountUp
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -81,7 +83,9 @@ private const val SHEEN_DELAY_MS = 1500
  * [MotionTokens.ReducedFadeDuration] fade). The whole tile is one button reading [description]; [onDismiss], when set, is
  * a 48dp × named [dismissLabel]. Tags: [tag] on the tile, `"$tag.dismiss"` on the ×. [variant] picks the layout: the full
  * tile of Today, or a compact year or month tile of the hub ([RecapTileSize]), where [title] is the period's label
- * and [subtitle] the unit that follows the count.
+ * and [subtitle] the unit that follows the count. [liftKey], when set, is the nav key of the story the tile opens: the
+ * story grows out of the tile ([navLiftSource], text never scaled) and, once it has shrunk back, the kicker pulses once
+ * ([navLiftPulse]).
  */
 @Composable
 fun RecapCoverTile(
@@ -99,6 +103,7 @@ fun RecapCoverTile(
     dismissLabel: String? = null,
     onDismiss: (() -> Unit)? = null,
     variant: RecapTileSize = RecapTileSize.Full,
+    liftKey: Any? = null,
 ) {
     val field = card.field
     val ink = card.ink
@@ -117,11 +122,13 @@ fun RecapCoverTile(
         }
     }
     val background = if (opened) Modifier.background(field) else Modifier.background(Brush.linearGradient(listOf(field, plate)))
+    val kicker = if (liftKey != null) Modifier.navLiftPulse(liftKey) else Modifier
     Box(
         modifier
             .widthIn(max = variant.maxWidth)
             .fillMaxWidth()
             .heightIn(min = variant.minHeight)
+            .then(if (liftKey != null) Modifier.navLiftSource(liftKey, scaleContent = false) else Modifier)
             .alpha(fade.value)
             .clip(RoundedCornerShape(TileRadius))
             .then(background)
@@ -155,7 +162,7 @@ fun RecapCoverTile(
                 Modifier.padding(start = Spacing.lg, top = Spacing.lg, end = ArtSize + Spacing.xxl),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
-                Kicker(opened, ink, field)
+                Kicker(opened, ink, field, kicker)
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     Text(title, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = ink)
                     Text(subtitle, style = MaterialTheme.typography.bodySmall, color = ink)
@@ -170,7 +177,7 @@ fun RecapCoverTile(
             SolvedCount(solved, play && !reduced, ink, Modifier.align(Alignment.BottomStart).padding(start = Spacing.lg, bottom = Spacing.lg))
             OpenButton(opened, ink, plate, Modifier.align(Alignment.BottomEnd).padding(end = Spacing.lg, bottom = Spacing.lg))
         } else {
-            CompactTileContent(variant, art, title, subtitle, solved, opened, play && !reduced, ink, field)
+            CompactTileContent(variant, art, title, subtitle, solved, opened, play && !reduced, ink, field, kicker)
         }
         if (onDismiss != null) {
             IconButton(onClick = onDismiss, modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.xs).size(Touch).testTag("$tag.dismiss")) {
@@ -181,12 +188,12 @@ fun RecapCoverTile(
 }
 
 @Composable
-internal fun Kicker(opened: Boolean, ink: Color, field: Color) {
+internal fun Kicker(opened: Boolean, ink: Color, field: Color, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(percent = 50)
     val style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
     if (opened) {
         Row(
-            Modifier.border(OutlineWidth, ink, shape).padding(horizontal = Spacing.sm, vertical = 2.dp),
+            modifier.border(OutlineWidth, ink, shape).padding(horizontal = Spacing.sm, vertical = 2.dp),
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -194,7 +201,7 @@ internal fun Kicker(opened: Boolean, ink: Color, field: Color) {
             Text("WATCHED", style = style, color = ink)
         }
     } else {
-        Text("NEW", Modifier.background(ink, shape).padding(horizontal = Spacing.sm, vertical = 2.dp), style = style, color = field)
+        Text("NEW", modifier.background(ink, shape).padding(horizontal = Spacing.sm, vertical = 2.dp), style = style, color = field)
     }
 }
 

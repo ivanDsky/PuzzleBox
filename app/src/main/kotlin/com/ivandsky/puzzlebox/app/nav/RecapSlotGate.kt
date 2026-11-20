@@ -43,6 +43,7 @@ internal fun recapSlot(
         opened = shown.periodId in opened,
         onOpen = { navigator.pushLayer(InsightsRecapKey(shown.periodId)) },
         onDismiss = { dismiss(shown.periodId) },
+        liftKey = InsightsRecapKey(shown.periodId),
     )
 }
 

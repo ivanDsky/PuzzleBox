@@ -23,7 +23,8 @@ private val YearBarsHeight = 64.dp
 /**
  * What a compact [RecapCoverTile] ([RecapTileSize.Year] or [RecapTileSize.Month]) draws inside its box: the kicker, the
  * count with [unit] after it, the period's [title], and the [art] (a year's bars straight on the field, a month's mosaic
- * on a small plate). A year reads kicker, title, count; a month reads kicker, count, title at the foot.
+ * on a small plate). A year reads kicker, title, count; a month reads kicker, count, title at the foot. [kicker] goes on
+ * the kicker.
  */
 @Composable
 internal fun BoxScope.CompactTileContent(
@@ -36,6 +37,7 @@ internal fun BoxScope.CompactTileContent(
     animate: Boolean,
     ink: Color,
     field: Color,
+    kicker: Modifier,
 ) {
     val titleStyle = if (variant == RecapTileSize.Year) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleSmall
     val heading = @Composable { Text(title, style = titleStyle.copy(fontWeight = FontWeight.Bold), color = ink) }
@@ -55,12 +57,12 @@ internal fun BoxScope.CompactTileContent(
     }
     if (variant == RecapTileSize.Year) {
         Column(Modifier.padding(start = Spacing.lg, top = Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Kicker(opened, ink, field)
+            Kicker(opened, ink, field, kicker)
             heading()
             SolvedCount(solved, animate, ink, Modifier, unit, numberSize = 20.sp)
         }
     } else {
-        Column(Modifier.padding(start = Spacing.md, top = Spacing.md)) { Kicker(opened, ink, field) }
+        Column(Modifier.padding(start = Spacing.md, top = Spacing.md)) { Kicker(opened, ink, field, kicker) }
         Column(Modifier.align(Alignment.BottomStart).padding(start = Spacing.md, bottom = Spacing.md)) {
             SolvedCount(solved, animate, ink, Modifier, unit, numberSize = 36.sp)
             heading()

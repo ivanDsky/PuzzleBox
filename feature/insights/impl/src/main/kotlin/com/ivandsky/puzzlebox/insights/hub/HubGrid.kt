@@ -38,6 +38,7 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.TwoColumnFrame
 import com.ivandsky.puzzlebox.designsystem.TwoColumnMinWidth
 import com.ivandsky.puzzlebox.designsystem.resultBeat
+import com.ivandsky.puzzlebox.insights.api.InsightsRecapKey
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapPeriod
 import com.ivandsky.puzzlebox.insights.domain.recap.SummarizedPeriod
 
@@ -128,6 +129,8 @@ private fun LazyGridScope.section(
             selected = item.period.id == selectedId,
             onClick = { onTile(item) },
             modifier = beat,
+            // A phone tile opens its story, so the story grows out of it; a tablet tile only selects (the pane opens).
+            liftKey = if (selectedId == null) InsightsRecapKey(item.period.id) else null,
         )
     }
 }

@@ -67,6 +67,7 @@ internal fun HomeRecapCard(slot: RecapSlot, brands: Map<GameId, GameBrand>, modi
                 modifier = modifier,
                 dismissLabel = "Dismiss ${slot.label} recap",
                 onDismiss = slot.onDismiss,
+                liftKey = slot.liftKey,
             )
         }
     }

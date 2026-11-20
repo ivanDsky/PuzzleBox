@@ -38,6 +38,8 @@ import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.home.api.HomeKey
+import com.ivandsky.puzzlebox.insights.api.InsightsKey
+import com.ivandsky.puzzlebox.insights.api.InsightsRecapKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
@@ -164,6 +166,45 @@ class NavTransitionsTest {
         )
     }
 
+    // ---- pins: the recap story ----
+
+    @Test
+    fun `a recap story grows out of its tile and shrinks back into it on either form, unscrimmed`() {
+        NavForm.entries.forEach { form ->
+            val open = navMotion(homeRoot, recap, pop = false, reduceMotion = false, form, liftable = true)
+            val close = navMotion(recap, hub, pop = true, reduceMotion = false, form, liftable = true)
+
+            assertEquals(NavMotionKind.Lift, open.kind)
+            assertEquals(400, open.durationMillis)
+            assertEquals(MotionTokens.EasingStandard, open.easing)
+            assertTrue(open.incomingOnTop)
+            assertEquals(NavMotionKind.Lift, close.kind)
+            assertEquals(300, close.durationMillis)
+            assertEquals(MotionTokens.EasingStandard, close.easing)
+            assertTrue(!close.incomingOnTop)
+            assertEquals("$form: the tile is never dimmed", listOf(0f, 0f), listOf(open.scrimAlpha, close.scrimAlpha))
+        }
+        // Only the story lifts on the phone: a game there still slides.
+        assertEquals(NavMotionKind.Slide, navMotion(playRoot, game, pop = false, reduceMotion = false, NavForm.Phone, liftable = true).kind)
+    }
+
+    @Test
+    fun `a recap story with no tile to grow from or shrink into crossfades for 120 ms on either form`() {
+        NavForm.entries.forEach { form ->
+            listOf(
+                navMotion(hub, recap, pop = false, reduceMotion = false, form),
+                navMotion(homeRoot, recap, pop = false, reduceMotion = false, form),
+                navMotion(recap, hub, pop = true, reduceMotion = false, form),
+                navMotion(recap, homeRoot, pop = true, reduceMotion = false, form),
+            ).forEach { motion ->
+                assertEquals("$form", NavMotionKind.Crossfade, motion.kind)
+                assertEquals(MotionTokens.ReducedFadeDuration, motion.durationMillis)
+                assertEquals(0f, motion.scrimAlpha)
+                assertEquals(0f, motion.parallaxFraction)
+            }
+        }
+    }
+
     // ---- pins: the layer above the tabs ----
 
     @Test
@@ -252,6 +293,8 @@ class NavTransitionsTest {
                 navMotion(game, result, pop = false, reduceMotion = true, form),
                 navMotion(homeRoot, playRoot, pop = false, reduceMotion = true, form),
                 navMotion(playRoot, homeRoot, pop = true, reduceMotion = true, form),
+                navMotion(homeRoot, recap, pop = false, reduceMotion = true, form, liftable = true),
+                navMotion(recap, hub, pop = true, reduceMotion = true, form, liftable = true),
             )
         }
 
@@ -614,5 +657,7 @@ class NavTransitionsTest {
         val layerProfile = entry(LAYER_OWNER, ProfileKey)
         val layerSettings = entry(LAYER_OWNER, SettingsKey)
         val result = entry(PlayKey, ResultKey(gameId = "zip", day = "2026-03-09", timeMs = 61_000, hintsUsed = 0))
+        val hub = entry(LAYER_OWNER, InsightsKey)
+        val recap = entry(LAYER_OWNER, InsightsRecapKey("2026-10"))
     }
 }

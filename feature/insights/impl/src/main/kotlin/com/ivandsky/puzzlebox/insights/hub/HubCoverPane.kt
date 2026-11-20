@@ -41,17 +41,21 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.field
 import com.ivandsky.puzzlebox.designsystem.ink
+import com.ivandsky.puzzlebox.designsystem.navLiftPulse
+import com.ivandsky.puzzlebox.designsystem.navLiftSource
 import com.ivandsky.puzzlebox.designsystem.plate
 import com.ivandsky.puzzlebox.designsystem.recap.RecapArtPlate
 import com.ivandsky.puzzlebox.designsystem.recap.RecapTileArt
 import com.ivandsky.puzzlebox.designsystem.recap.YearBars
+import com.ivandsky.puzzlebox.insights.api.InsightsRecapKey
 import com.ivandsky.puzzlebox.insights.domain.recap.SummarizedPeriod
 import com.ivandsky.puzzlebox.insights.label
 import java.text.NumberFormat
 
 /**
- * The tablet's right pane: the selected period's cover, large. Tapping it opens that period's story ([onOpen]); a tile
- * tap in the list only selects. Tag `insights.hub.pane`.
+ * The tablet's right pane: the selected period's cover, large. Tapping it opens that period's story ([onOpen]), which
+ * grows out of the pane and pulses its kicker once shrunk back ([navLiftSource]); a tile tap in the list only selects.
+ * Tag `insights.hub.pane`.
  */
 @Composable
 internal fun HubCoverPane(item: SummarizedPeriod, opened: Boolean, yearSoFar: Int?, onOpen: () -> Unit, modifier: Modifier = Modifier) {
@@ -59,9 +63,11 @@ internal fun HubCoverPane(item: SummarizedPeriod, opened: Boolean, yearSoFar: In
     val ink = card.ink
     val headline = if (item.period.id == yearSoFar?.toString()) "${item.period.id} so far" else item.period.label()
     val kind = if (item.kind == "year") "YEAR" else "MONTH"
+    val story = InsightsRecapKey(item.period.id)
     Box(
         modifier
             .fillMaxWidth()
+            .navLiftSource(story, scaleContent = false)
             .clip(RoundedCornerShape(PaneRadius))
             .background(Brush.linearGradient(listOf(card.field, card.plate)))
             .dashedTop(ink.copy(alpha = DashAlpha))
@@ -73,7 +79,12 @@ internal fun HubCoverPane(item: SummarizedPeriod, opened: Boolean, yearSoFar: In
             },
     ) {
         Column(Modifier.fillMaxSize().padding(start = Spacing.xl, end = Spacing.xl, top = ContentTop, bottom = Spacing.xl)) {
-            Text("YOUR $kind RECAP", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp), color = ink)
+            Text(
+                "YOUR $kind RECAP",
+                modifier = Modifier.navLiftPulse(story),
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+                color = ink,
+            )
             Text(
                 headline.replaceFirst(" ", "\n"),
                 style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Bold, fontSize = 56.sp, lineHeight = 60.sp),

@@ -44,7 +44,8 @@ internal fun SummarizedPeriod.description(opened: Boolean): String =
 
 /**
  * One period's compact tile: a year (bars, "N so far" for the running year) or a month (mosaic). [selected] outlines it
- * on a tablet, where a tap selects; [yearSoFar] is the running year, if its tile is listed.
+ * on a tablet, where a tap selects; [yearSoFar] is the running year, if its tile is listed. [liftKey]: the story key the
+ * tile opens and grows ([RecapCoverTile]).
  */
 @Composable
 internal fun HubCoverTile(
@@ -54,6 +55,7 @@ internal fun HubCoverTile(
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    liftKey: Any? = null,
 ) {
     val period = item.period
     val card = item.card
@@ -73,6 +75,7 @@ internal fun HubCoverTile(
         tag = "insights.hub.${item.kind}.${period.id}",
         modifier = modifier.then(outline),
         variant = if (year) RecapTileSize.Year else RecapTileSize.Month,
+        liftKey = liftKey,
     )
 }
 

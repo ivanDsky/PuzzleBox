@@ -62,6 +62,7 @@ private fun RecapContent(
             share = share,
             onShare = shareViewModel::share,
             onRetry = viewModel::retry,
+            coverRise = rememberCoverRise(),
         )
     }
 }
