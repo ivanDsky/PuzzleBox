@@ -47,9 +47,30 @@ internal sealed interface RecapCard {
 
     /**
      * One month of a year (A3): [solved] counted solves in [month], and its quickest, [fastestTimeMs] in [fastestGame].
-     * A year's story has one of these for each month with a counted solve, after the totals; a month's story has none.
+     * A year's story has one of these for each month with a counted solve, after the totals (Total time last of them); a month's story has none.
      */
     data class Month(val month: YearMonth, val solved: Int, val fastestGame: GameId, val fastestTimeMs: Long) : RecapCard
+
+    /**
+     * The year on one poster, after the month cards: the [total], all twelve [months] (a month with no counted solve is
+     * an empty [Tile]), the [bestMonth] and the year's quickest solve with the game and month it was in, and the
+     * [mostPlayedGame] with its count; [importedDays] is set only for a year built from imported results alone, as on Solved. Ties go to the earlier month, and to the game listed first.
+     */
+    data class YearFinale(
+        val total: Int,
+        val months: List<Tile>,
+        val bestMonth: YearMonth,
+        val bestMonthSolved: Int,
+        val fastestGame: GameId,
+        val fastestTimeMs: Long,
+        val fastestMonth: YearMonth,
+        val mostPlayedGame: GameId,
+        val mostPlayedSolved: Int,
+        val importedDays: Int? = null,
+    ) : RecapCard {
+        /** A month's [solved] count and the [game] of its quickest solve; null when the month had no counted solve. */
+        data class Tile(val month: YearMonth, val solved: Int, val game: GameId?)
+    }
 
     /**
      * Longest streak: [days] in a row, frozen days included, over [from]..[to] inside the period (a streak across the

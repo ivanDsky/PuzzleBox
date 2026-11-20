@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.insights.recap
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -58,7 +59,7 @@ import kotlinx.coroutines.launch
  * tilt and rubber-bands past the first or last page; a hold slides the top card down to show the next. Reduced motion
  * swaps cards with a fade and does not follow the finger.
  *
- * [face] draws a card inside its frame and [palette] colours it, both by [RecapDeckState.position] (the cover is 0). A face starts afresh when it comes up from below and when
+ * [yearFlick] tells which positions throw like a month of a year (longer, steeper, and the next card springs up); [face] draws a card inside its frame and [palette] colours it, both by [RecapDeckState.position] (the cover is 0). A face starts afresh when it comes up from below and when
  * [RecapDeckState.entrance] bumps, so its entrance plays then, and never restarts while it is thrown away.
  */
 @Composable
@@ -66,6 +67,7 @@ internal fun RecapDeck(
     deck: RecapDeckState,
     palette: (position: Int) -> PaletteEntry,
     modifier: Modifier = Modifier,
+    yearFlick: (position: Int) -> Boolean = { false },
     face: @Composable (position: Int) -> Unit,
 ) {
     val reduced = rememberReducedMotion()
@@ -86,7 +88,8 @@ internal fun RecapDeck(
         if (from == top) return@LaunchedEffect
         val forward = top > from
         // A swipe hands the card over where the finger left it, so the throw carries on from there.
-        throwFrom = if (forward) (drag.offset / (RecapMotion.ThrowTravel * width)).coerceIn(0f, 1f) else 0f
+        val flick = forward && yearFlick(from)
+        throwFrom = if (forward) (drag.offset / (throwTravel(flick) * width)).coerceIn(0f, 1f) else 0f
         if (forward) {
             thrown.snapTo(from + throwFrom)
             drag.drop()
@@ -97,8 +100,10 @@ internal fun RecapDeck(
             return@LaunchedEffect
         }
         val settle = tween<Float>(if (forward) RecapMotion.DeckStackPromote else RecapMotion.ThrowBackDuration, easing = MotionTokens.EasingStandard)
-        launch { stack.animateTo(top.toFloat(), settle) }
-        thrown.animateTo(top.toFloat(), if (forward) tween(RecapMotion.ThrowDuration, easing = MotionTokens.EasingEmphasizedAccelerate) else settle)
+        val promote = if (flick) spring<Float>(RecapMotion.YearPromoteDamping, RecapMotion.YearPromoteStiffness) else settle
+        val duration = if (flick) RecapMotion.YearThrowDuration else RecapMotion.ThrowDuration
+        launch { stack.animateTo(top.toFloat(), promote) }
+        thrown.animateTo(top.toFloat(), if (forward) tween(duration, easing = MotionTokens.EasingEmphasizedAccelerate) else settle)
     }
     LaunchedEffect(holding, reduced) {
         val duration = when {
@@ -157,8 +162,9 @@ internal fun RecapDeck(
                         translationY = behind * RecapMotion.DeckStackStep.toPx()
                         alpha = (RecapMotion.DeckStackVisible - behind).coerceIn(0f, 1f) * fade
                         if (!reduced) {
-                            translationX = flown * RecapMotion.ThrowTravel * size.width
-                            rotationZ = flown * RecapMotion.ThrowTilt
+                            val flick = yearFlick(index)
+                            translationX = flown * throwTravel(flick) * size.width
+                            rotationZ = flown * (if (flick) RecapMotion.YearThrowTilt else RecapMotion.ThrowTilt)
                         }
                         if (index == drag.face) {
                             translationX += drag.shift
@@ -192,6 +198,8 @@ internal fun RecapDeck(
         }
     }
 }
+
+private fun throwTravel(yearFlick: Boolean): Float = if (yearFlick) RecapMotion.YearThrowTravel else RecapMotion.ThrowTravel
 
 /** The finger's pull on the top card, px: followed while dragging, rubber-banded past the ends, settled when let go. */
 private class DeckDrag(private val scope: CoroutineScope) {

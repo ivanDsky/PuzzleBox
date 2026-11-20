@@ -136,6 +136,7 @@ private fun RecapFact(
         is RecapCard.Moments -> MomentsCardFact(card, modifier)
         is RecapCard.TotalTime -> TotalTimeCardFact(card, modifier)
         is RecapCard.Friends -> FriendsCardFact(card, gameName, modifier)
+        is RecapCard.YearFinale -> YearFinaleCardFact(card, gameName, modifier)
     }
 }
 
