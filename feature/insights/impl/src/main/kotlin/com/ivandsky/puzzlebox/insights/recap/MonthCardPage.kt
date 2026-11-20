@@ -118,7 +118,7 @@ internal fun MonthFactRows(
     modifier: Modifier = Modifier,
     container: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
 ) {
-    val dot = LocalGameAccent.current(card.fastestGame).colors().accent
+    val dot = LocalGameBrands.current(card.fastestGame).accent.colors().accent
     RecapFactRows(
         rows = listOf(
             RecapFactRow("recap.month.fastest", "Fastest solve", formatDuration(card.fastestTimeMs)),

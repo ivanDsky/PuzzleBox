@@ -186,7 +186,7 @@ private fun RowScope.Tile(tile: RecapCard.YearFinale.Tile, index: Int, plate: Co
         Text(tile.month.shortName(), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp))
         if (wide && tile.game != null) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                Box(Modifier.size(DotSize).background(LocalGameAccent.current(tile.game).colors().accent, CircleShape))
+                Box(Modifier.size(DotSize).background(LocalGameBrands.current(tile.game).accent.colors().accent, CircleShape))
                 Text(gameName(tile.game), style = MaterialTheme.typography.labelSmall, maxLines = 1)
             }
         }
