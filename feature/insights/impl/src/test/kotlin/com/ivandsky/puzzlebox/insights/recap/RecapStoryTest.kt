@@ -166,7 +166,16 @@ class RecapStoryTest {
     }
 
     @Test
-    fun `a step throws the top card off and a step back brings it back over the stack`() {
+    fun `at rest only the top card is on screen, with none peeking under it`() {
+        show()
+        rule.waitForIdle()
+
+        rule.onNodeWithContentDescription("42 puzzles solved").assertIsDisplayed()
+        rule.onNodeWithContentDescription("7 puzzles solved").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a step throws the top card off and a step back brings it back`() {
         show()
         rule.waitForIdle()
         rule.mainClock.autoAdvance = false

@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteEntry
@@ -99,6 +100,8 @@ internal fun RecapStory(
             val inset = if (twoPane) Spacing.xs else 0.dp
             Column(
                 Modifier
+                    // Over the deck, so the cover's turning flare never covers the strip, ↻ or ✕.
+                    .zIndex(1f)
                     .graphicsLayer { alpha = chrome }
                     .then(if (deck.holding) Modifier.clearAndSetSemantics {} else Modifier)
                     .height(DeckTop)
@@ -128,8 +131,7 @@ internal fun RecapStory(
                     .weight(1f)
                     .fillMaxWidth()
                     .padding(start = Spacing.lg, end = Spacing.lg)
-                    // Room under the top card for the cards peeking out below it.
-                    .padding(bottom = Spacing.xl + RecapMotion.DeckStackStep * (RecapMotion.DeckStackVisible - 1)),
+                    .padding(bottom = Spacing.xl),
                 yearFlick = { at -> cards.getOrNull(at - 1) is RecapCard.Month },
             ) { at ->
                 val page = at - 1

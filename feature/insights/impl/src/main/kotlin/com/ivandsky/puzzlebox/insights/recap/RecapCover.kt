@@ -63,7 +63,7 @@ internal fun RecapCover(title: String, hook: String, name: String?, modifier: Mo
                 letterSpacing = EyebrowTracking,
             )
             RecapKineticTitle(title, fontSize = if (wide) WideTitleSize else TitleSize, modifier = Modifier.padding(top = Spacing.xs), startMs = start)
-            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) { RecapCoverFan(startMs = start) }
+            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) { RecapCoverFan(wide = wide, startMs = start) }
             Text(hook, Modifier.risen(start, HookStep), style = MaterialTheme.typography.titleMedium, fontSize = HookSize, fontWeight = FontWeight.Bold)
             if (name != null) Text("Recap for $name", Modifier.risen(start, HookStep + 1), style = MaterialTheme.typography.bodyLarge)
             Text("Tap to begin ›", Modifier.risen(start, HookStep + 2), style = MaterialTheme.typography.labelLarge, fontSize = CueSize)
