@@ -31,18 +31,27 @@ object QueensPractice {
      */
     fun start(puzzle: QueensPuzzle, technique: TechniqueId): QueensBoard? {
         if (QueensLadder.Stepwise.rungs.none { it.trainerId == technique }) return null
-        val solution = puzzle.solution ?: return null
-        if (!QueensVerifier.isSolution(puzzle, solution.toSet())) return null
+        return walk(puzzle).firstOrNull { (_, easiest) -> easiest == technique }?.first
+    }
+
+    /**
+     * The walk behind [start] and the technique counts: [puzzle] from the empty board, one deduction of the easiest
+     * rung at every point (the simplest of its instances, as Show me makes it), each point as the board before the
+     * deduction and the rung's trainer id (null for the attack rung, which Auto-cross never lets fire). Ends when the
+     * queens are all down, or the ladder has nothing left. Empty for a puzzle without a true solution.
+     */
+    internal fun walk(puzzle: QueensPuzzle): Sequence<Pair<QueensBoard, TechniqueId?>> = sequence {
+        val solution = puzzle.solution ?: return@sequence
+        if (!QueensVerifier.isSolution(puzzle, solution.toSet())) return@sequence
         var board = QueensBoard()
         // Every step settles a square, so the cell count bounds the walk; the doubled bound is slack, not a budget.
         repeat(puzzle.cellCount * 2) {
-            if (board.queens.size == puzzle.size * puzzle.queensPerUnit) return null
+            if (board.queens.size == puzzle.size * puzzle.queensPerUnit) return@sequence
             val candidates = candidates(puzzle, board)
-            val step = easiest(puzzle, candidates) ?: return null
-            if (step.unit.rung.trainerId == technique) return board
+            val step = easiest(puzzle, candidates) ?: return@sequence
+            yield(board to step.unit.rung.trainerId)
             board = board.after(step, candidates)
         }
-        return null
     }
 
     /**

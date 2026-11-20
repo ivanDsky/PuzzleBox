@@ -32,6 +32,11 @@ internal object SudokuTrainerFixtures {
 
     val all: Map<String, SudokuPuzzle> by lazy { dailies + eliminating }
 
+    /** Every real daily of the vendored corpus and every twentieth generated board: the boards the index pass and the drill set may list. */
+    val corpus: Map<String, SudokuPuzzle> by lazy {
+        real.mapValues { puzzle(it.value) } + generated.values.filterIndexed { n, _ -> n % 20 == 0 }.associate { it.id to puzzle(it) }
+    }
+
     /** A practice for [technique] on [puzzle] (the fixture [name]), starting at [board]. */
     data class PracticeStart(val name: String, val puzzle: SudokuPuzzle, val technique: TechniqueId, val board: SudokuBoard)
 

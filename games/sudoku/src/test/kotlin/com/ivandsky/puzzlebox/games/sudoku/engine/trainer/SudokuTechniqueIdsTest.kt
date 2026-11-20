@@ -33,8 +33,9 @@ class SudokuTechniqueIdsTest {
 
     @Test
     fun `a last cell is its own id and a hidden single of the same technique is not`() {
-        val walk = SudokuTrainerFixtures.dailies.values.flatMap { SudokuTechniqueWalker.walk(it) }
-        val singles = walk.mapNotNull { it.step as? SudokuStep.Single }
+        val singles = SudokuTrainerFixtures.dailies.values.flatMap { puzzle ->
+            SudokuPractice.walk(puzzle).toList().flatMap { SudokuLadder.easiest(puzzle, it.boardBefore)?.steps.orEmpty() }
+        }.filterIsInstance<SudokuStep.Single>()
         val last = singles.first { it.lastCell != null }
         val hidden = singles.first { it.lastCell == null && it.place.technique == SudokuTechnique.HIDDEN_SINGLE_BOX }
 

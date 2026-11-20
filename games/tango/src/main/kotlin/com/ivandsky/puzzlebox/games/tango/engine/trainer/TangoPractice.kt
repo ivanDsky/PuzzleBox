@@ -21,27 +21,35 @@ import com.ivandsky.puzzlebox.games.tango.engine.step.chebyshev
 object TangoPractice {
 
     /**
-     * The board a drill for [technique] starts on, or null when there is none. The walk starts from the givens and, at
-     * each point, applies one whole deduction of the easiest rung (the one nearest the last square it filled, then the
-     * fewest evidence cells, then the lowest cell), revealing a square when no rung fires. The board is the first point
-     * where [technique] is the easiest rung. The grid holds the givens and solution values only.
+     * The board a drill for [technique] starts on, or null when there is none: the first point of [walk] where
+     * [technique] is the easiest rung. The grid holds the givens and solution values only.
      *
      * Null when [technique] is no Tango technique, when [solution] is no solution of [puzzle], and when the walk fills
      * the board without [technique] ever being the easiest rung (a reveal-only point does not count).
      */
     fun start(puzzle: TangoPuzzle, solution: List<TangoCell>, technique: TechniqueId): List<TangoCell?>? {
-        val target = TangoStepRung.entries.firstOrNull { it.trainerId == technique } ?: return null
+        if (TangoStepRung.entries.none { it.trainerId == technique }) return null
         if (!isSolution(puzzle, solution)) return null
+        return walk(puzzle, solution).firstOrNull { it.technique == technique }?.board
+    }
+
+    /**
+     * The practice walk of [puzzle], the one [start] and the technique index share: from the givens, a point for every
+     * board the walk stands on, each applying one whole deduction of the easiest rung (the one nearest the last square
+     * it filled, then the fewest evidence cells, then the lowest cell), or a reveal when no rung fires. A point's
+     * technique is the id of the easiest rung on its board, null when no rung fires. The walk ends when the board is
+     * full. [solution] must be a solution of [puzzle].
+     */
+    internal fun walk(puzzle: TangoPuzzle, solution: List<TangoCell>): Sequence<TangoWalkPoint> = sequence {
         val grid = MutableList<TangoCell?>(puzzle.cellCount) { puzzle.givens[it] }
         var last: Int? = null
         while (grid.any { it == null }) {
             val steps = easiestSteps(puzzle, grid)
-            if (steps.firstOrNull()?.rung == target) return grid.toList()
-            val step = nearestOrReveal(puzzle, solution, grid, last, steps) ?: return null
+            yield(TangoWalkPoint(grid.toList(), steps.firstOrNull()?.rung?.trainerId))
+            val step = nearestOrReveal(puzzle, solution, grid, last, steps) ?: return@sequence
             step.squares.forEach { grid[it.idx] = it.value }
             last = step.squares.last().idx
         }
-        return null
     }
 
     /**

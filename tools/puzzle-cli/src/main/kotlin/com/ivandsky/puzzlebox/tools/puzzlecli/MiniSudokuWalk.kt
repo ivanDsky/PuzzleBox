@@ -12,7 +12,8 @@ import com.ivandsky.puzzlebox.games.sudoku.engine.trainer.SudokuTechniqueIds
 /**
  * Whether the walk of a Mini Sudoku stays on the eight techniques the Trainer lists. The walker counts only those, so
  * a naked or hidden triple and a reveal pass through it uncounted; a pointing drill whose solve also needs a triple
- * would show nothing of that. This plays the same stepper the walker plays, from the givens, with the same moves.
+ * would show nothing of that. This plays the stepper from the givens. The listed techniques only strike candidates,
+ * so they solve the same puzzles in any order: the stepper stays on them exactly when the practice walk never stalls.
  */
 internal object MiniSudokuWalk {
 
