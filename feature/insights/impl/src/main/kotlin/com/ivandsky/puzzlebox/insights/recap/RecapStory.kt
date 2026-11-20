@@ -43,7 +43,8 @@ import com.ivandsky.puzzlebox.model.GameId
 
 /**
  * The recap as a story on [deck]: its pages dealt as a stack of cards ([RecapDeck]) under a progress strip, a replay
- * button that plays the card's entrance again, and a close button. Holding the deck hides that chrome until the touch
+ * button that plays the card's entrance again (on the Share page, the end of the story, it replays the whole story from the
+ * start), and a close button. Holding the deck hides that chrome until the touch
  * lets go. With a [share] state the story ends on the Share page. System back steps back a card and, from the first
  * card, falls through to leave the recap.
  */
@@ -86,8 +87,13 @@ internal fun RecapStory(
                     Modifier.align(Alignment.End).padding(top = Spacing.xs),
                     horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                 ) {
-                    if (!deck.onCover && deck.page < cards.size) {
-                        ChromeButton(PuzzleIcons.Retry, "Replay card", "recap.replay", reduced, turn) { deck.restartEntrance() }
+                    if (!deck.onCover) {
+                        if (deck.page < cards.size) {
+                            ChromeButton(PuzzleIcons.Retry, "Replay card", "recap.replay", reduced, turn) { deck.restartEntrance() }
+                        } else {
+                            // The Share page is the end of the story: ↻ goes back to the start.
+                            ChromeButton(PuzzleIcons.Retry, "Replay story", "recap.replayStory", reduced, onClick = deck::replay)
+                        }
                     }
                     ChromeButton(PuzzleIcons.Close, "Close recap", "recap.close", reduced, onClick = onClose)
                 }

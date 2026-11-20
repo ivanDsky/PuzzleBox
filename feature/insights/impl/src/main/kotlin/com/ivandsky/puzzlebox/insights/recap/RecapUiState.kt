@@ -15,6 +15,9 @@ internal sealed interface RecapUiState {
     /** The period has nothing to recap. */
     data object Empty : RecapUiState
 
+    /** The recap cannot open: the local history read failed. [RecapViewModel.retry] reads it again. */
+    data object Error : RecapUiState
+
     /**
      * The story: [cards] in order, opening on the page at [initialPage] (a saved position, kept inside the cards).
      * [title] is what every card names the period as, "2026 so far" for a year under way (A22).

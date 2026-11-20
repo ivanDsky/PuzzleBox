@@ -86,6 +86,7 @@ internal fun MomentsFactRows(card: RecapCard.Moments, modifier: Modifier = Modif
 internal fun MomentsCardFact(card: RecapCard.Moments, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Row(Modifier.fillMaxWidth().heightIn(min = RowMinHeight), verticalAlignment = Alignment.CenterVertically) {
+            FactMarker()
             Text(
                 text = "Moments earned",
                 style = MaterialTheme.typography.titleMedium,

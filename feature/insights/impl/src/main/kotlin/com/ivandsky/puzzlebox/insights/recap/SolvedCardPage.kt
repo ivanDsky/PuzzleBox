@@ -138,6 +138,7 @@ internal fun SolvedPerGameRows(
 internal fun SolvedCardFact(card: RecapCard.Solved, gameName: (GameId) -> String, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Row(Modifier.fillMaxWidth().heightIn(min = RowMinHeight), verticalAlignment = Alignment.CenterVertically) {
+            FactMarker()
             Text(
                 text = "Puzzles solved",
                 style = MaterialTheme.typography.titleMedium,

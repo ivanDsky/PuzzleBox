@@ -1,5 +1,10 @@
 package com.ivandsky.puzzlebox.insights.recap
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -19,9 +24,12 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.EmptyState
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
+import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.TwoColumnFrame
 import com.ivandsky.puzzlebox.designsystem.TwoColumnMinWidth
+import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.insights.share.RecapShareContent
 import com.ivandsky.puzzlebox.insights.share.RecapShareState
@@ -31,7 +39,7 @@ import com.ivandsky.puzzlebox.model.GameId
  * A recap's whole screen for [state]: the story once the cards are ready, a quiet message while they are not.
  * [onPage] reports the page the story reaches; [onClose] leaves the recap. A window wide enough for two columns
  * ([TwoColumnMinWidth]) puts the story on the left and every fact as a list on the right. A [share] state adds the
- * Share page after the last card; [onShare] gets the image it captures.
+ * Share page after the last card; [onShare] gets the image it captures. [onRetry] reads the recap again after an error.
  */
 @Composable
 internal fun RecapScreen(
@@ -44,9 +52,42 @@ internal fun RecapScreen(
     modifier: Modifier = Modifier,
     share: RecapShareState? = null,
     onShare: (ImageBitmap, RecapShareContent) -> Unit = { _, _ -> },
+    onRetry: () -> Unit = {},
+) {
+    val reduced = rememberReducedMotion()
+    val fade = if (reduced) {
+        tween<Float>(MotionTokens.ReducedFadeDuration, easing = MotionTokens.EasingLinear)
+    } else {
+        tween(MotionTokens.DurationMedium, easing = MotionTokens.EasingStandard)
+    }
+    // Keyed by the kind of state: the friends card arriving swaps the story's cards in place, with no fade.
+    AnimatedContent(
+        targetState = state,
+        modifier = modifier,
+        transitionSpec = { fadeIn(fade) togetherWith fadeOut(fade) },
+        label = "recap.state",
+        contentKey = { it::class },
+    ) { shown ->
+        RecapStateContent(shown, periodLabel, gameName, onPage, onWatchReplay, onClose, share, onShare, onRetry)
+    }
+}
+
+@Composable
+private fun RecapStateContent(
+    state: RecapUiState,
+    periodLabel: String,
+    gameName: (GameId) -> String,
+    onPage: (Int) -> Unit,
+    onWatchReplay: (RecapCard.Fastest.Row) -> Unit,
+    onClose: () -> Unit,
+    share: RecapShareState?,
+    onShare: (ImageBitmap, RecapShareContent) -> Unit,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     when (state) {
-        RecapUiState.Loading -> Box(modifier.fillMaxSize())
+        RecapUiState.Loading -> RecapLoading(modifier)
+        RecapUiState.Error -> RecapErrorFace(onRetry, onClose, modifier)
         RecapUiState.Restoring -> RecapMessage(
             periodLabel = periodLabel,
             title = "Bringing back your history…",
@@ -64,6 +105,28 @@ internal fun RecapScreen(
             modifier = modifier,
         )
         is RecapUiState.Ready -> RecapReady(state, gameName, onPage, onWatchReplay, onClose, share, onShare, modifier)
+    }
+}
+
+/** The skeleton where the story will be; on a tablet it fills the left pane and empty rows stand in for the facts. */
+@Composable
+private fun RecapLoading(modifier: Modifier = Modifier) {
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        if (maxWidth >= TwoColumnMinWidth) {
+            val paneHeight = maxHeight
+            TwoColumnFrame(
+                paneHeight = paneHeight,
+                tag = "recap.twoPane",
+                left = { column, height ->
+                    Box(column.height(height).clip(MaterialTheme.shapes.extraLarge).background(MaterialTheme.colorScheme.surfaceContainerLow)) {
+                        RecapLoadingSkeleton(Modifier.fillMaxSize())
+                    }
+                },
+                right = { RecapFactSkeleton(Modifier.height(paneHeight - Spacing.lg * 2)) },
+            )
+        } else {
+            RecapLoadingSkeleton(Modifier.fillMaxSize())
+        }
     }
 }
 

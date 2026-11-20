@@ -105,6 +105,7 @@ internal fun MonthFactRows(card: RecapCard.Month, gameName: (GameId) -> String, 
 internal fun MonthCardFact(card: RecapCard.Month, gameName: (GameId) -> String, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Row(Modifier.fillMaxWidth().heightIn(min = RowMinHeight), verticalAlignment = Alignment.CenterVertically) {
+            FactMarker()
             Text(
                 text = card.monthName(),
                 style = MaterialTheme.typography.titleMedium,

@@ -151,12 +151,14 @@ internal fun FastestCardFact(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Text(
-            text = "Fastest solves",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(vertical = Spacing.sm),
-        )
+        Row(Modifier.padding(vertical = Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+            FactMarker()
+            Text(
+                text = "Fastest solves",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
         FastestRows(card.rows, gameName, onWatchReplay)
     }
 }

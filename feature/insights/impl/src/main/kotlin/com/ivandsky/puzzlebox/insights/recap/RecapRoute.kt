@@ -47,6 +47,7 @@ internal fun RecapRoute(periodId: String, onOpenReplay: (ReplayKey) -> Unit, onC
             onClose = onClose,
             share = share,
             onShare = shareViewModel::share,
+            onRetry = viewModel::retry,
         )
     }
 }
