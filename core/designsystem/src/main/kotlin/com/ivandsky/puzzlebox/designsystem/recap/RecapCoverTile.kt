@@ -43,6 +43,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
@@ -62,8 +63,6 @@ import java.text.NumberFormat
 import kotlinx.coroutines.delay
 
 private val TileRadius = 28.dp
-private val TileMinHeight = 216.dp
-private val TileMaxWidth = 560.dp
 private val Touch = 48.dp
 private val OutlineWidth = 1.5.dp
 private val ArtTop = 56.dp
@@ -80,7 +79,9 @@ private const val SHEEN_DELAY_MS = 1500
  * plain number and no motion; otherwise a filled "New" kicker, the number blurs in and counts up, the mosaic stamps in
  * on a diagonal wave and one sheen crosses the tile, once per [playKey] (reduced motion: the final tile after one
  * [MotionTokens.ReducedFadeDuration] fade). The whole tile is one button reading [description]; [onDismiss], when set, is
- * a 48dp × named [dismissLabel]. Tags: [tag] on the tile, `"$tag.dismiss"` on the ×.
+ * a 48dp × named [dismissLabel]. Tags: [tag] on the tile, `"$tag.dismiss"` on the ×. [variant] picks the layout: the full
+ * tile of Today, or a compact year or month tile of the hub ([RecapTileSize]), where [title] is the period's label
+ * and [subtitle] the unit that follows the count.
  */
 @Composable
 fun RecapCoverTile(
@@ -97,6 +98,7 @@ fun RecapCoverTile(
     modifier: Modifier = Modifier,
     dismissLabel: String? = null,
     onDismiss: (() -> Unit)? = null,
+    variant: RecapTileSize = RecapTileSize.Full,
 ) {
     val field = card.field
     val ink = card.ink
@@ -117,9 +119,9 @@ fun RecapCoverTile(
     val background = if (opened) Modifier.background(field) else Modifier.background(Brush.linearGradient(listOf(field, plate)))
     Box(
         modifier
-            .widthIn(max = TileMaxWidth)
+            .widthIn(max = variant.maxWidth)
             .fillMaxWidth()
-            .heightIn(min = TileMinHeight)
+            .heightIn(min = variant.minHeight)
             .alpha(fade.value)
             .clip(RoundedCornerShape(TileRadius))
             .then(background)
@@ -148,24 +150,28 @@ fun RecapCoverTile(
                     semanticsTestTag = tag
                 },
         )
-        Column(
-            Modifier.padding(start = Spacing.lg, top = Spacing.lg, end = ArtSize + Spacing.xxl),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            Kicker(opened, ink, field)
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                Text(title, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = ink)
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = ink)
+        if (variant == RecapTileSize.Full) {
+            Column(
+                Modifier.padding(start = Spacing.lg, top = Spacing.lg, end = ArtSize + Spacing.xxl),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                Kicker(opened, ink, field)
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    Text(title, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = ink)
+                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = ink)
+                }
             }
+            RecapArtPlate(
+                art = art,
+                plate = ink,
+                stamp = play && !reduced,
+                modifier = Modifier.align(Alignment.TopEnd).padding(top = ArtTop, end = Spacing.lg),
+            )
+            SolvedCount(solved, play && !reduced, ink, Modifier.align(Alignment.BottomStart).padding(start = Spacing.lg, bottom = Spacing.lg))
+            OpenButton(opened, ink, plate, Modifier.align(Alignment.BottomEnd).padding(end = Spacing.lg, bottom = Spacing.lg))
+        } else {
+            CompactTileContent(variant, art, title, subtitle, solved, opened, play && !reduced, ink, field)
         }
-        RecapArtPlate(
-            art = art,
-            plate = ink,
-            stamp = play && !reduced,
-            modifier = Modifier.align(Alignment.TopEnd).padding(top = ArtTop, end = Spacing.lg),
-        )
-        SolvedCount(solved, play && !reduced, ink, Modifier.align(Alignment.BottomStart).padding(start = Spacing.lg, bottom = Spacing.lg))
-        OpenButton(opened, ink, plate, Modifier.align(Alignment.BottomEnd).padding(end = Spacing.lg, bottom = Spacing.lg))
         if (onDismiss != null) {
             IconButton(onClick = onDismiss, modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.xs).size(Touch).testTag("$tag.dismiss")) {
                 Icon(PuzzleIcons.Close, contentDescription = dismissLabel, tint = ink)
@@ -175,7 +181,7 @@ fun RecapCoverTile(
 }
 
 @Composable
-private fun Kicker(opened: Boolean, ink: Color, field: Color) {
+internal fun Kicker(opened: Boolean, ink: Color, field: Color) {
     val shape = RoundedCornerShape(percent = 50)
     val style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
     if (opened) {
@@ -193,7 +199,14 @@ private fun Kicker(opened: Boolean, ink: Color, field: Color) {
 }
 
 @Composable
-private fun SolvedCount(solved: Int, animate: Boolean, ink: Color, modifier: Modifier) {
+internal fun SolvedCount(
+    solved: Int,
+    animate: Boolean,
+    ink: Color,
+    modifier: Modifier,
+    unit: String = "puzzles solved",
+    numberSize: TextUnit = 40.sp,
+) {
     val shown = if (animate) rememberCountUp(solved.toLong(), NUMBER_DELAY_MS, MotionTokens.ScoreCountUpDuration).toInt() else solved
     val peek = remember(animate) { Animatable(if (animate) 1f else 0f) }
     LaunchedEffect(animate) {
@@ -203,10 +216,10 @@ private fun SolvedCount(solved: Int, animate: Boolean, ink: Color, modifier: Mod
         Text(
             NumberFormat.getIntegerInstance().format(shown),
             if (peek.value > 0f) Modifier.blur(PeekBlur * peek.value) else Modifier,
-            style = MaterialTheme.typography.displaySmall.copy(fontSize = 40.sp, fontWeight = FontWeight.Bold).tabular(),
+            style = MaterialTheme.typography.displaySmall.copy(fontSize = numberSize, fontWeight = FontWeight.Bold).tabular(),
             color = ink,
         )
-        Text("puzzles solved", Modifier.padding(bottom = Spacing.xs), style = MaterialTheme.typography.bodySmall, color = ink)
+        Text(unit, Modifier.padding(bottom = Spacing.xs), style = MaterialTheme.typography.bodySmall, color = ink)
     }
 }
 
@@ -232,6 +245,23 @@ internal fun RecapCoverTilePreview() {
             RecapCoverTile(RecapCard.Cover, "Your October 2026 recap", "Watch it again", 96, mosaic, opened = true, playKey = "p2", description = "Open", onOpen = {}, tag = "t2")
             val bars = RecapTileArt.Bars(listOf(4, 8, 6, 9, 12, 7, 5, 10, 11, 9, 6, 8), RecapCard.YearFinale.plate)
             RecapCoverTile(RecapCard.YearFinale, "Your 2026 recap", "See how the year went", 1_240, bars, opened = false, playKey = "p3", description = "Open", onOpen = {}, tag = "t3")
+        }
+    }
+}
+
+// Preview: the hub's compact tiles (a year with bars, a month with its mosaic) and the bare art pieces the hub's cover pane draws.
+@PuzzleBoxPreviews
+@Composable
+internal fun RecapCompactTilePreview() {
+    PuzzleBoxTheme {
+        Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            val months = listOf(4, 8, 6, 9, 12, 7, 5, 10, 11, 9, 6, 8)
+            val year = RecapTileArt.Bars(months, RecapCard.YearFinale.ink)
+            RecapCoverTile(RecapCard.YearFinale, "2026 so far", "solved in 12 months", 625, year, opened = false, playKey = "c1", description = "Open", onOpen = {}, tag = "c1", variant = RecapTileSize.Year)
+            val month = RecapTileArt.Mosaic(List(MOSAIC_CELLS) { Color(0xFF0A84FF) }, empty = Color.Gray)
+            RecapCoverTile(RecapCard.Cover, "December 2026", "solved", 70, month, opened = true, playKey = "c2", description = "Open", onOpen = {}, tag = "c2", variant = RecapTileSize.Month)
+            RecapArtPlate(month, plate = Color.DarkGray, stamp = false)
+            YearBars(months, Color.DarkGray, Modifier.size(96.dp, 64.dp))
         }
     }
 }

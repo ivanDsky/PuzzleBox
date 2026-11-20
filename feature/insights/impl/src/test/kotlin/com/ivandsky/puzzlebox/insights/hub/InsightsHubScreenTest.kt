@@ -1,15 +1,22 @@
 package com.ivandsky.puzzlebox.insights.hub
 
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.hasContentDescription
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapPeriod
+import com.ivandsky.puzzlebox.insights.domain.recap.RecapSummary
+import com.ivandsky.puzzlebox.insights.domain.recap.SummarizedPeriod
+import com.ivandsky.puzzlebox.model.GameId
 import java.time.YearMonth
 import org.junit.Assert.assertEquals
+import com.ivandsky.puzzlebox.insights.GOLDEN_TABLET
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -33,6 +40,11 @@ class InsightsHubScreenTest {
 
     private var statsOpened = 0
 
+    private fun summarized(period: RecapPeriod, solved: Int = 10) =
+        SummarizedPeriod(period, RecapSummary(solved, listOf(GameId("alpha") to solved), if (period is RecapPeriod.Year) List(12) { 1 } else emptyList()))
+
+    private var retried = 0
+
     private fun show(state: InsightsHubUiState, stats: Boolean = false) = rule.setContent {
         PuzzleBoxTheme {
             InsightsHubScreen(
@@ -40,13 +52,14 @@ class InsightsHubScreenTest {
                 onOpen = { opened += it },
                 onBack = { backed++ },
                 onOpenStats = if (stats) ({ statsOpened++ }) else null,
+                onRetry = { retried++ },
             )
         }
     }
 
     @Test
     fun `a month row opens that month`() {
-        show(InsightsHubUiState.Ready(listOf(november, october)))
+        show(InsightsHubUiState.Ready(listOf(summarized(november), summarized(october))))
 
         rule.onNodeWithTag("insights.hub.month.2026-10").assertHasClickAction().performClick()
 
@@ -55,7 +68,7 @@ class InsightsHubScreenTest {
 
     @Test
     fun `with the stats page on the list starts with a row for the stats of every game`() {
-        show(InsightsHubUiState.Ready(listOf(november)), stats = true)
+        show(InsightsHubUiState.Ready(listOf(summarized(november))), stats = true)
 
         rule.onNodeWithTag("insights.hub.stats").assertIsDisplayed().assertHasClickAction().performClick()
 
@@ -66,14 +79,14 @@ class InsightsHubScreenTest {
 
     @Test
     fun `with the stats page off the list has no stats row`() {
-        show(InsightsHubUiState.Ready(listOf(november)), stats = false)
+        show(InsightsHubUiState.Ready(listOf(summarized(november))), stats = false)
 
         rule.onNodeWithTag("insights.hub.stats").assertDoesNotExist()
     }
 
     @Test
     fun `lists every month`() {
-        show(InsightsHubUiState.Ready(listOf(november, october)))
+        show(InsightsHubUiState.Ready(listOf(summarized(november), summarized(october))))
 
         rule.onNodeWithTag("insights.hub.month.2026-11").assertIsDisplayed()
         rule.onNodeWithTag("insights.hub.month.2026-10").assertIsDisplayed()
@@ -101,5 +114,44 @@ class InsightsHubScreenTest {
         rule.onNodeWithTag("insights.hub.back").performClick()
 
         assertEquals(1, backed)
+    }
+
+    @Test
+    fun `a failed read offers Try again, which reads again`() {
+        show(InsightsHubUiState.Error)
+
+        rule.onNodeWithText("Try again").assertHasClickAction().performClick()
+
+        assertEquals(1, retried)
+    }
+
+    @Test
+    fun `an unwatched period reads new and a watched one does not`() {
+        show(InsightsHubUiState.Ready(listOf(summarized(november, solved = 1_240), summarized(october)), opened = setOf("2026-10")))
+
+        rule.onNodeWithTag("insights.hub.month.2026-11").assert(hasContentDescription("Open your November 2026 recap. 1,240 puzzles solved. New."))
+        rule.onNodeWithTag("insights.hub.month.2026-10").assert(hasContentDescription("Open your October 2026 recap. 10 puzzles solved."))
+    }
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test
+    fun `on a tablet a tile selects its cover and the cover opens it`() {
+        show(InsightsHubUiState.Ready(listOf(summarized(november), summarized(october))))
+
+        rule.onNodeWithTag("insights.hub.month.2026-10").performClick()
+
+        assertEquals(emptyList<RecapPeriod>(), opened)
+        rule.onNodeWithTag("insights.hub.pane").assert(hasContentDescription("Open your October 2026 recap. 10 puzzles solved. New.")).performClick()
+        assertEquals(listOf(october), opened)
+    }
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test
+    fun `on a tablet the newest period is selected until another is chosen`() {
+        show(InsightsHubUiState.Ready(listOf(summarized(november), summarized(october))))
+
+        rule.onNodeWithTag("insights.hub.pane").performClick()
+
+        assertEquals(listOf(november), opened)
     }
 }

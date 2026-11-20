@@ -4,11 +4,19 @@ import app.cash.turbine.test
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
 import com.ivandsky.puzzlebox.data.cloud.CloudSyncState
 import com.ivandsky.puzzlebox.insights.flags.InsightsFlag
+import com.ivandsky.puzzlebox.common.log.FailureLog
+import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.insights.domain.recap.ObserveRecapAvailability
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapHistoryFixture
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapPeriod
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
+import com.ivandsky.puzzlebox.testing.insights.FakeRecapOpenings
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
+import com.ivandsky.puzzlebox.testing.game.TestGames.beta
+import com.ivandsky.puzzlebox.model.GameId
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import java.time.LocalDate
 import java.time.YearMonth
 import kotlinx.coroutines.Dispatchers
@@ -19,6 +27,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -29,7 +38,13 @@ class InsightsHubViewModelTest {
     private val fixture = RecapHistoryFixture()
     private val cloudSync = FakeCloudSync()
 
-    private fun viewModel(vararg flags: ReleaseFlagKey) = InsightsHubViewModel(fixture.availability(), cloudSync, FakeReleaseFlags(*flags))
+    private val openings = FakeRecapOpenings()
+
+    private fun viewModel(vararg flags: ReleaseFlagKey, availability: ObserveRecapAvailability = fixture.availability()) =
+        InsightsHubViewModel(availability, cloudSync, FakeReleaseFlags(*flags), openings, fixture.puzzleDay, FailureLog { _, _, _ -> })
+
+    /** The periods the hub lists, in order. */
+    private fun InsightsHubUiState.periods() = (this as InsightsHubUiState.Ready).periods.map { it.period }
 
     private fun month(year: Int, month: Int) = RecapPeriod.Month(YearMonth.of(year, month))
 
@@ -44,7 +59,7 @@ class InsightsHubViewModelTest {
         fixture.store(fixture.solve(alpha, LocalDate.of(2026, 9, 1)), fixture.solve(alpha, LocalDate.of(2026, 11, 1)))
 
         viewModel().uiState.test {
-            assertEquals(InsightsHubUiState.Ready(listOf(month(2026, 11), month(2026, 9))), expectMostRecentItem())
+            assertEquals(listOf(month(2026, 11), month(2026, 9)), expectMostRecentItem().periods())
         }
     }
 
@@ -53,11 +68,11 @@ class InsightsHubViewModelTest {
         fixture.store(fixture.solve(alpha, LocalDate.of(2026, 9, 1)))
 
         viewModel().uiState.test {
-            assertEquals(InsightsHubUiState.Ready(listOf(month(2026, 9))), expectMostRecentItem())
+            assertEquals(listOf(month(2026, 9)), expectMostRecentItem().periods())
 
             fixture.store(fixture.solve(alpha, LocalDate.of(2026, 9, 1)), fixture.solve(alpha, LocalDate.of(2026, 11, 1)))
 
-            assertEquals(InsightsHubUiState.Ready(listOf(month(2026, 11), month(2026, 9))), expectMostRecentItem())
+            assertEquals(listOf(month(2026, 11), month(2026, 9)), expectMostRecentItem().periods())
         }
     }
 
@@ -90,7 +105,7 @@ class InsightsHubViewModelTest {
 
             fixture.store(fixture.solve(alpha, LocalDate.of(2026, 10, 3)))
 
-            assertEquals(InsightsHubUiState.Ready(listOf(month(2026, 10))), expectMostRecentItem())
+            assertEquals(listOf(month(2026, 10)), expectMostRecentItem().periods())
         }
     }
 
@@ -99,7 +114,7 @@ class InsightsHubViewModelTest {
         fixture.store(fixture.imported(alpha, LocalDate.of(2025, 6, 1)), fixture.solve(alpha, LocalDate.of(2026, 11, 1)))
 
         viewModel().uiState.test {
-            assertEquals(InsightsHubUiState.Ready(listOf(month(2026, 11), month(2025, 6))), expectMostRecentItem())
+            assertEquals(listOf(month(2026, 11), month(2025, 6)), expectMostRecentItem().periods())
         }
     }
 
@@ -108,10 +123,68 @@ class InsightsHubViewModelTest {
         fixture.store(fixture.imported(alpha, LocalDate.of(2025, 6, 1)), fixture.solve(alpha, LocalDate.of(2026, 11, 1)))
 
         viewModel(InsightsFlag.YearRecap).uiState.test {
-            assertEquals(
-                InsightsHubUiState.Ready(listOf(RecapPeriod.Year(2025), month(2026, 11), month(2025, 6))),
-                expectMostRecentItem(),
-            )
+            assertEquals(listOf(RecapPeriod.Year(2025), month(2026, 11), month(2025, 6)), expectMostRecentItem().periods())
         }
+    }
+
+    @Test
+    fun `a listed month carries how many puzzles were solved in it`() = runTest {
+        fixture.store(
+            fixture.solve(alpha, LocalDate.of(2026, 11, 1)),
+            fixture.solve(beta, LocalDate.of(2026, 11, 1)),
+            fixture.solve(alpha, LocalDate.of(2026, 11, 2)),
+            fixture.solve(alpha, LocalDate.of(2026, 10, 2)),
+        )
+
+        viewModel().uiState.test {
+            val ready = expectMostRecentItem() as InsightsHubUiState.Ready
+
+            assertEquals(listOf(3, 1), ready.periods.map { it.summary.solved })
+        }
+    }
+
+    @Test
+    fun `a period whose story was watched reads as opened, live, and the others do not`() = runTest {
+        fixture.store(fixture.solve(alpha, LocalDate.of(2026, 9, 1)), fixture.solve(alpha, LocalDate.of(2026, 11, 1)))
+
+        viewModel().uiState.test {
+            assertEquals(emptySet<String>(), (expectMostRecentItem() as InsightsHubUiState.Ready).opened)
+
+            openings.markOpened("2026-11")
+
+            assertEquals(setOf("2026-11"), (expectMostRecentItem() as InsightsHubUiState.Ready).opened)
+        }
+    }
+
+    @Test
+    fun `a failed read is an error, and trying again reads again`() = runTest {
+        fixture.store(fixture.solve(alpha, LocalDate.of(2026, 11, 1)))
+        val failing = FlakyCalendar(fixture.calendar)
+        val viewModel = viewModel(availability = ObserveRecapAvailability(fixture.observeHistory, failing, fixture.registry))
+
+        viewModel.uiState.test {
+            assertEquals(InsightsHubUiState.Error, expectMostRecentItem())
+
+            failing.failing = false
+            viewModel.retry()
+
+            assertEquals(listOf(month(2026, 11)), expectMostRecentItem().periods())
+        }
+    }
+
+    @Test
+    fun `the year with solves is not listed with the yearly recap off`() = runTest {
+        fixture.store(fixture.imported(alpha, LocalDate.of(2025, 6, 1)))
+
+        viewModel().uiState.test {
+            assertTrue(expectMostRecentItem().periods().none { it is RecapPeriod.Year })
+        }
+    }
+
+    /** A calendar whose puzzle day cannot be read while [failing]. */
+    private class FlakyCalendar(private val real: GameCalendar) : GameCalendar by real {
+        var failing = true
+
+        override fun observeToday(game: GameId): Flow<LocalDate> = if (failing) flow { throw IllegalStateException("calendar") } else real.observeToday(game)
     }
 }

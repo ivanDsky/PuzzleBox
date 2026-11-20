@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.testing.game.TestGames.beta
 import java.time.LocalDate
 import java.time.YearMonth
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -13,7 +14,7 @@ import org.junit.Test
 class ObserveRecapAvailabilityTest {
 
     private val fixture = RecapHistoryFixture()
-    private val availability = fixture.availability()
+    private val availability = { fixture.availability().invoke().map { list -> list.map { it.period } } }
 
     private fun month(year: Int, month: Int) = RecapPeriod.Month(YearMonth.of(year, month))
 
@@ -111,5 +112,24 @@ class ObserveRecapAvailabilityTest {
         fixture.store(fixture.playAgain(alpha, LocalDate.of(2026, 5, 1)))
 
         assertEquals(emptyList<RecapPeriod>(), listed())
+    }
+
+    @Test
+    fun `a listed period carries its solved count, its games and its year's months`() = runTest {
+        fixture.calendar.setAll(LocalDate.of(2026, 6, 1))
+        fixture.store(
+            fixture.imported(alpha, LocalDate.of(2025, 3, 4)),
+            fixture.imported(alpha, LocalDate.of(2025, 3, 5)),
+            fixture.imported(beta, LocalDate.of(2025, 3, 5)),
+            fixture.imported(beta, LocalDate.of(2025, 5, 5)),
+            fixture.playAgain(alpha, LocalDate.of(2025, 3, 6)),
+        )
+
+        val listed = fixture.availability().invoke().first().associate { it.period to it.summary }
+
+        assertEquals(4, listed.getValue(year(2025)).solved)
+        assertEquals(listOf(0, 0, 3, 0, 1, 0, 0, 0, 0, 0, 0, 0), listed.getValue(year(2025)).months)
+        assertEquals(3, listed.getValue(month(2025, 3)).solved)
+        assertEquals(listOf(alpha to 2, beta to 1), listed.getValue(month(2025, 3)).byGame)
     }
 }
