@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.history.ranks
+package com.ivandsky.puzzlebox.designsystem
 
 import androidx.compose.runtime.MonotonicFrameClock
 import kotlinx.coroutines.delay
