@@ -36,6 +36,8 @@ class FastestCardGoldenScreenshots {
     @Config(qualifiers = GOLDEN_TABLET) @Test fun `fastest default tablet light`() = capture("default", "tablet", false, FastestFixtures.default)
     @Config(qualifiers = GOLDEN_TABLET) @Test fun `fastest default tablet dark`() = capture("default", "tablet", true, FastestFixtures.default)
 
+    @Config(qualifiers = GOLDEN_TABLET_WIDE) @Test fun `fastest default tablet-wide light`() = capture("default", "tablet-wide", false, FastestFixtures.default)
+
     @Config(qualifiers = GOLDEN_PHONE) @Test fun `fastest imported phone light`() = capture("imported", "phone", false, FastestFixtures.default, swipes = 3)
     @Config(qualifiers = GOLDEN_PHONE) @Test fun `fastest imported phone dark`() = capture("imported", "phone", true, FastestFixtures.default, swipes = 3)
     @Config(qualifiers = GOLDEN_TABLET) @Test fun `fastest imported tablet light`() = capture("imported", "tablet", false, FastestFixtures.default, swipes = 3)
@@ -70,7 +72,7 @@ class FastestCardGoldenScreenshots {
                 )
             }
         }
-        if (device == "phone") repeat(swipes) {
+        repeat(swipes) {
             rule.onNodeWithTag("recap.fastest.games").performTouchInput { swipeLeft() }
             rule.mainClock.advanceTimeBy(STEP_MS)
         }
@@ -79,3 +81,6 @@ class FastestCardGoldenScreenshots {
 }
 
 private const val STEP_MS = 600L
+
+/** A wide landscape tablet (Galaxy Tab S9 Ultra): the panel keeps the reference proportions when stretched. */
+private const val GOLDEN_TABLET_WIDE = "w1680dp-h1050dp-land-mdpi"
