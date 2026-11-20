@@ -93,7 +93,7 @@ internal fun FastestGameCard(
             bigFontSp(measurer, listOfNotNull(time, average), (maxWidth - Pad * 2).toPx(), (maxHeight - if (tight) TightFixed else RoomyFixed).toPx(), base)
         }
         val bigStyle = base.copy(fontSize = fontSp.sp, lineHeight = fontSp.sp * LINE)
-        val ghostStyle = bigStyle.copy(fontSize = fontSp.sp * GHOST_SCALE)
+        val ghostStyle = bigStyle.copy(fontSize = fontSp.sp * GHOST_SCALE, lineHeight = fontSp.sp * GHOST_SCALE * LINE)
         Column(Modifier.fillMaxSize().padding(Pad).graphicsLayer { alpha = slam.reveal.value }) {
             if (!tight) Text("FASTEST SOLVE", style = Eyebrow, color = ink)
             Text(gameName, style = MaterialTheme.typography.headlineMedium, color = ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -243,21 +243,23 @@ private fun ReplayPill(
 
 /**
  * The timer's font size in sp: the widest of the [times] fits [widthPx] on one line (the font shrinks and the tabular
- * figures stay), within [FontCap] and the [heightPx] left for the timer and its ghost. Measured with the app font, so a
+ * figures stay), within [FontCap] and the [heightPx] left for the timer and its ghost (their measured line boxes). Measured with the app font, so a
  * six-column `h:mm:ss` shrinks the font and nothing else.
  */
 private fun Density.bigFontSp(measurer: TextMeasurer, times: List<String>, widthPx: Float, heightPx: Float, style: TextStyle): Float {
-    val probe = measurer.measure(times.maxBy { it.length }, style.copy(fontSize = ProbeSp.sp)).size.width
-    val byWidth = ProbeSp * widthPx * FIT / probe
-    val emPx = density * fontScale
-    val byHeight = heightPx / (emPx * (LINE + LINE * GHOST_SCALE))
-    return minOf(FontCap, byWidth, byHeight)
+    val widest = times.maxBy { it.length }
+    val probe = style.copy(fontSize = ProbeSp.sp, lineHeight = ProbeSp.sp * LINE)
+    val byWidth = ProbeSp * widthPx * FIT / measurer.measure(widest, probe).size.width
+    // The timer's line box and its ghost's as the font really sets them (a line can run taller than its lineHeight).
+    val ghost = probe.copy(fontSize = ProbeSp.sp * GHOST_SCALE, lineHeight = ProbeSp.sp * GHOST_SCALE * LINE)
+    val boxPerSp = (measurer.measure(widest, probe).size.height + measurer.measure(widest, ghost).size.height) / ProbeSp
+    return minOf(FontCap, byWidth, heightPx / boxPerSp)
 }
 
 private val Pad = Spacing.lg
 private val TightHeight = 290.dp
 private val TightFixed = 150.dp
-private val RoomyFixed = 230.dp
+private val RoomyFixed = 200.dp
 private val StrikeWidth = 3.dp
 private const val FADE_IN = 4f
 private const val LINE = 1.1f
