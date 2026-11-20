@@ -52,22 +52,23 @@ internal fun RecapCoverFan(modifier: Modifier = Modifier, wide: Boolean = false,
                 Box(
                     Modifier
                         .align(Alignment.Center)
-                        .size(TileWidth * scale, TileHeight * scale)
+                        .size((TileWidth + Ring * 4) * scale, (TileHeight + Ring * 4) * scale)
                         .graphicsLayer {
                             val rest = p
                             translationX = rest * k * spread.toPx() * scale
                             translationY = rest * k * k * Drop.toPx() * scale + (1f - rest) * Rise.toPx() * scale
                             rotationZ = rest * k * Tilt
                             alpha = rest.coerceIn(0f, 1f)
-                            // One layer for tile and rings, so they fade together instead of the ink showing through the plate.
+                            // The layer spans the tile and its rings, so they fade together and the ink never shows through the plate.
                             compositingStrategy = CompositingStrategy.Offscreen
                         }
                         .drawBehind {
                             val radius = TileRadius.toPx() * scale
                             val ring = Ring.toPx() * scale
-                            drawRoundRect(ink, Offset(-2 * ring, -2 * ring), Size(size.width + 4 * ring, size.height + 4 * ring), CornerRadius(radius + 2 * ring))
-                            drawRoundRect(plate, Offset(-ring, -ring), Size(size.width + 2 * ring, size.height + 2 * ring), CornerRadius(radius + ring))
-                            drawRoundRect(accent.accent, size = size, cornerRadius = CornerRadius(radius))
+                            val tile = Size(size.width - 4 * ring, size.height - 4 * ring)
+                            drawRoundRect(ink, Offset.Zero, size, CornerRadius(radius + 2 * ring))
+                            drawRoundRect(plate, Offset(ring, ring), Size(size.width - 2 * ring, size.height - 2 * ring), CornerRadius(radius + ring))
+                            drawRoundRect(accent.accent, Offset(2 * ring, 2 * ring), tile, CornerRadius(radius))
                         },
                     contentAlignment = Alignment.Center,
                 ) {
