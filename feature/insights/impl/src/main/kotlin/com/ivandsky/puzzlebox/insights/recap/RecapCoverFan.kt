@@ -17,6 +17,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
@@ -58,6 +59,8 @@ internal fun RecapCoverFan(modifier: Modifier = Modifier, wide: Boolean = false,
                             translationY = rest * k * k * Drop.toPx() * scale + (1f - rest) * Rise.toPx() * scale
                             rotationZ = rest * k * Tilt
                             alpha = rest.coerceIn(0f, 1f)
+                            // One layer for tile and rings, so they fade together instead of the ink showing through the plate.
+                            compositingStrategy = CompositingStrategy.Offscreen
                         }
                         .drawBehind {
                             val radius = TileRadius.toPx() * scale
