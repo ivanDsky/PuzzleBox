@@ -27,7 +27,7 @@ internal fun RecapCardPage(
         is RecapCard.Month -> MonthCardPage(card, periodLabel, gameName, modifier, monthPlace)
         is RecapCard.Fastest -> FastestCardPage(card, periodLabel, gameName, onWatchReplay, modifier)
         is RecapCard.Streak -> StreakCardPage(card, periodLabel, modifier)
-        is RecapCard.Moments -> MomentsCardPage(card, periodLabel, modifier)
+        is RecapCard.Moments -> MomentsCardPage(card, periodLabel, gameName, modifier)
         is RecapCard.TotalTime -> TotalTimeCardPage(card, periodLabel, modifier)
         is RecapCard.Friends -> FriendsCardPage(card, periodLabel, gameName, modifier)
         is RecapCard.YearFinale -> YearFinalePage(card, periodLabel, gameName, displayName, onShare, modifier)

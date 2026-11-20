@@ -52,7 +52,7 @@ internal object RecapFixtures {
     )
 
     /** Every local Moment kind came up, two streak milestones among them. */
-    val moments = RecapCard.Moments(personalBests = 5, firstSubX = 2, fullSets = 14, streakMilestones = listOf(7, 30))
+    val moments = MomentsFixtures.withoutGames(MomentsFixtures.longest)
 
     /** Three hours and a bit over 42 solves. */
     val totalTime = RecapCard.TotalTime(

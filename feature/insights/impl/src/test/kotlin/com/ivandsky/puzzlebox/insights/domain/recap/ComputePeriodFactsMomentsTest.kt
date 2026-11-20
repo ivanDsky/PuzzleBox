@@ -20,6 +20,8 @@ class ComputePeriodFactsMomentsTest {
 
     private fun day(month: Int, dayOfMonth: Int) = LocalDate.of(2026, month, dayOfMonth)
 
+    private val PeriodFacts.kinds get() = moments.map { it.moment }
+
     private suspend fun facts(period: RecapPeriod, scope: GameId? = null) =
         fixture.computePeriodFacts(fixture.history(), period, scope)
 
@@ -29,7 +31,7 @@ class ComputePeriodFactsMomentsTest {
 
         assertEquals(0, facts.hintFree)
         assertEquals(0L, facts.totalTimeMs)
-        assertEquals(emptyList<Moment>(), facts.moments)
+        assertEquals(emptyList<Moment>(), facts.kinds)
     }
 
     @Test
@@ -71,8 +73,8 @@ class ComputePeriodFactsMomentsTest {
         )
 
         // Nov 3 and Nov 10 are slower than October's 380 s; only Nov 17 beats it. Folding November alone would also call Nov 10 a best.
-        assertEquals(listOf<Moment>(Moment.PersonalBest), facts(november).moments)
-        assertEquals(emptyList<Moment>(), facts(october).moments)
+        assertEquals(listOf<Moment>(Moment.PersonalBest), facts(november).kinds)
+        assertEquals(emptyList<Moment>(), facts(october).kinds)
     }
 
     @Test
@@ -84,10 +86,10 @@ class ComputePeriodFactsMomentsTest {
         )
 
         // 1:40 went under 2:00 in October; November's 1:50 is under it again, so it is no first. 0:50 is the first under 1:00.
-        assertEquals(listOf<Moment>(Moment.FirstSubX(120_000)), facts(october).moments.filterIsInstance<Moment.FirstSubX>())
+        assertEquals(listOf<Moment>(Moment.FirstSubX(120_000)), facts(october).kinds.filterIsInstance<Moment.FirstSubX>())
         assertEquals(
             listOf<Moment>(Moment.FirstSubX(60_000)),
-            facts(november).moments.filterIsInstance<Moment.FirstSubX>(),
+            facts(november).kinds.filterIsInstance<Moment.FirstSubX>(),
         )
     }
 
@@ -102,7 +104,7 @@ class ComputePeriodFactsMomentsTest {
             }.toTypedArray(),
         )
 
-        val moments = facts(november).moments
+        val moments = facts(november).kinds
 
         assertEquals(7, moments.count { it is Moment.FullSetDone })
         assertEquals(listOf(Moment.Streak(7)), moments.filterIsInstance<Moment.Streak>())
@@ -118,7 +120,7 @@ class ComputePeriodFactsMomentsTest {
             fixture.imported(alpha, day(11, 5)).copy(time = 350_000),
         )
 
-        assertEquals(listOf<Moment>(Moment.PersonalBest), facts(november).moments)
+        assertEquals(listOf<Moment>(Moment.PersonalBest), facts(november).kinds)
     }
 
     @Test
@@ -136,7 +138,24 @@ class ComputePeriodFactsMomentsTest {
         assertEquals(1, alpha.hintFree)
         assertEquals(400_000L, alpha.totalTimeMs)
         // Beta finished the day's set: a scope shows the game's own moments but the set came from both games.
-        assertEquals(listOf<Moment>(Moment.FullSetDone(Moment.FullSetDone.DayTotal(700_000, 1))), beta.moments)
-        assertEquals(emptyList<Moment>(), alpha.moments)
+        assertEquals(listOf<Moment>(Moment.FullSetDone(Moment.FullSetDone.DayTotal(700_000, 1))), beta.kinds)
+        assertEquals(emptyList<Moment>(), alpha.kinds)
+    }
+
+    @Test
+    fun `each moment carries the day and game of the solve that earned it, oldest day first`() = runTest {
+        fixture.store(
+            fixture.solve(beta, day(11, 9), time = 300_000),
+            fixture.solve(alpha, day(11, 3), time = 400_000),
+            fixture.solve(alpha, day(11, 20), time = 350_000),
+        )
+
+        // The history is stored out of order; the card needs the stickers in the order they were earned.
+        assertEquals(
+            listOf(Moment.PersonalBest to day(11, 20)),
+            facts(november).moments.map { it.moment to it.day }.filter { it.first is Moment.PersonalBest },
+        )
+        assertEquals(listOf(alpha), facts(november).moments.filter { it.moment is Moment.PersonalBest }.map { it.game })
+        assertEquals(facts(november).moments.map { it.day }.sorted(), facts(november).moments.map { it.day })
     }
 }

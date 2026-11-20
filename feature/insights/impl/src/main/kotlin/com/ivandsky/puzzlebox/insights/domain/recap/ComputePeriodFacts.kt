@@ -4,7 +4,6 @@ import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GameHistoryDay
 import com.ivandsky.puzzlebox.domain.isSolvedDaily
 import com.ivandsky.puzzlebox.domain.isStreakDay
-import com.ivandsky.puzzlebox.domain.moments.Moment
 import com.ivandsky.puzzlebox.domain.moments.detectMoments
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.CompletionSource
@@ -73,10 +72,11 @@ internal class ComputePeriodFacts(
      * The Moments of the period's solves, from the replay of the whole history: all games feed a streak or a set, and
      * only then is the scope applied to what is read out.
      */
-    private fun momentsOf(history: List<GameHistoryDay>, period: DaySpan, scope: GameId?): List<Moment> =
+    private fun momentsOf(history: List<GameHistoryDay>, period: DaySpan, scope: GameId?): List<DatedMoment> =
         replaySolveFacts(history)
             .filter { it.day in period && (scope == null || it.game == scope) }
-            .flatMap { detectMoments(it.facts) }
+            .sortedBy { it.day }
+            .flatMap { solve -> detectMoments(solve.facts).map { DatedMoment(it, solve.day, solve.game) } }
 
     /** The quickest of the counted solves of [run]'s last day that has one: a frozen day has none, and a streak day beyond the scope's counted solves is skipped. */
     private fun lastSolveOf(run: StreakRun, counted: List<GameHistoryDay>): SolveRef? {
