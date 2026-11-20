@@ -43,7 +43,7 @@ internal fun WidgetRings(rings: List<WidgetRing>?, large: Boolean, colors: Widge
 
 /** Ring box and glyph edge for each widget size. */
 private enum class RingSize(val box: Dp, val glyph: Dp) {
-    Default(box = 44.dp, glyph = 20.dp),
+    Default(box = 28.dp, glyph = 14.dp),
     Large(box = 56.dp, glyph = 26.dp),
 }
 
