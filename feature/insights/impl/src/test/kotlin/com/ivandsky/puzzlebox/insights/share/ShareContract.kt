@@ -11,7 +11,7 @@ import java.time.YearMonth
 internal object ShareContract {
     private val october = RecapPeriod.Month(YearMonth.of(2026, 10))
     private fun time(ms: Long, solved: Int) = RecapCard.TotalTime(ms, solved, listOf(DayTally(LocalDate.of(2026, 10, 3), solved, ms, 0)), october)
-    private fun streak(days: Int, freezes: Int) = RecapCard.Streak(days, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, days), freezes)
+    private fun streak(days: Int, freezes: Int) = RecapCard.Streak(days, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, days), freezes, emptySet(), october)
 
     /** 96 solved over five games, 71 without a hint, 23-day streak, 6 Moments, 3h 47m. */
     val default = listOf(SolvedFixtures.default, streak(23, 2), RecapCard.Moments(2, 1, 2, listOf(7)), time(13_650_000, 96))

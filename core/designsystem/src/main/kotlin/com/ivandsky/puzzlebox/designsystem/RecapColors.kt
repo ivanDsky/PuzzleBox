@@ -18,8 +18,6 @@ import androidx.compose.ui.unit.dp
 // everywhere the card shows (story card, tablet fact-row marker, share poster).
 enum class RecapCard { Cover, Solved, Fastest, Streak, Moments, Friends, TotalTime, YearMonth, YearFinale, Share }
 
-data class RecapCardColors(val field: Color, val ink: Color, val plate: Color)
-
 // Palette v2 (contract-shared.md `## Recap palette`): three hue families plus a mist neutral. Secondary text is the
 // ink at full opacity, never alpha; a control inside a plate gets a 1.5dp ink outline.
 internal val LightRecapCoverField = Color(0xFF92F0AD)
