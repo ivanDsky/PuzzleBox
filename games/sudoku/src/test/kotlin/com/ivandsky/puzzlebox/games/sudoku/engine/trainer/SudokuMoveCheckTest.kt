@@ -106,6 +106,53 @@ class SudokuMoveCheckTest {
     }
 
     @Test
+    fun `a right move comes with the step that proves it, whichever instance the player found`() {
+        var otherInstances = 0
+        for ((name, walk) in walks) {
+            val puzzle = SudokuTrainerFixtures.all.getValue(name)
+            for (w in walk.filter { it.step is SudokuStep.Single }) {
+                val own = (w.step as SudokuStep.Single).place
+                for (idx in w.boardBefore.cells.indices.filter { w.boardBefore.digitAt(it) == 0 }) {
+                    val move = SudokuTrainerMove.Place(idx, puzzle.solution[idx])
+                    val judged = SudokuMoveCheck.judge(puzzle, w.boardBefore, w.struckBefore, w.technique!!, move)
+                    if (judged.verdict != TrainerVerdict.Right) {
+                        assertEquals("$name $move", null, judged.proof)
+                        continue
+                    }
+                    val proof = (judged.proof as SudokuStep.Single).place
+                    assertEquals("$name $move", idx to puzzle.solution[idx], proof.cell to proof.digit)
+                    // The cut's own cell is proved by the cut's own technique.
+                    if (idx == own.cell) assertEquals("$name $move", own.technique, proof.technique)
+                    else otherInstances++
+                }
+            }
+        }
+        assertTrue("no walk board holds a second single of its technique", otherInstances > 0)
+    }
+
+    @Test
+    fun `a right note removal comes with the elimination that strikes it`() {
+        var checked = 0
+        for ((name, walk) in walks) {
+            val puzzle = SudokuTrainerFixtures.all.getValue(name)
+            for (w in walk.filter { it.step is SudokuStep.Elimination }) {
+                for ((cell, digit) in shownNotes(puzzle, w.boardBefore, w.struckBefore).filter { (cell, digit) -> digit != puzzle.solution[cell] }) {
+                    val judged = SudokuMoveCheck.judge(puzzle, w.boardBefore, w.struckBefore, w.technique!!, SudokuTrainerMove.RemoveNote(cell, digit))
+                    if (judged.verdict != TrainerVerdict.Right) {
+                        assertEquals("$name $cell $digit", null, judged.proof)
+                        continue
+                    }
+                    val proof = judged.proof as SudokuStep.Elimination
+                    assertEquals("$name $cell $digit", (w.step as SudokuStep.Elimination).technique, proof.technique)
+                    assertTrue("$name $cell $digit", (proof.struck[cell] ?: 0) and (1 shl (digit - 1)) != 0)
+                    checked++
+                }
+            }
+        }
+        assertTrue(checked > 0)
+    }
+
+    @Test
     fun `bad moves and ids are refused`() {
         val puzzle = SudokuTrainerFixtures.dailies.getValue("li:1")
         val w = walks.getValue("li:1").first { it.technique != null }

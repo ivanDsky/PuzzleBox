@@ -151,14 +151,6 @@ object QueensStepper {
         return null
     }
 
-    private fun QueensProof.toStep(): QueensStep.Deduction {
-        val result = when (val d = deduction) {
-            is QueensDeduction.Place -> QueensStep.Deduction.Result.LastCell(Cell(d.cell))
-            is QueensDeduction.Exclude -> QueensStep.Deduction.Result.Cross(d.cells.mapTo(HashSet(d.cells.size * 2), ::Cell))
-        }
-        return QueensStep.Deduction(deduction.unit, evidence.mapTo(HashSet(evidence.size * 2), ::Cell), result)
-    }
-
     /**
      * An open cell off the solution ([onSolution] by index) in the unsolved unit with the fewest open cells, then
      * nearest [lastMove], then lowest cell (A8). Null only when no such cell exists.

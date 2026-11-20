@@ -69,6 +69,18 @@ class QueensTrainerSnippetsTest {
     }
 
     @Test
+    fun `a snippet whose board held the step that proved the player's move reveals that step, not its cut`() {
+        val snippets = QueensTrainerFixtures.snippets
+        val snippet = snippets.first()
+        val other = snippets.first { it.cut.step != snippet.cut.step }.cut.step
+        snippet.proving.step = other
+        val spotlight = trainer.spotlight(snippet)
+        val hint = QueensSpotlightMapper.map(other, snippet.puzzle, playId = 0)
+        assertEquals(hint.roles, spotlight.roles)
+        assertEquals(hint.callout, spotlight.callout)
+    }
+
+    @Test
     fun `a snippet's prompt names its technique and whether to place a queen or cross a square`() {
         for (snippet in QueensTrainerFixtures.snippets) {
             val name = trainer.catalog().first { it.id == snippet.technique }.name

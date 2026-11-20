@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
 import com.ivandsky.puzzlebox.games.sudoku.engine.hints.SudokuCandidates
 import com.ivandsky.puzzlebox.games.sudoku.engine.hints.SudokuTechnique
 import com.ivandsky.puzzlebox.games.sudoku.engine.hints.step.SudokuEliminations
+import com.ivandsky.puzzlebox.games.sudoku.engine.hints.step.SudokuStep
 import com.ivandsky.puzzlebox.games.sudoku.engine.hints.step.SudokuStepper
 
 /**
@@ -19,22 +20,33 @@ import com.ivandsky.puzzlebox.games.sudoku.engine.hints.step.SudokuStepper
  */
 object SudokuMoveCheck {
 
-    /**
-     * [move] on [boardBefore] with [struckBefore] (cell to digit mask) struck from the candidates,
-     * judged for [technique]. A single technique is proved by a [SudokuTrainerMove.Place], an
-     * elimination technique by a [SudokuTrainerMove.RemoveNote]; the other kind never proves it.
-     *
-     * @throws IllegalArgumentException when [technique] is no Sudoku technique, or [move] is off the
-     *   board, a place on a filled cell, or a note removal on a filled cell or of a digit the board
-     *   does not show as a candidate.
-     */
+    /** [judge]'s verdict alone. */
     fun classify(
         puzzle: SudokuPuzzle,
         boardBefore: SudokuBoard,
         struckBefore: Map<Int, Int>,
         technique: TechniqueId,
         move: SudokuTrainerMove,
-    ): TrainerVerdict {
+    ): TrainerVerdict = judge(puzzle, boardBefore, struckBefore, technique, move).verdict
+
+    /**
+     * [move] on [boardBefore] with [struckBefore] (cell to digit mask) struck from the candidates,
+     * judged for [technique]. A single technique is proved by a [SudokuTrainerMove.Place], an
+     * elimination technique by a [SudokuTrainerMove.RemoveNote]; the other kind never proves it.
+     * A Right move comes with the step that proves it, which need not be the step a snippet was
+     * cut at: the player may find another instance of the technique.
+     *
+     * @throws IllegalArgumentException when [technique] is no Sudoku technique, or [move] is off the
+     *   board, a place on a filled cell, or a note removal on a filled cell or of a digit the board
+     *   does not show as a candidate.
+     */
+    fun judge(
+        puzzle: SudokuPuzzle,
+        boardBefore: SudokuBoard,
+        struckBefore: Map<Int, Int>,
+        technique: TechniqueId,
+        move: SudokuTrainerMove,
+    ): SudokuMoveJudgement {
         require(technique in SudokuTechniqueIds.all) { "$technique is not a Sudoku technique" }
         val geometry = puzzle.geometry
         val (idx, digit) = when (move) {
@@ -52,17 +64,20 @@ object SudokuMoveCheck {
             is SudokuTrainerMove.Place -> digit == puzzle.solution[idx]
             is SudokuTrainerMove.RemoveNote -> digit != puzzle.solution[idx]
         }
-        if (!fits) return TrainerVerdict.Wrong
-        return if (proves(puzzle, boardBefore, candidates, technique, move)) TrainerVerdict.Right else TrainerVerdict.AnotherWay
+        if (!fits) return SudokuMoveJudgement(TrainerVerdict.Wrong, proof = null)
+        val proof = provingStep(puzzle, boardBefore, candidates, technique, move)
+            ?: return SudokuMoveJudgement(TrainerVerdict.AnotherWay, proof = null)
+        return SudokuMoveJudgement(TrainerVerdict.Right, proof)
     }
 
-    private fun proves(
+    /** The step of [technique] that proves [move] on the board, the simplest when several do; null when none does. */
+    private fun provingStep(
         puzzle: SudokuPuzzle,
         board: SudokuBoard,
         candidates: IntArray,
         technique: TechniqueId,
         move: SudokuTrainerMove,
-    ): Boolean {
+    ): SudokuStep? {
         val geometry = puzzle.geometry
         val scan = SudokuStepper.Scan(geometry, board, candidates, lastMove = null)
         val singles = when (technique.value) {
@@ -73,8 +88,11 @@ object SudokuMoveCheck {
             else -> null
         }
         if (singles != null) {
-            return move is SudokuTrainerMove.Place &&
-                singles.any { it.single.place.cell == move.idx && it.single.place.digit == move.digit }
+            if (move !is SudokuTrainerMove.Place) return null
+            return singles
+                .filter { it.single.place.cell == move.idx && it.single.place.digit == move.digit }
+                .minByOrNull { it.cost }
+                ?.single
         }
         val eliminations = when (technique.value) {
             "pointing" -> SudokuEliminations.intersections(geometry, candidates, pointing = true)
@@ -82,7 +100,9 @@ object SudokuMoveCheck {
             "naked-pair" -> SudokuEliminations.nakedPairs(geometry, candidates)
             else -> SudokuEliminations.hiddenPairs(geometry, candidates)
         }
-        return move is SudokuTrainerMove.RemoveNote &&
-            eliminations.any { (it.struck[move.idx] ?: 0) and (1 shl (move.digit - 1)) != 0 }
+        if (move !is SudokuTrainerMove.RemoveNote) return null
+        return eliminations
+            .filter { (it.struck[move.idx] ?: 0) and (1 shl (move.digit - 1)) != 0 }
+            .minByOrNull { it.evidence.size }
     }
 }

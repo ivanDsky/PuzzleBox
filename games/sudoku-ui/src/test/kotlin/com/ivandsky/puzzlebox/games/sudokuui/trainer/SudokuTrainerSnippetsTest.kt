@@ -125,6 +125,15 @@ class SudokuTrainerSnippetsTest {
     }
 
     @Test
+    fun `a snippet whose board held the step that proved the player's move reveals that step, not its cut`() {
+        val snippet = SudokuTrainerFixtures.snippets().first { it.placesDigit }
+        val other = SudokuTrainerFixtures.snippets().first { it.placesDigit && it.cut.step != snippet.cut.step && it.puzzle == snippet.puzzle }.cut.step
+        snippet.proving.step = other
+        val hint = SudokuSpotlightMapper.map(other, snippet.puzzle, snippet.cut.boardBefore, playId = 0)
+        assertEquals(hint.roles, trainer.spotlight(snippet).roles)
+    }
+
+    @Test
     fun `two snippets built apart are not equal, so a round never shares a digit look`() {
         val a = SudokuTrainerFixtures.snippets().first()
         assertNotEquals(a, a.copy(digits = SudokuDigitStyleHolder()))

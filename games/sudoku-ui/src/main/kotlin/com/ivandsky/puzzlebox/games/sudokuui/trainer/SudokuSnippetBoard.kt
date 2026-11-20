@@ -68,10 +68,12 @@ internal fun SudokuSnippetBoard(
                     onPick = { digit ->
                         state.input(digit)?.let { move ->
                             scope.launch {
-                                val verdict = withContext(compute) {
-                                    SudokuMoveCheck.classify(snippet.puzzle, snippet.cut.boardBefore, snippet.cut.struckBefore, snippet.technique, move)
+                                val judged = withContext(compute) {
+                                    SudokuMoveCheck.judge(snippet.puzzle, snippet.cut.boardBefore, snippet.cut.struckBefore, snippet.technique, move)
                                 }
-                                report(verdict)
+                                // Before the verdict: the round asks for the reveal as soon as it has it.
+                                snippet.proving.step = judged.proof?.takeUnless { snippet.cutProves(move) }
+                                report(judged.verdict)
                             }
                         }
                     },

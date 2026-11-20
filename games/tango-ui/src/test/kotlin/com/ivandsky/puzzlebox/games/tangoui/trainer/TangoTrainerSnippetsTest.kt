@@ -88,6 +88,18 @@ class TangoTrainerSnippetsTest {
     }
 
     @Test
+    fun `a snippet whose board held the step that proved the player's move reveals that step, not its cut`() {
+        val snippets = TangoTrainerFixtures.snippets
+        val snippet = snippets.first()
+        val other = snippets.first { it.cut.step != snippet.cut.step }.cut.step
+        snippet.proving.step = other
+        val spotlight = trainer.spotlight(snippet)
+        val hint = TangoSpotlightMapper.map(other, snippet.puzzle, snippet.cut.gridBefore, playId = 0)
+        assertEquals(hint.roles, spotlight.roles)
+        assertEquals(hint.callout, spotlight.callout)
+    }
+
+    @Test
     fun `a snippet of another game is refused`() {
         val foreign = object : Snippet {
             override val technique = TechniqueId("sign")

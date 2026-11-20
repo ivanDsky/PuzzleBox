@@ -22,20 +22,31 @@ import com.ivandsky.puzzlebox.games.tango.engine.step.TangoStepRung
  */
 object TangoMoveCheck {
 
-    /**
-     * [move] on [gridBefore], judged for [technique]. [solution] is the puzzle's unique solution,
-     * which the caller carries from the walk that produced the board (the payload holds none).
-     *
-     * @throws IllegalArgumentException when [technique] is no Tango technique, or [move]'s cell is
-     *   off the board, a given, or already filled.
-     */
+    /** [judge]'s verdict alone. */
     fun classify(
         puzzle: TangoPuzzle,
         solution: List<TangoCell>,
         gridBefore: List<TangoCell?>,
         technique: TechniqueId,
         move: TangoTrainerMove,
-    ): TrainerVerdict {
+    ): TrainerVerdict = judge(puzzle, solution, gridBefore, technique, move).verdict
+
+    /**
+     * [move] on [gridBefore], judged for [technique]. [solution] is the puzzle's unique solution,
+     * which the caller carries from the walk that produced the board (the payload holds none). A
+     * Right move comes with the deduction that proves it, which need not be the step a snippet
+     * was cut at: the player may find another instance of the technique.
+     *
+     * @throws IllegalArgumentException when [technique] is no Tango technique, or [move]'s cell is
+     *   off the board, a given, or already filled.
+     */
+    fun judge(
+        puzzle: TangoPuzzle,
+        solution: List<TangoCell>,
+        gridBefore: List<TangoCell?>,
+        technique: TechniqueId,
+        move: TangoTrainerMove,
+    ): TangoMoveJudgement {
         val rung = requireNotNull(TangoStepRung.entries.firstOrNull { it.trainerId == technique }) {
             "$technique is not a Tango technique"
         }
@@ -46,9 +57,13 @@ object TangoMoveCheck {
             "$move is off the board or on a cell that is a given or already filled"
         }
         // A rung proves only what holds in the solution, so a move that breaks it is never proved.
-        if (move.value != solution[move.idx]) return TrainerVerdict.Wrong
-        val proved = ruleOf(rung).forced(puzzle, gridBefore).any { it.idx == move.idx && it.value == move.value }
-        return if (proved) TrainerVerdict.Right else TrainerVerdict.AnotherWay
+        if (move.value != solution[move.idx]) return TangoMoveJudgement(TrainerVerdict.Wrong, proof = null)
+        // Several deductions may prove the cell; the one reading the fewest cells is the simplest.
+        val proof = ruleOf(rung).forced(puzzle, gridBefore)
+            .filter { it.idx == move.idx && it.value == move.value }
+            .minByOrNull { it.evidence.size }
+            ?: return TangoMoveJudgement(TrainerVerdict.AnotherWay, proof = null)
+        return TangoMoveJudgement(TrainerVerdict.Right, proof)
     }
 
     /** The rule behind [rung]: the same objects the stepper lists, each of which returns every deduction it can make. */

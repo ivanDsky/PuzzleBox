@@ -54,10 +54,12 @@ internal fun QueensSnippetBoard(
                         val row = (offset.y / size.height * n).toInt().coerceIn(0, n - 1)
                         val move = state.tap(row * n + col) ?: return@detectTapGestures
                         scope.launch {
-                            val verdict = withContext(compute) {
-                                QueensMoveCheck.classify(snippet.puzzle, snippet.cut.boardBefore, snippet.technique, move)
+                            val judged = withContext(compute) {
+                                QueensMoveCheck.judge(snippet.puzzle, snippet.cut.boardBefore, snippet.technique, move)
                             }
-                            report(verdict)
+                            // Before the verdict: the round asks for the reveal as soon as it has it.
+                            snippet.proving.step = judged.proof?.takeUnless { snippet.cutProves(move) }
+                            report(judged.verdict)
                         }
                     }
                 },

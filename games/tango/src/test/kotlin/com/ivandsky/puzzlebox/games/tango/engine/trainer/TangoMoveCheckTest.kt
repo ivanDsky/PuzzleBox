@@ -66,6 +66,33 @@ class TangoMoveCheckTest {
     }
 
     @Test
+    fun `a right move comes with the deduction that proves it, whichever instance the player found`() {
+        val (puzzle, solution) = solved("byid-1")
+        val walked = TangoTechniqueWalker.walk(puzzle, solution)[0]
+        val cut = walked.step as TangoStep.Deduction
+        val equalPair = TechniqueId("equal-pair")
+        // The equal pair proves 4, 10, 24 and 25 on the opening board; the walk's own step is one of them.
+        val cells = listOf(4, 10, 24, 25)
+        assertEquals(true, cut.idx in cells)
+        for (idx in cells) {
+            val judged = TangoMoveCheck.judge(puzzle, solution, walked.gridBefore, equalPair, TangoTrainerMove(idx, solution[idx]))
+            assertEquals(TrainerVerdict.Right, judged.verdict)
+            assertEquals(idx, judged.proof?.idx)
+            assertEquals(solution[idx], judged.proof?.value)
+            assertEquals(cut.rung, judged.proof?.rung)
+            if (idx == cut.idx) assertEquals(cut, judged.proof)
+        }
+    }
+
+    @Test
+    fun `only a right move comes with a proving step`() {
+        val (puzzle, solution) = solved("byid-1")
+        val afterOne = board("byid-1", 1, "full-line")
+        assertEquals(null, TangoMoveCheck.judge(puzzle, solution, afterOne, TechniqueId("sign"), TangoTrainerMove(1, solution[1])).proof)
+        assertEquals(null, TangoMoveCheck.judge(puzzle, solution, afterOne, TechniqueId("sign"), TangoTrainerMove(10, solution[10].other)).proof)
+    }
+
+    @Test
     fun `the opposite value on a target cell is wrong`() {
         for ((name, puzzle) in dailies) {
             val solution = TangoUniqueness.solve(puzzle)!!
