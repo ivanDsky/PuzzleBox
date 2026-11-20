@@ -6,13 +6,12 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,12 +22,10 @@ import com.ivandsky.puzzlebox.designsystem.EmptyState
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.TwoColumnFrame
 import com.ivandsky.puzzlebox.designsystem.TwoColumnMinWidth
-import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.insights.share.RecapShareContent
 import com.ivandsky.puzzlebox.insights.share.RecapShareState
 import com.ivandsky.puzzlebox.model.GameId
-import kotlinx.coroutines.launch
 
 /**
  * A recap's whole screen for [state]: the story once the cards are ready, a quiet message while they are not.
@@ -104,20 +101,19 @@ private fun RecapReady(
     modifier: Modifier = Modifier,
 ) {
     val pageCount = state.cards.size + if (share == null) 0 else 1
-    val pagerState = rememberPagerState(initialPage = state.initialPage.coerceAtMost(pageCount - 1)) { pageCount }
-    LaunchedEffect(pagerState) { snapshotFlow { pagerState.currentPage }.collect(onPage) }
+    // No cover screen yet, so the story opens straight on its card.
+    val deck = rememberSaveable(saver = RecapDeckState.Saver) { RecapDeckState(pageCount, state.initialPage) }.also { it.resize(pageCount) }
+    LaunchedEffect(deck) { snapshotFlow { deck.page }.collect(onPage) }
     val periodLabel = state.title
     BoxWithConstraints(modifier.fillMaxSize()) {
         if (maxWidth >= TwoColumnMinWidth) {
-            val scope = rememberCoroutineScope()
-            val reduced = rememberReducedMotion()
             TwoColumnFrame(
                 paneHeight = maxHeight,
                 tag = "recap.twoPane",
                 left = { column, height ->
                     RecapStory(
                         cards = state.cards,
-                        pagerState = pagerState,
+                        deck = deck,
                         periodLabel = periodLabel,
                         gameName = gameName,
                         onWatchReplay = onWatchReplay,
@@ -133,15 +129,15 @@ private fun RecapReady(
                 right = {
                     RecapFactList(
                         cards = state.cards,
-                        current = pagerState.currentPage,
+                        current = deck.selectedFact,
                         gameName = gameName,
-                        onSelect = { page -> scope.launch { pagerState.showPage(page, reduced) } },
+                        onSelect = deck::jumpTo,
                         onWatchReplay = onWatchReplay,
                     )
                 },
             )
         } else {
-            RecapStory(state.cards, pagerState, periodLabel, gameName, onWatchReplay, onClose, share = share, onShare = onShare)
+            RecapStory(state.cards, deck, periodLabel, gameName, onWatchReplay, onClose, share = share, onShare = onShare)
         }
     }
 }
