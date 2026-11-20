@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -21,21 +22,21 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.LocalTimerFill
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
-import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteEntry
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.designsystem.ink
-import com.ivandsky.puzzlebox.designsystem.plate
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 
 /**
- * One segment per page, the first [filled] of them lit in [card]'s ink over its plate: where the player is in the
- * story, nothing else, so it is not tappable. A segment fills from the left as its card arrives and is instant under
- * reduced motion.
+ * One segment per page, the first [filled] of them lit in the progress fill over a `surfaceVariant` track: where the
+ * player is in the story, nothing else, so it is not tappable. A segment fills from the left as its card arrives and is
+ * instant under reduced motion.
  */
 @Composable
-internal fun RecapProgressStrip(count: Int, filled: Int, card: PaletteEntry, modifier: Modifier = Modifier) {
+internal fun RecapProgressStrip(count: Int, filled: Int, modifier: Modifier = Modifier) {
     val reduced = rememberReducedMotion()
+    val track = MaterialTheme.colorScheme.surfaceVariant
+    val fill = LocalTimerFill.current
     Row(
         modifier
             .fillMaxWidth()
@@ -59,7 +60,7 @@ internal fun RecapProgressStrip(count: Int, filled: Int, card: PaletteEntry, mod
                     .weight(1f)
                     .height(SegmentHeight)
                     .clip(CircleShape)
-                    .background(card.plate)
+                    .background(track)
                     .testTag("recap.progress.$index"),
             ) {
                 Box(
@@ -69,7 +70,7 @@ internal fun RecapProgressStrip(count: Int, filled: Int, card: PaletteEntry, mod
                             scaleX = fraction
                             transformOrigin = TransformOrigin(0f, 0.5f)
                         }
-                        .background(card.ink),
+                        .background(fill),
                 )
             }
         }

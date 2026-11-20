@@ -28,13 +28,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.LocalPrimaryText
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
-import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteEntry
 import com.ivandsky.puzzlebox.designsystem.RecapMotion
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.ink
-import com.ivandsky.puzzlebox.designsystem.plate
 import com.ivandsky.puzzlebox.designsystem.pressScale
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
@@ -82,15 +81,15 @@ internal fun RecapStory(
                     .padding(horizontal = Spacing.md)
                     .padding(top = Spacing.sm),
             ) {
-                RecapProgressStrip(count = deck.segmentCount, filled = deck.filledSegments, card = palette)
+                RecapProgressStrip(count = deck.segmentCount, filled = deck.filledSegments)
                 Row(
                     Modifier.align(Alignment.End).padding(top = Spacing.xs),
                     horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                 ) {
                     if (!deck.onCover && deck.page < cards.size) {
-                        ChromeButton(PuzzleIcons.Retry, "Replay card", "recap.replay", palette, reduced, turn) { deck.restartEntrance() }
+                        ChromeButton(PuzzleIcons.Retry, "Replay card", "recap.replay", reduced, turn) { deck.restartEntrance() }
                     }
-                    ChromeButton(PuzzleIcons.Close, "Close recap", "recap.close", palette, reduced, onClick = onClose)
+                    ChromeButton(PuzzleIcons.Close, "Close recap", "recap.close", reduced, onClick = onClose)
                 }
             }
             RecapDeck(
@@ -118,16 +117,16 @@ private fun ChromeButton(
     icon: ImageVector,
     label: String,
     tag: String,
-    palette: PaletteEntry,
     reduced: Boolean,
     turn: Float = 0f,
     onClick: () -> Unit,
 ) {
     val interaction = remember { MutableInteractionSource() }
+    val accent = LocalPrimaryText.current
     IconButton(
         onClick = onClick,
         modifier = Modifier.size(ChromeButtonSize).pressScale(interaction, reduced).testTag(tag),
-        colors = IconButtonDefaults.iconButtonColors(containerColor = palette.plate, contentColor = palette.ink),
+        colors = IconButtonDefaults.iconButtonColors(containerColor = accent.copy(alpha = ChromeTintAlpha), contentColor = accent),
         interactionSource = interaction,
     ) {
         Icon(icon, contentDescription = label, modifier = Modifier.graphicsLayer { rotationZ = turn })
@@ -136,5 +135,8 @@ private fun ChromeButton(
 
 /** Each replay turns the ↻ icon a further quarter turn back. */
 private const val ReplayTurn = -90f
+
+/** The tonal circle behind the chrome icons: the icon's green over the screen, as the story-shell references measure. */
+private const val ChromeTintAlpha = 0.14f
 
 private val ChromeButtonSize = 48.dp
