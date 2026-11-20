@@ -12,8 +12,8 @@ import org.koin.dsl.module
 /**
  * Train feature wiring: the answer use case, the pane's view model (the game row, the technique list, the open
  * technique) and the round's, one per game and technique, which takes its [TrainerGame] and technique id as parameters.
- * The Trainer registry (the games that have a trainer), the progress store and the puzzle source are bound by the app
- * and the core modules, so this module never names a game.
+ * The Trainer registry (the games that have a trainer), the progress store, the puzzle source and the archive a tap
+ * fetches from are bound by the app and the core modules, so this module never names a game.
  */
 val trainModule: Module = module {
     factory { RecordAnswer(progress = get()) }
@@ -23,6 +23,7 @@ val trainModule: Module = module {
             game = params.get<TrainerGame>(),
             technique = params.get<TechniqueId>(),
             source = get(),
+            archive = get(),
             recordAnswer = get(),
             dispatchers = get(),
         )

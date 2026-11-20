@@ -24,22 +24,25 @@ internal class FakeSnippet(override val technique: TechniqueId, val label: Strin
 
 /**
  * A trainer with the techniques [techniques]. Each puzzle yields [perPuzzle] snippets at most, and [requested] records
- * the count each call asked for, so a test sees how the round walked the puzzles.
+ * the count each call asked for, so a test sees how the round walked the puzzles. [drillSources] are what the game
+ * names to drill, and a puzzle whose last payload byte is in [silent] yields no snippet, a puzzle with no step of the
+ * technique.
  */
 internal class FakeTrainerGame(
     override val gameId: GameId,
     private val techniques: List<TrainerTechnique>,
     private val perPuzzle: Int = 5,
+    override val drillSources: List<DrillSource> = emptyList(),
 ) : TrainerGame {
 
     val requested = mutableListOf<Int>()
+    val silent = mutableSetOf<Byte>()
 
     override fun catalog(): List<TrainerTechnique> = techniques
 
-    override val drillSources: List<DrillSource> = emptyList()
-
     override fun buildSnippets(puzzle: Puzzle, technique: TechniqueId, count: Int): List<Snippet> {
         requested += count
+        if (puzzle.payload.last() in silent) return emptyList()
         return List(minOf(count, perPuzzle)) { FakeSnippet(technique, "${puzzle.payload.last()}-$it") }
     }
 

@@ -36,6 +36,9 @@ class LinkedInEdition(
     /** [number] of [day], or null before [day1]: the game numbers no day before #1 (A3). */
     fun numberOrNull(day: LocalDate): Int? = if (day.isBefore(day1)) null else number(day)
 
+    /** The inverse of [number]: the day of puzzle [number] (day1 + number − 1), or null for a number below 1 (A3). */
+    fun dayOf(number: Int): LocalDate? = if (number < 1) null else day1.plusDays(number - 1L)
+
     /**
      * The [check]ed games-by-id body of [day]'s edition over [transport]. A number outside
      * #1..number([today]) is [FetchError.NotFound] without a request: LinkedIn serves

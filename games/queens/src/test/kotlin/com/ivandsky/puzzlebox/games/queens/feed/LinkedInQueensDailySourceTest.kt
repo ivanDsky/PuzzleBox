@@ -216,4 +216,20 @@ class LinkedInQueensDailySourceTest {
         assertEquals("games/queens/", source("").linkedInGamePath)
         assertEquals(LinkedInQueensDailySource.REQUEST.path, LinkedInQueensDailySource.EDITION.path)
     }
+
+    /** Bug caught: a number that maps to another day than the one it numbers, so the trainer fetches the wrong puzzle. */
+    @Test
+    fun `dayOf inverts puzzleNumber over a thousand days and has no day for a number below 1`() {
+        val queens = source("")
+        val first = queens.archiveSince!!
+
+        for (offset in 0L until 1000L) {
+            val day = first.plusDays(offset)
+            assertEquals(day, queens.dayOf(queens.puzzleNumber(day)!!))
+        }
+        assertEquals(first, queens.dayOf(1))
+        assertEquals(LocalDate.of(2026, 11, 5), queens.dayOf(919))
+        assertNull(queens.dayOf(0))
+        assertNull(queens.dayOf(-1))
+    }
 }

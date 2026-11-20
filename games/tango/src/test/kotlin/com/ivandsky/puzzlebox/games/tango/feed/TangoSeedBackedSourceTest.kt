@@ -17,6 +17,7 @@ import java.time.ZonedDateTime
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -125,5 +126,20 @@ class TangoSeedBackedSourceTest {
 
         assertTrue(source.isPlaceholder(seed))
         assertFalse(source.isPlaceholder(fetched))
+    }
+
+    /** Bug caught: the seed wrapper hiding the primary's numbering (the default null), so a Tango number never resolves to a day. */
+    @Test
+    fun `dayOf is the primary's, a day for a number and none below 1`() {
+        val source = seedBacked(FetchError.Unavailable("unused"))
+        val first = source.archiveSince!!
+
+        for (offset in 0L until 1000L) {
+            val day = first.plusDays(offset)
+            assertEquals(day, source.dayOf(source.puzzleNumber(day)!!))
+        }
+        assertEquals(LocalDate.of(2026, 11, 5), source.dayOf(759))
+        assertNull(source.dayOf(0))
+        assertNull(source.dayOf(-1))
     }
 }

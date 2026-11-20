@@ -40,6 +40,8 @@ class TangoSeedBackedSource(private val primary: LinkedInTangoDailySource) : Dai
 
     override fun puzzleNumber(day: LocalDate): Int? = primary.puzzleNumber(day)
 
+    override fun dayOf(number: Int): LocalDate? = primary.dayOf(number)
+
     override val linkedInGameTypeId: Int? = primary.linkedInGameTypeId
 
     override val linkedInGamePath: String? = primary.linkedInGamePath

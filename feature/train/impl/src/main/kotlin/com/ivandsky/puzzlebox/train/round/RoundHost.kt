@@ -41,6 +41,8 @@ internal fun RoundHost(open: OpenTechnique, showBack: Boolean, onClose: () -> Un
         board = board,
         onShowMe = vm::showMe,
         onNext = vm::next,
+        onTryAgain = vm::tryAgain,
+        onTryAnother = vm::tryAnother,
         modifier = modifier,
     )
 }

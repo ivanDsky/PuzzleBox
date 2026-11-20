@@ -229,4 +229,20 @@ class LinkedInZipDailySourceTest {
         assertTrue((beforeDay1 as FetchResult.Err).error is FetchError.NotFound)
         assertTrue(transport.requests.isEmpty())
     }
+
+    /** Bug caught: a number that maps to another day than the one it numbers, so the trainer fetches the wrong puzzle. */
+    @Test
+    fun `dayOf inverts puzzleNumber over a thousand days and has no day for a number below 1`() {
+        val zip = source("")
+        val first = zip.archiveSince!!
+
+        for (offset in 0L until 1000L) {
+            val day = first.plusDays(offset)
+            assertEquals(day, zip.dayOf(zip.puzzleNumber(day)!!))
+        }
+        assertEquals(first, zip.dayOf(1))
+        assertEquals(LocalDate.of(2026, 11, 5), zip.dayOf(598))
+        assertNull(zip.dayOf(0))
+        assertNull(zip.dayOf(-1))
+    }
 }

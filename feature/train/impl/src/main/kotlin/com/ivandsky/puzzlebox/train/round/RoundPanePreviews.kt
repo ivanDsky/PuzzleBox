@@ -87,7 +87,10 @@ internal fun standInQuestion(answer: RecordAnswer.Answer?, right: Int = 2) =
 @Composable
 private fun RoundPreviewFrame(state: RoundState) = PuzzleBoxTheme {
     Surface(color = MaterialTheme.colorScheme.background) {
-        RoundPane("Line lock", state, showBack = true, onClose = {}, board = standInBoard, onShowMe = {}, onNext = {}, modifier = Modifier.padding(horizontal = Spacing.lg))
+        RoundPane(
+            "Line lock", state, showBack = true, onClose = {}, board = standInBoard, onShowMe = {}, onNext = {}, onTryAgain = {}, onTryAnother = {},
+            modifier = Modifier.padding(horizontal = Spacing.lg),
+        )
     }
 }
 
@@ -106,3 +109,11 @@ private fun RoundSummaryPreview() = RoundPreviewFrame(RoundState.Summary(right =
 @PuzzleBoxPreviews
 @Composable
 private fun RoundEmptyPreview() = RoundPreviewFrame(RoundState.Empty)
+
+@PuzzleBoxPreviews
+@Composable
+private fun RoundNeedsConnectionPreview() = RoundPreviewFrame(RoundState.NeedsConnection)
+
+@PuzzleBoxPreviews
+@Composable
+private fun RoundCantLoadPreview() = RoundPreviewFrame(RoundState.CantLoad(alternative = 918))

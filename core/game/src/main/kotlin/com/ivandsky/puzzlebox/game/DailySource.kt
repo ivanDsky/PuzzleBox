@@ -38,6 +38,13 @@ interface DailySource : PuzzleSource {
     /** This source's puzzle number for [day] in its archive range, or null when it numbers no days (A20). */
     fun puzzleNumber(day: LocalDate): Int? = null
 
+    /**
+     * The day [number] names in this source's numbering: the inverse of [puzzleNumber], so
+     * `dayOf(puzzleNumber(d)) == d` for every day in the archive range. Null when this source
+     * numbers no days or [number] is not one of its numbers.
+     */
+    fun dayOf(number: Int): LocalDate? = null
+
     /** The LinkedIn Games type id this source serves, or null when it is not a LinkedIn feed. */
     val linkedInGameTypeId: Int? get() = null
 

@@ -53,6 +53,8 @@ class TrainPhoneGoldenScreenshots : TrainGoldenScreenshots("phone") {
 
     @Test fun `summary light`() = capture("summary", dark = false) { Page { Round(RoundState.Summary(4, 5), showBack = true) } }
     @Test fun `empty light`() = capture("empty", dark = false) { Page { Round(RoundState.Empty, showBack = true) } }
+    @Test fun `needs connection light`() = capture("needs-connection", dark = false) { Page { Round(RoundState.NeedsConnection, showBack = true) } }
+    @Test fun `cant load light`() = capture("cant-load", dark = false) { Page { Round(RoundState.CantLoad(alternative = 918), showBack = true) } }
 }
 
 @RunWith(RobolectricTestRunner::class)
@@ -102,6 +104,8 @@ abstract class TrainGoldenScreenshots(private val device: String) {
             board = standInBoard,
             onShowMe = {},
             onNext = {},
+            onTryAgain = {},
+            onTryAnother = {},
         )
 
         @Composable
