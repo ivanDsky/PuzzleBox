@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.domain.GameHistoryDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.isSolvedDaily
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.insights.api.RecapWindow
 import java.time.LocalDate
 import java.time.Month
 import java.time.YearMonth

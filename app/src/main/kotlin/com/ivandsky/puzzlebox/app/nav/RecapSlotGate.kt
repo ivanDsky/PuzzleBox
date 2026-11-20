@@ -3,8 +3,8 @@ package com.ivandsky.puzzlebox.app.nav
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
 import com.ivandsky.puzzlebox.home.RecapSlot
 import com.ivandsky.puzzlebox.insights.api.InsightsRecapKey
+import com.ivandsky.puzzlebox.insights.api.RecapWindow
 import com.ivandsky.puzzlebox.insights.domain.recap.DueRecap
-import com.ivandsky.puzzlebox.insights.domain.recap.RecapWindow
 import com.ivandsky.puzzlebox.insights.flags.InsightsFlag
 import com.ivandsky.puzzlebox.navigation.Navigator
 import java.time.LocalDate

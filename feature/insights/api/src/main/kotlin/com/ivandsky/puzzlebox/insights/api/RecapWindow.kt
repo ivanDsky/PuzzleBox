@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.insights.domain.recap
+package com.ivandsky.puzzlebox.insights.api
 
 import java.time.LocalDate
 import java.time.Month
