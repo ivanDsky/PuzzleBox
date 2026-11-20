@@ -52,14 +52,14 @@ internal const val ShareImageHeightPx = 1920
  * once and captured, Night's holographic layer included.
  */
 @Composable
-internal fun RecapShareImage(content: RecapShareContent, style: ShareStyle, modifier: Modifier = Modifier) {
+internal fun RecapShareImage(content: RecapShareContent, style: ShareStyle, modifier: Modifier = Modifier, holoShift: () -> Float = { 0f }) {
     val palette = sharePalette(style, LocalDarkTheme.current)
     CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 1f)) {
         Column(
             modifier
                 .requiredSize(ShareImageWidthPx.dp, ShareImageHeightPx.dp)
                 .background(palette.ground)
-                .holo(palette.holo)
+                .holo(palette.holo, holoShift)
                 .padding(horizontal = Margin, vertical = Margin)
                 .testTag("recap.share.image")
                 .clearAndSetSemantics { contentDescription = content.description() },

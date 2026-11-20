@@ -54,11 +54,15 @@ internal fun sharePalette(style: ShareStyle, dark: Boolean): SharePalette = when
     }
 }
 
-/** Paints [colors] as a diagonal sheen over what is drawn: Night's holographic layer, a still in the captured image. */
-internal fun Modifier.holo(colors: List<Color>): Modifier =
+/**
+ * Paints [colors] as a diagonal sheen over what is drawn: Night's holographic layer. It is a still in the captured image;
+ * only the page's deck moves it, by [shift] (a share of the width, read when drawing), and it is 0 whenever a poster rests.
+ */
+internal fun Modifier.holo(colors: List<Color>, shift: () -> Float = { 0f }): Modifier =
     if (colors.isEmpty()) this else drawWithContent {
         drawContent()
-        drawRect(Brush.linearGradient(colors, start = Offset.Zero, end = Offset(size.width, size.height)))
+        val dx = shift() * size.width
+        drawRect(Brush.linearGradient(colors, start = Offset(dx, 0f), end = Offset(size.width + dx, size.height)))
     }
 
 private const val TrackAlpha = 0.16f
