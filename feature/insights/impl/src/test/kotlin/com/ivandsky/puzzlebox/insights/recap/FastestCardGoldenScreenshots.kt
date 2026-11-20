@@ -72,7 +72,7 @@ class FastestCardGoldenScreenshots {
                 )
             }
         }
-        if (device == "phone") repeat(swipes) {
+        repeat(swipes) {
             rule.onNodeWithTag("recap.fastest.games").performTouchInput { swipeLeft() }
             rule.mainClock.advanceTimeBy(STEP_MS)
         }

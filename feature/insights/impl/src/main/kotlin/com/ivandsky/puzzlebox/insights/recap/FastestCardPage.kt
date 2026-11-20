@@ -6,6 +6,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -113,37 +114,41 @@ internal fun FastestCardPage(
             },
         )
     }
-    Column(modifier.fillMaxSize().padding(horizontal = Spacing.lg).padding(top = Spacing.lg).testTag("recap.fastest")) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.sm)) {
-            Text(periodLabel.uppercase(), style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.2.sp), color = ink)
-            Text("Fastest solves", style = MaterialTheme.typography.headlineMedium, color = ink, textAlign = TextAlign.Start)
-        }
-        FastestGameTabs(
-            names = card.rows.map { gameName(it.game) },
-            current = game,
-            onSelect = { index -> scope.launch { goTo(index) } },
-            modifier = Modifier.padding(top = Spacing.sm),
-        )
-        Box(
-            Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .padding(top = Spacing.md, bottom = Spacing.md)
-                .onSizeChanged { widthPx = it.width.toFloat() }
-                .then(if (last > 0) steps else Modifier)
-                .testTag("recap.fastest.games"),
-        ) {
-            Crossfade(game, Modifier.fillMaxSize(), animationSpec = if (reduced) tween(MotionTokens.ReducedFadeDuration) else tween(0), label = "game") { index ->
-                val row = card.rows[index]
-                FastestGameCard(
-                    row, gameName(row.game), brands(row.game).accent.colors().accent,
-                    startDelayMs = if (stepped > 0) StepDelayMs else 0,
-                    onWatchReplay = { onWatchReplay(row) },
-                    modifier = Modifier.fillMaxSize().graphicsLayer {
-                        translationX = offset.value
-                        rotationZ = RecapMotion.DragTilt * offset.value / widthPx
-                    },
-                )
+    val names = card.rows.map { gameName(it.game) }
+    val tabs: @Composable (Modifier) -> Unit = { m -> FastestGameTabs(names, game, onSelect = { index -> scope.launch { goTo(index) } }, modifier = m) }
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        // Wide, the tabs sit in the title row where the pips were (tablet); narrow, they take a row under the title.
+        val wide = maxWidth >= WideTabsMinWidth
+        Column(Modifier.fillMaxSize().padding(horizontal = Spacing.lg).padding(top = Spacing.lg).testTag("recap.fastest")) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text(periodLabel.uppercase(), style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.2.sp), color = ink)
+                    Text("Fastest solves", style = MaterialTheme.typography.headlineMedium, color = ink, textAlign = TextAlign.Start)
+                }
+                if (wide) Box(Modifier.weight(1f).padding(start = Spacing.lg), contentAlignment = Alignment.CenterEnd) { tabs(Modifier) }
+            }
+            if (!wide) tabs(Modifier.fillMaxWidth().padding(top = Spacing.sm))
+            Box(
+                Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(top = Spacing.md, bottom = Spacing.md)
+                    .onSizeChanged { widthPx = it.width.toFloat() }
+                    .then(if (last > 0) steps else Modifier)
+                    .testTag("recap.fastest.games"),
+            ) {
+                Crossfade(game, Modifier.fillMaxSize(), animationSpec = if (reduced) tween(MotionTokens.ReducedFadeDuration) else tween(0), label = "game") { index ->
+                    val row = card.rows[index]
+                    FastestGameCard(
+                        row, gameName(row.game), brands(row.game).accent.colors().accent,
+                        startDelayMs = if (stepped > 0) StepDelayMs else 0,
+                        onWatchReplay = { onWatchReplay(row) },
+                        modifier = Modifier.fillMaxSize().graphicsLayer {
+                            translationX = offset.value
+                            rotationZ = RecapMotion.DragTilt * offset.value / widthPx
+                        },
+                    )
+                }
             }
         }
     }
@@ -237,6 +242,7 @@ internal fun FastestCardFact(
     }
 }
 
+private val WideTabsMinWidth = 600.dp
 private val RowMinHeight = 56.dp
 private val PlaySlot = 32.dp
 private const val StepDelayMs = 140
