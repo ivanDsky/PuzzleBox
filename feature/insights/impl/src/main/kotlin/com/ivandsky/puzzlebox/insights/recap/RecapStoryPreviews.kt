@@ -6,8 +6,10 @@ import androidx.compose.runtime.Composable
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
+import com.ivandsky.puzzlebox.insights.domain.recap.RecapPeriod
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
+import java.time.YearMonth
 
 // The recap story on its second card over the deck, and held to peek at the third, light and dark. A preview never
 // animates, so the deck is already dealt and at rest.
@@ -36,4 +38,4 @@ private fun RecapStoryHeldPreview() = PuzzleBoxTheme {
 
 @Composable
 private fun Story(deck: RecapDeckState) =
-    RecapStory(Cards, deck, "November 2026", gameName = { "Zip" }, onWatchReplay = {}, onClose = {})
+    RecapStory(Cards, deck, RecapPeriod.Month(YearMonth.of(2026, 11)), "November 2026", gameName = { "Zip" }, onWatchReplay = {}, onClose = {})

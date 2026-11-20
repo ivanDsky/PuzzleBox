@@ -58,19 +58,19 @@ import kotlinx.coroutines.launch
  * tilt and rubber-bands past the first or last page; a hold slides the top card down to show the next. Reduced motion
  * swaps cards with a fade and does not follow the finger.
  *
- * [face] draws a page inside its card and [palette] colours it. A face starts afresh when it comes up from below and when
+ * [face] draws a card inside its frame and [palette] colours it, both by [RecapDeckState.position] (the cover is 0). A face starts afresh when it comes up from below and when
  * [RecapDeckState.entrance] bumps, so its entrance plays then, and never restarts while it is thrown away.
  */
 @Composable
 internal fun RecapDeck(
     deck: RecapDeckState,
-    palette: (page: Int) -> PaletteEntry,
+    palette: (position: Int) -> PaletteEntry,
     modifier: Modifier = Modifier,
-    face: @Composable (page: Int) -> Unit,
+    face: @Composable (position: Int) -> Unit,
 ) {
     val reduced = rememberReducedMotion()
     val scope = rememberCoroutineScope()
-    val top = deck.page
+    val top = deck.position
     val holding = deck.holding
     val stack = remember { Animatable(top.toFloat()) }
     val thrown = remember { Animatable(top.toFloat()) }
@@ -113,7 +113,7 @@ internal fun RecapDeck(
     val lowest by remember { derivedStateOf { floor(thrown.value).toInt() } }
     val deepest by remember { derivedStateOf { ceil(stack.value).toInt() } }
     val first = min(top, lowest)
-    val last = min(max(top, deepest) + RecapMotion.DeckStackVisible - 1, deck.pageCount - 1)
+    val last = min(max(top, deepest) + RecapMotion.DeckStackVisible - 1, deck.stackSize - 1)
     val shape = MaterialTheme.shapes.extraLarge
     Box(
         modifier
@@ -210,8 +210,8 @@ private class DeckDrag(private val scope: CoroutineScope) {
 
     fun by(dx: Float, deck: RecapDeckState) {
         settling?.cancel()
-        face = deck.page
-        val low = if (deck.page < deck.pageCount - 1) Float.NEGATIVE_INFINITY else 0f
+        face = deck.position
+        val low = if (deck.position < deck.stackSize - 1) Float.NEGATIVE_INFINITY else 0f
         val high = if (deck.canStepBack) Float.POSITIVE_INFINITY else 0f
         edge.dragBy(dx) { rest ->
             val next = (offset + rest).coerceIn(low, high)

@@ -43,6 +43,12 @@ internal class RecapDeckState(pageCount: Int, initialPage: Int = 0, coverFirst: 
     /** Segments filled from the left: through the current page, none on the cover. */
     val filledSegments: Int get() = if (onCover) 0 else page + 1
 
+    /** The card the deck has on top: the cover first, then each page after it. */
+    val position: Int get() = if (onCover) 0 else page + 1
+
+    /** Cards in the deck: the cover and every page. */
+    val stackSize: Int get() = pageCount + 1
+
     /** The tablet fact the list outlines: the current page, none on the cover. */
     val selectedFact: Int get() = if (onCover) NoFact else page
 

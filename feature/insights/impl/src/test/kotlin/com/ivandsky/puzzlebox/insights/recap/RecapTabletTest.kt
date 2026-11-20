@@ -34,12 +34,18 @@ class RecapTabletTest {
     }
 
     @Test
-    fun `shows the story beside the fact list, the first fact selected`() {
+    fun `shows the cover beside the fact list with nothing selected, and the first fact once the story leaves the cover`() {
         show()
 
         rule.onNodeWithTag("recap.twoPane").assertIsDisplayed()
         rule.onNodeWithTag("recap.pager").assertIsDisplayed()
+        rule.onNodeWithTag("recap.cover").assertIsDisplayed()
         rule.onNodeWithTag("recap.facts").assertIsDisplayed()
+        rule.onNodeWithTag("recap.fact.0").assertIsNotSelected()
+        rule.onNodeWithTag("recap.fact.1").assertIsNotSelected()
+
+        rule.tapPastCover()
+
         rule.onNodeWithTag("recap.fact.0").assertIsSelected()
         rule.onNodeWithTag("recap.fact.1").assertIsNotSelected()
     }

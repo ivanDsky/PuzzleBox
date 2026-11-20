@@ -31,32 +31,37 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.LocalPrimaryText
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
+import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteEntry
 import com.ivandsky.puzzlebox.designsystem.RecapMotion
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.ink
 import com.ivandsky.puzzlebox.designsystem.pressScale
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
+import com.ivandsky.puzzlebox.insights.domain.recap.RecapPeriod
 import com.ivandsky.puzzlebox.insights.share.RecapShareContent
 import com.ivandsky.puzzlebox.insights.share.RecapShareState
 import com.ivandsky.puzzlebox.model.GameId
 
 /**
- * The recap as a story on [deck]: its pages dealt as a stack of cards ([RecapDeck]) under a progress strip, a replay
- * button that plays the card's entrance again (on the Share page, the end of the story, it replays the whole story from the
- * start), and a close button. Holding the deck hides that chrome until the touch
- * lets go. With a [share] state the story ends on the Share page. System back steps back a card and, from the first
- * card, falls through to leave the recap.
+ * The recap as a story on [deck]: a cover ([RecapCover], made out for [displayName] when there is one) and then its
+ * pages, dealt as a stack of cards ([RecapDeck]) under a progress strip, a replay button that plays the card's entrance
+ * again (on the Share page, the end of the story, it replays the whole story from the cover), and a close button. The
+ * cover has no replay. Holding the deck hides that chrome until the touch lets go. With a [share] state the story ends
+ * on the Share page. System back steps back a card and, from the cover or the first card, falls through to leave the
+ * recap.
  */
 @Composable
 internal fun RecapStory(
     cards: List<RecapCard>,
     deck: RecapDeckState,
+    period: RecapPeriod,
     periodLabel: String,
     gameName: (GameId) -> String,
     onWatchReplay: (RecapCard.Fastest.Row) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    displayName: String? = null,
     share: RecapShareState? = null,
     onShare: (ImageBitmap, RecapShareContent) -> Unit = { _, _ -> },
 ) {
@@ -100,15 +105,22 @@ internal fun RecapStory(
             }
             RecapDeck(
                 deck = deck,
-                palette = { page -> pagePalette(cards, page) },
+                palette = { at -> if (at == 0) PaletteEntry.Cover else pagePalette(cards, at - 1) },
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
                     .padding(start = Spacing.lg, top = Spacing.xs, end = Spacing.lg)
                     // Room under the top card for the cards peeking out below it.
                     .padding(bottom = Spacing.xl + RecapMotion.DeckStackStep * (RecapMotion.DeckStackVisible - 1)),
-            ) { page ->
-                if (page < cards.size) {
+            ) { at ->
+                val page = at - 1
+                if (at == 0) {
+                    RecapCover(
+                        title = coverTitle(period, periodLabel),
+                        hook = coverHook(period, cards.filterIsInstance<RecapCard.Solved>().firstOrNull()),
+                        name = displayName,
+                    )
+                } else if (page < cards.size) {
                     RecapCardPage(cards[page], periodLabel, gameName, onWatchReplay, Modifier.fillMaxSize())
                 } else if (share != null) {
                     ShareCardPage(cards, share, onShare, Modifier.fillMaxSize())

@@ -50,6 +50,7 @@ internal fun RecapScreen(
     onWatchReplay: (RecapCard.Fastest.Row) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    displayName: String? = null,
     share: RecapShareState? = null,
     onShare: (ImageBitmap, RecapShareContent) -> Unit = { _, _ -> },
     onRetry: () -> Unit = {},
@@ -68,7 +69,7 @@ internal fun RecapScreen(
         label = "recap.state",
         contentKey = { it::class },
     ) { shown ->
-        RecapStateContent(shown, periodLabel, gameName, onPage, onWatchReplay, onClose, share, onShare, onRetry)
+        RecapStateContent(shown, periodLabel, gameName, onPage, onWatchReplay, onClose, displayName, share, onShare, onRetry)
     }
 }
 
@@ -80,6 +81,7 @@ private fun RecapStateContent(
     onPage: (Int) -> Unit,
     onWatchReplay: (RecapCard.Fastest.Row) -> Unit,
     onClose: () -> Unit,
+    displayName: String?,
     share: RecapShareState?,
     onShare: (ImageBitmap, RecapShareContent) -> Unit,
     onRetry: () -> Unit,
@@ -104,7 +106,7 @@ private fun RecapStateContent(
             tag = "recap.empty",
             modifier = modifier,
         )
-        is RecapUiState.Ready -> RiverScrubProvider { RecapReady(state, gameName, onPage, onWatchReplay, onClose, share, onShare, modifier) }
+        is RecapUiState.Ready -> RiverScrubProvider { RecapReady(state, gameName, onPage, onWatchReplay, onClose, displayName, share, onShare, modifier) }
     }
 }
 
@@ -159,13 +161,14 @@ private fun RecapReady(
     onPage: (Int) -> Unit,
     onWatchReplay: (RecapCard.Fastest.Row) -> Unit,
     onClose: () -> Unit,
+    displayName: String?,
     share: RecapShareState?,
     onShare: (ImageBitmap, RecapShareContent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val pageCount = state.cards.size + if (share == null) 0 else 1
-    // No cover screen yet, so the story opens straight on its card.
-    val deck = rememberSaveable(saver = RecapDeckState.Saver) { RecapDeckState(pageCount, state.initialPage) }.also { it.resize(pageCount) }
+    // A fresh open starts on the cover; a saved page past the first card resumes on that card.
+    val deck = rememberSaveable(saver = RecapDeckState.Saver) { RecapDeckState(pageCount, state.initialPage, coverFirst = true) }.also { it.resize(pageCount) }
     LaunchedEffect(deck) { snapshotFlow { deck.page }.collect(onPage) }
     val periodLabel = state.title
     BoxWithConstraints(modifier.fillMaxSize()) {
@@ -177,10 +180,12 @@ private fun RecapReady(
                     RecapStory(
                         cards = state.cards,
                         deck = deck,
+                        period = state.period,
                         periodLabel = periodLabel,
                         gameName = gameName,
                         onWatchReplay = onWatchReplay,
                         onClose = onClose,
+                        displayName = displayName,
                         share = share,
                         onShare = onShare,
                         modifier = column
@@ -200,7 +205,10 @@ private fun RecapReady(
                 },
             )
         } else {
-            RecapStory(state.cards, deck, periodLabel, gameName, onWatchReplay, onClose, share = share, onShare = onShare)
+            RecapStory(
+                state.cards, deck, state.period, periodLabel, gameName, onWatchReplay, onClose,
+                displayName = displayName, share = share, onShare = onShare,
+            )
         }
     }
 }
