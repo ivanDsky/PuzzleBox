@@ -1,8 +1,5 @@
 package com.ivandsky.puzzlebox.insights.recap
 
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,8 +20,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -36,14 +33,13 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteEntry
-import com.ivandsky.puzzlebox.designsystem.RecapMotion
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.SwipeMotion
 import com.ivandsky.puzzlebox.designsystem.colors
@@ -55,7 +51,6 @@ import com.ivandsky.puzzlebox.designsystem.swipeStep
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.model.GameId
-import kotlinx.coroutines.launch
 
 /**
  * The Fastest solve page: one mini-card per game played, in game order, starting at [initialGame], each in the accent of its game's brand (Neutral until the route provides them). A swipe steps
@@ -78,44 +73,22 @@ internal fun FastestCardPage(
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     val last = card.rows.lastIndex
-    var game by remember { mutableIntStateOf(initialGame.coerceIn(0, last)) }
-    var stepped by remember { mutableIntStateOf(0) }
+    val step = remember { GameStep(initialGame.coerceIn(0, last)) }
     var widthPx by remember { mutableFloatStateOf(1f) }
-    val offset = remember { Animatable(0f) }
     val commitPx = with(density) { SwipeMotion.CommitCap.toPx() }
     val flingPx = with(density) { SwipeMotion.FlingVelocity.toPx() }
-    // Both a swipe and a tab tap step with the throw: forward throws the card out, back brings it in.
-    suspend fun goTo(next: Int) {
-        val moved = next != game
-        val thrown = RecapMotion.ThrowTravel * widthPx
-        when {
-            !moved -> offset.animateTo(0f, SwipeMotion.Settle)
-            reduced -> game = next
-            next > game -> {
-                offset.animateTo(thrown, tween(RecapMotion.ThrowDuration, easing = MotionTokens.EasingEmphasizedAccelerate))
-                game = next
-                offset.snapTo(0f)
-            }
-            else -> {
-                game = next
-                offset.snapTo(thrown)
-                offset.animateTo(0f, tween(RecapMotion.ThrowBackDuration, easing = MotionTokens.EasingStandard))
-            }
-        }
-        if (moved) stepped++
-    }
     val steps = Modifier.pointerInput(last, reduced) {
         detectSwipe(
-            canTake = { travel -> if (travel < 0) game < last else game > 0 },
-            onDrag = { dx -> if (!reduced) scope.launch { offset.snapTo(offset.value + dx) } },
+            canTake = { travel -> if (travel < 0) step.game < last else step.game > 0 },
+            onDrag = { dx -> if (!reduced) step.dragBy(dx) },
             onEnd = { drag, velocity ->
-                val step = swipeStep(drag, velocity, widthPx, flingPx, minOf(widthPx * SwipeMotion.CommitFraction, commitPx))
-                scope.launch { goTo((game + step).coerceIn(0, last)) }
+                val by = swipeStep(drag, velocity, widthPx, flingPx, minOf(widthPx * SwipeMotion.CommitFraction, commitPx))
+                step.go(scope, (step.game + by).coerceIn(0, last), reduced)
             },
         )
     }
     val names = card.rows.map { gameName(it.game) }
-    val tabs: @Composable (Modifier) -> Unit = { m -> FastestGameTabs(names, game, onSelect = { index -> scope.launch { goTo(index) } }, modifier = m) }
+    val tabs: @Composable (Modifier) -> Unit = { m -> FastestGameTabs(names, step.game, onSelect = { index -> step.go(scope, index, reduced) }, modifier = m) }
     BoxWithConstraints(modifier.fillMaxSize()) {
         // Wide, the tabs sit in the title row where the pips were (tablet); narrow, they take a row under the title.
         val wide = maxWidth >= WideTabsMinWidth
@@ -137,17 +110,21 @@ internal fun FastestCardPage(
                     .then(if (last > 0) steps else Modifier)
                     .testTag("recap.fastest.games"),
             ) {
-                Crossfade(game, Modifier.fillMaxSize(), animationSpec = if (reduced) tween(MotionTokens.ReducedFadeDuration) else tween(0), label = "game") { index ->
-                    val row = card.rows[index]
-                    FastestGameCard(
-                        row, gameName(row.game), brands(row.game).accent.colors().accent,
-                        startDelayMs = if (stepped > 0) StepDelayMs else 0,
-                        onWatchReplay = { onWatchReplay(row) },
-                        modifier = Modifier.fillMaxSize().graphicsLayer {
-                            translationX = offset.value
-                            rotationZ = RecapMotion.DragTilt * offset.value / widthPx
-                        },
-                    )
+                // The card leaving draws over the one coming in on a forward step, under it on a back one.
+                val layers = listOfNotNull(step.leaving?.let { Triple(step.leavingKey, it, true) }, Triple(step.key, step.game, false))
+                for ((cardKey, index, out) in if (step.forward) layers.reversed() else layers) {
+                    key(cardKey) {
+                        val row = card.rows[index]
+                        FastestGameCard(
+                            row, gameName(row.game), brands(row.game).accent.colors().accent,
+                            leaving = out,
+                            onWatchReplay = { onWatchReplay(row) },
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .then(if (out) Modifier.clearAndSetSemantics {} else Modifier)
+                                .graphicsLayer { with(step) { if (out) leavingLayer(reduced) else enteringLayer(reduced) } },
+                        )
+                    }
                 }
             }
         }
@@ -245,4 +222,3 @@ internal fun FastestCardFact(
 private val WideTabsMinWidth = 600.dp
 private val RowMinHeight = 56.dp
 private val PlaySlot = 32.dp
-private const val StepDelayMs = 140

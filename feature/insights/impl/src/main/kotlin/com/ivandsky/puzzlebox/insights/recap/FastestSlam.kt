@@ -1,141 +1,201 @@
 package com.ivandsky.puzzlebox.insights.recap
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.Row
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.lerp
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.RecapMotion
-import com.ivandsky.puzzlebox.designsystem.RollingDigits
-import com.ivandsky.puzzlebox.designsystem.formatDuration
+import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/** Where the slam stands: the timer climbing to the average, the average peeling off, or the fastest time landed. */
-internal enum class SlamPhase { Climb, Peel, Landed }
-
 /**
- * One game's slam: the timer climbs to the average, holds, the average peels off as a struck-through ghost, the fastest
- * time drops in with a recoil and the replay pill is stamped. A game with no average skips the middle: the timer rolls
- * straight to the time. With [instant] (reduced motion, a preview) every value starts at its end state, under one
- * [MotionTokens.ReducedFadeDuration] crossfade when [reduced]. The card reads the values in layer blocks, so a frame
- * redraws and never recomposes.
+ * One game's slam, beat for beat the prototype's `slam`: the card's top, meta line and replay pill rise in; the timer
+ * climbs from 0:00 to the average and holds; the average peels off as a ghost shrinking up to its place, struck through,
+ * while the timer drops to the fastest time; after a pause the time stamps down with a recoil and streaks, and the
+ * replay pill pops and pulses. A game with no average climbs straight to its time and pops the pill. With [instant]
+ * (reduced motion, a preview) every value starts at its end. The card reads the values in layer and draw blocks, so a
+ * frame redraws and never recomposes.
  */
-internal class Slam(private val timeMs: Long, private val averageMs: Long?, private val instant: Boolean, private val reduced: Boolean) {
-    var phase by mutableStateOf(if (instant || averageMs == null) SlamPhase.Landed else SlamPhase.Climb)
+internal class Slam(private val timeMs: Long, private val averageMs: Long?, private val instant: Boolean) {
+    private val end = if (instant) 1f else 0f
+    val odometer = Odometer(timeMs, averageMs, instant)
+
+    /** The rises of the card's top block, meta line and replay pill, and of the no-average line, 0..1. */
+    val top = Animatable(end)
+    val meta = Animatable(end)
+    val cta = Animatable(end)
+    val firstSolve = Animatable(end)
+
+    /** The ghost average shows once the climb has held; [peel] takes it from over the timer (0) to its place (1). */
+    var ghostShown by mutableStateOf(instant)
         private set
+    val peel = Animatable(end)
+    val strike = Animatable(end)
+    val ghostLabel = Animatable(end)
 
-    /** The ghost average's lift into place and the strike line drawn through it, 0..1. */
-    val ghost = Animatable(if (instant || averageMs == null) 1f else 0f)
-    val strike = Animatable(if (instant) 1f else 0f)
-
-    /** The fastest time's fall, 0 above to 1 landed; [impact] is its scale and [recoil] its bounce, dp. */
-    val drop = Animatable(if (instant || averageMs == null) 1f else 0f)
-    val impact = Animatable(1f)
+    /** The timer's stamp scale, the card's recoil and the streaks' runs (0..1), and the replay pill's pop and pulse. */
+    val stamp = Animatable(1f)
     val recoil = Animatable(0f)
+    val streaks = List(STREAK_TOPS.size) { Animatable(0f) }
+    val popAlpha = Animatable(1f)
+    private val popScale = Animatable(1f)
+    private val pulse = Animatable(0f)
 
-    /** The replay pill's stamp, 0..1, and the card's fade in under reduced motion. */
-    val stamp = Animatable(if (instant) 1f else 0f)
-    val reveal = Animatable(if (reduced) 0f else 1f)
+    /** Where the ghost and the timer sit (before their own layers), so the peel starts exactly over the timer. */
+    var ghostAt: LayoutCoordinates? = null
+    var timerAt: LayoutCoordinates? = null
 
-    /** Columns of the average's odometer, so the hold starts once the last has stopped. */
-    private val climbMs = RecapMotion.SlamClimb + RecapMotion.OdometerStagger * ((averageMs ?: timeMs).let(::columnsOf) - 1)
-
-    suspend fun play() = coroutineScope {
-        if (instant) {
-            reveal.animateTo(1f, tween(MotionTokens.ReducedFadeDuration, easing = MotionTokens.EasingLinear))
-            return@coroutineScope
+    suspend fun play(base: Int) {
+        if (instant) return
+        coroutineScope {
+            rise(top, base)
+            rise(meta, base + MotionTokens.EnterStagger * 3 / 2)
+            rise(cta, base + MotionTokens.EnterStagger * 3)
+            delay((base + ClimbLead).toLong())
+            if (odometer.hours) launch { odometer.hourColon.animateTo(1f, tween(MotionTokens.DurationShort, easing = MotionTokens.EasingLinear)) }
+            if (averageMs == null) {
+                climb(timeMs)
+                odometer.settled = true
+                rise(firstSolve, 0)
+                popIn()
+                return@coroutineScope
+            }
+            climb(averageMs)
+            delay(RecapMotion.SlamHold.toLong())
+            ghostShown = true
+            launch { peel.animateTo(1f, tween(RecapMotion.SlamPeel, easing = MotionTokens.EasingEmphasizedDecelerate)) }
+            launch { strike.animateTo(1f, tween(MotionTokens.DurationMedium, StrikeDelay, MotionTokens.EasingStandard)) }
+            launch { ghostLabel.animateTo(1f, tween(MotionTokens.EnterDuration, GhostLabelDelay, MotionTokens.EasingEmphasizedDecelerate)) }
+            odometer.roll(timeMs, up = false, RecapMotion.SlamDrop, SlamDropStagger, MotionTokens.EasingEmphasizedAccelerate, RecapMotion.SlamOvershoot)
+            launch { odometer.land() }
+            delay(RecapMotion.SlamLandingPause.toLong())
+            launch {
+                stamp.snapTo(MotionTokens.StampFromScale)
+                stamp.animateTo(1f, stampSpring)
+            }
+            launch { recoil.animateTo(1f, tween(MotionTokens.SweepDuration, easing = MotionTokens.EasingStandard)) }
+            streaks.forEachIndexed { k, streak ->
+                launch { streak.animateTo(1f, tween(SlamStreakLineDuration, k * SlamStreakLineStagger, MotionTokens.EasingEmphasizedAccelerate)) }
+            }
+            popIn()
         }
-        if (averageMs == null) {
-            delay(climbMs.toLong())
-            stamp.animateTo(1f, stampSpring)
-            return@coroutineScope
-        }
-        delay((climbMs + RecapMotion.SlamHold).toLong())
-        phase = SlamPhase.Peel
-        launch { strike.animateTo(1f, tween(STRIKE_MS, easing = MotionTokens.EasingStandard)) }
-        ghost.animateTo(1f, tween(RecapMotion.SlamPeel, easing = MotionTokens.EasingStandard))
-        phase = SlamPhase.Landed
-        drop.animateTo(1f, tween(RecapMotion.SlamDrop, easing = MotionTokens.EasingEmphasizedAccelerate))
+    }
+
+    /** The card is leaving mid-slam: everything jumps to its end, the streaks gone (the prototype's `finalSlab`). */
+    suspend fun finish() {
+        listOf(top, meta, cta, firstSolve, peel, strike, ghostLabel, stamp, popAlpha, popScale).forEach { it.snapTo(1f) }
+        (streaks + recoil + pulse).forEach { it.snapTo(0f) }
+        ghostShown = true
+        odometer.settled = true
+    }
+
+    /** The recoil's offset: down [RecapMotion.SlamRecoil], up [RecapMotion.SlamRecoilBack], back to rest. */
+    fun recoilOffset(): Dp {
+        val e = recoil.value
+        val down = RecapMotion.SlamRecoil.value
+        val back = RecapMotion.SlamRecoilBack.value
+        return when {
+            e <= 0f || e >= 1f -> 0f
+            e < RecoilDownAt -> down * e / RecoilDownAt
+            e < RecoilBackAt -> lerp(down, back, (e - RecoilDownAt) / (RecoilBackAt - RecoilDownAt))
+            else -> lerp(back, 0f, (e - RecoilBackAt) / (1f - RecoilBackAt))
+        }.dp
+    }
+
+    /** The replay pill's scale: the pulse while it runs, else the pop. */
+    fun pillScale(): Float {
+        val e = pulse.value
+        if (e <= 0f || e >= 1f) return popScale.value
+        return if (e < 0.5f) lerp(1f, MotionTokens.PulseScale, e * 2f) else lerp(MotionTokens.PulseScale, 1f, e * 2f - 1f)
+    }
+
+    private suspend fun climb(ms: Long) =
+        odometer.roll(ms, up = true, RecapMotion.SlamClimb, SlamClimbStagger, MotionTokens.EasingEmphasizedDecelerate)
+
+    private fun CoroutineScope.rise(value: Animatable<Float, AnimationVector1D>, delayMs: Int) =
+        launch { value.animateTo(1f, tween(MotionTokens.EnterDuration, delayMs, MotionTokens.EasingEmphasizedDecelerate)) }
+
+    /** The prototype's `ctaIn`: the pill blinks out and fades back in as it stamps, then pulses once. */
+    private fun CoroutineScope.popIn() {
         launch {
-            impact.snapTo(IMPACT_FROM)
-            impact.animateTo(1f, spring(MotionTokens.StampSpringDamping, MotionTokens.StampSpringStiffness))
+            popAlpha.snapTo(0f)
+            popAlpha.animateTo(1f, tween(MotionTokens.DurationShort, easing = MotionTokens.EasingLinear))
         }
         launch {
-            recoil.animateTo(RecapMotion.SlamRecoil.value, tween(RECOIL_MS))
-            recoil.animateTo(RecapMotion.SlamRecoilBack.value, tween(RECOIL_MS))
-            recoil.animateTo(0f, tween(RECOIL_MS))
+            popScale.snapTo(MotionTokens.StampFromScale)
+            popScale.animateTo(1f, stampSpring)
         }
-        delay(RecapMotion.SlamLandingPause.toLong())
-        stamp.animateTo(1f, stampSpring)
+        launch {
+            delay(ReplayPulseDelay.toLong())
+            pulse.animateTo(1f, tween(MotionTokens.PulseDuration, easing = MotionTokens.EasingEmphasizedDecelerate))
+        }
     }
 
     private val stampSpring = spring<Float>(MotionTokens.StampSpringDamping, MotionTokens.StampSpringStiffness)
-
-    private fun columnsOf(ms: Long): Int = formatDuration(ms).count { it.isDigit() }
 }
 
-/** A [Slam] that plays for [key] (the game and the card's entrance), after [startDelayMs] for the numbers to arrive. */
+/** A [Slam] for [row] that plays once its card arrives, or jumps to its end once the card is [leaving]. */
 @Composable
-internal fun rememberSlam(key: Any, timeMs: Long, averageMs: Long?, instant: Boolean, reduced: Boolean, startDelayMs: Int): Slam {
-    val slam = remember(key) { Slam(timeMs, averageMs, instant, reduced) }
-    LaunchedEffect(slam) {
-        delay(startDelayMs.toLong())
-        slam.play()
-    }
+internal fun rememberSlam(row: RecapCard.Fastest.Row, instant: Boolean, leaving: Boolean): Slam {
+    val slam = remember(row) { Slam(row.timeMs, row.averageMs, instant) }
+    LaunchedEffect(slam, leaving) { if (leaving) slam.finish() else slam.play(GameStepArriveBase) }
     return slam
 }
 
-/**
- * [text] ("0:48", "1:02:10") as odometer columns with the colons fixed between them: each digit rolls over [durationMs]
- * with the shared odometer stagger and laps (ones laps twice, tens and hundreds once), the left column first. A screen
- * reader gets the settled time. With no [durationMs] it is the settled text, in the odometer's line height.
- */
-@Composable
-internal fun TimeOdometer(text: String, style: TextStyle, color: Color, durationMs: Int, modifier: Modifier = Modifier) {
-    val digits = text.count { it.isDigit() }
-    val colon = style.copy(lineHeight = style.fontSize * COLON_LINE)
-    if (durationMs == 0) {
-        Text(text, modifier.clearAndSetSemantics { contentDescription = text }, color, style = colon, softWrap = false, maxLines = 1)
-        return
-    }
-    var column = 0
-    Row(modifier.clearAndSetSemantics { contentDescription = text }) {
-        text.forEach { char ->
-            if (char == ':') {
-                Text(":", style = colon, color = color)
-            } else {
-                val place = digits - 1 - column
-                RollingDigits(
-                    value = (char - '0').toLong(),
-                    style = style,
-                    color = color,
-                    delayMs = column * RecapMotion.OdometerStagger,
-                    durationMs = durationMs,
-                    staggerMs = 0,
-                    laps = listOf(RecapMotion.OdometerLaps.getOrElse(place) { RecapMotion.OdometerLapsBeyond }),
-                )
-                column++
-            }
-        }
+/** The impact's streaks: white lines that cross the card left to right, staggered top to bottom. */
+internal fun DrawScope.drawSlamStreaks(slam: Slam) {
+    val width = size.width
+    slam.streaks.forEachIndexed { k, streak ->
+        val run = streak.value
+        if (run <= 0f || run >= 1f) return@forEachIndexed
+        drawRoundRect(
+            StreakColor,
+            topLeft = Offset(width * (STREAK_FROM + STREAK_TRAVEL * run), size.height * STREAK_TOPS[k]),
+            size = Size(width * STREAK_LENGTH, StreakHeight.toPx()),
+            cornerRadius = CornerRadius(StreakRadius.toPx()),
+        )
     }
 }
 
-/** The odometer's digit window is this many ems tall, and the colons share its line. */
-private const val COLON_LINE = 1.1f
-private const val STRIKE_MS = 340
-private const val IMPACT_FROM = 1.12f
-private const val RECOIL_MS = 60
+// The prototype's slam values that motion.md has no token for, named after the prototype's variables.
+private const val GameStepArriveBase = 140
+private const val ClimbLead = 160
+private const val SlamClimbStagger = 50
+private const val SlamDropStagger = 30
+private const val StrikeDelay = 340
+private const val GhostLabelDelay = 420
+private const val SlamStreakLineDuration = 360
+private const val SlamStreakLineStagger = 40
+private const val ReplayPulseDelay = 520
+
+/** The recoil keyframes: down by 18% of the run, up by half, at rest by the end. */
+private const val RecoilDownAt = 0.18f
+private const val RecoilBackAt = 0.5f
+
+/** A streak is half the card wide, starts 60% of a card left of it and travels 1.6 cards (`.streak`). */
+private val STREAK_TOPS = floatArrayOf(0.28f, 0.52f, 0.76f)
+private const val STREAK_FROM = -0.6f
+private const val STREAK_TRAVEL = 1.6f
+private const val STREAK_LENGTH = 0.5f
+private val StreakHeight = 3.dp
+private val StreakRadius = 2.dp
+private val StreakColor = Color.White.copy(alpha = 0.45f)

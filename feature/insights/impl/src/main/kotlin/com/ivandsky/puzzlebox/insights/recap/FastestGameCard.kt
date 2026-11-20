@@ -1,41 +1,36 @@
 package com.ivandsky.puzzlebox.insights.recap
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.GraphicsLayerScope
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -45,15 +40,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import kotlin.math.roundToInt
-import com.ivandsky.puzzlebox.designsystem.LinkedInBlue
-import com.ivandsky.puzzlebox.designsystem.MotionTokens
-import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteEntry
-import com.ivandsky.puzzlebox.designsystem.RecapMotion
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.entranceSettled
 import com.ivandsky.puzzlebox.designsystem.formatDuration
@@ -63,23 +55,23 @@ import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 
 /**
- * One game's mini-card: its chip (name, and an "Imported from LinkedIn" pill when the solve came from an import), the
- * average it beat as a struck-through ghost and the fastest time slamming over it, the day and puzzle, and the replay
- * pill. The panel is [color], the game's accent; every word on it is in the Fastest card's ink. [startDelayMs] holds
- * the numbers back while a card is still landing.
+ * One game's mini-card: its name (and an "Imported from LinkedIn" pill top-right when the solve came from an import),
+ * the average it beat as a struck-through ghost and the fastest time slamming over it, the day and puzzle, and the
+ * replay pill. The panel is [color], the game's accent; every word on it is in the Fastest card's ink. The slam plays
+ * once the card arrives; a card [leaving] mid-slam jumps to its end.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun FastestGameCard(
     row: RecapCard.Fastest.Row,
     gameName: String,
     color: Color,
-    startDelayMs: Int,
+    leaving: Boolean,
     onWatchReplay: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val ink = PaletteEntry.Fastest.ink
-    val reduced = rememberReducedMotion()
-    val slam = rememberSlam(row, row.timeMs, row.averageMs, reduced || entranceSettled(), reduced, startDelayMs)
+    val slam = rememberSlam(row, rememberReducedMotion() || entranceSettled(), leaving)
     val time = formatDuration(row.timeMs)
     val average = row.averageMs?.let(::formatDuration)
     BoxWithConstraints(
@@ -98,10 +90,27 @@ internal fun FastestGameCard(
         val baselineEm = measurer.measure("0", base.copy(fontSize = ProbeSp.sp)).firstBaseline / with(LocalDensity.current) { ProbeSp.sp.toPx() }
         val bigStyle = base.copy(fontSize = fontSp.sp, lineHeight = fontSp.sp * LINE)
         val ghostStyle = bigStyle.copy(fontSize = fontSp.sp * GHOST_SCALE, lineHeight = fontSp.sp * GHOST_SCALE * LINE)
-        Column(Modifier.fillMaxSize().padding(Pad).graphicsLayer { alpha = slam.reveal.value }) {
-            if (!tight) Text("FASTEST SOLVE", style = Eyebrow, color = ink)
-            Text(gameName, style = MaterialTheme.typography.headlineMedium, color = ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (!row.hasReplay) ImportedPill()
+        Column(
+            Modifier
+                .fillMaxSize()
+                .graphicsLayer { translationY = slam.recoilOffset().toPx() }
+                .drawWithContent {
+                    drawContent()
+                    drawSlamStreaks(slam)
+                }
+                .padding(Pad),
+        ) {
+            FlowRow(
+                Modifier.fillMaxWidth().heightIn(min = TopRowMin).graphicsLayer { rise(slam.top.value) },
+                horizontalArrangement = TopRow,
+                verticalArrangement = Arrangement.spacedBy(TopRowGap),
+            ) {
+                Column {
+                    if (!tight) Text("FASTEST SOLVE", style = Eyebrow, color = ink)
+                    Text(gameName, style = MaterialTheme.typography.headlineMedium, color = ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                if (!row.hasReplay) ImportedPill()
+            }
             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = if (row.hasReplay) Alignment.CenterStart else Alignment.BottomStart) {
                 Column {
                     TimerBlock(row, time, average, tight, slam, bigStyle, ghostStyle, baselineEm, ink)
@@ -125,31 +134,38 @@ private fun TimerBlock(
     baselineEm: Float,
     ink: Color,
 ) {
-    var ghostHeight by remember { mutableIntStateOf(0) }
-    var bigHeight by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current
     val heroPx = with(density) { bigStyle.fontSize.toPx() }
     val ghostPx = heroPx * GHOST_SCALE
     if (average == null) {
-        if (!tight) Text("First solve — no average yet", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = ink)
+        if (!tight) {
+            Text(
+                "First solve — no average yet",
+                Modifier.graphicsLayer { rise(slam.firstSolve.value) },
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                color = ink,
+            )
+        }
     } else {
-        Row(Modifier.onSizeChanged { ghostHeight = it.height }, verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 Modifier
+                    .onPlaced { slam.ghostAt = it }
+                    .graphicsLayer { peel(slam) }
                     .semantics { contentDescription = "Average $average, ${row.solves} solves" }
-                    .graphicsLayer {
-                        // The ghost is the climbing timer shrunk to GHOST_SCALE and lifted into place.
-                        val lift = 1f - slam.ghost.value
-                        alpha = if (slam.phase == SlamPhase.Climb) 0f else 1f
-                        scaleX = lerp(1f, 1f / GHOST_SCALE, lift)
-                        scaleY = scaleX
-                        transformOrigin = TransformOrigin(0f, 0.5f)
-                        translationY = lift * (ghostHeight + bigHeight) / 2f
-                    }
+                    .testTag("recap.fastest.ghost")
                     .drawWithContent {
                         drawContent()
-                        val y = size.height / 2f
-                        drawLine(ink, Offset(0f, y), Offset(size.width * slam.strike.value, y), strokeWidth = StrikeWidth.toPx())
+                        // The strike overhangs the ghost a little either side and draws from its start.
+                        val strike = slam.strike.value
+                        if (strike > 0f) {
+                            drawRoundRect(
+                                ink,
+                                topLeft = Offset(-size.width * STRIKE_OVERHANG, (size.height - StrikeWidth.toPx()) / 2f),
+                                size = Size(size.width * (1f + 2f * STRIKE_OVERHANG) * strike, StrikeWidth.toPx()),
+                                cornerRadius = CornerRadius(StrikeRadius.toPx()),
+                            )
+                        }
                     }
                     .glyphBox(ghostPx * DIGIT_EM, ghostPx * baselineEm),
             ) {
@@ -157,7 +173,11 @@ private fun TimerBlock(
             }
             if (!tight) {
                 Column(
-                    Modifier.padding(start = Spacing.sm).clearAndSetSemantics {}.graphicsLayer { alpha = slam.ghost.value },
+                    Modifier.padding(start = Spacing.sm).clearAndSetSemantics {}.graphicsLayer {
+                        val shown = slam.ghostLabel.value
+                        alpha = shown
+                        translationX = (shown - 1f) * GhostLabelShift.toPx()
+                    },
                 ) {
                     Text("Your average", style = GhostLabel, color = ink)
                     Text("${row.solves} solves", style = GhostLabel, color = ink)
@@ -168,85 +188,45 @@ private fun TimerBlock(
     Box(
         Modifier
             .padding(top = with(density) { (heroPx * GAP_EM).toDp() })
-            .onSizeChanged { bigHeight = it.height }
+            .onPlaced { slam.timerAt = it }
             .graphicsLayer {
-                val drop = slam.drop.value
-                translationY = -(1f - drop) * bigHeight * RecapMotion.SlamOvershoot + slam.recoil.value.dp.toPx()
-                scaleX = slam.impact.value
+                scaleX = slam.stamp.value
                 scaleY = scaleX
                 transformOrigin = TransformOrigin(0f, 1f)
-                alpha = if (slam.phase == SlamPhase.Peel) 0f else (drop * FADE_IN).coerceAtMost(1f)
             }
             .glyphBox(heroPx * DIGIT_EM, heroPx * baselineEm)
             .testTag("recap.fastest.time"),
     ) {
-        val rolls = row.averageMs == null
-        when (slam.phase) {
-            SlamPhase.Climb -> TimeOdometer(average ?: time, bigStyle, ink, RecapMotion.SlamClimb)
-            SlamPhase.Peel -> Spacer(Modifier.height(with(density) { (heroPx * DIGIT_EM).toDp() }))
-            SlamPhase.Landed -> TimeOdometer(time, bigStyle, ink, if (rolls) RecapMotion.SlamClimb else 0)
+        if (slam.odometer.settled) {
+            Text(time, Modifier.clearAndSetSemantics { contentDescription = time }, ink, style = bigStyle, softWrap = false, maxLines = 1)
+        } else {
+            OdometerText(slam.odometer, time, bigStyle, ink)
         }
     }
     if (!tight) {
         val day = row.day.shortLabel()
         Text(
             text = row.puzzleNumber?.let { "$day · Puzzle #$it" } ?: day,
-            modifier = Modifier.padding(top = Spacing.md).testTag("recap.fastest.meta"),
+            modifier = Modifier.padding(top = Spacing.md).graphicsLayer { rise(slam.meta.value) }.testTag("recap.fastest.meta"),
             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
             color = ink,
         )
     }
 }
 
-/** What an imported solve says in place of a replay (A5). */
-@Composable
-private fun ImportedPill() {
-    Row(
-        Modifier
-            .padding(top = Spacing.xs)
-            .clip(CircleShape)
-            .background(LinkedInBlue)
-            .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
-            .testTag("recap.fastest.imported"),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-    ) {
-        Text("in", style = PillLabel.copy(fontWeight = FontWeight.ExtraBold), color = Color.White)
-        Text("Imported from LinkedIn", style = PillLabel, color = Color.White)
-    }
-}
-
-/** The replay pill: the panel's colour on ink, stamped on once the time has landed. */
-@Composable
-private fun ReplayPill(
-    gameName: String,
-    row: RecapCard.Fastest.Row,
-    slam: Slam,
-    color: Color,
-    ink: Color,
-    tight: Boolean,
-    onWatchReplay: () -> Unit,
-) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .height(if (tight) 48.dp else 56.dp)
-            .graphicsLayer {
-                val stamp = slam.stamp.value
-                alpha = (stamp * FADE_IN).coerceIn(0f, 1f)
-                scaleX = lerp(MotionTokens.StampFromScale, 1f, stamp)
-                scaleY = scaleX
-            }
-            .clip(CircleShape)
-            .background(ink)
-            .clickable(role = Role.Button, onClick = onWatchReplay)
-            .semantics(mergeDescendants = true) { contentDescription = "Watch replay, $gameName, ${row.day.shortLabel()}" }
-            .testTag("recap.fastest.replay"),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(PuzzleIcons.Play, contentDescription = null, tint = color, modifier = Modifier.width(Spacing.xl))
-        Text("Watch replay", Modifier.clearAndSetSemantics {}, color, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold))
-    }
+/** The ghost from over the timer (scaled up to its size, top-left on its top-left) to its own place as the peel runs. */
+private fun GraphicsLayerScope.peel(slam: Slam) {
+    alpha = if (slam.ghostShown) 1f else 0f
+    val lift = 1f - slam.peel.value
+    val ghost = slam.ghostAt
+    val timer = slam.timerAt
+    if (lift <= 0f || ghost == null || timer == null || !ghost.isAttached || !timer.isAttached) return
+    val over = ghost.localPositionOf(timer, Offset.Zero)
+    transformOrigin = TransformOrigin(0f, 0f)
+    translationX = over.x * lift
+    translationY = over.y * lift
+    scaleX = lerp(1f, 1f / GHOST_SCALE, lift)
+    scaleY = scaleX
 }
 
 /**
@@ -272,17 +252,28 @@ private fun Modifier.glyphBox(heightPx: Float, baselinePx: Float): Modifier = la
     layout(placeable.width, height) { placeable.place(0, height - baselinePx.roundToInt()) }
 }
 
+/** The prototype's `.s-top`: space-between with an 8dp gap, so the pill sits top-right and wraps under the name. */
+private val TopRow = object : Arrangement.Horizontal {
+    override val spacing = 8.dp
+    override fun Density.arrange(totalSize: Int, sizes: IntArray, layoutDirection: LayoutDirection, outPositions: IntArray) =
+        with(Arrangement.SpaceBetween) { arrange(totalSize, sizes, layoutDirection, outPositions) }
+}
+
 private val Pad = Spacing.lg
 private val TightHeight = 290.dp
 private val TightFixed = 150.dp
 private val RoomyFixed = 190.dp
 private val StrikeWidth = 3.dp
-private const val FADE_IN = 4f
+private val StrikeRadius = 2.dp
+private const val STRIKE_OVERHANG = 0.03f
+private val GhostLabelShift = 8.dp
+private val TopRowGap = 6.dp
+private val TopRowMin = 24.dp
 private const val LINE = 1.1f
 
 /** The share of the width the widest time may take: the measure is of one line, and a pixel more wraps the last digit. */
 private const val FIT = 0.96f
-private const val GHOST_SCALE = 0.4f
+private const val GHOST_SCALE = 0.42f
 
 /** A digit's height and the gap between the ghost and the timer, in ems of the timer's font (measured from the reference). */
 private const val DIGIT_EM = 0.72f
@@ -290,5 +281,4 @@ private const val GAP_EM = 0.25f
 private const val FontCap = 210f
 private const val ProbeSp = 100f
 private val Eyebrow = TextStyle(fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, letterSpacing = 1.2.sp)
-private val PillLabel = TextStyle(fontWeight = FontWeight.Bold, fontSize = 12.sp, lineHeight = 14.sp)
 private val GhostLabel = TextStyle(fontWeight = FontWeight.Bold, fontSize = 15.sp, lineHeight = 18.sp)
