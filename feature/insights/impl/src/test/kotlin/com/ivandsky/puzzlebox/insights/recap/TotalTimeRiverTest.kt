@@ -118,7 +118,7 @@ class TotalTimeRiverTest {
         val state = RecapUiState.Ready(
             period = october,
             title = "October 2026",
-            cards = listOf(RecapFixtures.solved, month, RecapFixtures.hintFree),
+            cards = listOf(RecapFixtures.solved, month, RecapFixtures.moments),
             initialPage = 1,
         )
         rule.setContent { PuzzleBoxTheme { RecapScreen(state, "October 2026", gameName, onPage = {}, onWatchReplay = {}, onClose = {}) } }
@@ -132,7 +132,7 @@ class TotalTimeRiverTest {
     @Test
     @Config(qualifiers = "w1280dp-h800dp-land-mdpi")
     fun `on a tablet the list's small river reads the day the story's river is held on`() {
-        val state = RecapUiState.Ready(period = october, title = "October 2026", cards = listOf(RecapFixtures.solved, month, RecapFixtures.hintFree), initialPage = 1)
+        val state = RecapUiState.Ready(period = october, title = "October 2026", cards = listOf(RecapFixtures.solved, month, RecapFixtures.moments), initialPage = 1)
         rule.setContent { PuzzleBoxTheme { RecapScreen(state, "October 2026", gameName, onPage = {}, onWatchReplay = {}, onClose = {}) } }
         rule.waitForIdle()
         assertTrue(rule.onNodeWithTag("recap.totaltime.miniReadout").isDisplayedNode())
