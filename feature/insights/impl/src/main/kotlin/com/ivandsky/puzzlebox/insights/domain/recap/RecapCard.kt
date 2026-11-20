@@ -56,6 +56,8 @@ internal sealed interface RecapCard {
      * period's edge shows only its own side), and the days [freezesSpent] holding streaks anywhere in the period.
      * [frozenDays] are the days of this streak a freeze held (fewer than [freezesSpent] when other streaks spent some),
      * and [span] is the period the dial draws.
+     * [today] is the puzzle day, stamped by the story's view model: a dial week that begins after it is still to come
+     * (null: nothing is).
      */
     data class Streak(
         val days: Int,
@@ -64,6 +66,7 @@ internal sealed interface RecapCard {
         val freezesSpent: Int,
         val frozenDays: Set<LocalDate>,
         val span: DaySpan,
+        val today: LocalDate? = null,
     ) : RecapCard
 
     /**

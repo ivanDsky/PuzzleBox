@@ -12,7 +12,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -42,7 +41,6 @@ import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteEntry
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapPeriod
 import java.time.DayOfWeek
-import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
 import kotlin.math.PI
@@ -50,9 +48,6 @@ import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
-
-/** The day the dial reads as today: ticks that begin after it are still to come and drawn faint. A test pins it. */
-internal val LocalDialToday = staticCompositionLocalOf { LocalDate.now() }
 
 /** One tick of the ring: a day, or a week in a year. [fill] is the share of it inside the streak, 0..1. */
 internal class DialTick(val fill: Float, val frozen: Boolean, val future: Boolean)
@@ -63,9 +58,9 @@ internal class DialRing(val ticks: List<DialTick>, val first: Int, val count: In
 /**
  * The ring for [card]: a tick per day of its span, or per Monday-start calendar week from Jan 1 for a year (53 in
  * 2026), a week filled by the share of its days in the year that the streak ran. A tick whose first day in the span
- * is after [today] is still to come.
+ * is after the card's puzzle day [RecapCard.Streak.today] is still to come.
  */
-internal fun dialRing(card: RecapCard.Streak, today: LocalDate): DialRing {
+internal fun dialRing(card: RecapCard.Streak): DialRing {
     val span = card.span
     val weekly = span is RecapPeriod.Year
     val days = generateSequence(span.first) { it.plusDays(1).takeIf { next -> next in span } }.toList()
@@ -75,7 +70,7 @@ internal fun dialRing(card: RecapCard.Streak, today: LocalDate): DialRing {
         DialTick(
             fill = group.count { it in card.from..card.to }.toFloat() / group.size,
             frozen = group.any { it in card.frozenDays },
-            future = group.first().isAfter(today),
+            future = card.today?.let { group.first().isAfter(it) } == true,
         )
     }
     val first = ticks.indexOfFirst { it.fill > 0f }
@@ -95,8 +90,7 @@ internal fun sweepMs(days: Int): Int = min(RecapMotion.SweepRunMax, RecapMotion.
 internal fun StreakDial(card: RecapCard.Streak, modifier: Modifier = Modifier, onSettled: () -> Unit = {}) {
     val settled = entranceSettled()
     val reduced = rememberReducedMotion()
-    val today = LocalDialToday.current
-    val ring = remember(card, today) { dialRing(card, today) }
+    val ring = remember(card) { dialRing(card) }
     val total = sweepMs(card.days)
     val sweep = remember { Animatable(if (settled || reduced) 1f else 0f) }
     val pulse = remember { Animatable(0f) }
@@ -190,9 +184,9 @@ private fun DrawScope.drawRing(ring: DialRing, sweep: Float, totalMs: Int, comet
             val crack = ((head - (i - ring.first) - igniteTicks) / crackTicks).coerceIn(0f, 1f)
             val side = Offset(-u.y, u.x) * (CRACK_DP.dp.toPx() * crack)
             val half = length * HALF
+            drawCircle(ink.copy(alpha = CONNECTOR_ALPHA * crack), width / 2f, from + u * (length / 2f))
             drawLine(ice, from - side, from + u * half - side, width, StrokeCap.Round)
             drawLine(ice, to - u * half + side, to + side, width, StrokeCap.Round)
-            drawCircle(ink.copy(alpha = OFF_ALPHA * crack), width / 2f, from + u * (length / 2f))
         }
     }
     val cometIndex = ring.first + min(head, ring.count - 1f)
@@ -216,12 +210,13 @@ private const val WeekOuter = 0.93f
 private const val WeekLength = 0.15f
 private const val WeekWidth = 0.04f
 private const val OFF_ALPHA = 0.3f
+private const val CONNECTOR_ALPHA = 0.5f
 private const val FUTURE_ALPHA = 0.15f
 private const val IGNITE_FROM = 0.4f
 private const val TICK_IGNITE_MS = 160f
 private const val TICK_CRACK_MS = 140f
 private const val MIN_TICKS = 0.5f
 private const val CRACK_DP = 2
-private const val HALF = 0.42f
+private const val HALF = 0.34f
 private const val TRAIL = 3
 private const val TRAIL_STEP = 0.7f

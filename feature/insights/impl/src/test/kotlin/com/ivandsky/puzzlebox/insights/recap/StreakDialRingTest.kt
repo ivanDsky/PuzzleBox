@@ -10,12 +10,9 @@ import org.junit.Test
 /** The ring the dial draws: which ticks the streak lights, which are ice, which are still to come. */
 class StreakDialRingTest {
 
-    private val afterOctober = LocalDate.of(2026, 11, 2)
-    private val december20 = LocalDate.of(2026, 12, 20)
-
     @Test
     fun `a month draws a tick per day and lights only the streak's own, the frozen ones as ice`() {
-        val ring = dialRing(default, afterOctober)
+        val ring = dialRing(default)
 
         assertEquals(31, ring.ticks.size)
         assertEquals(23, ring.ticks.count { it.fill > 0f })
@@ -26,7 +23,7 @@ class StreakDialRingTest {
 
     @Test
     fun `a streak that runs the whole month lights every tick`() {
-        val ring = dialRing(longest, afterOctober)
+        val ring = dialRing(longest)
 
         assertEquals(31, ring.ticks.count { it.fill == 1f })
         assertEquals(4, ring.ticks.count { it.frozen })
@@ -34,7 +31,7 @@ class StreakDialRingTest {
 
     @Test
     fun `a year draws 53 week ticks, each filled by the share of its days the streak ran`() {
-        val ring = dialRing(year, december20)
+        val ring = dialRing(year)
 
         assertEquals(53, ring.ticks.size)
         // Jun 24 is a Wednesday and Sep 5 a Saturday: the first and last weeks are filled in part.
@@ -49,13 +46,15 @@ class StreakDialRingTest {
 
     @Test
     fun `a year under way draws the weeks still to come faint, and a finished year none`() {
-        assertEquals(listOf(51, 52), dialRing(year, december20).ticks.indices.filter { dialRing(year, december20).ticks[it].future })
-        assertEquals(0, dialRing(year, LocalDate.of(2027, 1, 5)).ticks.count { it.future })
+        val ring = dialRing(year)
+        assertEquals(listOf(51, 52), ring.ticks.indices.filter { ring.ticks[it].future })
+        assertEquals(0, dialRing(year.copy(today = LocalDate.of(2027, 1, 5))).ticks.count { it.future })
+        assertEquals(0, dialRing(year.copy(today = null)).ticks.count { it.future })
     }
 
     @Test
     fun `a year's frozen days mark the week they fall in`() {
-        val ring = dialRing(year, december20)
+        val ring = dialRing(year)
 
         // Jul 1, Jul 15 and Aug 5 sit in weeks 26, 28 and 31.
         assertEquals(listOf(26, 28, 31), ring.ticks.indices.filter { ring.ticks[it].frozen })

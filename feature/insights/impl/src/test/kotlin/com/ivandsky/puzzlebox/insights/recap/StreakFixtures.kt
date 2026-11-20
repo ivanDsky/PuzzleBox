@@ -25,10 +25,10 @@ internal object StreakFixtures {
         frozenDays = setOf(oct(6), oct(13), oct(14), oct(22)), span = october,
     )
 
-    /** 74 days, Jun 24 – Sep 5, in 2026 so far; three freezes. */
+    /** 74 days, Jun 24 – Sep 5, in 2026 so far as of Dec 20 (the last two weeks are to come); three freezes. */
     val year = RecapCard.Streak(
         days = 74, from = LocalDate.of(2026, 6, 24), to = LocalDate.of(2026, 9, 5), freezesSpent = 3,
         frozenDays = setOf(LocalDate.of(2026, 7, 1), LocalDate.of(2026, 7, 15), LocalDate.of(2026, 8, 5)),
-        span = RecapPeriod.Year(2026),
+        span = RecapPeriod.Year(2026), today = LocalDate.of(2026, 12, 20),
     )
 }

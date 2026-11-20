@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.insights.recap
 
 import androidx.activity.ComponentActivity
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import com.ivandsky.puzzlebox.insights.GOLDEN_PHONE
 import com.ivandsky.puzzlebox.insights.GOLDEN_TABLET
@@ -13,7 +12,6 @@ import com.ivandsky.puzzlebox.insights.recap.StreakFixtures.noFreezes
 import com.ivandsky.puzzlebox.insights.recap.StreakFixtures.year
 import com.ivandsky.puzzlebox.insights.settleAndCapture
 import com.ivandsky.puzzlebox.insights.showGolden
-import java.time.LocalDate
 import java.time.YearMonth
 import org.junit.Rule
 import org.junit.Test
@@ -81,10 +79,7 @@ class StreakCardGoldenScreenshots {
 
     private fun capture(name: String, device: String, dark: Boolean, state: RecapUiState.Ready) {
         rule.showGolden(dark = dark) {
-            // The year was opened on Dec 20: its last two weeks are still to come.
-            CompositionLocalProvider(LocalDialToday provides LocalDate.of(2026, 12, 20)) {
-                RecapScreen(state, state.title, RecapFixtures.gameName, onPage = {}, onWatchReplay = {}, onClose = {})
-            }
+            RecapScreen(state, state.title, RecapFixtures.gameName, onPage = {}, onWatchReplay = {}, onClose = {})
         }
         rule.settleAndCapture("recap", name, device, dark)
     }
