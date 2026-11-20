@@ -21,7 +21,7 @@ import com.ivandsky.puzzlebox.insights.label
 import com.ivandsky.puzzlebox.insights.recap.LocalGameBrands
 import java.text.NumberFormat
 
-/** The card a period's tile and cover pane are coloured by: the finale's for a year, the month cover's for a month. */
+/** The card a period's tile and cover pane are colored by: the finale's for a year, the month cover's for a month. */
 internal val SummarizedPeriod.card: RecapCard get() = if (period is RecapPeriod.Year) RecapCard.YearFinale else RecapCard.Cover
 
 /** The kind of period, as the tile tags and the pane's kicker name it. */

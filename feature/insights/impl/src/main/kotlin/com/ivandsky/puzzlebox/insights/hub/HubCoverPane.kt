@@ -106,7 +106,7 @@ internal fun HubCoverPane(item: SummarizedPeriod, opened: Boolean, yearSoFar: In
     }
 }
 
-/** The dashed strip along the pane's top edge: 4dp dashes, [DashInset] in from each side and from the top. */
+/** The dashed strip along the pane's top edge: 3dp dashes, [DashInset] in from each side and from the top. */
 private fun Modifier.dashedTop(color: Color): Modifier = drawBehind {
     drawLine(
         color,
@@ -121,8 +121,8 @@ private val PaneRadius = 28.dp
 private val ContentTop = 80.dp
 
 /** The display font's line box is taller than its glyphs; these pull the headline and the count up to the reference's ink. */
-private val HeadlineLift = 10.dp
-private val CountLift = 28.dp
+private val HeadlineLift = 14.dp
+private val CountLift = 40.dp
 private val BarsWidth = 234.dp
 private val BarsHeight = 170.dp
 private val BarsGap = 6.dp
@@ -130,7 +130,7 @@ private val BarsCorner = 2.dp
 private val BarsToTap = 56.dp
 private val MosaicSize = 180.dp
 private val DashInset = 16.dp
-private val DashThickness = 4.dp
+private val DashThickness = 3.dp
 private val DashLength = 16.dp
 private val DashGapLength = 8.dp
 private const val DashAlpha = 0.35f
