@@ -19,7 +19,9 @@ import com.ivandsky.puzzlebox.game.DailySource
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInAccountSource
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInOwnResult
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInPhotoSource
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInResultPoster
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
 import com.ivandsky.puzzlebox.games.tango.TangoSession
@@ -48,7 +50,8 @@ import org.robolectric.annotation.Config
  *
  * The graph's daily repository is a fake, so each test hands it the LinkedIn facts of the game's registered
  * [DailySource], the ones the real repository reads: a fact that source does not report hides the row here as it
- * does on a device. Every LinkedIn edge answers as with no network; the row needs no call to show.
+ * does on a device. Every LinkedIn edge answers as with no network, except where a test hands one an answer: the row
+ * needs no call to show, but a Post the phone would offer waits for LinkedIn's word on the day.
  */
 @RunWith(RobolectricTestRunner::class)
 // DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -99,6 +102,27 @@ class LinkedInPostRowE2ETest {
         }
     }
 
+    /**
+     * The landing the widget and the Today tile make: the day's result opened cold, with no game page visited first
+     * to sync it. LinkedIn holds the player's own result for the day, so the row says so and never offers Post.
+     */
+    @Test
+    fun `a stored Zip solve on a day LinkedIn already holds says Already on LinkedIn when opened cold`() {
+        val game = DailySolve.Zip
+        val puzzle = ZipPlayFixture.envelope()
+        val solve = storedSolve(game, puzzle)
+        shellRobot(tabAt(PlayKey), graph = storedGraph(game, puzzle, solve)) {
+            mirrorLinkedInFacts(game)
+            linkWithPostingOn()
+            linkedInHolds(game, solve)
+
+            openStoredResult(solve)
+
+            awaitIdling { rule.onAllNodes(hasTestTag(POST_ROW) and (hasText("Post to LinkedIn") or hasText("Already on LinkedIn"))).fetchSemanticsNodes().isNotEmpty() }
+            rule.onNodeWithTag(POST_ROW).assertTextContains("Already on LinkedIn")
+        }
+    }
+
     /** Solves today's [game], whose board is [puzzle], and expects the row on the result the win opens. */
     private fun aSolveOffersPost(game: DailySolve, puzzle: Puzzle) =
         shellRobot(tabAt(PlayKey), graph = linkedGraph()) {
@@ -117,21 +141,38 @@ class LinkedInPostRowE2ETest {
      */
     private fun aStoredSolveOffersPost(game: DailySolve, puzzle: Puzzle) {
         val solve = storedSolve(game, puzzle)
+        shellRobot(tabAt(PlayKey), graph = storedGraph(game, puzzle, solve)) {
+            mirrorLinkedInFacts(game)
+            linkWithPostingOn()
+
+            openStoredResult(solve)
+
+            assertOffersPost(game)
+        }
+    }
+
+    /** A linked-LinkedIn shell whose stores hold [solve], the earlier launch's solve of today's [game]. */
+    private fun storedGraph(game: DailySolve, puzzle: Puzzle, solve: StoredSolve): E2eKoinGraph {
         val number = (solve.record.puzzleRef.key as PuzzleKey.Daily).puzzleNumber
-        val graph = linkedGraph().apply {
+        return linkedGraph().apply {
             daily.addEntry(DailyEntry(game.id, E2E_TODAY, number, puzzle.variant.value, 0L))
             daily.setCached(game.id, E2E_TODAY, puzzle)
             runBlocking { records.onCompleted(solve.record, solve.replay) }
         }
-        shellRobot(tabAt(PlayKey), graph = graph) {
-            mirrorLinkedInFacts(game)
-            linkWithPostingOn()
+    }
 
-            push(ResultKey(game.id.value, "$E2E_TODAY", solve.record.time, solve.record.hints))
-            awaitDrained(ROW_TIMEOUT_MS) { shows(RESULT_ROUTE) }
+    /** Opens [solve]'s result from its key alone, as a landing does, and waits for the page. */
+    private fun ShellRobot.openStoredResult(solve: StoredSolve) {
+        push(ResultKey(solve.record.puzzleRef.gameId.value, "$E2E_TODAY", solve.record.time, solve.record.hints))
+        awaitDrained(ROW_TIMEOUT_MS) { shows(RESULT_ROUTE) }
+    }
 
-            assertOffersPost(game)
-        }
+    /** LinkedIn answers [game]'s day with the player's own solved result, as it does for a player who also played there. */
+    private fun ShellRobot.linkedInHolds(game: DailySolve, solve: StoredSolve) {
+        val account = graph.koin.get<LinkedInAccountSource>() as FakeLinkedInAccountSource
+        val number = checkNotNull((solve.record.puzzleRef.key as PuzzleKey.Daily).puzzleNumber) { "$game: the solve has no puzzle number" }
+        val typeId = checkNotNull(source(game).linkedInGameTypeId) { "$game has no LinkedIn type" }
+        account.respondOwn(LINKEDIN_MEMBER, typeId, number, LinkedInRead.Ok(LinkedInOwnResult.Solved(timeSeconds = (solve.record.time / 1000).toInt(), hintFree = true)))
     }
 
     /** What a solve leaves on disk: its record and the replay bytes stored with it. */
@@ -182,6 +223,8 @@ class LinkedInPostRowE2ETest {
         val source = source(game)
         graph.daily.setLinkedInGameType(game.id, source.linkedInGameTypeId)
         graph.daily.setLinkedInGamePath(game.id, source.linkedInGamePath)
+        // The day's sync asks the repository for the day's number, as the real one answers from the same source.
+        graph.daily.setPuzzleNumbers(game.id, source::puzzleNumber)
     }
 
     private fun ShellRobot.linkWithPostingOn() {
@@ -200,7 +243,7 @@ class LinkedInPostRowE2ETest {
     private fun ShellRobot.assertOffersPost(game: DailySolve) {
         try {
             // The row is there but inert (no semantics) until the page's primary resolves; wait for the ready row.
-            awaitDrained(ROW_TIMEOUT_MS) { rule.onAllNodes(hasTestTag(POST_ROW) and hasText("Post to LinkedIn")).fetchSemanticsNodes().isNotEmpty() }
+            awaitIdling { rule.onAllNodes(hasTestTag(POST_ROW) and hasText("Post to LinkedIn")).fetchSemanticsNodes().isNotEmpty() }
         } catch (timeout: ComposeTimeoutException) {
             throw AssertionError("$game: the result page offers no Post to LinkedIn row", timeout)
         }
