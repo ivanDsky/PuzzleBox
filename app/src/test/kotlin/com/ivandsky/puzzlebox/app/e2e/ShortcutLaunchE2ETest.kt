@@ -138,6 +138,27 @@ class ShortcutLaunchE2ETest {
     }
 
     @Test
+    fun `a Today intent lands on the Today tab at its root from a board, from Games and from Profile`() =
+        launching(shortcut(ZIP)) {
+            assertBoardOf(ZIP)
+            newIntent(shortcut(ShortcutTarget.Today))
+            assertTodayRoot()
+
+            // Today leaves the Games stack as it was: the board is still there, one Back from the list.
+            tap("nav.tab.play")
+            assertRoute("route.game")
+            back()
+            assertRoute("route.library")
+            newIntent(shortcut(ShortcutTarget.Today))
+            assertTodayRoot()
+
+            tap("shell.avatar")
+            assertRoute("route.profile")
+            newIntent(shortcut(ShortcutTarget.Today))
+            assertTodayRoot()
+        }
+
+    @Test
     fun `a shortcut for a game this build lacks opens the app as usual`() =
         launching(Intent(ShortcutIntents.ACTION).setClass(context, MainActivity::class.java).putExtra(ShortcutIntents.EXTRA_GAME_ID, "gone")) {
             assertRoute("route.home")
@@ -158,6 +179,11 @@ class ShortcutLaunchE2ETest {
         assertRoute("route.library")
         back()
         assertRoute("route.home")
+    }
+
+    private fun assertTodayRoot() {
+        assertRoute("route.home")
+        rule.onNodeWithTag("nav.tab.home").assertIsSelected()
     }
 
     private fun assertBoardOf(game: GameId) {

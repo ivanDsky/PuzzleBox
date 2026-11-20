@@ -50,6 +50,13 @@ class AndroidShortcutPublisherTest {
     }
 
     @Test
+    fun `a Today entry is skipped, never published`() {
+        publisher.publish(listOf(ShortcutEntry(ShortcutTarget.Today, gameName = null, rank = 0)) + entries)
+
+        assertEquals(listOf("up_next", "game_zip", "game_minisudoku"), published().map { it.id })
+    }
+
+    @Test
     fun `publish replaces the earlier set and clear removes it`() {
         publisher.publish(entries)
         publisher.publish(entries.take(1))

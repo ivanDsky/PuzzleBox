@@ -42,6 +42,13 @@ class ResolveShortcutLandingTest {
     }
 
     @Test
+    fun `Today target lands on Today whatever the set holds`() {
+        assertEquals(ShortcutLanding.Today, resolve(ShortcutTarget.Today, emptyList()))
+        assertEquals(ShortcutLanding.Today, resolve(ShortcutTarget.Today, listOf(entry("zip", inProgress), entry("queens", notStarted))))
+        assertEquals(ShortcutLanding.Today, resolve(ShortcutTarget.Today, listOf(entry("zip", solved))))
+    }
+
+    @Test
     fun `a game target is always its board whatever its status`() {
         val today = listOf(entry("zip", solved))
 
