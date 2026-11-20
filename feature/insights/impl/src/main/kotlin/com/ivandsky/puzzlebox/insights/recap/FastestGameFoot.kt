@@ -72,7 +72,8 @@ internal fun FastestGameFoot(
                 val cellValue = value.copy(fontSize = (26 * u).sp, lineHeight = (26 * u * 1.1f).sp)
                 cells.forEach { (name, figure) ->
                     Column(Modifier.alignBy(LastBaseline), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                        if (!tight) Text(name, color = ink, style = label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        // A month's "Solves in October 2026" wraps rather than cuts off; the figures share one baseline.
+                        if (!tight) Text(name, color = ink, style = label, maxLines = 2, overflow = TextOverflow.Ellipsis)
                         Text(figure, color = ink, style = cellValue, maxLines = 1, softWrap = false)
                     }
                 }
