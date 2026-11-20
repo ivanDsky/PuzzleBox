@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Strands: GameGlyphs.Strands in white on the pink accent disc. Hand-converted from the Compose glyph; edit both together. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="@color/shortcut_accent_pink"
+        android:pathData="M0,12a12,12 0 1,0 24,0a12,12 0 1,0 -24,0Z" />
+    <!-- The glyph is drawn at 0.8 so its round caps and dots clear the disc edge; the stroke is widened to keep 2dp on screen. -->
+    <group
+        android:pivotX="12"
+        android:pivotY="12"
+        android:scaleX="0.8"
+        android:scaleY="0.8">
+        <path
+            android:pathData="M5.5 18.5L11 15L7 10L12.5 5.5L18.5 8.5L17.5 15"
+            android:strokeColor="@color/shortcut_glyph"
+            android:strokeWidth="2.5"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:fillColor="@color/shortcut_glyph"
+            android:pathData="M4.25 18.5a1.25 1.25 0 1 0 2.5 0a1.25 1.25 0 1 0 -2.5 0M10 15a1 1 0 1 0 2 0a1 1 0 1 0 -2 0M6 10a1 1 0 1 0 2 0a1 1 0 1 0 -2 0M11.5 5.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0M17.5 8.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0M16.25 15a1.25 1.25 0 1 0 2.5 0a1.25 1.25 0 1 0 -2.5 0"
+            android:strokeColor="@color/shortcut_glyph"
+            android:strokeWidth="2.5"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+    </group>
+</vector>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fallback for a game with no icon of its own: plain white dot on the neutral ink disc. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="@color/shortcut_ink"
+        android:pathData="M0,12a12,12 0 1,0 24,0a12,12 0 1,0 -24,0Z" />
+    <path
+        android:fillColor="@color/shortcut_glyph"
+        android:pathData="M9,12a3,3 0 1,0 6,0a3,3 0 1,0 -6,0Z" />
+</vector>
