@@ -2,14 +2,11 @@ package com.ivandsky.puzzlebox.insights.recap
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -23,9 +20,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.tabular
+import com.ivandsky.puzzlebox.gameui.GameBrand
+import com.ivandsky.puzzlebox.gameui.GameGlyph
+import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 
 /** One label-and-value line of a card's fact block; [tag] names its row for tests. */
-internal data class RecapFactRow(val tag: String, val label: String, val value: String, val dot: Color? = null)
+internal data class RecapFactRow(val tag: String, val label: String, val value: String, val game: GameBrand? = null)
 
 /**
  * A card's facts as one rounded block of label-and-value rows, each row one item for a screen reader. The block of the
@@ -63,7 +63,7 @@ internal fun RecapFactRows(
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                 )
-                row.dot?.let { Box(Modifier.size(DotSize).background(it, CircleShape)) }
+                row.game?.let { GameGlyph(it, GameGlyphSize.Inline) }
                 Text(
                     text = row.value,
                     style = MaterialTheme.typography.titleMedium.tabular(),
@@ -75,4 +75,3 @@ internal fun RecapFactRows(
 }
 
 private val RowMinHeight = 48.dp
-private val DotSize = 12.dp

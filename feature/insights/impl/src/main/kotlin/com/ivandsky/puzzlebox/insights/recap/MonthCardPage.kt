@@ -26,7 +26,6 @@ import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteEntry
 import com.ivandsky.puzzlebox.designsystem.RollingDigits
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.field
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.ink
@@ -119,14 +118,14 @@ internal fun MonthFactRows(
     container: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
     tablet: Boolean = false,
 ) {
-    val dot = LocalGameBrands.current(card.bestGame).accent.colors().accent
+    val brand = LocalGameBrands.current(card.bestGame)
     val time = formatDuration(card.bestTimeMs)
     RecapFactRows(
         rows = listOf(
             if (tablet) {
-                RecapFactRow("recap.month.best", "Best vs average", "$time · ${gameName(card.bestGame)}", dot = dot)
+                RecapFactRow("recap.month.best", "Best vs average", "$time · ${gameName(card.bestGame)}", game = brand)
             } else {
-                RecapFactRow("recap.month.best", "Best against your average", "${gameName(card.bestGame)} $time", dot = dot)
+                RecapFactRow("recap.month.best", "Best against your average", "${gameName(card.bestGame)} $time", game = brand)
             },
             RecapFactRow("recap.month.under", underAverageLine(card.underAveragePercent), ""),
         ),

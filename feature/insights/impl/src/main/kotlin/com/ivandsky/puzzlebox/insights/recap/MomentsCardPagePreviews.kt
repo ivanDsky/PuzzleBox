@@ -61,7 +61,7 @@ private fun MomentStickerSheetPreview() = PuzzleBoxTheme {
 @Composable
 private fun MomentPlaquePreview() = PuzzleBoxTheme {
     Surface(color = MaterialTheme.colorScheme.background) {
-        Column(Modifier.padding(Spacing.lg)) { MomentPlaque(Month.earned.last(), ::name) }
+        Column(Modifier.padding(Spacing.lg)) { MomentPlaque(Month.earned.last(), Month.earned, ::name) }
     }
 }
 

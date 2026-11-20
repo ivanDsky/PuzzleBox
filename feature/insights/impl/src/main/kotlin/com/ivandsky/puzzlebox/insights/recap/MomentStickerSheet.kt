@@ -10,6 +10,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -33,17 +34,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp as lerpColor
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.drawscope.ContentDrawScope
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -93,10 +86,15 @@ internal fun MomentStickerSheet(
         val columns = columnsFor(stickers.size, wide)
         val rows = stickers.chunked(columns)
         val cellWidth = (maxWidth - SheetPad * 2 - GapX * (columns - 1)) / columns
-        val cellHeight = (maxHeight - SheetPad * 2 - GapY * (rows.size - 1)) / rows.size - LabelHeight
-        val cap = if (wide) Dp.Infinity else if (stickers.size <= 2) AloneSize else MultiSize
-        val size = minOf(cap, cellWidth, cellHeight).coerceAtLeast(MinSize)
-        Column(verticalArrangement = Arrangement.spacedBy(GapY), horizontalAlignment = Alignment.CenterHorizontally) {
+        // A wide sheet takes the prototype's tablet ladder and the height it needs (the card scrolls); a phone's fits its room.
+        val size = if (wide) {
+            minOf(tabletSize(stickers.size), cellWidth).coerceAtLeast(MinSize)
+        } else {
+            val cellHeight = (maxHeight - SheetPad * 2 - GapY * (rows.size - 1)) / rows.size - LabelHeight
+            minOf(if (stickers.size <= 2) AloneSize else MultiSize, cellWidth, cellHeight).coerceAtLeast(MinSize)
+        }
+        val pad = if (wide) Modifier.padding(SheetPad) else Modifier
+        Column(pad, verticalArrangement = Arrangement.spacedBy(GapY), horizontalAlignment = Alignment.CenterHorizontally) {
             var index = 0
             rows.forEach { row ->
                 Row(horizontalArrangement = Arrangement.spacedBy(GapX)) {
@@ -132,7 +130,8 @@ private fun Sticker(
     Column(
         Modifier
             .width(size)
-            .clickable(enabled = placed, onClickLabel = "Peel", role = Role.Button, onClick = onPeel)
+            // No ripple: the peel lift is the feedback.
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, enabled = placed, onClickLabel = "Peel", role = Role.Button, onClick = onPeel)
             .semantics(mergeDescendants = true) {
                 contentDescription = "${moment.label(gameName)}, $day"
                 selected = peeled
@@ -142,6 +141,7 @@ private fun Sticker(
     ) {
         Box(Modifier.size(size).drawBehind { slotOutline(shape, ink) }, contentAlignment = Alignment.Center) {
             Ring(stamp.ring, shape, ink, Modifier.size(size))
+            // The curl is drawn on this lifting layer but outside the face's clip, so a circle's corner is not cut off.
             Box(
                 Modifier
                     .size(size)
@@ -155,23 +155,28 @@ private fun Sticker(
                         translationY = -RecapMotion.StickerDrop.toPx() * (1f - t) - RecapMotion.PeelLift.toPx() * peel
                         alpha = t.coerceIn(0f, 1f)
                     }
-                    .shadow(StickerShadow, shape)
-                    .clip(shape)
-                    .background(ink)
-                    .border(StickerRim, PaletteEntry.Moments.plate, shape)
                     .drawWithContent {
                         drawContent()
                         if (curl > 0f) drawCurl(curl, curlColor)
                     },
-                contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = moment.face(),
-                    modifier = Modifier.clearAndSetSemantics { },
-                    style = MaterialTheme.typography.titleLarge.tabular().copy(fontSize = (size.value * FaceScale).sp, fontWeight = FontWeight.ExtraBold),
-                    color = PaletteEntry.Moments.field,
-                    maxLines = 1,
-                )
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .shadow(StickerShadow, shape)
+                        .clip(shape)
+                        .background(ink)
+                        .border(StickerRim, PaletteEntry.Moments.plate, shape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = moment.face(),
+                        modifier = Modifier.clearAndSetSemantics { },
+                        style = MaterialTheme.typography.titleLarge.tabular().copy(fontSize = (size.value * FaceScale).sp, fontWeight = FontWeight.ExtraBold),
+                        color = PaletteEntry.Moments.field,
+                        maxLines = 1,
+                    )
+                }
             }
         }
         Text(
@@ -227,31 +232,6 @@ private fun Ring(progress: () -> Float, shape: Shape, color: Color, modifier: Mo
     )
 }
 
-private fun DrawScope.slotOutline(shape: Shape, color: Color) {
-    val corner = if (shape == CircleShape) size.minDimension / 2 else size.minDimension * SlotCorner
-    drawRoundRect(
-        color = color.copy(alpha = SlotAlpha),
-        cornerRadius = CornerRadius(corner),
-        style = Stroke(SlotStroke.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(SlotDash.toPx(), SlotDash.toPx()))),
-        size = Size(size.width, size.height),
-        topLeft = Offset.Zero,
-    )
-}
-
-/** The paper corner turned up at the bottom-end of a peeled sticker, [progress] 0 to 1 of the way up. */
-private fun ContentDrawScope.drawCurl(progress: Float, color: Color) {
-    val edge = size.minDimension * CurlSize * progress
-    drawPath(
-        Path().apply {
-            moveTo(size.width, size.height - edge)
-            lineTo(size.width - edge, size.height)
-            lineTo(size.width, size.height)
-            close()
-        },
-        color,
-    )
-}
-
 /** Each kind has its own shape, so a kind is told apart by more than colour: a squircle, a circle, a rounded square and a drop. */
 internal fun EarnedMoment.Kind.shape(): Shape = when (this) {
     EarnedMoment.Kind.PersonalBest -> RoundedCornerShape(30)
@@ -269,6 +249,14 @@ private fun columnsFor(count: Int, wide: Boolean): Int = when {
     else -> 5
 }
 
+/** The prototype's tablet ladder: the sticker size for [count] stickers, as large as 176dp alone down to 92dp past eight. */
+private fun tabletSize(count: Int): Dp = when {
+    count <= 2 -> 176.dp
+    count <= 4 -> 144.dp
+    count <= 8 -> 128.dp
+    else -> 92.dp
+}
+
 private val WideSheet = 600.dp
 private val SheetPad = 12.dp
 private val GapX = 10.dp
@@ -280,11 +268,6 @@ private val MultiSize = 68.dp
 private val StickerShadow = 3.dp
 private val StickerRim = 2.dp
 private val RingStroke = 3.dp
-private val SlotStroke = 2.dp
-private val SlotDash = 6.dp
-private const val SlotAlpha = 0.5f
-private const val SlotCorner = 0.3f
-private const val CurlSize = 0.38f
 private const val CurlTint = 0.55f
 private const val FaceScale = 0.3f
 private const val RestStride = 37
