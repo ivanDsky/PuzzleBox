@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuCommand
 import com.ivandsky.puzzlebox.games.sudoku.SudokuMoves
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
 import com.ivandsky.puzzlebox.games.sudoku.engine.hints.step.SudokuStep
+import com.ivandsky.puzzlebox.games.sudoku.engine.solve.SudokuSolver
 
 /**
  * The Mini Sudoku practice board's rules (spec §2.2): where the board starts, how a move is judged against the easiest
@@ -18,27 +19,53 @@ import com.ivandsky.puzzlebox.games.sudoku.engine.hints.step.SudokuStep
 object SudokuPractice {
 
     /**
-     * The board a practice for [technique] starts on: the puzzle walked from its givens, taking at every point a
-     * deduction of the easiest rung, until [technique] is that rung. Givens stay givens; what the walk placed is an
-     * entry, and every open cell carries the candidates the walk left it as notes. A rung with several deductions is
-     * walked by its cheapest.
-     *
-     * Null when [technique] is no Sudoku technique, when the puzzle's stored solution is not its unique solution
-     * (the judge reads it), and when the walk is solved or stuck before [technique] is ever the easiest rung.
+     * One point of [walk]: the [boardBefore] the walk stood on and [rung], the id of the easiest rung there. Null when
+     * no rung of the ladder applies (the walk is stuck, which a full board is not).
      */
-    fun start(puzzle: SudokuPuzzle, technique: TechniqueId): SudokuBoard? {
-        if (technique !in SudokuTechniqueIds.all || !SudokuTechniqueWalker.hasUniqueSolution(puzzle)) return null
+    internal class WalkPoint(val boardBefore: SudokuBoard, val rung: TechniqueId?)
+
+    /**
+     * The puzzle walked from its givens as a practice plays it, one [WalkPoint] per deduction: every open cell carries
+     * its candidates as notes, and at each point the walk makes the easiest rung's Show-me deduction (the cheapest of
+     * that rung's, applied whole) and goes on. Givens stay givens; what the walk placed is an entry. The walk ends at the
+     * full board, which is no point, or at a board no rung applies to, whose point has a null rung.
+     *
+     * [start] and [SudokuTechniqueWalker] both read it, so a technique has a practice exactly where the walk counts it.
+     * The puzzle's stored solution is not checked here; the walk reads no solution, only the ladder.
+     */
+    internal fun walk(puzzle: SudokuPuzzle): Sequence<WalkPoint> = sequence {
         val geometry = puzzle.geometry
         var board = SudokuBoard.of(puzzle)
         val candidates = SudokuLadder.candidates(puzzle, board)
         board.cells.indices.filter { board.cells[it] == SudokuCell.Empty }.forEach { board = board.with(it, SudokuCell.Notes(candidates[it])) }
         // Each turn places a digit or takes a note off, and a board holds only cells * (digits + 1) of those.
         repeat(geometry.cellCount * (geometry.size + 1)) {
-            val rung = SudokuLadder.easiest(puzzle, board) ?: return null
-            if (rung.id == technique) return board
+            if (board.isFull) return@sequence
+            val rung = SudokuLadder.easiest(puzzle, board)
+            yield(WalkPoint(board, rung?.id))
+            if (rung == null) return@sequence
             board = commands(board, rung.steps.first()).fold(board) { acc, command -> command.apply(acc) }
         }
-        error("the walk to $technique did not finish")
+        error("the walk did not finish")
+    }
+
+    /** [puzzle]'s givens have exactly one solution and it is the stored one, so the judge's and Show me's reads of it are sound. */
+    internal fun hasUniqueSolution(puzzle: SudokuPuzzle): Boolean {
+        val result = SudokuSolver.solve(puzzle.geometry, puzzle.givens, limit = 2)
+        return result.count == 1 && result.solution == puzzle.solution
+    }
+
+    /**
+     * The board a practice for [technique] starts on: the first point of [walk] where [technique] is the easiest rung.
+     * Givens stay givens; what the walk placed is an entry, and every open cell carries the candidates the walk left it
+     * as notes. A rung with several deductions is walked by its cheapest.
+     *
+     * Null when [technique] is no Sudoku technique, when the puzzle's stored solution is not its unique solution
+     * (the judge reads it), and when the walk is solved or stuck before [technique] is ever the easiest rung.
+     */
+    fun start(puzzle: SudokuPuzzle, technique: TechniqueId): SudokuBoard? {
+        if (technique !in SudokuTechniqueIds.all || !hasUniqueSolution(puzzle)) return null
+        return walk(puzzle).firstOrNull { it.rung == technique }?.boardBefore
     }
 
     /**
