@@ -182,4 +182,20 @@ class LinkedInMiniSudokuDailySourceTest {
         assertEquals("games/mini-sudoku/", source(FetchResult.Ok("{}")).linkedInGamePath)
         assertEquals(LinkedInMiniSudokuDailySource.REQUEST.path, LinkedInMiniSudokuDailySource.EDITION.path)
     }
+
+    /** Bug caught: a number that maps to another day than the one it numbers, so the trainer fetches the wrong puzzle. */
+    @Test
+    fun `dayOf inverts puzzleNumber over a thousand days and has no day for a number below 1`() {
+        val sudoku = source(FetchResult.Ok("{}"))
+        val first = sudoku.archiveSince!!
+
+        for (offset in 0L until 1000L) {
+            val day = first.plusDays(offset)
+            assertEquals(day, sudoku.dayOf(sudoku.puzzleNumber(day)!!))
+        }
+        assertEquals(first, sudoku.dayOf(1))
+        assertEquals(LocalDate.of(2026, 11, 5), sudoku.dayOf(451))
+        assertNull(sudoku.dayOf(0))
+        assertNull(sudoku.dayOf(-1))
+    }
 }

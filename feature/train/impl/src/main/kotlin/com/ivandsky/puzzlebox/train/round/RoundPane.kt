@@ -49,9 +49,11 @@ internal class RoundBoard(
 )
 
 /**
- * A technique's round: [name] as the title, then by [state] a spinner while it builds, the empty message, the snippet
- * with its board and controls, or the summary. [showBack] adds a back arrow to the title row (the phone, where the
- * round covers the list); [onClose] is what back and the summary's and the empty message's action do.
+ * A technique's round: [name] as the title, then by [state] a spinner while it builds or loads, the empty message, the
+ * needs-a-connection or can't-load message, the snippet with its board and controls, or the summary. [showBack] adds a
+ * back arrow to the title row (the phone, where the round covers the list); [onClose] is what back and the summary's
+ * and the empty message's action do. [onTryAgain] is the needs-a-connection action, which fetches a puzzle, and
+ * [onTryAnother] the can't-load action, which opens a puzzle already on the device.
  */
 @Composable
 internal fun RoundPane(
@@ -62,6 +64,8 @@ internal fun RoundPane(
     board: RoundBoard,
     onShowMe: (Snippet) -> Unit,
     onNext: () -> Unit,
+    onTryAgain: () -> Unit,
+    onTryAnother: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxSize().padding(bottom = Spacing.lg).testTag("train.round")) {
@@ -70,6 +74,8 @@ internal fun RoundPane(
         when (state) {
             RoundState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
             RoundState.Empty -> RoundEmpty(name, onClose)
+            RoundState.NeedsConnection -> RoundNeedsConnection(name, onTryAgain)
+            is RoundState.CantLoad -> RoundCantLoad(name, onTryAnother)
             is RoundState.Question -> RoundQuestion(state, board, onShowMe, onNext)
             is RoundState.Summary -> RoundSummary(state, onClose)
         }

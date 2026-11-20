@@ -52,6 +52,8 @@ class LinkedInTangoDailySource(
 
     override fun puzzleNumber(day: LocalDate): Int? = EDITION.numberOrNull(day)
 
+    override fun dayOf(number: Int): LocalDate? = EDITION.dayOf(number)
+
     override suspend fun fetchDaily(date: LocalDate): FetchResult<DailyFetch> {
         val body = when (val fetched = transport.fetch(REQUEST)) {
             is FetchResult.Ok -> fetched.value
