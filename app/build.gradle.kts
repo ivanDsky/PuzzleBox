@@ -242,6 +242,8 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     // Installs the committed Baseline Profile (assets/dexopt/baseline.prof) at first launch.
     implementation(libs.androidx.profileinstaller)
+    // The home-screen widget (Glance, stable). Pulls WorkManager in transitively; the app calls it nowhere.
+    implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.compose.material3.windowsizeclass)
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.navigation3.ui)

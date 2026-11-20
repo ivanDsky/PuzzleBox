@@ -11,6 +11,12 @@
         <item quantity="one">%1$d day in a row · Best %2$d</item>
         <item quantity="other">%1$d days in a row · Best %2$d</item>
     </plurals>
+    <!-- A ring's spoken label: the game, then where it stands today ("Zip, solved"). -->
+    <string name="widget_ring_description">%1$s, %2$s</string>
+    <string name="widget_ring_solved">solved</string>
+    <string name="widget_ring_in_progress">in progress</string>
+    <string name="widget_ring_not_started">not started</string>
+    <string name="widget_ring_offline">offline</string>
     <!-- Picker preview only (widget_preview.xml): a mixed day, so the picker shows the widget with something in it. -->
     <string name="widget_preview_streak">3 days in a row · Best 12</string>
     <string name="widget_preview_freezes">2</string>

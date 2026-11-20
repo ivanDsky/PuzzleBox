@@ -9,6 +9,8 @@ lifecycle = "2.10.0"
 composeBom = "2026.09.00"
 # Installs the Baseline Profile (app/src/main/baseline-prof.txt) at first launch where Play has not.
 profileInstaller = "1.4.1"
+# Home-screen widget (app only). Stable 1.2.0; the 1.3 alphas are not used. glance-material3 is not used.
+glance = "1.2.0"
 # material-icons-core is upstream-FROZEN at 1.7.8 (the compose BOM no longer carries a
 # real mapping for it, so the versionless entry used to hide which artifact actually
 # resolved). Pinned explicitly so a future BOM change can never silently break or move it.
@@ -67,6 +69,7 @@ uiautomator = "2.4.1"
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "coreSplashscreen" }
 androidx-profileinstaller = { group = "androidx.profileinstaller", name = "profileinstaller", version.ref = "profileInstaller" }
+androidx-glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }
 androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }
 androidx-lifecycle-viewmodel-navigation3 = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-navigation3", version.ref = "lifecycle" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }

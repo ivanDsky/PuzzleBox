@@ -75,6 +75,33 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
+
+        <!--
+            The home-screen widget. Exported because the launcher binds to it, and disabled so the picker does not list it until the
+            home-widget flag turns the component on. The system sends the update broadcast; boot and package-replaced redraw after a
+            restart or an update.
+        -->
+        <receiver
+            android:name=".widget.PuzzleBoxWidgetReceiver"
+            android:enabled="false"
+            android:exported="true"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/puzzlebox_widget_info" />
+        </receiver>
+
+        <!-- The widget's own wake-up, sent by explicit intent: nothing else may reach it. -->
+        <receiver
+            android:name=".widget.WidgetAlarmReceiver"
+            android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.share"
