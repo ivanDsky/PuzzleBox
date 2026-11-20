@@ -7,10 +7,10 @@ import com.ivandsky.puzzlebox.model.GameId
  * What an entry tile says about one period: [solved] counted solves, [byGame] how many of them each game has (most
  * first, ties by game id), and for a year [months], the count of each of its twelve months (empty for a month).
  */
-internal class RecapSummary(val solved: Int, val byGame: List<Pair<GameId, Int>>, val months: List<Int>)
+internal data class RecapSummary(val solved: Int, val byGame: List<Pair<GameId, Int>>, val months: List<Int>)
 
-/** A recap that is due on Today with its [summary]. */
-internal class DuePeriod(val period: RecapPeriod, val summary: RecapSummary)
+/** A [period] with its [summary]: a recap due on Today, or a period the hub lists. */
+internal data class SummarizedPeriod(val period: RecapPeriod, val summary: RecapSummary)
 
 /** The [period]'s summary from the [counted] history Today already reads: a group-by, no second read. */
 internal fun summarize(period: RecapPeriod, counted: List<GameHistoryDay>): RecapSummary {

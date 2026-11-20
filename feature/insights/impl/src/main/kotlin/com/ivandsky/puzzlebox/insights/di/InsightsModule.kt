@@ -79,7 +79,9 @@ val insightsModule: Module = module {
     single { RecapShareUris(androidContext()) }
     single { RecapShareCleaner(renderer = get(), scope = get()) }
 
-    viewModel { InsightsHubViewModel(observeRecapAvailability = get(), cloudSync = get(), releaseFlags = get()) }
+    viewModel {
+        InsightsHubViewModel(observeRecapAvailability = get(), cloudSync = get(), releaseFlags = get(), openings = get(), puzzleDay = get())
+    }
     viewModel { params ->
         RecapViewModel(period = params.get(), observeRecap = get(), cloudSync = get(), puzzleDay = get(), openings = get(), savedState = get())
     }

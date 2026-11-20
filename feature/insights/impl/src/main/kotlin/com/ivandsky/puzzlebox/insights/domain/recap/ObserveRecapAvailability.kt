@@ -22,8 +22,9 @@ import kotlinx.coroutines.flow.map
  * puzzle day's, so a 2025 puzzle imported today opens the 2025 month and year it was played in. The flag that keeps
  * years dark is the caller's to apply.
  *
- * [due] is what Today offers right now. Both read the puzzle day from [calendar] — the first registered game's, as
- * every app-level "today" does — never the device's date.
+ * Each period carries its [summarize]d counts, from the one counted history. [due] is what Today offers right now. Both
+ * read the puzzle day from [calendar] — the first registered game's, as every app-level "today" does — never the
+ * device's date.
  */
 internal class ObserveRecapAvailability(
     private val observeGameHistory: ObserveGameHistory,
@@ -31,11 +32,11 @@ internal class ObserveRecapAvailability(
     private val registry: GameRegistry,
 ) {
 
-    operator fun invoke(): Flow<List<RecapPeriod>> =
+    operator fun invoke(): Flow<List<SummarizedPeriod>> =
         combine(counted(), today()) { solved, today ->
             val years = solved.map { it.day.year }.distinct().filter { opensYear(it, today) }.sortedDescending()
             val months = solved.mapTo(sortedSetOf(compareByDescending<YearMonth> { it })) { YearMonth.from(it.day) }
-            years.map { RecapPeriod.Year(it) } + months.map { RecapPeriod.Month(it) }
+            (years.map { RecapPeriod.Year(it) } + months.map { RecapPeriod.Month(it) }).map { SummarizedPeriod(it, summarize(it, solved)) }
         }.distinctUntilChanged()
 
     /**
@@ -46,9 +47,9 @@ internal class ObserveRecapAvailability(
      * again when the day's first solve lands and at each puzzle-day rollover. Each period carries its [summarize]d
      * counts, from the same counted history, so Today pays a group-by and no second read.
      */
-    fun due(): Flow<List<DuePeriod>> =
+    fun due(): Flow<List<SummarizedPeriod>> =
         combine(counted(), today()) { solved, today ->
-            if (today == null || solved.none { it.day == today }) return@combine emptyList<DuePeriod>()
+            if (today == null || solved.none { it.day == today }) return@combine emptyList<SummarizedPeriod>()
             val year = RecapPeriod.Year(today.year - 1).takeIf {
                 RecapWindow.offersYear(today) && solved.any { day -> day.day in it }
             }
@@ -56,7 +57,7 @@ internal class ObserveRecapAvailability(
             val month = RecapPeriod.Month(ended).takeIf {
                 RecapWindow.offersMonth(today) && solved.any { day -> YearMonth.from(day.day) == ended }
             }
-            listOfNotNull(year, month).map { DuePeriod(it, summarize(it, solved)) }
+            listOfNotNull(year, month).map { SummarizedPeriod(it, summarize(it, solved)) }
         }.distinctUntilChanged()
 
     private fun counted(): Flow<List<GameHistoryDay>> = observeGameHistory().map { history -> history.filter { it.isSolvedDaily() } }
