@@ -273,7 +273,7 @@ class ObserveRecapTest {
         recap(november).test {
             assertEquals(settling, awaitItem()[4])
             gate.complete(Unit)
-            assertEquals(RecapCard.Friends(FriendsStanding.Settling(LocalDate.of(2026, 12, 4), friendCount = 1, friendNames = listOf("maya"))), awaitItem()[5])
+            assertEquals(RecapCard.Friends(FriendsStanding.Settling(LocalDate.of(2026, 12, 4), friendCount = 1, friendNames = listOf("maya"))), awaitItem()[4])
             awaitComplete()
         }
     }

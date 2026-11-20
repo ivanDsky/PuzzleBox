@@ -97,7 +97,7 @@ class FriendsCardGoldenScreenshots {
     ) {
         rule.showGolden(dark = dark) {
             CompositionLocalProvider(LocalGameBrands provides FriendsFixtures.brands) {
-                RecapScreen(state, "November 2026", FriendsFixtures.gameName, onPage = {}, onWatchReplay = {}, onClose = {})
+                RecapScreen(state, if (name == "friends-year") "2026 so far" else "October 2026", FriendsFixtures.gameName, onPage = {}, onWatchReplay = {}, onClose = {})
             }
         }
         rule.settleAndCapture("recap", name, device, dark)

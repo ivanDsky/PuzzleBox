@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.insights.recap
 
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
+import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
@@ -17,9 +18,9 @@ internal object FastestFixtures {
         mapOf(queens to "Queens", tango to "Tango", zip to "Zip", miniSudoku to "Mini Sudoku", strands to "Strands", RecapFixtures.sudoku to "Sudoku").getValue(it)
     }
 
-    val accentOf: (GameId) -> AccentSlot = {
-        mapOf(queens to AccentSlot.Violet, tango to AccentSlot.Orange, zip to AccentSlot.Blue, miniSudoku to AccentSlot.Teal, strands to AccentSlot.Pink)
-            .getValue(it)
+    val brands: (GameId) -> GameBrand = {
+        GameBrand(mapOf(queens to AccentSlot.Violet, tango to AccentSlot.Orange, zip to AccentSlot.Blue, miniSudoku to AccentSlot.Teal, strands to AccentSlot.Pink)
+            .getValue(it), GameBrand.Neutral.glyph)
     }
 
     private fun oct(day: Int) = LocalDate.of(2026, 10, day)

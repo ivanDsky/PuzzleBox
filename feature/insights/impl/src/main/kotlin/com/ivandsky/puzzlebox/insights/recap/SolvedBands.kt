@@ -45,12 +45,12 @@ internal fun SolvedBands(
     minBand: Dp,
     modifier: Modifier = Modifier,
 ) {
-    val accentOf = LocalGameAccent.current
+    val brands = LocalGameBrands.current
     BoxWithConstraints(modifier.clip(SheetShape).testTag("recap.solved.games")) {
         val heights = bandHeights(perGame.map { it.solved }, maxHeight.value, minBand.value)
         Column(Modifier.fillMaxSize()) {
             perGame.forEachIndexed { index, row ->
-                val colors = accentOf(row.game).colors()
+                val colors = brands(row.game).accent.colors()
                 val slide = rememberSolvedMove(bandStartMs(index))
                 val stamp = rememberSolvedStamp(bandStartMs(index) + MotionTokens.DurationExpressive)
                 val count = rememberCountUp(row.solved.toLong(), delayMs = bandStartMs(index) + BandCountDelayMs)
