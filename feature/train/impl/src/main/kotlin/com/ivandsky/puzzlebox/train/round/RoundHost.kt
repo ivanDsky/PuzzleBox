@@ -13,10 +13,17 @@ import org.koin.core.parameter.parametersOf
  * [open]'s round, on its own view model, one per game and technique so a round survives the screen turning. Each
  * opening of the technique carries a new attempt number, and [RoundViewModel.start] builds a fresh round for it.
  * [showBack] puts a back arrow in the title row, for the phone where the round covers the technique list; [onClose]
- * closes the round.
+ * closes the round; [onDrill] opens the technique's full-puzzle drill, given the archive numbers this round loaded so the
+ * drill can prefer another.
  */
 @Composable
-internal fun RoundHost(open: OpenTechnique, showBack: Boolean, onClose: () -> Unit, modifier: Modifier = Modifier) {
+internal fun RoundHost(
+    open: OpenTechnique,
+    showBack: Boolean,
+    onClose: () -> Unit,
+    onDrill: (Set<Int>) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val game = open.game
     val technique = open.technique.id
     val vm: RoundViewModel = koinViewModel(
@@ -43,6 +50,7 @@ internal fun RoundHost(open: OpenTechnique, showBack: Boolean, onClose: () -> Un
         onNext = vm::next,
         onTryAgain = vm::tryAgain,
         onTryAnother = vm::tryAnother,
+        onDrill = { onDrill(vm.usedNumbers) },
         modifier = modifier,
     )
 }

@@ -52,8 +52,9 @@ internal class RoundBoard(
  * A technique's round: [name] as the title, then by [state] a spinner while it builds or loads, the empty message, the
  * needs-a-connection or can't-load message, the snippet with its board and controls, or the summary. [showBack] adds a
  * back arrow to the title row (the phone, where the round covers the list); [onClose] is what back and the summary's
- * and the empty message's action do. [onTryAgain] is the needs-a-connection action, which fetches a puzzle, and
- * [onTryAnother] the can't-load action, which opens a puzzle already on the device.
+ * and the empty message's action do. [onTryAgain] is the needs-a-connection action, which fetches a puzzle,
+ * [onTryAnother] the can't-load action, which opens a puzzle already on the device, and [onDrill] the summary's Play a
+ * full puzzle.
  */
 @Composable
 internal fun RoundPane(
@@ -66,6 +67,7 @@ internal fun RoundPane(
     onNext: () -> Unit,
     onTryAgain: () -> Unit,
     onTryAnother: () -> Unit,
+    onDrill: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxSize().padding(bottom = Spacing.lg).testTag("train.round")) {
@@ -77,13 +79,14 @@ internal fun RoundPane(
             RoundState.NeedsConnection -> RoundNeedsConnection(name, onTryAgain)
             is RoundState.CantLoad -> RoundCantLoad(name, onTryAnother)
             is RoundState.Question -> RoundQuestion(state, board, onShowMe, onNext)
-            is RoundState.Summary -> RoundSummary(state, onClose)
+            is RoundState.Summary -> RoundSummary(state, onClose, onDrill)
         }
     }
 }
 
+/** The title row of a technique's round or drill: the back arrow if [showBack], then [name] and the snippet [position] as (n, of), if any. */
 @Composable
-private fun RoundHeader(name: String, position: Pair<Int, Int>?, showBack: Boolean, onClose: () -> Unit) {
+internal fun RoundHeader(name: String, position: Pair<Int, Int>?, showBack: Boolean, onClose: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (showBack) {
             IconButton(onClick = onClose, Modifier.size(TouchTarget).testTag("train.back")) {

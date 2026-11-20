@@ -24,10 +24,16 @@ internal data class TechniqueRow(
 
 /**
  * The technique whose round is open, with the [game] that trains it. [attempt] counts the times a technique was opened,
- * so opening one again starts a new round while turning the device, which keeps the number, keeps the round.
+ * so opening one again starts a new round while turning the device, which keeps the number, keeps the round. A non-null
+ * [drill] means the player went on from the round's summary to a full puzzle of the technique: the same attempt, now
+ * playing the drill in the round's place.
  */
 internal data class OpenTechnique(
     val game: TrainerGame,
     val technique: TrainerTechnique,
     val attempt: Int,
+    val drill: DrillRequest? = null,
 )
+
+/** How the drill opens: [avoid] is the archive numbers the round just loaded, so the drill prefers another puzzle on the device. */
+internal data class DrillRequest(val avoid: Set<Int>)

@@ -235,4 +235,85 @@ class TrainViewModelTest {
         assertNull(model(registry = withoutGame, handle = handle).current.open)
         assertNull(model(registry = withoutTechnique, handle = handle).current.open)
     }
+
+    /** Catches a round that stays on screen after Play a full puzzle, and a drill that forgets the puzzles the round used. */
+    @Test
+    fun `opening the drill replaces the round of the same attempt and carries the avoided numbers`() = runTest {
+        val vm = model()
+        vm.openTechnique(queens, TechniqueId("line-lock"))
+        val round = vm.current.open!!
+        assertNull("a round has no drill", round.drill)
+
+        vm.openDrill(setOf(4, 9))
+
+        val drill = vm.current.open!!
+        assertEquals(DrillRequest(setOf(4, 9)), drill.drill)
+        assertEquals(round.attempt, drill.attempt)
+        assertEquals(round.technique, drill.technique)
+    }
+
+    /** Catches a drill that opens on nothing, and a second tap that swaps the drill's avoided numbers under it. */
+    @Test
+    fun `opening the drill is ignored with no technique open and when the drill is already open`() = runTest {
+        val vm = model()
+
+        vm.openDrill(setOf(1))
+        assertNull(vm.current.open)
+
+        vm.openTechnique(queens, TechniqueId("line-lock"))
+        vm.openDrill(setOf(1))
+        vm.openDrill(setOf(2))
+
+        assertEquals(DrillRequest(setOf(1)), vm.current.open!!.drill)
+    }
+
+    /** Catches a drill that closes with its technique but is still flagged open, so the technique reopens on the drill. */
+    @Test
+    fun `closing the technique closes its drill, and the next one opens on a round`() = runTest {
+        val vm = model()
+        vm.openTechnique(queens, TechniqueId("line-lock"))
+        vm.openDrill(setOf(1))
+
+        vm.closeTechnique()
+        assertNull(vm.current.open)
+        vm.openTechnique(queens, TechniqueId("line-lock"))
+
+        assertNull(vm.current.open!!.drill)
+    }
+
+    /** Catches another technique opened from the list that comes up already in a drill. */
+    @Test
+    fun `opening another technique while a drill is open starts on its round`() = runTest {
+        val vm = model()
+        vm.openTechnique(queens, TechniqueId("line-lock"))
+        vm.openDrill(setOf(1))
+
+        vm.openTechnique(queens, TechniqueId("singles"))
+
+        assertNull(vm.current.open!!.drill)
+    }
+
+    /** Catches a restore after the system closed the app that drops the drill, or one that keeps the avoided numbers it cannot have. */
+    @Test
+    fun `a drill survives a new view model on the same handle and starts with nothing to avoid`() = runTest {
+        val handle = SavedStateHandle()
+        val before = model(handle = handle)
+        before.openTechnique(queens, TechniqueId("line-lock"))
+        before.openDrill(setOf(4))
+        val attempt = before.current.open!!.attempt
+
+        val after = model(handle = handle)
+
+        assertEquals(DrillRequest(emptySet()), after.current.open!!.drill)
+        assertEquals(attempt, after.current.open!!.attempt)
+    }
+
+    /** Catches a drill flag that is written for a round, so a restored round comes up as a drill. */
+    @Test
+    fun `a restored round has no drill`() = runTest {
+        val handle = SavedStateHandle()
+        model(handle = handle).openTechnique(queens, TechniqueId("line-lock"))
+
+        assertNull(model(handle = handle).current.open!!.drill)
+    }
 }

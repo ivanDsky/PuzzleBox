@@ -89,6 +89,7 @@ private fun RoundPreviewFrame(state: RoundState) = PuzzleBoxTheme {
     Surface(color = MaterialTheme.colorScheme.background) {
         RoundPane(
             "Line lock", state, showBack = true, onClose = {}, board = standInBoard, onShowMe = {}, onNext = {}, onTryAgain = {}, onTryAnother = {},
+            onDrill = {},
             modifier = Modifier.padding(horizontal = Spacing.lg),
         )
     }

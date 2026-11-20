@@ -18,6 +18,10 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.game.trainer.TrainerVerdict
 import com.ivandsky.puzzlebox.train.domain.RecordAnswer
+import com.ivandsky.puzzlebox.train.drill.DrillScreen
+import com.ivandsky.puzzlebox.train.drill.DrillState
+import com.ivandsky.puzzlebox.train.drill.standInDrillPlay
+import com.ivandsky.puzzlebox.train.drill.standInPlaying
 import com.ivandsky.puzzlebox.train.round.RoundPane
 import com.ivandsky.puzzlebox.train.round.RoundState
 import com.ivandsky.puzzlebox.train.round.standInBoard
@@ -55,6 +59,11 @@ class TrainPhoneGoldenScreenshots : TrainGoldenScreenshots("phone") {
     @Test fun `empty light`() = capture("empty", dark = false) { Page { Round(RoundState.Empty, showBack = true) } }
     @Test fun `needs connection light`() = capture("needs-connection", dark = false) { Page { Round(RoundState.NeedsConnection, showBack = true) } }
     @Test fun `cant load light`() = capture("cant-load", dark = false) { Page { Round(RoundState.CantLoad(alternative = 918), showBack = true) } }
+
+    @Test fun `drill playing light`() = capture("drill-playing", dark = false) { Page { Drill(standInPlaying, showBack = true) } }
+    @Test fun `drill playing dark`() = capture("drill-playing", dark = true) { Page { Drill(standInPlaying, showBack = true) } }
+    @Test fun `drill solved light`() = capture("drill-solved", dark = false) { Page { Drill(DrillState.Solved, showBack = true) } }
+    @Test fun `drill needs connection light`() = capture("drill-needs-connection", dark = false) { Page { Drill(DrillState.NeedsConnection, showBack = true) } }
 }
 
 @RunWith(RobolectricTestRunner::class)
@@ -68,6 +77,10 @@ class TrainTabletGoldenScreenshots : TrainGoldenScreenshots("tablet") {
 
     @Test fun `round right light`() = capture("round-right", dark = false) { Beside(open = true) { Round(Right, showBack = false) } }
     @Test fun `round right dark`() = capture("round-right", dark = true) { Beside(open = true) { Round(Right, showBack = false) } }
+
+    @Test fun `drill playing light`() = capture("drill-playing", dark = false) { Beside(open = true) { Drill(standInPlaying, showBack = false) } }
+    @Test fun `drill playing dark`() = capture("drill-playing", dark = true) { Beside(open = true) { Drill(standInPlaying, showBack = false) } }
+    @Test fun `drill solved light`() = capture("drill-solved", dark = false) { Beside(open = true) { Drill(DrillState.Solved, showBack = false) } }
 }
 
 abstract class TrainGoldenScreenshots(private val device: String) {
@@ -104,6 +117,19 @@ abstract class TrainGoldenScreenshots(private val device: String) {
             board = standInBoard,
             onShowMe = {},
             onNext = {},
+            onTryAgain = {},
+            onTryAnother = {},
+            onDrill = {},
+        )
+
+        @Composable
+        fun Drill(state: DrillState, showBack: Boolean) = DrillScreen(
+            name = "Line lock",
+            state = state,
+            showBack = showBack,
+            onClose = {},
+            play = standInDrillPlay,
+            onSolved = {},
             onTryAgain = {},
             onTryAnother = {},
         )
