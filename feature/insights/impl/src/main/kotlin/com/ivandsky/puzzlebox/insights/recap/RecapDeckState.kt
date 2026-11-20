@@ -29,6 +29,14 @@ internal class RecapDeckState(pageCount: Int, initialPage: Int = 0, coverFirst: 
     var holding by mutableStateOf(false)
         private set
 
+    /** Bumps each time the player asks the card on top to play its entrance again; the deck restarts its face on it. */
+    var entrance by mutableIntStateOf(0)
+        private set
+
+    /** True from a fresh open until the deal lands; a restored story is already dealt. */
+    var dealing by mutableStateOf(true)
+        private set
+
     /** Segments the strip draws: one per page, the cover none. */
     val segmentCount: Int get() = pageCount
 
@@ -75,6 +83,14 @@ internal class RecapDeckState(pageCount: Int, initialPage: Int = 0, coverFirst: 
         this.holding = holding
     }
 
+    fun restartEntrance() {
+        entrance++
+    }
+
+    fun dealt() {
+        dealing = false
+    }
+
     /** Follows the story gaining a page (the friends card arrives late) without moving the one on screen; a loss clamps. */
     fun resize(pageCount: Int) {
         if (pageCount == this.pageCount) return
@@ -89,7 +105,10 @@ internal class RecapDeckState(pageCount: Int, initialPage: Int = 0, coverFirst: 
         val Saver = listSaver<RecapDeckState, Any>(
             save = { listOf(it.pageCount, it.page, it.onCover) },
             restore = { saved ->
-                RecapDeckState(saved[0] as Int, saved[1] as Int).also { it.onCover = saved[2] as Boolean }
+                RecapDeckState(saved[0] as Int, saved[1] as Int).also {
+                    it.onCover = saved[2] as Boolean
+                    it.dealing = false
+                }
             },
         )
         private fun lastPage(pageCount: Int) = (pageCount - 1).coerceAtLeast(0)

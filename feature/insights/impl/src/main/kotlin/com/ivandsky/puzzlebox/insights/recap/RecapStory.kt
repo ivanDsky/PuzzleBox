@@ -1,44 +1,51 @@
 package com.ivandsky.puzzlebox.insights.recap
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Box
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.CustomAccessibilityAction
-import androidx.compose.ui.semantics.customActions
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.LocalPrimaryText
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
+import com.ivandsky.puzzlebox.designsystem.RecapMotion
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.designsystem.SwipeMotion
-import com.ivandsky.puzzlebox.designsystem.detectSwipe
-import com.ivandsky.puzzlebox.designsystem.field
 import com.ivandsky.puzzlebox.designsystem.ink
-import com.ivandsky.puzzlebox.designsystem.swipeStep
+import com.ivandsky.puzzlebox.designsystem.pressScale
+import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.insights.share.RecapShareContent
 import com.ivandsky.puzzlebox.insights.share.RecapShareState
 import com.ivandsky.puzzlebox.model.GameId
 
 /**
- * The recap as a story on [deck]: one card to a full page, painted in its card's colours, under a progress strip and a
- * close button. A tap on the right two-thirds of the page or a swipe moves on, a tap on the left third or a swipe back
- * moves back, and nothing moves by itself (A7). With a [share] state the story ends on the Share page. System back
- * steps back a card and, from the first card, falls through to leave the recap.
+ * The recap as a story on [deck]: its pages dealt as a stack of cards ([RecapDeck]) under a progress strip, a replay
+ * button that plays the card's entrance again, and a close button. Holding the deck hides that chrome until the touch
+ * lets go. With a [share] state the story ends on the Share page. System back steps back a card and, from the first
+ * card, falls through to leave the recap.
  */
 @Composable
 internal fun RecapStory(
@@ -53,50 +60,50 @@ internal fun RecapStory(
     onShare: (ImageBitmap, RecapShareContent) -> Unit = { _, _ -> },
 ) {
     val palette = recapPalette(cards, deck)
+    val reduced = rememberReducedMotion()
+    val chrome by animateFloatAsState(
+        targetValue = if (deck.holding) 0f else 1f,
+        animationSpec = tween(MotionTokens.ReducedFadeDuration, easing = MotionTokens.EasingLinear),
+        label = "recap.chrome",
+    )
+    val turn by animateFloatAsState(
+        targetValue = deck.entrance * ReplayTurn,
+        animationSpec = if (reduced) snap() else tween(MotionTokens.DurationMedium, easing = MotionTokens.EasingStandard),
+        label = "recap.replay",
+    )
     BackHandler(enabled = deck.canStepBack) { deck.back() }
     CompositionLocalProvider(LocalContentColor provides palette.ink) {
-        Column(modifier.background(palette.field)) {
-            Row(
-                Modifier.fillMaxWidth().padding(start = Spacing.lg, top = Spacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
+        Column(modifier) {
+            Column(
+                Modifier
+                    .graphicsLayer { alpha = chrome }
+                    .then(if (deck.holding) Modifier.clearAndSetSemantics {} else Modifier)
+                    .padding(horizontal = Spacing.md)
+                    .padding(top = Spacing.sm),
             ) {
-                RecapProgressStrip(
-                    count = deck.segmentCount,
-                    filled = deck.filledSegments,
-                    card = palette,
-                    modifier = Modifier.weight(1f),
-                )
-                IconButton(onClick = onClose, modifier = Modifier.testTag("recap.close")) {
-                    Icon(PuzzleIcons.Close, contentDescription = "Close recap", tint = palette.ink)
+                RecapProgressStrip(count = deck.segmentCount, filled = deck.filledSegments)
+                Row(
+                    Modifier.align(Alignment.End).padding(top = Spacing.xs),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                ) {
+                    if (!deck.onCover && deck.page < cards.size) {
+                        ChromeButton(PuzzleIcons.Retry, "Replay card", "recap.replay", reduced, turn) { deck.restartEntrance() }
+                    }
+                    ChromeButton(PuzzleIcons.Close, "Close recap", "recap.close", reduced, onClick = onClose)
                 }
             }
-            Box(
-                Modifier
+            RecapDeck(
+                deck = deck,
+                palette = { page -> pagePalette(cards, page) },
+                modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .pointerInput(deck) {
-                        detectTapGestures { offset -> if (offset.x < size.width * BackZone) deck.back() else deck.forward() }
-                    }
-                    // After the tap detector so it sees a drag first and consumes it; a tap never reaches the slop.
-                    .pointerInput(deck) {
-                        val fling = SwipeMotion.FlingVelocity.toPx()
-                        detectSwipe(onDrag = {}, onEnd = { dragPx, velocityPx ->
-                            when (swipeStep(dragPx, velocityPx, size.width.toFloat(), fling)) {
-                                1 -> deck.forward()
-                                -1 -> deck.back()
-                            }
-                        })
-                    }
-                    .semantics {
-                        customActions = listOf(
-                            CustomAccessibilityAction("Next card") { deck.forward(); true },
-                            CustomAccessibilityAction("Previous card") { deck.back(); true },
-                        )
-                    }
-                    .testTag("recap.pager"),
-            ) {
-                if (deck.page < cards.size) {
-                    RecapCardPage(cards[deck.page], periodLabel, gameName, onWatchReplay, Modifier.fillMaxSize())
+                    .padding(start = Spacing.lg, top = Spacing.xs, end = Spacing.lg)
+                    // Room under the top card for the cards peeking out below it.
+                    .padding(bottom = Spacing.xl + RecapMotion.DeckStackStep * (RecapMotion.DeckStackVisible - 1)),
+            ) { page ->
+                if (page < cards.size) {
+                    RecapCardPage(cards[page], periodLabel, gameName, onWatchReplay, Modifier.fillMaxSize())
                 } else if (share != null) {
                     ShareCardPage(cards, share, onShare, Modifier.fillMaxSize())
                 }
@@ -105,5 +112,31 @@ internal fun RecapStory(
     }
 }
 
-/** The left share of the page a tap steps back from; the rest steps on. */
-private const val BackZone = 1f / 3f
+@Composable
+private fun ChromeButton(
+    icon: ImageVector,
+    label: String,
+    tag: String,
+    reduced: Boolean,
+    turn: Float = 0f,
+    onClick: () -> Unit,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val accent = LocalPrimaryText.current
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier.size(ChromeButtonSize).pressScale(interaction, reduced).testTag(tag),
+        colors = IconButtonDefaults.iconButtonColors(containerColor = accent.copy(alpha = ChromeTintAlpha), contentColor = accent),
+        interactionSource = interaction,
+    ) {
+        Icon(icon, contentDescription = label, modifier = Modifier.graphicsLayer { rotationZ = turn })
+    }
+}
+
+/** Each replay turns the ↻ icon a further quarter turn back. */
+private const val ReplayTurn = -90f
+
+/** The tonal circle behind the chrome icons: the icon's green over the screen, as the story-shell references measure. */
+private const val ChromeTintAlpha = 0.14f
+
+private val ChromeButtonSize = 48.dp

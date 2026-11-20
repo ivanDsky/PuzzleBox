@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.insights.recap
 
+import androidx.compose.runtime.saveable.SaverScope
 import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteEntry
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import org.junit.Assert.assertEquals
@@ -109,6 +110,29 @@ class RecapDeckStateTest {
         assertTrue(deck.holding)
         deck.hold(false)
         assertFalse(deck.holding)
+    }
+
+    @Test
+    fun `a fresh open deals once, and a restored story is not dealt again`() {
+        val fresh = RecapDeckState(pageCount = 3, initialPage = 1)
+        val saved = with(RecapDeckState.Saver) { SaverScope { true }.save(fresh) }!!
+        val restored = RecapDeckState.Saver.restore(saved)!!
+
+        assertTrue(fresh.dealing)
+        assertEquals(1, restored.page)
+        assertFalse(restored.dealing)
+        fresh.dealt()
+        assertFalse(fresh.dealing)
+    }
+
+    @Test
+    fun `replaying a card bumps its entrance and leaves the page where it is`() {
+        val deck = RecapDeckState(pageCount = 3, initialPage = 1)
+
+        deck.restartEntrance()
+
+        assertEquals(1, deck.entrance)
+        assertEquals(1, deck.page)
     }
 
     @Test

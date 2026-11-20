@@ -21,21 +21,21 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.LocalTimerFill
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
-import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteEntry
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.designsystem.ink
-import com.ivandsky.puzzlebox.designsystem.plate
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 
 /**
- * One segment per page, the first [filled] of them lit in [card]'s ink over its plate: where the player is in the
- * story, nothing else, so it is not tappable. A segment fills from the left as its card arrives and is instant under
- * reduced motion.
+ * One segment per page, the first [filled] of them lit in the progress fill over a faint tint of that fill: where the
+ * player is in the story, nothing else, so it is not tappable. A segment fills from the left as its card arrives and is
+ * instant under reduced motion.
  */
 @Composable
-internal fun RecapProgressStrip(count: Int, filled: Int, card: PaletteEntry, modifier: Modifier = Modifier) {
+internal fun RecapProgressStrip(count: Int, filled: Int, modifier: Modifier = Modifier) {
     val reduced = rememberReducedMotion()
+    val fill = LocalTimerFill.current
+    val track = fill.copy(alpha = TrackAlpha)
     Row(
         modifier
             .fillMaxWidth()
@@ -59,7 +59,7 @@ internal fun RecapProgressStrip(count: Int, filled: Int, card: PaletteEntry, mod
                     .weight(1f)
                     .height(SegmentHeight)
                     .clip(CircleShape)
-                    .background(card.plate)
+                    .background(track)
                     .testTag("recap.progress.$index"),
             ) {
                 Box(
@@ -69,7 +69,7 @@ internal fun RecapProgressStrip(count: Int, filled: Int, card: PaletteEntry, mod
                             scaleX = fraction
                             transformOrigin = TransformOrigin(0f, 0.5f)
                         }
-                        .background(card.ink),
+                        .background(fill),
                 )
             }
         }
@@ -77,3 +77,6 @@ internal fun RecapProgressStrip(count: Int, filled: Int, card: PaletteEntry, mod
 }
 
 private val SegmentHeight = 6.dp
+
+/** The track's share of the fill over the screen, as the story-shell references measure. */
+private const val TrackAlpha = 0.28f

@@ -15,8 +15,9 @@ internal fun RecapCard.palette(): PaletteEntry = when (this) {
 }
 
 /** The palette entry of what the deck shows: the cover, a card, or the Share page that follows the last card. */
-internal fun recapPalette(cards: List<RecapCard>, deck: RecapDeckState): PaletteEntry = when {
-    deck.onCover -> PaletteEntry.Cover
-    deck.page < cards.size -> cards[deck.page].palette()
-    else -> PaletteEntry.Share
-}
+internal fun recapPalette(cards: List<RecapCard>, deck: RecapDeckState): PaletteEntry =
+    if (deck.onCover) PaletteEntry.Cover else pagePalette(cards, deck.page)
+
+/** The palette entry of [page]: its card's, or the Share page's past the last card. */
+internal fun pagePalette(cards: List<RecapCard>, page: Int): PaletteEntry =
+    if (page < cards.size) cards[page].palette() else PaletteEntry.Share

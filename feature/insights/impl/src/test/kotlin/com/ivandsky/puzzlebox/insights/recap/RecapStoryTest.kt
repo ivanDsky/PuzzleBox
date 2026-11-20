@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.insights.recap
 
+import android.content.Context
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertContentDescriptionEquals
@@ -13,6 +15,11 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.test.junit4.StateRestorationTester
+import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.unit.dp
+import androidx.test.core.app.ApplicationProvider
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
+import com.ivandsky.puzzlebox.designsystem.RecapMotion
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.gameName
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.ready
@@ -123,6 +130,106 @@ class RecapStoryTest {
     }
 
     @Test
+    fun `a press held 280ms hides the chrome until it lets go and is no tap`() {
+        show(readyOf(solved, secondSolved, solved).copy(initialPage = 1))
+        rule.mainClock.autoAdvance = false
+        val pager = rule.onNodeWithTag("recap.pager")
+
+        pager.performTouchInput { down(center) }
+        rule.mainClock.advanceTimeBy(279, ignoreFrameDuration = true)
+        rule.onNodeWithTag("recap.close").assertExists()
+        rule.mainClock.advanceTimeBy(1, ignoreFrameDuration = true)
+        rule.mainClock.advanceTimeByFrame()
+        rule.onNodeWithTag("recap.close").assertDoesNotExist()
+
+        pager.performTouchInput { up() }
+        rule.mainClock.advanceTimeBy(1_000)
+        rule.onNodeWithTag("recap.close").assertExists()
+        rule.onNodeWithTag("recap.progress").assertContentDescriptionEquals("Card 2 of 3")
+    }
+
+    @Test
+    fun `a fresh open deals the first card face-down and turns it face-up`() {
+        rule.mainClock.autoAdvance = false
+        show()
+
+        rule.mainClock.advanceTimeByFrame()
+        rule.onNodeWithContentDescription("42 puzzles solved").assertDoesNotExist()
+        rule.mainClock.advanceTimeBy(1_000)
+        rule.onNodeWithContentDescription("42 puzzles solved").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a step throws the top card off and a step back brings it back over the stack`() {
+        show()
+        rule.waitForIdle()
+        rule.mainClock.autoAdvance = false
+
+        tapPager(0.8f)
+        rule.mainClock.advanceTimeBy(RecapMotion.DeckStackPromote + FrameMs)
+        rule.onNodeWithContentDescription("42 puzzles solved").assertDoesNotExist()
+        rule.onNodeWithContentDescription("7 puzzles solved").assertIsDisplayed()
+
+        tapPager(0.1f)
+        rule.mainClock.advanceTimeBy(RecapMotion.ThrowBackDuration + FrameMs)
+        rule.onNodeWithContentDescription("42 puzzles solved").assertIsDisplayed()
+        rule.onNodeWithContentDescription("7 puzzles solved").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a drag short of the commit follows the finger and springs back without stepping`() {
+        show()
+        val total = rule.onNodeWithContentDescription("42 puzzles solved")
+        val rest = total.getBoundsInRoot().left
+
+        rule.onNodeWithTag("recap.pager").performTouchInput {
+            down(center)
+            repeat(10) {
+                advanceEventTime(FrameMs)
+                moveBy(Offset(-width * 0.015f, 0f))
+            }
+        }
+        assertTrue("the card follows the finger", total.getBoundsInRoot().left < rest - 20.dp)
+        rule.onNodeWithTag("recap.pager").performTouchInput {
+            // Still before letting go, so the release is no fling.
+            advanceEventTime(200)
+            up()
+        }
+        rule.waitForIdle()
+
+        assertCard(1)
+        assertEquals(rest.value, total.getBoundsInRoot().left.value, 0.5f)
+    }
+
+    @Test
+    fun `with reduced motion the deck opens face-up and a tap swaps cards in one 120ms fade`() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
+        rule.mainClock.autoAdvance = false
+        show()
+
+        rule.mainClock.advanceTimeByFrame()
+        rule.onNodeWithContentDescription("42 puzzles solved").assertExists()
+
+        tapPager(0.8f)
+        rule.mainClock.advanceTimeBy(MotionTokens.ReducedFadeDuration + FrameMs)
+        rule.onNodeWithContentDescription("42 puzzles solved").assertDoesNotExist()
+        rule.onNodeWithContentDescription("7 puzzles solved").assertExists()
+    }
+
+    @Test
+    fun `the replay button plays the card again where it is`() {
+        show()
+
+        rule.onNodeWithTag("recap.replay").assertContentDescriptionEquals("Replay card").performClick()
+        rule.waitForIdle()
+
+        assertCard(1)
+        rule.onNodeWithContentDescription("42 puzzles solved").assertIsDisplayed()
+        assertEquals(listOf(0), pages)
+    }
+
+    @Test
     fun `the last card does not step past itself`() {
         show()
         tapPager(0.8f)
@@ -214,3 +321,5 @@ class RecapStoryTest {
         rule.onNodeWithTag("recap.progress").assertContentDescriptionEquals("Card 3 of 3")
     }
 }
+
+private const val FrameMs = 16L
