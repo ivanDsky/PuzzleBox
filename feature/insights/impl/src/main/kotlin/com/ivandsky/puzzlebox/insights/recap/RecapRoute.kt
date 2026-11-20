@@ -19,6 +19,15 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 
+/** The recap route with the game brands the friends card stamps, from the registry. */
+@Composable
+internal fun RecapRoute(periodId: String, onOpenReplay: (ReplayKey) -> Unit, onClose: () -> Unit) {
+    val brands = koinInject<GamePlayRegistry>()
+    CompositionLocalProvider(LocalGameBrands provides brands::brandOf) {
+        RecapStoryRoute(periodId, onOpenReplay, onClose)
+    }
+}
+
 /**
  * A recap's route: the story of the period [periodId] names. An id this build cannot read (a stale or hand-edited key)
  * is a period with nothing to recap, not a crash. [onOpenReplay] gets the key of the replay a Fastest solve row opens:
@@ -26,7 +35,7 @@ import org.koin.core.parameter.parametersOf
  * page, whose chooser this route starts.
  */
 @Composable
-internal fun RecapRoute(periodId: String, onOpenReplay: (ReplayKey) -> Unit, onClose: () -> Unit) {
+private fun RecapStoryRoute(periodId: String, onOpenReplay: (ReplayKey) -> Unit, onClose: () -> Unit) {
     val registry = koinInject<GameRegistry>()
     val gameName = remember(registry) { { game: GameId -> registry.displayName(game) } }
     val watchReplay: (RecapCard.Fastest.Row) -> Unit = { row ->
