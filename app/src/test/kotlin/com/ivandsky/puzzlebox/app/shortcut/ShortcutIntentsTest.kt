@@ -25,6 +25,12 @@ class ShortcutIntentsTest {
     }
 
     @Test
+    fun `Today round-trips and is told apart from up next`() {
+        assertEquals(ShortcutTarget.Today, ShortcutIntents.targetOf(ShortcutIntents.intent(context, ShortcutTarget.Today)))
+        assertEquals(ShortcutTarget.UpNext, ShortcutIntents.targetOf(Intent(ShortcutIntents.ACTION)))
+    }
+
+    @Test
     fun `a game round-trips`() {
         val target = ShortcutTarget.Game(GameId("queens"))
 

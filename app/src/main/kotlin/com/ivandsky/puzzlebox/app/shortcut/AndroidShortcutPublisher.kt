@@ -13,14 +13,15 @@ class AndroidShortcutPublisher(private val context: Context) : ShortcutPublisher
     override fun publish(entries: List<ShortcutEntry>) {
         val max = ShortcutManagerCompat.getMaxShortcutCountPerActivity(context)
         val kept = if (max > 0) entries.take(max) else entries
-        ShortcutManagerCompat.setDynamicShortcuts(context, kept.map(::shortcutOf))
+        ShortcutManagerCompat.setDynamicShortcuts(context, kept.mapNotNull(::shortcutOf))
     }
 
     override fun clear() {
         ShortcutManagerCompat.removeAllDynamicShortcuts(context)
     }
 
-    private fun shortcutOf(entry: ShortcutEntry): ShortcutInfoCompat {
+    /** Null for a Today entry: that request rides the widget's intents, never a launcher shortcut. */
+    private fun shortcutOf(entry: ShortcutEntry): ShortcutInfoCompat? {
         val (id, shortLabel, longLabel, icon) = when (val target = entry.target) {
             ShortcutTarget.UpNext -> Look(
                 UP_NEXT_ID,
@@ -32,6 +33,7 @@ class AndroidShortcutPublisher(private val context: Context) : ShortcutPublisher
                 val name = entry.gameName ?: target.id.value
                 Look("$GAME_ID_PREFIX${target.id.value}", name, context.getString(R.string.shortcut_game_long, name), ShortcutIcons.forGame(target.id))
             }
+            ShortcutTarget.Today -> return null
         }
         return ShortcutInfoCompat.Builder(context, id)
             .setShortLabel(shortLabel)
