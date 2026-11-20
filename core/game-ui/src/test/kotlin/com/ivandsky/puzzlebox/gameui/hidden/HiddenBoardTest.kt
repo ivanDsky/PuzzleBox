@@ -37,6 +37,7 @@ import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.SHIMMER_TAG
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -275,14 +276,14 @@ class HiddenBoardTest {
     }
 
     @Test
-    fun `loading holds the board's slot and pulses`() {
+    fun `loading holds the board's slot as one block with one sheen`() {
         setAnimatorScale(1f)
         composeRule.mainClock.autoAdvance = false
         show(1000) { HiddenBoardLoading(rows = 8, cols = 6) }
         composeRule.onNodeWithContentDescription("Loading board")
             .assertWidthIsEqualTo(300.dp)
             .assertHeightIsEqualTo(400.dp)
-        assertEquals(1, composeRule.onAllNodesWithTag(HIDDEN_BOARD_PULSE_TAG).fetchSemanticsNodes().size)
+        assertEquals(1, composeRule.onAllNodesWithTag(SHIMMER_TAG).fetchSemanticsNodes().size)
     }
 
     @Test
@@ -292,7 +293,7 @@ class HiddenBoardTest {
         composeRule.onNodeWithContentDescription("Loading board")
             .assertWidthIsEqualTo(360.dp)
             .assertHeightIsEqualTo(360.dp)
-        assertEquals(0, composeRule.onAllNodesWithTag(HIDDEN_BOARD_PULSE_TAG).fetchSemanticsNodes().size)
+        assertEquals(0, composeRule.onAllNodesWithTag(SHIMMER_TAG).fetchSemanticsNodes().size)
     }
 
     /** The board on a page taller than the screen, as a puzzle's page holds it. */

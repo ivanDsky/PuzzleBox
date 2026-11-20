@@ -23,10 +23,8 @@ class HiddenBoardTokensTest {
     }
 
     @Test
-    fun `the pill is a comfortable 40 dp and the loading bars pulse to 55 percent over 1200 ms`() {
+    fun `the pill is a comfortable 40 dp`() {
         assertEquals(40.dp, HiddenBoardTokens.PillMinHeight)
-        assertEquals(1_200, HiddenBoardTokens.PulseMillis)
-        assertEquals(0.55f, HiddenBoardTokens.PulseFloor)
     }
 
     @Test
