@@ -181,6 +181,21 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun `the radio rows flag reaches the state and leaves the theme pick as it was`() = runTest(dispatcher) {
+        val preferences = FakeUserPreferencesRepository()
+        val vm = SettingsViewModel(preferences, FakeGameOptions(), appBuild, identity, tokens, choiceRows = true)
+        backgroundScope.launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals(true, vm.uiState.value.choiceRows)
+
+        vm.onSetThemeMode(ThemeMode.LIGHT)
+        advanceUntilIdle()
+
+        assertEquals(ThemeMode.LIGHT, preferences.themeMode.first())
+        assertEquals(true, vm.uiState.value.choiceRows)
+    }
+
+    @Test
     fun `vibration follows the stored switch and a flip writes it`() = runTest(dispatcher) {
         val preferences = FakeUserPreferencesRepository()
         val vm = SettingsViewModel(preferences, FakeGameOptions(), appBuild, identity, tokens)

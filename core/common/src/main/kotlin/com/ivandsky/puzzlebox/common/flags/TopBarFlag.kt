@@ -11,6 +11,14 @@ enum class TopBarFlag(override val label: String, override val releaseDefault: B
      * Read only in a ViewModel or a DI module (ADR-0022 §3).
      */
     MainTabsLargeBar(label = "Main tabs share Today's top bar", releaseDefault = false),
+
+    /**
+     * Settings-style choices (Profile's Appearance, then Play's Random source) show as full-width radio rows with a
+     * line under each option. Not a top-bar flag: it lives in this enum because it is the only declared one that both
+     * feature/profile and feature/play can read, and the flag-removal batch deletes it. Read only in a ViewModel or a
+     * DI module (ADR-0022 §3).
+     */
+    ChoiceRows(label = "Radio rows for settings-style choices: Appearance, Random source", releaseDefault = false),
     ;
 
     /** The entry's own name: the stored override's key in `release_flags`. Never change it. */
