@@ -104,7 +104,7 @@ private fun RecapStateContent(
             tag = "recap.empty",
             modifier = modifier,
         )
-        is RecapUiState.Ready -> RecapReady(state, gameName, onPage, onWatchReplay, onClose, share, onShare, modifier)
+        is RecapUiState.Ready -> RiverScrubProvider { RecapReady(state, gameName, onPage, onWatchReplay, onClose, share, onShare, modifier) }
     }
 }
 
@@ -168,41 +168,39 @@ private fun RecapReady(
     val deck = rememberSaveable(saver = RecapDeckState.Saver) { RecapDeckState(pageCount, state.initialPage) }.also { it.resize(pageCount) }
     LaunchedEffect(deck) { snapshotFlow { deck.page }.collect(onPage) }
     val periodLabel = state.title
-    RiverScrubProvider {
-        BoxWithConstraints(modifier.fillMaxSize()) {
-            if (maxWidth >= TwoColumnMinWidth) {
-                TwoColumnFrame(
-                    paneHeight = maxHeight,
-                    tag = "recap.twoPane",
-                    left = { column, height ->
-                        RecapStory(
-                            cards = state.cards,
-                            deck = deck,
-                            periodLabel = periodLabel,
-                            gameName = gameName,
-                            onWatchReplay = onWatchReplay,
-                            onClose = onClose,
-                            share = share,
-                            onShare = onShare,
-                            modifier = column
-                                .height(height)
-                                .clip(MaterialTheme.shapes.extraLarge)
-                                .background(MaterialTheme.colorScheme.surfaceContainerLow),
-                        )
-                    },
-                    right = {
-                        RecapFactList(
-                            cards = state.cards,
-                            current = deck.selectedFact,
-                            gameName = gameName,
-                            onSelect = deck::jumpTo,
-                            onWatchReplay = onWatchReplay,
-                        )
-                    },
-                )
-            } else {
-                RecapStory(state.cards, deck, periodLabel, gameName, onWatchReplay, onClose, share = share, onShare = onShare)
-            }
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        if (maxWidth >= TwoColumnMinWidth) {
+            TwoColumnFrame(
+                paneHeight = maxHeight,
+                tag = "recap.twoPane",
+                left = { column, height ->
+                    RecapStory(
+                        cards = state.cards,
+                        deck = deck,
+                        periodLabel = periodLabel,
+                        gameName = gameName,
+                        onWatchReplay = onWatchReplay,
+                        onClose = onClose,
+                        share = share,
+                        onShare = onShare,
+                        modifier = column
+                            .height(height)
+                            .clip(MaterialTheme.shapes.extraLarge)
+                            .background(MaterialTheme.colorScheme.surfaceContainerLow),
+                    )
+                },
+                right = {
+                    RecapFactList(
+                        cards = state.cards,
+                        current = deck.selectedFact,
+                        gameName = gameName,
+                        onSelect = deck::jumpTo,
+                        onWatchReplay = onWatchReplay,
+                    )
+                },
+            )
+        } else {
+            RecapStory(state.cards, deck, periodLabel, gameName, onWatchReplay, onClose, share = share, onShare = onShare)
         }
     }
 }
