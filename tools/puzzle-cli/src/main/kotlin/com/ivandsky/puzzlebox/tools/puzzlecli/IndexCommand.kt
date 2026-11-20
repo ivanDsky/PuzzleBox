@@ -132,7 +132,8 @@ class IndexCommand(
                     is FetchError.Untrusted -> return Settlement.Skip(SkipKind.Untrusted, IndexCheckpoint.oneLine(error.detail))
                     is FetchError.Throttled, is FetchError.Unavailable -> {
                         failed++
-                        val what = "${clock.instant()} $day ${target.source.gameId} $number ${error::class.simpleName}"
+                        val detail = (error as? FetchError.Throttled)?.detail ?: (error as? FetchError.Unavailable)?.detail
+                        val what = "${clock.instant()} $day ${target.source.gameId} $number ${error::class.simpleName} (${detail.orEmpty()})"
                         if (failed >= MAX_FAILURES_IN_A_ROW) {
                             err("$what, failure $failed of $MAX_FAILURES_IN_A_ROW")
                             return null

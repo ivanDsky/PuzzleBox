@@ -94,7 +94,7 @@ class IndexCommandTest {
         assertEquals(5, progressLines.size)
         assertTrue(progressLines[0], progressLines[0].endsWith("[1/5] ${day(1)} fakegame 1 ok singles=1"))
         assertEquals(2, errLines.size)
-        assertTrue(errLines[0], "fakegame 2 Throttled, failure 1 of 3; retrying" in errLines[0])
+        assertTrue(errLines[0], "fakegame 2 Throttled (cooldown), failure 1 of 3; retrying" in errLines[0])
         assertTrue(errLines[1], "fakegame 4 skip" in errLines[1])
     }
 
