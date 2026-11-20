@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tango: GameGlyphs.Tango in white on the orange accent disc. Hand-converted from the Compose glyph; edit both together. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="@color/shortcut_accent_orange"
+        android:pathData="M0,12a12,12 0 1,0 24,0a12,12 0 1,0 -24,0Z" />
+    <!-- The glyph is drawn at 0.8 so its round caps and dots clear the disc edge; the stroke is widened to keep 2dp on screen. -->
+    <group
+        android:pivotX="12"
+        android:pivotY="12"
+        android:scaleX="0.8"
+        android:scaleY="0.8">
+        <path
+            android:pathData="M12 2.5V4.5M12 19.5V21.5M2.5 12H4.5M19.5 12H21.5M5.28 5.28L6.7 6.7M17.3 17.3L18.72 18.72M5.28 18.72L6.7 17.3M17.3 6.7L18.72 5.28"
+            android:strokeColor="@color/shortcut_glyph"
+            android:strokeWidth="2.5"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:fillColor="@color/shortcut_glyph"
+            android:pathData="M8.5 12a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0 -7 0"
+            android:strokeColor="@color/shortcut_glyph"
+            android:strokeWidth="2.5"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+    </group>
+</vector>

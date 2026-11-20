@@ -6,4 +6,12 @@
     <color name="ic_launcher_mark">#58CC02</color>
     <!-- Brand primary (LightColorScheme.primary, ColorTokens.kt) for the splash mark; app resources cannot import it. -->
     <color name="puzzlebox_splash_mark">#58CC02</color>
+    <!-- Launcher shortcut discs: the game accent hues (LightAccentTokens, AccentTokens.kt) and the neutral ink (LightColorScheme.onSurface), the same in both themes. -->
+    <color name="shortcut_accent_blue">#00B4FE</color>
+    <color name="shortcut_accent_orange">#FF7F02</color>
+    <color name="shortcut_accent_violet">#9582FF</color>
+    <color name="shortcut_accent_teal">#00C8BD</color>
+    <color name="shortcut_accent_pink">#FF478A</color>
+    <color name="shortcut_ink">#33363D</color>
+    <color name="shortcut_glyph">#FFFFFF</color>
 </resources>

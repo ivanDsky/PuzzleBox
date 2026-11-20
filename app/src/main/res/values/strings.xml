@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">PuzzleBox</string>
+    <string name="shortcut_up_next_short">Up next</string>
+    <string name="shortcut_up_next_long">Play Up next</string>
+    <string name="shortcut_game_long">Play %s</string>
 </resources>
