@@ -11,132 +11,78 @@ class WidgetLayoutTest {
     private fun layout(width: Int, height: Int) = WidgetLayout.of(DpSize(width.dp, height.dp))
 
     @Test
-    fun `4 by 2 keeps the 28dp rings, no names and the full width button`() {
-        val layout = layout(250, 110)
+    fun `chips1 has 10 by 8dp padding, a 32dp ring, the short streak and no pill or time line`() {
+        val layout = layout(276, 102)
 
-        assertEquals(28f, layout.ring.value, EPS)
-        assertEquals(14f, layout.glyph.value, EPS)
-        assertFalse(layout.showNames)
-        assertTrue(layout.compact)
+        assertEquals(WidgetStep.Chips1, layout.step)
+        assertEquals(10f, layout.look.horizontalPadding.value, EPS)
+        assertEquals(8f, layout.look.verticalPadding.value, EPS)
+        assertEquals(32f, layout.look.ring.value, EPS)
+        assertFalse(layout.look.longStreak)
+        assertFalse(layout.look.timeLine)
+        assertFalse(layout.look.pill)
     }
 
     @Test
-    fun `5 by 3 draws the 56dp rings with names and a pill button`() {
-        val layout = layout(320, 180)
+    fun `chips2 has 14dp padding, a 36dp ring, the time line and the pill`() {
+        val layout = layout(276, 220)
 
-        assertTrue(layout.ring >= WidgetLayout.NAMES_FROM)
-        assertTrue(layout.showNames)
-        assertFalse(layout.compact)
+        assertEquals(WidgetStep.Chips2, layout.step)
+        assertEquals(14f, layout.look.horizontalPadding.value, EPS)
+        assertEquals(14f, layout.look.verticalPadding.value, EPS)
+        assertEquals(36f, layout.look.ring.value, EPS)
+        assertTrue(layout.look.timeLine)
+        assertTrue(layout.look.pill)
     }
 
     @Test
-    fun `a 6 by 4 tablet size grows the rings and the streak line with the width`() {
-        val five = layout(320, 180)
-        val six = layout(390, 250)
-
-        assertEquals(71.2f, six.ring.value, EPS)
-        assertTrue(six.ring > five.ring)
-        assertTrue(six.streak.text >= five.streak.text)
-        assertTrue(six.showNames)
-        assertFalse(six.compact)
+    fun `chips2 says days in a row only from 320dp of content, so the freezes and the done count are never squeezed out`() {
+        assertFalse(layout(276, 220).look.longStreak)
+        assertFalse(layout(347, 220).look.longStreak)
+        assertTrue(layout(348, 220).look.longStreak)
+        assertTrue(layout(620, 430).look.longStreak)
+        assertFalse(layout(900, 102).look.longStreak)
     }
 
     @Test
-    fun `4 by 2 keeps the 48dp button and the compact text sizes`() {
-        val layout = layout(250, 110)
-
-        assertEquals(48f, layout.button.height.value, EPS)
-        assertEquals(24f, layout.streak.line.value, EPS)
-        assertEquals(16f, layout.streak.text.value, EPS)
+    fun `the block is the widget less its padding`() {
+        assertEquals(256f, layout(276, 102).contentWidth.value, EPS)
+        assertEquals(86f, layout(276, 102).contentHeight.value, EPS)
+        assertEquals(248f, layout(276, 220).contentWidth.value, EPS)
+        assertEquals(192f, layout(276, 220).contentHeight.value, EPS)
     }
 
     @Test
-    fun `5 by 3 keeps the 48dp button and the first step of text`() {
-        val layout = layout(320, 180)
-
-        assertEquals(57.2f, layout.ring.value, EPS)
-        assertEquals(48f, layout.button.height.value, 0.5f)
-        assertEquals(26f, layout.streak.line.value, 0.5f)
-        assertEquals(12f, layout.nameSize.value, 0.5f)
+    fun `the block stops at 440dp wide however wide the widget is`() {
+        assertEquals(440f, layout(500, 102).contentWidth.value, EPS)
+        assertEquals(440f, layout(900, 220).contentWidth.value, EPS)
     }
 
     @Test
-    fun `650 by 450 rings take the width share and the chrome grows with them`() {
-        val layout = layout(650, 450)
-
-        assertEquals(123.2f, layout.ring.value, EPS)
-        assertTrue(layout.streak.text.value > 22f)
-        assertTrue(layout.nameSize.value > 14f)
-        assertTrue(layout.button.height.value in 48f..64f)
-        assertTrue(layout.button.height > WidgetLayout.BUTTON_HEIGHT)
-        assertEmptyBandsUnderOneRing(layout, 450)
+    fun `a taller widget does not stretch the block past the top of chips2`() {
+        assertEquals(251f, layout(276, 279).contentHeight.value, EPS)
+        assertEquals(252f, layout(620, 430).contentHeight.value, EPS)
+        assertEquals(252f, layout(900, 900).contentHeight.value, EPS)
     }
 
     @Test
-    fun `900 by 600 rings reach the 160dp ceiling and the button stops at 64dp`() {
-        val layout = layout(900, 600)
-
-        assertEquals(160f, layout.ring.value, EPS)
-        assertTrue(layout.button.height.value in 48f..64f)
-        assertTrue(layout.streak.text > layout(650, 450).streak.text)
-        assertEmptyBandsUnderOneRing(layout, 600)
-    }
-
-    @Test
-    fun `the block fills the height with its gaps instead of one big margin`() {
-        val layout = layout(650, 450)
-
-        assertEquals(448f, layout.height.value, 0.1f)
-        assertTrue(layout.blockGap > layout(320, 180).blockGap)
-    }
-
-    @Test
-    fun `chrome never shrinks as the widget grows`() {
-        val sizes = listOf(320 to 180, 390 to 250, 650 to 450, 800 to 500, 900 to 600).map { (w, h) -> layout(w, h) }
-
-        sizes.zipWithNext { small, big ->
-            assertTrue(big.ring >= small.ring)
-            assertTrue(big.streak.line >= small.streak.line)
-            assertTrue(big.streak.text >= small.streak.text)
-            assertTrue(big.nameSize >= small.nameSize)
-            assertTrue(big.button.height >= small.button.height)
-            assertTrue(big.button.text >= small.button.text)
+    fun `both list steps draw the chips2 look centred at its widest`() {
+        listOf(layout(276, 338), layout(620, 430)).forEach {
+            assertTrue(it.look.pill)
+            assertTrue(it.look.timeLine)
+            assertEquals(14f, it.look.verticalPadding.value, EPS)
         }
+        assertEquals(WidgetStep.ListNarrow, layout(276, 338).step)
+        assertEquals(WidgetStep.ListWide, layout(620, 430).step)
+        assertEquals(440f, layout(620, 430).contentWidth.value, EPS)
     }
 
     @Test
-    fun `a layout never draws taller than the widget it was given`() {
-        listOf(250 to 110, 250 to 90, 320 to 180, 390 to 250, 650 to 450, 800 to 500, 900 to 600, 600 to 110)
-            .forEach { (w, h) -> assertTrue("$w x $h", layout(w, h).height.value <= h + EPS || layout(w, h).compact) }
-    }
-
-    @Test
-    fun `a short widget keeps the 28dp floor instead of squeezing the rings`() {
+    fun `the 250 by 90dp minimum fits its chips1 block`() {
         val layout = layout(250, 90)
 
-        assertEquals(28f, layout.ring.value, EPS)
-        assertTrue(layout.compact)
-    }
-
-    @Test
-    fun `a wide but short widget stays compact, not a pill over rings that do not fit`() {
-        val layout = layout(600, 110)
-
-        assertTrue(layout.compact)
-        assertFalse(layout.showNames)
-    }
-
-    @Test
-    fun `the four by two content fits the 110dp it is given`() {
-        val layout = layout(250, 110)
-
-        assertTrue(layout.height <= 110.dp)
-    }
-
-    private fun assertEmptyBandsUnderOneRing(layout: WidgetLayout, height: Int) {
-        val band = (height.dp - layout.height) / 2 + layout.verticalPadding
-
-        assertTrue("band $band", band <= layout.ring)
+        assertEquals(74f, layout.contentHeight.value, EPS)
+        assertEquals(230f, layout.contentWidth.value, EPS)
     }
 
     private companion object {

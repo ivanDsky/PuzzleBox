@@ -5,7 +5,6 @@ import android.content.Context
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import android.widget.ImageView
 import android.widget.TextView
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -15,11 +14,9 @@ import androidx.test.core.app.ApplicationProvider
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.shortcut.ShortcutIntents
 import com.ivandsky.puzzlebox.app.shortcut.ShortcutTarget
-import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -35,23 +32,10 @@ class WidgetRenderTest {
     private val application: Application = ApplicationProvider.getApplicationContext()
     private val context: Context = application
 
-    // The layout ignores best, rank and new best for now, so a ring here carries none.
-    private fun ring(id: String, name: String, status: TodayStatus) =
-        WidgetRing(GameId(id), name, status, bestMs = null, rank = WidgetRank.Missing, newBest = false)
-
-    private val rings = listOf(
-        ring("zip", "Zip", TodayStatus.Solved(timeMs = 2_000)),
-        ring("queens", "Queens", TodayStatus.InProgress(elapsedMs = 1_000)),
-        ring("tango", "Tango", TodayStatus.NotStarted),
-        ring("minisudoku", "Mini Sudoku", TodayStatus.Offline),
-        ring("strands", "Strands", TodayStatus.NotStarted),
-    )
-
     private inner class Drawn(root: View) {
         private val all = mutableListOf<View>().also { collect(root, it) }
         val descriptions = all.mapNotNull { it.contentDescription?.toString() }
-        val texts = all.filterIsInstance<TextView>().map { it.text.toString() }
-        val images = all.count { it is ImageView }
+        val texts = all.filterIsInstance<TextView>().map { it.text.toString() }.filter { it.isNotEmpty() }
         val clickable = all.count { it.hasOnClickListeners() }
 
         fun tapDescribed(description: String): ShortcutTarget? = tap(all.first { it.contentDescription?.toString() == description })
@@ -72,104 +56,132 @@ class WidgetRenderTest {
         }
     }
 
-    private fun draw(state: WidgetState?, size: DpSize = DEFAULT): Drawn {
+    private fun draw(state: WidgetState?, size: DpSize = CHIPS2): Drawn {
         val views = runBlocking { GlanceRemoteViews().compose(context, size) { WidgetContent(state) }.remoteViews }
         return Drawn(views.apply(context, FrameLayout(context)))
     }
 
-    private fun state(freezesHeld: Int?, upNext: WidgetUpNext = WidgetUpNext.Done) =
-        WidgetState(rings, WidgetStreak(days = 3, best = 12, freezesHeld = freezesHeld), upNext, nextRollover = null)
+    private val mixedChips = listOf(
+        "Zip, solved, 1:12, rank 3 of 41",
+        "Tango, solved, 0:48, rank 7 of 41",
+        "Queens, in progress, 3:12",
+        "Mini Sudoku, not started",
+        "Strands, not started",
+    )
 
     @Test
-    fun `each ring says its game and where it stands`() {
-        val drawn = draw(state(freezesHeld = 2))
+    fun `each chip says its game, where it stands, its time and its rank`() {
+        assertEquals(listOf("5 freezes") + mixedChips + "Continue Queens", draw(WidgetSamples.mixed).descriptions)
+    }
+
+    @Test
+    fun `chips2 reads the streak, the done count, rank over time and the pill, the long streak when wide enough`() {
+        val texts = draw(WidgetSamples.default).texts
 
         assertEquals(
-            listOf("Zip, solved", "Queens, in progress", "Tango, not started", "Mini Sudoku, offline", "Strands, not started"),
-            drawn.descriptions.dropLast(1),
+            listOf("658 days", "5", "5 of 5 done", "#3", "1:12", "#7", "0:48", "#1", "1:35", "#12", "2:13", "4:11"),
+            texts.dropLast(1),
+        )
+        assertTrue(texts.last().startsWith("New puzzles at "))
+        assertEquals("658 days in a row", draw(WidgetSamples.default, WIDE_CHIPS2).texts.first())
+    }
+
+    @Test
+    fun `chips1 reads the short streak and one line per chip, with no pill`() {
+        assertEquals(
+            listOf("658 days", "5", "5 of 5 done", "#3", "#7", "#1", "#12", "4:11"),
+            draw(WidgetSamples.default, CHIPS1).texts,
         )
     }
 
     @Test
-    fun `the game names show under the rings only at the large size`() {
-        assertFalse(draw(state(freezesHeld = 2), DEFAULT).texts.contains("Zip"))
-        assertTrue(draw(state(freezesHeld = 2), LARGE).texts.containsAll(rings.map { it.displayName }))
+    fun `a rank that is missing or signed out shows the time on the first line`() {
+        listOf(WidgetSamples.rankMissing, WidgetSamples.signedOut).forEach {
+            assertEquals(listOf("1:12", "0:48", "1:35", "2:13", "4:11"), draw(it, CHIPS1).texts.drop(3))
+        }
     }
 
     @Test
-    fun `the streak line shows the freeze count only when freezes are held`() {
-        assertEquals(listOf("3 days in a row · Best 12", "2"), draw(state(freezesHeld = 2)).texts.dropLast(1))
-        assertEquals(listOf("3 days in a row · Best 12"), draw(state(freezesHeld = null)).texts.dropLast(1))
+    fun `the longest names and times still compose`() {
+        assertTrue(draw(WidgetSamples.longest, WIDE_CHIPS2).texts.containsAll(listOf("1658 days in a row", "#40", "1:05:42")))
+        assertTrue(draw(WidgetSamples.longest, CHIPS2).texts.containsAll(listOf("1658 days", "#40", "1:05:42")))
+        assertTrue(draw(WidgetSamples.longest, CHIPS1).texts.containsAll(listOf("1658 days", "#40")))
     }
 
     @Test
-    fun `a failed read draws bare tracks, a blank streak line and a plain Up next button`() {
-        val drawn = draw(null)
+    fun `offline draws Retry, no done count and Open PuzzleBox`() {
+        val texts = draw(WidgetSamples.offline).texts
 
-        assertEquals(listOf("Up next"), drawn.descriptions)
-        assertEquals(listOf("Up next"), drawn.texts)
+        assertEquals(listOf("658 days", "5") + List(5) { "Retry" } + "Open PuzzleBox", texts)
     }
 
     @Test
-    fun `the button says what is up next, with the same words spoken`() {
-        val play = draw(state(freezesHeld = 2, upNext = WidgetUpNext.Play(GameId("queens"), "Queens")))
-        val done = draw(state(freezesHeld = 2, upNext = WidgetUpNext.Done))
+    fun `a failed read draws bare tracks, a blank streak line and Open PuzzleBox, at chips2 only`() {
+        val chips2 = draw(null, CHIPS2)
 
-        assertEquals("Up next · Queens", play.texts.last())
-        assertEquals("Up next · Queens", play.descriptions.last())
-        assertEquals("All done for today", done.texts.last())
-        assertEquals("All done for today", done.descriptions.last())
+        assertEquals(listOf("Open PuzzleBox"), chips2.descriptions)
+        assertEquals(listOf("Open PuzzleBox"), chips2.texts)
+        assertEquals(emptyList<String>(), draw(null, CHIPS1).descriptions)
+        assertEquals(emptyList<String>(), draw(null, CHIPS1).texts)
     }
 
     @Test
-    fun `each ring opens its own game, whatever its status`() {
-        val drawn = draw(state(freezesHeld = 2))
+    fun `each chip opens its own game, whatever its status`() {
+        val drawn = draw(WidgetSamples.mixed)
 
         assertEquals(
-            listOf("zip", "queens", "tango", "minisudoku", "strands").map { ShortcutTarget.Game(GameId(it)) },
-            listOf("Zip, solved", "Queens, in progress", "Tango, not started", "Mini Sudoku, offline", "Strands, not started")
-                .map(drawn::tapDescribed),
+            listOf("zip", "tango", "queens", "minisudoku", "strands").map { ShortcutTarget.Game(GameId(it)) },
+            mixedChips.map(drawn::tapDescribed),
         )
     }
 
     @Test
-    fun `a ring name opens its game too`() {
-        assertEquals(ShortcutTarget.Game(GameId("queens")), draw(state(freezesHeld = 2), LARGE).tapText("Queens"))
+    fun `a chip's rank or time opens its game too`() {
+        assertEquals(ShortcutTarget.Game(GameId("zip")), draw(WidgetSamples.mixed).tapText("#3"))
+        assertEquals(ShortcutTarget.Game(GameId("queens")), draw(WidgetSamples.mixed).tapText("3:12"))
     }
 
     @Test
-    fun `the button still opens up next and the streak line still opens Today`() {
-        val drawn = draw(state(freezesHeld = 2, upNext = WidgetUpNext.Play(GameId("queens"), "Queens")))
-
-        assertEquals(ShortcutTarget.UpNext, drawn.tapText("Up next · Queens"))
-        assertEquals(ShortcutTarget.Today, drawn.tapText("3 days in a row · Best 12"))
+    fun `the pill opens up next, or Today when all is done, and the streak line opens Today`() {
+        assertEquals(ShortcutTarget.UpNext, draw(WidgetSamples.mixed).tapText("Continue Queens"))
+        val done = draw(WidgetSamples.default)
+        assertEquals(ShortcutTarget.Today, done.tapText(done.texts.last()))
+        assertEquals(ShortcutTarget.Today, draw(WidgetSamples.mixed).tapText("658 days"))
+        assertEquals(ShortcutTarget.Today, draw(WidgetSamples.mixed).tapText("2 of 5 done"))
     }
 
     @Test
-    fun `a failed read leaves the bare tracks with no tap of their own`() {
-        // The widget behind everything and the button: two taps, none per ring.
-        assertEquals(2, draw(null).clickable)
-        assertEquals(7, draw(state(freezesHeld = 2)).clickable)
+    fun `the widget behind, five chips and the pill are the taps, and a failed read has the background and the pill`() {
+        assertEquals(7, draw(WidgetSamples.mixed, CHIPS2).clickable)
+        assertEquals(6, draw(WidgetSamples.mixed, CHIPS1).clickable)
+        assertEquals(2, draw(null, CHIPS2).clickable)
+        assertEquals(1, draw(null, CHIPS1).clickable)
     }
 
     @Test
-    fun `all done drops the play triangle from the button`() {
-        val playing = draw(state(freezesHeld = 2, upNext = WidgetUpNext.Play(GameId("queens"), "Queens")))
-        val done = draw(state(freezesHeld = 2, upNext = WidgetUpNext.Done))
+    fun `a tall widget draws the chips2 block until the lists exist`() {
+        listOf(NARROW_LIST, WIDE_LIST, DpSize(900.dp, 900.dp)).forEach {
+            val chips2 = draw(WidgetSamples.mixed, DpSize(it.width, 220.dp))
+            val drawn = draw(WidgetSamples.mixed, it)
 
-        assertEquals(playing.images - 1, done.images)
+            assertEquals(chips2.texts, drawn.texts)
+            assertEquals(chips2.descriptions, drawn.descriptions)
+        }
     }
 
     @Test
-    fun `every size from 4 by 2 up to a tablet page composes and inflates`() {
-        listOf(DEFAULT, LARGE, TABLET, DpSize(650.dp, 450.dp), DpSize(900.dp, 600.dp), DpSize(250.dp, 90.dp)).forEach { size ->
-            assertEquals(6, draw(state(freezesHeld = 2), size).descriptions.size)
+    fun `every size the provider allows composes and inflates`() {
+        listOf(DpSize(250.dp, 90.dp), CHIPS1, CHIPS2, NARROW_LIST, WIDE_LIST, DpSize(640.dp, 480.dp), DpSize(900.dp, 600.dp)).forEach { size ->
+            assertEquals(if (size.height < 160.dp) 6 else 7, draw(WidgetSamples.mixed, size).descriptions.size)
+            draw(WidgetSamples.empty, size)
         }
     }
 
     private companion object {
-        val DEFAULT = DpSize(250.dp, 110.dp)
-        val LARGE = DpSize(320.dp, 180.dp)
-        val TABLET = DpSize(390.dp, 250.dp)
+        val CHIPS1 = DpSize(276.dp, 102.dp)
+        val CHIPS2 = DpSize(276.dp, 220.dp)
+        val WIDE_CHIPS2 = DpSize(400.dp, 220.dp)
+        val NARROW_LIST = DpSize(276.dp, 338.dp)
+        val WIDE_LIST = DpSize(620.dp, 430.dp)
     }
 }

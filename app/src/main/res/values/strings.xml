@@ -3,22 +3,46 @@
     <string name="shortcut_up_next_short">Up next</string>
     <string name="shortcut_up_next_long">Play Up next</string>
     <string name="shortcut_game_long">Play %s</string>
-    <string name="widget_description">Today\'s puzzles, your streak and one tap to play.</string>
-    <string name="widget_up_next">Up next</string>
-    <string name="widget_up_next_game">Up next · %1$s</string>
-    <string name="widget_all_done">All done for today</string>
-    <plurals name="widget_streak">
-        <item quantity="one">%1$d day in a row · Best %2$d</item>
-        <item quantity="other">%1$d days in a row · Best %2$d</item>
+    <string name="widget_description">Today’s puzzles, your streak and how you rank.</string>
+    <string name="widget_play_game">Play %1$s</string>
+    <string name="widget_continue_game">Continue %1$s</string>
+    <string name="widget_new_puzzles_at">New puzzles at %1$s</string>
+    <string name="widget_open">Open PuzzleBox</string>
+    <plurals name="widget_streak_long">
+        <item quantity="one">%1$d day in a row</item>
+        <item quantity="other">%1$d days in a row</item>
     </plurals>
+    <plurals name="widget_streak_short">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <!-- Spoken label of the snowflake, whose number is all that is drawn beside it. -->
+    <plurals name="widget_freezes">
+        <item quantity="one">%1$d freeze</item>
+        <item quantity="other">%1$d freezes</item>
+    </plurals>
+    <string name="widget_done_count">%1$d of %2$d done</string>
+    <!-- A chip's first line: the player's place, the time when there is none (rank unknown or not solved), New for a game not started. -->
+    <string name="widget_chip_rank">#%1$d</string>
+    <string name="widget_chip_new">New</string>
+    <string name="widget_chip_retry">Retry</string>
     <!-- A ring's spoken label: the game, then where it stands today ("Zip, solved"). -->
     <string name="widget_ring_description">%1$s, %2$s</string>
     <string name="widget_ring_solved">solved</string>
     <string name="widget_ring_in_progress">in progress</string>
     <string name="widget_ring_not_started">not started</string>
     <string name="widget_ring_offline">offline</string>
-    <!-- Picker preview only (widget_preview.xml): a mixed day, so the picker shows the widget with something in it. -->
-    <string name="widget_preview_streak">3 days in a row · Best 12</string>
+    <!-- A chip's spoken label with its time, and with its rank too: "Zip, solved, 1:12, rank 3 of 41". -->
+    <string name="widget_ring_description_time">%1$s, %2$s, %3$s</string>
+    <string name="widget_ring_description_rank">%1$s, %2$s, %3$s, rank %4$d of %5$d</string>
+    <!-- Picker preview only (widget_preview.xml): a mixed day at 4 by 2, so the picker shows the widget with something in it. -->
+    <string name="widget_preview_streak">3 days</string>
     <string name="widget_preview_freezes">2</string>
-    <string name="widget_preview_up_next">Up next · Queens</string>
+    <string name="widget_preview_done">2 of 5 done</string>
+    <string name="widget_preview_rank_zip">#3</string>
+    <string name="widget_preview_time_zip">1:12</string>
+    <string name="widget_preview_rank_tango">#7</string>
+    <string name="widget_preview_time_tango">0:48</string>
+    <string name="widget_preview_elapsed_queens">3:12</string>
+    <string name="widget_preview_up_next">Continue Queens</string>
 </resources>
