@@ -111,4 +111,28 @@ object RecapMotion {
     const val PeelScale = 1.08f
     const val PeelDuration = 240
     const val PeelCurl = 120
+
+    // Yearflick: the twelve month squares of a month card flip in YearSquareStep ms apart on DeckSpring; its count rolls
+    // for MotionTokens.ScoreCountUpDuration.
+    const val YearSquareStep = 24
+    const val YearSquareFromTurn = 90f
+
+    // Yearposter: month tile i springs in on DeckSpring from YearTileFrom, YearTileTilt degrees and YearTileFromScale
+    // at YearTileStart + i × YearTileStep ms; the chips then stamp in YearChipStep apart.
+    const val YearTileStart = 160
+    const val YearTileStep = 40
+    val YearTileFromX: Dp = (-150).dp
+    val YearTileFromY: Dp = 40.dp
+    const val YearTileTilt = -14f
+    const val YearTileFromScale = 2.4f
+    const val YearChipStep = 80
+
+    // Confetti: ConfettiPieces fly once, starting ConfettiDelay ms after the last tile starts, each at an initial speed of
+    // ConfettiSpeedMin..ConfettiSpeedMax dp/s under ConfettiGravity dp/s², fading over ConfettiFade ms.
+    const val ConfettiPieces = 16
+    const val ConfettiDelay = 700
+    const val ConfettiSpeedMin = 190f
+    const val ConfettiSpeedMax = 325f
+    const val ConfettiGravity = 520f
+    const val ConfettiFade = 1100
 }

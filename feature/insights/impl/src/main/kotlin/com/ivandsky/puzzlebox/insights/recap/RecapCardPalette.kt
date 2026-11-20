@@ -12,6 +12,7 @@ internal fun RecapCard.palette(): PaletteEntry = when (this) {
     is RecapCard.Friends -> PaletteEntry.Friends
     is RecapCard.TotalTime -> PaletteEntry.TotalTime
     is RecapCard.Month -> PaletteEntry.YearMonth
+    is RecapCard.YearFinale -> PaletteEntry.YearFinale
 }
 
 /** The palette entry of what the deck shows: the cover, a card, or the Share page that follows the last card. */

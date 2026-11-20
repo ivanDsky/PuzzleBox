@@ -121,7 +121,10 @@ internal fun RecapStory(
                         name = displayName,
                     )
                 } else if (page < cards.size) {
-                    RecapCardPage(cards[page], periodLabel, gameName, onWatchReplay, Modifier.fillMaxSize())
+                    RecapCardPage(
+                        cards[page], periodLabel, gameName, onWatchReplay, Modifier.fillMaxSize(),
+                        monthPlace = monthPlaceOf(cards, page), displayName = displayName, onShare = { deck.forward() },
+                    )
                 } else if (share != null) {
                     ShareCardPage(cards, share, onShare, Modifier.fillMaxSize())
                 }

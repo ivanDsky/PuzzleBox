@@ -344,14 +344,15 @@ class ObserveRecapTest {
     }
 
     @Test
-    fun `a year's month cards follow the totals`() = runTest {
+    fun `a year's month cards follow the totals and the finale closes the story`() = runTest {
         fixture.store(fixture.solve(alpha, LocalDate.of(2026, 3, 1)), fixture.solve(alpha, LocalDate.of(2026, 5, 2)))
 
         val cards = defaultRecap(RecapPeriod.Year(2026)).first()
 
-        val solvedAt = cards.indexOfFirst { it is RecapCard.Solved }
         val months = cards.filterIsInstance<RecapCard.Month>()
         assertEquals(listOf(YearMonth.of(2026, 3), YearMonth.of(2026, 5)), months.map { it.month })
-        assertEquals(solvedAt + 1, cards.indexOf(months.first()))
+        assertEquals(cards.indexOfFirst { it is RecapCard.TotalTime } + 1, cards.indexOf(months.first()))
+        assertEquals(cards.indexOf(months.last()) + 1, cards.indexOfFirst { it is RecapCard.YearFinale })
+        assertEquals(cards.lastIndex, cards.indexOfFirst { it is RecapCard.YearFinale })
     }
 }
