@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.insights.domain.recap.MonthHighlight
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.YearMonth
@@ -22,9 +23,15 @@ private val Names = mapOf(Zip to "Zip", Queens to "Queens")
 
 private fun name(game: GameId): String = Names.getValue(game)
 
-private val March = RecapCard.Month(YearMonth.of(2026, 3), solved = 42, bestGame = Zip, bestTimeMs = 58_000, underAveragePercent = 31)
+private val March = RecapCard.Month(
+    YearMonth.of(2026, 3), solved = 42, bestGame = Zip, bestTimeMs = 58_000, underAveragePercent = 31,
+    fastestGame = Zip, fastestTimeMs = 58_000, lead = MonthHighlight.Focus(Zip, solved = 42, of = 42), also = null, moments = emptyList(),
+)
 
-private val OneSolve = RecapCard.Month(YearMonth.of(2026, 9), solved = 1, bestGame = Queens, bestTimeMs = 141_000, underAveragePercent = 0)
+private val OneSolve = RecapCard.Month(
+    YearMonth.of(2026, 9), solved = 1, bestGame = Queens, bestTimeMs = 141_000, underAveragePercent = 0,
+    fastestGame = Queens, fastestTimeMs = 141_000, lead = MonthHighlight.Focus(Queens, solved = 1, of = 1), also = null, moments = emptyList(),
+)
 
 @PuzzleBoxPreviews
 @Composable
