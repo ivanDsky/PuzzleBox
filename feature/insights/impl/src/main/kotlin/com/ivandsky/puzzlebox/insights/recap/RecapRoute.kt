@@ -45,6 +45,7 @@ internal fun RecapRoute(periodId: String, onOpenReplay: (ReplayKey) -> Unit, onC
             onPage = viewModel::showPage,
             onWatchReplay = watchReplay,
             onClose = onClose,
+            displayName = share.displayName?.takeIf { it.isNotBlank() },
             share = share,
             onShare = shareViewModel::share,
             onRetry = viewModel::retry,

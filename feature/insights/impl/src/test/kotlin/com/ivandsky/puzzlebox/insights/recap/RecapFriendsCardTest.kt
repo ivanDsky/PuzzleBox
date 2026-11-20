@@ -103,6 +103,7 @@ class RecapFriendsCardTest {
                 RecapScreen(state, "November 2026", gameName, onPage = {}, onWatchReplay = {}, onClose = {})
             }
         }
+        rule.tapPastCover()
         rule.onNodeWithTag("recap.pager").performTouchInput { swipeLeft() }
         rule.waitForIdle()
         rule.onNodeWithTag("recap.friends.reading").assertIsDisplayed()

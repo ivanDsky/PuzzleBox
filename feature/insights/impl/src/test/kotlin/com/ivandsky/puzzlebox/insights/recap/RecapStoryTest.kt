@@ -49,10 +49,14 @@ class RecapStoryTest {
     private var closed = 0
     private var retried = 0
 
-    private fun show(state: RecapUiState = ready) = rule.setContent {
-        PuzzleBoxTheme {
-            RecapScreen(state, "November 2026", gameName, onPage = { pages += it }, onWatchReplay = {}, onClose = { closed++ }, onRetry = { retried++ })
+    /** Opens [state]; a fresh open lands on the cover, which [pastCover] taps past to the first card. */
+    private fun show(state: RecapUiState = ready, pastCover: Boolean = true) {
+        rule.setContent {
+            PuzzleBoxTheme {
+                RecapScreen(state, "November 2026", gameName, onPage = { pages += it }, onWatchReplay = {}, onClose = { closed++ }, onRetry = { retried++ })
+            }
         }
+        if (pastCover && state.opensOnCover) rule.tapPastCover()
     }
 
     private fun tapPager(fraction: Float) = rule.onNodeWithTag("recap.pager").performTouchInput {
@@ -151,14 +155,14 @@ class RecapStoryTest {
     }
 
     @Test
-    fun `a fresh open deals the first card face-down and turns it face-up`() {
+    fun `a fresh open deals the cover face-down and turns it face-up`() {
         rule.mainClock.autoAdvance = false
-        show()
+        show(pastCover = false)
 
         rule.mainClock.advanceTimeByFrame()
-        rule.onNodeWithContentDescription("42 puzzles solved").assertDoesNotExist()
+        rule.onNodeWithTag("recap.cover").assertDoesNotExist()
         rule.mainClock.advanceTimeBy(1_000)
-        rule.onNodeWithContentDescription("42 puzzles solved").assertIsDisplayed()
+        rule.onNodeWithTag("recap.cover").assertIsDisplayed()
     }
 
     @Test
@@ -208,9 +212,14 @@ class RecapStoryTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
         rule.mainClock.autoAdvance = false
-        show()
+        show(pastCover = false)
 
         rule.mainClock.advanceTimeByFrame()
+        rule.onNodeWithTag("recap.cover").assertExists()
+
+        tapPager(0.8f)
+        rule.mainClock.advanceTimeBy(MotionTokens.ReducedFadeDuration + FrameMs)
+        rule.onNodeWithTag("recap.cover").assertDoesNotExist()
         rule.onNodeWithContentDescription("42 puzzles solved").assertExists()
 
         tapPager(0.8f)
@@ -316,13 +325,14 @@ class RecapStoryTest {
     }
 
     @Test
-    fun `Replay story on the Share page goes back to the first card with nothing filled or selected`() {
+    fun `Replay story on the Share page goes back to the cover with nothing filled or selected, and the next tap leaves it`() {
         val deck = RecapDeckState(pageCount = 3, initialPage = 2)
         rule.setContent {
             PuzzleBoxTheme {
                 RecapStory(
                     cards = ready.cards,
                     deck = deck,
+                    period = ready.period,
                     periodLabel = "November 2026",
                     gameName = gameName,
                     onWatchReplay = {},
@@ -340,8 +350,15 @@ class RecapStoryTest {
         assertEquals(0, deck.page)
         assertEquals(0, deck.filledSegments)
         assertEquals(RecapDeckState.NoFact, deck.selectedFact)
-        rule.onNodeWithContentDescription("42 puzzles solved").assertIsDisplayed()
+        rule.onNodeWithTag("recap.cover").assertIsDisplayed()
         rule.onNodeWithContentDescription("Replay story").assertDoesNotExist()
+
+        rule.tapPastCover()
+
+        assertEquals(0, deck.page)
+        assertEquals(1, deck.filledSegments)
+        rule.onNodeWithTag("recap.cover").assertDoesNotExist()
+        rule.onNodeWithContentDescription("42 puzzles solved").assertIsDisplayed()
     }
 
     @Test
@@ -352,7 +369,7 @@ class RecapStoryTest {
                 RecapScreen(readyOf(solved, secondSolved, solved), "November 2026", gameName, onPage = {}, onWatchReplay = {}, onClose = {})
             }
         }
-        repeat(2) {
+        repeat(3) {
             tapPager(0.8f)
             rule.waitForIdle()
         }

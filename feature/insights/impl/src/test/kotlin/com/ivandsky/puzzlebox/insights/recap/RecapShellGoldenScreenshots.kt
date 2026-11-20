@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
 import com.ivandsky.puzzlebox.insights.GOLDEN_PHONE
 import com.ivandsky.puzzlebox.insights.GOLDEN_TABLET
+import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapPeriod
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.fastest
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.friendsLoaded
@@ -17,6 +18,7 @@ import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.totalTime
 import com.ivandsky.puzzlebox.insights.settleAndCapture
 import com.ivandsky.puzzlebox.insights.share.RecapShareState
 import com.ivandsky.puzzlebox.insights.showGolden
+import com.ivandsky.puzzlebox.model.GameId
 import java.time.YearMonth
 import org.junit.Rule
 import org.junit.Test
@@ -109,9 +111,53 @@ class RecapShellGoldenScreenshots {
     @Config(qualifiers = GOLDEN_TABLET)
     @Test fun `restoring tablet dark`() = capture("restoring", "tablet", dark = true, state = RecapUiState.Restoring)
 
-    private fun capture(name: String, device: String, dark: Boolean, held: Boolean = false, state: RecapUiState = October) {
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `cover phone light`() = capture("cover", "phone", dark = false, state = CoverStory, who = "Ivan", names = Games)
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `cover phone dark`() = capture("cover", "phone", dark = true, state = CoverStory, who = "Ivan", names = Games)
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `cover tablet light`() = capture("cover", "tablet", dark = false, state = CoverStory, who = "Ivan", names = Games)
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `cover tablet dark`() = capture("cover", "tablet", dark = true, state = CoverStory, who = "Ivan", names = Games)
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `empty phone light`() = capture("empty", "phone", dark = false, state = EmptyStory, who = "Ivan", names = Games)
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `empty phone dark`() = capture("empty", "phone", dark = true, state = EmptyStory, who = "Ivan", names = Games)
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `empty tablet light`() = capture("empty", "tablet", dark = false, state = EmptyStory, who = "Ivan", names = Games)
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `empty tablet dark`() = capture("empty", "tablet", dark = true, state = EmptyStory, who = "Ivan", names = Games)
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `longest phone light`() = capture("longest", "phone", dark = false, state = LongestStory, who = LongName, names = Games)
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `longest phone dark`() = capture("longest", "phone", dark = true, state = LongestStory, who = LongName, names = Games)
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `longest tablet light`() = capture("longest", "tablet", dark = false, state = LongestStory, who = LongName, names = Games)
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `longest tablet dark`() = capture("longest", "tablet", dark = true, state = LongestStory, who = LongName, names = Games)
+
+    private fun capture(
+        name: String,
+        device: String,
+        dark: Boolean,
+        held: Boolean = false,
+        state: RecapUiState = October,
+        who: String? = "Ivan",
+        names: (GameId) -> String = gameName,
+    ) {
         rule.showGolden(dark = dark) {
-            RecapScreen(state, "October 2026", gameName, onPage = {}, onWatchReplay = {}, onClose = {}, share = Share)
+            RecapScreen(state, "October 2026", names, onPage = {}, onWatchReplay = {}, onClose = {}, displayName = who, share = Share)
         }
         if (held) rule.onNodeWithTag("recap.pager").performTouchInput { down(center) }
         rule.settleAndCapture("story-shell", name, device, dark)
@@ -126,3 +172,36 @@ private val October = RecapUiState.Ready(
 )
 
 private val Share = RecapShareState("October 2026", "Ivan", restoring = false, sharing = false, failed = false)
+
+private const val LongName = "Maximiliana Oyelaran-Featherstonehaugh"
+
+private val Tango = GameId("tango")
+private val Strands = GameId("strands")
+
+private val Games: (GameId) -> String = {
+    when (it) {
+        RecapFixtures.queens -> "Queens"
+        Tango -> "Tango"
+        RecapFixtures.zip -> "Zip"
+        RecapFixtures.sudoku -> "Mini Sudoku"
+        else -> "Strands"
+    }
+}
+
+private fun solvedOf(total: Int, vararg perGame: Pair<GameId, Int>) =
+    RecapCard.Solved(total, perGame.map { (game, count) -> RecapCard.Solved.PerGame(game, count) })
+
+private val FiveGames = solvedOf(
+    96, RecapFixtures.queens to 28, Tango to 24, RecapFixtures.zip to 22, RecapFixtures.sudoku to 14, Strands to 8,
+)
+
+private val CoverStory = October.copy(cards = listOf(FiveGames, fastest, streak, moments, friendsLoaded, totalTime), initialPage = 0)
+
+/** The month has exactly one solve: a four-card story, so five segments with the Share page. */
+private val EmptyStory = October.copy(cards = listOf(solvedOf(1, RecapFixtures.queens to 1), fastest, streak, totalTime), initialPage = 0)
+
+private val LongestStory = CoverStory.copy(
+    cards = listOf(
+        solvedOf(155, *listOf(RecapFixtures.queens, Tango, RecapFixtures.zip, RecapFixtures.sudoku, Strands).map { it to 31 }.toTypedArray()),
+    ) + CoverStory.cards.drop(1),
+)
