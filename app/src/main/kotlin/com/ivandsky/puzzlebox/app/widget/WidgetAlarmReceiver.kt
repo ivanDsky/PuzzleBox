@@ -11,8 +11,8 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 
 /**
- * The widget's own wake-up, not exported: redraws every placed widget and keeps the process alive until that finishes.
- * Nothing sends it yet; the midnight alarm that does, and its re-arm from here, come with ticket 07.
+ * The widget's own wake-up, not exported, sent by the rollover alarm: redraws every placed widget, arms the next rollover,
+ * and keeps the process alive until both are done.
  */
 class WidgetAlarmReceiver : BroadcastReceiver(), KoinComponent {
 
@@ -20,15 +20,23 @@ class WidgetAlarmReceiver : BroadcastReceiver(), KoinComponent {
         val pending = goAsync()
         get<CoroutineScope>().launch {
             try {
-                get<WidgetRefresher>().refreshAll()
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                // A failed redraw must not end the process from a receiver; the next wake-up draws again.
-                Log.w(TAG, "widgets not refreshed: ${e.message}")
+                refresh()
+                // After the redraw, so a failed redraw still leaves the next rollover armed.
+                get<ArmWidgetRollover>()()
             } finally {
                 pending?.finish()
             }
+        }
+    }
+
+    private suspend fun refresh() {
+        try {
+            get<WidgetRefresher>().refreshAll()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // A failed redraw must not end the process from a receiver; the next wake-up draws again.
+            Log.w(TAG, "widgets not refreshed: ${e.message}")
         }
     }
 
