@@ -3,4 +3,16 @@
     <string name="shortcut_up_next_short">Up next</string>
     <string name="shortcut_up_next_long">Play Up next</string>
     <string name="shortcut_game_long">Play %s</string>
+    <string name="widget_description">Today\'s puzzles, your streak and one tap to play.</string>
+    <string name="widget_up_next">Up next</string>
+    <string name="widget_up_next_game">Up next · %1$s</string>
+    <string name="widget_all_done">All done for today</string>
+    <plurals name="widget_streak">
+        <item quantity="one">%1$d day in a row · Best %2$d</item>
+        <item quantity="other">%1$d days in a row · Best %2$d</item>
+    </plurals>
+    <!-- Picker preview only (widget_preview.xml): a mixed day, so the picker shows the widget with something in it. -->
+    <string name="widget_preview_streak">3 days in a row · Best 12</string>
+    <string name="widget_preview_freezes">2</string>
+    <string name="widget_preview_up_next">Up next · Queens</string>
 </resources>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget ring, offline: Today's dashed outline (2 stroke, 3 on and 5 off). A vector cannot dash a stroke, so the 20 dashes are drawn as arcs, one every 18 degrees from 3 o'clock. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="56dp"
+    android:height="56dp"
+    android:viewportWidth="56"
+    android:viewportHeight="56">
+    <path
+        android:pathData="M53.50,28.00A25.5,25.5 0 0 1 53.32,30.99M52.25,35.88A25.5,25.5 0 0 1 51.16,38.67M48.63,42.99A25.5,25.5 0 0 1 46.73,45.31M42.99,48.63A25.5,25.5 0 0 1 40.46,50.25M35.88,52.25A25.5,25.5 0 0 1 32.98,53.01M28.00,53.50A25.5,25.5 0 0 1 25.01,53.32M20.12,52.25A25.5,25.5 0 0 1 17.33,51.16M13.01,48.63A25.5,25.5 0 0 1 10.69,46.73M7.37,42.99A25.5,25.5 0 0 1 5.75,40.46M3.75,35.88A25.5,25.5 0 0 1 2.99,32.98M2.50,28.00A25.5,25.5 0 0 1 2.68,25.01M3.75,20.12A25.5,25.5 0 0 1 4.84,17.33M7.37,13.01A25.5,25.5 0 0 1 9.27,10.69M13.01,7.37A25.5,25.5 0 0 1 15.54,5.75M20.12,3.75A25.5,25.5 0 0 1 23.02,2.99M28.00,2.50A25.5,25.5 0 0 1 30.99,2.68M35.88,3.75A25.5,25.5 0 0 1 38.67,4.84M42.99,7.37A25.5,25.5 0 0 1 45.31,9.27M48.63,13.01A25.5,25.5 0 0 1 50.25,15.54M52.25,20.12A25.5,25.5 0 0 1 53.01,23.02"
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="2" />
+</vector>

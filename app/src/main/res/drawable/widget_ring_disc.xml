@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget ring, solved: Today's plain accent disc out to the track's outer edge (radius 27 on the 56 box). Tint it with the accent, the glyph with onAccent. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="56dp"
+    android:height="56dp"
+    android:viewportWidth="56"
+    android:viewportHeight="56">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M1,28a27,27 0 1,0 54,0a27,27 0 1,0 -54,0Z" />
+</vector>
