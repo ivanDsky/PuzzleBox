@@ -8,8 +8,8 @@ import com.ivandsky.puzzlebox.model.GameId
 /**
  * One card's story page: the one place a [RecapCard] becomes a page. A new card is a new variant, so this `when` stops
  * compiling until it has its page. [periodLabel] names the period; [gameName] is a game's display name;
- * [onWatchReplay] opens the replay of a Fastest solve row that has one; a month card shows its [monthPlace], and the year
- * finale its [displayName] and an [onShare] that moves on to the Share page.
+ * [onWatchReplay] opens the replay of a Fastest solve row that has one; a month card shows its [monthPlace], the year
+ * finale its [displayName] and an [onShare] that moves on to the Share page, and Fastest the game at row [sub], one page each.
  */
 @Composable
 internal fun RecapCardPage(
@@ -21,11 +21,12 @@ internal fun RecapCardPage(
     monthPlace: MonthPlace? = null,
     displayName: String? = null,
     onShare: () -> Unit = {},
+    sub: Int = 0,
 ) {
     when (card) {
         is RecapCard.Solved -> SolvedCardPage(card, periodLabel, gameName, modifier)
         is RecapCard.Month -> MonthCardPage(card, periodLabel, gameName, modifier, monthPlace)
-        is RecapCard.Fastest -> FastestCardPage(card, periodLabel, gameName, onWatchReplay, modifier)
+        is RecapCard.Fastest -> FastestCardPage(card, periodLabel, gameName, onWatchReplay, modifier, sub)
         is RecapCard.Streak -> StreakCardPage(card, periodLabel, modifier)
         is RecapCard.Moments -> MomentsCardPage(card, periodLabel, gameName, modifier)
         is RecapCard.TotalTime -> TotalTimeCardPage(card, periodLabel, modifier)

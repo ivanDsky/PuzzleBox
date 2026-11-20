@@ -3,60 +3,37 @@ package com.ivandsky.puzzlebox.insights.recap
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
-import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteEntry
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.designsystem.SwipeMotion
 import com.ivandsky.puzzlebox.designsystem.colors
-import com.ivandsky.puzzlebox.designsystem.detectSwipe
 import com.ivandsky.puzzlebox.designsystem.formatDuration
-import com.ivandsky.puzzlebox.designsystem.ink
-import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
-import com.ivandsky.puzzlebox.designsystem.swipeStep
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.model.GameId
 
 /**
- * The Fastest solve page: one mini-card per game played, in game order, starting at [initialGame], each in the accent of its game's brand (Neutral until the route provides them). A swipe steps
- * through the games inside the card, the game tabs say where it is and jump to a game; past the last game a forward swipe (and before the first
- * a back one) is left to the deck. A tap is the deck's, so the replay pill is the only thing here that takes one (A5:
- * an imported time has no pill). Reduced motion crossfades between games.
+ * One page of the Fastest solve card: game [sub]'s page, on its brand's accent (Neutral until the route provides the
+ * brands). The deck steps between the games as between cards, so this draws only the one; the replay pill is the only
+ * thing on it that takes a tap (A5: an imported time has none).
  */
 @Composable
 internal fun FastestCardPage(
@@ -65,69 +42,20 @@ internal fun FastestCardPage(
     gameName: (GameId) -> String,
     onWatchReplay: (RecapCard.Fastest.Row) -> Unit,
     modifier: Modifier = Modifier,
-    initialGame: Int = 0,
+    sub: Int = 0,
 ) {
-    val ink = PaletteEntry.Fastest.ink
-    val brands = LocalGameBrands.current
-    val reduced = rememberReducedMotion()
-    val scope = rememberCoroutineScope()
-    val density = LocalDensity.current
-    val last = card.rows.lastIndex
-    val step = remember { GameStep(initialGame.coerceIn(0, last)) }
-    var widthPx by remember { mutableFloatStateOf(1f) }
-    val commitPx = with(density) { SwipeMotion.CommitCap.toPx() }
-    val flingPx = with(density) { SwipeMotion.FlingVelocity.toPx() }
-    val steps = Modifier.pointerInput(last, reduced) {
-        detectSwipe(
-            canTake = { travel -> if (travel < 0) step.game < last else step.game > 0 },
-            onDrag = { dx -> if (!reduced) step.dragBy(dx) },
-            onEnd = { drag, velocity ->
-                val by = swipeStep(drag, velocity, widthPx, flingPx, minOf(widthPx * SwipeMotion.CommitFraction, commitPx))
-                step.go(scope, (step.game + by).coerceIn(0, last), reduced)
-            },
+    val row = card.rows.getOrNull(sub) ?: return
+    val brand = LocalGameBrands.current(row.game)
+    Box(modifier.fillMaxSize().testTag("recap.fastest")) {
+        FastestGameCard(
+            row,
+            gameName(row.game),
+            periodLabel,
+            brand.glyph,
+            brand.accent.colors(),
+            onWatchReplay = { onWatchReplay(row) },
+            modifier = Modifier.fillMaxSize(),
         )
-    }
-    val names = card.rows.map { gameName(it.game) }
-    val tabs: @Composable (Modifier) -> Unit = { m -> FastestGameTabs(names, step.game, onSelect = { index -> step.go(scope, index, reduced) }, modifier = m) }
-    BoxWithConstraints(modifier.fillMaxSize()) {
-        // Wide, the tabs sit in the title row where the pips were (tablet); narrow, they take a row under the title.
-        val wide = maxWidth >= WideTabsMinWidth
-        Column(Modifier.fillMaxSize().padding(horizontal = Spacing.lg).padding(top = Spacing.lg).testTag("recap.fastest")) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-                Column {
-                    Text(periodLabel.uppercase(), style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.2.sp), color = ink)
-                    Text("Fastest solves", style = MaterialTheme.typography.headlineMedium, color = ink, textAlign = TextAlign.Start)
-                }
-                if (wide) Box(Modifier.weight(1f).padding(start = Spacing.lg), contentAlignment = Alignment.CenterEnd) { tabs(Modifier) }
-            }
-            if (!wide) tabs(Modifier.fillMaxWidth().padding(top = Spacing.sm))
-            Box(
-                Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(top = Spacing.md, bottom = Spacing.md)
-                    .onSizeChanged { widthPx = it.width.toFloat() }
-                    .then(if (last > 0) steps else Modifier)
-                    .testTag("recap.fastest.games"),
-            ) {
-                // The card leaving draws over the one coming in on a forward step, under it on a back one.
-                val layers = listOfNotNull(step.leaving?.let { Triple(step.leavingKey, it, true) }, Triple(step.key, step.game, false))
-                for ((cardKey, index, out) in if (step.forward) layers.reversed() else layers) {
-                    key(cardKey) {
-                        val row = card.rows[index]
-                        FastestGameCard(
-                            row, gameName(row.game), brands(row.game).accent.colors().accent,
-                            leaving = out,
-                            onWatchReplay = { onWatchReplay(row) },
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .then(if (out) Modifier.clearAndSetSemantics {} else Modifier)
-                                .graphicsLayer { with(step) { if (out) leavingLayer(reduced) else enteringLayer(reduced) } },
-                        )
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -219,6 +147,5 @@ internal fun FastestCardFact(
     }
 }
 
-private val WideTabsMinWidth = 600.dp
 private val RowMinHeight = 56.dp
 private val PlaySlot = 32.dp

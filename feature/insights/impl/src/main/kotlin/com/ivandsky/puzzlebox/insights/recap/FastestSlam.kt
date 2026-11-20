@@ -74,7 +74,6 @@ internal class Slam(private val timeMs: Long, private val averageMs: Long?, priv
             if (odometer.hours) launch { odometer.hourColon.animateTo(1f, tween(MotionTokens.DurationShort, easing = MotionTokens.EasingLinear)) }
             if (averageMs == null) {
                 climb(timeMs)
-                odometer.settled = true
                 rise(firstSolve, 0)
                 popIn()
                 return@coroutineScope
@@ -98,14 +97,6 @@ internal class Slam(private val timeMs: Long, private val averageMs: Long?, priv
             }
             popIn()
         }
-    }
-
-    /** The card is leaving mid-slam: everything jumps to its end, the streaks gone (the prototype's `finalSlab`). */
-    suspend fun finish() {
-        listOf(top, meta, cta, firstSolve, peel, strike, ghostLabel, stamp, popAlpha, popScale).forEach { it.snapTo(1f) }
-        (streaks + recoil + pulse).forEach { it.snapTo(0f) }
-        ghostShown = true
-        odometer.settled = true
     }
 
     /** The recoil's offset: down [RecapMotion.SlamRecoil], up [RecapMotion.SlamRecoilBack], back to rest. */
@@ -153,11 +144,14 @@ internal class Slam(private val timeMs: Long, private val averageMs: Long?, priv
     private val stampSpring = spring<Float>(MotionTokens.StampSpringDamping, MotionTokens.StampSpringStiffness)
 }
 
-/** A [Slam] for [row] that plays once its card arrives, or jumps to its end once the card is [leaving]. */
+/**
+ * A [Slam] for [row] that plays once its page arrives: the deck composes a page afresh when it comes up from below and
+ * when the player replays its entrance, and a page thrown away keeps its frame as it flies.
+ */
 @Composable
-internal fun rememberSlam(row: RecapCard.Fastest.Row, instant: Boolean, leaving: Boolean): Slam {
+internal fun rememberSlam(row: RecapCard.Fastest.Row, instant: Boolean): Slam {
     val slam = remember(row) { Slam(row.timeMs, row.averageMs, instant) }
-    LaunchedEffect(slam, leaving) { if (leaving) slam.finish() else slam.play(GameStepArriveBase) }
+    LaunchedEffect(slam) { slam.play(GameStepArriveBase) }
     return slam
 }
 

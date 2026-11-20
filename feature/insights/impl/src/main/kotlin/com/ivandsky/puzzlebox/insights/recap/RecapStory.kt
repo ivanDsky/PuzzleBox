@@ -36,11 +36,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
-import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteEntry
 import com.ivandsky.puzzlebox.designsystem.RecapMotion
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.designsystem.field
-import com.ivandsky.puzzlebox.designsystem.ink
 import com.ivandsky.puzzlebox.designsystem.pressScale
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
@@ -51,7 +48,8 @@ import com.ivandsky.puzzlebox.model.GameId
 
 /**
  * The recap as a story on [deck]: a cover ([RecapCover], made out for [displayName] when there is one) and then its
- * pages, dealt as a stack of cards ([RecapDeck]) under a progress strip, a replay button that plays the card's entrance
+ * pages, dealt as a stack of cards ([RecapDeck]) under a progress strip with a segment per page (Fastest has one per
+ * game), a replay button that plays the page's entrance
  * again (on the Share page, the end of the story, it replays the whole story from the cover), and a close button. The
  * top card's field fills the story behind them and the chrome takes its ink; [twoPane] insets the chrome a little more,
  * as a tablet's left pane does. The cover has no replay. Holding the deck hides that chrome, and the field with it, until
@@ -75,7 +73,7 @@ internal fun RecapStory(
     twoPane: Boolean = false,
     coverRise: CoverRise? = null,
 ) {
-    val palette = recapPalette(cards, deck)
+    val palette = pagePalette(cards, deck.current)
     val reduced = rememberReducedMotion()
     val chrome by animateFloatAsState(
         targetValue = if (deck.holding) 0f else 1f,
@@ -116,7 +114,7 @@ internal fun RecapStory(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                 ) {
                     if (!deck.onCover) {
-                        if (deck.page < cards.size) {
+                        if ((deck.current?.cardIndex ?: 0) < cards.size) {
                             ChromeButton(PuzzleIcons.Retry, "Replay card", "recap.replay", reduced, turn) { deck.restartEntrance() }
                         } else {
                             // The Share page is the end of the story: ↻ goes back to the start.
@@ -128,16 +126,16 @@ internal fun RecapStory(
             }
             RecapDeck(
                 deck = deck,
-                palette = { at -> if (at == 0) PaletteEntry.Cover else pagePalette(cards, at - 1) },
+                palette = { at -> pagePalette(cards, deck.pageAt(at)) },
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
                     .padding(start = Spacing.lg, end = Spacing.lg)
                     .padding(bottom = Spacing.xl),
-                yearFlick = { at -> cards.getOrNull(at - 1) is RecapCard.Month },
+                yearFlick = { at -> deck.pageAt(at)?.let { cards.getOrNull(it.cardIndex) } is RecapCard.Month },
             ) { at ->
-                val page = at - 1
-                if (at == 0) {
+                val page = deck.pageAt(at)
+                if (page == null) {
                     if (coverRise?.waiting != true) {
                         RecapCover(
                             title = coverTitle(period, periodLabel),
@@ -147,10 +145,11 @@ internal fun RecapStory(
                             modifier = coverRise?.modifier ?: Modifier,
                         )
                     }
-                } else if (page < cards.size) {
+                } else if (page.cardIndex < cards.size) {
                     RecapCardPage(
-                        cards[page], periodLabel, gameName, onWatchReplay, Modifier.fillMaxSize(),
-                        monthPlace = monthPlaceOf(cards, page), displayName = displayName, onShare = { deck.forward() },
+                        cards[page.cardIndex], periodLabel, gameName, onWatchReplay, Modifier.fillMaxSize(),
+                        monthPlace = monthPlaceOf(cards, page.cardIndex), displayName = displayName, onShare = { deck.forward() },
+                        sub = page.sub,
                     )
                 } else if (share != null) {
                     ShareCardPage(cards, gameName, share, onShare, Modifier.fillMaxSize())
@@ -159,7 +158,7 @@ internal fun RecapStory(
             // A year deck keeps the foot's row on every card, so the deck does not resize between pages.
             if (cards.any { it is RecapCard.Month || it is RecapCard.YearFinale }) {
                 Box(Modifier.fillMaxWidth().graphicsLayer { alpha = chrome }.padding(horizontal = Spacing.lg).padding(bottom = Spacing.md).heightIn(min = FootHeight)) {
-                    deckFootOf(cards, deck.position - 1)?.let { DeckFoot(it) }
+                    deckFootOf(cards, deck.current?.cardIndex ?: -1)?.let { DeckFoot(it) }
                 }
             }
         }

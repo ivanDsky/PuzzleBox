@@ -46,7 +46,7 @@ import kotlinx.coroutines.flow.update
  * The title every card carries is read from the puzzle day when the story is ready ([RecapUiState.Ready.title]).
  *
  * Saved state holds the page the player is on, a position and never a number: after process death the facts are
- * computed again and the story reopens on that page, kept inside the cards and the Share page after them.
+ * computed again and the story reopens on that page, kept inside the pages (each Fastest game is one) and the Share page.
  */
 internal class RecapViewModel(
     private val period: RecapPeriod,
@@ -115,7 +115,7 @@ internal class RecapViewModel(
             val saved = savedState.get<Int>(PAGE_KEY) ?: 0
             val today = puzzleDay()
             val stamped = cards.map { if (it is RecapCard.Streak) it.copy(today = today) else it }
-            RecapUiState.Ready(period, period.title(today), stamped, initialPage = saved.coerceIn(0, cards.size))
+            RecapUiState.Ready(period, period.title(today), stamped, initialPage = saved.coerceIn(0, pagesOf(cards, share = true).lastIndex))
         }
 
     private companion object {

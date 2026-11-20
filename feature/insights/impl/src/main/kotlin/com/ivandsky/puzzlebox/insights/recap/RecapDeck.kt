@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -34,11 +36,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import com.ivandsky.puzzlebox.designsystem.EdgePull
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
-import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteEntry
 import com.ivandsky.puzzlebox.designsystem.RecapMotion
 import com.ivandsky.puzzlebox.designsystem.SwipeMotion
-import com.ivandsky.puzzlebox.designsystem.field
-import com.ivandsky.puzzlebox.designsystem.plate
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.swipeStep
 import kotlin.math.abs
@@ -58,13 +57,14 @@ import kotlinx.coroutines.launch
  * tilt and rubber-bands past the first or last page; a hold slides the top card down to show the next. Reduced motion
  * swaps cards with a fade and does not follow the finger.
  *
- * [yearFlick] tells which positions throw like a month of a year (longer, steeper, and the next card springs up); [face] draws a card inside its frame and [palette] colours it, both by [RecapDeckState.position] (the cover is 0). A face starts afresh when it comes up from below and when
- * [RecapDeckState.entrance] bumps, so its entrance plays then, and never restarts while it is thrown away.
+ * [yearFlick] tells which positions throw like a month of a year (longer, steeper, and the next card springs up); [face] draws a card inside its frame and [palette] colours it, both by [RecapDeckState.position] (the cover is 0). A face sits on its palette's plate inside a rim of its field, or fills the card edge to edge on a flat palette's field. A face starts afresh when it comes up from below and when
+ * [RecapDeckState.entrance] bumps, so its entrance plays then, and never restarts while it is thrown away. Only the top
+ * face is live ([LocalCardLive]): one being thrown off or faded out takes no tap.
  */
 @Composable
 internal fun RecapDeck(
     deck: RecapDeckState,
-    palette: (position: Int) -> PaletteEntry,
+    palette: @Composable (position: Int) -> RecapPagePalette,
     modifier: Modifier = Modifier,
     yearFlick: (position: Int) -> Boolean = { false },
     face: @Composable (position: Int) -> Unit,
@@ -191,8 +191,11 @@ internal fun RecapDeck(
                     .then(if (onTop) Modifier else Modifier.clearAndSetSemantics {}),
             ) {
                 if (index != dealFace || !deal.faceDown) {
-                    Box(Modifier.fillMaxSize().padding(CardRim).clip(MaterialTheme.shapes.large).background(entry.plate)) {
-                        key(index <= top, deck.entrance) { face(index) }
+                    val inner = if (entry.flat) Modifier.fillMaxSize() else Modifier.fillMaxSize().padding(CardRim).clip(MaterialTheme.shapes.large).background(entry.plate)
+                    Box(inner) {
+                        CompositionLocalProvider(LocalCardLive provides onTop) {
+                            key(index <= top, deck.entrance) { face(index) }
+                        }
                     }
                 }
             }
@@ -201,6 +204,9 @@ internal fun RecapDeck(
 }
 
 private fun throwTravel(yearFlick: Boolean): Float = if (yearFlick) RecapMotion.YearThrowTravel else RecapMotion.ThrowTravel
+
+/** Whether the face drawn here is the deck's top card; a face being thrown off or faded out keeps its buttons from taking a tap. */
+internal val LocalCardLive = compositionLocalOf { true }
 
 /** The finger's pull on the top card, px: followed while dragging, rubber-banded past the ends, settled when let go. */
 private class DeckDrag(private val scope: CoroutineScope) {

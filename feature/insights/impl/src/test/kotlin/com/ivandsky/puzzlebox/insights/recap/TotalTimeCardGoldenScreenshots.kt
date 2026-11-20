@@ -97,7 +97,8 @@ class TotalTimeCardGoldenScreenshots {
 
     private fun capture(state: String, device: String, dark: Boolean) {
         val (title, cards) = story(state)
-        val ui = RecapUiState.Ready(period = if (state == "year") RecapFixtures.year2026 else RecapFixtures.november, title = title, cards = cards, initialPage = cards.indexOfFirst { it is RecapCard.TotalTime })
+        val ui = RecapUiState.Ready(period = if (state == "year") RecapFixtures.year2026 else RecapFixtures.november, title = title, cards = cards, initialPage = 0)
+            .onCard(cards.indexOfFirst { it is RecapCard.TotalTime })
         rule.showGolden(dark = dark) {
             RecapScreen(ui, title, gameName, onPage = {}, onWatchReplay = {}, onClose = {})
         }

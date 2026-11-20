@@ -16,6 +16,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
@@ -175,12 +176,12 @@ private fun RecapReady(
     coverRise: CoverRise?,
     modifier: Modifier = Modifier,
 ) {
-    val pageCount = state.cards.size + if (share == null) 0 else 1
-    // A fresh open starts on the cover; a saved page past the first card resumes on that card. A story grown out of its
+    val pages = remember(state.cards, share != null) { pagesOf(state.cards, share != null) }
+    // A fresh open starts on the cover; a saved page past the first resumes on that page. A story grown out of its
     // tile arrives by the grow, so its cards are not dealt in as well.
     val deck = rememberSaveable(saver = RecapDeckState.Saver) {
-        RecapDeckState(pageCount, state.initialPage, coverFirst = true).also { if (coverRise?.grown == true) it.dealt() }
-    }.also { it.resize(pageCount) }
+        RecapDeckState(pages, state.initialPage, coverFirst = true).also { if (coverRise?.grown == true) it.dealt() }
+    }.also { it.resize(pages) }
     LaunchedEffect(deck) { snapshotFlow { deck.page }.collect(onPage) }
     val periodLabel = state.title
     BoxWithConstraints(modifier.fillMaxSize()) {

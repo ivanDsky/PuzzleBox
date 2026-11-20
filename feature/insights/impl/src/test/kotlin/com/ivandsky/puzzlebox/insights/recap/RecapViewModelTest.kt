@@ -260,6 +260,16 @@ class RecapViewModelTest {
     }
 
     @Test
+    fun `a saved page counts each Fastest game as a page and is kept on the share page after them`() = runTest {
+        val cards = listOf(solved(1), fastestOf(3))
+
+        viewModel(SavedStateHandle(mapOf("recap.page" to 9)), listOf(FakeRecapFactProvider(cards))).uiState.test {
+            assertEquals(RecapUiState.Loading, awaitItem())
+            assertEquals("Solved, three games, then Share", 4, (awaitItem() as RecapUiState.Ready).initialPage)
+        }
+    }
+
+    @Test
     fun `a history read that fails is an Error, and Try again loads again and reopens on the saved page`() = runTest {
         fixture.store(fixture.solve(alpha, day(1)))
         var failing = true

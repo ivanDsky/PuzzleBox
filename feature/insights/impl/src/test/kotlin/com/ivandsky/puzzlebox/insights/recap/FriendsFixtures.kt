@@ -42,5 +42,5 @@ internal object FriendsFixtures {
         RecapFixtures.moments,
         friends,
         RecapFixtures.totalTime,
-    ).copy(initialPage = 4)
+    ).onCard(4)
 }

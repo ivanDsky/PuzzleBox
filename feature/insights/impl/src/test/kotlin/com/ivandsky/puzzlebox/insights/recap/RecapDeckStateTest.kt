@@ -1,19 +1,29 @@
 package com.ivandsky.puzzlebox.insights.recap
 
 import androidx.compose.runtime.saveable.SaverScope
+import androidx.compose.ui.graphics.Color
+import com.ivandsky.puzzlebox.designsystem.GameAccent
 import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteEntry
+import com.ivandsky.puzzlebox.designsystem.RecapCardColors
+import com.ivandsky.puzzlebox.designsystem.recapCardColors
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
+import com.ivandsky.puzzlebox.model.GameId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /** The deck's moves without a screen: where the story is after each step, jump, replay and late page. */
 class RecapDeckStateTest {
 
+    /** Solved, Fastest with three games, Total time, then the Share page: six pages. */
+    private val cards = listOf(RecapCard.Solved(total = 9, perGame = emptyList()), fastestOf(3), RecapFixtures.totalTime)
+    private val pages = pagesOf(cards, share = true)
+
     @Test
     fun `forward and back walk the pages and stop at both ends`() {
-        val deck = RecapDeckState(pageCount = 3)
+        val deck = RecapDeckState(cardPages(3))
 
         assertFalse("first card: nowhere to go back to", deck.back())
         assertTrue(deck.forward())
@@ -27,7 +37,7 @@ class RecapDeckStateTest {
 
     @Test
     fun `back from the first card is left to the screen so system back leaves the recap`() {
-        val deck = RecapDeckState(pageCount = 3)
+        val deck = RecapDeckState(cardPages(3))
 
         assertFalse(deck.canStepBack)
         deck.forward()
@@ -35,8 +45,8 @@ class RecapDeckStateTest {
     }
 
     @Test
-    fun `jumpTo lands on the page, reports its direction and stays inside the pages`() {
-        val deck = RecapDeckState(pageCount = 4)
+    fun `jumpTo lands on the card's page, reports its direction and stays inside the pages`() {
+        val deck = RecapDeckState(cardPages(4))
 
         deck.jumpTo(2)
         assertEquals(2, deck.page)
@@ -51,15 +61,16 @@ class RecapDeckStateTest {
 
     @Test
     fun `a saved page past the last clamps to the last page`() {
-        assertEquals(4, RecapDeckState(pageCount = 5, initialPage = 40).page)
-        assertEquals(1, RecapDeckState(pageCount = 5, initialPage = 1).page)
+        assertEquals(4, RecapDeckState(cardPages(5), initialPage = 40).page)
+        assertEquals(1, RecapDeckState(cardPages(5), initialPage = 1).page)
     }
 
     @Test
     fun `a fresh open starts on the cover and the first step reveals card one`() {
-        val deck = RecapDeckState(pageCount = 3, coverFirst = true)
+        val deck = RecapDeckState(cardPages(3), coverFirst = true)
 
         assertTrue(deck.onCover)
+        assertNull(deck.current)
         assertEquals(0, deck.filledSegments)
         assertEquals(RecapDeckState.NoFact, deck.selectedFact)
         assertFalse(deck.canStepBack)
@@ -71,7 +82,7 @@ class RecapDeckStateTest {
 
     @Test
     fun `a restored story resumes on its saved card with the cover dismissed`() {
-        val deck = RecapDeckState(pageCount = 3, initialPage = 2, coverFirst = true)
+        val deck = RecapDeckState(cardPages(3), initialPage = 2, coverFirst = true)
 
         assertFalse(deck.onCover)
         assertEquals(2, deck.page)
@@ -79,7 +90,7 @@ class RecapDeckStateTest {
 
     @Test
     fun `replay returns to the cover and clears the selected fact`() {
-        val deck = RecapDeckState(pageCount = 3)
+        val deck = RecapDeckState(cardPages(3))
         deck.jumpTo(2)
 
         deck.replay()
@@ -92,7 +103,7 @@ class RecapDeckStateTest {
 
     @Test
     fun `a jump off the cover dismisses it`() {
-        val deck = RecapDeckState(pageCount = 3, coverFirst = true)
+        val deck = RecapDeckState(cardPages(3), coverFirst = true)
 
         deck.jumpTo(1)
 
@@ -102,7 +113,7 @@ class RecapDeckStateTest {
 
     @Test
     fun `hold is a flag the moves leave alone`() {
-        val deck = RecapDeckState(pageCount = 3)
+        val deck = RecapDeckState(cardPages(3))
 
         deck.hold(true)
         deck.forward()
@@ -113,13 +124,15 @@ class RecapDeckStateTest {
     }
 
     @Test
-    fun `a fresh open deals once, and a restored story is not dealt again`() {
-        val fresh = RecapDeckState(pageCount = 3, initialPage = 1)
+    fun `a fresh open deals once, and a restored story is not dealt again on the same pages`() {
+        val fresh = RecapDeckState(pages, initialPage = 3)
         val saved = with(RecapDeckState.Saver) { SaverScope { true }.save(fresh) }!!
         val restored = RecapDeckState.Saver.restore(saved)!!
 
         assertTrue(fresh.dealing)
-        assertEquals(1, restored.page)
+        assertEquals(3, restored.page)
+        assertEquals(pages, restored.pages)
+        assertEquals(RecapPage(1, 2), restored.current)
         assertFalse(restored.dealing)
         fresh.dealt()
         assertFalse(fresh.dealing)
@@ -127,7 +140,7 @@ class RecapDeckStateTest {
 
     @Test
     fun `replaying a card bumps its entrance and leaves the page where it is`() {
-        val deck = RecapDeckState(pageCount = 3, initialPage = 1)
+        val deck = RecapDeckState(cardPages(3), initialPage = 1)
 
         deck.restartEntrance()
 
@@ -137,49 +150,81 @@ class RecapDeckStateTest {
 
     @Test
     fun `a page arriving late grows the strip without moving the card on screen`() {
-        val deck = RecapDeckState(pageCount = 5, initialPage = 2)
+        val deck = RecapDeckState(cardPages(5), initialPage = 2)
 
-        deck.resize(6)
+        deck.resize(cardPages(6))
 
         assertEquals(6, deck.segmentCount)
         assertEquals(2, deck.page)
-        deck.resize(2)
+        deck.resize(cardPages(2))
         assertEquals(1, deck.page)
     }
 
     @Test
-    fun `the strip has one segment per page and Fastest is one segment however many games it holds`() {
-        val fastest = RecapCard.Fastest(
-            listOf(fastestRow("queens"), fastestRow("zip"), fastestRow("tango")),
-        )
-        val cards = listOf(RecapCard.Solved(total = 9, perGame = emptyList()), fastest, RecapFixtures.totalTime)
+    fun `the strip has one segment per page and Fastest one per game`() {
+        val deck = RecapDeckState(pages)
 
-        val deck = RecapDeckState(pageCount = cards.size + 1)
-
-        assertEquals(4, deck.segmentCount)
+        assertEquals(1 + 3 + 1 + 1, deck.segmentCount)
+        deck.jumpTo(1)
+        deck.forward()
+        assertEquals(3, deck.filledSegments)
     }
 
     @Test
-    fun `each card and the Share page paint with their own palette entry`() {
-        val cards = listOf(RecapCard.Solved(total = 1, perGame = emptyList()), RecapFixtures.totalTime)
-        val deck = RecapDeckState(pageCount = 3, coverFirst = true)
+    fun `every game page selects the Fastest fact, and the page after it the next card`() {
+        val deck = RecapDeckState(pages)
 
-        assertEquals(PaletteEntry.Cover, recapPalette(cards, deck))
+        assertEquals(0, deck.selectedFact)
+        for (game in 0 until 3) {
+            deck.forward()
+            assertEquals(RecapPage(1, game), deck.current)
+            assertEquals(1, deck.selectedFact)
+        }
         deck.forward()
-        assertEquals(PaletteEntry.Solved, recapPalette(cards, deck))
+        assertEquals(2, deck.selectedFact)
         deck.forward()
-        assertEquals(PaletteEntry.TotalTime, recapPalette(cards, deck))
-        deck.forward()
-        assertEquals(PaletteEntry.Share, recapPalette(cards, deck))
+        assertEquals("the Share page is past the last card", 3, deck.selectedFact)
     }
 
-    private fun fastestRow(game: String) = RecapCard.Fastest.Row(
-        game = com.ivandsky.puzzlebox.model.GameId(game),
-        timeMs = 1_000,
-        day = java.time.LocalDate.of(2026, 11, 1),
-        puzzleNumber = null,
-        hasReplay = false,
-        averageMs = null,
-        solves = 1,
-    )
+    @Test
+    fun `a jump to Fastest lands on its first game and a jump past it skips its games`() {
+        val deck = RecapDeckState(pages, coverFirst = true)
+
+        deck.jumpTo(2)
+        assertEquals(4, deck.page)
+        assertEquals(RecapPage(2), deck.current)
+        deck.jumpTo(1)
+        assertEquals(1, deck.page)
+        assertEquals(RecapPage(1, 0), deck.current)
+        assertEquals(DeckMove.Back, deck.move)
+    }
+
+    @Test
+    fun `each card and the Share page paint with their own palette entry, each game its own accent edge to edge`() {
+        val deck = RecapDeckState(pages, coverFirst = true)
+        val palette = { pagePalette(cards, deck.current, dark = false, accent = ::accentOf) }
+        val entry = { it: PaletteEntry -> RecapPagePalette(recapCardColors(it, darkTheme = false)) }
+
+        assertEquals(entry(PaletteEntry.Cover), palette())
+        deck.forward()
+        assertEquals(entry(PaletteEntry.Solved), palette())
+        for (game in 0 until 3) {
+            deck.forward()
+            val accent = accentOf((cards[1] as RecapCard.Fastest).rows[game].game)
+            assertEquals(RecapPagePalette(RecapCardColors(accent.accent, accent.onAccent, accent.accent), flat = true), palette())
+        }
+        deck.forward()
+        assertEquals(entry(PaletteEntry.TotalTime), palette())
+        deck.forward()
+        assertEquals(entry(PaletteEntry.Share), palette())
+    }
+
+    /** A distinct accent per game, so each game page is told apart by its color. */
+    private fun accentOf(game: GameId): GameAccent {
+        val shade = game.value.hashCode().toLong() and 0xFFFFFF
+        return GameAccent(Color(0xFF000000 or shade), Color.Black, Color.White, Color.Black)
+    }
 }
+
+/** [count] cards, one page each and no Share page. */
+internal fun cardPages(count: Int): List<RecapPage> = List(count) { RecapPage(it) }

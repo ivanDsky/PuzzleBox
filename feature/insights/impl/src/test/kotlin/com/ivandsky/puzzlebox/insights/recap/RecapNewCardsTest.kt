@@ -12,13 +12,12 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.assertContentDescriptionContains
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.swipeLeft
-import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.test.performClick
+import androidx.compose.runtime.CompositionLocalProvider
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.insights.domain.recap.EarnedMoment
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
@@ -48,23 +47,20 @@ class RecapNewCardsTest {
 
     private val opened = mutableListOf<RecapCard.Fastest.Row>()
 
-    private fun show(card: RecapCard, names: (GameId) -> String = gameName) {
-        rule.setContent { PuzzleBoxTheme { RecapCardPage(card, "November 2026", names, onWatchReplay = { opened += it }) } }
+    private fun show(card: RecapCard, names: (GameId) -> String = gameName, sub: Int = 0) {
+        rule.setContent { PuzzleBoxTheme { RecapCardPage(card, "November 2026", names, onWatchReplay = { opened += it }, sub = sub) } }
         settle()
     }
 
     /** Lets a card's slam play out: its delays are not idling work, so the clock is moved by hand. */
     private fun settle() = rule.mainClock.advanceTimeBy(3_000)
 
-    private fun swipeCard(left: Boolean = true) =
-        rule.onNodeWithTag("recap.fastest.games").performTouchInput { if (left) swipeLeft() else swipeRight() }.also { settle() }
-
     @Test
     fun `fastest opens on the first game with its time, day and puzzle`() {
         show(fastest)
 
         rule.onNodeWithTag("recap.fastest").assertIsDisplayed()
-        rule.onNodeWithContentDescription("0:58").assertExists()
+        rule.onNodeWithTag("recap.fastest.card.zip").assertContentDescriptionContains("fastest 0:58", substring = true)
         rule.onNodeWithTag("recap.fastest.meta").assertTextContains("Nov 3 · Puzzle #212")
         rule.onNodeWithText("Zip").assertExists()
     }
@@ -81,11 +77,10 @@ class RecapNewCardsTest {
     }
 
     @Test
-    fun `a swipe steps to the next game and the pill replays that game`() {
-        show(fastest)
+    fun `each game is its own page and its pill replays that game`() {
+        show(fastest, sub = 1)
 
-        swipeCard()
-        rule.onNodeWithContentDescription("2:21").assertExists()
+        rule.onNodeWithTag("recap.fastest.card.queens").assertContentDescriptionContains("fastest 2:21", substring = true)
         rule.onNodeWithTag("recap.fastest.meta").assertTextContains("Nov 12 · Puzzle #190")
         rule.onNodeWithTag("recap.fastest.replay").performClick()
 
@@ -95,12 +90,9 @@ class RecapNewCardsTest {
 
     @Test
     fun `an imported game says so and has no replay to open`() {
-        show(fastest)
+        show(fastest, sub = 2)
 
-        swipeCard()
-        swipeCard()
-
-        rule.onNodeWithContentDescription("5:12").assertExists()
+        rule.onNodeWithTag("recap.fastest.card.sudoku").assertContentDescriptionContains("fastest 5:12", substring = true)
         rule.onNodeWithText("Imported from LinkedIn").assertExists()
         rule.onNodeWithTag("recap.fastest.replay").assertDoesNotExist()
         rule.onNode(hasTestTag("recap.fastest.card.sudoku").and(hasClickAction())).assertDoesNotExist()
@@ -108,22 +100,25 @@ class RecapNewCardsTest {
     }
 
     @Test
-    fun `a swipe past either end of the games keeps the card on its game`() {
-        show(fastest)
+    fun `a game with one solve says there is no average yet`() {
+        show(fastest, sub = 2)
 
-        swipeCard(left = false)
-        rule.onNodeWithContentDescription("0:58").assertExists()
-        repeat(4) { swipeCard() }
-        rule.onNodeWithContentDescription("5:12").assertExists()
+        rule.onNodeWithText("First solve — no average yet").assertExists()
     }
 
     @Test
-    fun `a game with one solve says there is no average yet`() {
-        show(fastest)
+    fun `a page that is being thrown away takes no tap on its replay pill`() {
+        rule.setContent {
+            PuzzleBoxTheme {
+                CompositionLocalProvider(LocalCardLive provides false) {
+                    RecapCardPage(fastest, "November 2026", gameName, onWatchReplay = { opened += it })
+                }
+            }
+        }
+        settle()
 
-        swipeCard()
-        swipeCard()
-        rule.onNodeWithText("First solve — no average yet").assertExists()
+        rule.onNodeWithTag("recap.fastest.replay").assertIsNotEnabled().performClick()
+        assertEquals(emptyList<RecapCard.Fastest.Row>(), opened)
     }
 
     @Test

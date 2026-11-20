@@ -10,17 +10,18 @@ import androidx.compose.runtime.setValue
 internal enum class DeckMove { Forward, Back }
 
 /**
- * Where the recap story is: a page (every card, then the Share page when there is one), an optional cover before the
- * first card, the way the last move went and whether the player is holding. Nothing here draws or animates; the deck,
- * the cover and the strip read it, and tests drive it without a screen.
+ * Where the recap story is: a page of [pages] (every card's, then the Share page when there is one), an optional cover
+ * before the first page, the way the last move went and whether the player is holding. Nothing here draws or animates;
+ * the deck, the cover and the strip read it, and tests drive it without a screen.
  *
- * [initialPage] is the saved card index and is clamped to the last page. With [coverFirst] a story opened on page 0
- * starts on the cover; a saved page past 0 resumes on that card with the cover already dismissed.
+ * [initialPage] is the saved page and is clamped to the last page. With [coverFirst] a story opened on page 0 starts on
+ * the cover; a saved page past 0 resumes on that page with the cover already dismissed.
  */
-internal class RecapDeckState(pageCount: Int, initialPage: Int = 0, coverFirst: Boolean = false) {
-    var pageCount by mutableIntStateOf(pageCount)
+internal class RecapDeckState(pages: List<RecapPage>, initialPage: Int = 0, coverFirst: Boolean = false) {
+    var pages by mutableStateOf(pages)
         private set
-    var page by mutableIntStateOf(initialPage.coerceIn(0, lastPage(pageCount)))
+    val pageCount: Int get() = pages.size
+    var page by mutableIntStateOf(initialPage.coerceIn(0, lastPage(pages.size)))
         private set
     var onCover by mutableStateOf(coverFirst && page == 0)
         private set
@@ -49,8 +50,14 @@ internal class RecapDeckState(pageCount: Int, initialPage: Int = 0, coverFirst: 
     /** Cards in the deck: the cover and every page. */
     val stackSize: Int get() = pageCount + 1
 
-    /** The tablet fact the list outlines: the current page, none on the cover. */
-    val selectedFact: Int get() = if (onCover) NoFact else page
+    /** The page on top, or null on the cover. */
+    val current: RecapPage? get() = pageAt(position)
+
+    /** The tablet fact the list outlines: the current page's card (Fastest on each of its games), none on the cover. */
+    val selectedFact: Int get() = current?.cardIndex ?: NoFact
+
+    /** The page at deck [position], the cover being 0 and null. */
+    fun pageAt(position: Int): RecapPage? = if (position == 0) null else pages.getOrNull(position - 1)
 
     /** Whether a step back stays inside the story; false on the cover and the first card, where back leaves the recap. */
     val canStepBack: Boolean get() = !onCover && page > 0
@@ -70,11 +77,12 @@ internal class RecapDeckState(pageCount: Int, initialPage: Int = 0, coverFirst: 
         return true
     }
 
-    /** Goes to [target], kept inside the pages, dismissing the cover. */
-    fun jumpTo(target: Int) {
-        val clamped = target.coerceIn(0, lastPage(pageCount))
-        move = if (clamped >= page) DeckMove.Forward else DeckMove.Back
-        page = clamped
+    /** Goes to the first page of the card at [fact] (Fastest's first game), kept inside the pages, dismissing the cover. */
+    fun jumpTo(fact: Int) {
+        val first = pages.indexOfFirst { it.cardIndex >= fact }
+        val target = if (first < 0) lastPage(pageCount) else first
+        move = if (target >= page) DeckMove.Forward else DeckMove.Back
+        page = target
         onCover = false
     }
 
@@ -98,21 +106,22 @@ internal class RecapDeckState(pageCount: Int, initialPage: Int = 0, coverFirst: 
     }
 
     /** Follows the story gaining a page (the friends card arrives late) without moving the one on screen; a loss clamps. */
-    fun resize(pageCount: Int) {
-        if (pageCount == this.pageCount) return
-        this.pageCount = pageCount
-        page = page.coerceAtMost(lastPage(pageCount))
+    fun resize(pages: List<RecapPage>) {
+        if (pages == this.pages) return
+        this.pages = pages
+        page = page.coerceAtMost(lastPage(pages.size))
     }
 
     companion object {
         const val NoFact = -1
 
-        /** Keeps the page and the cover across a configuration change or process death; a hold ends with the touch. */
+        /** Keeps the pages, the page and the cover across a configuration change or process death; a hold ends with the touch. */
         val Saver = listSaver<RecapDeckState, Any>(
-            save = { listOf(it.pageCount, it.page, it.onCover) },
+            save = { listOf(it.page, it.onCover, it.pages.flatMap { page -> listOf(page.cardIndex, page.sub) }.toIntArray()) },
             restore = { saved ->
-                RecapDeckState(saved[0] as Int, saved[1] as Int).also {
-                    it.onCover = saved[2] as Boolean
+                val flat = saved[2] as IntArray
+                RecapDeckState(List(flat.size / 2) { RecapPage(flat[2 * it], flat[2 * it + 1]) }, saved[0] as Int).also {
+                    it.onCover = saved[1] as Boolean
                     it.dealing = false
                 }
             },
