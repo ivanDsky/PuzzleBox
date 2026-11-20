@@ -26,8 +26,9 @@ import com.ivandsky.puzzlebox.app.shortcut.ShortcutIntents
 import com.ivandsky.puzzlebox.app.shortcut.ShortcutTarget
 
 /**
- * The home-screen widget, and the only class that draws it: the streak line and Today's rings, drawn once per render from one
- * [reader] read. Nothing in it changes on its own; a redraw is [WidgetRefresher]. Tapping anywhere opens Today.
+ * The home-screen widget, and the only class that draws it: the streak line, Today's rings and the Up next button, drawn once
+ * per render from one [reader] read. Nothing in it changes on its own; a redraw is [WidgetRefresher]. Tapping anywhere but
+ * the button opens Today.
  */
 class PuzzleBoxWidget(private val reader: WidgetStateReader) : GlanceAppWidget() {
 
@@ -45,28 +46,28 @@ private val DEFAULT_SIZE = DpSize(250.dp, 110.dp)
 /** About 5 by 3 cells and up: room for each game's name under its ring. */
 private val LARGE_SIZE = DpSize(320.dp, 180.dp)
 
+/** Default is 110dp tall: this much top and bottom, with a 24dp streak line and the 48dp button, leaves the rings 30dp. */
+private val COMPACT_VERTICAL_PADDING = 4.dp
+
 @Composable
 internal fun WidgetContent(state: WidgetState?) {
     val context = LocalContext.current
     val colors = remember(context) { WidgetColors(context) }
     // Responsive hands the content one of the declared sizes, the largest that fits.
     val size = LocalSize.current
+    val large = size.width >= LARGE_SIZE.width && size.height >= LARGE_SIZE.height
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
             .appWidgetBackground()
             .background(colors.of(R.color.widget_surface))
             .rounded()
-            .padding(12.dp)
+            .padding(horizontal = 12.dp, vertical = if (large) 12.dp else COMPACT_VERTICAL_PADDING)
             .clickable(actionStartActivity(ShortcutIntents.intent(context, ShortcutTarget.Today))),
     ) {
         WidgetStreakLine(state?.streak, colors)
-        WidgetRings(
-            rings = state?.rings,
-            large = size.width >= LARGE_SIZE.width && size.height >= LARGE_SIZE.height,
-            colors = colors,
-            modifier = GlanceModifier.defaultWeight(),
-        )
+        WidgetRings(rings = state?.rings, large = large, colors = colors, modifier = GlanceModifier.defaultWeight())
+        WidgetUpNextRow(state?.upNext ?: WidgetUpNext.Unknown, colors)
     }
 }
 

@@ -52,7 +52,8 @@ class WidgetRenderTest {
         return Drawn(descriptions, texts)
     }
 
-    private fun state(freezesHeld: Int?) = WidgetState(rings, WidgetStreak(days = 3, best = 12, freezesHeld = freezesHeld), WidgetUpNext.Done)
+    private fun state(freezesHeld: Int?, upNext: WidgetUpNext = WidgetUpNext.Done) =
+        WidgetState(rings, WidgetStreak(days = 3, best = 12, freezesHeld = freezesHeld), upNext)
 
     @Test
     fun `each ring says its game and where it stands`() {
@@ -60,7 +61,7 @@ class WidgetRenderTest {
 
         assertEquals(
             listOf("Zip, solved", "Queens, in progress", "Tango, not started", "Mini Sudoku, offline", "Strands, not started"),
-            drawn.descriptions,
+            drawn.descriptions.dropLast(1),
         )
     }
 
@@ -72,16 +73,27 @@ class WidgetRenderTest {
 
     @Test
     fun `the streak line shows the freeze count only when freezes are held`() {
-        assertEquals(listOf("3 days in a row · Best 12", "2"), draw(state(freezesHeld = 2)).texts)
-        assertEquals(listOf("3 days in a row · Best 12"), draw(state(freezesHeld = null)).texts)
+        assertEquals(listOf("3 days in a row · Best 12", "2"), draw(state(freezesHeld = 2)).texts.dropLast(1))
+        assertEquals(listOf("3 days in a row · Best 12"), draw(state(freezesHeld = null)).texts.dropLast(1))
     }
 
     @Test
-    fun `a failed read draws bare tracks and a blank streak line`() {
+    fun `a failed read draws bare tracks, a blank streak line and a plain Up next button`() {
         val drawn = draw(null)
 
-        assertTrue(drawn.descriptions.isEmpty())
-        assertTrue(drawn.texts.isEmpty())
+        assertEquals(listOf("Up next"), drawn.descriptions)
+        assertEquals(listOf("Up next"), drawn.texts)
+    }
+
+    @Test
+    fun `the button says what is up next, with the same words spoken`() {
+        val play = draw(state(freezesHeld = 2, upNext = WidgetUpNext.Play(GameId("queens"), "Queens")))
+        val done = draw(state(freezesHeld = 2, upNext = WidgetUpNext.Done))
+
+        assertEquals("Up next · Queens", play.texts.last())
+        assertEquals("Up next · Queens", play.descriptions.last())
+        assertEquals("All done for today", done.texts.last())
+        assertEquals("All done for today", done.descriptions.last())
     }
 
     private companion object {
