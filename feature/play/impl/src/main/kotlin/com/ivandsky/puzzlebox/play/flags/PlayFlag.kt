@@ -26,6 +26,12 @@ enum class PlayFlag(override val label: String, override val releaseDefault: Boo
      * beside "Open the lesson". Read only in [com.ivandsky.puzzlebox.play.LibraryViewModel] (ADR-0022 §3).
      */
     MakeOwnLink(label = "Game page: Make your own link in How to play (off: full-width Make one)", releaseDefault = false),
+
+    /**
+     * Launcher shortcuts (epic #1578): the long-press menu offers Play Up next and one entry per game. Read only in the
+     * app's shortcut DI (ADR-0022 §3).
+     */
+    AppShortcuts(label = "Launcher shortcuts: Play Up next and one per game", releaseDefault = false),
     ;
 
     /** The entry's own name: the stored override's key in `release_flags`. Never change it. */
