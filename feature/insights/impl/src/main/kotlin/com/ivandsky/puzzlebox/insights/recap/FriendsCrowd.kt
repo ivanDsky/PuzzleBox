@@ -1,6 +1,9 @@
 package com.ivandsky.puzzlebox.insights.recap
 
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.infiniteRepeatable
@@ -65,16 +68,7 @@ private val FewAvatar = 44.dp
 private val ManyAvatar = 32.dp
 private val YouSize = 72.dp
 private const val GoldenAngle = 2.3999631f
-private const val GatherMsPerFriend = 24
-private const val GatherCapMs = 480
-private const val GatherSettleMs = 520
-private const val BeatMs = MotionTokens.PulseDuration
-private const val PartAtMs = 2 * BeatMs
-private const val PartMs = 300
-private const val WobbleMs = 1100
-private const val DriftFromDp = 40f
 private const val SlumpDp = 10f
-private const val WobbleDp = 4f
 private const val SlumpAlpha = 0.5f
 private const val PartMinDp = 70
 private const val PartSpreadDp = 28
@@ -97,7 +91,7 @@ internal class FriendsClock(val gatherEndMs: Int, instant: Boolean, answered: Bo
 @Composable
 internal fun rememberFriendsClock(friends: Int, answered: Boolean): FriendsClock {
     val instant = rememberReducedMotion() || entranceSettled()
-    val clock = remember { FriendsClock(min(friends * GatherMsPerFriend, GatherCapMs) + GatherSettleMs, instant, answered) }
+    val clock = remember { FriendsClock(FriendsMotion.gatherEndMs(friends), instant, answered) }
     LaunchedEffect(instant) {
         if (instant) clock.gatherMs = clock.gatherEndMs.toFloat() else animate(0f, clock.gatherEndMs.toFloat(), animationSpec = tween(clock.gatherEndMs, easing = LinearEasing)) { v, _ -> clock.gatherMs = v }
     }
@@ -148,7 +142,7 @@ internal fun FriendsCrowd(
         val bob by rememberInfiniteTransition(label = "friends.wobble").animateFloat(
             initialValue = 0f,
             targetValue = 1f,
-            animationSpec = infiniteRepeatable(tween(WobbleMs, easing = LinearEasing), RepeatMode.Reverse),
+            animationSpec = infiniteRepeatable(tween(FriendsMotion.WobbleMs, easing = LinearEasing), RepeatMode.Reverse),
             label = "wobble",
         )
         bob
@@ -156,7 +150,7 @@ internal fun FriendsCrowd(
         0f
     }
     val extent = 2 * (radiusOf(count - 1, many) + avatar.value)
-    val step = min(GatherMsPerFriend, GatherCapMs / count)
+    val step = FriendsMotion.gatherStepMs(count)
     Box(
         modifier
             .requiredSize(extent.dp, extent.dp)
@@ -165,11 +159,11 @@ internal fun FriendsCrowd(
                 // Two rings leave "You" as the crowd parts, 140ms apart.
                 if (state != CrowdState.Loaded) return@drawBehind
                 repeat(2) { ring ->
-                    val t = ((clock.actMs - PartAtMs - ring * RecapMotion.RingStagger) / RecapMotion.RingDuration).coerceIn(0f, 1f)
+                    val t = ((clock.actMs - FriendsMotion.PartAtMs - ring * RecapMotion.RingStagger) / FriendsMotion.RingDuration).coerceIn(0f, 1f)
                     if (t > 0f && t < 1f) {
                         drawCircle(
                             ink.copy(alpha = lerp(RecapMotion.RingAlphaFrom, 0f, t)),
-                            radius = ringRadius.dp.toPx() * lerp(1f, RecapMotion.RingScale, t),
+                            radius = ringRadius.dp.toPx() * lerp(1f, FriendsMotion.RingScale, t),
                             center = Offset(size.width / 2, size.height / 2),
                             style = Stroke(2.dp.toPx()),
                         )
@@ -186,30 +180,30 @@ internal fun FriendsCrowd(
                 label = names.getOrNull(index)?.let(::initials),
                 size = avatar,
                 modifier = Modifier.graphicsLayer {
-                    val arrive = ((clock.gatherMs - start) / GatherSettleMs).coerceIn(0f, 1f)
-                    val drift = (1f - arrive) * DriftFromDp
+                    val arrive = cascade(clock.gatherMs - start)
                     val beat = beatScale(clock.actMs)
-                    val part = ((clock.actMs - PartAtMs) / PartMs).coerceIn(0f, 1f).takeIf { state == CrowdState.Loaded } ?: 0f
+                    val part = ((clock.actMs - FriendsMotion.PartAtMs) / FriendsMotion.PartMs).coerceIn(0f, 1f).takeIf { state == CrowdState.Loaded } ?: 0f
                     val away = at + part * (PartMinDp + (index * 13) % PartSpreadDp)
                     val slump = if (state == CrowdState.Unavailable) SlumpDp.dp.toPx() * arrive else 0f
-                    val bob = if (wobbling) -WobbleDp.dp.toPx() * (if (index % 2 == 0) wobble else 1f - wobble) else 0f
-                    translationX = cos(angle) * (away + drift).dp.toPx()
-                    translationY = sin(angle) * (away + drift).dp.toPx() + slump + bob
-                    alpha = arrive * lerp(1f, 0f, part) * (if (state == CrowdState.Unavailable) SlumpAlpha else 1f)
-                    scaleX = lerp(0.6f, 1f, arrive) * beat
+                    val bob = if (wobbling) -FriendsMotion.WobbleDp.dp.toPx() * (if (index % 2 == 0) wobble else 1f - wobble) else 0f
+                    translationX = cos(angle) * away.dp.toPx()
+                    translationY = sin(angle) * away.dp.toPx() + slump + bob
+                    rotationX = (1f - arrive) * RecapMotion.CascadeFromRotationX
+                    alpha = arrive.coerceIn(0f, 1f) * lerp(1f, 0f, part) * (if (state == CrowdState.Unavailable) SlumpAlpha else 1f)
+                    scaleX = lerp(RecapMotion.CascadeFromScale, 1f, arrive) * beat
                     scaleY = scaleX
                 },
             )
         }
         You(
             Modifier.graphicsLayer {
-                val arrive = (clock.gatherMs / GatherSettleMs).coerceIn(0f, 1f)
+                val arrive = cascade(clock.gatherMs)
                 val leaves = when (state) {
-                    CrowdState.Loaded -> ((clock.actMs - PartAtMs) / PartMs).coerceIn(0f, 1f)
-                    CrowdState.Settling -> (clock.actMs / PartMs).coerceIn(0f, 1f)
+                    CrowdState.Loaded -> ((clock.actMs - FriendsMotion.PartAtMs) / FriendsMotion.PartMs).coerceIn(0f, 1f)
+                    CrowdState.Settling -> (clock.actMs / FriendsMotion.PartMs).coerceIn(0f, 1f)
                     else -> 0f
                 }
-                alpha = arrive * (1f - leaves) * (if (state == CrowdState.Unavailable) SlumpAlpha else 1f)
+                alpha = arrive.coerceIn(0f, 1f) * (1f - leaves) * (if (state == CrowdState.Unavailable) SlumpAlpha else 1f)
                 scaleX = beatScale(clock.actMs)
                 scaleY = scaleX
                 translationY = if (state == CrowdState.Unavailable) SlumpDp.dp.toPx() else 0f
@@ -222,10 +216,16 @@ internal fun FriendsCrowd(
 private fun radiusOf(index: Int, many: Boolean): Float =
     if (many) 52f + 14f * sqrt(index.coerceAtLeast(0).toFloat()) else 70f + 16f * sqrt(index.coerceAtLeast(0).toFloat())
 
-/** The crowd swells and settles twice, one [BeatMs] each, once the answer is in; 1 before and after. */
+private val DeckSpring = spring<Float>(RecapMotion.DeckSpringDamping, RecapMotion.DeckSpringStiffness).vectorize(Float.VectorConverter)
+
+/** How far an avatar that started [sinceMs] ago has come on the DeckSpring, 0 to about 1 (it overshoots a little). */
+private fun cascade(sinceMs: Float): Float =
+    if (sinceMs <= 0f) 0f else DeckSpring.getValueFromNanos((sinceMs * 1_000_000L).toLong(), AnimationVector1D(0f), AnimationVector1D(1f), AnimationVector1D(0f)).value
+
+/** The crowd swells and settles twice, one [FriendsMotion.BeatMs] each, once the answer is in; 1 before and after. */
 private fun beatScale(actMs: Float): Float {
-    if (actMs < 0f || actMs >= PartAtMs) return 1f
-    val t = (actMs % BeatMs) / BeatMs
+    if (actMs < 0f || actMs >= FriendsMotion.PartAtMs) return 1f
+    val t = (actMs % FriendsMotion.BeatMs) / FriendsMotion.BeatMs
     return 1f + (MotionTokens.PulseScale - 1f) * sin(PI.toFloat() * t)
 }
 

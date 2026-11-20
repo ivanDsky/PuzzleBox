@@ -65,14 +65,6 @@ import kotlinx.coroutines.delay
 /** A game's brand for the page that stamps it; the route provides the registry's, a screen with none shows the neutral one. */
 internal val LocalGameBrands = compositionLocalOf<(GameId) -> GameBrand> { { GameBrand.Neutral } }
 
-// When each piece of the answer lands, ms after the crowd has gathered: the badge as the crowd parts, the chip at A + 760,
-// the name after the badge and the points once the name is in.
-private const val BadgeAtMs = 720
-private const val ChipAtMs = 760
-private const val NameAtMs = 900
-private const val PointsAtMs = 1_100
-private const val TileAtMs = 120
-private const val ChipFromScale = 0.4f
 private const val NameWrapOver = 18
 private const val MiniAvatars = 4
 private val BadgeSize = 136.dp
@@ -109,7 +101,7 @@ private fun Modifier.stamped(progress: State<Float>, fromScale: Float): Modifier
 internal fun FriendsBadge(game: GameId, started: Boolean, modifier: Modifier = Modifier) {
     val brand = LocalGameBrands.current(game)
     val ink = PaletteEntry.Friends.ink
-    val stamp = rememberStamp(started, BadgeAtMs)
+    val stamp = rememberStamp(started, FriendsMotion.BadgeAtMs)
     Box(
         modifier
             .stamped(stamp, MotionTokens.StampFromScale)
@@ -140,7 +132,7 @@ internal fun KineticName(name: String, started: Boolean, modifier: Modifier = Mo
         words.forEach { word ->
             Row(Modifier.clearAndSetSemantics {}) {
                 word.forEach { char ->
-                    KineticLetter(char, started, NameAtMs + letter++ * stagger, style)
+                    KineticLetter(char, started, FriendsMotion.NameAtMs + letter++ * stagger, style)
                 }
             }
         }
@@ -172,7 +164,7 @@ internal fun FriendsPoints(points: Long, unit: String, started: Boolean, modifie
         when {
             !started -> Unit
             reduced || settled -> roll.snapTo(1f)
-            else -> roll.animateTo(1f, tween(RecapMotion.CountHeroDuration, delayMillis = PointsAtMs + RecapMotion.CountHeroDelay, easing = MotionTokens.EasingEmphasizedDecelerate))
+            else -> roll.animateTo(1f, tween(FriendsMotion.CountDuration, delayMillis = FriendsMotion.PointsAtMs + FriendsMotion.CountDelay, easing = MotionTokens.EasingEmphasizedDecelerate))
         }
     }
     val shown = (points * roll.value).toLong()
@@ -194,12 +186,12 @@ internal fun FriendsPoints(points: Long, unit: String, started: Boolean, modifie
 /** "Among 9 friends" on a pill that springs in from scale .4, with the first few friends' initials beside it. */
 @Composable
 internal fun FriendsChip(names: List<String>, friendCount: Int, started: Boolean, modifier: Modifier = Modifier) {
-    val stamp = rememberStamp(started, ChipAtMs)
+    val stamp = rememberStamp(started, FriendsMotion.ChipAtMs)
     val ink = PaletteEntry.Friends.ink
     val plate = PaletteEntry.Friends.plate
     Row(
         modifier
-            .stamped(stamp, ChipFromScale)
+            .stamped(stamp, FriendsMotion.ChipFromScale)
             .clip(CircleShape)
             .background(ink)
             .padding(horizontal = Spacing.md, vertical = Spacing.sm),
@@ -224,7 +216,7 @@ internal fun FriendsChip(names: List<String>, friendCount: Int, started: Boolean
 /** A month still settling: the calendar tile of the day its results are final stamps in where "You" was. */
 @Composable
 internal fun SettlingTile(date: LocalDate, started: Boolean, modifier: Modifier = Modifier) {
-    val stamp = rememberStamp(started, TileAtMs)
+    val stamp = rememberStamp(started, FriendsMotion.TileAtMs)
     val ink = PaletteEntry.Friends.ink
     Column(
         modifier

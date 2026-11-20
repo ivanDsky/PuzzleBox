@@ -76,7 +76,7 @@ class RecapFriendsCardTest {
     fun `a settling month says results settle on the 4th and shows no number`() {
         show(friendsSettling)
 
-        rule.onNodeWithTag("recap.friends.settling").assertIsDisplayed().assertTextContains("Results settle on the 4th")
+        rule.onNodeWithTag("recap.friends.settling").assertIsDisplayed().assertTextContains("Settles on the 4th")
         rule.onNodeWithTag("recap.friends.game").assertDoesNotExist()
         rule.onNodeWithTag("recap.friends.points").assertDoesNotExist()
     }
@@ -110,7 +110,7 @@ class RecapFriendsCardTest {
     fun `a settling month still counts the friends once the read has them`() {
         show(FriendsFixtures.settling)
 
-        rule.onNodeWithTag("recap.friends.settling").assertTextContains("Results settle on the 4th").assertTextContains("Among 9 friends")
+        rule.onNodeWithTag("recap.friends.settling").assertTextContains("Settles on the 4th").assertTextContains("Among 9 friends")
     }
 
     @Test
@@ -139,7 +139,7 @@ class RecapFriendsCardTest {
         }
 
         rule.onNodeWithTag("recap.friends.fact.game").assertTextContains("Queens").assertTextContains("1,340 pts")
-        rule.onNodeWithTag("recap.fact.1").assertTextContains("Results settle on the 4th")
+        rule.onNodeWithTag("recap.fact.1").assertTextContains("Settles on the 4th")
         rule.onNodeWithTag("recap.fact.2").assertTextContains("Can't load right now")
         rule.onNodeWithTag("recap.fact.3").assertTextContains("Checking how your friends did\u2026")
     }

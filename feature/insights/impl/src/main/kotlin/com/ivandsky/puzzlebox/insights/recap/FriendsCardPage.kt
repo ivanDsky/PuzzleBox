@@ -69,7 +69,7 @@ internal fun FriendsCardPage(
             }
             Column(
                 Modifier.semantics(mergeDescendants = true) {}.testTag("recap.friends.${state.tag()}"),
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 when (state) {
@@ -170,7 +170,7 @@ private fun FriendsStanding.Loaded.pointsText(): String =
 
 private fun weeksNote(weeks: Int): String = "Based on $weeks weeks"
 
-private fun FriendsStanding.Settling.headline(): String = "Results settle on the ${settlesOn.dayOfMonth.ordinal()}"
+private fun FriendsStanding.Settling.headline(): String = "Settles on the ${settlesOn.dayOfMonth.ordinal()}"
 
 private fun Int.ordinal(): String {
     val suffix = if (this % 100 in 11..13) {
