@@ -12,9 +12,12 @@ import androidx.compose.ui.test.click
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.gameName
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.ready
+import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.secondSolved
+import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.solved
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -189,5 +192,25 @@ class RecapStoryTest {
 
         assertCard(2)
         rule.onNodeWithContentDescription("7 puzzles solved").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a rotation keeps the card the player is on instead of the first loaded page`() {
+        val restoration = StateRestorationTester(rule)
+        restoration.setContent {
+            PuzzleBoxTheme {
+                RecapScreen(readyOf(solved, secondSolved, solved), "November 2026", gameName, onPage = {}, onWatchReplay = {}, onClose = {})
+            }
+        }
+        repeat(2) {
+            tapPager(0.8f)
+            rule.waitForIdle()
+        }
+        rule.onNodeWithTag("recap.progress").assertContentDescriptionEquals("Card 3 of 3")
+
+        restoration.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("recap.progress").assertContentDescriptionEquals("Card 3 of 3")
     }
 }

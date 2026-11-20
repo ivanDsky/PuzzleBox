@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.insights.recap
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.setValue
 
 /** Which way the last move went; the deck throws a card away going [Forward] and brings it back going [Back]. */
@@ -83,6 +84,14 @@ internal class RecapDeckState(pageCount: Int, initialPage: Int = 0, coverFirst: 
 
     companion object {
         const val NoFact = -1
+
+        /** Keeps the page and the cover across a configuration change or process death; a hold ends with the touch. */
+        val Saver = listSaver<RecapDeckState, Any>(
+            save = { listOf(it.pageCount, it.page, it.onCover) },
+            restore = { saved ->
+                RecapDeckState(saved[0] as Int, saved[1] as Int).also { it.onCover = saved[2] as Boolean }
+            },
+        )
         private fun lastPage(pageCount: Int) = (pageCount - 1).coerceAtLeast(0)
     }
 }

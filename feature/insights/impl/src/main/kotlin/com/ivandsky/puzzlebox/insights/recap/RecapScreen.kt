@@ -11,7 +11,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -101,8 +101,8 @@ private fun RecapReady(
     modifier: Modifier = Modifier,
 ) {
     val pageCount = state.cards.size + if (share == null) 0 else 1
-    // The cover has no screen until 02b, so the story opens straight on its card.
-    val deck = remember { RecapDeckState(pageCount, state.initialPage) }.also { it.resize(pageCount) }
+    // No cover screen yet, so the story opens straight on its card.
+    val deck = rememberSaveable(saver = RecapDeckState.Saver) { RecapDeckState(pageCount, state.initialPage) }.also { it.resize(pageCount) }
     LaunchedEffect(deck) { snapshotFlow { deck.page }.collect(onPage) }
     val periodLabel = state.title
     BoxWithConstraints(modifier.fillMaxSize()) {
