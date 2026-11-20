@@ -18,12 +18,21 @@ class SudokuPracticeCountingTest {
 
     /** A rig played on, by Show me, to a board where the easiest rung is no longer the trained technique; null if it never is. */
     private fun SudokuPracticeRig.pastTechnique(): SudokuPracticeRig? {
-        while (SudokuPractice.showMe(puzzle, board)?.let { it.rung == technique } == true) practice.showMe()
+        while (SudokuPractice.showMe(puzzle, board)?.let { it.rung == technique } == true) {
+            practice.showMe()
+            practice.gotIt()
+        }
         return takeIf { SudokuPractice.showMe(puzzle, board) != null }?.also { verdicts.clear() }
     }
 
     private fun SudokuStep.Elimination.squares(size: Int): List<SudokuTrainerMove.RemoveNote> =
         struck.flatMap { (cell, mask) -> (1..size).filter { mask and (1 shl (it - 1)) != 0 }.map { SudokuTrainerMove.RemoveNote(cell, it) } }
+
+    private fun PracticeStatus.trained(): Boolean = when (this) {
+        is PracticeStatus.Right -> trained
+        is PracticeStatus.KeepGoing -> trained
+        else -> error("no step is under way in $this")
+    }
 
     @Test
     fun `a trained Right is reported once`() {
@@ -38,22 +47,27 @@ class SudokuPracticeCountingTest {
     }
 
     @Test
-    fun `a step of several notes is Right square by square and reported once, on its first square`() {
+    fun `a step of several notes keeps going square by square and is Right, reported once, on its last square`() {
         var stepsPlayed = 0
         for (rig in SudokuPracticeRig.all()) {
             val step = SudokuPractice.showMe(rig.puzzle, rig.board)?.step as? SudokuStep.Elimination ?: continue
             val squares = step.squares(rig.puzzle.geometry.size)
             if (squares.size < 2) continue
+            val expected = SudokuSpotlightMapper.map(step, rig.puzzle, rig.board, playId = 0)
 
-            var spotlight: Any? = null
             squares.forEachIndexed { turn, square ->
                 rig.play(square)
-                val status = rig.status as PracticeStatus.Right
-                assertTrue("${rig.label} square $turn", status.trained)
-                spotlight = spotlight ?: status.spotlight
-                assertEquals("${rig.label} square $turn keeps the step's Spotlight", spotlight, status.spotlight)
                 assertFalse("${rig.label} square $turn stays off", rig.noteOn(square.idx, square.digit))
-                assertEquals("${rig.label} after square $turn", listOf(TrainerVerdict.Right), rig.verdicts)
+                if (turn < squares.lastIndex) {
+                    assertEquals("${rig.label} square $turn", PracticeStatus.KeepGoing(squares.size - turn - 1, trained = true), rig.status)
+                    assertEquals("${rig.label} after square $turn", emptyList<TrainerVerdict>(), rig.verdicts)
+                } else {
+                    val status = rig.status as PracticeStatus.Right
+                    assertTrue(rig.label, status.trained)
+                    assertEquals(rig.label, expected.roles, status.spotlight.roles)
+                    assertEquals(rig.label, expected.callout, status.spotlight.callout)
+                    assertEquals("${rig.label} after the last square", listOf(TrainerVerdict.Right), rig.verdicts)
+                }
             }
             stepsPlayed++
         }
@@ -99,7 +113,7 @@ class SudokuPracticeCountingTest {
             past.play(move)
 
             assertEquals(past.label, emptyList<TrainerVerdict>(), past.verdicts)
-            assertFalse(past.label, (past.status as PracticeStatus.Right).trained)
+            assertFalse(past.label, past.status.trained())
             played++
         }
         assertTrue(played > 0)
@@ -116,7 +130,6 @@ class SudokuPracticeCountingTest {
             val expected = SudokuSpotlightMapper.map(shown.step, rig.puzzle, before, playId = 0)
             assertEquals(rig.label, expected.roles, status.spotlight.roles)
             assertEquals(rig.label, expected.callout, status.spotlight.callout)
-            assertEquals(rig.label, status.spotlight, rig.practice.shown)
             when (val step = shown.step) {
                 is SudokuStep.Single -> assertEquals(rig.label, step.place.digit, rig.board.digitAt(step.place.cell))
                 is SudokuStep.Elimination -> step.squares(rig.puzzle.geometry.size).forEach {
@@ -148,6 +161,7 @@ class SudokuPracticeCountingTest {
             var turns = 0
             while (rig.status != PracticeStatus.Solved) {
                 rig.practice.showMe()
+                rig.practice.gotIt()
                 check(++turns < 500) { "${rig.label} did not finish" }
             }
             assertTrue(rig.label, rig.state.session.isComplete)

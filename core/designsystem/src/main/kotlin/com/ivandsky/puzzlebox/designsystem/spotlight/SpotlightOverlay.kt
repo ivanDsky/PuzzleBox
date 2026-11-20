@@ -126,12 +126,12 @@ internal fun SpotlightOverlayPreview() {
     }
 }
 
-private fun previewSpotlight(roles: Map<Int, SpotlightRole>, text: String, anchor: Set<Int>) =
+internal fun previewSpotlight(roles: Map<Int, SpotlightRole>, text: String, anchor: Set<Int>) =
     Spotlight(PREVIEW_SIDE, PREVIEW_SIDE, roles, SpotlightCallout(text, anchor), PreviewGlyphs, playId = 0)
 
-/** A blank board under [overlay]: surface and grid lines. */
+/** A blank board under [overlay]: surface and grid lines. Shared by the Spotlight previews of this package. */
 @Composable
-private fun PreviewBoard(overlay: @Composable BoxScope.() -> Unit) {
+internal fun PreviewBoard(overlay: @Composable BoxScope.() -> Unit) {
     val board = LocalBoardColors.current
     Box(Modifier.size(160.dp)) {
         Spacer(

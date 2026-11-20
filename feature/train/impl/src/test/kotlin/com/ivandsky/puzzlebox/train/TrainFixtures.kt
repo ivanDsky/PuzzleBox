@@ -42,6 +42,13 @@ internal class FakePracticeBoard(
         showMeCount += 1
     }
 
+    var gotItCount = 0
+        private set
+
+    override fun gotIt() {
+        gotItCount += 1
+    }
+
     fun say(status: PracticeStatus) {
         mutableStatus.value = status
     }

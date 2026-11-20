@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.train.practice
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -88,10 +90,22 @@ class PracticePaneTest {
         showBoard()
 
         say(PracticeStatus.Right(standInSpotlight(), trained = true))
-        assertBand("Right", "That move uses Line lock, so it counts.")
+        assertBand("Right", "That uses Line lock, so it counts. Find the next move.")
 
         say(PracticeStatus.Right(standInSpotlight(), trained = false))
         assertBand("Right", "does not count toward Line lock")
+    }
+
+    /** Catches a mid-step square that says Right, or a count that is not the squares left. */
+    @Test
+    fun `a Keep going band counts the squares left in the step`() {
+        showBoard()
+
+        say(PracticeStatus.KeepGoing(left = 2, trained = true))
+        assertBand("Keep going", "2 more in this step.")
+
+        say(PracticeStatus.KeepGoing(left = 1, trained = true))
+        assertBand("Keep going", "1 more in this step.")
     }
 
     /** Catches an undone easier move that does not name the technique to look for, and a Wrong that does not say why. */
@@ -115,7 +129,22 @@ class PracticePaneTest {
         say(PracticeStatus.Shown(standInSpotlight()))
 
         assertEquals(1, board.showMeCount)
-        assertBand("Here is the next move", "Find the one after it.")
+        assertBand("Here is the next move", "Look at the board, then tap Got it.")
+    }
+
+    /** Catches an explanation with no way to dismiss it, a Got it that is not the board's, or a Show me that stays live under one. */
+    @Test
+    fun `Got it dismisses an explanation through the board and Show me waits`() {
+        showBoard()
+        composeRule.onNodeWithTag("train.gotIt").assertDoesNotExist()
+        composeRule.onNodeWithTag("train.showMe").assertIsEnabled()
+
+        say(PracticeStatus.Shown(standInSpotlight()))
+        composeRule.onNodeWithTag("train.showMe").assertIsNotEnabled()
+        composeRule.onNodeWithTag("train.gotIt").performClick()
+
+        assertEquals(1, board.gotItCount)
+        assertEquals(0, board.showMeCount)
     }
 
     /** Catches a count that is not the stored one, or a mastered technique that still shows a row. */

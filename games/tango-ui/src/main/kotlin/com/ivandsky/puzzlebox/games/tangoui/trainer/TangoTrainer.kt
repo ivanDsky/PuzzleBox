@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.games.tangoui.trainer
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
@@ -8,6 +10,7 @@ import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.game.trainer.TrainerVerdict
 import com.ivandsky.puzzlebox.gameui.trainer.DrillSource
 import com.ivandsky.puzzlebox.gameui.trainer.PracticeBoard
+import com.ivandsky.puzzlebox.gameui.trainer.PracticeSpotlight
 import com.ivandsky.puzzlebox.gameui.trainer.TrainerGame
 import com.ivandsky.puzzlebox.gameui.trainer.TrainerTechnique
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
@@ -61,7 +64,10 @@ internal class TangoTrainer(private val compute: CoroutineDispatcher) : TrainerG
             modifier = modifier,
             onTap = practice::onTap,
             onPlacement = practice::onPlacement,
-            spotlight = { practice.spotlight },
+            overlay = {
+                val status by practice.status.collectAsState()
+                PracticeSpotlight(practice, status)
+            },
         )
     }
 }

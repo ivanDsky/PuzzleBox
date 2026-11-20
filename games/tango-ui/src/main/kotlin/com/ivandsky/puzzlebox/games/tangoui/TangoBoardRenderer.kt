@@ -4,6 +4,7 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
@@ -64,12 +65,14 @@ private val SpotlightOnBoard = Modifier.wrapContentSize(Alignment.TopStart).aspe
  * set by the replay board only, fades a glyph in, out and between sun and moon on that spec
  * (`snap()` = at once); null, as live play passes, draws the glyph as is. [guideGhosts] (live play) draws a guided
  * lesson's ghosts as invitations: stronger glyph and a dashed outline on an open square (#1186); the editor keeps its faint hints.
+ * [overlay] is drawn after the [spotlight], inside the grid's bounds: the Trainer's practice layer (it may take touches).
  */
 class TangoBoardRenderer(
     private val onTap: ((idx: Int) -> Unit)? = null,
     private val onPlacement: ((TangoPlacement) -> Unit)? = null,
     private val spotlight: () -> Spotlight? = { null },
     private val guideGhosts: Boolean = false,
+    private val overlay: (@Composable BoxScope.() -> Unit)? = null,
 ) {
 
     @Composable
@@ -141,6 +144,7 @@ class TangoBoardRenderer(
                 )
                 // Above cells, marks, tint and frame; no pointer input, so taps reach the board.
                 SpotlightOverlay(spotlight(), SpotlightOnBoard)
+                overlay?.let { Box(Modifier.wrapContentSize(Alignment.TopStart).aspectRatio(1f)) { it() } }
             }
         }
     }

@@ -1,8 +1,5 @@
 package com.ivandsky.puzzlebox.games.sudokuui.trainer
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.game.trainer.TrainerVerdict
@@ -35,12 +32,13 @@ import kotlinx.coroutines.flow.asStateFlow
  * is one gesture (a square, then a digit or a note), so there is no tap cycle to wait out. Nothing here is saved: no
  * completion, no replay, no stored play.
  *
- * Counting (spec §2.2): a deduction that changes several notes is Right square by square. [onTrainedTurn] hears
- * `Right` once, on its first square; the squares still to come are held in [pending] and answered without a report or
- * a new Spotlight, even when the first strike has made an easier step appear in the meantime. An undone move or Show me
- * reports only when the easiest rung is the trained [technique].
+ * Counting (spec §2.2): a deduction that changes several notes is made square by square. Each square but the last is
+ * [PracticeStatus.KeepGoing] with the squares left, held in [step], even when the first strike has made an easier step
+ * appear in the meantime; the last is [PracticeStatus.Right], and [onTrainedTurn] hears `Right` once, then. An undone
+ * move or Show me reports only when the easiest rung is the trained [technique].
  *
- * The status Spotlight ([shown]) is drawn over the grid by [SudokuTrainer.Board] until the player's next input.
+ * An Easier move or Show me stands as an explanation until [gotIt]: the board takes no move meanwhile, whatever
+ * the keypad sends it. The status Spotlight is drawn over the grid by [SudokuTrainer.Board] from [status].
  */
 internal class SudokuPracticeBoard(
     private val puzzle: SudokuPuzzle,
@@ -50,86 +48,101 @@ internal class SudokuPracticeBoard(
     private val now: () -> Instant = Instant::now,
 ) : PracticeBoard {
 
-    /** A step the player has started: the notes it still strikes, and the status its first square answered with. */
-    private class Pending(val remaining: MutableSet<Pair<Int, Int>>, val status: PracticeStatus.Right)
+    /** A step the player has started: the notes it still strikes, whether its rung is the trained one, and its Spotlight. */
+    private class Step(val remaining: MutableSet<Pair<Int, Int>>, val trained: Boolean, val spotlight: Spotlight)
 
     private val current = MutableStateFlow<PracticeStatus>(PracticeStatus.FindNextMove)
     override val status: StateFlow<PracticeStatus> = current.asStateFlow()
 
-    /** The Spotlight the grid draws now: a judged move's or Show me's, until the player's next input clears it. */
-    var shown by mutableStateOf<Spotlight?>(null)
-        private set
-
-    private val pending = ArrayList<Pending>()
+    private var step: Step? = null
     private var spotlights = 0
 
     internal val state = SudokuBoardState(
         initialSession = SudokuSession(ref = null, puzzle = puzzle, board = start),
         now = now,
         settle = ::judge,
-        onInput = { shown = null },
     )
 
+    /** Whether an [PracticeStatus.Easier] or [PracticeStatus.Shown] explanation stands, which takes no move. */
+    private val explaining: Boolean get() = current.value.let { it is PracticeStatus.Easier || it is PracticeStatus.Shown }
+
     override fun showMe() {
+        if (explaining) return
         val session = state.session
         val show = SudokuPractice.showMe(puzzle, session.board) ?: return
         val spotlight = spotlight(show.step, session.board)
         val next = SudokuPractice.commands(session.board, show.step).fold(session) { acc, command -> acc.withCommand(command, now()) }
         state.adopt(next)
-        pending.clear()
-        shown = spotlight
+        step = null
         if (show.rung == technique) onTrainedTurn(TrainerVerdict.ShowMe)
         current.value = if (next.isComplete) PracticeStatus.Solved else PracticeStatus.Shown(spotlight)
     }
 
-    /** The verdict on the move [next] makes: [next] when it is Right, the session from before it otherwise. */
+    override fun gotIt() {
+        if (explaining) current.value = PracticeStatus.FindNextMove
+    }
+
+    /**
+     * The verdict on the move [next] makes: [next] when it is Right, the session from before it otherwise. While an
+     * explanation stands every move is refused, unjudged and unreported.
+     */
     private fun judge(next: SudokuSession): SudokuSession {
         val before = state.session
+        if (explaining) return before
         val move = SudokuTrainerMove.between(before.board, next.board)
-        pending.firstOrNull { it.continues(move) }?.let { return continuing(it, move, next) }
+        step?.takeIf { square(move) in it.remaining }?.let { return continuing(it, move, next) }
         return when (val judged = SudokuPractice.judge(puzzle, before.board, move)) {
             is SudokuPracticeJudgement.Right -> right(judged, before, move, next)
             is SudokuPracticeJudgement.Easier -> {
                 val spotlight = spotlight(judged.step, before.board)
-                undone(judged.rung, PracticeStatus.Easier(SudokuTrainerCatalog.name(judged.rung), spotlight), before, spotlight)
+                undone(judged.rung, PracticeStatus.Easier(SudokuTrainerCatalog.name(judged.rung), spotlight), before)
             }
-            is SudokuPracticeJudgement.Wrong -> undone(judged.rung, PracticeStatus.Wrong(why(judged.reason, move, next.board)), before, null)
+            is SudokuPracticeJudgement.Wrong -> undone(judged.rung, PracticeStatus.Wrong(why(judged.reason, move, next.board)), before)
         }
     }
 
-    /** The first square of its step (or a single's only one): its Spotlight plays and a trained step is reported once. */
+    /** The first square of its step (or a single's only one): Right when it finishes the step, KeepGoing when squares remain. */
     private fun right(judged: SudokuPracticeJudgement.Right, before: SudokuSession, move: SudokuTrainerMove, next: SudokuSession): SudokuSession {
         val trained = judged.rung == technique
         val spotlight = spotlight(judged.step, before.board)
-        val answer = PracticeStatus.Right(spotlight, trained)
         val rest = (judged.step as? SudokuStep.Elimination)?.let { squares(it) }.orEmpty() - listOfNotNull(square(move)).toSet()
-        if (rest.isNotEmpty()) pending += Pending(rest.toMutableSet(), answer)
-        if (trained) onTrainedTurn(TrainerVerdict.Right)
-        shown = spotlight
-        current.value = if (next.isComplete) PracticeStatus.Solved else answer
+        step = null
+        if (rest.isEmpty()) {
+            finished(trained, spotlight, next)
+        } else {
+            step = Step(rest.toMutableSet(), trained, spotlight)
+            current.value = if (next.isComplete) PracticeStatus.Solved else PracticeStatus.KeepGoing(rest.size, trained)
+        }
         return next
     }
 
-    /** A later square of a started step: Right as before, with no new report and no new Spotlight. */
-    private fun continuing(step: Pending, move: SudokuTrainerMove, next: SudokuSession): SudokuSession {
-        step.remaining -= square(move)!!
-        if (step.remaining.isEmpty()) pending -= step
-        current.value = if (next.isComplete) PracticeStatus.Solved else step.status
+    /** A later square of a started step: KeepGoing while squares remain, Right on the last. */
+    private fun continuing(started: Step, move: SudokuTrainerMove, next: SudokuSession): SudokuSession {
+        started.remaining -= square(move)!!
+        if (started.remaining.isEmpty()) {
+            step = null
+            finished(started.trained, started.spotlight, next)
+        } else {
+            current.value = if (next.isComplete) PracticeStatus.Solved else PracticeStatus.KeepGoing(started.remaining.size, started.trained)
+        }
         return next
+    }
+
+    /** A step is done: a trained one is reported once, and the band reads Right. */
+    private fun finished(trained: Boolean, spotlight: Spotlight, next: SudokuSession) {
+        if (trained) onTrainedTurn(TrainerVerdict.Right)
+        current.value = if (next.isComplete) PracticeStatus.Solved else PracticeStatus.Right(spotlight, trained)
     }
 
     /** [status] for a move that is not Right: the move is dropped, and the trained technique's turn it was is a Wrong. */
-    private fun undone(rung: TechniqueId?, status: PracticeStatus, before: SudokuSession, spotlight: Spotlight?): SudokuSession {
+    private fun undone(rung: TechniqueId?, status: PracticeStatus, before: SudokuSession): SudokuSession {
         if (rung == technique) onTrainedTurn(TrainerVerdict.Wrong)
-        shown = spotlight
         current.value = status
         return before
     }
 
     private fun spotlight(step: SudokuStep, board: SudokuBoard): Spotlight =
         SudokuSpotlightMapper.map(step, puzzle, board, playId = ++spotlights)
-
-    private fun Pending.continues(move: SudokuTrainerMove): Boolean = square(move) in remaining
 
     /** The note a move strikes, the only kind of move a step goes on past its first square. */
     private fun square(move: SudokuTrainerMove): Pair<Int, Int>? =

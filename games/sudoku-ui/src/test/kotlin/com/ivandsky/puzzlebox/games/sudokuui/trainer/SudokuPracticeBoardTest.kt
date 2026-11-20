@@ -12,8 +12,6 @@ import com.ivandsky.puzzlebox.games.sudokuui.hint.SudokuSpotlightMapper
 import com.ivandsky.puzzlebox.gameui.trainer.PracticeStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -34,7 +32,6 @@ class SudokuPracticeBoardTest {
         for (rig in rigs) {
             assertEquals(rig.label, SudokuPractice.start(rig.puzzle, rig.technique), rig.board)
             assertEquals(rig.label, PracticeStatus.FindNextMove, rig.status)
-            assertNull(rig.label, rig.practice.shown)
             assertFalse(rig.label, rig.state.canUndo)
             rig.board.cells.forEachIndexed { idx, cell ->
                 if (rig.puzzle.givens[idx] == 0 && cell.digit == 0) assertTrue("${rig.label} square $idx", cell is SudokuCell.Notes)
@@ -55,7 +52,6 @@ class SudokuPracticeBoardTest {
             val status = rig.status as PracticeStatus.Right
             assertEquals(rig.label, judged.rung == rig.technique, status.trained)
             assertSameHint(rig.label, rig.hint(judged.step, before), status.spotlight)
-            assertEquals(rig.label, status.spotlight, rig.practice.shown)
             played++
         }
         assertTrue(played > 0)
@@ -74,8 +70,11 @@ class SudokuPracticeBoardTest {
                 fresh.play(move)
 
                 assertFalse(fresh.label, fresh.noteOn(move.idx, move.digit))
-                val status = fresh.status as PracticeStatus.Right
-                assertSameHint(fresh.label, fresh.hint(judged.step, before), status.spotlight)
+                when (val status = fresh.status) {
+                    is PracticeStatus.Right -> assertSameHint(fresh.label, fresh.hint(judged.step, before), status.spotlight)
+                    is PracticeStatus.KeepGoing -> assertTrue(fresh.label, status.left >= 1)
+                    else -> error("${fresh.label}: $status")
+                }
                 played++
             }
         }
@@ -115,7 +114,6 @@ class SudokuPracticeBoardTest {
 
                 assertEquals("${fresh.label} $move", before, fresh.state.session)
                 assertFalse(fresh.label, fresh.state.canRedo)
-                assertNull(fresh.label, fresh.practice.shown)
                 val status = fresh.status as PracticeStatus.Wrong
                 assertTrue("${fresh.label} $move: ${status.why}", status.why.isNotBlank())
             }
@@ -129,27 +127,17 @@ class SudokuPracticeBoardTest {
             val right = rig.moves().firstOrNull { rig.judge(it) is SudokuPracticeJudgement.Right } ?: continue
             val easier = rig.find<SudokuPracticeJudgement.Easier, SudokuTrainerMove.Place>()
             rig.play(rig.wrongDigit())
-            if (easier != null) rig.play(easier)
+            if (easier != null) {
+                rig.play(easier)
+                rig.practice.gotIt()
+            }
             rig.play(right)
 
             assertEquals(rig.label, 1, rig.state.session.history.done.size)
-            assertTrue(rig.label, rig.status is PracticeStatus.Right)
+            assertTrue(rig.label, rig.status is PracticeStatus.Right || rig.status is PracticeStatus.KeepGoing)
             played++
         }
         assertTrue(played > 0)
-    }
-
-    @Test
-    fun `the Spotlight is cleared by the player's next input and the status stays`() {
-        val rig = SudokuPracticeRig.all().first { rig -> rig.find<SudokuPracticeJudgement.Right, SudokuTrainerMove.Place>() != null }
-        rig.play(rig.find<SudokuPracticeJudgement.Right, SudokuTrainerMove.Place>()!!)
-        val status = rig.status
-        assertNotNull(rig.practice.shown)
-
-        rig.state.select(0)
-
-        assertNull(rig.practice.shown)
-        assertEquals(status, rig.status)
     }
 
     @Test

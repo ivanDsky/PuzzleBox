@@ -37,6 +37,9 @@ internal class TangoPracticePlay private constructor(
         /** Right, and part of a deduction of the trained technique. */
         val isTrainedRight: Boolean get() = (verdict as? TangoPracticeVerdict.Right)?.trained == true
 
+        /** How many squares the step this move belongs to has (1 for a move that is not Right). */
+        val stepSquares: Int get() = (verdict as? TangoPracticeVerdict.Right)?.step?.squares?.size ?: 1
+
         /** The easiest rung the judge measured the move against; null when no rung fires. */
         val rung: TangoStepRung?
             get() = when (verdict) {
@@ -91,6 +94,7 @@ internal class TangoPracticePlay private constructor(
         while (!done(this)) {
             if (emptySquares.isEmpty()) return false
             board.showMe()
+            board.gotIt()
         }
         return true
     }

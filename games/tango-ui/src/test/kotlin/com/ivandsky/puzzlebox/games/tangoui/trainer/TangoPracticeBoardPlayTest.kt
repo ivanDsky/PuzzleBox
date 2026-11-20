@@ -5,10 +5,10 @@ import com.ivandsky.puzzlebox.gameui.trainer.PracticeStatus
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.engine.trainer.TangoPractice
 import com.ivandsky.puzzlebox.games.tango.engine.trainer.TangoPracticeVerdict
+import com.ivandsky.puzzlebox.games.tangoui.TangoPlacement
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -40,8 +40,9 @@ class TangoPracticeBoardPlayTest {
 
         play.settle()
         assertEquals(TangoCell.MOON, play.grid[moon.idx])
-        assertTrue((play.status as? PracticeStatus.Right)?.trained == true)
-        assertEquals(listOf(TrainerVerdict.Right), play.turns)
+        val status = play.status
+        assertTrue((status as? PracticeStatus.Right)?.trained == true || (status as? PracticeStatus.KeepGoing)?.trained == true)
+        assertEquals(trainedTurns(moon), play.turns)
     }
 
     @Test
@@ -78,8 +79,7 @@ class TangoPracticeBoardPlayTest {
 
         play.settle()
         assertEquals(TangoCell.SUN, play.grid[right.idx])
-        assertTrue((play.status as? PracticeStatus.Right)?.trained == true)
-        assertEquals(listOf(TrainerVerdict.Wrong, TrainerVerdict.Right), play.turns)
+        assertEquals(listOf(TrainerVerdict.Wrong) + trainedTurns(right), play.turns)
     }
 
     @Test
@@ -99,7 +99,7 @@ class TangoPracticeBoardPlayTest {
         play.settle()
         assertEquals(played, play.session)
         assertEquals(status, play.status)
-        assertEquals(listOf(TrainerVerdict.Right), play.turns)
+        assertEquals(trainedTurns(right), play.turns)
     }
 
     @Test
@@ -114,7 +114,6 @@ class TangoPracticeBoardPlayTest {
             val expected = before.toMutableList().also { grid -> step.squares.forEach { grid[it.idx] = it.value } }
             assertEquals(label, expected, play.grid)
             assertTrue(label, play.status is PracticeStatus.Shown)
-            assertNotNull(label, play.board.spotlight)
             assertEquals(label, listOf(TrainerVerdict.ShowMe), play.turns)
         }
     }
@@ -135,6 +134,31 @@ class TangoPracticeBoardPlayTest {
     }
 
     @Test
+    fun `Show me stands until Got it, and no move or second Show me lands under it`() = runTest {
+        val play = TangoPracticePlay.all(this).first()
+        play.board.showMe()
+        val shown = play.status
+        val after = play.session
+        val turns = play.turns.toList()
+        val square = play.emptySquares.first()
+
+        play.board.showMe()
+        play.play(square, TangoCell.SUN)
+        play.board.onPlacement(TangoPlacement(square, TangoCell.MOON))
+        play.settle()
+
+        assertTrue(shown is PracticeStatus.Shown)
+        assertEquals(shown, play.status)
+        assertEquals(after, play.session)
+        assertEquals(turns, play.turns)
+
+        play.board.gotIt()
+
+        assertEquals(PracticeStatus.FindNextMove, play.status)
+        assertEquals(after, play.session)
+    }
+
+    @Test
     fun `Show me finishes the step the player began without counting it twice`() = runTest {
         val (play, first) = TangoPracticePlay.all(this).firstWith("a step of several squares") {
             ((it.verdict as? TangoPracticeVerdict.Right)?.step?.squares?.size ?: 0) > 1 && it.isTrainedRight
@@ -146,7 +170,7 @@ class TangoPracticeBoardPlayTest {
 
         for (square in step.squares) assertEquals(square.value, play.grid[square.idx])
         assertTrue(play.status is PracticeStatus.Shown)
-        assertEquals(listOf(TrainerVerdict.Right), play.turns)
+        assertEquals(listOf(TrainerVerdict.ShowMe), play.turns)
     }
 
     @Test
@@ -166,7 +190,6 @@ class TangoPracticeBoardPlayTest {
             assertEquals(label, PracticeStatus.Solved, play.status)
             assertEquals(label, play.solution, play.grid)
             assertTrue(label, play.session.isComplete)
-            assertNull(label, play.board.spotlight)
         }
     }
 
@@ -174,12 +197,18 @@ class TangoPracticeBoardPlayTest {
     fun `Show me to the end solves the board and leaves no completion behind`() = runTest {
         for (play in TangoPracticePlay.all(this)) {
             val label = play.technique.value
-            while (play.emptySquares.isNotEmpty()) play.board.showMe()
+            while (play.emptySquares.isNotEmpty()) {
+                play.board.showMe()
+                play.board.gotIt()
+            }
 
             assertEquals(label, PracticeStatus.Solved, play.status)
             assertEquals(label, play.solution, play.grid)
-            assertNull(label, play.board.spotlight)
             assertNull(label, play.session.ref)
         }
     }
+
+    /** The turns a trained Right [move] has reported once played: Right only when it finished its step. */
+    private fun trainedTurns(move: TangoPracticePlay.Move): List<TrainerVerdict> =
+        if (move.stepSquares == 1) listOf(TrainerVerdict.Right) else emptyList()
 }

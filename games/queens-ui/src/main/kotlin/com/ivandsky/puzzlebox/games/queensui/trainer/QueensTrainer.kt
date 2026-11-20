@@ -6,15 +6,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
-import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightOverlay
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.game.trainer.TrainerVerdict
 import com.ivandsky.puzzlebox.gameui.trainer.DrillSource
 import com.ivandsky.puzzlebox.gameui.trainer.PracticeBoard
-import com.ivandsky.puzzlebox.gameui.trainer.PracticeStatus
+import com.ivandsky.puzzlebox.gameui.trainer.PracticeSpotlight
 import com.ivandsky.puzzlebox.gameui.trainer.TrainerGame
 import com.ivandsky.puzzlebox.gameui.trainer.TrainerTechnique
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
@@ -60,16 +58,7 @@ internal class QueensTrainer(private val compute: CoroutineDispatcher) : Trainer
         val status by practice.status.collectAsState()
         Box(modifier.aspectRatio(1f)) {
             QueensPlayBoard(practice.state, Modifier.matchParentSize())
-            SpotlightOverlay(status.spotlight)
+            PracticeSpotlight(practice, status)
         }
     }
-
-    /** The Spotlight a status puts over the grid: a move's step, the easier step, Show me's step; none otherwise. */
-    private val PracticeStatus.spotlight: Spotlight?
-        get() = when (this) {
-            is PracticeStatus.Right -> spotlight
-            is PracticeStatus.Easier -> spotlight
-            is PracticeStatus.Shown -> spotlight
-            PracticeStatus.FindNextMove, is PracticeStatus.Wrong, PracticeStatus.Solved -> null
-        }
 }

@@ -70,7 +70,7 @@ class QueensPracticeBoardTest {
     }
 
     @Test
-    fun `a drag along the line is right square by square and counts once, with the hint's own Spotlight`() = runTest {
+    fun `a drag along the line is right square by square, Right only with the last, and counts once, with the hint's own Spotlight`() = runTest {
         val board = practice()
 
         board.drag(*line.toIntArray())
@@ -82,6 +82,23 @@ class QueensPracticeBoardTest {
         val puzzle = QueensTrainerFixtures.puzzle
         val step = QueensPractice.show(puzzle, QueensBoard(queens = listOf(Cell(6))))!!
         assertEquals(QueensSpotlightMapper.map(step, puzzle, playId = 0), status.spotlight.copy(playId = 0))
+    }
+
+    @Test
+    fun `a drag line of three crosses keeps going twice, then is right, counted at the last square`() = runTest {
+        val board = practice()
+
+        board.state.onDragStart(9)
+        assertEquals(PracticeStatus.KeepGoing(left = 2, trained = true), board.status.value)
+        board.state.onDragCell(10)
+        assertEquals(PracticeStatus.KeepGoing(left = 1, trained = true), board.status.value)
+        assertEquals(emptyList<TrainerVerdict>(), verdicts)
+        board.state.onDragCell(11)
+        board.state.onDragEnd()
+
+        val right = board.status.value as PracticeStatus.Right
+        assertTrue(right.trained)
+        assertEquals(listOf(TrainerVerdict.Right), verdicts)
     }
 
     @Test
@@ -152,7 +169,45 @@ class QueensPracticeBoardTest {
         board.queenOn(8)
         assertSame(before, board.state.session)
         assertTrue(board.status.value is PracticeStatus.Easier)
-        assertEquals(listOf(TrainerVerdict.Wrong, TrainerVerdict.Wrong), verdicts)
+        assertEquals(listOf(TrainerVerdict.Wrong), verdicts)
+    }
+
+    @Test
+    fun `while an explanation stands no move lands, none is judged, and Got it takes the board back`() = runTest {
+        val board = practice()
+        val before = board.state.session
+        board.state.onTap(15)
+        settle()
+        val easier = board.status.value
+        assertTrue(easier is PracticeStatus.Easier)
+
+        board.drag(*line.toIntArray())
+        board.state.onTap(14)
+        settle()
+
+        assertSame(before, board.state.session)
+        assertEquals(easier, board.status.value)
+        assertEquals(listOf(TrainerVerdict.Wrong), verdicts)
+
+        board.gotIt()
+
+        assertEquals(PracticeStatus.FindNextMove, board.status.value)
+        board.drag(*line.toIntArray())
+        assertEquals(line.map(::Cell).toSet(), board.board.manual)
+        assertTrue(board.status.value is PracticeStatus.Right)
+    }
+
+    @Test
+    fun `Got it does nothing when no explanation stands`() = runTest {
+        val board = practice()
+
+        board.gotIt()
+        assertEquals(PracticeStatus.FindNextMove, board.status.value)
+
+        board.drag(*line.toIntArray())
+        val right = board.status.value
+        board.gotIt()
+        assertEquals(right, board.status.value)
     }
 
     @Test
@@ -184,11 +239,13 @@ class QueensPracticeBoardTest {
         assertSame(beforeWrong, board.state.session)
         assertEquals(setOf(7, 14).map(::Cell).toSet(), board.board.manual)
         assertTrue(board.status.value is PracticeStatus.Wrong)
-        // With 7 crossed singles is the easiest rung (it places 8): the undone cross is not the trained rung's turn.
-        assertEquals(listOf(TrainerVerdict.Right), verdicts)
+        // With 7 crossed singles is the easiest rung (it places 8): the undone cross is not the trained rung's turn,
+        // and the step in hand is not finished, so nothing is counted yet.
+        assertEquals(emptyList<TrainerVerdict>(), verdicts)
 
         board.drag(21, 28)
         assertEquals(line.map(::Cell).toSet(), board.board.manual)
+        assertEquals(listOf(TrainerVerdict.Right), verdicts)
     }
 
     @Test
@@ -239,6 +296,11 @@ class QueensPracticeBoardTest {
         assertTrue(board.status.value is PracticeStatus.Shown)
         assertEquals(listOf(TrainerVerdict.ShowMe), verdicts)
 
+        board.showMe() // an explanation stands: Show me does nothing until Got it
+        assertEquals(line.map(::Cell).toSet(), board.board.manual)
+        assertTrue(Cell(8) !in board.state.session.queens)
+
+        board.gotIt()
         board.showMe() // singles places 8: another rung, so no count
         assertTrue(Cell(8) in board.state.session.queens)
         assertEquals(listOf(TrainerVerdict.ShowMe), verdicts)
@@ -260,7 +322,10 @@ class QueensPracticeBoardTest {
     fun `show me taken to the end solves the board`() = runTest {
         val board = practice()
 
-        repeat(10) { if (board.status.value != PracticeStatus.Solved) board.showMe() }
+        repeat(10) {
+            board.gotIt()
+            if (board.status.value != PracticeStatus.Solved) board.showMe()
+        }
 
         assertTrue(board.state.session.isComplete)
         assertEquals(PracticeStatus.Solved, board.status.value)

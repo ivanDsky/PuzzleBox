@@ -48,10 +48,14 @@ import java.time.Instant
  * **Drag lines.** Each square a drag paints is a cross judged on its own, at once. The first one that is not Right
  * is undone, and the rest of that drag paints nothing, so a wrong line is never half-kept.
  *
- * **Steps.** A deduction that crosses several squares is Right square by square: the squares the player crosses after
- * the first one that was judged are part of the same step, are not judged again, and are not counted again.
+ * **Steps.** A deduction that crosses several squares is one step: the squares the player crosses after the first
+ * one that was judged are part of it, are not judged again, and are not counted again. Each square but the last
+ * reports [PracticeStatus.KeepGoing] with how many are left; [PracticeStatus.Right] comes with the last one.
  *
- * [onTrainedTurn] gets each trained turn once: Right on the first square of a step of the trained technique, Wrong
+ * **Explanations.** While [PracticeStatus.Easier] or [PracticeStatus.Shown] stands the board takes no move (each is
+ * put back, unjudged) and Show me does nothing, until [gotIt].
+ *
+ * [onTrainedTurn] gets each trained turn once: Right when a step of the trained technique is finished, Wrong
  * for each undone move made while it was the easiest rung, ShowMe for Show me.
  */
 internal class QueensPracticeBoard(
@@ -88,6 +92,10 @@ internal class QueensPracticeBoard(
     /** The deduction the player is partway through crossing: the squares it still crosses, and what it showed. */
     private data class Running(val spotlight: Spotlight, val trained: Boolean, val remaining: Set<Cell>)
 
+    /** An easier-move or Show me explanation stands: the board takes no move until [gotIt]. */
+    private val explaining: Boolean
+        get() = mutableStatus.value.let { it is PracticeStatus.Easier || it is PracticeStatus.Shown }
+
     override fun input(idx: Int, drag: Boolean) {
         this.drag = drag
         halted = false
@@ -97,6 +105,7 @@ internal class QueensPracticeBoard(
 
     override fun judged(before: QueensSession, after: QueensSession, move: QueensReplayMove): QueensSession = when {
         showing -> after
+        explaining -> before
         move is QueensReplayMove.Cross -> crossed(before, after, move.cell)
         move is QueensReplayMove.Place -> placed(before, after, move.cell)
         move is QueensReplayMove.Hint || move is QueensReplayMove.AutoCross -> after
@@ -144,24 +153,30 @@ internal class QueensPracticeBoard(
         held = null
     }
 
+    /** A square of a right step was made; [left] are the squares it still crosses. The step is Right, and counted, only when none are. */
+    private fun progressed(spotlight: Spotlight, trained: Boolean, left: Set<Cell>) {
+        if (left.isNotEmpty()) {
+            running = Running(spotlight, trained, left)
+            mutableStatus.value = PracticeStatus.KeepGoing(left.size, trained)
+            return
+        }
+        running = null
+        if (trained) onTrainedTurn(TrainerVerdict.Right)
+        mutableStatus.value = PracticeStatus.Right(spotlight, trained)
+    }
+
     /** Judges [move] made on [before] and reports it; true when the move stays. */
     private fun accepts(before: QueensSession, move: QueensPracticeMove): Boolean {
         val partway = running
         if (move is QueensPracticeMove.Cross && partway != null && move.cell in partway.remaining) {
-            val left = partway.remaining - move.cell
-            running = partway.copy(remaining = left).takeIf { left.isNotEmpty() }
-            mutableStatus.value = PracticeStatus.Right(partway.spotlight, partway.trained)
+            progressed(partway.spotlight, partway.trained, partway.remaining - move.cell)
             return true
         }
         return when (val verdict = QueensPractice.judge(puzzle, before.board, move)) {
             // No rung has a deduction here: nothing to judge by, and nothing to count.
             null -> true
             is QueensPracticeVerdict.Right -> {
-                val trained = verdict.rung.trainerId == technique
-                val spotlight = spotlightOf(verdict.step)
-                running = Running(spotlight, trained, verdict.remaining).takeIf { verdict.remaining.isNotEmpty() }
-                if (trained) onTrainedTurn(TrainerVerdict.Right)
-                mutableStatus.value = PracticeStatus.Right(spotlight, trained)
+                progressed(spotlightOf(verdict.step), verdict.rung.trainerId == technique, verdict.remaining)
                 true
             }
             is QueensPracticeVerdict.Easier -> {
@@ -181,7 +196,12 @@ internal class QueensPracticeBoard(
         if (rung.trainerId == technique) onTrainedTurn(TrainerVerdict.Wrong)
     }
 
+    override fun gotIt() {
+        if (explaining) mutableStatus.value = PracticeStatus.FindNextMove
+    }
+
     override fun showMe() {
+        if (explaining) return
         settleHeld()
         val board = state.session.takeUnless { it.isComplete }?.board ?: return
         val deduction = QueensPractice.show(puzzle, board) ?: return
