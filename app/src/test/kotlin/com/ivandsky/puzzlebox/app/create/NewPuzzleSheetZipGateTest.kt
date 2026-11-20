@@ -117,7 +117,7 @@ class NewPuzzleSheetZipGateTest {
 
     private fun open() {
         val games = GameRegistry(listOf(queensPlugin, zipPlugin))
-        val editors = GameEditorRegistry(listOf(QueensEditorUi, ZipEditorUi()))
+        val editors = GameEditorRegistry(listOf(QueensEditorUi(), ZipEditorUi()))
         var next = 0
         val createDraft = CreateDraft(games, drafts, newId = { "draft-${++next}" }, clock = { NOW })
         // One stored draft keeps the draft list, and its New puzzle button, on screen.

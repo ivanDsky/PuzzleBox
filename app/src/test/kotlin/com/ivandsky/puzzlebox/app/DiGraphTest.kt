@@ -552,7 +552,7 @@ class DiGraphTest : KoinTest {
 
     @Test
     fun `a second editor UI for one game fails the registry`() {
-        val duplicate = module { single<GameEditorUi>(qualifier = qualifier("queens.editor.again")) { QueensEditorUi } }
+        val duplicate = module { single<GameEditorUi>(qualifier = qualifier("queens.editor.again")) { QueensEditorUi() } }
         val koinApp = startKoin {
             androidContext(RuntimeEnvironment.getApplication())
             modules(PuzzleBoxApplication.appModules + duplicate)

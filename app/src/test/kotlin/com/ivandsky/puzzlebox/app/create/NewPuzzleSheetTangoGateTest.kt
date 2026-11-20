@@ -108,7 +108,7 @@ class NewPuzzleSheetTangoGateTest {
         val createDraft = CreateDraft(games, drafts, newId = { "draft-${++next}" }, clock = { NOW })
         // One stored draft keeps the draft list, and its New puzzle button, on screen.
         runBlocking { createDraft(QueensDefinition.id, QueensEditor.variants.first()) }
-        val editors = GameEditorRegistry(listOf(QueensEditorUi, TangoEditorUi))
+        val editors = GameEditorRegistry(listOf(QueensEditorUi(), TangoEditorUi))
         val published = FakePublishedPuzzleRepository()
         val identity = FakeIdentityService(initial = null)
         startKoin {

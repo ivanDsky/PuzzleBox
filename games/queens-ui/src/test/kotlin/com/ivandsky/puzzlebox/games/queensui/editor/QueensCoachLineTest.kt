@@ -220,7 +220,7 @@ class QueensCoachLineTest {
         rule.setContent {
             PuzzleBoxTheme {
                 Column(Modifier.fillMaxSize()) {
-                    QueensEditorUi.ToolHint(controller, Modifier.fillMaxWidth())
+                    QueensEditorUi().ToolHint(controller, Modifier.fillMaxWidth())
                     QueensEditorBoard(controller, INCOMPLETE, Modifier.fillMaxWidth().weight(1f))
                 }
             }
