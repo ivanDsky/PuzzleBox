@@ -71,11 +71,11 @@ internal fun MonthCardPage(
                 val rows: @Composable (Modifier) -> Unit = { MonthFactRows(card, gameName, it, container = palette.plate) }
                 if (wide) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) { Count(card) }
+                        Column(Modifier.weight(1f)) { Count(card, wide = true) }
                         rows(Modifier.weight(1f).padding(start = Spacing.xl))
                     }
                 } else {
-                    Count(card)
+                    Count(card, wide = false)
                 }
                 Spacer(Modifier.weight(1f))
                 if (!wide) rows(Modifier.padding(bottom = Spacing.sm))
@@ -93,7 +93,7 @@ internal fun Eyebrow(text: String, modifier: Modifier = Modifier) {
 
 /** The month's name in kinetic letters over its rolling count and the "puzzles solved" line. */
 @Composable
-private fun Count(card: RecapCard.Month) {
+private fun Count(card: RecapCard.Month, wide: Boolean) {
     RecapKineticTitle(card.monthName(), MonthNameSize, Modifier.testTag("recap.month.name"))
     RollingDigits(
         value = card.solved.toLong(),
@@ -106,7 +106,7 @@ private fun Count(card: RecapCard.Month) {
     Text(
         text = "${card.solved.puzzles()} solved",
         modifier = Modifier.clearAndSetSemantics { },
-        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+        style = MaterialTheme.typography.headlineSmall.copy(fontSize = if (wide) 32.sp else 28.sp, fontWeight = FontWeight.Bold),
     )
 }
 

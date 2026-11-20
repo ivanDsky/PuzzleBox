@@ -24,6 +24,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,6 +36,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
@@ -90,36 +92,40 @@ internal fun YearFinalePage(
             .testTag("recap.finale"),
     ) {
         val wide = maxWidth >= WideWidth
-        OnInk(palette.ink) {
-            val tiles: @Composable (Modifier) -> Unit = { Tiles(card.months, palette.plate, wide, gameName, it) }
-            val chips: @Composable () -> Unit = { Chips(card, palette.plate, gameName) }
-            val actions: @Composable ColumnScope.() -> Unit = {
-                chips()
-                ShareButton(palette, onShare)
-                Note(displayName)
-            }
-            Column(Modifier.fillMaxSize().padding(horizontal = Spacing.xl).padding(top = Spacing.xl, bottom = Spacing.lg)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Eyebrow(periodLabel)
-                    Eyebrow("Year finale")
+        val scale = if (wide) minOf(maxWidth.value / RefCardWidth, maxHeight.value / RefCardHeight).coerceIn(1f, MaxScale) else 1f
+        val density = LocalDensity.current
+        CompositionLocalProvider(LocalDensity provides Density(density.density * scale, density.fontScale)) {
+            OnInk(palette.ink) {
+                val tiles: @Composable (Modifier) -> Unit = { Tiles(card.months, palette.plate, wide, gameName, it) }
+                val chips: @Composable () -> Unit = { Chips(card, palette.plate, wide, gameName) }
+                val actions: @Composable ColumnScope.() -> Unit = {
+                    chips()
+                    ShareButton(palette, onShare)
+                    Note(displayName)
                 }
-                if (wide) {
-                    Row(Modifier.weight(1f).padding(vertical = Spacing.lg), horizontalArrangement = Arrangement.spacedBy(Spacing.xl)) {
-                        Column(Modifier.weight(1f).fillMaxHeight()) {
-                            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
-                                Column { Hero(card.total, card.importedDays, WideHeroFontSize) }
-                            }
-                            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md), content = actions)
-                        }
-                        tiles(Modifier.weight(1f).fillMaxHeight())
+                Column(Modifier.fillMaxSize().padding(horizontal = Spacing.xl).padding(top = Spacing.xl, bottom = Spacing.lg)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Eyebrow(periodLabel)
+                        Eyebrow("Year finale")
                     }
-                } else {
-                    Spacer(Modifier.height(Spacing.lg))
-                    Hero(card.total, card.importedDays, HeroFontSize)
-                    Spacer(Modifier.height(Spacing.lg))
-                    tiles(Modifier)
-                    Spacer(Modifier.weight(1f))
-                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md), content = actions)
+                    if (wide) {
+                        Row(Modifier.weight(1f).padding(vertical = Spacing.lg), horizontalArrangement = Arrangement.spacedBy(Spacing.xl)) {
+                            Column(Modifier.weight(1f).fillMaxHeight()) {
+                                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+                                    Column { Hero(card.total, card.importedDays, WideHeroFontSize, wide = true) }
+                                }
+                                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md), content = actions)
+                            }
+                            tiles(Modifier.weight(1f).fillMaxHeight())
+                        }
+                    } else {
+                        Spacer(Modifier.height(Spacing.lg))
+                        Hero(card.total, card.importedDays, HeroFontSize, wide = false)
+                        Spacer(Modifier.height(Spacing.lg))
+                        tiles(Modifier)
+                        Spacer(Modifier.weight(1f))
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md), content = actions)
+                    }
                 }
             }
         }
@@ -128,7 +134,7 @@ internal fun YearFinalePage(
 }
 
 @Composable
-private fun Hero(total: Int, importedDays: Int?, fontSize: TextUnit) {
+private fun Hero(total: Int, importedDays: Int?, fontSize: TextUnit, wide: Boolean) {
     RollingDigits(
         value = total.toLong(),
         modifier = Modifier.testTag("recap.finale.hero"),
@@ -138,86 +144,18 @@ private fun Hero(total: Int, importedDays: Int?, fontSize: TextUnit) {
     Text(
         text = "${total.puzzles()} solved",
         modifier = Modifier.clearAndSetSemantics { },
-        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+        style = MaterialTheme.typography.headlineSmall.copy(fontSize = if (wide) 32.sp else 28.sp, fontWeight = FontWeight.Bold),
     )
     importedDays?.let {
         Text(importedDaysLine(it), modifier = Modifier.testTag("recap.finale.imported"), style = MaterialTheme.typography.bodyMedium)
     }
 }
 
-/**
- * Twelve months as four columns of three, one tile each. A wide pane keeps the grid at the reference's proportions
- * (tiles about half as wide as tall), centred in its space and capped in height, so a larger tablet gets a larger
- * grid and not taller tiles; it also names each month's best game.
- */
-@Composable
-private fun Tiles(months: List<RecapCard.YearFinale.Tile>, plate: Color, wide: Boolean, gameName: (GameId) -> String, modifier: Modifier) {
-    val grid: @Composable (Modifier) -> Unit = { gridModifier ->
-        Column(gridModifier.testTag("recap.finale.tiles"), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            months.chunked(TileColumns).forEachIndexed { row, rowTiles ->
-                Row(
-                    if (wide) Modifier.weight(1f) else Modifier,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                ) {
-                    rowTiles.forEachIndexed { column, tile ->
-                        Tile(tile, row * TileColumns + column, plate, wide, gameName)
-                    }
-                }
-            }
-        }
-    }
-    if (wide) {
-        Box(modifier, contentAlignment = Alignment.Center) {
-            grid(Modifier.heightIn(max = MaxGridHeight).aspectRatio(WideGridAspect, matchHeightConstraintsFirst = true))
-        }
-    } else {
-        grid(modifier)
-    }
-}
-
-@Composable
-private fun RowScope.Tile(tile: RecapCard.YearFinale.Tile, index: Int, plate: Color, wide: Boolean, gameName: (GameId) -> String) {
-    val progress = rememberDeckSpringIn(RecapMotion.YearTileStart + index * RecapMotion.YearTileStep)
-    val density = LocalDensity.current
-    val shape = MaterialTheme.shapes.medium
-    val empty = tile.solved == 0
-    Column(
-        Modifier
-            .weight(1f)
-            .then(if (wide) Modifier.fillMaxHeight() else Modifier.aspectRatio(PhoneTileAspect))
-            .graphicsLayer {
-                val away = 1f - progress
-                translationX = away * with(density) { RecapMotion.YearTileFromX.toPx() }
-                translationY = away * with(density) { RecapMotion.YearTileFromY.toPx() }
-                rotationZ = away * RecapMotion.YearTileTilt
-                val scale = 1f + away * (RecapMotion.YearTileFromScale - 1f)
-                scaleX = scale
-                scaleY = scale
-                alpha = progress.coerceIn(0f, 1f)
-            }
-            .background(plate, shape)
-            .padding(Spacing.sm)
-            .semantics(mergeDescendants = true) {}
-            .testTag("recap.finale.tile.${tile.month.monthValue}"),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(tile.month.shortName(), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp))
-        Text(
-            text = if (empty) "–" else tile.solved.toString(),
-            style = (if (wide) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.titleMedium).tabular().copy(fontWeight = FontWeight.Bold),
-            color = LocalContentColor.current.copy(alpha = if (empty) MutedAlpha else 1f),
-        )
-        if (wide && tile.game != null) {
-            Box(Modifier.padding(top = Spacing.xs).size(DotSize).background(LocalGameBrands.current(tile.game).accent.colors().accent, CircleShape))
-            Text(gameName(tile.game), style = MaterialTheme.typography.labelSmall, maxLines = 2, textAlign = TextAlign.Center)
-        }
-    }
-}
-
 /** The three bests, as equal chips that stamp in one after another. */
 @Composable
-private fun Chips(card: RecapCard.YearFinale, plate: Color, gameName: (GameId) -> String) {
+private fun Chips(card: RecapCard.YearFinale, plate: Color, wide: Boolean, gameName: (GameId) -> String) {
+    val chipLabelSize = if (wide) 14.sp else 13.sp
+    val chipValueSize = if (wide) 22.sp else 20.sp
     val chips = listOf(
         Triple("best", "Best month" to card.bestMonth.monthName(), "${card.bestMonthSolved} ${card.bestMonthSolved.puzzles()}"),
         Triple("fastest", "Fastest solve" to formatDuration(card.fastestTimeMs), "${gameName(card.fastestGame)} · ${card.fastestMonth.shortName(upper = false)}"),
@@ -239,16 +177,16 @@ private fun Chips(card: RecapCard.YearFinale, plate: Color, gameName: (GameId) -
                     Column(
                         Modifier
                             .fillMaxWidth()
-                            .height(ChipHeight)
+                            .heightIn(min = ChipHeight)
                             .background(plate, MaterialTheme.shapes.medium)
                             .padding(Spacing.sm)
                             .semantics(mergeDescendants = true) {}
                             .testTag("recap.finale.chip.$tag"),
                         verticalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        Text(top.first, style = MaterialTheme.typography.labelSmall)
-                        Text(top.second, style = MaterialTheme.typography.titleSmall.tabular().copy(fontWeight = FontWeight.Bold), maxLines = 1, softWrap = false)
-                        Text(sub, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                        Text(top.first, style = MaterialTheme.typography.labelSmall.copy(fontSize = chipLabelSize, letterSpacing = 0.sp))
+                        Text(top.second, style = MaterialTheme.typography.titleSmall.tabular().copy(fontSize = chipValueSize, fontWeight = FontWeight.Bold, letterSpacing = 0.sp), maxLines = 1, softWrap = false)
+                        Text(sub, style = MaterialTheme.typography.labelSmall.copy(fontSize = chipLabelSize, letterSpacing = 0.sp), maxLines = 1)
                     }
                 }
             }
@@ -280,17 +218,13 @@ internal fun YearMonth.monthName(): String = month.getDisplayName(TextStyle.FULL
 internal fun YearMonth.shortName(upper: Boolean = true): String =
     month.getDisplayName(TextStyle.SHORT_STANDALONE, Locale.getDefault()).let { if (upper) it.uppercase() else it }
 
-private val HeroFontSize = 88.sp
-private val WideHeroFontSize = 104.sp
+private val HeroFontSize = 96.sp
+private val WideHeroFontSize = 108.sp
 private val WideWidth = 600.dp
 private val ChipHeight = 96.dp
 private val ButtonHeight: Dp = 48.dp
-private val DotSize = 10.dp
-private const val TileColumns = 4
 
-/** The reference's wide grid: 376 x 550dp, tiles 88 x 178dp. */
-private const val WideGridAspect = 376f / 550f
-private const val PhoneTileAspect = 76f / 66f
-private val MaxGridHeight = 640.dp
-
-private const val MutedAlpha = 0.5f
+/** The reference tablet card, 852 x 650dp of content room: a wide pane larger than this scales its page up to [MaxScale] times, so nothing stretches. */
+private const val RefCardWidth = 852f
+private const val RefCardHeight = 650f
+private const val MaxScale = 1.6f
