@@ -31,7 +31,7 @@ import com.ivandsky.puzzlebox.train.domain.RecordAnswer
 /** A snippet that is only its technique and its prompt. */
 internal data class StandInSnippet(
     override val technique: TechniqueId = TechniqueId("line-lock"),
-    override val prompt: String = "Place a queen that Line lock proves",
+    override val prompt: String = "Tap the square where Line lock puts a queen",
 ) : Snippet
 
 /** The grid side of the stand-in board. */
@@ -84,12 +84,15 @@ private data object StandInGlyphs : SpotlightGlyphs {
 internal fun standInQuestion(answer: RecordAnswer.Answer?, right: Int = 2) =
     RoundState.Question(listOf(StandInSnippet(), StandInSnippet(), StandInSnippet(), StandInSnippet(), StandInSnippet()), 2, answer, right)
 
+/** The stand-in technique's line, as the list shows it. */
+internal const val StandInLine = "A region sits inside one line, so the rest of that line is out."
+
 @Composable
 private fun RoundPreviewFrame(state: RoundState) = PuzzleBoxTheme {
     Surface(color = MaterialTheme.colorScheme.background) {
         RoundPane(
-            "Line lock", state, showBack = true, onClose = {}, board = standInBoard, onShowMe = {}, onNext = {}, onTryAgain = {}, onTryAnother = {},
-            onDrill = {},
+            "Line lock", StandInLine, state, showBack = true, onClose = {}, board = standInBoard, onShowMe = {}, onNext = {},
+            onTryAgain = {}, onTryAnother = {}, onDrill = {},
             modifier = Modifier.padding(horizontal = Spacing.lg),
         )
     }

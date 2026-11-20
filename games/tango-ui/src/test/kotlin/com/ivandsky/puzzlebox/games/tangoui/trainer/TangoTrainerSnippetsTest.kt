@@ -83,7 +83,7 @@ class TangoTrainerSnippetsTest {
         for (snippet in TangoTrainerFixtures.snippets) {
             val name = trainer.catalog().first { it.id == snippet.technique }.name
             val kind = if (snippet.value == TangoCell.SUN) "sun" else "moon"
-            assertEquals("Place a $kind that $name proves", snippet.prompt)
+            assertEquals("Tap the square where $name puts a $kind", snippet.prompt)
         }
     }
 

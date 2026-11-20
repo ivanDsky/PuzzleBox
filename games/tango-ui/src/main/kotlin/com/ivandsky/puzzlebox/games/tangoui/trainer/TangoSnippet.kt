@@ -23,5 +23,5 @@ internal data class TangoSnippet(
     val value: TangoCell get() = cut.step.value
 
     override val prompt: String
-        get() = "Place a ${if (value == TangoCell.SUN) "sun" else "moon"} that ${TangoTrainerCatalog.name(technique)} proves"
+        get() = "Tap the square where ${TangoTrainerCatalog.name(technique)} puts a ${if (value == TangoCell.SUN) "sun" else "moon"}"
 }
