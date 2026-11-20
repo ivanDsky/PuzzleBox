@@ -17,7 +17,10 @@ import java.time.YearMonth
 private val Cards = listOf(
     RecapCard.Solved(total = 42, perGame = emptyList(), hintFree = 36),
     RecapCard.TotalTime(totalMs = 11_535_000, solved = 42, days = emptyList(), period = RecapPeriod.Month(YearMonth.of(2026, 11))),
-    RecapCard.Streak(days = 17, from = LocalDate.of(2026, 11, 3), to = LocalDate.of(2026, 11, 19), freezesSpent = 2),
+    RecapCard.Streak(
+        days = 17, from = LocalDate.of(2026, 11, 3), to = LocalDate.of(2026, 11, 19), freezesSpent = 2,
+        frozenDays = emptySet(), span = RecapPeriod.Month(YearMonth.of(2026, 11)),
+    ),
     RecapCard.Moments(personalBests = 5, firstSubX = 2, fullSets = 14, streakMilestones = listOf(7, 30)),
 )
 

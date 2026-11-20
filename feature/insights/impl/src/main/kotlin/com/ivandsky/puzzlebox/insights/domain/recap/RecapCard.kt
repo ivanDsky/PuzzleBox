@@ -54,8 +54,17 @@ internal sealed interface RecapCard {
     /**
      * Longest streak: [days] in a row, frozen days included, over [from]..[to] inside the period (a streak across the
      * period's edge shows only its own side), and the days [freezesSpent] holding streaks anywhere in the period.
+     * [frozenDays] are the days of this streak a freeze held (fewer than [freezesSpent] when other streaks spent some),
+     * and [span] is the period the dial draws.
      */
-    data class Streak(val days: Int, val from: LocalDate, val to: LocalDate, val freezesSpent: Int) : RecapCard
+    data class Streak(
+        val days: Int,
+        val from: LocalDate,
+        val to: LocalDate,
+        val freezesSpent: Int,
+        val frozenDays: Set<LocalDate>,
+        val span: DaySpan,
+    ) : RecapCard
 
     /**
      * Moments earned, local kinds only (A6): [personalBests] and [firstSubX] and [fullSets] counted, and every

@@ -46,7 +46,10 @@ internal object RecapFixtures {
     )
 
     /** A 17-day streak, two of its days held by freezes. */
-    val streak = RecapCard.Streak(days = 17, from = LocalDate.of(2026, 11, 3), to = LocalDate.of(2026, 11, 19), freezesSpent = 2)
+    val streak = RecapCard.Streak(
+        days = 17, from = LocalDate.of(2026, 11, 3), to = LocalDate.of(2026, 11, 19), freezesSpent = 2,
+        frozenDays = setOf(LocalDate.of(2026, 11, 8), LocalDate.of(2026, 11, 14)), span = november,
+    )
 
     /** Every local Moment kind came up, two streak milestones among them. */
     val moments = RecapCard.Moments(personalBests = 5, firstSubX = 2, fullSets = 14, streakMilestones = listOf(7, 30))
