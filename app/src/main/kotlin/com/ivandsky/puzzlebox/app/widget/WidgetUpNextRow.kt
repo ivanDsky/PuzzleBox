@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.app.widget
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.glance.ColorFilter
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
@@ -37,13 +36,14 @@ internal fun WidgetUpNextRow(upNext: WidgetUpNext, layout: WidgetLayout, colors:
     val button = upNextButton(upNext, context)
     val onPrimary = colors.of(R.color.widget_on_primary)
     val playing = upNext != WidgetUpNext.Done
+    val sizes = layout.button
     val width = if (layout.compact) GlanceModifier.fillMaxWidth() else GlanceModifier
     Row(
         modifier = width
-            .height(WidgetLayout.BUTTON_HEIGHT)
+            .height(sizes.height)
             .background(colors.of(R.color.widget_primary))
-            .cornerRadius(WidgetLayout.BUTTON_HEIGHT / 2)
-            .padding(horizontal = if (layout.compact) 16.dp else 24.dp)
+            .cornerRadius(sizes.height / 2)
+            .padding(horizontal = sizes.horizontalPadding)
             .semantics { contentDescription = button.label }
             .clickable(actionStartActivity(ShortcutIntents.intent(context, button.target))),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -53,14 +53,14 @@ internal fun WidgetUpNextRow(upNext: WidgetUpNext, layout: WidgetLayout, colors:
             Image(
                 provider = ImageProvider(R.drawable.widget_play),
                 contentDescription = null,
-                modifier = GlanceModifier.size(20.dp),
+                modifier = GlanceModifier.size(sizes.icon),
                 colorFilter = ColorFilter.tint(onPrimary),
             )
         }
         Text(
             text = button.label,
             modifier = if (playing) GlanceModifier.padding(start = 6.dp) else GlanceModifier,
-            style = TextStyle(color = onPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold),
+            style = TextStyle(color = onPrimary, fontSize = sizes.text, fontWeight = FontWeight.Bold),
             maxLines = 1,
         )
     }
