@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.home
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -47,6 +49,7 @@ class HomeRecapCardGoldenTest : HomeStreakScenes() {
         render(dark) {
             CompositionLocalProvider(LocalTabReselect provides MutableSharedFlow()) {
                 PuzzleBoxTheme {
+                    Surface(color = MaterialTheme.colorScheme.background) {
                     HomeScreen(
                         layout = if (device == "tablet") HomeLayout.TwoPane else HomeLayout.SinglePane,
                         state = today(day),
@@ -56,6 +59,7 @@ class HomeRecapCardGoldenTest : HomeStreakScenes() {
                         title = "Today",
                         summaries = HomeSummaries(onOpenRank = null, duels = null, onOpenDay = {}, onOpenStreak = {}, recap = slot),
                     )
+                    }
                 }
             }
         }

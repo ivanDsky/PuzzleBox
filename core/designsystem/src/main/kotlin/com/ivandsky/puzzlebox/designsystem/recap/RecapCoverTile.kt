@@ -164,7 +164,7 @@ fun RecapCoverTile(
             stamp = play && !reduced,
             modifier = Modifier.align(Alignment.TopEnd).padding(top = ArtTop, end = Spacing.lg),
         )
-        Number(solved, play && !reduced, ink, Modifier.align(Alignment.BottomStart).padding(start = Spacing.lg, bottom = Spacing.lg))
+        SolvedCount(solved, play && !reduced, ink, Modifier.align(Alignment.BottomStart).padding(start = Spacing.lg, bottom = Spacing.lg))
         OpenButton(opened, ink, plate, Modifier.align(Alignment.BottomEnd).padding(end = Spacing.lg, bottom = Spacing.lg))
         if (onDismiss != null) {
             IconButton(onClick = onDismiss, modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.xs).size(Touch).testTag("$tag.dismiss")) {
@@ -193,7 +193,7 @@ private fun Kicker(opened: Boolean, ink: Color, field: Color) {
 }
 
 @Composable
-private fun Number(solved: Int, animate: Boolean, ink: Color, modifier: Modifier) {
+private fun SolvedCount(solved: Int, animate: Boolean, ink: Color, modifier: Modifier) {
     val shown = if (animate) rememberCountUp(solved.toLong(), NUMBER_DELAY_MS, MotionTokens.ScoreCountUpDuration).toInt() else solved
     val peek = remember(animate) { Animatable(if (animate) 1f else 0f) }
     LaunchedEffect(animate) {

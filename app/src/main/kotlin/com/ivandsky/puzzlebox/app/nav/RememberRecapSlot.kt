@@ -20,8 +20,7 @@ import kotlinx.coroutines.launch
 /**
  * The [RecapSlot] Home hosts, live: it follows the day's first solve, the puzzle-day rollover and a dismissal as
  * they happen, with no polling. While neither [InsightsFlag.MonthlyRecap] nor [InsightsFlag.YearRecap] is in [enabled]
- * nothing is observed at all. The dismissals and the openings are read before any card shows, so a dismissed card never
- * flashes back and a watched one never flashes New on a cold start. See [recapSlot].
+ * nothing is observed at all. The dismissals and the openings are read before any card shows (see [recapSlot]).
  */
 @Composable
 internal fun rememberRecapSlot(
@@ -43,21 +42,15 @@ internal fun rememberRecapSlot(
     val dismissed by remember(dismissals) { dismissals.observe() }.collectAsStateWithLifecycle(initialValue = null)
     val opened by remember(openings) { openings.observe() }.collectAsStateWithLifecycle(initialValue = null)
     val scope = rememberCoroutineScope()
-    val loaded = dismissed
-    val watched = opened
-    return remember(enabled, due, today, loaded, watched, navigator, dismissals) {
-        if (loaded == null || watched == null) {
-            null
-        } else {
-            recapSlot(
-                enabled = enabled,
-                due = due,
-                dismissed = loaded,
-                opened = watched,
-                today = today,
-                navigator = navigator,
-                dismiss = { periodId -> scope.launch { dismissals.dismiss(periodId) } },
-            )
-        }
+    return remember(enabled, due, today, dismissed, opened, navigator, dismissals) {
+        recapSlot(
+            enabled = enabled,
+            due = due,
+            dismissed = dismissed,
+            opened = opened,
+            today = today,
+            navigator = navigator,
+            dismiss = { periodId -> scope.launch { dismissals.dismiss(periodId) } },
+        )
     }
 }

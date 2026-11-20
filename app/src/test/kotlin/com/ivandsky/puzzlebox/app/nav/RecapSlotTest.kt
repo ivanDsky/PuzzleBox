@@ -146,4 +146,14 @@ class RecapSlotTest {
     fun `with the flags off a loading list shows no skeleton even inside a window`() {
         assertNull(loading(enabled = FakeReleaseFlags().enabled.value, today = LocalDate.of(2026, 11, 2)))
     }
+
+    @Test
+    fun `until dismissals and openings have both loaded no tile shows`() {
+        val today = LocalDate.of(2026, 11, 2)
+        val gates = listOf(null to emptySet<String>(), emptySet<String>() to null, null to null)
+        for ((dismissed, opened) in gates) {
+            assertNull(recapSlot(on, listOf(october), dismissed, opened, today, navigator) {})
+            assertNull(recapSlot(on, null, dismissed, opened, today, navigator) {})
+        }
+    }
 }

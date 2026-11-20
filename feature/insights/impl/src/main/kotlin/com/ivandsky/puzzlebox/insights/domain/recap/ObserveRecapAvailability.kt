@@ -49,11 +49,11 @@ internal class ObserveRecapAvailability(
         combine(counted(), today()) { solved, today ->
             if (today == null || solved.none { it.day == today }) return@combine emptyList<DuePeriod>()
             val year = RecapPeriod.Year(today.year - 1).takeIf {
-                today.month == Month.JANUARY && today.dayOfMonth <= YEAR_DUE_DAYS && solved.any { day -> day.day in it }
+                RecapWindow.offersYear(today) && solved.any { day -> day.day in it }
             }
             val ended = YearMonth.from(today).minusMonths(1)
             val month = RecapPeriod.Month(ended).takeIf {
-                today.dayOfMonth <= MONTH_DUE_DAYS && solved.any { day -> YearMonth.from(day.day) == ended }
+                RecapWindow.offersMonth(today) && solved.any { day -> YearMonth.from(day.day) == ended }
             }
             listOfNotNull(year, month).map { DuePeriod(it, summarize(it, solved)) }
         }.distinctUntilChanged()
@@ -75,12 +75,6 @@ internal class ObserveRecapAvailability(
     }
 
     private companion object {
-        /** The month Today card's window: days 1–3 of the month after the one it recaps. */
-        const val MONTH_DUE_DAYS = 3
-
-        /** The year Today card's window: Jan 1–7 for the year just ended. */
-        const val YEAR_DUE_DAYS = 7
-
         /** The day of December the current year's recap opens (A3). */
         const val OPEN_DAY = 20
     }
