@@ -56,12 +56,46 @@ internal class ComputePeriodFacts(
         )
     }
 
-    /** One [MonthFacts] per month of the year's [counted] solves, January first; the quickest is by time, then fewer hints, then the earlier day. */
-    private fun monthsOf(counted: List<GameHistoryDay>): List<MonthFacts> =
-        counted.groupBy { YearMonth.from(it.day) }.toSortedMap().map { (month, days) ->
-            val best = days.minWith(compareBy<GameHistoryDay>({ it.solve.time }, { it.solve.hints }, { it.day }))
-            MonthFacts(month = month, solved = days.size, fastestGame = best.gameId, fastestTimeMs = best.solve.time)
+    /**
+     * One [MonthFacts] per month of the year's [counted] solves, January first; the quickest is by time, then fewer hints, then the earlier day.
+     * The month's best against the average is picked from the same list: per game, its best time that month over its average counted time in
+     * the year; the lowest ratio wins, then more solves that month, then the app's game order. A game with one counted solve in the year has no
+     * average to beat, so it is skipped unless every game of the month is in that case.
+     */
+    private fun monthsOf(counted: List<GameHistoryDay>): List<MonthFacts> {
+        val yearByGame = counted.groupBy { it.gameId }
+        val order = registry.all.map { it.definition.id }
+        return counted.groupBy { YearMonth.from(it.day) }.toSortedMap().map { (month, days) ->
+            val quickest = days.minWith(compareBy<GameHistoryDay>({ it.solve.time }, { it.solve.hints }, { it.day }))
+            val candidates = days.groupBy { it.gameId }.map { (game, ofGame) ->
+                val inYear = yearByGame.getValue(game)
+                MonthBest(
+                    game = game,
+                    timeMs = ofGame.minOf { it.solve.time },
+                    averageMs = (inYear.sumOf { it.solve.time } / inYear.size).coerceAtLeast(1),
+                    yearSolves = inYear.size,
+                    monthSolves = ofGame.size,
+                )
+            }
+            val best = candidates.filter { it.yearSolves > 1 }.ifEmpty { candidates }
+                .minWith(compareBy<MonthBest>({ it.timeMs.toDouble() / it.averageMs }, { -it.monthSolves }, { order.indexOf(it.game) }))
+            MonthFacts(
+                month = month,
+                solved = days.size,
+                fastestGame = quickest.gameId,
+                fastestTimeMs = quickest.solve.time,
+                bestGame = best.game,
+                bestTimeMs = best.timeMs,
+                underAveragePercent = best.underAveragePercent,
+            )
         }
+    }
+
+    /** A game's best time in a month beside its average over the year: what [monthsOf] ranks. */
+    private class MonthBest(val game: GameId, val timeMs: Long, val averageMs: Long, val yearSolves: Int, val monthSolves: Int) {
+        /** Whole percent below the average, rounded; 0 when at or above it. */
+        val underAveragePercent: Int get() = if (timeMs >= averageMs) 0 else (((averageMs - timeMs) * 100 + averageMs / 2) / averageMs).toInt()
+    }
 
     /** The puzzle days a year of only imported solves covers; null when [period] is a month, or any counted solve was made in the app, or none was. */
     private fun importedDaysOf(counted: List<GameHistoryDay>, period: DaySpan): Int? =

@@ -38,8 +38,8 @@ import java.time.format.TextStyle
 import java.util.Locale
 
 /**
- * A month of a yearly recap: its name over its solved count, rolling up on arrival, then the month's quickest solve and
- * the game it was in, twelve squares marking the month in the year, and, with a [place], "Month 3 of 12" and what is
+ * A month of a yearly recap: its name over its solved count, rolling up on arrival, then the month's best against your
+ * average (the game, its time and how far under), twelve squares marking the month in the year, and, with a [place], "Month 3 of 12" and what is
  * next. One of these follows the totals for each month of the year with a counted solve (A3). A wide pane puts the
  * name and count on the left and the rows on the right.
  */
@@ -71,11 +71,11 @@ internal fun MonthCardPage(
                 val rows: @Composable (Modifier) -> Unit = { MonthFactRows(card, gameName, it, container = palette.plate) }
                 if (wide) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) { Count(card) }
+                        Column(Modifier.weight(1f)) { Count(card, wide = true) }
                         rows(Modifier.weight(1f).padding(start = Spacing.xl))
                     }
                 } else {
-                    Count(card)
+                    Count(card, wide = false)
                 }
                 Spacer(Modifier.weight(1f))
                 if (!wide) rows(Modifier.padding(bottom = Spacing.sm))
@@ -93,7 +93,7 @@ internal fun Eyebrow(text: String, modifier: Modifier = Modifier) {
 
 /** The month's name in kinetic letters over its rolling count and the "puzzles solved" line. */
 @Composable
-private fun Count(card: RecapCard.Month) {
+private fun Count(card: RecapCard.Month, wide: Boolean) {
     RecapKineticTitle(card.monthName(), MonthNameSize, Modifier.testTag("recap.month.name"))
     RollingDigits(
         value = card.solved.toLong(),
@@ -106,29 +106,38 @@ private fun Count(card: RecapCard.Month) {
     Text(
         text = "${card.solved.puzzles()} solved",
         modifier = Modifier.clearAndSetSemantics { },
-        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+        style = MaterialTheme.typography.headlineSmall.copy(fontSize = if (wide) 32.sp else 28.sp, fontWeight = FontWeight.Bold),
     )
 }
 
-/** The month's quickest solve and its game (with the game's colour) as one rounded block. Shared by the story and the tablet list. */
+/** The month's best against the player's own average: the game and its time, and how far under the average it was. Shared by the story and the tablet list. */
 @Composable
 internal fun MonthFactRows(
     card: RecapCard.Month,
     gameName: (GameId) -> String,
     modifier: Modifier = Modifier,
     container: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    tablet: Boolean = false,
 ) {
-    val dot = LocalGameBrands.current(card.fastestGame).accent.colors().accent
+    val dot = LocalGameBrands.current(card.bestGame).accent.colors().accent
+    val time = formatDuration(card.bestTimeMs)
     RecapFactRows(
         rows = listOf(
-            RecapFactRow("recap.month.fastest", "Fastest solve", formatDuration(card.fastestTimeMs)),
-            RecapFactRow("recap.month.game", "Game", gameName(card.fastestGame), dot = dot),
+            if (tablet) {
+                RecapFactRow("recap.month.best", "Best vs average", "$time · ${gameName(card.bestGame)}", dot = dot)
+            } else {
+                RecapFactRow("recap.month.best", "Best against your average", "${gameName(card.bestGame)} $time", dot = dot)
+            },
+            RecapFactRow("recap.month.under", underAverageLine(card.underAveragePercent), ""),
         ),
         tag = "recap.month.facts",
         modifier = modifier,
         container = container,
     )
 }
+
+/** "31% under your average"; a month that only matched it says so. */
+internal fun underAverageLine(percent: Int): String = if (percent > 0) "$percent% under your average" else "Matched your average"
 
 /** The month fact in the tablet list: its name with the solved count, then the quickest solve and its game. */
 @Composable
@@ -148,7 +157,7 @@ internal fun MonthCardFact(card: RecapCard.Month, gameName: (GameId) -> String, 
                 color = MaterialTheme.colorScheme.primary,
             )
         }
-        MonthFactRows(card, gameName)
+        MonthFactRows(card, gameName, tablet = true)
     }
 }
 

@@ -46,10 +46,11 @@ internal sealed interface RecapCard {
     }
 
     /**
-     * One month of a year (A3): [solved] counted solves in [month], and its quickest, [fastestTimeMs] in [fastestGame].
+     * One month of a year (A3): [solved] counted solves in [month], and its best against the player's own average: [bestGame]'s best time that
+     * month, [bestTimeMs], which beat that game's average over the year by [underAveragePercent] percent (0: it only matched it).
      * A year's story has one of these for each month with a counted solve, after the totals (Total time last of them); a month's story has none.
      */
-    data class Month(val month: YearMonth, val solved: Int, val fastestGame: GameId, val fastestTimeMs: Long) : RecapCard
+    data class Month(val month: YearMonth, val solved: Int, val bestGame: GameId, val bestTimeMs: Long, val underAveragePercent: Int) : RecapCard
 
     /**
      * The year on one poster, after the month cards: the [total], all twelve [months] (a month with no counted solve is
@@ -68,7 +69,7 @@ internal sealed interface RecapCard {
         val mostPlayedSolved: Int,
         val importedDays: Int? = null,
     ) : RecapCard {
-        /** A month's [solved] count and the [game] of its quickest solve; null when the month had no counted solve. */
+        /** A month's [solved] count and the [game] of its best against the player's average; null when the month had no counted solve. */
         data class Tile(val month: YearMonth, val solved: Int, val game: GameId?)
     }
 

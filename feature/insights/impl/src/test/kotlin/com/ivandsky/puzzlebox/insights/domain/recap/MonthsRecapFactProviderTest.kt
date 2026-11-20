@@ -9,8 +9,8 @@ import org.junit.Test
 
 class MonthsRecapFactProviderTest {
 
-    private val march = MonthFacts(YearMonth.of(2026, 3), solved = 12, fastestGame = alpha, fastestTimeMs = 58_000)
-    private val may = MonthFacts(YearMonth.of(2026, 5), solved = 1, fastestGame = beta, fastestTimeMs = 141_000)
+    private val march = MonthFacts(YearMonth.of(2026, 3), solved = 12, fastestGame = alpha, fastestTimeMs = 58_000, bestGame = beta, bestTimeMs = 61_000, underAveragePercent = 23)
+    private val may = MonthFacts(YearMonth.of(2026, 5), solved = 1, fastestGame = beta, fastestTimeMs = 141_000, bestGame = beta, bestTimeMs = 141_000, underAveragePercent = 0)
 
     private fun input(period: RecapPeriod, months: List<MonthFacts>) = RecapInput(
         facts = PeriodFacts(
@@ -25,8 +25,8 @@ class MonthsRecapFactProviderTest {
     fun `a year has one card per month with its count and its fastest solve`() = runTest {
         assertEquals(
             listOf(
-                RecapCard.Month(YearMonth.of(2026, 3), solved = 12, fastestGame = alpha, fastestTimeMs = 58_000),
-                RecapCard.Month(YearMonth.of(2026, 5), solved = 1, fastestGame = beta, fastestTimeMs = 141_000),
+                RecapCard.Month(YearMonth.of(2026, 3), solved = 12, bestGame = beta, bestTimeMs = 61_000, underAveragePercent = 23),
+                RecapCard.Month(YearMonth.of(2026, 5), solved = 1, bestGame = beta, bestTimeMs = 141_000, underAveragePercent = 0),
             ),
             MonthsRecapFactProvider.cards(input(RecapPeriod.Year(2026), listOf(march, may))),
         )

@@ -22,7 +22,7 @@ internal object YearFinaleRecapFactProvider : RecapFactProvider {
                 months = (1..MonthsInYear).map { number ->
                     val month = YearMonth.of(period.year, number)
                     val facts = byMonth[month]
-                    RecapCard.YearFinale.Tile(month, solved = facts?.solved ?: 0, game = facts?.fastestGame)
+                    RecapCard.YearFinale.Tile(month, solved = facts?.solved ?: 0, game = facts?.bestGame)
                 },
                 bestMonth = best.month,
                 bestMonthSolved = best.solved,

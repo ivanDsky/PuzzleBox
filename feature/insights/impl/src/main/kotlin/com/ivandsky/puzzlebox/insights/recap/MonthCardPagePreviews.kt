@@ -22,9 +22,9 @@ private val Names = mapOf(Zip to "Zip", Queens to "Queens")
 
 private fun name(game: GameId): String = Names.getValue(game)
 
-private val March = RecapCard.Month(YearMonth.of(2026, 3), solved = 42, fastestGame = Zip, fastestTimeMs = 58_000)
+private val March = RecapCard.Month(YearMonth.of(2026, 3), solved = 42, bestGame = Zip, bestTimeMs = 58_000, underAveragePercent = 31)
 
-private val OneSolve = RecapCard.Month(YearMonth.of(2026, 9), solved = 1, fastestGame = Queens, fastestTimeMs = 141_000)
+private val OneSolve = RecapCard.Month(YearMonth.of(2026, 9), solved = 1, bestGame = Queens, bestTimeMs = 141_000, underAveragePercent = 0)
 
 @PuzzleBoxPreviews
 @Composable

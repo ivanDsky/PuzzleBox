@@ -75,8 +75,8 @@ internal object RecapFixtures {
     val friendsUnavailable = RecapCard.Friends(FriendsStanding.Unavailable)
 
     /** A year of play: March, its busiest month, and the month a streak began. */
-    val march = RecapCard.Month(YearMonth.of(2026, 3), solved = 42, fastestGame = zip, fastestTimeMs = 58_000)
-    val april = RecapCard.Month(YearMonth.of(2026, 4), solved = 9, fastestGame = queens, fastestTimeMs = 141_000)
+    val march = RecapCard.Month(YearMonth.of(2026, 3), solved = 42, bestGame = zip, bestTimeMs = 58_000, underAveragePercent = 31)
+    val april = RecapCard.Month(YearMonth.of(2026, 4), solved = 9, bestGame = queens, bestTimeMs = 141_000, underAveragePercent = 12)
 
     /** A year built from imported results alone: 312 puzzle days. */
     val solvedImported = solved.copy(importedDays = 312)

@@ -15,11 +15,13 @@ internal object YearFixtures {
     private val games = listOf(queens, zip, tango, zip, queens, zip, tango, zip, sudoku, zip, zip, queens)
     private val times = listOf(61_000L, 55_000, 49_000, 44_000, 40_000, 38_000, 33_000, 19_000, 69_000, 21_000, 22_000, 50_000)
 
+    private val under = listOf(12, 8, 15, 22, 9, 17, 30, 25, 6, 31, 18, 0)
+
     private fun month(number: Int) = YearMonth.of(2026, number)
 
     /** Month cards for the first [months] months of 2026 (September's quickest solve is Mini Sudoku's). */
     fun monthCards(months: Int = 12): List<RecapCard.Month> =
-        (1..months).map { RecapCard.Month(month(it), counts[it - 1], games[it - 1], times[it - 1]) }
+        (1..months).map { RecapCard.Month(month(it), counts[it - 1], games[it - 1], times[it - 1], under[it - 1]) }
 
     /** The finale of the first [months] months; the rest are empty tiles. */
     fun finale(months: Int = 12, total: Int = 625, importedDays: Int? = null) = RecapCard.YearFinale(
@@ -42,5 +44,5 @@ internal object YearFixtures {
         listOf<RecapCard>(if (imported) RecapFixtures.solvedImported else RecapFixtures.solved) +
             totals.filterNot { imported && it === RecapFixtures.friendsLoadedYear } + months + finale
 
-    val oneMonth = RecapCard.Month(month(10), solved = 1, fastestGame = zip, fastestTimeMs = 21_000)
+    val oneMonth = RecapCard.Month(month(10), solved = 1, bestGame = zip, bestTimeMs = 21_000, underAveragePercent = 0)
 }
