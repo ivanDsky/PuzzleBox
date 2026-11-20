@@ -10,9 +10,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-/** A year's twelve [months] as bars [gap] apart, tallest as high as the box; a month with no solve keeps a hairline. */
+/** A year's twelve [months] as bars [gap] apart (round-capped unless [corner] is set), tallest as high as the box; a month with no solve keeps a hairline. */
 @Composable
-fun YearBars(months: List<Int>, color: Color, modifier: Modifier = Modifier, gap: Dp = BarGap) {
+fun YearBars(months: List<Int>, color: Color, modifier: Modifier = Modifier, gap: Dp = BarGap, corner: Dp? = null) {
     Canvas(modifier) {
         val count = months.size.coerceAtLeast(1)
         val gap = gap.toPx()
@@ -24,7 +24,7 @@ fun YearBars(months: List<Int>, color: Color, modifier: Modifier = Modifier, gap
                 color = color,
                 topLeft = Offset(i * (barWidth + gap), size.height - height),
                 size = Size(barWidth, height),
-                cornerRadius = CornerRadius(barWidth / 2),
+                cornerRadius = CornerRadius(corner?.toPx() ?: (barWidth / 2)),
             )
         }
     }

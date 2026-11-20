@@ -93,7 +93,7 @@ internal fun HubCoverPane(item: SummarizedPeriod, opened: Boolean, yearSoFar: In
             val art = item.art(ink)
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 when (art) {
-                    is RecapTileArt.Bars -> YearBars(art.months, art.color, Modifier.size(BarsWidth, BarsHeight), gap = BarsGap)
+                    is RecapTileArt.Bars -> YearBars(art.months, art.color, Modifier.size(BarsWidth, BarsHeight), gap = BarsGap, corner = BarsCorner)
                     is RecapTileArt.Mosaic -> RecapArtPlate(art, plate = ink, stamp = false, size = MosaicSize)
                 }
             }
@@ -126,6 +126,7 @@ private val CountLift = 28.dp
 private val BarsWidth = 234.dp
 private val BarsHeight = 170.dp
 private val BarsGap = 6.dp
+private val BarsCorner = 2.dp
 private val BarsToTap = 56.dp
 private val MosaicSize = 180.dp
 private val DashInset = 16.dp
