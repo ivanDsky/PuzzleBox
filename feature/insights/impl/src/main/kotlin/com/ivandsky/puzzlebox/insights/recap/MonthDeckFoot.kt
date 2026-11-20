@@ -43,6 +43,13 @@ internal fun monthPlaceOf(cards: List<RecapCard>, page: Int): MonthPlace? {
     return MonthPlace(index + 1, months.size, months.getOrNull(index + 1)?.monthName() ?: FinaleName)
 }
 
+/** What the story's foot names as next under the card on [page] of [cards]: the next month, the year finale, or the Share page after the finale. Null on other cards. */
+internal fun deckFootOf(cards: List<RecapCard>, page: Int): String? = when (cards.getOrNull(page)) {
+    is RecapCard.Month -> monthPlaceOf(cards, page)?.next
+    is RecapCard.YearFinale -> "Share"
+    else -> null
+}
+
 private const val FinaleName = "Year finale"
 
 /** Draws [content] in a year card's [ink]: text, values and hairlines read in it, over the card's field and plate. */
@@ -58,7 +65,7 @@ internal fun OnInk(ink: Color, content: @Composable () -> Unit) {
     }
 }
 
-/** What a card says is next ("Next: April") on the left, and how to move on on the right; the foot of a month card and of the finale. */
+/** What is next ("Next: April") on the left, and how to move on on the right; the foot under the deck on a month card and on the finale. */
 @Composable
 internal fun DeckFoot(next: String, modifier: Modifier = Modifier) {
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

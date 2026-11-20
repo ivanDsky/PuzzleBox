@@ -6,10 +6,12 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
@@ -112,6 +114,7 @@ internal fun RecapStory(
                     .padding(start = Spacing.lg, top = Spacing.xs, end = Spacing.lg)
                     // Room under the top card for the cards peeking out below it.
                     .padding(bottom = Spacing.xl + RecapMotion.DeckStackStep * (RecapMotion.DeckStackVisible - 1)),
+                yearFlick = { at -> cards.getOrNull(at - 1) is RecapCard.Month },
             ) { at ->
                 val page = at - 1
                 if (at == 0) {
@@ -127,6 +130,12 @@ internal fun RecapStory(
                     )
                 } else if (share != null) {
                     ShareCardPage(cards, share, onShare, Modifier.fillMaxSize())
+                }
+            }
+            // A year deck keeps the foot's row on every card, so the deck does not resize between pages.
+            if (cards.any { it is RecapCard.Month || it is RecapCard.YearFinale }) {
+                Box(Modifier.fillMaxWidth().graphicsLayer { alpha = chrome }.padding(horizontal = Spacing.lg).padding(bottom = Spacing.md).heightIn(min = FootHeight)) {
+                    deckFootOf(cards, deck.position - 1)?.let { DeckFoot(it) }
                 }
             }
         }
@@ -153,6 +162,8 @@ private fun ChromeButton(
         Icon(icon, contentDescription = label, modifier = Modifier.graphicsLayer { rotationZ = turn })
     }
 }
+
+private val FootHeight = 24.dp
 
 /** Each replay turns the ↻ icon a further quarter turn back. */
 private const val ReplayTurn = -90f

@@ -116,7 +116,6 @@ internal fun YearFinalePage(
                     Spacer(Modifier.weight(1f))
                     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md), content = actions)
                 }
-                DeckFoot("Share", Modifier.padding(top = Spacing.lg))
             }
         }
         Confetti(palette.ink, palette.plate)

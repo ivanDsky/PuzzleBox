@@ -1,6 +1,9 @@
 package com.ivandsky.puzzlebox.insights.recap
 
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
@@ -10,13 +13,16 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
+import com.ivandsky.puzzlebox.insights.domain.recap.RecapPeriod
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.friendsLoaded
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.friendsLoadedYear
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.gameName
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.march
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.solved
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.solvedImported
+import androidx.compose.ui.unit.Density
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -94,20 +100,56 @@ class RecapYearCardsTest {
         rule.onNodeWithText("Based on", substring = true).assertDoesNotExist()
     }
 
-    @Test
-    fun `a middle month names the next month and the last month names the finale`() {
-        val cards = listOf(RecapFixtures.march, RecapFixtures.april)
-        show(RecapFixtures.march, place = monthPlaceOf(cards, 0))
-        rule.onNodeWithTag("recap.foot").assertTextEquals("Next: April")
-        rule.onNodeWithTag("recap.month.index").assertTextEquals("MONTH 1 OF 2")
+    private fun showStory(cards: List<RecapCard>, page: Int, fontScale: Float = 1f) {
+        val deck = RecapDeckState(pageCount = cards.size, initialPage = page)
+        rule.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, fontScale)) {
+                PuzzleBoxTheme {
+                    RecapStory(cards, deck, RecapPeriod.Year(2026), "2026", gameName, onWatchReplay = {}, onClose = {}, displayName = "Ivan")
+                }
+            }
+        }
     }
 
     @Test
-    fun `the last month's foot reads Next Year finale and counts the month cards`() {
+    fun `the finale keeps its note and Share button inside the card at a 1_3 font scale`() {
+        val cards = listOf(RecapFixtures.solved, RecapFixtures.march, finale)
+        showStory(cards, page = 2, fontScale = 1.3f)
+
+        val card = rule.onNodeWithTag("recap.finale").fetchSemanticsNode().boundsInRoot
+        for (tag in listOf("recap.finale.share", "recap.finale.note", "recap.finale.chip.best", "recap.finale.tile.12")) {
+            val bounds = rule.onNodeWithTag(tag).fetchSemanticsNode().boundsInRoot
+            assertTrue("$tag $bounds outside $card", bounds.top >= card.top && bounds.bottom <= card.bottom)
+        }
+    }
+
+    @Test
+    fun `a middle month's foot under the deck names the next month`() {
+        val cards = listOf(RecapFixtures.solved, RecapFixtures.march, RecapFixtures.april, finale)
+        showStory(cards, page = 1)
+
+        rule.onNodeWithTag("recap.foot").assertTextEquals("Next: April")
+    }
+
+    @Test
+    fun `the last month's foot reads Next Year finale`() {
+        val cards = listOf(RecapFixtures.solved, RecapFixtures.march, RecapFixtures.april, finale)
+        showStory(cards, page = 2)
+        rule.onNodeWithTag("recap.foot").assertTextEquals("Next: Year finale")
+    }
+
+    @Test
+    fun `the finale's foot reads Next Share and a totals card has none`() {
+        val cards = listOf(RecapFixtures.solved, RecapFixtures.march, finale)
+        assertEquals("Share", deckFootOf(cards, 2))
+        assertEquals(null, deckFootOf(cards, 0))
+    }
+
+    @Test
+    fun `month cards are counted among month cards only`() {
         val cards = listOf(RecapFixtures.solved, RecapFixtures.march, RecapFixtures.april, finale)
         show(RecapFixtures.april, place = monthPlaceOf(cards, 2))
 
-        rule.onNodeWithTag("recap.foot").assertTextEquals("Next: Year finale")
         rule.onNodeWithTag("recap.month.index").assertTextEquals("MONTH 2 OF 2")
     }
 

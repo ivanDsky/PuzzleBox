@@ -80,7 +80,6 @@ internal fun MonthCardPage(
                 Spacer(Modifier.weight(1f))
                 if (!wide) rows(Modifier.padding(bottom = Spacing.sm))
                 MonthSquares(card.month.monthValue, if (wide) WideSquare else Square)
-                if (place != null) DeckFoot(place.next, Modifier.padding(top = Spacing.lg))
             }
         }
     }

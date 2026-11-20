@@ -117,6 +117,14 @@ object RecapMotion {
     const val YearSquareStep = 24
     const val YearSquareFromTurn = 90f
 
+    // Yearflick throw: a month card of a year leaves for YearThrowDuration ms, YearThrowTravel card widths at YearThrowTilt degrees,
+    // and the next card promotes on a spring (the table's year row, not the yearflick prose's 180ms / 1.25 / -10 / spring(.7, 600)).
+    const val YearThrowDuration = 300
+    const val YearThrowTravel = -1.3f
+    const val YearThrowTilt = -16f
+    const val YearPromoteDamping = 0.55f
+    const val YearPromoteStiffness = 380f
+
     // Yearposter: month tile i springs in on DeckSpring from YearTileFrom, YearTileTilt degrees and YearTileFromScale
     // at YearTileStart + i × YearTileStep ms; the chips then stamp in YearChipStep apart.
     const val YearTileStart = 160
