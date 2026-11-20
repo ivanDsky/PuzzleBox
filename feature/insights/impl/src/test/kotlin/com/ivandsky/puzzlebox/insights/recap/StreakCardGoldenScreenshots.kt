@@ -94,7 +94,7 @@ class StreakCardGoldenScreenshots {
     private fun year() = RecapUiState.Ready(
         period = RecapPeriod.Year(2026),
         title = "2026 so far",
-        cards = deck(year, RecapFixtures.totalTimeYear),
+        cards = deck(year, RecapFixtures.totalTime),
         initialPage = 2,
     )
 
