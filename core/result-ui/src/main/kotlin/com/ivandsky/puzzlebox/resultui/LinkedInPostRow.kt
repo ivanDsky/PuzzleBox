@@ -35,8 +35,9 @@ private val RowMinHeight = 56.dp
  * The result page's Post to LinkedIn row (tag `result.linkedin_post`), on the shared [ResultActionRow] frame: a 44 dp
  * circle, then [LinkedInPostRowState.title] over its subtitle, the whole row at least 56 dp tall. The circle is LinkedIn
  * blue with a white glyph where a tap does something, tonal where the row only reports, muted where LinkedIn is
- * unavailable. Only a tappable state takes a click, and not while [pending] (the page is not ready), when the row is
- * invisible and inert. [time] is the formatted solve time for the subtitle, or null.
+ * unavailable. Only a tappable state takes a click, and not while [pending] (the page is not ready, or LinkedIn has not
+ * said whether it already holds the result), when the row is invisible and inert. [time] is the formatted solve time
+ * for the subtitle, or null.
  */
 @Composable
 fun LinkedInPostRow(

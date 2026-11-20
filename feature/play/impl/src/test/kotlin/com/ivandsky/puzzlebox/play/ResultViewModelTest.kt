@@ -28,6 +28,8 @@ import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
+import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.domain.moments.Moment
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.game.BestScore
@@ -63,6 +65,7 @@ import com.ivandsky.puzzlebox.resultui.board.rankWithGhosts
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
+import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInLink
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInPosts
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -195,7 +198,7 @@ class ResultViewModelTest {
             games = games,
             insights = ObserveResultInsights(games, history, ComputeStreak(GetPuzzleDay(games, clock)), GetPuzzleDay(games, clock)),
             rank = ObserveResultRank(observeBoard, games, friendDay = null), // no Friends/Global setting
-            linkedIn = if (linkedIn) ObserveLinkedInDay(linkedInDays, games) else null,
+            linkedIn = if (linkedIn) ObserveLinkedInDayView(ObserveLinkedInDay(linkedInDays, games), SyncLinkedInDay(linkedInDays, 500), FakeLinkedInLink(), linkedInDays) else null,
             observePost = if (post) ObserveLinkedInPost(countedPosts) else null,
             submitPost = if (post) SubmitLinkedInResult(linkedInPosts) else null,
             board = signedOutBoard(),
