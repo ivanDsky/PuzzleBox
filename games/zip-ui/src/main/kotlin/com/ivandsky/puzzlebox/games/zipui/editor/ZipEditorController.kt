@@ -33,11 +33,13 @@ import kotlinx.coroutines.flow.asStateFlow
  * [shaken] instead. The verdict card's witness choice arrives through [adoptOverlay] and the
  * board draws it from [overlay]. The VM hands replacement drafts back through [adopt]. With
  * [combined] the editor offers Path and Numbers & walls ([steps]) instead of Path, Numbers
- * and Walls; the edits are the same ones.
+ * and Walls; the edits are the same ones. [modeTiles] picks the step switch's look, tiles or
+ * the segmented control, and changes no behaviour.
  */
 class ZipEditorController(
     initial: EditorDraft<*>,
     val combined: Boolean = false,
+    val modeTiles: Boolean = false,
     private val onEdit: (EditorDraft<*>) -> Unit,
 ) : GameEditorController {
 

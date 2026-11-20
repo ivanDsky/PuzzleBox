@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
+import com.ivandsky.puzzlebox.designsystem.ChoiceTiles
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -29,7 +30,8 @@ import com.ivandsky.puzzlebox.games.zip.editor.ZipDraft
 
 /**
  * Under the grid: the step tabs (tags `zip.editor.step.<path|numbers|walls|numbersandwalls>`, the
- * controller's [ZipEditorController.steps]) and the current step's actions. Path offers Reverse
+ * controller's [ZipEditorController.steps]), quiet tiles with [ZipEditorController.modeTiles] and the segmented
+ * control without, and the current step's actions. Path offers Reverse
  * and Clear path (tags `zip.editor.reverse`, `zip.editor.clearPath`), or while the path is empty
  * one coach line (tag `zip.editor.coach`) in their place; Walls and Numbers & walls offer Clear
  * walls (tag `zip.editor.clearWalls`); Numbers leaves the row empty so it keeps its height.
@@ -47,6 +49,7 @@ internal fun ZipEditorTools(controller: ZipEditorController, modifier: Modifier 
         modifier,
         pathEmpty = board.path.isEmpty(),
         steps = controller.steps,
+        modeTiles = controller.modeTiles,
     )
 }
 
@@ -60,18 +63,33 @@ internal fun ZipEditorTools(
     modifier: Modifier = Modifier,
     pathEmpty: Boolean = false,
     steps: List<ZipEditorStep> = ZipEditorStep.tabs(combined = false),
+    modeTiles: Boolean = false,
 ) {
     Column(modifier.fillMaxWidth().padding(top = Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().testTag("zip.editor.step")) {
-            steps.forEachIndexed { index, each ->
-                SegmentedButton(
-                    selected = step == each,
-                    onClick = { onSelect(each) },
-                    shape = SegmentedButtonDefaults.itemShape(index = index, count = steps.size),
-                    colors = AccentSlot.Violet.segmentedButtonColors(),
-                    modifier = Modifier.testTag("zip.editor.step.${each.name.lowercase()}"),
-                ) {
-                    Text(each.label, maxLines = 1)
+        val stepTag = Modifier.fillMaxWidth().testTag("zip.editor.step")
+        if (modeTiles) {
+            ChoiceTiles(
+                options = steps,
+                selected = step,
+                onSelect = onSelect,
+                label = { it.label },
+                icon = ZipEditorGlyphs::icon,
+                tag = { "zip.editor.step.${it.name.lowercase()}" },
+                accent = AccentSlot.Violet,
+                modifier = stepTag,
+            )
+        } else {
+            SingleChoiceSegmentedButtonRow(stepTag) {
+                steps.forEachIndexed { index, each ->
+                    SegmentedButton(
+                        selected = step == each,
+                        onClick = { onSelect(each) },
+                        shape = SegmentedButtonDefaults.itemShape(index = index, count = steps.size),
+                        colors = AccentSlot.Violet.segmentedButtonColors(),
+                        modifier = Modifier.testTag("zip.editor.step.${each.name.lowercase()}"),
+                    ) {
+                        Text(each.label, maxLines = 1)
+                    }
                 }
             }
         }
@@ -206,5 +224,29 @@ private fun ZipEditorToolsNumbersAndWallsPreview() {
             )
             ZipEditorHint(ZipEditorHintState(covered = 25, total = 25))
         }
+    }
+}
+
+@PuzzleBoxPreviews
+@Preview(name = "Zip tools, tiles", widthDp = 360, showBackground = true, group = "Zip editor tools")
+@Composable
+private fun ZipEditorToolsTilesPreview() {
+    PuzzleBoxTheme { ZipEditorTools(ZipEditorStep.Numbers, {}, {}, {}, {}, modeTiles = true) }
+}
+
+@PuzzleBoxPreviews
+@Preview(name = "Zip tools, tiles, Numbers & walls", widthDp = 360, showBackground = true, group = "Zip editor tools")
+@Composable
+private fun ZipEditorToolsCombinedTilesPreview() {
+    PuzzleBoxTheme {
+        ZipEditorTools(
+            ZipEditorStep.NumbersAndWalls,
+            {},
+            {},
+            {},
+            {},
+            steps = ZipEditorStep.tabs(combined = true),
+            modeTiles = true,
+        )
     }
 }

@@ -75,6 +75,14 @@ abstract class ZipEditorGoldenScreenshots(private val device: String) {
     @Test fun `numbers and walls step light`() = step("numbers-and-walls-step", ZipEditorStep.NumbersAndWalls, dark = false)
     @Test fun `numbers and walls step dark`() = step("numbers-and-walls-step", ZipEditorStep.NumbersAndWalls, dark = true)
 
+    @Test fun `tiles walls step light`() = step("tiles-walls-step", ZipEditorStep.Walls, dark = false, modeTiles = true)
+    @Test fun `tiles walls step dark`() = step("tiles-walls-step", ZipEditorStep.Walls, dark = true, modeTiles = true)
+
+    @Test fun `tiles numbers and walls step light`() =
+        step("tiles-numbers-and-walls-step", ZipEditorStep.NumbersAndWalls, dark = false, modeTiles = true)
+    @Test fun `tiles numbers and walls step dark`() =
+        step("tiles-numbers-and-walls-step", ZipEditorStep.NumbersAndWalls, dark = true, modeTiles = true)
+
     @Test fun `partial path light`() = partial(dark = false)
     @Test fun `partial path dark`() = partial(dark = true)
 
@@ -96,9 +104,9 @@ abstract class ZipEditorGoldenScreenshots(private val device: String) {
     @Test fun `witness b light`() = witness("witness-b", EditorOverlay.Witness.B, dark = false)
     @Test fun `witness b dark`() = witness("witness-b", EditorOverlay.Witness.B, dark = true)
 
-    private fun step(name: String, step: ZipEditorStep, dark: Boolean) {
+    private fun step(name: String, step: ZipEditorStep, dark: Boolean, modeTiles: Boolean = false) {
         val draft = if (step == ZipEditorStep.Walls || step == ZipEditorStep.NumbersAndWalls) WALLED else UNIQUE
-        capture(name, dark, draft, analyzed<Verdict.Unique>(draft), step)
+        capture(name, dark, draft, analyzed<Verdict.Unique>(draft), step, modeTiles = modeTiles)
     }
 
     private fun partial(dark: Boolean) {
@@ -148,12 +156,13 @@ abstract class ZipEditorGoldenScreenshots(private val device: String) {
         step: ZipEditorStep? = null,
         overlay: EditorOverlay? = null,
         fixList: Boolean = false,
+        modeTiles: Boolean = false,
     ) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val resolver = context.contentResolver
         Settings.Global.putFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
         val combined = step == ZipEditorStep.NumbersAndWalls
-        val controller = ZipEditorController(EditorDraft(ZipEditor, DraftState(draft)), combined) {}
+        val controller = ZipEditorController(EditorDraft(ZipEditor, DraftState(draft)), combined, modeTiles) {}
         step?.let(controller::select)
         overlay?.let(controller::adoptOverlay)
         rule.mainClock.autoAdvance = false
