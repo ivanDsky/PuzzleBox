@@ -33,7 +33,7 @@ internal class TangoTrainer(private val compute: CoroutineDispatcher) : TrainerG
 
     override fun catalog(): List<TrainerTechnique> = TangoTrainerCatalog.techniques
 
-    override val drillSources: List<DrillSource> = listOf(TangoIndexDrillSource())
+    override val drillSources: List<DrillSource> = listOf(TangoIndexDrillSource(), TangoGeneratedDrillSource())
 
     /**
      * Empty for another game's puzzle, one that does not decode, one without a unique solution (the move check judges

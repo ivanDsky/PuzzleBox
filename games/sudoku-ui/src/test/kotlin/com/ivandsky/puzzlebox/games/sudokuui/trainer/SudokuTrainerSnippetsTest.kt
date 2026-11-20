@@ -28,10 +28,11 @@ class SudokuTrainerSnippetsTest {
     private fun canonicals() = SudokuTrainerFixtures.all.values.map { SudokuTrainerFixtures.canonical(it) }
 
     @Test
-    fun `the trainer is Mini Sudoku's and offers the index drill source`() {
+    fun `the trainer is Mini Sudoku's and offers the index and the generated drill sources`() {
         assertEquals(SudokuGames.MINI.id, trainer.gameId)
-        assertEquals(1, trainer.drillSources.size)
-        assertTrue(trainer.drillSources.single() is SudokuIndexDrillSource)
+        assertEquals(2, trainer.drillSources.size)
+        assertTrue(trainer.drillSources[0] is SudokuIndexDrillSource)
+        assertTrue(trainer.drillSources[1] is SudokuGeneratedDrillSource)
     }
 
     @Test

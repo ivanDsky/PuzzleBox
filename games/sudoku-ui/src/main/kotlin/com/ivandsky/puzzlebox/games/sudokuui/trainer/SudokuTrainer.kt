@@ -32,7 +32,7 @@ internal class SudokuTrainer(private val compute: CoroutineDispatcher) : Trainer
 
     override fun catalog(): List<TrainerTechnique> = SudokuTrainerCatalog.techniques
 
-    override val drillSources: List<DrillSource> = listOf(SudokuIndexDrillSource())
+    override val drillSources: List<DrillSource> = listOf(SudokuIndexDrillSource(), SudokuGeneratedDrillSource())
 
     /**
      * Empty for another game's puzzle, one that does not decode, one whose stored solution is not its unique solution

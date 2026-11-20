@@ -32,7 +32,7 @@ internal class QueensTrainer(private val compute: CoroutineDispatcher) : Trainer
 
     override fun catalog(): List<TrainerTechnique> = QueensTrainerCatalog.techniques
 
-    override val drillSources: List<DrillSource> = listOf(QueensIndexDrillSource())
+    override val drillSources: List<DrillSource> = listOf(QueensIndexDrillSource(), QueensGeneratedDrillSource())
 
     /** Empty for another game's puzzle, one that does not decode, one without a true solution, and a technique it never uses. */
     override fun buildSnippets(puzzle: Puzzle, technique: TechniqueId, count: Int): List<Snippet> {
