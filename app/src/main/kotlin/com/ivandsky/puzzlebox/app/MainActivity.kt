@@ -16,11 +16,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalView
+import androidx.core.os.BundleCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.ivandsky.puzzlebox.app.nav.FriendLink
 import com.ivandsky.puzzlebox.app.nav.SharedText
+import com.ivandsky.puzzlebox.app.shortcut.ShortcutIntents
+import com.ivandsky.puzzlebox.app.shortcut.ShortcutTarget
 import com.ivandsky.puzzlebox.data.repository.SharedTextStore
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -38,6 +41,8 @@ import org.koin.core.component.inject
  * its text goes to the [SharedTextStore] and [pendingShare] has the app show the Community tab,
  * whose Yours list imports it. A recreated activity restores its back stack and never re-reads the
  * intent that started it, so the friend's card is pushed and the text imported once.
+ * A launcher shortcut takes the same two doors; [pendingShortcut] holds its target, saved across process death, until the
+ * app has landed it. A task relaunched from Recents does not read it again.
  */
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 class MainActivity : ComponentActivity(), KoinComponent {
@@ -58,6 +63,9 @@ class MainActivity : ComponentActivity(), KoinComponent {
 
     // A share is waiting in the store and the navigator has yet to open Custom for it.
     private var pendingShare by mutableStateOf(false)
+
+    // A launcher shortcut's target the navigator has yet to land.
+    private var pendingShortcut by mutableStateOf<ShortcutTarget?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Installed before super so the system splash is the one the window opens with; it stays
@@ -82,6 +90,12 @@ class MainActivity : ComponentActivity(), KoinComponent {
             handOffSharedText(intent)
         } else {
             savedInstanceState?.getBoolean(PENDING_SHARE_KEY) == true
+        }
+        pendingShortcut = if (fresh) {
+            intent.shortcutTarget()
+        } else {
+            savedInstanceState?.let { BundleCompat.getParcelable(it, PENDING_SHORTCUT_KEY, Intent::class.java) }
+                ?.let(ShortcutIntents::targetOf)
         }
         enableEdgeToEdge()
         setContent {
@@ -115,6 +129,8 @@ class MainActivity : ComponentActivity(), KoinComponent {
                         onLinkApplied = { pendingLink = null },
                         pendingShare = pendingShare,
                         onShareApplied = { pendingShare = false },
+                        pendingShortcut = pendingShortcut,
+                        onShortcutApplied = { pendingShortcut = null },
                     )
                 }
             }
@@ -126,12 +142,15 @@ class MainActivity : ComponentActivity(), KoinComponent {
         setIntent(intent)
         intent.friendLinkUri()?.let { pendingLink = it }
         if (handOffSharedText(intent)) pendingShare = true
+        intent.shortcutTarget()?.let { pendingShortcut = it }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         pendingLink?.let { outState.putString(PENDING_LINK_KEY, it) }
         outState.putBoolean(PENDING_SHARE_KEY, pendingShare)
+        // The target as the intent that carries it: a Bundle holds that, and the contract reads it back.
+        pendingShortcut?.let { outState.putParcelable(PENDING_SHORTCUT_KEY, ShortcutIntents.intent(this, it)) }
     }
 
     /**
@@ -147,6 +166,7 @@ class MainActivity : ComponentActivity(), KoinComponent {
 
 private const val PENDING_LINK_KEY = "puzzlebox.pendingLink"
 private const val PENDING_SHARE_KEY = "puzzlebox.pendingShare"
+private const val PENDING_SHORTCUT_KEY = "puzzlebox.pendingShortcut"
 
 // A task relaunched from Recents re-delivers the intent that started it: its link or share was
 // handled then.
@@ -159,6 +179,8 @@ private fun Intent.friendLinkUri(): String? = dataString?.takeIf { uri ->
 
 private fun Intent.sharedText(): String? =
     SharedText.of(action, type, getCharSequenceExtra(Intent.EXTRA_TEXT)).takeUnless { isRelaunchedFromHistory }
+
+private fun Intent.shortcutTarget(): ShortcutTarget? = ShortcutIntents.targetOf(this).takeUnless { isRelaunchedFromHistory }
 
 private fun ThemeMode.isDarkTheme(systemDark: Boolean): Boolean = when (this) {
     ThemeMode.SYSTEM -> systemDark
