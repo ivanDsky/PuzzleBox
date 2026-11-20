@@ -115,8 +115,10 @@ fun PuzzleBoxApp(
     var codeDraft by rememberSaveable { mutableStateOf<String?>(null) }
     val libraryRequests = rememberLibraryRequests()
     if (pendingLink != null) {
+        // Applied during composition so the first frame already shows the link's screen; the
+        // result is the applied link (not Unit) so remember is a real keyed value, once per link.
         remember(pendingLink) {
-            FriendLink.of(pendingLink)?.takeIf { it.isPlayable(games, calendar) }?.let { link ->
+            FriendLink.of(pendingLink)?.takeIf { it.isPlayable(games, calendar) }?.also { link ->
                 navigator.applyFriendLink(link)
                 if (link is FriendLink.Invalid) codeDraft = link.text
             }
@@ -124,7 +126,7 @@ fun PuzzleBoxApp(
         SideEffect(onLinkApplied)
     }
     if (pendingShare) {
-        remember { navigator.applySharedText() }
+        remember { navigator.applySharedText(); true }
         SideEffect(onShareApplied)
     }
     // The single px→dp read site: one PanePolicy decision drives the nav shape and every
