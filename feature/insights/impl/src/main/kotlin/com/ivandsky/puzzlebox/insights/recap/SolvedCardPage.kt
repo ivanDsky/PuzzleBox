@@ -41,7 +41,7 @@ import com.ivandsky.puzzlebox.model.GameId
 /**
  * The Puzzles solved page: the period's total rolling up as an odometer over a sheet of bands, one per game in its own
  * colour and as tall as its share, with the hint-free stripe tilted between them when the period has a hint-free solve.
- * A wide pane puts the number on the left and the bands on the right.
+ * A wide pane puts the number on the left and the bands on the right, at no more than [SheetMaxWidth].
  */
 @Composable
 internal fun SolvedCardPage(
@@ -73,7 +73,7 @@ internal fun SolvedCardPage(
                         Column(Modifier.padding(horizontal = Spacing.xl)) { Total(card, periodLabel, striped, wide = true) }
                         if (striped) Box(Modifier.padding(bottom = Spacing.xl)) { stripe() }
                     }
-                    bands(Modifier.fillMaxHeight().width(paneWidth * SheetShare).padding(top = Spacing.lg))
+                    bands(Modifier.fillMaxHeight().width(minOf(paneWidth * SheetShare, SheetMaxWidth)).padding(top = Spacing.lg))
                 }
             } else {
                 Column(Modifier.fillMaxSize().padding(top = Spacing.lg)) {
@@ -207,4 +207,7 @@ internal fun Int.puzzles(): String = if (this == 1) "puzzle" else "puzzles"
 
 private val WideWidth = 600.dp
 private const val SheetShare = 0.38f
+
+/** The sheet stops growing at the reference tablet's width (0.38 of its 852dp pane), so a wider pane gives the extra to the number's side. */
+private val SheetMaxWidth = 324.dp
 private val RowMinHeight = 48.dp

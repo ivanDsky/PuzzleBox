@@ -13,12 +13,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteEntry
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.field
@@ -38,14 +40,17 @@ internal fun SolvedStripe(card: RecapCard.Solved, startMs: Int, modifier: Modifi
     val ink = PaletteEntry.Solved.ink
     val onInk = PaletteEntry.Solved.field
     val move = rememberSolvedMove(startMs)
-    val count = rememberCountUp(card.hintFree.toLong(), delayMs = startMs)
-    val tilt = StripeTilt * move
+    val arrive = rememberSolvedMove(startMs, MotionTokens.DurationShort)
+    val sub = rememberSolvedMove(startMs + StripeSubDelayMs, MotionTokens.EnterDuration)
+    val count = rememberCountUp(card.hintFree.toLong(), delayMs = startMs + StripeCountDelayMs, durationMs = MotionTokens.ScoreCountUpDuration)
+    val rise = with(LocalDensity.current) { MotionTokens.EnterRise.toPx() }
     Column(
         modifier
             .bleed(StripeBleed)
             .graphicsLayer {
-                rotationZ = tilt
-                alpha = move
+                rotationZ = StripeTilt
+                translationX = -(1f - move) * size.width * StripeOffscreen
+                alpha = arrive
             }
             .background(ink)
             .padding(horizontal = Spacing.xl + StripeBleed / 2, vertical = Spacing.md),
@@ -69,7 +74,13 @@ internal fun SolvedStripe(card: RecapCard.Solved, startMs: Int, modifier: Modifi
         }
         val hinted = card.total - card.hintFree
         val run = card.longestHintFreeRun
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(
+            Modifier.graphicsLayer {
+                alpha = sub
+                translationY = (1f - sub) * rise
+            },
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
             if (run != null) {
                 Text(text = "Longest run: $run in a row", modifier = Modifier.testTag("recap.hintfree.run"), style = MaterialTheme.typography.bodyMedium, color = onInk)
             }
@@ -92,4 +103,7 @@ private fun Modifier.bleed(extra: androidx.compose.ui.unit.Dp): Modifier = layou
 }
 
 private const val StripeTilt = -2.5f
+
+/** The stripe comes in from this many of its own widths to the left, past the page edge. */
+private const val StripeOffscreen = 1.1f
 private val StripeBleed = 48.dp

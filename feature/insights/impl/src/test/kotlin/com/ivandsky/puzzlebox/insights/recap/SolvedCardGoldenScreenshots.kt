@@ -39,6 +39,9 @@ class SolvedCardGoldenScreenshots {
     @Config(qualifiers = GOLDEN_TABLET)
     @Test fun `solved default tablet dark`() = state("default", SolvedFixtures.default, 7, "tablet", dark = true)
 
+    @Config(qualifiers = WIDE_TABLET)
+    @Test fun `solved default tablet-wide light`() = state("default", SolvedFixtures.default, 7, "tablet-wide", dark = false)
+
     @Config(qualifiers = GOLDEN_PHONE)
     @Test fun `solved empty phone light`() = state("empty", SolvedFixtures.empty, 5, "phone", dark = false)
 
@@ -120,3 +123,6 @@ class SolvedCardGoldenScreenshots {
         rule.settleAndCapture("recap", name, device, dark)
     }
 }
+
+/** The Galaxy Tab S9 Ultra in landscape, the widest screen the recap meets. */
+private const val WIDE_TABLET = "w1680dp-h1050dp-land-mdpi"
