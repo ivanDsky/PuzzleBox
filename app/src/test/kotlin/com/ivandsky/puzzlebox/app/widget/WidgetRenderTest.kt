@@ -35,12 +35,16 @@ class WidgetRenderTest {
     private val application: Application = ApplicationProvider.getApplicationContext()
     private val context: Context = application
 
+    // The layout ignores best, rank and new best for now, so a ring here carries none.
+    private fun ring(id: String, name: String, status: TodayStatus) =
+        WidgetRing(GameId(id), name, status, bestMs = null, rank = WidgetRank.Missing, newBest = false)
+
     private val rings = listOf(
-        WidgetRing(GameId("zip"), "Zip", TodayStatus.Solved(timeMs = 2_000)),
-        WidgetRing(GameId("queens"), "Queens", TodayStatus.InProgress(elapsedMs = 1_000)),
-        WidgetRing(GameId("tango"), "Tango", TodayStatus.NotStarted),
-        WidgetRing(GameId("minisudoku"), "Mini Sudoku", TodayStatus.Offline),
-        WidgetRing(GameId("strands"), "Strands", TodayStatus.NotStarted),
+        ring("zip", "Zip", TodayStatus.Solved(timeMs = 2_000)),
+        ring("queens", "Queens", TodayStatus.InProgress(elapsedMs = 1_000)),
+        ring("tango", "Tango", TodayStatus.NotStarted),
+        ring("minisudoku", "Mini Sudoku", TodayStatus.Offline),
+        ring("strands", "Strands", TodayStatus.NotStarted),
     )
 
     private inner class Drawn(root: View) {
@@ -74,7 +78,7 @@ class WidgetRenderTest {
     }
 
     private fun state(freezesHeld: Int?, upNext: WidgetUpNext = WidgetUpNext.Done) =
-        WidgetState(rings, WidgetStreak(days = 3, best = 12, freezesHeld = freezesHeld), upNext)
+        WidgetState(rings, WidgetStreak(days = 3, best = 12, freezesHeld = freezesHeld), upNext, nextRollover = null)
 
     @Test
     fun `each ring says its game and where it stands`() {

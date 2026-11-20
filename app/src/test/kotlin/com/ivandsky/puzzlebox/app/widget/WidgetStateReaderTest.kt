@@ -2,9 +2,11 @@ package com.ivandsky.puzzlebox.app.widget
 
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.domain.GameStats
+import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.domain.StreakFreezes
 import com.ivandsky.puzzlebox.domain.TodayEntry
 import com.ivandsky.puzzlebox.domain.TodayStatus
+import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -50,12 +52,30 @@ class WidgetStateReaderTest {
     private fun reader(
         todaySet: () -> Flow<List<TodayEntry>> = { flowOf(today) },
         stats: () -> Flow<GameStats> = { flowOf(this.stats) },
+        scoreboard: ReadWidgetScoreboard = testScoreboard(),
         limitMs: Long = 8_000L,
-    ) = WidgetStateReader(todaySet, stats, BuildWidgetState(), limitMs)
+    ) = WidgetStateReader(todaySet, stats, scoreboard, BuildWidgetState(), limitMs)
 
     @Test
-    fun `the state is exactly what Today's set and the stats give`() = runTest {
-        assertEquals(BuildWidgetState()(today, stats), reader().read())
+    fun `the state is exactly what Today's set, the stats and the scoreboard give`() = runTest {
+        val scoreboard = testScoreboard(
+            best = { BestScore(timeMs = 1_500, hints = 0) },
+            rank = { _, _ -> flowOf(ResultRank.Ranked(2, 9, topPercent = 23)) },
+        )
+
+        val expected = BuildWidgetState()(today, stats, scoreboard(today))
+
+        assertEquals(expected, reader(scoreboard = scoreboard).read())
+    }
+
+    @Test
+    fun `a slow rank costs the rank, not the state`() = runTest {
+        val state = reader(scoreboard = testScoreboard(rank = { _, _ -> flow { awaitCancellation() } })).read()
+
+        assertEquals(WidgetRank.Missing, state?.rings?.first()?.rank)
+        assertEquals(today.map { it.game }, state?.rings?.map { it.game })
+        assertEquals(4, state?.streak?.days)
+        assertEquals(3_000L, currentTime)
     }
 
     @Test
