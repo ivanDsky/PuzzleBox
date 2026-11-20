@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.home
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -14,7 +15,7 @@ import com.ivandsky.puzzlebox.model.GameId
  * chevron, that reports its tap. A null [onOpenRank] or [duels] means that row is not offered.
  * [onOpenRank] gets the game of the rank row; the duels row shows only above zero [duels].
  * [onOpenDay] (an ISO day) and [onOpenStreak] are the doors to Ranks from the day and streak summaries.
- * A non-null [recap] adds the recap card above them, for the month just ended.
+ * A non-null [recap] adds the recap tile above them: the cover of the month or year just ended, or its skeleton while it loads.
  */
 class HomeSummaries(
     val onOpenRank: ((GameId) -> Unit)?,
@@ -42,7 +43,7 @@ internal fun HomeSummaryRows(state: HomeUiState, summaries: HomeSummaries, index
     val showRank = rank != null && onOpenRank != null
     if (recap == null && !showRank && duels <= 0) return
     Column(modifier.staggerIn(index), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        if (recap != null) HomeRecapCard(recap)
+        if (recap != null) HomeRecapCard(recap, brands = remember(state.today) { state.today.associate { it.game to it.brand } })
         if (rank != null && onOpenRank != null) {
             SummaryLinkRow(
                 text = "Today's rank: #${rank.position} on ${rank.gameName}",

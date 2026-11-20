@@ -42,11 +42,12 @@ internal class ObserveRecapAvailability(
      * each once that puzzle day has a counted solve and only when the period has a recap of its own (A2, A3). The
      * caller shows one at a time and the next after the first is dismissed. From day 4 (Jan 8 for a year) nothing is
      * due, so a recap that first ships after its window gets no late card and stays reachable from the hub (A4). Emits
-     * again when the day's first solve lands and at each puzzle-day rollover.
+     * again when the day's first solve lands and at each puzzle-day rollover. Each period carries its [summarize]d
+     * counts, from the same counted history, so Today pays a group-by and no second read.
      */
-    fun due(): Flow<List<RecapPeriod>> =
+    fun due(): Flow<List<DuePeriod>> =
         combine(counted(), today()) { solved, today ->
-            if (today == null || solved.none { it.day == today }) return@combine emptyList<RecapPeriod>()
+            if (today == null || solved.none { it.day == today }) return@combine emptyList<DuePeriod>()
             val year = RecapPeriod.Year(today.year - 1).takeIf {
                 today.month == Month.JANUARY && today.dayOfMonth <= YEAR_DUE_DAYS && solved.any { day -> day.day in it }
             }
@@ -54,7 +55,7 @@ internal class ObserveRecapAvailability(
             val month = RecapPeriod.Month(ended).takeIf {
                 today.dayOfMonth <= MONTH_DUE_DAYS && solved.any { day -> YearMonth.from(day.day) == ended }
             }
-            listOfNotNull(year, month)
+            listOfNotNull(year, month).map { DuePeriod(it, summarize(it, solved)) }
         }.distinctUntilChanged()
 
     private fun counted(): Flow<List<GameHistoryDay>> = observeGameHistory().map { history -> history.filter { it.isSolvedDaily() } }

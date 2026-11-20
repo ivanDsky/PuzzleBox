@@ -78,7 +78,7 @@ internal fun PuzzleBoxNavShell(
 ) {
     val visibility = rememberVisibilitySlot(koinInject())
     val releaseFlags by koinInject<ReleaseFlags>().enabled.collectAsStateWithLifecycle()
-    val recap = rememberRecapSlot(releaseFlags, navigator, koinInject(), koinInject())
+    val recap = rememberRecapSlot(releaseFlags, navigator, koinInject(), koinInject(), koinInject(), koinInject(), koinInject())
     val reduceMotion = rememberReducedMotion()
     val layoutDirection = LocalLayoutDirection.current
     val form = if (homeLayout == HomeLayout.TwoPane) NavForm.Tablet else NavForm.Phone

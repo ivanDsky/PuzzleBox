@@ -2,18 +2,23 @@ package com.ivandsky.puzzlebox.app.nav
 
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
+import com.ivandsky.puzzlebox.home.RecapSlot
 import com.ivandsky.puzzlebox.insights.api.InsightsRecapKey
 import com.ivandsky.puzzlebox.insights.domain.recap.DueRecap
 import com.ivandsky.puzzlebox.insights.flags.InsightsFlag
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.time.LocalDate
 
 /** Home's recap card gate (A2, A3): the flag, what is due, what the player dismissed, and the two taps. */
 @RunWith(RobolectricTestRunner::class)
@@ -31,7 +36,11 @@ class RecapSlotTest {
         due: List<DueRecap> = listOf(october),
         dismissed: Set<String> = emptySet(),
         enabled: Set<ReleaseFlagKey> = on,
-    ) = recapSlot(enabled, due, dismissed, navigator) { dismissedPeriods += it }
+        opened: Set<String> = emptySet(),
+    ) = recapSlot(enabled, due, dismissed, opened, today = LocalDate.of(2026, 11, 2), navigator) { dismissedPeriods += it } as RecapSlot.Due?
+
+    private fun loading(enabled: Set<ReleaseFlagKey> = on, today: LocalDate?) =
+        recapSlot(enabled, due = null, dismissed = emptySet(), opened = emptySet(), today = today, navigator = navigator) {}
 
     @Test
     fun `with the flag off there is no card even when a recap is due`() {
@@ -101,5 +110,40 @@ class RecapSlotTest {
 
         assertEquals(listOf(InsightsRecapKey("2026")), navigator.state.layer)
         assertEquals(listOf("2026"), dismissedPeriods)
+    }
+
+    @Test
+    fun `a recap whose story was opened is watched and another is new`() {
+        assertTrue(slot(opened = setOf("2026-10"))!!.opened)
+        assertFalse(slot(opened = setOf("2026-09"))!!.opened)
+    }
+
+    @Test
+    fun `the tile carries the period's count and each game's share`() {
+        val due = october.copy(solved = 96, solvedByGame = listOf(GameId("zip") to 60, GameId("tango") to 36))
+
+        val shown = slot(due = listOf(due))!!
+
+        assertEquals(96, shown.solved)
+        assertEquals(listOf(GameId("zip") to 60, GameId("tango") to 36), shown.solvedByGame)
+    }
+
+    @Test
+    fun `while the due list loads inside a recap window the slot is a skeleton`() {
+        for (day in listOf(LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 3), LocalDate.of(2027, 1, 7))) {
+            assertEquals(RecapSlot.Loading, loading(today = day))
+        }
+    }
+
+    @Test
+    fun `outside a recap window, or with no day known, a loading list reserves no space`() {
+        for (day in listOf(LocalDate.of(2026, 11, 4), LocalDate.of(2026, 12, 20), LocalDate.of(2027, 1, 8), null)) {
+            assertNull(loading(today = day))
+        }
+    }
+
+    @Test
+    fun `with the flags off a loading list shows no skeleton even inside a window`() {
+        assertNull(loading(enabled = FakeReleaseFlags().enabled.value, today = LocalDate.of(2026, 11, 2)))
     }
 }
