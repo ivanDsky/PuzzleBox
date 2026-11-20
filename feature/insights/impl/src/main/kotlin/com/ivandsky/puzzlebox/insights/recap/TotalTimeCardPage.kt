@@ -41,7 +41,7 @@ import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 
 /**
  * The Total time page, a day river: the time spent solving as a big "Xh Ym" over one bar for each day of the month (each
- * week of a year). On arrival the bars rise in a wave left to right while the hero climbs with it; a finger on the river
+ * week of a year). On arrival the bars rise in a wave left to right while the hero climbs with it; a drag along the river
  * reads a day, and lifting it returns to the busiest. Reduced motion shows it all settled, with one short fade.
  */
 @Composable

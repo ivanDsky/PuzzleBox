@@ -3,6 +3,8 @@ package com.ivandsky.puzzlebox.insights.recap
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitHorizontalTouchSlopOrCancellation
+import androidx.compose.foundation.gestures.horizontalDrag
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableState
@@ -91,9 +93,9 @@ internal fun rememberRiverScrub(): MutableState<Int?> = LocalRiverScrub.current 
 
 /**
  * The bars, drawn left to right. [wave] (0..1, read as it draws) is how far the arrival wave has run: each bar rises from
- * a stub to its height in [BarRiseMs] of a [WaveMs] wave. With [onScrub] a finger on the river reads the bar under it
- * and holds it highlighted until it lifts; the river takes the touch for itself, so the deck does not swipe while it is
- * on it. A river without [onScrub] only draws. A screen reader skips the bars: the readout and the hero say it.
+ * a stub to its height in [BarRiseMs] of a [WaveMs] wave. With [onScrub] a drag on the river reads the bar under it
+ * and holds it highlighted until it lifts. Only a sideways drag is the river's (the deck does not swipe while it runs);
+ * a plain tap goes to the deck like on any card. A river without [onScrub] only draws. A screen reader skips the bars: the readout and the hero say it.
  */
 @Composable
 internal fun TotalTimeRiver(
@@ -133,17 +135,18 @@ internal fun TotalTimeRiver(
     }
 }
 
-/** Reads the bar under the finger from its first touch until it lifts, taking every move for the river; ends with no bar. */
+/**
+ * Reads the bar under the finger once it drags sideways past the touch slop, taking the drag for the river, and ends
+ * with no bar when it lifts. A touch that only taps, or drags up or down, is left unconsumed: a tap goes on to the deck.
+ */
 private suspend fun PointerInputScope.scrubOver(count: Int, onScrub: (Int?) -> Unit) {
     fun barAt(x: Float) = (x / size.width * count).toInt().coerceIn(0, count - 1)
     awaitEachGesture {
         val down = awaitFirstDown(requireUnconsumed = false)
-        down.consume()
-        onScrub(barAt(down.position.x))
+        val drag = awaitHorizontalTouchSlopOrCancellation(down.id) { change, _ -> change.consume() } ?: return@awaitEachGesture
         try {
-            while (true) {
-                val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id }
-                if (change == null || !change.pressed) break
+            onScrub(barAt(drag.position.x))
+            horizontalDrag(drag.id) { change ->
                 change.consume()
                 onScrub(barAt(change.position.x))
             }

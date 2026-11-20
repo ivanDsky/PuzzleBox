@@ -3,6 +3,8 @@ package com.ivandsky.puzzlebox.insights.recap
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -90,7 +92,8 @@ internal fun MomentsCardPage(
     BoxWithConstraints(modifier.fillMaxSize().graphicsLayer { alpha = fade }.background(PaletteEntry.Moments.field).testTag("recap.moments")) {
         val wide = maxWidth >= WideWidth
         Column(
-            Modifier.fillMaxSize().padding(horizontal = Spacing.lg, vertical = Spacing.lg),
+            // A wide card's sheet is as tall as its stickers need and the card scrolls; a phone's sheet fills what is left.
+            Modifier.fillMaxSize().then(if (wide) Modifier.verticalScroll(rememberScrollState()) else Modifier).padding(horizontal = Spacing.lg, vertical = Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             Text(
@@ -106,9 +109,9 @@ internal fun MomentsCardPage(
                 placed = placed,
                 peeled = peeled,
                 onPeel = { peeled = it },
-                modifier = Modifier.weight(1f).fillMaxWidth().testTag("recap.moments.sheet"),
+                modifier = (if (wide) Modifier.heightIn(min = WideSheetMinHeight) else Modifier.weight(1f)).fillMaxWidth().testTag("recap.moments.sheet"),
             )
-            MomentPlaque(shown, gameName)
+            MomentPlaque(shown, stickers, gameName)
             KindRows(card.kindRows(), wide, ink)
         }
     }
@@ -238,6 +241,7 @@ private fun RecapCard.Moments.kindRows(): List<KindRow> = listOfNotNull(
 private val HeroFontSize = 84.sp
 private val HeroLineHeight = 76.sp
 private val RowMinHeight = 48.dp
+private val WideSheetMinHeight = 200.dp
 private val MarkerSize = 24.dp
 private val WideWidth = 600.dp
 private const val HairlineAlpha = 0.3f

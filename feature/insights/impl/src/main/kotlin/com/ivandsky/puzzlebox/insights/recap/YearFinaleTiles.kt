@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -29,8 +27,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ivandsky.puzzlebox.designsystem.RecapMotion
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.tabular
+import com.ivandsky.puzzlebox.gameui.GameGlyph
+import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.model.GameId
 
@@ -98,13 +97,12 @@ private fun RowScope.Tile(tile: RecapCard.YearFinale.Tile, index: Int, plate: Co
             color = LocalContentColor.current.copy(alpha = if (empty) MutedAlpha else 1f),
         )
         if (wide && tile.game != null) {
-            Box(Modifier.padding(top = Spacing.xs).size(DotSize).background(LocalGameBrands.current(tile.game).accent.colors().accent, CircleShape))
+            GameGlyph(LocalGameBrands.current(tile.game), GameGlyphSize.Tile, Modifier.padding(top = Spacing.xs))
             Text(gameName(tile.game), style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.sp), maxLines = 2, textAlign = TextAlign.Center)
         }
     }
 }
 
-private val DotSize = 10.dp
 private const val TileColumns = 4
 private const val MutedAlpha = 0.5f
 

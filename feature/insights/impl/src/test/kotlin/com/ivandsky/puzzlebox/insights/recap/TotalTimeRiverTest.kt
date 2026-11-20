@@ -5,6 +5,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
@@ -98,19 +99,31 @@ class TotalTimeRiverTest {
     }
 
     @Test
-    fun `the readout starts on the busiest day, follows a finger and goes back when it lifts`() {
+    fun `the readout starts on the busiest day, follows a drag and goes back when it lifts`() {
         page(month)
         rule.waitForIdle()
 
         rule.onNodeWithTag("recap.totaltime.readout").assertTextContains("BUSIEST DAY").assertTextContains("Sun 11 Oct").assertTextContains("16m · 5 puzzles")
 
-        rule.onNodeWithTag("recap.totaltime.river").performTouchInput { down(Offset(width * 2.5f / 31, height / 2f)) }
+        rule.onNodeWithTag("recap.totaltime.river").performTouchInput { down(Offset(width * 10.5f / 31, height / 2f)); moveTo(Offset(width * 2.5f / 31, height / 2f)) }
         rule.waitForIdle()
         rule.onNodeWithTag("recap.totaltime.readout").assertTextContains("DAY").assertTextContains("Sat 3 Oct").assertTextContains("5m · 2 puzzles")
 
         rule.onNodeWithTag("recap.totaltime.river").performTouchInput { up() }
         rule.waitForIdle()
         rule.onNodeWithTag("recap.totaltime.readout").assertTextContains("BUSIEST DAY").assertTextContains("Sun 11 Oct")
+    }
+
+    @Test
+    fun `a tap on the river turns to the next card and picks no day`() {
+        val state = RecapUiState.Ready(period = october, title = "October 2026", cards = listOf(RecapFixtures.solved, month, RecapFixtures.moments), initialPage = 1)
+        rule.setContent { PuzzleBoxTheme { RecapScreen(state, "October 2026", gameName, onPage = {}, onWatchReplay = {}, onClose = {}) } }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("recap.totaltime.river").performTouchInput { click(Offset(width * 20.5f / 31, height / 2f)) }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("recap.moments").assertIsDisplayed()
     }
 
     @Test
@@ -137,7 +150,7 @@ class TotalTimeRiverTest {
         rule.waitForIdle()
         assertTrue(rule.onNodeWithTag("recap.totaltime.miniReadout").isDisplayedNode())
 
-        rule.onNodeWithTag("recap.totaltime.river").performTouchInput { down(Offset(width * 2.5f / 31, height / 2f)) }
+        rule.onNodeWithTag("recap.totaltime.river").performTouchInput { down(Offset(width * 10.5f / 31, height / 2f)); moveTo(Offset(width * 2.5f / 31, height / 2f)) }
         rule.waitForIdle()
 
         rule.onNodeWithTag("recap.totaltime.miniReadout").assertTextContains("Sat 3 Oct")
