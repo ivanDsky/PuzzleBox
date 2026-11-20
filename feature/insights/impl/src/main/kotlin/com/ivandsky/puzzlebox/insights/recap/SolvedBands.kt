@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.rememberCountUp
@@ -35,7 +36,7 @@ import com.ivandsky.puzzlebox.model.GameId
 /**
  * The games' bands: one per game, stacked on a sheet that fills the [modifier]'s height, each as tall as its share of
  * the solves (never under [minBand]) in the game's own colour, with its name left and its count right. The bands slide in
- * one after the other and each count rolls up (Solved motion); reduced motion shows them settled.
+ * one after the other, each landing with the Stamp spring, and each count rolls up (Solved motion); reduced motion shows them settled.
  */
 @Composable
 internal fun SolvedBands(
@@ -51,6 +52,7 @@ internal fun SolvedBands(
             perGame.forEachIndexed { index, row ->
                 val colors = accentOf(row.game).colors()
                 val slide = rememberSolvedMove(bandStartMs(index))
+                val stamp = rememberSolvedStamp(bandStartMs(index) + MotionTokens.DurationExpressive)
                 val count = rememberCountUp(row.solved.toLong(), delayMs = bandStartMs(index) + BandCountDelayMs)
                 val offset = with(LocalDensity.current) { SlideRise.toPx() }
                 Row(
@@ -59,6 +61,8 @@ internal fun SolvedBands(
                         .height(heights[index].dp)
                         .graphicsLayer {
                             alpha = slide
+                            scaleX = stamp
+                            scaleY = stamp
                             translationY = (1f - slide) * offset
                         }
                         .background(colors.accent)
