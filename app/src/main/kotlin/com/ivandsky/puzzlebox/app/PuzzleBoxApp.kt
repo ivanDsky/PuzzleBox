@@ -38,6 +38,7 @@ import com.ivandsky.puzzlebox.app.nav.TopLevelNavBar
 import com.ivandsky.puzzlebox.app.nav.TopLevelNavRail
 import com.ivandsky.puzzlebox.app.nav.applyFriendLink
 import com.ivandsky.puzzlebox.app.nav.applySharedText
+import com.ivandsky.puzzlebox.app.nav.applyShortcutLanding
 import com.ivandsky.puzzlebox.app.nav.chromeMotion
 import com.ivandsky.puzzlebox.app.nav.chromePadding
 import com.ivandsky.puzzlebox.app.nav.isImmersive
@@ -46,6 +47,8 @@ import com.ivandsky.puzzlebox.app.nav.playTabBadged
 import com.ivandsky.puzzlebox.app.nav.rememberLibraryRequests
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
+import com.ivandsky.puzzlebox.app.shortcut.ResolveShortcutLanding
+import com.ivandsky.puzzlebox.app.shortcut.ShortcutTarget
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -64,6 +67,8 @@ import com.ivandsky.puzzlebox.navigation.FirstScreenReady
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import org.koin.compose.koinInject
 
@@ -97,6 +102,9 @@ import org.koin.compose.koinInject
  * one naming a game this build lacks or a day with no puzzle yet is dropped, the app opening as usual.
  * A [pendingShare] (shared text waiting in the store, which `MainActivity` filled) shows Community's root, the
  * list of drafts, the same way, then [onShareApplied]; that screen imports the text.
+ * A [pendingShortcut] (a tapped launcher shortcut) lands once Today's first set is read, so Up next is the game the
+ * Today card offers at the tap, then [onShortcutApplied]: a game's board with the Games list beneath it, or the Today
+ * tab when nothing is left to play or the set will not load. A game this build lacks is dropped, the app opening as usual.
  */
 @Composable
 fun PuzzleBoxApp(
@@ -107,6 +115,8 @@ fun PuzzleBoxApp(
     onLinkApplied: () -> Unit = {},
     pendingShare: Boolean = false,
     onShareApplied: () -> Unit = {},
+    pendingShortcut: ShortcutTarget? = null,
+    onShortcutApplied: () -> Unit = {},
     todaySet: ObserveTodaySet = koinInject(),
     games: GameRegistry = koinInject(),
     calendar: GameCalendar = koinInject(),
@@ -128,6 +138,15 @@ fun PuzzleBoxApp(
     if (pendingShare) {
         remember { navigator.applySharedText(); true }
         SideEffect(onShareApplied)
+    }
+    if (pendingShortcut != null) {
+        LaunchedEffect(pendingShortcut) {
+            if (pendingShortcut !is ShortcutTarget.Game || games[pendingShortcut.id] != null) {
+                val today = todaySet().catch { emit(emptyList()) }.firstOrNull().orEmpty()
+                navigator.applyShortcutLanding(ResolveShortcutLanding()(pendingShortcut, today))
+            }
+            onShortcutApplied()
+        }
     }
     // The single px→dp read site: one PanePolicy decision drives the nav shape and every
     // screen's pane arrangement. containerSize keeps a live rotation or resize recomposing.
