@@ -31,7 +31,16 @@ internal data class RecapShareContent(
         tiles.forEach { append(' ').append(it.label).append(' ').append(it.value).append('.') }
     }
 
+    /** The numbers as they read [progress] of the way through their count-up: each run of digits scaled, whole at 1. */
+    fun counted(progress: Float): RecapShareContent {
+        if (progress >= 1f) return this
+        fun Stat.counted() = copy(value = DIGITS.replace(value) { ((it.value.toLong()) * progress.coerceAtLeast(0f)).toLong().toString() })
+        return copy(hero = hero?.counted(), tiles = tiles.map { it.counted() })
+    }
+
     companion object {
+
+        private val DIGITS = Regex("\\d+")
 
         /** The headline numbers of [cards]; a card the recap has none of adds no number. */
         fun of(title: String, displayName: String?, cards: List<RecapCard>): RecapShareContent {

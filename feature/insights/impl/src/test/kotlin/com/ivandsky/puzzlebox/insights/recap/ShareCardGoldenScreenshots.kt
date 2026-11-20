@@ -3,6 +3,8 @@ package com.ivandsky.puzzlebox.insights.recap
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.insights.GOLDEN_PHONE
 import com.ivandsky.puzzlebox.insights.GOLDEN_TABLET
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.gameName
@@ -28,9 +30,65 @@ class ShareCardGoldenScreenshots {
 
     private val ready = RecapShareState("November 2026", "Ada", restoring = false, sharing = false, failed = false)
 
-    @Test fun `share phone light`() = capture("share", ready, dark = false)
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `share default phone light`() = pick("default", "phone", dark = false)
 
-    @Test fun `share phone dark`() = capture("share", ready, dark = true)
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `share default phone dark`() = pick("default", "phone", dark = true)
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `share default tablet light`() = pick("default", "tablet", dark = false)
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `share default tablet dark`() = pick("default", "tablet", dark = true)
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `share colour phone light`() = pick("colour", "phone", dark = false, style = "Colour")
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `share colour phone dark`() = pick("colour", "phone", dark = true, style = "Colour")
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `share colour tablet light`() = pick("colour", "tablet", dark = false, style = "Colour")
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `share colour tablet dark`() = pick("colour", "tablet", dark = true, style = "Colour")
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `share night phone light`() = pick("night", "phone", dark = false, style = "Night")
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `share night phone dark`() = pick("night", "phone", dark = true, style = "Night")
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `share night tablet light`() = pick("night", "tablet", dark = false, style = "Night")
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `share night tablet dark`() = pick("night", "tablet", dark = true, style = "Night")
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `share name hidden phone light`() = pick("name-hidden", "phone", dark = false, hideName = true)
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `share name hidden phone dark`() = pick("name-hidden", "phone", dark = true, hideName = true)
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `share name hidden tablet light`() = pick("name-hidden", "tablet", dark = false, hideName = true)
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `share name hidden tablet dark`() = pick("name-hidden", "tablet", dark = true, hideName = true)
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `share error phone light`() = pick("error", "phone", dark = false, failed = true)
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `share error phone dark`() = pick("error", "phone", dark = true, failed = true)
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `share error tablet light`() = pick("error", "tablet", dark = false, failed = true)
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `share error tablet dark`() = pick("error", "tablet", dark = true, failed = true)
 
     @Test fun `share restoring phone light`() = capture("share-restoring", ready.copy(restoring = true), dark = false)
 
@@ -57,6 +115,29 @@ class ShareCardGoldenScreenshots {
 
     @Config(qualifiers = GOLDEN_TABLET)
     @Test fun `share empty tablet dark`() = contract("empty", "tablet", dark = true)
+
+    /**
+     * The contract's [state] frame: the October dataset on the Share page, after the deck has arrived, with the [style]
+     * chip tapped (Classic when null), the Name chip turned off when [hideName], and the last share [failed].
+     */
+    private fun pick(state: String, device: String, dark: Boolean, style: String? = null, hideName: Boolean = false, failed: Boolean = false) {
+        val shell = listOf(RecapFixtures.fastest, RecapFixtures.friendsLoaded)
+        val all = listOf(ShareContract.default[0]) + shell + ShareContract.default.drop(1)
+        rule.showGolden(dark = dark) {
+            CompositionLocalProvider(LocalGameBrands provides SolvedFixtures.brands) {
+                RecapScreen(
+                    readyOf(*all.toTypedArray()).copy(title = "October 2026", initialPage = all.size),
+                    "October 2026", SolvedFixtures.gameName,
+                    onPage = {}, onWatchReplay = {}, onClose = {},
+                    share = RecapShareState("October 2026", "Ivan", restoring = false, sharing = false, failed = failed),
+                )
+            }
+        }
+        rule.mainClock.advanceTimeBy(ARRIVAL_MS)
+        style?.let { rule.onNodeWithTag("recap.share.style.$it").performClick() }
+        if (hideName) rule.onNodeWithTag("recap.share.name").performClick()
+        rule.settleAndCapture("recap", "share-$state", device, dark)
+    }
 
     private fun capture(name: String, share: RecapShareState, dark: Boolean) {
         rule.showGolden(dark = dark) {
@@ -86,5 +167,9 @@ class ShareCardGoldenScreenshots {
             }
         }
         rule.settleAndCapture("recap", "share-$state", device, dark)
+    }
+
+    private companion object {
+        const val ARRIVAL_MS = 500L
     }
 }
