@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.insights.recap
 
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -25,15 +26,18 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
+import com.ivandsky.puzzlebox.designsystem.RecapMotion
 import com.ivandsky.puzzlebox.designsystem.colors
 
 /**
  * Five game letters fanned like a hand of cards, the cover's art: Queens, Tango, Zip, Mini Sudoku and Strands, each in
  * its game's accent. The cards grow with the width, up to [MaxCardWidth], and are ink-outlined so they hold on the
- * cover's plate. Decoration only, so a screen reader skips it.
+ * cover's plate. From [startMs] on they spread out of one stack, one after another on the DeckSpring; under reduced
+ * motion they sit fanned. Decoration only, so a screen reader skips it.
  */
 @Composable
-internal fun RecapCoverFan(modifier: Modifier = Modifier) {
+internal fun RecapCoverFan(modifier: Modifier = Modifier, startMs: Int = 0) {
     val ink = LocalContentColor.current
     BoxWithConstraints(modifier.clearAndSetSemantics {}) {
         val card = (maxWidth * CardWidthShare).coerceAtMost(MaxCardWidth)
@@ -43,12 +47,23 @@ internal fun RecapCoverFan(modifier: Modifier = Modifier) {
             Letters.forEachIndexed { i, (slot, letter) ->
                 val k = i - Letters.lastIndex / 2
                 val accent = slot.colors()
+                val spread = coverEntrance(
+                    startMs + i * MotionTokens.EnterStagger,
+                    spring(RecapMotion.DeckSpringDamping, RecapMotion.DeckSpringStiffness),
+                )
                 Box(
                     Modifier
                         .align(Alignment.Center)
                         .offset(x = step * k, y = ArcDrop * (k * k) - ArcDrop * 2)
                         .size(card, cardHeight)
-                        .graphicsLayer { rotationZ = k * TiltStep }
+                        .graphicsLayer {
+                            val p = spread.value
+                            // Out of the stack: from under the middle card, lower and upright, into its place in the fan.
+                            translationX = (p - 1f) * (step * k).toPx()
+                            translationY = (1f - p) * RecapMotion.DealRise.toPx()
+                            rotationZ = p * k * TiltStep
+                            alpha = p.coerceIn(0f, 1f)
+                        }
                         .clip(CardShape)
                         .background(accent.accent)
                         .border(BorderStroke(Outline, ink), CardShape)

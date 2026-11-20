@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.insights.recap
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -24,18 +26,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.designsystem.LocalPrimaryText
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteEntry
 import com.ivandsky.puzzlebox.designsystem.RecapMotion
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.field
 import com.ivandsky.puzzlebox.designsystem.ink
 import com.ivandsky.puzzlebox.designsystem.pressScale
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -49,9 +52,10 @@ import com.ivandsky.puzzlebox.model.GameId
  * The recap as a story on [deck]: a cover ([RecapCover], made out for [displayName] when there is one) and then its
  * pages, dealt as a stack of cards ([RecapDeck]) under a progress strip, a replay button that plays the card's entrance
  * again (on the Share page, the end of the story, it replays the whole story from the cover), and a close button. The
- * cover has no replay. Holding the deck hides that chrome until the touch lets go. With a [share] state the story ends
- * on the Share page. System back steps back a card and, from the cover or the first card, falls through to leave the
- * recap.
+ * top card's field fills the story behind them and the chrome takes its ink; [twoPane] insets the chrome a little more,
+ * as a tablet's left pane does. The cover has no replay. Holding the deck hides that chrome, and the field with it, until
+ * the touch lets go. With a [share] state the story ends on the Share page. System back steps back a card and, from the
+ * cover or the first card, falls through to leave the recap.
  */
 @Composable
 internal fun RecapStory(
@@ -66,6 +70,7 @@ internal fun RecapStory(
     displayName: String? = null,
     share: RecapShareState? = null,
     onShare: (ImageBitmap, RecapShareContent) -> Unit = { _, _ -> },
+    twoPane: Boolean = false,
 ) {
     val palette = recapPalette(cards, deck)
     val reduced = rememberReducedMotion()
@@ -74,6 +79,15 @@ internal fun RecapStory(
         animationSpec = tween(MotionTokens.ReducedFadeDuration, easing = MotionTokens.EasingLinear),
         label = "recap.chrome",
     )
+    val field by animateColorAsState(
+        targetValue = palette.field,
+        animationSpec = if (reduced) {
+            tween(MotionTokens.ReducedFadeDuration, easing = MotionTokens.EasingLinear)
+        } else {
+            tween(RecapMotion.DeckStackPromote, easing = MotionTokens.EasingStandard)
+        },
+        label = "recap.field",
+    )
     val turn by animateFloatAsState(
         targetValue = deck.entrance * ReplayTurn,
         animationSpec = if (reduced) snap() else tween(MotionTokens.DurationMedium, easing = MotionTokens.EasingStandard),
@@ -81,13 +95,15 @@ internal fun RecapStory(
     )
     BackHandler(enabled = deck.canStepBack) { deck.back() }
     CompositionLocalProvider(LocalContentColor provides palette.ink) {
-        Column(modifier) {
+        Column(modifier.drawBehind { drawRect(field, alpha = chrome) }) {
+            val inset = if (twoPane) Spacing.xs else 0.dp
             Column(
                 Modifier
                     .graphicsLayer { alpha = chrome }
                     .then(if (deck.holding) Modifier.clearAndSetSemantics {} else Modifier)
-                    .padding(horizontal = Spacing.md)
-                    .padding(top = Spacing.sm),
+                    .height(DeckTop)
+                    .padding(horizontal = Spacing.md + inset)
+                    .padding(top = ChromeTop + inset),
             ) {
                 RecapProgressStrip(count = deck.segmentCount, filled = deck.filledSegments)
                 Row(
@@ -111,7 +127,7 @@ internal fun RecapStory(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .padding(start = Spacing.lg, top = Spacing.xs, end = Spacing.lg)
+                    .padding(start = Spacing.lg, end = Spacing.lg)
                     // Room under the top card for the cards peeking out below it.
                     .padding(bottom = Spacing.xl + RecapMotion.DeckStackStep * (RecapMotion.DeckStackVisible - 1)),
                 yearFlick = { at -> cards.getOrNull(at - 1) is RecapCard.Month },
@@ -122,6 +138,7 @@ internal fun RecapStory(
                         title = coverTitle(period, periodLabel),
                         hook = coverHook(period, cards.filterIsInstance<RecapCard.Solved>().firstOrNull()),
                         name = displayName,
+                        afterDeal = deck.dealing,
                     )
                 } else if (page < cards.size) {
                     RecapCardPage(
@@ -152,7 +169,7 @@ private fun ChromeButton(
     onClick: () -> Unit,
 ) {
     val interaction = remember { MutableInteractionSource() }
-    val accent = LocalPrimaryText.current
+    val accent = LocalContentColor.current
     IconButton(
         onClick = onClick,
         modifier = Modifier.size(ChromeButtonSize).pressScale(interaction, reduced).testTag(tag),
@@ -165,10 +182,14 @@ private fun ChromeButton(
 
 private val FootHeight = 24.dp
 
+/** Where the chrome starts and the card under it, as the story-shell references place them (prototype `#chrome`, `.b-card`). */
+private val ChromeTop = 10.dp
+private val DeckTop = 72.dp
+
 /** Each replay turns the ↻ icon a further quarter turn back. */
 private const val ReplayTurn = -90f
 
-/** The tonal circle behind the chrome icons: the icon's green over the screen, as the story-shell references measure. */
+/** The tonal circle behind the chrome icons: the card's ink over its field, as the prototype's `.cb` draws it. */
 private const val ChromeTintAlpha = 0.14f
 
 private val ChromeButtonSize = 48.dp

@@ -33,13 +33,13 @@ import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import kotlinx.coroutines.delay
 
 /**
- * [text] in large letters that each rise into place on the Stamp spring, one after another ([RecapMotion] Kinetic).
- * Letters stay together in their word, so a title wraps between words and never inside one. Reduced motion draws the
- * letters at rest. A screen reader reads [text] whole.
+ * [text] in large letters that each rise into place on the Stamp spring, one after another ([RecapMotion] Kinetic),
+ * the first [startMs] after the title is composed. Letters stay together in their word, so a title wraps between words
+ * and never inside one. Reduced motion draws the letters at rest. A screen reader reads [text] whole.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun RecapKineticTitle(text: String, fontSize: TextUnit, modifier: Modifier = Modifier) {
+internal fun RecapKineticTitle(text: String, fontSize: TextUnit, modifier: Modifier = Modifier, startMs: Int = 0) {
     val reduced = rememberReducedMotion()
     val words = text.split(' ').filter { it.isNotEmpty() }
     val stagger = (RecapMotion.KineticStaggerBudget / words.sumOf { it.length }.coerceAtLeast(1))
@@ -60,7 +60,7 @@ internal fun RecapKineticTitle(text: String, fontSize: TextUnit, modifier: Modif
             val first = before
             before += word.length
             Row {
-                word.forEachIndexed { i, letter -> KineticLetter(letter, style, (first + i) * stagger, reduced) }
+                word.forEachIndexed { i, letter -> KineticLetter(letter, style, startMs + (first + i) * stagger, reduced) }
             }
         }
     }

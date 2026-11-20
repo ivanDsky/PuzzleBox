@@ -67,6 +67,7 @@ internal fun RecapFactList(
                     .testTag("recap.fact.$index"),
                 shape = MaterialTheme.shapes.large,
                 color = if (selected) field else MaterialTheme.colorScheme.surfaceContainerLow,
+                contentColor = if (selected) ink else MaterialTheme.colorScheme.onSurface,
                 border = BorderStroke(
                     width = if (selected) SelectedBorder else NoBorder,
                     color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outlineVariant,
@@ -100,8 +101,8 @@ internal fun FactMarker() {
 }
 
 /**
- * Draws a selected fact in the card's [ink]: the facts take their text, values and hairlines from the theme, so the
- * selected one reads on the card's field with the row block that sits behind its rows left clear.
+ * Draws a selected fact in the card's [ink]: the facts take their text, secondary text, values and hairlines from the
+ * theme, so the selected one reads on the card's field with the row block that sits behind its rows left clear.
  */
 @Composable
 private fun OnField(selected: Boolean, ink: Color, content: @Composable () -> Unit) {
@@ -110,6 +111,7 @@ private fun OnField(selected: Boolean, ink: Color, content: @Composable () -> Un
     MaterialTheme(
         colorScheme = colors.copy(
             onSurface = ink,
+            onSurfaceVariant = ink,
             primary = ink,
             outlineVariant = ink.copy(alpha = HairlineAlpha),
             surfaceContainerHigh = Color.Transparent,

@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Dp
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.EmptyState
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
@@ -29,6 +30,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.TwoColumnFrame
 import com.ivandsky.puzzlebox.designsystem.TwoColumnMinWidth
+import com.ivandsky.puzzlebox.designsystem.TwoColumnRightWidth
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.insights.share.RecapShareContent
@@ -119,6 +121,7 @@ private fun RecapLoading(modifier: Modifier = Modifier) {
             TwoColumnFrame(
                 paneHeight = paneHeight,
                 tag = "recap.twoPane",
+                contentMaxWidth = storyColumnsWidth(paneHeight),
                 left = { column, height ->
                     Box(column.height(height).clip(MaterialTheme.shapes.extraLarge).background(MaterialTheme.colorScheme.surfaceContainerLow)) {
                         RecapLoadingSkeleton(Modifier.fillMaxSize())
@@ -176,6 +179,7 @@ private fun RecapReady(
             TwoColumnFrame(
                 paneHeight = maxHeight,
                 tag = "recap.twoPane",
+                contentMaxWidth = storyColumnsWidth(maxHeight),
                 left = { column, height ->
                     RecapStory(
                         cards = state.cards,
@@ -188,6 +192,7 @@ private fun RecapReady(
                         displayName = displayName,
                         share = share,
                         onShare = onShare,
+                        twoPane = true,
                         modifier = column
                             .height(height)
                             .clip(MaterialTheme.shapes.extraLarge)
@@ -212,3 +217,16 @@ private fun RecapReady(
         }
     }
 }
+
+/**
+ * The widest the story and the fact list get together in a pane [paneHeight] high: the story keeps the references'
+ * shape at the full height, beside the gap and the fact list, and a wider window sets the rest aside as equal margins.
+ */
+private fun storyColumnsWidth(paneHeight: Dp): Dp =
+    (paneHeight - Spacing.lg * 2) * StoryAspect + TwoColumnGap + TwoColumnRightWidth
+
+/** The story pane's width over its height in the tablet references: 852 × 768dp at 1280 × 800. */
+private const val StoryAspect = 852f / 768f
+
+/** [TwoColumnFrame]'s gap between the columns. */
+private val TwoColumnGap = Spacing.xl

@@ -1,11 +1,13 @@
 package com.ivandsky.puzzlebox.insights.recap
 
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
 import com.ivandsky.puzzlebox.insights.GOLDEN_PHONE
 import com.ivandsky.puzzlebox.insights.GOLDEN_TABLET
+import com.ivandsky.puzzlebox.insights.GOLDEN_TABLET_WIDE
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapPeriod
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.fastest
@@ -29,7 +31,8 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The story shell (strip, ↻ and close, the card deck) on the Streak card of a seven-page October story, at rest and held
- * to peek at Moments, on its Share page (last), loading, unable to open (error) and bringing history back (restoring, no reference), on phone and tablet, light and dark. Goldens in `snapshots/story-shell/`.
+ * to peek at Moments, on its Share page (last), loading, unable to open (error) and bringing history back (restoring, no reference), on phone and tablet, light and dark;
+ * the cover, last and held on a wide tablet too. Goldens in `snapshots/story-shell/`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -147,6 +150,24 @@ class RecapShellGoldenScreenshots {
     @Config(qualifiers = GOLDEN_TABLET)
     @Test fun `longest tablet dark`() = capture("longest", "tablet", dark = true, state = LongestStory, who = LongName, names = Games)
 
+    @Config(qualifiers = GOLDEN_TABLET_WIDE)
+    @Test fun `cover wide light`() = capture("cover", "wide", dark = false, state = CoverStory, who = "Ivan", names = Games)
+
+    @Config(qualifiers = GOLDEN_TABLET_WIDE)
+    @Test fun `cover wide dark`() = capture("cover", "wide", dark = true, state = CoverStory, who = "Ivan", names = Games)
+
+    @Config(qualifiers = GOLDEN_TABLET_WIDE)
+    @Test fun `last wide light`() = capture("last", "wide", dark = false, state = October.copy(initialPage = 6))
+
+    @Config(qualifiers = GOLDEN_TABLET_WIDE)
+    @Test fun `last wide dark`() = capture("last", "wide", dark = true, state = October.copy(initialPage = 6))
+
+    @Config(qualifiers = GOLDEN_TABLET_WIDE)
+    @Test fun `hold wide light`() = capture("hold", "wide", dark = false, held = true)
+
+    @Config(qualifiers = GOLDEN_TABLET_WIDE)
+    @Test fun `hold wide dark`() = capture("hold", "wide", dark = true, held = true)
+
     private fun capture(
         name: String,
         device: String,
@@ -159,7 +180,8 @@ class RecapShellGoldenScreenshots {
         rule.showGolden(dark = dark) {
             RecapScreen(state, "October 2026", names, onPage = {}, onWatchReplay = {}, onClose = {}, displayName = who, share = Share)
         }
-        if (held) rule.onNodeWithTag("recap.pager").performTouchInput { down(center) }
+        // Held on the card's blank top corner, clear of the card's own content.
+        if (held) rule.onNodeWithTag("recap.pager").performTouchInput { down(Offset(width * 0.1f, height * 0.05f)) }
         rule.settleAndCapture("story-shell", name, device, dark)
     }
 }
