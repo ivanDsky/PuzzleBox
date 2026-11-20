@@ -66,6 +66,15 @@ class RecapShareContentTest {
     }
 
     @Test
+    fun `a counting number keeps its final text to be sized by`() {
+        val content = RecapShareContent.of("November 2026", "Ada", everything)
+        val counting = content.counted(0.5f)
+
+        assertEquals(content.hero!!.value, counting.hero!!.fit)
+        assertEquals(content.tiles.map { it.value }, counting.tiles.map { it.fit })
+    }
+
+    @Test
     fun `a one day streak reads in the singular`() {
         val content = RecapShareContent.of("2026", null, listOf(RecapFixtures.solved, RecapFixtures.streak.copy(days = 1)))
 
