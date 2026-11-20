@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget ring, started: Today's fixed half arc (12 o'clock clockwise to 6, round caps; the data has no progress fraction). Layer it over widget_ring_track in the game's accent. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="56dp"
+    android:height="56dp"
+    android:viewportWidth="56"
+    android:viewportHeight="56">
+    <path
+        android:pathData="M28,2.5A25.5,25.5 0 0 1 28,53.5"
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="3"
+        android:strokeLineCap="round" />
+</vector>

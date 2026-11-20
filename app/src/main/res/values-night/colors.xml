@@ -2,4 +2,23 @@
     <color name="puzzlebox_launch_background">#101418</color>
     <!-- Brand primary (DarkColorScheme.primary, ColorTokens.kt) for the splash mark. -->
     <color name="puzzlebox_splash_mark">#6BDF17</color>
+    <!-- Home widget (dark): DarkAccentTokens and DarkColorScheme; see values/colors.xml. -->
+    <color name="widget_accent_blue">#21B7FF</color>
+    <color name="widget_on_accent_blue">#002A40</color>
+    <color name="widget_accent_orange">#FF8524</color>
+    <color name="widget_on_accent_orange">#401A00</color>
+    <color name="widget_accent_violet">#A69BFF</color>
+    <color name="widget_on_accent_violet">#27145C</color>
+    <color name="widget_accent_teal">#00E8DC</color>
+    <color name="widget_on_accent_teal">#002E2B</color>
+    <color name="widget_accent_pink">#FF77A0</color>
+    <color name="widget_on_accent_pink">#4D0021</color>
+    <color name="widget_accent_neutral">#DBDEE2</color>
+    <color name="widget_on_accent_neutral">#101418</color>
+    <color name="widget_track">#2C323A</color>
+    <color name="widget_muted">#AEB4BD</color>
+    <color name="widget_surface">#101418</color>
+    <color name="widget_text">#DBDEE2</color>
+    <color name="widget_primary">#6BDF17</color>
+    <color name="widget_on_primary">#0C3200</color>
 </resources>
