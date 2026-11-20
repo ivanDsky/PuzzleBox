@@ -14,11 +14,13 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.DefaultCameraDistance
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.util.lerp
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.RecapMotion
+import kotlin.math.max
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -74,8 +76,9 @@ internal fun Modifier.dealt(deal: DealMotion, shape: Shape): Modifier = graphics
     scaleX = lerp(RecapMotion.DealScaleFrom, 1f, deal.rise.value)
     scaleY = scaleX
     rotationY = deal.turn.value
-    // The default camera sits so close that a full-width card turning flares past the screen edges.
-    cameraDistance = FlipCameraDistance * density
+    // The camera stands as far off, for the card's size, as the prototype's does: one at a fixed distance sits so close
+    // to a large tablet's card that the turning card flares past the screen edges.
+    cameraDistance = (FlipCameraReach * max(size.width, size.height) / CameraUnitPx).coerceAtLeast(DefaultCameraDistance)
     this.shape = shape
     clip = true
 }.drawWithContent {
@@ -92,4 +95,11 @@ internal fun Modifier.dealt(deal: DealMotion, shape: Shape): Modifier = graphics
     )
 }
 
-private const val FlipCameraDistance = 12f
+/**
+ * The camera's distance in lengths of the card's longer side: the prototype's 1400dp perspective over its 820dp tablet
+ * card (its 380 × 791dp phone card gives about the same).
+ */
+private const val FlipCameraReach = 1400f / 820f
+
+/** A layer's camera distance counts in inches of 72 px (Skia's camera), not in screen pixels. */
+private const val CameraUnitPx = 72f

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -21,20 +22,19 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.designsystem.LocalTimerFill
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 
 /**
- * One segment per page, the first [filled] of them lit in the progress fill over a faint tint of that fill: where the
- * player is in the story, nothing else, so it is not tappable. A segment fills from the left as its card arrives and is
- * instant under reduced motion.
+ * One segment per page, the first [filled] of them lit in the card's ink (the content color) over a faint tint of that
+ * ink: where the player is in the story, nothing else, so it is not tappable. A segment fills from the left as its card
+ * arrives and is instant under reduced motion.
  */
 @Composable
 internal fun RecapProgressStrip(count: Int, filled: Int, modifier: Modifier = Modifier) {
     val reduced = rememberReducedMotion()
-    val fill = LocalTimerFill.current
+    val fill = LocalContentColor.current
     val track = fill.copy(alpha = TrackAlpha)
     Row(
         modifier
@@ -76,7 +76,7 @@ internal fun RecapProgressStrip(count: Int, filled: Int, modifier: Modifier = Mo
     }
 }
 
-private val SegmentHeight = 6.dp
+private val SegmentHeight = 4.dp
 
-/** The track's share of the fill over the screen, as the story-shell references measure. */
+/** The track's share of the ink over the card's field, as the prototype's strip draws it. */
 private const val TrackAlpha = 0.28f

@@ -25,6 +25,7 @@ import java.io.File
 /** Robolectric qualifiers of the two golden devices: a phone, and a landscape tablet. */
 internal const val GOLDEN_PHONE = "w411dp-h891dp-420dpi"
 internal const val GOLDEN_TABLET = "w1280dp-h800dp-land-mdpi"
+internal const val GOLDEN_TABLET_WIDE = "w1680dp-h1050dp-land-mdpi"
 
 /**
  * Shows [content] the way the app's root Scaffold does (background colour, onBackground content

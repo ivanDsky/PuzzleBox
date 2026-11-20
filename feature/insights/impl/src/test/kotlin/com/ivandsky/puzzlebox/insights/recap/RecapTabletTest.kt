@@ -1,18 +1,33 @@
 package com.ivandsky.puzzlebox.insights.recap
 
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteEntry
+import com.ivandsky.puzzlebox.designsystem.recapCardColors
+import com.ivandsky.puzzlebox.insights.GOLDEN_TABLET_WIDE
+import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.fastest
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.gameName
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.ready
+import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.solved
 import com.ivandsky.puzzlebox.insights.share.RecapShareState
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -29,8 +44,10 @@ class RecapTabletTest {
     @get:Rule
     val rule = createAndroidComposeRule<ComponentActivity>()
 
-    private fun show(state: RecapUiState = ready, share: RecapShareState? = null) = rule.setContent {
-        PuzzleBoxTheme { RecapScreen(state, "November 2026", gameName, onPage = {}, onWatchReplay = {}, onClose = {}, share = share) }
+    private fun show(state: RecapUiState = ready, share: RecapShareState? = null, dark: Boolean = false) = rule.setContent {
+        PuzzleBoxTheme(darkTheme = dark) {
+            RecapScreen(state, "November 2026", gameName, onPage = {}, onWatchReplay = {}, onClose = {}, share = share)
+        }
     }
 
     @Test
@@ -83,5 +100,31 @@ class RecapTabletTest {
         rule.onNodeWithTag("recap.twoPane.left").assertIsDisplayed()
         rule.onNodeWithTag("recap.loading").assertContentDescriptionEquals("Loading your recap")
         rule.onNodeWithTag("recap.facts").assertDoesNotExist()
+    }
+
+    @Config(qualifiers = GOLDEN_TABLET_WIDE)
+    @Test
+    fun `on a wide tablet the story keeps its shape and the room left over goes to equal margins`() {
+        show()
+
+        val screen = rule.onRoot().getBoundsInRoot()
+        val story = rule.onNodeWithTag("recap.twoPane.left").getBoundsInRoot()
+        val facts = rule.onNodeWithTag("recap.twoPane.right").getBoundsInRoot()
+        assertEquals(852f / 768f, story.width.value / story.height.value, 0.01f)
+        assertEquals(story.left.value, (screen.right - facts.right).value, 1f)
+    }
+
+    @Test
+    fun `the selected Fastest fact draws its dates in the card's ink, readable on its field in the dark`() {
+        show(ready.copy(cards = listOf(solved, fastest), initialPage = 1), dark = true)
+        rule.onNodeWithTag("recap.fact.1").assertIsSelected()
+
+        val date = rule.onNode(
+            hasText(fastest.rows.first().day.shortLabel(), substring = true) and hasAnyAncestor(hasTestTag("recap.fact.1")),
+            useUnmergedTree = true,
+        )
+        val layout = mutableListOf<TextLayoutResult>()
+        date.fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(layout)
+        assertEquals(recapCardColors(PaletteEntry.Fastest, darkTheme = true).ink, layout.single().layoutInput.style.color)
     }
 }
