@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.insights.domain.recap.EarnedMoment
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapPeriod
 import java.time.LocalDate
@@ -21,7 +22,7 @@ private val Cards = listOf(
         days = 17, from = LocalDate.of(2026, 11, 3), to = LocalDate.of(2026, 11, 19), freezesSpent = 2,
         frozenDays = emptySet(), span = RecapPeriod.Month(YearMonth.of(2026, 11)),
     ),
-    RecapCard.Moments(personalBests = 5, firstSubX = 2, fullSets = 14, streakMilestones = listOf(7, 30)),
+    RecapCard.Moments(List(14) { EarnedMoment(EarnedMoment.Kind.FullSet, LocalDate.of(2026, 11, 1 + it)) }),
 )
 
 @PuzzleBoxPreviews

@@ -6,6 +6,8 @@ import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
@@ -18,12 +20,14 @@ import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.insights.domain.recap.EarnedMoment
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.fastest
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.gameName
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.queens
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.streak
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -44,8 +48,8 @@ class RecapNewCardsTest {
 
     private val opened = mutableListOf<RecapCard.Fastest.Row>()
 
-    private fun show(card: RecapCard) {
-        rule.setContent { PuzzleBoxTheme { RecapCardPage(card, "November 2026", gameName, onWatchReplay = { opened += it }) } }
+    private fun show(card: RecapCard, names: (GameId) -> String = gameName) {
+        rule.setContent { PuzzleBoxTheme { RecapCardPage(card, "November 2026", names, onWatchReplay = { opened += it }) } }
         settle()
     }
 
@@ -205,25 +209,46 @@ class RecapNewCardsTest {
 
     @Test
     fun `moments shows the count and a row for each kind that came up`() {
-        show(RecapFixtures.moments)
+        show(RecapFixtures.moments, FastestFixtures.gameName)
 
         rule.onNodeWithTag("recap.moments").assertIsDisplayed()
-        rule.onNodeWithTag("recap.moments.count").assertTextContains("23")
+        rule.onNodeWithTag("recap.moments.count").assertContentDescriptionEquals("14 moments earned")
         rule.onNodeWithTag("recap.moments.personalBest").assertTextContains("Personal bests").assertTextContains("5")
-        rule.onNodeWithTag("recap.moments.firstSubX").assertTextContains("2")
-        rule.onNodeWithTag("recap.moments.fullSet").assertTextContains("14")
+        rule.onNodeWithTag("recap.moments.firstSubX").assertTextContains("3")
+        rule.onNodeWithTag("recap.moments.fullSet").assertTextContains("4")
         rule.onNodeWithTag("recap.moments.streak").assertTextContains("7 days · 30 days")
     }
 
     @Test
     fun `moments leaves out the kinds that did not come up`() {
-        show(RecapCard.Moments(personalBests = 0, firstSubX = 0, fullSets = 1, streakMilestones = emptyList()))
+        show(RecapCard.Moments(listOf(EarnedMoment(EarnedMoment.Kind.FullSet, LocalDate.of(2026, 10, 8)))))
 
         rule.onNodeWithTag("recap.moments.count").assertContentDescriptionEquals("1 moment earned")
         rule.onNodeWithTag("recap.moments.fullSet").assertIsDisplayed()
         rule.onNodeWithTag("recap.moments.personalBest").assertDoesNotExist()
         rule.onNodeWithTag("recap.moments.firstSubX").assertDoesNotExist()
         rule.onNodeWithTag("recap.moments.streak").assertDoesNotExist()
+    }
+
+    @Test
+    fun `the plaque names the last sticker, and tapping another sticker names that one`() {
+        show(MomentsFixtures.default, FastestFixtures.gameName)
+
+        rule.onNodeWithTag("recap.moments.plaque").assertTextContains("Full set done").assertTextContains("Oct 25")
+        rule.onNodeWithTag("recap.moments.sticker.4").performClick()
+        settle()
+
+        rule.onNodeWithTag("recap.moments.plaque").assertTextContains("First under 1:00 in Zip").assertTextContains("Oct 22")
+        rule.onNodeWithTag("recap.moments.sticker.4").assertIsSelected()
+        rule.onNodeWithTag("recap.moments.sticker.5").assertIsNotSelected()
+    }
+
+    @Test
+    fun `a sticker tells a screen reader what it is and when`() {
+        show(MomentsFixtures.default, FastestFixtures.gameName)
+
+        rule.onNodeWithTag("recap.moments.sticker.2").assertContentDescriptionEquals("7-day streak, Oct 12")
+        rule.onNodeWithTag("recap.moments.sticker.3").assertContentDescriptionEquals("Personal best in Queens, Oct 17")
     }
 
     @Test

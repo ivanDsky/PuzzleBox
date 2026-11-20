@@ -72,7 +72,8 @@ class ObserveRecapTest {
             cards[2],
         )
         // Each game's first, quick solve went under a mark, and Nov 2 finished both games' day.
-        assertEquals(RecapCard.Moments(personalBests = 0, firstSubX = 2, fullSets = 1, streakMilestones = emptyList()), cards[3])
+        val moments = cards[3] as RecapCard.Moments
+        assertEquals(listOf(0, 2, 1), listOf(moments.personalBests, moments.firstSubX, moments.fullSets))
         assertEquals(
             RecapCard.TotalTime(
                 totalMs = 90_000,

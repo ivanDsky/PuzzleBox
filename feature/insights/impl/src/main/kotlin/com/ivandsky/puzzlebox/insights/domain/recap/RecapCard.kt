@@ -91,16 +91,17 @@ internal sealed interface RecapCard {
     ) : RecapCard
 
     /**
-     * Moments earned, local kinds only (A6): [personalBests] and [firstSubX] and [fullSets] counted, and every
-     * [streakMilestones] reached (7, 30 or 100 days), oldest first. Friend Moments are not counted.
+     * Moments earned, local kinds only (A6), oldest day first. The counts below are read off [earned], so they cannot
+     * disagree with it. Friend Moments are not counted.
      */
-    data class Moments(
-        val personalBests: Int,
-        val firstSubX: Int,
-        val fullSets: Int,
-        val streakMilestones: List<Int>,
-    ) : RecapCard {
-        val total: Int get() = personalBests + firstSubX + fullSets + streakMilestones.size
+    data class Moments(val earned: List<EarnedMoment>) : RecapCard {
+        val personalBests: Int get() = earned.count { it.kind == EarnedMoment.Kind.PersonalBest }
+        val firstSubX: Int get() = earned.count { it.kind == EarnedMoment.Kind.FirstSubX }
+        val fullSets: Int get() = earned.count { it.kind == EarnedMoment.Kind.FullSet }
+
+        /** Every streak milestone reached (7, 30 or 100 days), oldest first. */
+        val streakMilestones: List<Int> get() = earned.filter { it.kind == EarnedMoment.Kind.Streak }.mapNotNull { it.streakDays }
+        val total: Int get() = earned.size
     }
 
     /**

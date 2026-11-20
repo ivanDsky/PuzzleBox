@@ -29,7 +29,7 @@ class RecapShareContentTest {
             listOf(
                 RecapShareContent.Stat("17 days", "Longest streak", PaletteCard.Streak),
                 RecapShareContent.Stat("36 of 42", "Solved without a hint", PaletteCard.Solved),
-                RecapShareContent.Stat("23", "Moments earned", PaletteCard.Moments),
+                RecapShareContent.Stat("14", "Moments earned", PaletteCard.Moments),
                 RecapShareContent.Stat("3h 12m", "Time spent solving", PaletteCard.TotalTime),
             ),
             content.tiles,
@@ -101,7 +101,7 @@ class RecapShareContentTest {
 
     @Test
     fun `a card with nothing to count adds no tile`() {
-        val content = RecapShareContent.of("2026", null, listOf(RecapCard.Solved(42, emptyList()), RecapCard.Moments(0, 0, 0, emptyList())))
+        val content = RecapShareContent.of("2026", null, listOf(RecapCard.Solved(42, emptyList()), RecapCard.Moments(emptyList())))
 
         assertTrue(content.tiles.isEmpty())
     }
