@@ -172,4 +172,24 @@ class ObserveDueRecapTest {
         fixture.store(fixture.solve(alpha, LocalDate.of(2026, 12, 31)))
         assertDue()
     }
+
+    @Test
+    fun `carries each due period's solved count, each game's share and a year's count per month`() = runTest {
+        fixture.calendar.setAll(LocalDate.of(2027, 1, 2))
+        fixture.store(
+            fixture.solve(alpha, LocalDate.of(2026, 5, 2)),
+            fixture.solve(alpha, LocalDate.of(2026, 12, 30)),
+            fixture.solve(alpha, LocalDate.of(2026, 12, 31)),
+            fixture.solve(beta, LocalDate.of(2026, 12, 31)),
+            fixture.solve(alpha, LocalDate.of(2027, 1, 2)),
+        )
+
+        due().test {
+            val (year, month) = awaitItem()
+            assertEquals(listOf(4, listOf(alpha to 3, beta to 1)), listOf(year.solved, year.solvedByGame))
+            assertEquals(listOf(0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 3), year.months)
+            assertEquals(listOf(3, listOf(alpha to 2, beta to 1), emptyList<Int>()), listOf(month.solved, month.solvedByGame, month.months))
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
 }

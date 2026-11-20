@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.domain.GameHistoryDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.isSolvedDaily
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.insights.api.RecapWindow
 import java.time.LocalDate
 import java.time.Month
 import java.time.YearMonth
@@ -42,19 +43,20 @@ internal class ObserveRecapAvailability(
      * each once that puzzle day has a counted solve and only when the period has a recap of its own (A2, A3). The
      * caller shows one at a time and the next after the first is dismissed. From day 4 (Jan 8 for a year) nothing is
      * due, so a recap that first ships after its window gets no late card and stays reachable from the hub (A4). Emits
-     * again when the day's first solve lands and at each puzzle-day rollover.
+     * again when the day's first solve lands and at each puzzle-day rollover. Each period carries its [summarize]d
+     * counts, from the same counted history, so Today pays a group-by and no second read.
      */
-    fun due(): Flow<List<RecapPeriod>> =
+    fun due(): Flow<List<DuePeriod>> =
         combine(counted(), today()) { solved, today ->
-            if (today == null || solved.none { it.day == today }) return@combine emptyList<RecapPeriod>()
+            if (today == null || solved.none { it.day == today }) return@combine emptyList<DuePeriod>()
             val year = RecapPeriod.Year(today.year - 1).takeIf {
-                today.month == Month.JANUARY && today.dayOfMonth <= YEAR_DUE_DAYS && solved.any { day -> day.day in it }
+                RecapWindow.offersYear(today) && solved.any { day -> day.day in it }
             }
             val ended = YearMonth.from(today).minusMonths(1)
             val month = RecapPeriod.Month(ended).takeIf {
-                today.dayOfMonth <= MONTH_DUE_DAYS && solved.any { day -> YearMonth.from(day.day) == ended }
+                RecapWindow.offersMonth(today) && solved.any { day -> YearMonth.from(day.day) == ended }
             }
-            listOfNotNull(year, month)
+            listOfNotNull(year, month).map { DuePeriod(it, summarize(it, solved)) }
         }.distinctUntilChanged()
 
     private fun counted(): Flow<List<GameHistoryDay>> = observeGameHistory().map { history -> history.filter { it.isSolvedDaily() } }
@@ -74,12 +76,6 @@ internal class ObserveRecapAvailability(
     }
 
     private companion object {
-        /** The month Today card's window: days 1–3 of the month after the one it recaps. */
-        const val MONTH_DUE_DAYS = 3
-
-        /** The year Today card's window: Jan 1–7 for the year just ended. */
-        const val YEAR_DUE_DAYS = 7
-
         /** The day of December the current year's recap opens (A3). */
         const val OPEN_DAY = 20
     }
