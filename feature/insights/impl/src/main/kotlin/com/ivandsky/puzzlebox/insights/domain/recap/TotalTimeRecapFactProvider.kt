@@ -6,6 +6,7 @@ internal object TotalTimeRecapFactProvider : RecapFactProvider {
     override suspend fun cards(input: RecapInput): List<RecapCard> {
         val facts = input.facts
         if (facts.solved == 0) return emptyList()
-        return listOf(RecapCard.TotalTime(totalMs = facts.totalTimeMs, solved = facts.solved))
+        val period = facts.period as RecapPeriod
+        return listOf(RecapCard.TotalTime(totalMs = facts.totalTimeMs, solved = facts.solved, days = facts.dayTallies, period = period))
     }
 }

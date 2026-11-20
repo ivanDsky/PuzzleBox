@@ -71,7 +71,18 @@ class ObserveRecapTest {
         assertEquals(RecapCard.HintFree(hintFree = 3, solved = 3), cards[3])
         // Each game's first, quick solve went under a mark, and Nov 2 finished both games' day.
         assertEquals(RecapCard.Moments(personalBests = 0, firstSubX = 2, fullSets = 1, streakMilestones = emptyList()), cards[4])
-        assertEquals(RecapCard.TotalTime(totalMs = 90_000, solved = 3), cards[5])
+        assertEquals(
+            RecapCard.TotalTime(
+                totalMs = 90_000,
+                solved = 3,
+                days = listOf(
+                    DayTally(LocalDate.of(2026, 11, 1), solved = 1, timeMs = 30_000, hintFree = 1),
+                    DayTally(LocalDate.of(2026, 11, 2), solved = 2, timeMs = 60_000, hintFree = 2),
+                ),
+                period = november,
+            ),
+            cards[5],
+        )
     }
 
     @Test

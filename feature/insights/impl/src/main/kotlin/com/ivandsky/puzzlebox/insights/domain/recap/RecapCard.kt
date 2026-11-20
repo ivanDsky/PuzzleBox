@@ -59,6 +59,9 @@ internal sealed interface RecapCard {
      */
     data class Friends(val state: FriendsStanding.Shown) : RecapCard
 
-    /** Total time spent solving: [totalMs] over [solved] counted solves, pauses excluded, imports included (A8). */
-    data class TotalTime(val totalMs: Long, val solved: Int) : RecapCard
+    /**
+     * Total time spent solving: [totalMs] over [solved] counted solves, pauses excluded, imports included (A8). [days]
+     * are the period's per-day tallies, which add up to [totalMs]; the day river draws them across [period].
+     */
+    data class TotalTime(val totalMs: Long, val solved: Int, val days: List<DayTally>, val period: RecapPeriod) : RecapCard
 }

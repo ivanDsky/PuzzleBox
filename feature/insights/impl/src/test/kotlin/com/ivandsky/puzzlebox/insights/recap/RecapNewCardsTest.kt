@@ -143,7 +143,7 @@ class RecapNewCardsTest {
         show(RecapFixtures.totalTime)
 
         rule.onNodeWithTag("recap.totaltime").assertIsDisplayed()
-        rule.onNodeWithTag("recap.totaltime.time").assertTextContains("3:12:15")
+        rule.onNodeWithTag("recap.totaltime.time").assertTextContains("3h 12m")
         rule.onNodeWithTag("recap.totaltime.solved").assertTextContains("42")
         rule.onNodeWithTag("recap.totaltime.average").assertTextContains("4:34")
     }
