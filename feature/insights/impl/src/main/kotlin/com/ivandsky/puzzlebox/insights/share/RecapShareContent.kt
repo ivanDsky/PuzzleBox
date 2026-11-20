@@ -1,52 +1,61 @@
 package com.ivandsky.puzzlebox.insights.share
 
-import com.ivandsky.puzzlebox.designsystem.formatDuration
+import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteCard
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
+import com.ivandsky.puzzlebox.insights.recap.formatHeroDuration
 import com.ivandsky.puzzlebox.insights.recap.puzzles
 
 /**
  * What the share image and the share text say about one recap: the [title] of its period, the player's own
- * [displayName] (null when signed out), one [hero] number and the [tiles] under it. Only the player's own numbers get
- * here (A9): a card about friends has no place in it, so no friend's name or time can reach the image.
+ * [displayName] (null when signed out), one [hero] number, each game's share of the solves in [split] and the [tiles]
+ * under it. Only the player's own numbers get here (A9): a card about friends has no place in it, so no friend's name
+ * or time can reach the image.
  */
 internal data class RecapShareContent(
     val title: String,
     val displayName: String?,
     val hero: Stat?,
+    val split: List<RecapCard.Solved.PerGame>,
     val tiles: List<Stat>,
 ) {
 
-    /** One headline number: its [value] and the [label] that names it. */
-    data class Stat(val value: String, val label: String)
+    /** One headline number: its [value] and the [label] that names it; a tile also names the recap [card] whose colours it wears. */
+    data class Stat(val value: String, val label: String, val card: PaletteCard? = null)
+
+    /** What a screen reader says for the image, with final values: "Share image: October 2026, Ivan. 96 puzzles solved. Longest streak 23 days. …". */
+    fun description(): String = buildString {
+        append("Share image: ").append(title)
+        displayName?.let { append(", ").append(it) }
+        append('.')
+        hero?.let { append(' ').append(it.value).append(' ').append(it.label).append('.') }
+        tiles.forEach { append(' ').append(it.label).append(' ').append(it.value).append('.') }
+    }
 
     companion object {
-        private const val StreakLabel = "Longest streak"
 
-
-        /** The headline numbers of [cards], in the story's order; a card the recap has none of adds no number. */
-        fun of(title: String, displayName: String?, cards: List<RecapCard>): RecapShareContent = RecapShareContent(
-            title = title,
-            displayName = displayName?.takeIf { it.isNotBlank() },
-            hero = cards.filterIsInstance<RecapCard.Solved>().firstOrNull()?.let { Stat(it.total.toString(), "${it.total.puzzles()} solved") },
-            tiles = tilesOf(cards),
-        )
-
-        /** The tiles of [cards] in story order, with the hint-free count (it lives on Solved, the first card) right after the streak. */
-        private fun tilesOf(cards: List<RecapCard>): List<Stat> {
-            val tiles = cards.mapNotNull(::tile)
-            val hintFree = cards.filterIsInstance<RecapCard.Solved>().firstOrNull()?.let(::hintFreeTile) ?: return tiles
-            return tiles.toMutableList().apply { add(indexOfFirst { it.label == StreakLabel } + 1, hintFree) }
+        /** The headline numbers of [cards]; a card the recap has none of adds no number. */
+        fun of(title: String, displayName: String?, cards: List<RecapCard>): RecapShareContent {
+            val solved = cards.filterIsInstance<RecapCard.Solved>().firstOrNull()
+            return RecapShareContent(
+                title = title,
+                displayName = displayName?.takeIf { it.isNotBlank() },
+                hero = solved?.let { Stat(it.total.toString(), "${it.total.puzzles()} solved") },
+                split = solved?.perGame.orEmpty(),
+                tiles = if (solved?.total == 1) emptyList() else tilesOf(solved, cards),
+            )
         }
 
-        private fun hintFreeTile(card: RecapCard.Solved): Stat? =
-            Stat("${card.hintFree} of ${card.total}", "Solved without a hint").takeIf { card.hintFree > 0 }
-
-        private fun tile(card: RecapCard): Stat? = when (card) {
-            is RecapCard.TotalTime -> Stat(formatDuration(card.totalMs), "Time spent solving")
-            is RecapCard.Streak -> Stat(if (card.days == 1) "1 day" else "${card.days} days", StreakLabel)
-            is RecapCard.Moments -> Stat(card.total.toString(), "Moments earned").takeIf { card.total > 0 }
-            // Solved is the hero (its hint-free tile is added by tilesOf); Fastest is a list of times, no headline. A card the image does not know (a friends card) is never shown (A9).
-            else -> null
+        /** The tiles in their fixed order: streak, solved without a hint, moments, time. The order is the poster's, not the cards'. */
+        private fun tilesOf(solved: RecapCard.Solved?, cards: List<RecapCard>): List<Stat> {
+            val streak = cards.filterIsInstance<RecapCard.Streak>().firstOrNull()
+            val moments = cards.filterIsInstance<RecapCard.Moments>().firstOrNull()
+            val time = cards.filterIsInstance<RecapCard.TotalTime>().firstOrNull()
+            return listOfNotNull(
+                streak?.let { Stat(if (it.days == 1) "1 day" else "${it.days} days", "Longest streak", PaletteCard.Streak) },
+                solved?.takeIf { it.hintFree > 0 }?.let { Stat("${it.hintFree} of ${it.total}", "Solved without a hint", PaletteCard.Solved) },
+                moments?.takeIf { it.total > 0 }?.let { Stat(it.total.toString(), "Moments earned", PaletteCard.Moments) },
+                time?.let { Stat(formatHeroDuration(it.totalMs), "Time spent solving", PaletteCard.TotalTime) },
+            )
         }
     }
 }

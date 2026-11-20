@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 // everywhere the card shows (story card, tablet fact-row marker, share poster).
 enum class RecapCard { Cover, Solved, Fastest, Streak, Moments, Friends, TotalTime, YearMonth, YearFinale, Share }
 
-internal data class RecapCardColors(val field: Color, val ink: Color, val plate: Color)
+data class RecapCardColors(val field: Color, val ink: Color, val plate: Color)
 
 // Palette v2 (contract-shared.md `## Recap palette`): three hue families plus a mist neutral. Secondary text is the
 // ink at full opacity, never alpha; a control inside a plate gets a 1.5dp ink outline.
@@ -111,7 +111,7 @@ internal val DarkRecapCards: Map<RecapCard, RecapCardColors> = mapOf(
 )
 
 /** A card's colours for the light or dark theme. */
-internal fun recapCardColors(card: RecapCard, darkTheme: Boolean): RecapCardColors =
+fun recapCardColors(card: RecapCard, darkTheme: Boolean): RecapCardColors =
     (if (darkTheme) DarkRecapCards else LightRecapCards).getValue(card)
 
 /** This card's field in the resolved theme ([LocalDarkTheme]), so a forced appearance still flips it. */

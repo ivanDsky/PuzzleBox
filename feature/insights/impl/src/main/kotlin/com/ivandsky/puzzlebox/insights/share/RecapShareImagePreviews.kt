@@ -27,11 +27,23 @@ private val Cards = listOf(
 @PuzzleBoxPreviews
 @Composable
 private fun RecapShareImageMonthPreview() = PuzzleBoxTheme {
-    ScaledToFit(Modifier.width(270.dp).height(480.dp)) { RecapShareImage(RecapShareContent.of("November 2026", "Ada", Cards)) }
+    ScaledToFit(Modifier.width(270.dp).height(480.dp)) { RecapShareImage(RecapShareContent.of("November 2026", "Ada", Cards), ShareStyle.Classic) }
 }
 
 @PuzzleBoxPreviews
 @Composable
 private fun RecapShareImageYearSoFarPreview() = PuzzleBoxTheme {
-    ScaledToFit(Modifier.width(270.dp).height(480.dp)) { RecapShareImage(RecapShareContent.of("2026 so far", null, Cards)) }
+    ScaledToFit(Modifier.width(270.dp).height(480.dp)) { RecapShareImage(RecapShareContent.of("2026 so far", null, Cards), ShareStyle.Classic) }
+}
+
+@PuzzleBoxPreviews
+@Composable
+private fun RecapShareImageColourPreview() = PuzzleBoxTheme {
+    ScaledToFit(Modifier.width(270.dp).height(480.dp)) { RecapShareImage(RecapShareContent.of("November 2026", "Ada", Cards), ShareStyle.Colour) }
+}
+
+@PuzzleBoxPreviews
+@Composable
+private fun RecapShareImageNightPreview() = PuzzleBoxTheme {
+    ScaledToFit(Modifier.width(270.dp).height(480.dp)) { RecapShareImage(RecapShareContent.of("November 2026", "Ada", Cards), ShareStyle.Night) }
 }
