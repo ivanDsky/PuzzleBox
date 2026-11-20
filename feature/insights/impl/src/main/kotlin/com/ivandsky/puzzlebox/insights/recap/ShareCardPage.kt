@@ -36,20 +36,23 @@ import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.insights.share.RecapShareContent
 import com.ivandsky.puzzlebox.insights.share.RecapShareState
 import com.ivandsky.puzzlebox.insights.share.ShareStyle
+import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
  * The story's last page: the share poster as a deck of three styles ([ShareStyleDeck]), the chips that pick the style and
- * hide the name ([ShareStyleChips]) and the Share button. [onShare] gets the capture of the picked poster and the content
- * it shows, so what the player sees is what leaves the app. Share is off while the history is still coming back (A23: the
- * image would show a partial period); after a failure it reads "Try again" and runs the same share again. Style and name
- * are the visit's own and are not stored; signed out there is no name to hide.
+ * hide the name ([ShareStyleChips]) and the Share button. [gameName] names the games on the poster. [onShare] gets the
+ * capture of the picked poster and the content it shows, so what the player sees is what leaves the app. Share is off
+ * while the history is still coming back (A23: the image would show a partial period); after a failure it reads "Try
+ * again" and runs the same share again. Style and name are the visit's own and are not stored; signed out there is no
+ * name to hide.
  */
 @Composable
 internal fun ShareCardPage(
     cards: List<RecapCard>,
+    gameName: (GameId) -> String,
     state: RecapShareState,
     onShare: (ImageBitmap, RecapShareContent) -> Unit,
     modifier: Modifier = Modifier,
@@ -58,8 +61,8 @@ internal fun ShareCardPage(
     var nameShown by rememberSaveable { mutableStateOf(true) }
     var arrived by rememberSaveable { mutableStateOf(false) }
     val hasName = !state.displayName.isNullOrBlank()
-    val content = remember(cards, state.title, state.displayName, nameShown) {
-        RecapShareContent.of(state.title, state.displayName.takeIf { nameShown }, cards)
+    val content = remember(cards, gameName, state.title, state.displayName, nameShown) {
+        RecapShareContent.of(state.title, state.displayName.takeIf { nameShown }, cards, gameName)
     }
     val reduced = rememberReducedMotion()
     var stamped by remember { mutableIntStateOf(if (arrived || reduced) Int.MAX_VALUE else 0) }

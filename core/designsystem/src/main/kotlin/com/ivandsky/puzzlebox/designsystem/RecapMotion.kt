@@ -57,6 +57,12 @@ object RecapMotion {
     const val SheenAlpha = 0.6f
     const val SheenDelay = 250
 
+    // Fan: a hand of game tiles spreads out of one stack, each tile over FanMs on EasingSpring (a spring overshoot),
+    // FanStagger ms after the one before it: the cover's letters and the share poster's games.
+    const val FanMs = 640
+    const val FanStagger = 60
+    val EasingSpring = CubicBezierEasing(0.34f, 1.3f, 0.64f, 1f)
+
     // Kinetic: a letter rises KineticRise of its height on the Stamp spring; the per-letter stagger is
     // clamp(KineticStaggerBudget / letters, KineticStaggerMin, KineticStaggerMax).
     const val KineticRise = 1.12f

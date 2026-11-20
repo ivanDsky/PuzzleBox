@@ -55,7 +55,7 @@ class ShareCountBlinkTest {
 
     @Test
     fun `a hero and tiles too wide at their final value keep the size they fit to through the count`() {
-        val content = RecapShareContent.of(ready.title, ready.displayName, tooWide)
+        val content = RecapShareContent.of(ready.title, ready.displayName, tooWide, SolvedFixtures.gameName)
         val progress = mutableStateOf(0f)
         rule.mainClock.autoAdvance = false
         rule.setContent {
@@ -93,7 +93,7 @@ class ShareCountBlinkTest {
         rule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 CompositionLocalProvider(LocalGameBrands provides SolvedFixtures.brands) {
-                    Box(Modifier.size(852.dp, 768.dp)) { ShareCardPage(cards, ready, onShare = { _, _ -> }) }
+                    Box(Modifier.size(852.dp, 768.dp)) { ShareCardPage(cards, SolvedFixtures.gameName, ready, onShare = { _, _ -> }) }
                 }
             }
         }
@@ -103,7 +103,7 @@ class ShareCountBlinkTest {
 
         val heroColor = palette.hero.toArgb()
         val hero = settled.heroRows(heroColor)
-        val tiles = RecapShareContent.of(ready.title, ready.displayName, cards).tiles.map { stat ->
+        val tiles = RecapShareContent.of(ready.title, ready.displayName, cards, SolvedFixtures.gameName).tiles.map { stat ->
             settled.tileValue(palette.tile(checkNotNull(stat.card)).field.toArgb())
         }
         val counting = frames.withIndex().map { (f, frame) -> (f + 1) * FrameMs to frame }.filter { it.first in CountFrom..CountTo }
@@ -129,8 +129,13 @@ class ShareCountBlinkTest {
 
         private fun rowsWith(columns: IntRange, inked: (Int) -> Boolean) = BooleanArray(height) { y -> columns.any { x -> inked(pixels[y * width + x]) } }
 
-        /** The tallest run of rows holding the hero's colour in the poster's middle: the hero number, the biggest text on it. */
-        fun heroRows(hero: Int): IntRange = runs(rowsWith(posterColumns) { near(it, hero, InkTolerance) }).maxBy { it.count() }
+        /**
+         * The run of rows holding the most of the hero's colour in the poster's middle: the hero number, the biggest text on
+         * it. Not the tallest run: the games' hand, ringed in the same ink, can stand taller than the digits.
+         */
+        fun heroRows(hero: Int): IntRange = runs(rowsWith(posterColumns) { near(it, hero, InkTolerance) }).maxBy { run ->
+            run.sumOf { y -> posterColumns.count { x -> near(pixels[y * width + x], hero, InkTolerance) } }
+        }
 
         /** Where a tile sits (its field's bounding box) and its first line of anything but field, the value above the label. */
         fun tileValue(field: Int): Tile {

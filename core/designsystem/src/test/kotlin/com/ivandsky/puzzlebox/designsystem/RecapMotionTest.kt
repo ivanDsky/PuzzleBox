@@ -102,4 +102,12 @@ class RecapMotionTest {
         assertEquals(240, RecapMotion.PeelDuration)
         assertEquals(120, RecapMotion.PeelCurl)
     }
+
+    @Test
+    fun `fan spreads over 640 ms, 60 ms apart, on a spring that overshoots`() {
+        assertEquals(640, RecapMotion.FanMs)
+        assertEquals(60, RecapMotion.FanStagger)
+        assertEquals(1f, RecapMotion.EasingSpring.transform(1f), 0f)
+        assertTrue(RecapMotion.EasingSpring.transform(0.6f) > 1f)
+    }
 }

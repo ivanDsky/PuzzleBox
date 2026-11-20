@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import com.ivandsky.puzzlebox.designsystem.RecapCard
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -32,8 +33,8 @@ class ShareStyleTest {
     }
 
     @Test
-    fun `Colour and Night look the same in the dark theme, Classic does not`() {
-        assertEquals(sharePalette(ShareStyle.Colour, false), sharePalette(ShareStyle.Colour, true))
+    fun `Color and Night look the same in the dark theme, Classic does not`() {
+        assertEquals(sharePalette(ShareStyle.Color, false), sharePalette(ShareStyle.Color, true))
         assertEquals(sharePalette(ShareStyle.Night, false), sharePalette(ShareStyle.Night, true))
         assertTrue(sharePalette(ShareStyle.Classic, false) != sharePalette(ShareStyle.Classic, true))
     }
@@ -42,7 +43,23 @@ class ShareStyleTest {
     fun `only Night has a holographic layer`() {
         assertTrue(sharePalette(ShareStyle.Night, false).holo.isNotEmpty())
         assertTrue(sharePalette(ShareStyle.Classic, false).holo.isEmpty())
-        assertTrue(sharePalette(ShareStyle.Colour, false).holo.isEmpty())
+        assertTrue(sharePalette(ShareStyle.Color, false).holo.isEmpty())
+    }
+
+    @Test
+    fun `the games' accents are Night's dark ones and Color's light ones whatever the theme, and Classic follows it`() {
+        for (dark in listOf(false, true)) {
+            assertTrue(sharePalette(ShareStyle.Night, dark).accentsDark)
+            assertFalse(sharePalette(ShareStyle.Color, dark).accentsDark)
+            assertEquals(dark, sharePalette(ShareStyle.Classic, dark).accentsDark)
+        }
+    }
+
+    @Test
+    fun `the track behind the game tiles' rings is opaque in every style and theme`() {
+        for (style in ShareStyle.entries) for (dark in listOf(false, true)) {
+            assertEquals("$style dark=$dark", 1f, sharePalette(style, dark).trackSolid.alpha, 0f)
+        }
     }
 
     private fun contrast(a: Color, b: Color): Double {

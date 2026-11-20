@@ -47,6 +47,7 @@ import com.ivandsky.puzzlebox.insights.share.ScaledToFit
 import com.ivandsky.puzzlebox.insights.share.ShareImageHeightPx
 import com.ivandsky.puzzlebox.insights.share.ShareImageWidthPx
 import com.ivandsky.puzzlebox.insights.share.ShareStyle
+import com.ivandsky.puzzlebox.insights.share.handDuration
 import com.ivandsky.puzzlebox.insights.share.sharePalette
 import com.ivandsky.puzzlebox.designsystem.LocalDarkTheme
 import kotlinx.coroutines.coroutineScope
@@ -85,6 +86,7 @@ internal fun ShareStyleDeck(
     val flips = remember { List(last + 1) { Animatable(if (settled) 1f else 0f) } }
     val sheen = remember { Animatable(0f) }
     val counts = remember { List(last + 1) { Animatable(if (settled) 1f else 0f) } }
+    val hands = remember { List(last + 1) { Animatable(0f) } }
     val stamp = remember { Animatable(if (settled) 1f else StampFromScale) }
     var playing by remember { mutableStateOf(!settled) }
     val fade = remember { Animatable(if (reduced && !arrived) 0f else 1f) }
@@ -111,9 +113,11 @@ internal fun ShareStyleDeck(
                 delay(SheenStart.toLong())
                 sheen.animateTo(1f, tween(RecapMotion.SheenDuration, easing = MotionTokens.EasingStandard))
             }
+            val fanOut = handDuration(content.games.size)
             counts.forEachIndexed { i, count ->
                 launch {
                     delay((FlipStart + i * FlipStep + CountLag).toLong())
+                    launch { hands[i].animateTo(fanOut.toFloat(), tween(fanOut, easing = MotionTokens.EasingLinear)) }
                     count.animateTo(1f, tween(MotionTokens.ScoreCountUpDuration, easing = MotionTokens.EasingEmphasizedDecelerate))
                 }
             }
@@ -202,9 +206,11 @@ internal fun ShareStyleDeck(
                 ) {
                     val holoShift = { (pos.value - i) * (1f - HoloParallax) }
                     ScaledToFitImage(content, entry, picked, layer, holoShift)
-                    // The numbers count and the hero lands on a copy laid over the final poster, so a capture taken mid-arrival
-                    // still holds the final image and a screen reader still reads the final values.
-                    if (playing) ScaledToFitImage(content.counted(counts[i].value), entry, false, layer, holoShift, heroScale = { stamp.value })
+                    // The numbers count, the hero lands and the games fan out on a copy laid over the final poster, so a capture
+                    // taken mid-arrival still holds the final image and a screen reader still reads the final values.
+                    if (playing) {
+                        ScaledToFitImage(content.counted(counts[i].value), entry, false, layer, holoShift, { stamp.value }, { hands[i].value })
+                    }
                 }
             }
         }
@@ -219,6 +225,7 @@ private fun ScaledToFitImage(
     layer: GraphicsLayer,
     holoShift: () -> Float,
     heroScale: (() -> Float)? = null,
+    handMs: (() -> Float)? = null,
 ) = ScaledToFit {
     RecapShareImage(
         content,
@@ -233,6 +240,7 @@ private fun ScaledToFitImage(
         },
         holoShift,
         heroScale,
+        handMs,
     )
 }
 
@@ -253,8 +261,8 @@ private fun DrawScope.drawSheen(progress: Float) {
 private val DeckSpring = spring<Float>(RecapMotion.DeckSpringDamping, RecapMotion.DeckSpringStiffness)
 
 // sharefly (contract/motion.md): backs gather from ±GatherX, the fan opens to ±FanX and ±FanTilt, posters flip from
-// FlipStart, FlipStep apart; each poster's numbers count CountLag after its flip, the hero stamps at StampStart and the
-// sheen starts at SheenStart.
+// FlipStart, FlipStep apart; each poster's numbers count and its games fan out (handDuration) CountLag after its flip,
+// the hero stamps at StampStart and the sheen starts at SheenStart.
 private val GatherX = 220.dp
 private val FanX = 150.dp
 private const val FanTilt = 6f

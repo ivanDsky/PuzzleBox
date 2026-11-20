@@ -48,7 +48,7 @@ class ShareCardPageTest {
     private fun show(state: RecapShareState, fontScale: Float = 1f) = rule.setContent {
         PuzzleBoxTheme {
             CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, fontScale)) {
-                ShareCardPage(cards, state, onShare = { image, shown -> captured = image; content = shown })
+                ShareCardPage(cards, gameName, state, onShare = { image, shown -> captured = image; content = shown })
             }
         }
     }
@@ -116,7 +116,9 @@ class ShareCardPageTest {
     @Test
     fun `turning the name off drops it from the image and its label, and the choice is the visit's own`() {
         show(ready)
-        rule.onNodeWithTag("recap.share.image").assertContentDescriptionEquals("Share image: November 2026, Ada. 42 puzzles solved. Solved without a hint 36 of 42. Time spent solving 3h 12m.")
+        rule.onNodeWithTag("recap.share.image").assertContentDescriptionEquals(
+            "Share image: November 2026, Ada. 42 puzzles solved. Solved without a hint 36 of 42. Time spent solving 3h 12m. Games: Zip 18, Queens 15, Sudoku 9.",
+        )
 
         rule.onNodeWithTag("recap.share.name").performClick()
         rule.waitForIdle()
@@ -126,7 +128,9 @@ class ShareCardPageTest {
 
         assertNull(content!!.displayName)
         assertFalse(content!!.description().contains("Ada"))
-        rule.onNodeWithTag("recap.share.image").assertContentDescriptionEquals("Share image: November 2026. 42 puzzles solved. Solved without a hint 36 of 42. Time spent solving 3h 12m.")
+        rule.onNodeWithTag("recap.share.image").assertContentDescriptionEquals(
+            "Share image: November 2026. 42 puzzles solved. Solved without a hint 36 of 42. Time spent solving 3h 12m. Games: Zip 18, Queens 15, Sudoku 9.",
+        )
     }
 
     @Test
@@ -140,14 +144,14 @@ class ShareCardPageTest {
     @Test
     fun `Try again runs the share again and the poster and chips stay as they were`() {
         show(ready.copy(failed = true))
-        rule.onNodeWithTag("recap.share.style.Colour").performClick()
+        rule.onNodeWithTag("recap.share.style.Color").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("recap.share").captureToImage()
 
         rule.onNodeWithTag("recap.share.button").assertTextEquals("Try again").performClick()
         rule.waitUntil(5_000) { captured != null }
 
-        rule.onNodeWithTag("recap.share.style.Colour").assertIsSelected()
+        rule.onNodeWithTag("recap.share.style.Color").assertIsSelected()
         assertEquals("Ada", content!!.displayName)
     }
 

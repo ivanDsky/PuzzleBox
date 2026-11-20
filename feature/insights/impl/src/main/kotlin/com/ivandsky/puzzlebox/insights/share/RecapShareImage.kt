@@ -49,11 +49,12 @@ internal const val ShareImageHeightPx = 1920
 
 /**
  * The picture a recap shares: [ShareImageWidthPx] by [ShareImageHeightPx] pixels in the app's look, painted in [style],
- * with the period's title, the player's own display name, each game's share of the solves and the headline numbers of
- * [content] (A9). It lays itself out at density 1 and font scale 1, so one dp or sp here is one pixel and the screen's
- * density and the player's font size cannot change what is shared. It carries no interaction and no motion: it is drawn
- * once and captured, Night's holographic layer included. A [heroScale] makes it the deck's arrival overlay instead: the
- * counted numbers painted over the final image, the hero landing at that scale, with no semantics of its own.
+ * with the period's title, the player's own display name, the games played as a fanned hand of tiles and the headline
+ * numbers of [content] (A9). It lays itself out at density 1 and font scale 1, so one dp or sp here is one pixel and the
+ * screen's density and the player's font size cannot change what is shared. It carries no interaction and no motion: it
+ * is drawn once and captured, Night's holographic layer included. A [heroScale] makes it the deck's arrival overlay
+ * instead: the counted numbers painted over the final image, the hero landing at that scale, the hand fanning out on
+ * [handMs] (ms since it started), with no semantics of its own.
  */
 @Composable
 internal fun RecapShareImage(
@@ -62,6 +63,7 @@ internal fun RecapShareImage(
     modifier: Modifier = Modifier,
     holoShift: () -> Float = { 0f },
     heroScale: (() -> Float)? = null,
+    handMs: (() -> Float)? = null,
 ) {
     val palette = sharePalette(style, LocalDarkTheme.current)
     CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 1f)) {
@@ -96,9 +98,9 @@ internal fun RecapShareImage(
             Spacer(Modifier.weight(1f))
             content.hero?.let { Hero(it, palette, heroScale) }
             Spacer(Modifier.weight(1f))
-            if (content.split.isNotEmpty()) ShareSplitBar(content.split, palette.ink, palette.track)
+            ShareGamesHand(content.games, palette, clock = handMs)
             if (content.tiles.isNotEmpty()) {
-                Spacer(Modifier.height(Gap))
+                Spacer(Modifier.height(if (content.games.isEmpty()) Gap else ShareStripe.Below.dp))
                 Tiles(content.tiles, palette)
             }
         }
@@ -176,7 +178,7 @@ private fun Tile(stat: RecapShareContent.Stat, palette: SharePalette, modifier: 
  * is not [fit], an invisible copy of [fit] is what gets laid out and shrunk.
  */
 @Composable
-private fun FitText(
+internal fun FitText(
     text: String,
     style: TextStyle,
     color: Color,

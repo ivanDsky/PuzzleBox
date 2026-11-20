@@ -43,16 +43,16 @@ class ShareCardGoldenScreenshots {
     @Test fun `share default tablet dark`() = pick("default", "tablet", dark = true)
 
     @Config(qualifiers = GOLDEN_PHONE)
-    @Test fun `share colour phone light`() = pick("colour", "phone", dark = false, style = "Colour")
+    @Test fun `share color phone light`() = pick("color", "phone", dark = false, style = "Color")
 
     @Config(qualifiers = GOLDEN_PHONE)
-    @Test fun `share colour phone dark`() = pick("colour", "phone", dark = true, style = "Colour")
+    @Test fun `share color phone dark`() = pick("color", "phone", dark = true, style = "Color")
 
     @Config(qualifiers = GOLDEN_TABLET)
-    @Test fun `share colour tablet light`() = pick("colour", "tablet", dark = false, style = "Colour")
+    @Test fun `share color tablet light`() = pick("color", "tablet", dark = false, style = "Color")
 
     @Config(qualifiers = GOLDEN_TABLET)
-    @Test fun `share colour tablet dark`() = pick("colour", "tablet", dark = true, style = "Colour")
+    @Test fun `share color tablet dark`() = pick("color", "tablet", dark = true, style = "Color")
 
     @Config(qualifiers = GOLDEN_PHONE)
     @Test fun `share night phone light`() = pick("night", "phone", dark = false, style = "Night")
