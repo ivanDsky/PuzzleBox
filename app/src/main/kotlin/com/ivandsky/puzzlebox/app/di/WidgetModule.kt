@@ -1,11 +1,14 @@
 package com.ivandsky.puzzlebox.app.di
 
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import com.ivandsky.puzzlebox.app.widget.AndroidWidgetComponentSwitch
 import com.ivandsky.puzzlebox.app.widget.AndroidWidgetRefresher
 import com.ivandsky.puzzlebox.app.widget.AndroidWidgetRolloverAlarm
 import com.ivandsky.puzzlebox.app.widget.ArmWidgetRollover
 import com.ivandsky.puzzlebox.app.widget.BuildWidgetState
 import com.ivandsky.puzzlebox.app.widget.PuzzleBoxWidget
+import com.ivandsky.puzzlebox.app.widget.PuzzleBoxWidgetReceiver
 import com.ivandsky.puzzlebox.app.widget.WidgetAppHooks
 import com.ivandsky.puzzlebox.app.widget.WidgetComponentSwitch
 import com.ivandsky.puzzlebox.app.widget.WidgetRefresher
@@ -57,6 +60,12 @@ val widgetModule = module {
                 } else {
                     emptyList()
                 }
+            },
+            hasWidgets = {
+                val context = androidContext()
+                AppWidgetManager.getInstance(context)
+                    .getAppWidgetIds(ComponentName(context, PuzzleBoxWidgetReceiver::class.java))
+                    .isNotEmpty()
             },
             alarm = get(),
             clock = Clock.systemUTC(),

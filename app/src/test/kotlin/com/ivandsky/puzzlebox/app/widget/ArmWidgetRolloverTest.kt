@@ -24,14 +24,33 @@ class ArmWidgetRolloverTest {
     // 19:00 in Tokyo and 02:00 in LA: Tokyo's midnight is the nearer one.
     private val now = Instant.parse("2026-11-21T10:00:00Z")
 
-    private fun arm(zones: () -> Collection<ZoneId>, alarm: WidgetRolloverAlarm = this.alarm) =
-        ArmWidgetRollover(zones, alarm, Clock.fixed(now, ZoneOffset.UTC))
+    private fun arm(
+        zones: () -> Collection<ZoneId>,
+        alarm: WidgetRolloverAlarm = this.alarm,
+        hasWidgets: Boolean = true,
+    ) = ArmWidgetRollover(zones, { hasWidgets }, alarm, Clock.fixed(now, ZoneOffset.UTC))
 
     @Test
     fun `schedules the earliest next midnight across the zones`() {
         arm({ listOf(la, tokyo) })()
 
         assertEquals(listOf(Instant.parse("2026-11-21T15:00:00Z")), alarm.scheduled)
+    }
+
+    @Test
+    fun `no widget placed cancels the wake-up and never schedules one`() {
+        arm({ listOf(la) }, hasWidgets = false)()
+
+        assertTrue(alarm.scheduled.isEmpty())
+        assertEquals(1, alarm.cancels)
+    }
+
+    @Test
+    fun `a placed widget schedules and does not cancel`() {
+        arm({ listOf(la) }, hasWidgets = true)()
+
+        assertEquals(1, alarm.scheduled.size)
+        assertEquals(0, alarm.cancels)
     }
 
     @Test

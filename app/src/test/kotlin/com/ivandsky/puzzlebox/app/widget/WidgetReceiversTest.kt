@@ -57,7 +57,7 @@ class WidgetReceiversTest {
                     single { PuzzleBoxWidget(WidgetStateReader({ flow { error("no data") } }, { flow { error("no data") } }, BuildWidgetState())) }
                     single<WidgetRolloverAlarm> { alarm }
                     single {
-                        ArmWidgetRollover({ listOf(ZoneId.of("America/Los_Angeles")) }, alarm, Clock.fixed(NOW, ZoneOffset.UTC))
+                        ArmWidgetRollover({ listOf(ZoneId.of("America/Los_Angeles")) }, { true }, alarm, Clock.fixed(NOW, ZoneOffset.UTC))
                     }
                     single<CoroutineScope> { scope }
                 },
@@ -134,7 +134,7 @@ class WidgetReceiversTest {
                 module {
                     single { WidgetRefresher { refreshes++ } }
                     single<CoroutineScope> { scope }
-                    single { ArmWidgetRollover({ listOf(ZoneId.of("UTC")) }, failing, Clock.fixed(NOW, ZoneOffset.UTC)) }
+                    single { ArmWidgetRollover({ listOf(ZoneId.of("UTC")) }, { true }, failing, Clock.fixed(NOW, ZoneOffset.UTC)) }
                 },
             )
         }

@@ -34,6 +34,7 @@ class WidgetAppHooksTest {
     private val alarm = FakeWidgetRolloverAlarm()
     private val armRollover = ArmWidgetRollover(
         zones = { listOf(ZoneId.of("America/Los_Angeles")) },
+        hasWidgets = { true },
         alarm = alarm,
         clock = Clock.fixed(Instant.parse("2026-11-20T23:00:00Z"), ZoneOffset.UTC),
     )
