@@ -29,7 +29,7 @@ import java.io.File
 
 /**
  * Goldens of the hidden board over a stand-in board (this module knows no game): blurred and sharp on a phone,
- * light and dark; a wide and a tall board in a tablet pane, where the 400 dp cap shows; and the loading bars.
+ * light and dark; a wide and a tall board in a tablet pane, where the 400 dp cap shows; and the loading block.
  * The capture draws without the GPU, so these pin the blur of the picture path. Recorded with
  * `-Proborazzi.record=true` (untracked review captures in `snapshots/`).
  */
