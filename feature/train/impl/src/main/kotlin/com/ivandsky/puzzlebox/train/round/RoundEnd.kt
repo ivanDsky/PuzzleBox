@@ -12,11 +12,15 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import com.ivandsky.puzzlebox.designsystem.EmptyState
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
+import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
-/** The round's end: how many snippets were answered Right, and the way back to the technique list. */
+/**
+ * The round's end: how many snippets were answered Right, then [onDrill], which opens a full puzzle that needs the
+ * technique, and [onClose], the way back to the technique list.
+ */
 @Composable
-internal fun RoundSummary(summary: RoundState.Summary, onClose: () -> Unit) {
+internal fun RoundSummary(summary: RoundState.Summary, onClose: () -> Unit, onDrill: () -> Unit) {
     Column(
         Modifier.fillMaxSize().testTag("train.summary"),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg, Alignment.CenterVertically),
@@ -28,7 +32,8 @@ internal fun RoundSummary(summary: RoundState.Summary, onClose: () -> Unit) {
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
         )
-        PrimaryButton("Back to techniques", onClick = onClose)
+        PrimaryButton("Play a full puzzle", onClick = onDrill, Modifier.testTag("train.playPuzzle"))
+        SecondaryButton("Back to techniques", onClick = onClose, Modifier.testTag("train.summary.back"))
     }
 }
 

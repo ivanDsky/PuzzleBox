@@ -27,17 +27,19 @@ private const val STOP_TIMEOUT_MS = 5_000L
 private const val KEY_GAME = "train.open.game"
 private const val KEY_TECHNIQUE = "train.open.technique"
 private const val KEY_ATTEMPT = "train.open.attempt"
+private const val KEY_DRILL = "train.open.drill"
 
-/** The open technique as [SavedStateHandle] keeps it: ids only, resolved against the registry when shown. */
-private data class OpenKey(val game: GameId, val technique: TechniqueId, val attempt: Int)
+/** The open technique as [SavedStateHandle] keeps it: ids and whether its drill is open, resolved against the registry when shown. */
+private data class OpenKey(val game: GameId, val technique: TechniqueId, val attempt: Int, val drill: Boolean = false)
 
 /**
  * The Train pane's state: the games that have a trainer, the chosen game, its techniques with their marks, and which
  * technique's round is open. The chosen game is the last one the player picked ([UserPreferencesRepository.lastTrainGame])
  * while the [registry] still has it, else the registry's first (spec A13); picking a game stores it. Marks follow
  * [progress]; a technique never answered reads New (A5). The open technique's ids live in [savedState], so turning the
- * device and a restore after the system closed the app both keep which technique is open; the round itself is the
- * round view model's, and starts again after a restore (A15).
+ * device and a restore after the system closed the app both keep which technique is open, and whether its drill is; the
+ * round and the drill are the view models' own, and start again after a restore (A15). [openDrill] swaps the open
+ * technique's round for its drill, and the archive numbers it is to avoid live in memory only.
  *
  * The tablet's list and right pane and the phone's single page all read this one view model.
  */
@@ -50,6 +52,7 @@ internal class TrainViewModel(
 
     private val open = MutableStateFlow(restoreOpen())
     private var attempts = savedState.get<Int>(KEY_ATTEMPT) ?: 0
+    private var drillAvoid: Set<Int> = emptySet()
 
     /** Null until the stored game and its progress have been read. */
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -79,12 +82,24 @@ internal class TrainViewModel(
         setOpen(OpenKey(game, technique, attempts))
     }
 
-    /** Closes the open technique's round. */
+    /** Closes the open technique's round or drill. */
     fun closeTechnique() = setOpen(null)
+
+    /**
+     * Replaces the open technique's round with its drill, which prefers a puzzle outside [avoid]. Ignored when no
+     * technique is open or its drill already is.
+     */
+    fun openDrill(avoid: Set<Int>) {
+        val current = open.value ?: return
+        if (current.drill) return
+        drillAvoid = avoid
+        setOpen(current.copy(drill = true))
+    }
 
     private fun setOpen(key: OpenKey?) {
         savedState[KEY_GAME] = key?.game?.value
         savedState[KEY_TECHNIQUE] = key?.technique?.value
+        savedState[KEY_DRILL] = key?.drill
         open.value = key
     }
 
@@ -94,7 +109,7 @@ internal class TrainViewModel(
         val technique = savedState.get<String>(KEY_TECHNIQUE)?.let(::TechniqueId) ?: return null
         val trainer = registry[game] ?: return null
         if (trainer.catalog().none { it.id == technique }) return null
-        return OpenKey(game, technique, savedState.get<Int>(KEY_ATTEMPT) ?: 0)
+        return OpenKey(game, technique, savedState.get<Int>(KEY_ATTEMPT) ?: 0, savedState.get<Boolean>(KEY_DRILL) ?: false)
     }
 
     private fun trainState(game: TrainerGame, marks: Map<TechniqueId, TechniqueProgress>, key: OpenKey?) = TrainState(
@@ -107,6 +122,6 @@ internal class TrainViewModel(
     private fun resolve(key: OpenKey): OpenTechnique? {
         val trainer = registry[key.game] ?: return null
         val technique = trainer.catalog().firstOrNull { it.id == key.technique } ?: return null
-        return OpenTechnique(trainer, technique, key.attempt)
+        return OpenTechnique(trainer, technique, key.attempt, if (key.drill) DrillRequest(drillAvoid) else null)
     }
 }

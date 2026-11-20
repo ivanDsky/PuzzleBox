@@ -11,11 +11,14 @@ import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 
 /**
- * The regular play screen over a board the caller holds, outside the play store: the Studio's test solve (ticket 98).
- * Called as `SandboxPlay(ui, controller, title, label, layout, onBack, onSolved)`. It is the screen a daily plays on
- * (the same top bar, timer, board size and controls) with [PlayBoardChrome] drawing both, and nothing a
- * stored play adds: no tutorial, no How to play, no stats panel, no record. The bar reads `title`, the board's name,
- * then `label`, what the screen is: a name too long for the bar is cut with an ellipsis and the label stays whole.
+ * The regular play screen over a board the caller holds, outside the play store: the Studio's test solve (ticket 98)
+ * and the Trainer's drill. Called as `SandboxPlay(ui, controller, title, label, layout, onBack, onSolved)`. It is the
+ * screen a daily plays on (the same top bar, timer, board size and controls) with [PlayBoardChrome] drawing both, and
+ * nothing a stored play adds: no tutorial, no How to play, no stats panel, no record. The bar reads `title`, the
+ * board's name, then `label`, what the screen is: a name too long for the bar is cut with an ellipsis and the label
+ * stays whole.
+ *
+ * `showClock` false leaves the timer out of the bar (the drill is not timed); the board's clock still runs, unseen.
  *
  * The solve plays the sweep, rests on the board (the play chrome's rest: no stamp, a tap skips it) and then
  * calls `onSolved`.
@@ -37,6 +40,7 @@ object SandboxPlay {
         onBack: () -> Unit,
         onSolved: () -> Unit,
         modifier: Modifier = Modifier,
+        showClock: Boolean = true,
     ) {
         // The Studio test solve records no result, so it never says hints are counted on one.
         CompositionLocalProvider(LocalHintCostLine provides null) {
@@ -57,6 +61,7 @@ object SandboxPlay {
                 overflow = emptyList(),
                 sidePanel = null,
                 modifier = modifier.testTag("play.sandbox"),
+                showClock = showClock,
             )
         }
     }

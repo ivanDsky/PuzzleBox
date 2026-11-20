@@ -57,7 +57,17 @@ internal class RoundViewModel(
     /** The archive numbers a load found no use in; only touched on the main thread. */
     private val skipped = mutableSetOf<Int>()
 
+    /** The archive numbers this round loaded to cut snippets from, for the drill to avoid; only touched on the main thread. */
+    private val used = mutableSetOf<Int>()
+
     val state: StateFlow<RoundState> = mutableState.asStateFlow()
+
+    /**
+     * The archive puzzle numbers the current round was cut from after a load: the drill that follows it prefers another.
+     * A puzzle that was already on the device when the round began has no number here, as the device lists puzzles, not
+     * the archive numbers they came from.
+     */
+    val usedNumbers: Set<Int> get() = used.toSet()
 
     /**
      * Builds a round for [attempt], the number of the time the technique was opened. The same number again (the screen
@@ -66,6 +76,7 @@ internal class RoundViewModel(
     fun start(attempt: Int) {
         if (attempt == this.attempt) return
         this.attempt = attempt
+        used.clear()
         build?.cancel()
         mutableState.value = RoundState.Loading
         build = viewModelScope.launch {
@@ -138,6 +149,7 @@ internal class RoundViewModel(
         if (load is ArchiveLoad.Loaded) {
             val snippets = withContext(dispatchers.default) { cut(first = load.puzzle) }
             if (snippets.isNotEmpty()) {
+                used += load.number
                 mutableState.value = RoundState.Question(snippets, 0, null, 0)
                 return
             }

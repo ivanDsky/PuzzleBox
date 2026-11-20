@@ -310,6 +310,26 @@ class RoundViewModelTest {
     }
 
     /**
+     * Bug caught: a drill that cannot tell which archive puzzle the round was cut from (so it repeats it), one that
+     * counts a number whose load failed, and a number that outlives the round it belonged to.
+     */
+    @Test
+    fun `the round reports the archive number it loaded, only when it was cut from it, and forgets it on a new attempt`() {
+        val rig = archiveRound(named)
+        assertEquals(emptySet<Int>(), rig.vm.usedNumbers)
+
+        rig.archive.script(20, failure(20, ArchiveLoad.CantLoad.Reason.Gone))
+        rig.vm.tryAgain()
+        assertEquals("a failed load is not used", emptySet<Int>(), rig.vm.usedNumbers)
+
+        rig.vm.tryAgain()
+        assertEquals(setOf(30), rig.vm.usedNumbers)
+
+        rig.vm.start(2)
+        assertEquals(emptySet<Int>(), rig.vm.usedNumbers)
+    }
+
+    /**
      * Bug caught: a number already on the device fetched again, so the tap spends a call to learn what the device
      * knows.
      */

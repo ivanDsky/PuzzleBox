@@ -23,7 +23,8 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * The play screen a test solve opens on (ticket 98), phone and tablet, light and dark: the play top bar names the
  * draft and reads "Test solve" where a daily reads its number, with Up and the glyph before it and the timer after,
- * on the tablet too, where no side panel takes the timer. The board under it is the stand-in game's.
+ * on the tablet too, where no side panel takes the timer. The board under it is the stand-in game's. `top bar no
+ * clock` is the Trainer's drill (ticket 13): the same bar, labelled "Practice puzzle", with the timer left out.
  * Goldens in `snapshots/sandbox-play/`.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -52,17 +53,22 @@ abstract class SandboxPlayGoldenScreenshots(private val device: String, private 
 
     @Test fun `top bar light`() = capture(dark = false)
     @Test fun `top bar dark`() = capture(dark = true)
+    @Test fun `top bar no clock light`() = capture(dark = false, showClock = false)
+    @Test fun `top bar no clock dark`() = capture(dark = true, showClock = false)
 
-    private fun capture(dark: Boolean) {
+    private fun capture(dark: Boolean, showClock: Boolean = true) {
         val game = TestGames.alpha
         val ui = FakePlayUi(game)
         val controller = ui.createController(PlayEnvironment(CoroutineScope(Job()), onSessionChanged = {}, onWon = {})) as FakeController
         controller.adoptToday(TestGames.puzzle(game), TestGames.Ref(game, PuzzleKey.Custom("draft-castle")))
         controller.advance(ELAPSED_MS)
         rule.showGolden(dark) {
-            SandboxPlay(ui, controller, title = "Castle", label = "Test solve", layout = layout, onBack = {}, onSolved = {})
+            SandboxPlay(
+                ui, controller, title = "Castle", label = if (showClock) "Test solve" else "Practice puzzle",
+                layout = layout, onBack = {}, onSolved = {}, showClock = showClock,
+            )
         }
-        rule.settleAndCapture("sandbox-play", "top-bar", device, dark)
+        rule.settleAndCapture("sandbox-play", if (showClock) "top-bar" else "top-bar-no-clock", device, dark)
     }
 
     private companion object {
