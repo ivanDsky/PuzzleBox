@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -77,7 +78,7 @@ internal fun HubCoverPane(item: SummarizedPeriod, opened: Boolean, yearSoFar: In
                 headline.replaceFirst(" ", "\n"),
                 style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Bold, fontSize = 56.sp, lineHeight = 60.sp),
                 color = ink,
-                modifier = Modifier.padding(top = 6.dp),
+                modifier = Modifier.padding(top = 6.dp).offset(y = -HeadlineLift),
             )
             Text(
                 buildAnnotatedString {
@@ -86,7 +87,7 @@ internal fun HubCoverPane(item: SummarizedPeriod, opened: Boolean, yearSoFar: In
                 },
                 style = MaterialTheme.typography.titleMedium,
                 color = ink,
-                modifier = Modifier.padding(top = 10.dp),
+                modifier = Modifier.padding(top = 10.dp).offset(y = -CountLift),
             )
             Spacer(Modifier.weight(1f))
             val art = item.art(ink)
@@ -118,6 +119,10 @@ private fun Modifier.dashedTop(color: Color): Modifier = drawBehind {
 
 private val PaneRadius = 28.dp
 private val ContentTop = 80.dp
+
+/** The display font's line box is taller than its glyphs; these pull the headline and the count up to the reference's ink. */
+private val HeadlineLift = 10.dp
+private val CountLift = 28.dp
 private val BarsWidth = 234.dp
 private val BarsHeight = 170.dp
 private val BarsGap = 6.dp
