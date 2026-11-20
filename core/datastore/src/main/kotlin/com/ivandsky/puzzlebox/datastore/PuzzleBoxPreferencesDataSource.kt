@@ -43,7 +43,7 @@ data class PuzzleBoxPreferences(
  * human-readable and forward-compatible. Seen tutorials are one string set of game ids.
  * Auto-show, replay errors, the Ranks Friends default vibration and the self-duel time-left switch are plain booleans, true while the key is absent;
  * the Ranks LinkedIn games default is one too, false while the key is absent (All games). Dismissed recap cards are
- * one string set of period ids, empty while the key is absent.
+ * one string set of period ids, empty while the key is absent, as are the opened recaps.
  */
 class PuzzleBoxPreferencesDataSource(
     private val dataStore: DataStore<Preferences>,
@@ -116,6 +116,16 @@ class PuzzleBoxPreferencesDataSource(
         }
     }
 
+    /** Ids of the recaps whose story showed cards; empty while the key was never written. */
+    val recapsOpened: Flow<Set<String>> =
+        dataStore.data.map { it[KEY_RECAPS_OPENED].orEmpty() }.distinctUntilChanged()
+
+    suspend fun markRecapOpened(periodId: String) {
+        dataStore.edit { preferences ->
+            preferences[KEY_RECAPS_OPENED] = preferences[KEY_RECAPS_OPENED].orEmpty() + periodId
+        }
+    }
+
     /** A game's own boolean setting; [default] while it was never written. */
     fun gameFlag(game: GameId, name: String, default: Boolean): Flow<Boolean> =
         dataStore.data.map { it[gameFlagKey(game, name)] ?: default }
@@ -135,6 +145,7 @@ class PuzzleBoxPreferencesDataSource(
         val KEY_RANKS_LINKEDIN_DEFAULT = booleanPreferencesKey("ranks_linkedin_default")
         val KEY_VIBRATION = booleanPreferencesKey("vibration")
         val KEY_RECAPS_DISMISSED = stringSetPreferencesKey("recaps_dismissed")
+        val KEY_RECAPS_OPENED = stringSetPreferencesKey("recaps_opened")
         val KEY_LAST_TRAIN_GAME = stringPreferencesKey("last_train_game")
     }
 }

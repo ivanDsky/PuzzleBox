@@ -21,6 +21,7 @@ import com.ivandsky.puzzlebox.insights.domain.recap.SolvedRecapFactProvider
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
+import com.ivandsky.puzzlebox.testing.insights.FakeRecapOpenings
 import java.io.IOException
 import java.time.LocalDate
 import java.time.YearMonth
@@ -45,6 +46,7 @@ class RecapViewModelTest {
 
     private val fixture = RecapHistoryFixture()
     private val cloudSync = FakeCloudSync()
+    private val openings = FakeRecapOpenings()
     private val november = RecapPeriod.Month(YearMonth.of(2026, 11))
 
     private fun day(dayOfMonth: Int) = LocalDate.of(2026, 11, dayOfMonth)
@@ -74,6 +76,7 @@ class RecapViewModelTest {
         ),
         cloudSync = cloudSync,
         puzzleDay = fixture.puzzleDay,
+        openings = openings,
         savedState = savedState,
         failures = FailureLog { _, _, _ -> },
     )
@@ -114,6 +117,37 @@ class RecapViewModelTest {
             assertEquals(RecapUiState.Loading, awaitItem())
             val ready = awaitItem() as RecapUiState.Ready
             assertEquals(streak.copy(today = fixture.puzzleDay()), ready.cards.single())
+        }
+    }
+
+    @Test
+    fun `a story that shows cards marks its period opened, once`() = runTest {
+        fixture.store(fixture.solve(alpha, day(1)))
+
+        viewModel().uiState.test {
+            assertEquals(RecapUiState.Loading, awaitItem())
+            assertEquals(RecapUiState.Ready::class, awaitItem()::class)
+            advanceUntilIdle()
+
+            assertEquals(setOf("2026-11"), openings.opened)
+            assertEquals(1, openings.writes)
+        }
+    }
+
+    @Test
+    fun `a story still loading, restoring or empty marks nothing`() = runTest {
+        cloudSync.state.value = CloudSyncState.Syncing(firstRestore = true)
+
+        viewModel().uiState.test {
+            assertEquals(RecapUiState.Loading, awaitItem())
+            assertEquals(RecapUiState.Restoring, awaitItem())
+            assertEquals(emptySet<String>(), openings.opened)
+
+            cloudSync.state.value = CloudSyncState.Synced(atMs = 1L)
+            assertEquals(RecapUiState.Empty, awaitItem())
+            advanceUntilIdle()
+
+            assertEquals(0, openings.writes)
         }
     }
 
@@ -241,12 +275,15 @@ class RecapViewModelTest {
         viewModel.uiState.test {
             assertEquals(RecapUiState.Loading, awaitItem())
             assertEquals(RecapUiState.Error, awaitItem())
+            assertEquals(0, openings.writes)
 
             failing = false
             viewModel.retry()
 
             assertEquals(RecapUiState.Loading, awaitItem())
             assertEquals(1, (awaitItem() as RecapUiState.Ready).initialPage)
+            advanceUntilIdle()
+            assertEquals(setOf("2026-11"), openings.opened)
         }
     }
 

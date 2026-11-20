@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.common.log.FailureLog
 import com.ivandsky.puzzlebox.common.log.LogcatFailureLog
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
 import com.ivandsky.puzzlebox.data.cloud.restoring
+import com.ivandsky.puzzlebox.data.insights.RecapOpenings
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.insights.domain.recap.ObserveRecap
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
@@ -39,6 +40,9 @@ import kotlinx.coroutines.flow.update
  * A failure after the story has opened is logged and leaves the story as it is. Friends, provider and share failures never
  * get here: they stay on their own card.
  *
+ * The period is marked opened, once per view model, the first time the story shows cards (the cover counts, a restore
+ * under way does not matter); Loading, Restoring, Empty and Error never mark.
+ *
  * The title every card carries is read from the puzzle day when the story is ready ([RecapUiState.Ready.title]).
  *
  * Saved state holds the page the player is on, a position and never a number: after process death the facts are
@@ -49,11 +53,13 @@ internal class RecapViewModel(
     private val observeRecap: ObserveRecap,
     private val cloudSync: CloudSync,
     private val puzzleDay: GetPuzzleDay,
+    private val openings: RecapOpenings,
     private val savedState: SavedStateHandle,
     private val failures: FailureLog = LogcatFailureLog,
 ) : ViewModel() {
 
     private val reads = MutableStateFlow(0)
+    private var marked = false
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<RecapUiState> = reads.flatMapLatest { read() }.stateIn(viewModelScope, SharingStarted.Lazily, RecapUiState.Loading)
@@ -68,6 +74,10 @@ internal class RecapViewModel(
             readCards { state ->
                 opened = opened || state is RecapUiState.Ready
                 emit(state)
+                if (state is RecapUiState.Ready && !marked) {
+                    marked = true
+                    openings.markOpened(period.id)
+                }
             }
         } catch (e: CancellationException) {
             throw e

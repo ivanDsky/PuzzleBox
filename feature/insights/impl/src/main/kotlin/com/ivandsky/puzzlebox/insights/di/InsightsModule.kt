@@ -81,7 +81,7 @@ val insightsModule: Module = module {
 
     viewModel { InsightsHubViewModel(observeRecapAvailability = get(), cloudSync = get(), releaseFlags = get()) }
     viewModel { params ->
-        RecapViewModel(period = params.get(), observeRecap = get(), cloudSync = get(), puzzleDay = get(), savedState = get())
+        RecapViewModel(period = params.get(), observeRecap = get(), cloudSync = get(), puzzleDay = get(), openings = get(), savedState = get())
     }
     viewModel { params ->
         val uris = get<RecapShareUris>()
