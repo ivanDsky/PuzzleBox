@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.create.di
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.create.CreateViewModel
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
@@ -13,6 +15,7 @@ import com.ivandsky.puzzlebox.create.domain.ValidatePublish
 import com.ivandsky.puzzlebox.create.editor.EditorViewModel
 import com.ivandsky.puzzlebox.create.editor.FinishLevelChoice
 import com.ivandsky.puzzlebox.create.published.PublishedPuzzleViewModel
+import com.ivandsky.puzzlebox.gameui.flags.GameUiFlag
 import java.time.Instant
 import java.util.UUID
 import kotlin.random.Random
@@ -37,6 +40,7 @@ private val DraftSaves = named("create.draftSaves")
  * ([CreateDraftCopy], a random UUID and the wall clock) and the text import
  * ([ImportDraftFromText]) are bound here, their only consumer. The
  * [com.ivandsky.puzzlebox.data.cloud.CloudSync], which says whether the lists are still being restored, comes from the data graph.
+ * Each Studio asks [GameUiFlag.ModeTiles] as it opens, so a debug switch shows on the next open.
  */
 val createModule: Module = module {
     // Process lifetime on main, like Play's slot writes: leaving the Studio never cancels its last save.
@@ -73,6 +77,7 @@ val createModule: Module = module {
             preferences = get(),
             validatePublish = get(),
             finishLevel = get(),
+            modeTiles = get<ReleaseFlags>().isEnabled(GameUiFlag.ModeTiles),
         )
     }
     viewModel { (key: PublishedPuzzleKey) ->

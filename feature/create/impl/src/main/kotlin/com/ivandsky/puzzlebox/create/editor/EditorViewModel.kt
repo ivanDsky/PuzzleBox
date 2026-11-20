@@ -69,6 +69,8 @@ class EditorViewModel(
     private val validatePublish: ValidatePublish = ValidatePublish(),
     finishRandom: Random = Random.Default,
     finishLevel: FinishLevelChoice = FinishLevelChoice(),
+    /** `GameUiFlag.ModeTiles` as this Studio opened: the 2+ solutions card draws A | B as tiles. */
+    val modeTiles: Boolean = false,
 ) : ViewModel() {
 
     private val mutableState = MutableStateFlow<EditorUiState>(EditorUiState.Loading)
