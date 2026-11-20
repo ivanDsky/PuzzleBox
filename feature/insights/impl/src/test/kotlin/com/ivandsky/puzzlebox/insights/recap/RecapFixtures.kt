@@ -29,6 +29,8 @@ internal object RecapFixtures {
             RecapCard.Solved.PerGame(queens, 15),
             RecapCard.Solved.PerGame(sudoku, 9),
         ),
+        hintFree = 36,
+        longestHintFreeRun = 9,
     )
 
     /** A second page so a story has somewhere to go; the later tickets' cards stand here until they land. */
@@ -45,9 +47,6 @@ internal object RecapFixtures {
 
     /** A 17-day streak, two of its days held by freezes. */
     val streak = RecapCard.Streak(days = 17, from = LocalDate.of(2026, 11, 3), to = LocalDate.of(2026, 11, 19), freezesSpent = 2)
-
-    /** 36 of 42 solves needed no hint. */
-    val hintFree = RecapCard.HintFree(hintFree = 36, solved = 42)
 
     /** Every local Moment kind came up, two streak milestones among them. */
     val moments = RecapCard.Moments(personalBests = 5, firstSubX = 2, fullSets = 14, streakMilestones = listOf(7, 30))

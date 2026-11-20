@@ -15,7 +15,6 @@ class RecapShareContentTest {
         RecapFixtures.solved,
         RecapFixtures.fastest,
         RecapFixtures.streak,
-        RecapFixtures.hintFree,
         RecapFixtures.moments,
         RecapFixtures.totalTime,
     )
@@ -49,16 +48,25 @@ class RecapShareContentTest {
     }
 
     @Test
+    fun `a story with no hint-free solve has no hint-free tile, and with no streak the tile leads`() {
+        val none = RecapShareContent.of("2026", null, listOf(RecapFixtures.solved.copy(hintFree = 0), RecapFixtures.streak))
+        val noStreak = RecapShareContent.of("2026", null, listOf(RecapFixtures.solved, RecapFixtures.totalTime))
+
+        assertEquals(listOf("Longest streak"), none.tiles.map { it.label })
+        assertEquals(listOf("Solved without a hint", "Time spent solving"), noStreak.tiles.map { it.label })
+    }
+
+    @Test
     fun `a card with nothing to count adds no tile`() {
-        val content = RecapShareContent.of("2026", null, listOf(RecapFixtures.solved, RecapCard.Moments(0, 0, 0, emptyList())))
+        val content = RecapShareContent.of("2026", null, listOf(RecapCard.Solved(42, emptyList()), RecapCard.Moments(0, 0, 0, emptyList())))
 
         assertTrue(content.tiles.isEmpty())
     }
 
     @Test
     fun `no solved card means no hero, and a blank or missing name is left out`() {
-        assertNull(RecapShareContent.of("2026", "  ", listOf(RecapFixtures.hintFree)).hero)
-        assertNull(RecapShareContent.of("2026", "  ", listOf(RecapFixtures.hintFree)).displayName)
+        assertNull(RecapShareContent.of("2026", "  ", listOf(RecapFixtures.streak)).hero)
+        assertNull(RecapShareContent.of("2026", "  ", listOf(RecapFixtures.streak)).displayName)
         assertNull(RecapShareContent.of("2026", null, emptyList()).displayName)
     }
 

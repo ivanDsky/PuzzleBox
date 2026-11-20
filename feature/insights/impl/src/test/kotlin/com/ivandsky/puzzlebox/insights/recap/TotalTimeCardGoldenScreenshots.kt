@@ -109,9 +109,9 @@ class TotalTimeCardGoldenScreenshots {
 
     private fun story(state: String): Pair<String, List<RecapCard>> = when (state) {
         "empty" -> OCTOBER to FILLERS.take(4) + totalTime(listOf(DayTally(OCT.atDay(3), 1, 72_000, 1)), 72_000, 1)
-        "longest" -> OCTOBER to FILLERS.take(5) + longest() + RecapFixtures.hintFree
+        "longest" -> OCTOBER to FILLERS.take(5) + longest() + RecapFixtures.moments
         "year" -> YEAR_TITLE to List(20) { FILLERS[it % FILLERS.size] }.toMutableList().also { it[5] = year() }
-        else -> OCTOBER to FILLERS.take(5) + october() + RecapFixtures.hintFree
+        else -> OCTOBER to FILLERS.take(5) + october() + RecapFixtures.moments
     }
 
     private fun totalTime(days: List<DayTally>, totalMs: Long, solved: Int, period: RecapPeriod = RecapPeriod.Month(OCT)) =

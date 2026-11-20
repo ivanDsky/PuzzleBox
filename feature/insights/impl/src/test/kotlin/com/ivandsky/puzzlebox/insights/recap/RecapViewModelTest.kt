@@ -97,7 +97,7 @@ class RecapViewModelTest {
                     period = november,
                     title = november.title(fixture.puzzleDay()),
                     cards = listOf(
-                        RecapCard.Solved(2, listOf(RecapCard.Solved.PerGame(alpha, 1), RecapCard.Solved.PerGame(beta, 1))),
+                        RecapCard.Solved(2, listOf(RecapCard.Solved.PerGame(alpha, 1), RecapCard.Solved.PerGame(beta, 1)), hintFree = 2, longestHintFreeRun = 2),
                     ),
                     initialPage = 0,
                 ),
@@ -139,7 +139,7 @@ class RecapViewModelTest {
         viewModel(providers = listOf(SolvedRecapFactProvider, FakeRecapFactProvider(failure = IOException("no connection")))).uiState.test {
             assertEquals(RecapUiState.Loading, awaitItem())
             val ready = awaitItem() as RecapUiState.Ready
-            assertEquals(listOf(RecapCard.Solved(1, listOf(RecapCard.Solved.PerGame(alpha, 1)))), ready.cards)
+            assertEquals(listOf(RecapCard.Solved(1, listOf(RecapCard.Solved.PerGame(alpha, 1)), hintFree = 1, longestHintFreeRun = 1)), ready.cards)
         }
     }
 
@@ -155,7 +155,7 @@ class RecapViewModelTest {
             cloudSync.state.value = CloudSyncState.Synced(atMs = 1L)
 
             val ready = awaitItem() as RecapUiState.Ready
-            assertEquals(listOf(RecapCard.Solved(1, listOf(RecapCard.Solved.PerGame(alpha, 1)))), ready.cards)
+            assertEquals(listOf(RecapCard.Solved(1, listOf(RecapCard.Solved.PerGame(alpha, 1)), hintFree = 1, longestHintFreeRun = 1)), ready.cards)
         }
     }
 
@@ -276,7 +276,7 @@ class RecapViewModelTest {
         viewModel(saved, providers = listOf(SolvedRecapFactProvider, FriendsRecapFactProvider), resolveFriends = friends).uiState.test {
             assertEquals(RecapUiState.Loading, awaitItem())
             val local = awaitItem() as RecapUiState.Ready
-            val solved = RecapCard.Solved(1, listOf(RecapCard.Solved.PerGame(alpha, 1)))
+            val solved = RecapCard.Solved(1, listOf(RecapCard.Solved.PerGame(alpha, 1)), hintFree = 1, longestHintFreeRun = 1)
             assertEquals(listOf(solved, RecapCard.Friends(FriendsStanding.Reading)), local.cards)
 
             gate.complete(Unit)

@@ -12,9 +12,17 @@ internal sealed interface RecapCard {
 
     /**
      * Puzzles solved: the period's [total] and the [perGame] split, in the app's game order. [importedDays] is set only
-     * for a year built from imported results alone: the puzzle days it covers, which the page says (A22).
+     * for a year built from imported results alone: the puzzle days it covers, which the page says (A22). [hintFree] of
+     * the [total] needed no hint, and [longestHintFreeRun] is the longest stretch of them in a row (null when there is
+     * none to report); the page shows both as a stripe only when [hintFree] is above 0.
      */
-    data class Solved(val total: Int, val perGame: List<PerGame>, val importedDays: Int? = null) : RecapCard {
+    data class Solved(
+        val total: Int,
+        val perGame: List<PerGame>,
+        val importedDays: Int? = null,
+        val hintFree: Int = 0,
+        val longestHintFreeRun: Int? = null,
+    ) : RecapCard {
         data class PerGame(val game: GameId, val solved: Int)
     }
 
@@ -48,9 +56,6 @@ internal sealed interface RecapCard {
      * period's edge shows only its own side), and the days [freezesSpent] holding streaks anywhere in the period.
      */
     data class Streak(val days: Int, val from: LocalDate, val to: LocalDate, val freezesSpent: Int) : RecapCard
-
-    /** Hint-free solves: [hintFree] of the period's [solved] counted solves needed no hint. */
-    data class HintFree(val hintFree: Int, val solved: Int) : RecapCard
 
     /**
      * Moments earned, local kinds only (A6): [personalBests] and [firstSubX] and [fullSets] counted, and every

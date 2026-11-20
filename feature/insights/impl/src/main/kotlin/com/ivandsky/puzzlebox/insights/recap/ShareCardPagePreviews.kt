@@ -13,9 +13,8 @@ import java.time.YearMonth
 // The Share page light and dark: ready to share, and off while the history is restoring (A23).
 
 private val Cards = listOf(
-    RecapCard.Solved(total = 42, perGame = emptyList()),
+    RecapCard.Solved(total = 42, perGame = emptyList(), hintFree = 36),
     RecapCard.TotalTime(totalMs = 11_535_000, solved = 42, days = emptyList(), period = RecapPeriod.Month(YearMonth.of(2026, 11))),
-    RecapCard.HintFree(hintFree = 36, solved = 42),
 )
 
 private val Ready = RecapShareState("November 2026", "Ada", restoring = false, sharing = false, failed = false)
