@@ -25,6 +25,7 @@ import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.gameName
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.ready
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.secondSolved
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.solved
+import com.ivandsky.puzzlebox.insights.share.RecapShareState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -46,10 +47,11 @@ class RecapStoryTest {
 
     private val pages = mutableListOf<Int>()
     private var closed = 0
+    private var retried = 0
 
     private fun show(state: RecapUiState = ready) = rule.setContent {
         PuzzleBoxTheme {
-            RecapScreen(state, "November 2026", gameName, onPage = { pages += it }, onWatchReplay = {}, onClose = { closed++ })
+            RecapScreen(state, "November 2026", gameName, onPage = { pages += it }, onWatchReplay = {}, onClose = { closed++ }, onRetry = { retried++ })
         }
     }
 
@@ -299,6 +301,47 @@ class RecapStoryTest {
 
         assertCard(2)
         rule.onNodeWithContentDescription("7 puzzles solved").assertIsDisplayed()
+    }
+
+    @Test
+    fun `Try again on a recap that cannot open reads it again, and Close leaves`() {
+        show(RecapUiState.Error)
+
+        rule.onNodeWithTag("recap.error.retry").performClick()
+        assertEquals(1, retried)
+        assertEquals(0, closed)
+
+        rule.onNodeWithTag("recap.close").performClick()
+        assertEquals(1, closed)
+    }
+
+    @Test
+    fun `Replay story on the Share page goes back to the first card with nothing filled or selected`() {
+        val deck = RecapDeckState(pageCount = 3, initialPage = 2)
+        rule.setContent {
+            PuzzleBoxTheme {
+                RecapStory(
+                    cards = ready.cards,
+                    deck = deck,
+                    periodLabel = "November 2026",
+                    gameName = gameName,
+                    onWatchReplay = {},
+                    onClose = {},
+                    share = RecapShareState("November 2026", "Ivan", restoring = false, sharing = false, failed = false),
+                )
+            }
+        }
+        rule.onNodeWithContentDescription("Replay card").assertDoesNotExist()
+        assertEquals(3, deck.filledSegments)
+
+        rule.onNodeWithContentDescription("Replay story").performClick()
+        rule.waitForIdle()
+
+        assertEquals(0, deck.page)
+        assertEquals(0, deck.filledSegments)
+        assertEquals(RecapDeckState.NoFact, deck.selectedFact)
+        rule.onNodeWithContentDescription("42 puzzles solved").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Replay story").assertDoesNotExist()
     }
 
     @Test

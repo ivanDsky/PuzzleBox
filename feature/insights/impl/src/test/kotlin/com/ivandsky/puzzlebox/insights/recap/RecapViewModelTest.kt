@@ -5,6 +5,7 @@ import app.cash.turbine.test
 import com.ivandsky.puzzlebox.common.log.FailureLog
 import com.ivandsky.puzzlebox.data.cloud.CloudSyncState
 import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ranks.OverallStandings
 import com.ivandsky.puzzlebox.domain.ranks.OverallState
 import com.ivandsky.puzzlebox.insights.domain.recap.FriendsRecapFactProvider
@@ -60,10 +61,11 @@ class RecapViewModelTest {
         savedState: SavedStateHandle = SavedStateHandle(),
         providers: List<RecapFactProvider> = listOf(SolvedRecapFactProvider),
         resolveFriends: ResolveFriendsStanding = fixture.resolveFriends(),
+        history: ObserveGameHistory = fixture.observeHistory,
     ) = RecapViewModel(
         period = november,
         observeRecap = ObserveRecap(
-            fixture.observeHistory,
+            history,
             fixture.computePeriodFacts,
             fixture.registry,
             resolveFriends,
@@ -73,6 +75,7 @@ class RecapViewModelTest {
         cloudSync = cloudSync,
         puzzleDay = fixture.puzzleDay,
         savedState = savedState,
+        failures = FailureLog { _, _, _ -> },
     )
 
     private fun solved(total: Int) = RecapCard.Solved(total, listOf(RecapCard.Solved.PerGame(alpha, total)))
@@ -209,6 +212,31 @@ class RecapViewModelTest {
         viewModel(SavedStateHandle(mapOf("recap.page" to 7)), listOf(FakeRecapFactProvider(cards))).uiState.test {
             assertEquals(RecapUiState.Loading, awaitItem())
             assertEquals(2, (awaitItem() as RecapUiState.Ready).initialPage)
+        }
+    }
+
+    @Test
+    fun `a history read that fails is an Error, and Try again loads again and reopens on the saved page`() = runTest {
+        fixture.store(fixture.solve(alpha, day(1)))
+        var failing = true
+        val history = ObserveGameHistory(
+            fixture.registry, fixture.daily, fixture.completions,
+            duelOpponents = flow {
+                if (failing) throw IOException("database is locked")
+                emit(emptyMap())
+            },
+        )
+        val viewModel = viewModel(SavedStateHandle(mapOf("recap.page" to 1)), history = history)
+
+        viewModel.uiState.test {
+            assertEquals(RecapUiState.Loading, awaitItem())
+            assertEquals(RecapUiState.Error, awaitItem())
+
+            failing = false
+            viewModel.retry()
+
+            assertEquals(RecapUiState.Loading, awaitItem())
+            assertEquals(1, (awaitItem() as RecapUiState.Ready).initialPage)
         }
     }
 

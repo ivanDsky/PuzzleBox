@@ -94,6 +94,7 @@ internal fun TotalTimeFactRows(card: RecapCard.TotalTime, modifier: Modifier = M
 internal fun TotalTimeCardFact(card: RecapCard.TotalTime, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Row(Modifier.fillMaxWidth().heightIn(min = RowMinHeight), verticalAlignment = Alignment.CenterVertically) {
+            FactMarker()
             Text(
                 text = "Time spent solving",
                 style = MaterialTheme.typography.titleMedium,

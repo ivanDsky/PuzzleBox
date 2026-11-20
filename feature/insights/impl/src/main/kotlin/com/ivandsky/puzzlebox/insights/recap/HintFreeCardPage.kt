@@ -94,6 +94,7 @@ internal fun HintFreeFactRows(card: RecapCard.HintFree, modifier: Modifier = Mod
 internal fun HintFreeCardFact(card: RecapCard.HintFree, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Row(Modifier.fillMaxWidth().heightIn(min = RowMinHeight), verticalAlignment = Alignment.CenterVertically) {
+            FactMarker()
             Text(
                 text = "Hint-free solves",
                 style = MaterialTheme.typography.titleMedium,

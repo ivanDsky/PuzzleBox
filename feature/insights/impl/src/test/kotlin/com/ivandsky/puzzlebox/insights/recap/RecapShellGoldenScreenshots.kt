@@ -27,7 +27,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The story shell (strip, ↻ and close, the card deck) on the Streak card of a seven-page October story, at rest and held
- * to peek at Moments, on phone and tablet, light and dark. Goldens in `snapshots/story-shell/`.
+ * to peek at Moments, on its Share page (last), loading and unable to open (error), on phone and tablet, light and dark. Goldens in `snapshots/story-shell/`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -61,9 +61,45 @@ class RecapShellGoldenScreenshots {
     @Config(qualifiers = GOLDEN_TABLET)
     @Test fun `hold tablet dark`() = capture("hold", "tablet", dark = true, held = true)
 
-    private fun capture(name: String, device: String, dark: Boolean, held: Boolean = false) {
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `last phone light`() = capture("last", "phone", dark = false, state = October.copy(initialPage = 6))
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `last phone dark`() = capture("last", "phone", dark = true, state = October.copy(initialPage = 6))
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `last tablet light`() = capture("last", "tablet", dark = false, state = October.copy(initialPage = 6))
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `last tablet dark`() = capture("last", "tablet", dark = true, state = October.copy(initialPage = 6))
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `loading phone light`() = capture("loading", "phone", dark = false, state = RecapUiState.Loading)
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `loading phone dark`() = capture("loading", "phone", dark = true, state = RecapUiState.Loading)
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `loading tablet light`() = capture("loading", "tablet", dark = false, state = RecapUiState.Loading)
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `loading tablet dark`() = capture("loading", "tablet", dark = true, state = RecapUiState.Loading)
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `error phone light`() = capture("error", "phone", dark = false, state = RecapUiState.Error)
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `error phone dark`() = capture("error", "phone", dark = true, state = RecapUiState.Error)
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `error tablet light`() = capture("error", "tablet", dark = false, state = RecapUiState.Error)
+
+    @Config(qualifiers = GOLDEN_TABLET)
+    @Test fun `error tablet dark`() = capture("error", "tablet", dark = true, state = RecapUiState.Error)
+
+    private fun capture(name: String, device: String, dark: Boolean, held: Boolean = false, state: RecapUiState = October) {
         rule.showGolden(dark = dark) {
-            RecapScreen(October, "October 2026", gameName, onPage = {}, onWatchReplay = {}, onClose = {}, share = Share)
+            RecapScreen(state, "October 2026", gameName, onPage = {}, onWatchReplay = {}, onClose = {}, share = Share)
         }
         if (held) rule.onNodeWithTag("recap.pager").performTouchInput { down(center) }
         rule.settleAndCapture("story-shell", name, device, dark)

@@ -120,6 +120,7 @@ private fun StreakFactRow(label: String, value: String, tag: String, icon: @Comp
 internal fun StreakCardFact(card: RecapCard.Streak, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Row(Modifier.fillMaxWidth().heightIn(min = RowMinHeight), verticalAlignment = Alignment.CenterVertically) {
+            FactMarker()
             Text(
                 text = "Longest streak",
                 style = MaterialTheme.typography.titleMedium,
