@@ -36,6 +36,17 @@ object RecapMotion {
     const val ThrowTilt = -10f
     const val ThrowBackDuration = 280
 
+    // Flip: the dealt card turns FlipTurn degrees face-up FlipDelay ms into the deal, on DeckSpring.
+    const val FlipDelay = 300
+    const val FlipTurn = 180f
+
+    // Drag: a dragged card tilts DragTilt degrees per card width of travel.
+    const val DragTilt = 10f
+
+    // Hold: a press longer than HoldThreshold ms slides the top card HoldPeek of its height down.
+    const val HoldThreshold = 280
+    const val HoldPeek = 0.74f
+
     // DeckStack: cards peek below the top one, each step lower and smaller; promote and hold reuse the Nav clocks.
     val DeckStackStep: Dp = 14.dp
     const val DeckStackScaleStep = 0.045f
@@ -44,9 +55,10 @@ object RecapMotion {
     const val DeckStackHoldIn = MotionTokens.NavFullSlideEnter
     const val DeckStackHoldOut = MotionTokens.NavFullSlidePop
 
-    // Sheen: 1.4 × SweepDuration, at SheenAlpha, on EasingStandard.
+    // Sheen: 1.4 × SweepDuration, at SheenAlpha, on EasingStandard, SheenDelay ms after the flip starts.
     const val SheenDuration = MotionTokens.SweepDuration * 14 / 10
     const val SheenAlpha = 0.6f
+    const val SheenDelay = 250
 
     // Kinetic: a letter rises KineticRise of its height on the Stamp spring; the per-letter stagger is
     // clamp(KineticStaggerBudget / letters, KineticStaggerMin, KineticStaggerMax).

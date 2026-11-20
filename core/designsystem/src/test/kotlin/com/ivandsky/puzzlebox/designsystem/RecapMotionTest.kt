@@ -43,6 +43,16 @@ class RecapMotionTest {
     }
 
     @Test
+    fun `flip, sheen delay, drag tilt and hold peek hold the contract values`() {
+        assertEquals(300, RecapMotion.FlipDelay)
+        assertEquals(180f, RecapMotion.FlipTurn, 0f)
+        assertEquals(250, RecapMotion.SheenDelay)
+        assertEquals(10f, RecapMotion.DragTilt, 0f)
+        assertEquals(280, RecapMotion.HoldThreshold)
+        assertEquals(0.74f, RecapMotion.HoldPeek, 0f)
+    }
+
+    @Test
     fun `kinetic and cascade tokens hold the contract values`() {
         assertEquals(1.12f, RecapMotion.KineticRise, 0f)
         assertEquals(620, RecapMotion.KineticStaggerBudget)
