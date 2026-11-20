@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.games.sudoku.engine.trainer
 
+import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.games.sudoku.KnownSolutions
+import com.ivandsky.puzzlebox.games.sudoku.SudokuBoard
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
 import com.ivandsky.puzzlebox.games.sudoku.SudokuVariants
 import kotlinx.serialization.Serializable
@@ -20,8 +22,8 @@ internal object SudokuTrainerFixtures {
     private val real: Map<String, Record> by lazy { records("sudoku-boards.json") }
     private val generated: Map<String, Record> by lazy { records("sudoku-generated.json") }
 
-    /** Three real dailies. */
-    val dailies: Map<String, SudokuPuzzle> by lazy { listOf("li:1", "li:227", "li:454").associateWith { puzzle(real.getValue(it)) } }
+    /** Four real dailies; li:111 is the one whose easiest-first walk reaches a point where naked single is the lowest rung. */
+    val dailies: Map<String, SudokuPuzzle> by lazy { listOf("li:1", "li:227", "li:454", "li:111").associateWith { puzzle(real.getValue(it)) } }
 
     /** The generated boards that reach the four eliminations. */
     val eliminating: Map<String, SudokuPuzzle> by lazy {
@@ -29,6 +31,18 @@ internal object SudokuTrainerFixtures {
     }
 
     val all: Map<String, SudokuPuzzle> by lazy { dailies + eliminating }
+
+    /** A practice for [technique] on [puzzle] (the fixture [name]), starting at [board]. */
+    data class PracticeStart(val name: String, val puzzle: SudokuPuzzle, val technique: TechniqueId, val board: SudokuBoard)
+
+    /** Every practice the fixtures can start, in fixture then ladder order. */
+    val starts: List<PracticeStart> by lazy {
+        all.flatMap { (name, puzzle) ->
+            SudokuTechniqueIds.all.mapNotNull { technique ->
+                SudokuPractice.start(puzzle, technique)?.let { PracticeStart(name, puzzle, technique, it) }
+            }
+        }
+    }
 
     private fun puzzle(r: Record) = SudokuPuzzle(SudokuVariants.MINI, KnownSolutions.grid(r.givens), KnownSolutions.grid(r.solution))
 

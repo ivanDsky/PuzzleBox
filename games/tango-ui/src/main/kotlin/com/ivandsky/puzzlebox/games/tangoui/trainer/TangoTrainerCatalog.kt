@@ -30,6 +30,6 @@ internal object TangoTrainerCatalog {
         TrainerTechnique(rung.trainerId, names.getValue(rung.trainerId), TangoStepCopy.technique(rung))
     }
 
-    /** The list's name for [id], the one the round's prompt uses. */
+    /** The list's name for [id], the one a practice board's Easier line names. */
     fun name(id: TechniqueId): String = names.getValue(id)
 }

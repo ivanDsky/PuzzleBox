@@ -1,16 +1,16 @@
 package com.ivandsky.puzzlebox.game.trainer
 
 /**
- * How a snippet's one move was judged against the snippet's target technique (spec A4).
- * The in-a-row count follows: [Right] raises it, [AnotherWay] leaves it, [Wrong] resets it.
+ * How one practice turn went for the trained technique (spec §2.2, A5). Only turns where the trained
+ * technique was the easiest rung that applied are judged this way; other turns never touch the count.
  */
 enum class TrainerVerdict {
-    /** The target technique proves this move on this board. Raises the in-a-row count. */
+    /** The player made a move of the trained technique's step. Raises the in-a-row count. */
     Right,
 
-    /** The move fits the solution, but the target technique does not prove it. The count neither rises nor resets. */
-    AnotherWay,
-
-    /** The move breaks the solution. Resets the in-a-row count. */
+    /** The player made another move (it broke the solution or skipped the trained step); it was undone. Resets the count. */
     Wrong,
+
+    /** The player asked to be shown the trained step. Resets the count. */
+    ShowMe,
 }

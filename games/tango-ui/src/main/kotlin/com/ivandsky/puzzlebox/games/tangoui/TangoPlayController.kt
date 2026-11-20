@@ -207,6 +207,20 @@ class TangoPlayController(
             is DecodeResult.Err -> null
         }
 
+    /**
+     * Puts the board on [snapshot] exactly, as if nothing had happened since it was taken: the session, history and
+     * counters as they were (an undo would leave a redo and a mistake behind), and no rejection, fixed-square notice,
+     * suppressed violation or Spotlight left over. The Trainer's practice board starts from here and reverts a move it
+     * judged not Right; daily play never calls it.
+     */
+    internal fun revertTo(snapshot: TangoSession) {
+        lastRejection = null
+        fixedTapped = false
+        stepHints.inputMade()
+        settle.suppress(emptySet())
+        updateSession(snapshot)
+    }
+
     //endregion
 
     /** Hint (spec hints bullet, Zip parity): the ONE counted hint per new step; it places nothing (A1). */

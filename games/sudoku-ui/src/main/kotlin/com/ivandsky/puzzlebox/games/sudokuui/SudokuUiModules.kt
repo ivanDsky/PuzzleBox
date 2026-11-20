@@ -36,7 +36,7 @@ val miniSudokuUiModule: Module = module {
     single<GameEditorUi>(qualifier = qualifier("${SudokuGames.MINI.id.value}.editor")) { SudokuEditorUi(SudokuGames.MINI) }
     factory(qualifier = qualifier("${SudokuGames.MINI.id.value}.trainer")) {
         val on = get<ReleaseFlags>().isEnabled(GameUiFlag.TrainSudoku)
-        TrainerGame.Binding(if (on) SudokuTrainer(get<DispatcherProvider>().default) else null)
+        TrainerGame.Binding(if (on) SudokuTrainer() else null)
     }
 }
 

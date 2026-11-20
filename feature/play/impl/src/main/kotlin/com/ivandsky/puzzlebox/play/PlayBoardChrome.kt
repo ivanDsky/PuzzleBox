@@ -34,8 +34,7 @@ import com.ivandsky.puzzlebox.resultui.selfTimerLabel
  *
  * [sidePanel] builds the two-pane side panel; it is called only while the board plays.
  * A [targetMs] (a self-duel leg's past you's time) makes the bar's timer count toward it as time left, then over by.
- * While [rules] is set the rules sheet shows over the live board ([RulesSheetHost]). [showClock] false leaves the
- * timer out of the bar (the Trainer's drill); the clock itself still runs.
+ * While [rules] is set the rules sheet shows over the live board ([RulesSheetHost]).
  *
  * Under it a solve rests on the board before [onSolved] ([LocalSolveRestOnBoard]), for every board it draws.
  */
@@ -61,7 +60,6 @@ internal fun PlayBoardChrome(
     rules: RulesSheetCopy? = null,
     onDismissRules: () -> Unit = {},
     onReplayTutorial: () -> Unit = {},
-    showClock: Boolean = true,
 ) {
     CompositionLocalProvider(LocalSolveRestOnBoard provides true) {
         Column(modifier = modifier) {
@@ -80,7 +78,7 @@ internal fun PlayBoardChrome(
             ) {
                 if (!playing) return@PlayTopBar
                 val clock = controller as? PlayClock
-                if (showClock && status is PlayBoardStatus.Ready && clock != null) {
+                if (status is PlayBoardStatus.Ready && clock != null) {
                     TimerBar(
                         elapsedMs = { clock.displayedElapsedMs() },
                         modifier = Modifier.width(IntrinsicSize.Max).testTag("play.timer"),

@@ -1,30 +1,37 @@
 package com.ivandsky.puzzlebox.games.queensui.trainer
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
+import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightOverlay
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.game.trainer.TrainerVerdict
 import com.ivandsky.puzzlebox.gameui.trainer.DrillSource
-import com.ivandsky.puzzlebox.gameui.trainer.Snippet
+import com.ivandsky.puzzlebox.gameui.trainer.PracticeBoard
+import com.ivandsky.puzzlebox.gameui.trainer.PracticeStatus
 import com.ivandsky.puzzlebox.gameui.trainer.TrainerGame
 import com.ivandsky.puzzlebox.gameui.trainer.TrainerTechnique
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
-import com.ivandsky.puzzlebox.games.queens.engine.trainer.QueensSnippets
-import com.ivandsky.puzzlebox.games.queensui.hint.QueensSpotlightMapper
+import com.ivandsky.puzzlebox.games.queens.engine.trainer.QueensPractice
+import com.ivandsky.puzzlebox.games.queensui.QueensPlayBoard
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 
 /**
- * The Queens [TrainerGame]: the Compose half of [QueensSnippets] and the Queens technique walker. The technique list
- * shares its sentences with the hints ([QueensTrainerCatalog]), a snippet board is the live board's face over a board
- * the walk reached ([QueensSnippetBoard]), and the reveal after a verdict is the hint's own Spotlight.
+ * The Queens [TrainerGame]: the Compose half of [QueensPractice] and the Queens technique walker. The technique list
+ * shares its sentences with the hints ([QueensTrainerCatalog]), a practice board is the real play board over a board
+ * the walk reached ([QueensPracticeBoard]), and the Spotlight over it is the hint's own.
  *
- * [com.ivandsky.puzzlebox.games.queensui.queensUiModule] binds it while TrainQueens is on. [compute] runs the move
- * check, which a long look-ahead makes take up to 90 ms.
+ * [com.ivandsky.puzzlebox.games.queensui.queensUiModule] binds it while TrainQueens is on. [compute] is the dispatcher
+ * the play board's hint stepper is given; a practice board has no hint button, so it never runs on it.
  */
 internal class QueensTrainer(private val compute: CoroutineDispatcher) : TrainerGame {
 
@@ -34,24 +41,35 @@ internal class QueensTrainer(private val compute: CoroutineDispatcher) : Trainer
 
     override val drillSources: List<DrillSource> = listOf(QueensIndexDrillSource(), QueensGeneratedDrillSource())
 
-    /** Empty for another game's puzzle, one that does not decode, one without a true solution, and a technique it never uses. */
-    override fun buildSnippets(puzzle: Puzzle, technique: TechniqueId, count: Int): List<Snippet> {
-        if (puzzle.gameId != gameId) return emptyList()
-        val decoded = (QueensCodec.decode(puzzle.payload) as? DecodeResult.Ok)?.value ?: return emptyList()
-        return QueensSnippets.cut(decoded, technique, count).map { QueensSnippet(decoded, it) }
+    /** Null for another game's puzzle, one that does not decode, one without a true solution, and a technique it never uses. */
+    override fun practice(
+        puzzle: Puzzle,
+        technique: TechniqueId,
+        scope: CoroutineScope,
+        onTrainedTurn: (TrainerVerdict) -> Unit,
+    ): PracticeBoard? {
+        if (puzzle.gameId != gameId) return null
+        val decoded = (QueensCodec.decode(puzzle.payload) as? DecodeResult.Ok)?.value ?: return null
+        val start = QueensPractice.start(decoded, technique) ?: return null
+        return QueensPracticeBoard(decoded, technique, start, compute, scope, onTrainedTurn)
     }
 
     @Composable
-    override fun Board(snippet: Snippet, onVerdict: (TrainerVerdict) -> Unit, modifier: Modifier) {
-        QueensSnippetBoard(snippet.asQueens(), compute, onVerdict, modifier)
+    override fun Board(board: PracticeBoard, modifier: Modifier) {
+        val practice = board as? QueensPracticeBoard ?: error("a Queens trainer was handed another game's board: $board")
+        val status by practice.status.collectAsState()
+        Box(modifier.aspectRatio(1f)) {
+            QueensPlayBoard(practice.state, Modifier.matchParentSize())
+            SpotlightOverlay(status.spotlight)
+        }
     }
 
-    /** The step that proved the player's own Right move when it was another instance than the cut's, else the cut's own step. */
-    override fun spotlight(snippet: Snippet): Spotlight {
-        val queens = snippet.asQueens()
-        return QueensSpotlightMapper.map(queens.proving.step ?: queens.cut.step, queens.puzzle, playId = 0)
-    }
-
-    private fun Snippet.asQueens(): QueensSnippet =
-        this as? QueensSnippet ?: error("a Queens trainer was handed another game's snippet: $this")
+    /** The Spotlight a status puts over the grid: a move's step, the easier step, Show me's step; none otherwise. */
+    private val PracticeStatus.spotlight: Spotlight?
+        get() = when (this) {
+            is PracticeStatus.Right -> spotlight
+            is PracticeStatus.Easier -> spotlight
+            is PracticeStatus.Shown -> spotlight
+            PracticeStatus.FindNextMove, is PracticeStatus.Wrong, PracticeStatus.Solved -> null
+        }
 }
