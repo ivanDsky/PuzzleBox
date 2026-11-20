@@ -57,6 +57,15 @@ abstract class RandomFilterGoldenScreenshots(private val device: String, private
     @Test fun `busy light`() = capture("busy", NEW_TODAY.copy(phase = RandomPhase.Picking), dark = false)
     @Test fun `busy dark`() = capture("busy", NEW_TODAY.copy(phase = RandomPhase.Picking), dark = true)
 
+    @Test fun `rows light`() = capture("rows", ROWS, dark = false)
+    @Test fun `rows dark`() = capture("rows", ROWS, dark = true)
+
+    @Test fun `rows busy light`() = capture("rows-busy", ROWS.copy(phase = RandomPhase.Picking), dark = false)
+    @Test fun `rows busy dark`() = capture("rows-busy", ROWS.copy(phase = RandomPhase.Picking), dark = true)
+
+    @Test fun `rows failed light`() = capture("rows-failed", ROWS.copy(phase = RandomPhase.Said(RandomMessage.Offline)), dark = false)
+    @Test fun `rows failed dark`() = capture("rows-failed", ROWS.copy(phase = RandomPhase.Said(RandomMessage.Offline)), dark = true)
+
     @Test fun `large text light`() = capture("large-text", NEW_TODAY, dark = false, fontScale = 1.3f)
     @Test fun `large text dark`() = capture("large-text", NEW_TODAY, dark = true, fontScale = 1.3f)
 
@@ -89,5 +98,6 @@ abstract class RandomFilterGoldenScreenshots(private val device: String, private
         val NEW_TODAY = RandomPuzzleState(RandomSource.Community, game = null, unsolvedOnly = true, difficulty = null, phase = RandomPhase.Idle)
         val PICKED = NEW_TODAY.copy(game = GameId("zip"), difficulty = DifficultyChoice.Hard)
         val PAST = NEW_TODAY.copy(source = RandomSource.Past)
+        val ROWS = NEW_TODAY.copy(choiceRows = true)
     }
 }
