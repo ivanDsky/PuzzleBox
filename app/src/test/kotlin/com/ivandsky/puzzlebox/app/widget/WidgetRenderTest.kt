@@ -158,7 +158,7 @@ class WidgetRenderTest {
 
     @Test
     fun `every size from 4 by 2 up to a tablet page composes and inflates`() {
-        listOf(DEFAULT, LARGE, TABLET, DpSize(800.dp, 500.dp), DpSize(250.dp, 90.dp)).forEach { size ->
+        listOf(DEFAULT, LARGE, TABLET, DpSize(650.dp, 450.dp), DpSize(900.dp, 600.dp), DpSize(250.dp, 90.dp)).forEach { size ->
             assertEquals(6, draw(state(freezesHeld = 2), size).descriptions.size)
         }
     }
