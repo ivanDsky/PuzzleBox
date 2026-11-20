@@ -57,6 +57,15 @@ class RecapShareContentTest {
     }
 
     @Test
+    fun `the count-up climbs each number to its final value and no further`() {
+        val content = RecapShareContent.of("November 2026", "Ada", everything)
+
+        assertEquals("21", content.counted(0.5f).hero!!.value)
+        assertEquals("1h 6m", content.counted(0.5f).tiles.last().value)
+        assertEquals(content, content.counted(1f))
+    }
+
+    @Test
     fun `a one day streak reads in the singular`() {
         val content = RecapShareContent.of("2026", null, listOf(RecapFixtures.solved, RecapFixtures.streak.copy(days = 1)))
 

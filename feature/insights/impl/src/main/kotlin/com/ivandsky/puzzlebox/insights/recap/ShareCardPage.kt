@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -28,11 +30,14 @@ import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteEntry
 import com.ivandsky.puzzlebox.designsystem.field
 import com.ivandsky.puzzlebox.designsystem.ink
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.timePulse
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.insights.share.RecapShareContent
 import com.ivandsky.puzzlebox.insights.share.RecapShareState
 import com.ivandsky.puzzlebox.insights.share.ShareStyle
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -56,6 +61,23 @@ internal fun ShareCardPage(
     val content = remember(cards, state.title, state.displayName, nameShown) {
         RecapShareContent.of(state.title, state.displayName.takeIf { nameShown }, cards)
     }
+    val reduced = rememberReducedMotion()
+    var stamped by remember { mutableIntStateOf(if (arrived || reduced) Int.MAX_VALUE else 0) }
+    var pulse by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (arrived || reduced) return@LaunchedEffect
+        coroutineScope {
+            launch {
+                delay(ChipsStart.toLong())
+                repeat(ChipCount) {
+                    stamped = it + 1
+                    delay(ChipStep.toLong())
+                }
+            }
+            delay(PulseStart.toLong())
+            pulse = true
+        }
+    }
     val layer = rememberGraphicsLayer()
     val scope = rememberCoroutineScope()
     Column(
@@ -75,6 +97,7 @@ internal fun ShareCardPage(
             modifier = Modifier.padding(horizontal = Spacing.md),
             nameShown = nameShown.takeIf { hasName },
             onNameShown = { nameShown = it },
+            stamped = stamped,
         )
         state.notice()?.let { notice ->
             Text(
@@ -98,7 +121,7 @@ internal fun ShareCardPage(
                     .fillMaxWidth()
                     .padding(horizontal = Spacing.xl)
                     .heightIn(min = ShareButtonHeight)
-                    .timePulse(arrived)
+                    .timePulse(pulse)
                     .testTag("recap.share.button"),
                 enabled = state.canShare,
                 loading = state.sharing,
@@ -114,3 +137,9 @@ private fun RecapShareState.notice(): String? = when {
 }
 
 private val ShareButtonHeight = 56.dp
+
+// sharefly (contract/motion.md): the chips stamp from ChipsStart, ChipStep apart; the Share button pulses at PulseStart.
+private const val ChipsStart = 1280
+private const val ChipStep = 60
+private const val ChipCount = 4
+private const val PulseStart = 1680

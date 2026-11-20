@@ -10,8 +10,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -81,8 +84,11 @@ internal fun ShareStyleDeck(
     val fan = remember { Animatable(if (settled) 1f else 0f) }
     val flips = remember { List(last + 1) { Animatable(if (settled) 1f else 0f) } }
     val sheen = remember { Animatable(0f) }
+    val counts = remember { List(last + 1) { Animatable(if (settled) 1f else 0f) } }
+    val stamp = remember { Animatable(if (settled) 1f else StampFromScale) }
+    var playing by remember { mutableStateOf(!settled) }
     val fade = remember { Animatable(if (reduced && !arrived) 0f else 1f) }
-    
+
     LaunchedEffect(Unit) {
         if (arrived) return@LaunchedEffect
         if (reduced) {
@@ -105,9 +111,20 @@ internal fun ShareStyleDeck(
                 delay(SheenStart.toLong())
                 sheen.animateTo(1f, tween(RecapMotion.SheenDuration, easing = MotionTokens.EasingStandard))
             }
+            counts.forEachIndexed { i, count ->
+                launch {
+                    delay((FlipStart + i * FlipStep + CountLag).toLong())
+                    count.animateTo(1f, tween(MotionTokens.ScoreCountUpDuration, easing = MotionTokens.EasingEmphasizedDecelerate))
+                }
+            }
+            launch {
+                delay(StampStart.toLong())
+                stamp.animateTo(1f, spring(MotionTokens.StampSpringDamping, MotionTokens.StampSpringStiffness))
+            }
             turned.joinAll()
             onArrived()
         }
+        playing = false
     }
     LaunchedEffect(style, reduced) {
         if (reduced) {
@@ -183,7 +200,11 @@ internal fun ShareStyleDeck(
                             if (picked) drawSheen(sheen.value)
                         },
                 ) {
-                    ScaledToFitImage(content, entry, picked, layer, holoShift = { (pos.value - i) * (1f - HoloParallax) })
+                    val holoShift = { (pos.value - i) * (1f - HoloParallax) }
+                    ScaledToFitImage(content, entry, picked, layer, holoShift)
+                    // The numbers count and the hero lands on a copy laid over the final poster, so a capture taken mid-arrival
+                    // still holds the final image and a screen reader still reads the final values.
+                    if (playing) ScaledToFitImage(content.counted(counts[i].value), entry, false, layer, holoShift, heroScale = { stamp.value })
                 }
             }
         }
@@ -197,6 +218,7 @@ private fun ScaledToFitImage(
     picked: Boolean,
     layer: GraphicsLayer,
     holoShift: () -> Float,
+    heroScale: (() -> Float)? = null,
 ) = ScaledToFit {
     RecapShareImage(
         content,
@@ -210,6 +232,7 @@ private fun ScaledToFitImage(
             Modifier
         },
         holoShift,
+        heroScale,
     )
 }
 
@@ -230,7 +253,8 @@ private fun DrawScope.drawSheen(progress: Float) {
 private val DeckSpring = spring<Float>(RecapMotion.DeckSpringDamping, RecapMotion.DeckSpringStiffness)
 
 // sharefly (contract/motion.md): backs gather from ±GatherX, the fan opens to ±FanX and ±FanTilt, posters flip from
-// FlipStart, FlipStep apart; the sheen starts at SheenStart.
+// FlipStart, FlipStep apart; each poster's numbers count CountLag after its flip, the hero stamps at StampStart and the
+// sheen starts at SheenStart.
 private val GatherX = 220.dp
 private val FanX = 150.dp
 private const val FanTilt = 6f
@@ -239,6 +263,9 @@ private const val FanDuration = 420
 private const val FlipStart = 720
 private const val FlipStep = 150
 private const val SheenStart = 1380
+private const val CountLag = 100
+private const val StampStart = 1100
+private const val StampFromScale = MotionTokens.StampFromScale
 private const val FlipTurn = 180f
 
 // shareswipe: neighbours at lerp(1, .88) scale and lerp(1, .7) alpha; the holo layer drifts at parallax .95.

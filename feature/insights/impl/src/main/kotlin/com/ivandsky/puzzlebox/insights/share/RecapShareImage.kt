@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -49,10 +50,17 @@ internal const val ShareImageHeightPx = 1920
  * with the period's title, the player's own display name, each game's share of the solves and the headline numbers of
  * [content] (A9). It lays itself out at density 1 and font scale 1, so one dp or sp here is one pixel and the screen's
  * density and the player's font size cannot change what is shared. It carries no interaction and no motion: it is drawn
- * once and captured, Night's holographic layer included.
+ * once and captured, Night's holographic layer included. A [heroScale] makes it the deck's arrival overlay instead: the
+ * counted numbers painted over the final image, the hero landing at that scale, with no semantics of its own.
  */
 @Composable
-internal fun RecapShareImage(content: RecapShareContent, style: ShareStyle, modifier: Modifier = Modifier, holoShift: () -> Float = { 0f }) {
+internal fun RecapShareImage(
+    content: RecapShareContent,
+    style: ShareStyle,
+    modifier: Modifier = Modifier,
+    holoShift: () -> Float = { 0f },
+    heroScale: (() -> Float)? = null,
+) {
     val palette = sharePalette(style, LocalDarkTheme.current)
     CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 1f)) {
         Column(
@@ -61,8 +69,13 @@ internal fun RecapShareImage(content: RecapShareContent, style: ShareStyle, modi
                 .background(palette.ground)
                 .holo(palette.holo, holoShift)
                 .padding(horizontal = Margin, vertical = Margin)
-                .testTag("recap.share.image")
-                .clearAndSetSemantics { contentDescription = content.description() },
+                .then(
+                    if (heroScale == null) {
+                        Modifier.testTag("recap.share.image").clearAndSetSemantics { contentDescription = content.description() }
+                    } else {
+                        Modifier.clearAndSetSemantics {}
+                    },
+                ),
         ) {
             val wordmark = WordmarkTextStyle.copy(fontSize = 56.sp, lineHeight = 64.sp)
             Text(text = "PuzzleBox", modifier = Modifier.oneLine(wordmark), style = wordmark, color = palette.wordmark)
@@ -79,7 +92,7 @@ internal fun RecapShareImage(content: RecapShareContent, style: ShareStyle, modi
                 )
             }
             Spacer(Modifier.weight(1f))
-            content.hero?.let { Hero(it, palette) }
+            content.hero?.let { Hero(it, palette, heroScale) }
             Spacer(Modifier.weight(1f))
             if (content.split.isNotEmpty()) ShareSplitBar(content.split, palette.ink, palette.track)
             if (content.tiles.isNotEmpty()) {
@@ -91,8 +104,11 @@ internal fun RecapShareImage(content: RecapShareContent, style: ShareStyle, modi
 }
 
 @Composable
-private fun Hero(stat: RecapShareContent.Stat, palette: SharePalette) {
-    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+private fun Hero(stat: RecapShareContent.Stat, palette: SharePalette, scale: (() -> Float)?) {
+    Column(
+        Modifier.fillMaxWidth().graphicsLayer { scale?.invoke()?.let { scaleX = it; scaleY = it } },
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         FitText(
             text = stat.value,
             style = MaterialTheme.typography.displayLarge.tabular().copy(fontSize = 380.sp, lineHeight = 380.sp, textAlign = TextAlign.Center),

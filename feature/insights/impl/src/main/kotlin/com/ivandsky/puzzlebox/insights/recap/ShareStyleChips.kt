@@ -1,5 +1,14 @@
 package com.ivandsky.puzzlebox.insights.recap
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.composed
+import androidx.compose.ui.graphics.graphicsLayer
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -55,6 +64,7 @@ internal fun ShareStyleChips(
     modifier: Modifier = Modifier,
     nameShown: Boolean? = null,
     onNameShown: (Boolean) -> Unit = {},
+    stamped: Int = Int.MAX_VALUE,
 ) {
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         ShareStyle.entries.forEach { entry ->
@@ -62,7 +72,9 @@ internal fun ShareStyleChips(
                 label = entry.name,
                 on = entry == style,
                 tag = "recap.share.style.${entry.name}",
-                modifier = Modifier.selectable(entry == style, enabled, Role.RadioButton) { onStyle(entry) },
+                modifier = Modifier
+                    .stampedIn(entry.ordinal < stamped)
+                    .selectable(entry == style, enabled, Role.RadioButton) { onStyle(entry) },
             ) { color -> StyleMark(entry, color) }
         }
         if (nameShown != null) {
@@ -70,7 +82,9 @@ internal fun ShareStyleChips(
                 label = "Name",
                 on = nameShown,
                 tag = "recap.share.name",
-                modifier = Modifier.toggleable(value = nameShown, enabled = enabled, role = Role.Switch, onValueChange = onNameShown),
+                modifier = Modifier
+                    .stampedIn(ShareStyle.entries.size < stamped)
+                    .toggleable(value = nameShown, enabled = enabled, role = Role.Switch, onValueChange = onNameShown),
             ) { color ->
                 Box(Modifier.size(MarkSize)) {
                     Canvas(Modifier.fillMaxSize()) { drawCircle(color, style = Stroke(MarkStroke.toPx())) }
@@ -78,6 +92,23 @@ internal fun ShareStyleChips(
                 }
             }
         }
+    }
+}
+
+/** Lands from the stamp's scale on the stamp spring while fading in once [stamped]; before that it is not there. Reduced motion: shown. */
+private fun Modifier.stampedIn(stamped: Boolean): Modifier = composed {
+    val land = remember { Animatable(if (stamped) 1f else 0f) }
+    val fade = remember { Animatable(if (stamped) 1f else 0f) }
+    LaunchedEffect(stamped) {
+        if (!stamped) return@LaunchedEffect
+        launch { land.animateTo(1f, spring(MotionTokens.StampSpringDamping, MotionTokens.StampSpringStiffness)) }
+        fade.animateTo(1f, tween(MotionTokens.StampFadeDuration))
+    }
+    graphicsLayer {
+        val scale = MotionTokens.StampFromScale + (1f - MotionTokens.StampFromScale) * land.value
+        scaleX = scale
+        scaleY = scale
+        alpha = fade.value
     }
 }
 
