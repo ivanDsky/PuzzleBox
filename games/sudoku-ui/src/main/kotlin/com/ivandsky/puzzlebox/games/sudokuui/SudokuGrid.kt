@@ -111,14 +111,14 @@ private fun BoxScope.SpotlightLayer(spotlight: Spotlight, size: Int, frame: Dp) 
 }
 
 /** What a Spotlight needs to draw Sudoku digits where the grid draws them: the [measurer], the cell's digit [style], and the cell pitch [cellPx]. */
-internal class GridDigits(val measurer: TextMeasurer, val style: TextStyle, val cellPx: Float)
+private class GridDigits(val measurer: TextMeasurer, val style: TextStyle, val cellPx: Float)
 
 /**
- * The digit look of a grid of [size] cells a side in a square [side] wide. The grid's own Spotlight layer and the
- * Trainer's reveal both read it, so a glyph sits exactly where the grid draws that digit.
+ * The digit look of a grid of [size] cells a side in a square [side] wide. The grid's Spotlight layer reads it, so a
+ * glyph sits exactly where the grid draws that digit.
  */
 @Composable
-internal fun rememberGridDigits(side: Dp, size: Int): GridDigits {
+private fun rememberGridDigits(side: Dp, size: Int): GridDigits {
     val grid = gridMetrics(side, size)
     val cellPx = with(LocalDensity.current) { grid.cell.toPx() }
     val measurer = rememberTextMeasurer()

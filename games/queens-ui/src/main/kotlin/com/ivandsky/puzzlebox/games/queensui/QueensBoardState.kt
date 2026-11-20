@@ -98,6 +98,9 @@ class QueensBoardState(
     var guide by mutableStateOf<Set<Int>?>(null)
         private set
 
+    /** A practice board's say over each move (see [QueensMoveJudge]); null on every daily and free play board. */
+    internal var judge: QueensMoveJudge? = null
+
     internal val stepHints: StepHints<QueensStep, QueensSpotlightMapper.Key> =
         // A newly counted hint: no clearHint on the way, so the Spotlight stays.
         StepHints(
@@ -124,6 +127,7 @@ class QueensBoardState(
 
     fun onTap(idx: Int) {
         onInput()
+        judge?.input(idx, drag = false)
         val current = session
         if (current.isComplete) return
         val cell = Cell(idx)
@@ -150,6 +154,7 @@ class QueensBoardState(
     /** The swipe's first cell decides its mode: on a cross it erases, anywhere else it paints. */
     fun onDragStart(idx: Int) {
         onInput()
+        judge?.input(idx, drag = true)
         val current = session
         erasing = idx in 0 until current.puzzle.cellCount && current.markAt(Cell(idx)) != null &&
             Cell(idx) !in current.queens
@@ -261,7 +266,10 @@ class QueensBoardState(
     /** Applies [move] through the log, then the clock hook, the store and the win. False = a no-op: nothing stored. */
     private fun commit(move: QueensReplayMove): Boolean {
         val previous = session
-        val next = recorder.record(previous, move)
+        val applied = recorder.record(previous, move)
+        if (applied === previous) return false
+        val next = judge?.judged(previous, applied, move) ?: applied
+        if (next !== applied) lastPlacedQueen = null // a refused queen does not pop
         if (next === previous) return false
         val settled = settle(next)
         store(settled)
@@ -271,6 +279,9 @@ class QueensBoardState(
         }
         return true
     }
+
+    /** Puts [session] back on the board, as a practice board undoes a move it has judged. */
+    internal fun restore(session: QueensSession) = store(session)
 
     private fun store(next: QueensSession) {
         session = next

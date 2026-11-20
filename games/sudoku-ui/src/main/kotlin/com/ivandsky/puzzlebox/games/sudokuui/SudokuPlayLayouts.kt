@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
 import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
@@ -90,7 +91,8 @@ internal fun SudokuPlayScreen(
  * layout; the tutorial draws it untuned) keeps every key at the 48dp touch floor, shrinking the grid
  * first, and takes Clear out of the keypad: it sits in the control row.
  * The grid alone wears the solve moment's frame ([LocalSudokuSolveFrame]) and the game's glyph stamp ([LocalSudokuSolveStamp]),
- * so it pops and the keypad stays put.
+ * so it pops and the keypad stays put. [spotlight] is the one the grid draws over its cells (the keypad never is covered):
+ * the board state's own staged hint unless the Trainer's practice board hands in the status Spotlight it shows.
  */
 @Composable
 internal fun SudokuStackedBoard(
@@ -100,6 +102,7 @@ internal fun SudokuStackedBoard(
     onGridWidth: (Dp) -> Unit = {},
     tuned: Boolean = false,
     eraseBeside: Boolean = false,
+    spotlight: Spotlight? = state.spotlight,
 ) {
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
         val size = state.session.board.geometry.size
@@ -112,7 +115,7 @@ internal fun SudokuStackedBoard(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Box(Modifier.size(layout.board).then(LocalSudokuSolveFrame.current), contentAlignment = Alignment.Center) {
-                SudokuGrid(state.model, state::select, Modifier.fillMaxSize(), spotlight = state.spotlight)
+                SudokuGrid(state.model, state::select, Modifier.fillMaxSize(), spotlight = spotlight)
                 LocalSudokuSolveStamp.current?.invoke()
             }
             // A pane-filling grid is height-bound: keys as wide as the pane would be slabs.

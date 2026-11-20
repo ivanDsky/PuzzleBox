@@ -7,7 +7,7 @@ import com.ivandsky.puzzlebox.model.GameId
 
 /**
  * What the Train pane shows: the trainer [games] in the registry's order, the [selected] one, its techniques with their
- * progress ([techniques], in the catalog's own order) and the technique whose round is [open], if any.
+ * progress ([techniques], in the catalog's own order) and the technique whose practice board is [open], if any.
  */
 internal data class TrainState(
     val games: List<GameId>,
@@ -23,17 +23,12 @@ internal data class TechniqueRow(
 )
 
 /**
- * The technique whose round is open, with the [game] that trains it. [attempt] counts the times a technique was opened,
- * so opening one again starts a new round while turning the device, which keeps the number, keeps the round. A non-null
- * [drill] means the player went on from the round's summary to a full puzzle of the technique: the same attempt, now
- * playing the drill in the round's place.
+ * The technique whose practice board is open, with the [game] that trains it. [attempt] counts the times a technique
+ * was opened, so opening one again starts a new board while turning the device, which keeps the number, keeps the
+ * board.
  */
 internal data class OpenTechnique(
     val game: TrainerGame,
     val technique: TrainerTechnique,
     val attempt: Int,
-    val drill: DrillRequest? = null,
 )
-
-/** How the drill opens: [avoid] is the archive numbers the round just loaded, so the drill prefers another puzzle on the device. */
-internal data class DrillRequest(val avoid: Set<Int>)

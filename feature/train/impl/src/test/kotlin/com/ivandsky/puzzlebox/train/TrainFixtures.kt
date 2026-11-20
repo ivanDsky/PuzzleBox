@@ -3,54 +3,80 @@ package com.ivandsky.puzzlebox.train
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
-import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightGlyphs
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.game.trainer.TrainerVerdict
 import com.ivandsky.puzzlebox.gameui.trainer.DrillSource
-import com.ivandsky.puzzlebox.gameui.trainer.Snippet
+import com.ivandsky.puzzlebox.gameui.trainer.PracticeBoard
+import com.ivandsky.puzzlebox.gameui.trainer.PracticeStatus
 import com.ivandsky.puzzlebox.gameui.trainer.TrainerGame
 import com.ivandsky.puzzlebox.gameui.trainer.TrainerTechnique
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.train.practice.StandInGrid
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Runnable
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlin.coroutines.CoroutineContext
 
-/** A snippet that is only its technique and a label; two of them are never the same snippet. */
-internal class FakeSnippet(override val technique: TechniqueId, val label: String) : Snippet {
-    override val prompt: String = "Find the step: $label"
+/**
+ * A practice board a test drives from outside: [say] sets the status the band shows, and [turn] is the game reporting a
+ * trained turn, as the real board does when a move is judged. [showMeCount] counts the Show me taps.
+ */
+internal class FakePracticeBoard(
+    override val technique: TechniqueId,
+    val puzzle: Puzzle,
+    val scope: CoroutineScope,
+    private val onTrainedTurn: (TrainerVerdict) -> Unit,
+    first: PracticeStatus = PracticeStatus.FindNextMove,
+) : PracticeBoard {
+
+    private val mutableStatus = MutableStateFlow(first)
+    override val status: StateFlow<PracticeStatus> = mutableStatus
+
+    var showMeCount = 0
+        private set
+
+    override fun showMe() {
+        showMeCount += 1
+    }
+
+    fun say(status: PracticeStatus) {
+        mutableStatus.value = status
+    }
+
+    fun turn(verdict: TrainerVerdict) = onTrainedTurn(verdict)
 }
 
 /**
- * A trainer with the techniques [techniques]. Each puzzle yields [perPuzzle] snippets at most, and [requested] records
- * the count each call asked for, so a test sees how the round walked the puzzles. [drillSources] are what the game
- * names to drill, and a puzzle whose last payload byte is in [silent] yields no snippet, a puzzle with no step of the
- * technique.
+ * A trainer with the techniques [techniques]. [boards] holds every practice board the game cut, in order, so a test can
+ * drive the one on screen; a puzzle whose last payload byte is in [silent] yields none, a puzzle where the technique is
+ * never the easiest move. [drillSources] are what the game names to drill.
  */
 internal class FakeTrainerGame(
     override val gameId: GameId,
     private val techniques: List<TrainerTechnique>,
-    private val perPuzzle: Int = 5,
     override val drillSources: List<DrillSource> = emptyList(),
 ) : TrainerGame {
 
-    val requested = mutableListOf<Int>()
+    val boards = mutableListOf<FakePracticeBoard>()
     val silent = mutableSetOf<Byte>()
 
     override fun catalog(): List<TrainerTechnique> = techniques
 
-    override fun buildSnippets(puzzle: Puzzle, technique: TechniqueId, count: Int): List<Snippet> {
-        requested += count
-        if (puzzle.payload.last() in silent) return emptyList()
-        return List(minOf(count, perPuzzle)) { FakeSnippet(technique, "${puzzle.payload.last()}-$it") }
+    override fun practice(
+        puzzle: Puzzle,
+        technique: TechniqueId,
+        scope: CoroutineScope,
+        onTrainedTurn: (TrainerVerdict) -> Unit,
+    ): PracticeBoard? {
+        if (puzzle.payload.last() in silent) return null
+        return FakePracticeBoard(technique, puzzle, scope, onTrainedTurn).also { boards += it }
     }
 
     @Composable
-    override fun Board(snippet: Snippet, onVerdict: (TrainerVerdict) -> Unit, modifier: Modifier) = Unit
-
-    override fun spotlight(snippet: Snippet): Spotlight =
-        Spotlight(1, 1, emptyMap(), callout = null, glyphs = SpotlightGlyphs { _, _, _, _ -> }, playId = 0)
+    override fun Board(board: PracticeBoard, modifier: Modifier) = StandInGrid(modifier)
 }
 
 /** Techniques named after their ids, for a catalog of [ids]. */

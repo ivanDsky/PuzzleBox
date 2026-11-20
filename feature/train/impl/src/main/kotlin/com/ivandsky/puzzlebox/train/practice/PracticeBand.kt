@@ -1,0 +1,114 @@
+package com.ivandsky.puzzlebox.train.practice
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.ZeroCornerSize
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
+import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
+import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.gameui.trainer.PracticeStatus
+
+/** The status band's height: fixed, so the board below it never moves whatever the status says. */
+private val BandHeight = 96.dp
+
+/** What the band shows for one status: an [icon], a [title], the [why] line, and the colors it is drawn in. */
+private class Band(val icon: ImageVector, val title: String, val why: String, val container: Color, val content: Color)
+
+/**
+ * The one status band attached to the board's top edge (spec §2.2): the standing instruction, or the outcome of the
+ * last move with its one-line reason. Right is the primary container, an undone Wrong move the error container, an
+ * easier move the tertiary one, and the rest the quiet well. A polite live region, so a screen reader reads each
+ * outcome as it lands. [name] is the trained technique, which the instruction and the Right line name.
+ */
+@Composable
+internal fun StatusBand(status: PracticeStatus, name: String, modifier: Modifier = Modifier) {
+    val band = band(status, name)
+    val shape = MaterialTheme.shapes.medium.copy(bottomStart = ZeroCornerSize, bottomEnd = ZeroCornerSize)
+    Row(
+        modifier
+            .fillMaxSize()
+            .clip(shape)
+            .background(band.container)
+            .border(1.dp, LocalBoardColors.current.boardWall, shape)
+            .padding(horizontal = Spacing.md, vertical = Spacing.sm)
+            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
+            .testTag("train.status"),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(band.icon, contentDescription = null, tint = band.content)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
+            Text(band.title, style = MaterialTheme.typography.titleSmall, color = band.content)
+            Text(band.why, style = MaterialTheme.typography.bodySmall, color = band.content, maxLines = 3, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+@Composable
+private fun band(status: PracticeStatus, name: String): Band {
+    val scheme = MaterialTheme.colorScheme
+    val quiet = scheme.surfaceContainerHigh to scheme.onSurface
+    return when (status) {
+        PracticeStatus.FindNextMove ->
+            Band(PuzzleIcons.Info, "Find the next move", "Play it on the board. Moves that use $name count.", quiet.first, quiet.second)
+        is PracticeStatus.Right -> Band(
+            PuzzleIcons.Check,
+            "Right",
+            if (status.trained) "That move uses $name, so it counts." else "An easier technique makes that move, so it does not count toward $name.",
+            scheme.primaryContainer,
+            scheme.onPrimaryContainer,
+        )
+        is PracticeStatus.Easier -> Band(
+            PuzzleIcons.Hint,
+            "An easier move exists",
+            "That fits the puzzle, but it is undone. Look for ${status.technique} first.",
+            scheme.tertiaryContainer,
+            scheme.onTertiaryContainer,
+        )
+        is PracticeStatus.Wrong -> Band(PuzzleIcons.Undo, "Not there, undone", status.why, scheme.errorContainer, scheme.onErrorContainer)
+        is PracticeStatus.Shown -> Band(PuzzleIcons.Info, "Here is the next move", "It is on the board now. Find the one after it.", quiet.first, quiet.second)
+        PracticeStatus.Solved -> Band(PuzzleIcons.Check, "Solved", "Every square is placed.", quiet.first, quiet.second)
+    }
+}
+
+/**
+ * [band] attached to the top edge of [board]: the board is measured first, within the space given less the band, and the
+ * band is then as wide as the board and [BandHeight] tall, so the two read as one frame whatever shape the game's board
+ * takes.
+ */
+@Composable
+internal fun BandOverBoard(band: @Composable () -> Unit, board: @Composable () -> Unit, modifier: Modifier = Modifier) {
+    Layout(content = { Box { band() }; Box { board() } }, modifier = modifier) { measurables, constraints ->
+        val bandHeight = BandHeight.roundToPx()
+        val room = if (constraints.hasBoundedHeight) (constraints.maxHeight - bandHeight).coerceAtLeast(0) else Constraints.Infinity
+        val boardPlaceable = measurables[1].measure(constraints.copy(minWidth = 0, minHeight = 0, maxHeight = room))
+        val bandPlaceable = measurables[0].measure(Constraints.fixed(boardPlaceable.width, bandHeight))
+        layout(boardPlaceable.width, bandHeight + boardPlaceable.height) {
+            bandPlaceable.placeRelative(0, 0)
+            boardPlaceable.placeRelative(0, bandHeight)
+        }
+    }
+}
