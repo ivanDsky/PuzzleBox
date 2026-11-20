@@ -9,8 +9,11 @@ import com.ivandsky.puzzlebox.app.R
 /** [ShortcutPublisher] over the shortcut manager: stable ids (`up_next`, `game_<id>`), labels from resources, icons from [ShortcutIcons]. */
 class AndroidShortcutPublisher(private val context: Context) : ShortcutPublisher {
 
+    /** Entries arrive ranked, so a launcher with fewer slots than entries drops the last games, never the menu (A9). */
     override fun publish(entries: List<ShortcutEntry>) {
-        ShortcutManagerCompat.setDynamicShortcuts(context, entries.map(::shortcutOf))
+        val max = ShortcutManagerCompat.getMaxShortcutCountPerActivity(context)
+        val kept = if (max > 0) entries.take(max) else entries
+        ShortcutManagerCompat.setDynamicShortcuts(context, kept.map(::shortcutOf))
     }
 
     override fun clear() {

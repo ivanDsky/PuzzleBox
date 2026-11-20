@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.app.shortcut
 
 import android.content.Context
+import android.content.pm.ShortcutManager
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.test.core.app.ApplicationProvider
 import com.ivandsky.puzzlebox.app.DrainTestApplication
@@ -10,6 +11,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
@@ -55,5 +57,14 @@ class AndroidShortcutPublisherTest {
 
         publisher.clear()
         assertTrue(published().isEmpty())
+    }
+
+    @Test
+    fun `a launcher with fewer slots than entries keeps the top ranks and drops the last`() {
+        shadowOf(context.getSystemService(ShortcutManager::class.java)).setMaxShortcutCountPerActivity(2)
+
+        publisher.publish(entries)
+
+        assertEquals(listOf("up_next", "game_zip"), published().map { it.id })
     }
 }
