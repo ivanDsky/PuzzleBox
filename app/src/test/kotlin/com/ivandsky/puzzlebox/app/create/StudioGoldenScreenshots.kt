@@ -166,7 +166,7 @@ abstract class StudioGoldenScreenshots(private val layout: PlayLayout, private v
     ) {
         StudioScreen(
             title = TITLE,
-            subtitle = "Queens ${QueensEditorUi.sizeLabel(editorDraft.variant)}",
+            subtitle = "Queens ${QueensEditorUi().sizeLabel(editorDraft.variant)}",
             saving = false,
             verdict = verdict,
             cardOpen = card.open.collectAsState().value,
@@ -180,7 +180,7 @@ abstract class StudioGoldenScreenshots(private val layout: PlayLayout, private v
             onRollTitle = { "Amber Falcon" },
             onDuplicate = {},
             onDelete = {},
-            board = { boardModifier -> QueensEditorUi.Board(controller, verdict, layout, boardModifier) },
+            board = { boardModifier -> QueensEditorUi().Board(controller, verdict, layout, boardModifier) },
             toolStrip = { stripModifier ->
                 ToolStrip(
                     canUndo = true,
@@ -189,15 +189,15 @@ abstract class StudioGoldenScreenshots(private val layout: PlayLayout, private v
                     onRedo = {},
                     sizes = QueensEditor.variants,
                     size = editorDraft.variant,
-                    sizeLabel = QueensEditorUi::sizeLabel,
+                    sizeLabel = QueensEditorUi()::sizeLabel,
                     onResize = {},
                     onClear = {},
-                    hint = { hintModifier -> QueensEditorUi.ToolHint(controller, hintModifier) },
+                    hint = { hintModifier -> QueensEditorUi().ToolHint(controller, hintModifier) },
                     modifier = stripModifier,
                 )
             },
             issues = { issuesModifier ->
-                QueensEditorUi.Issues(controller, verdict, editorDraft.publishBlocks(verdict), card::dismiss, issuesModifier)
+                QueensEditorUi().Issues(controller, verdict, editorDraft.publishBlocks(verdict), card::dismiss, issuesModifier)
             },
             actionArea = { areaModifier ->
                 ActionArea(

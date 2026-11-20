@@ -75,7 +75,7 @@ class NewPuzzleSheetQueensTest {
                     viewModel {
                         CreateViewModel(
                             games,
-                            GameEditorRegistry(listOf(QueensEditorUi)),
+                            GameEditorRegistry(listOf(QueensEditorUi())),
                             GamePlayRegistry(emptyList()),
                             drafts,
                             FakePublishedPuzzleRepository(),
@@ -110,7 +110,7 @@ class NewPuzzleSheetQueensTest {
 
         assertEquals(QueensEditor.variants.map { "$SIZE${it.value}" }, tagsStartingWith(SIZE))
         QueensEditor.variants.forEach { variant ->
-            rule.onNodeWithTag("$SIZE${variant.value}").assert(hasText(QueensEditorUi.sizeLabel(variant)))
+            rule.onNodeWithTag("$SIZE${variant.value}").assert(hasText(QueensEditorUi().sizeLabel(variant)))
         }
     }
 

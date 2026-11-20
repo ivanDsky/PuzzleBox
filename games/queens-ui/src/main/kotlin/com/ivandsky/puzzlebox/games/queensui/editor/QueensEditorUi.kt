@@ -13,8 +13,11 @@ import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import com.ivandsky.puzzlebox.model.GameId
 
-/** Queens' editor UI: the crown-and-paint board over a [QueensEditorController]. */
-object QueensEditorUi : GameEditorUi {
+/**
+ * Queens' editor UI: the crown-and-paint board over a [QueensEditorController]. [modeTiles] says, each time an
+ * editor opens, whether the Queen | Paint switch shows as tiles.
+ */
+class QueensEditorUi(private val modeTiles: () -> Boolean = { false }) : GameEditorUi {
 
     override val gameId: GameId = QueensDefinition.id
 
@@ -26,7 +29,7 @@ object QueensEditorUi : GameEditorUi {
     override fun createController(
         initial: EditorDraft<*>,
         onEdit: (EditorDraft<*>) -> Unit,
-    ): GameEditorController = QueensEditorController(initial, onEdit)
+    ): GameEditorController = QueensEditorController(initial, modeTiles(), onEdit)
 
     @Composable
     override fun Board(controller: GameEditorController, verdict: Verdict, layout: PlayLayout, modifier: Modifier) {

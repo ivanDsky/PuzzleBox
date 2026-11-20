@@ -114,7 +114,7 @@ class QueensFixListTest {
     ): QueensEditorController {
         val controller = QueensEditorController(EditorDraft(QueensEditor, DraftState(draft))) {}
         rule.setContent {
-            PuzzleBoxTheme { QueensEditorUi.Issues(controller, verdict, blocks, onSelect, Modifier) }
+            PuzzleBoxTheme { QueensEditorUi().Issues(controller, verdict, blocks, onSelect, Modifier) }
         }
         return controller
     }

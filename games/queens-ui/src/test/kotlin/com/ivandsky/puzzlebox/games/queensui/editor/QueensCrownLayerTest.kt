@@ -49,7 +49,7 @@ class QueensCrownLayerTest {
         rule.setContent {
             PuzzleBoxTheme {
                 Column {
-                    QueensEditorUi.ToolHint(controller, Modifier.fillMaxWidth())
+                    QueensEditorUi().ToolHint(controller, Modifier.fillMaxWidth())
                     QueensEditorBoard(controller, Verdict.Checking, Modifier.fillMaxWidth())
                 }
             }
