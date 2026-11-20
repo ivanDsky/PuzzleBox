@@ -50,14 +50,15 @@ internal class SudokuTrainer(private val compute: CoroutineDispatcher) : Trainer
     }
 
     /**
-     * The hint's Spotlight for the step, its glyphs redrawn in the board's digit style. The mapper reads the step's own
+     * The hint's Spotlight for the step that proved the player's own Right move when it was another instance than the
+     * cut's, else for the cut's own step, its glyphs redrawn in the board's digit style. The mapper reads the step's own
      * struck digits and evidence, not the walk's earlier strikes ([SudokuSnippet.cut]'s `struckBefore`), so the reveal
      * shows what the technique proves on the board's real candidates.
      */
     override fun spotlight(snippet: Snippet): Spotlight {
         val sudoku = snippet.asSudoku()
         val cut = sudoku.cut
-        return SudokuSpotlightMapper.map(cut.step, sudoku.puzzle, cut.boardBefore, playId = 0).revealedIn(sudoku.digits)
+        return SudokuSpotlightMapper.map(sudoku.proving.step ?: cut.step, sudoku.puzzle, cut.boardBefore, playId = 0).revealedIn(sudoku.digits)
     }
 
     private fun Snippet.asSudoku(): SudokuSnippet =

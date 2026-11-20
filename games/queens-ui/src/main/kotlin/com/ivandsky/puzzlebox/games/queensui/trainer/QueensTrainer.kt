@@ -46,9 +46,10 @@ internal class QueensTrainer(private val compute: CoroutineDispatcher) : Trainer
         QueensSnippetBoard(snippet.asQueens(), compute, onVerdict, modifier)
     }
 
+    /** The step that proved the player's own Right move when it was another instance than the cut's, else the cut's own step. */
     override fun spotlight(snippet: Snippet): Spotlight {
         val queens = snippet.asQueens()
-        return QueensSpotlightMapper.map(queens.cut.step, queens.puzzle, playId = 0)
+        return QueensSpotlightMapper.map(queens.proving.step ?: queens.cut.step, queens.puzzle, playId = 0)
     }
 
     private fun Snippet.asQueens(): QueensSnippet =

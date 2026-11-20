@@ -42,12 +42,14 @@ internal fun TangoSnippetBoard(
             onTap = { idx ->
                 state.tap(idx)?.let { move ->
                     scope.launch {
-                        val verdict = withContext(compute) {
-                            TangoMoveCheck.classify(
+                        val judged = withContext(compute) {
+                            TangoMoveCheck.judge(
                                 snippet.puzzle, snippet.solution, snippet.cut.gridBefore, snippet.technique, move,
                             )
                         }
-                        report(verdict)
+                        // Before the verdict: the round asks for the reveal as soon as it has it.
+                        snippet.proving.step = judged.proof?.takeUnless { snippet.cutProves(move) }
+                        report(judged.verdict)
                     }
                 }
             },

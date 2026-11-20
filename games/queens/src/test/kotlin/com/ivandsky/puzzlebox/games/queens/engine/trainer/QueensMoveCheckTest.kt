@@ -64,6 +64,35 @@ class QueensMoveCheckTest {
     }
 
     @Test
+    fun `a right move comes with the step that proves it, whichever instance the player found`() {
+        // unique's walk step 42 is a singles board with three singles: 10, 16 and 28.
+        val unique = dailies.getValue("unique")
+        val walked = QueensTechniqueWalker.walk(unique)[42]
+        val cut = walked.step as QueensStep.Deduction
+        val ownCell = (cut.result as QueensStep.Deduction.Result.LastCell).cell
+        val others = listOf(10, 16, 28).map(::Cell).filter { it != ownCell }
+        assertEquals(2, others.size)
+
+        val own = QueensMoveCheck.judge(unique, walked.boardBefore, TechniqueId("singles"), QueensTrainerMove.Place(ownCell))
+        assertEquals(TrainerVerdict.Right, own.verdict)
+        assertEquals(cut, own.proof)
+        for (cell in others) {
+            val found = QueensMoveCheck.judge(unique, walked.boardBefore, TechniqueId("singles"), QueensTrainerMove.Place(cell))
+            assertEquals(TrainerVerdict.Right, found.verdict)
+            assertEquals(QueensStep.Deduction.Result.LastCell(cell), found.proof?.result)
+        }
+    }
+
+    @Test
+    fun `only a right move comes with a proving step`() {
+        val real = dailies.getValue("real-916")
+        val empty = board(real, 0, "line-lock")
+        val id = TechniqueId("line-lock")
+        assertEquals(null, QueensMoveCheck.judge(real, empty, id, QueensTrainerMove.Place(Cell(6))).proof)
+        assertEquals(null, QueensMoveCheck.judge(real, empty, id, QueensTrainerMove.Place(Cell(1))).proof)
+    }
+
+    @Test
     fun `a move that breaks the solution is wrong`() {
         val real = dailies.getValue("real-916")
         val crossed = board(real, 1, "singles")

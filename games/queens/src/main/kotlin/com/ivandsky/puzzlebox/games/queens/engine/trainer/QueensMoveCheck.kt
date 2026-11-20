@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensCandidates
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensDeduction
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensLadder
+import com.ivandsky.puzzlebox.games.queens.engine.hints.step.toStep
 
 /**
  * Judges one snippet move against the snippet's target technique (spec A4): [TrainerVerdict.Right]
@@ -19,15 +20,21 @@ import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensLadder
  */
 object QueensMoveCheck {
 
+    /** [judge]'s verdict alone. */
+    fun classify(puzzle: QueensPuzzle, boardBefore: QueensBoard, technique: TechniqueId, move: QueensTrainerMove): TrainerVerdict =
+        judge(puzzle, boardBefore, technique, move).verdict
+
     /**
      * [move] on [boardBefore], judged for [technique]. The board reads as a snippet board shows it
      * (A11): its queens with the crosses they force, plus its manual crosses, the candidates the
      * stepper builds with Auto-cross on. [puzzle] carries the solution the fit is judged against.
+     * A Right move comes with the step that proves it, which need not be the step a
+     * snippet was cut at: the player may find another instance of the technique.
      *
      * @throws IllegalArgumentException when [technique] is no Queens technique, [puzzle] has no
      *   solution, or [move]'s cell is off the board or already holds a queen or a cross.
      */
-    fun classify(puzzle: QueensPuzzle, boardBefore: QueensBoard, technique: TechniqueId, move: QueensTrainerMove): TrainerVerdict {
+    fun judge(puzzle: QueensPuzzle, boardBefore: QueensBoard, technique: TechniqueId, move: QueensTrainerMove): QueensMoveJudgement {
         val rung = requireNotNull(QueensLadder.Stepwise.rungs.firstOrNull { it.trainerId == technique }) {
             "$technique is not a Queens technique"
         }
@@ -44,13 +51,17 @@ object QueensMoveCheck {
             is QueensTrainerMove.Cross -> move.cell !in solution
         }
         // A rung proves only what holds in every solution of the board, so a move that breaks this one is never proved.
-        if (!fits) return TrainerVerdict.Wrong
-        val proved = rung.steps(puzzle, candidates).any { proof ->
-            when (val d = proof.deduction) {
-                is QueensDeduction.Place -> move is QueensTrainerMove.Place && d.cell == cell
-                is QueensDeduction.Exclude -> move is QueensTrainerMove.Cross && cell in d.cells
+        if (!fits) return QueensMoveJudgement(TrainerVerdict.Wrong, proof = null)
+        // Several proofs may prove the move; the one with the least evidence is the simplest.
+        val proof = rung.steps(puzzle, candidates)
+            .filter { p ->
+                when (val d = p.deduction) {
+                    is QueensDeduction.Place -> move is QueensTrainerMove.Place && d.cell == cell
+                    is QueensDeduction.Exclude -> move is QueensTrainerMove.Cross && cell in d.cells
+                }
             }
-        }
-        return if (proved) TrainerVerdict.Right else TrainerVerdict.AnotherWay
+            .minByOrNull { it.evidence.size }
+            ?: return QueensMoveJudgement(TrainerVerdict.AnotherWay, proof = null)
+        return QueensMoveJudgement(TrainerVerdict.Right, proof.toStep())
     }
 }

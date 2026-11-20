@@ -51,9 +51,10 @@ internal class TangoTrainer(private val compute: CoroutineDispatcher) : TrainerG
         TangoSnippetBoard(snippet.asTango(), compute, onVerdict, modifier)
     }
 
+    /** The step that proved the player's own Right move when it was another instance than the cut's, else the cut's own step. */
     override fun spotlight(snippet: Snippet): Spotlight {
         val tango = snippet.asTango()
-        return TangoSpotlightMapper.map(tango.cut.step, tango.puzzle, tango.cut.gridBefore, playId = 0)
+        return TangoSpotlightMapper.map(tango.proving.step ?: tango.cut.step, tango.puzzle, tango.cut.gridBefore, playId = 0)
     }
 
     private fun Snippet.asTango(): TangoSnippet =
