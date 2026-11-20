@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -28,15 +27,15 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 
 /**
- * One segment per page, the first [filled] of them lit in the progress fill over a `surfaceVariant` track: where the
+ * One segment per page, the first [filled] of them lit in the progress fill over a faint tint of that fill: where the
  * player is in the story, nothing else, so it is not tappable. A segment fills from the left as its card arrives and is
  * instant under reduced motion.
  */
 @Composable
 internal fun RecapProgressStrip(count: Int, filled: Int, modifier: Modifier = Modifier) {
     val reduced = rememberReducedMotion()
-    val track = MaterialTheme.colorScheme.surfaceVariant
     val fill = LocalTimerFill.current
+    val track = fill.copy(alpha = TrackAlpha)
     Row(
         modifier
             .fillMaxWidth()
@@ -78,3 +77,6 @@ internal fun RecapProgressStrip(count: Int, filled: Int, modifier: Modifier = Mo
 }
 
 private val SegmentHeight = 6.dp
+
+/** The track's share of the fill over the screen, as the story-shell references measure. */
+private const val TrackAlpha = 0.28f
