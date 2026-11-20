@@ -1,15 +1,20 @@
 package com.ivandsky.puzzlebox.insights.recap
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.entranceSettled
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * How far (0..1) a Solved entrance move has come: it starts [delayMs] after the card is shown and runs [durationMs] on
@@ -27,22 +32,31 @@ internal fun rememberSolvedMove(delayMs: Int, durationMs: Int = MotionTokens.Dur
 }
 
 /**
- * The scale of a band's landing (Stamp): from [MotionTokens.StampFromScale] to 1 on the Stamp spring, starting when the
- * band's slide does. Reduced motion and a preview are at 1 at once (the page's one fade stands in).
+ * A count's landing (Stamp): this modifier scales it from [MotionTokens.StampFromScale] to 1 on the Stamp spring about its
+ * bottom-right corner while it fades in over [MotionTokens.StampFadeDuration], both starting [delayMs] after the card is
+ * shown. Reduced motion and a preview are at rest at once (the page's one fade stands in).
  */
 @Composable
-internal fun rememberSolvedStamp(delayMs: Int): Float {
+internal fun Modifier.solvedStamp(delayMs: Int): Modifier {
     val instant = rememberReducedMotion() || entranceSettled()
     val scale = remember { Animatable(if (instant) 1f else MotionTokens.StampFromScale) }
+    val fade = remember { Animatable(if (instant) 1f else 0f) }
     LaunchedEffect(scale, instant) {
         if (instant) {
             scale.snapTo(1f)
+            fade.snapTo(1f)
         } else {
             delay(delayMs.toLong())
+            launch { fade.animateTo(1f, tween(MotionTokens.StampFadeDuration, easing = LinearEasing)) }
             scale.animateTo(1f, spring(MotionTokens.StampSpringDamping, MotionTokens.StampSpringStiffness))
         }
     }
-    return scale.value
+    return graphicsLayer {
+        scaleX = scale.value
+        scaleY = scale.value
+        alpha = fade.value
+        transformOrigin = TransformOrigin(1f, 1f)
+    }
 }
 
 /** The card's own 120ms fade in when motion is reduced (every other part is already at its final value); 1 otherwise. */
@@ -61,6 +75,10 @@ internal fun bandStartMs(index: Int): Int = BandFirstMs + index * BandStepMs
 internal fun stripeStartMs(bands: Int): Int = bandStartMs(bands - 1) + BandCountDelayMs + StripeAfterCountMs
 
 internal const val BandCountDelayMs = 220
+
+/** The stripe's count starts this long after the stripe does, and its second line comes in [StripeSubDelayMs] after it. */
+internal const val StripeCountDelayMs = 100
+internal const val StripeSubDelayMs = 260
 private const val BandFirstMs = 650
 private const val BandStepMs = 90
 private const val StripeAfterCountMs = 900

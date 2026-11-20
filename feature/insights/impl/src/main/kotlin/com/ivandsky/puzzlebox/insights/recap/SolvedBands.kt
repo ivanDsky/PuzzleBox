@@ -17,7 +17,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -36,7 +35,7 @@ import com.ivandsky.puzzlebox.model.GameId
 /**
  * The games' bands: one per game, stacked on a sheet that fills the [modifier]'s height, each as tall as its share of
  * the solves (never under [minBand]) in the game's own colour, with its name left and its count right. The bands slide in
- * one after the other, each landing with the Stamp spring, and each count rolls up (Solved motion); reduced motion shows them settled.
+ * one after the other from below the sheet, and each count rolls up and lands with the Stamp spring (Solved motion); reduced motion shows them settled.
  */
 @Composable
 internal fun SolvedBands(
@@ -52,18 +51,14 @@ internal fun SolvedBands(
             perGame.forEachIndexed { index, row ->
                 val colors = brands(row.game).accent.colors()
                 val slide = rememberSolvedMove(bandStartMs(index))
-                val stamp = rememberSolvedStamp(bandStartMs(index) + MotionTokens.DurationExpressive)
-                val count = rememberCountUp(row.solved.toLong(), delayMs = bandStartMs(index) + BandCountDelayMs)
-                val offset = with(LocalDensity.current) { SlideRise.toPx() }
+                val countStart = bandStartMs(index) + BandCountDelayMs
+                val count = rememberCountUp(row.solved.toLong(), delayMs = countStart, durationMs = MotionTokens.ScoreCountUpDuration)
                 Row(
                     Modifier
                         .fillMaxWidth()
                         .height(heights[index].dp)
                         .graphicsLayer {
-                            alpha = slide
-                            scaleX = stamp
-                            scaleY = stamp
-                            translationY = (1f - slide) * offset
+                            translationY = (1f - slide) * size.height * SlideTravel
                         }
                         .background(colors.accent)
                         .padding(horizontal = Spacing.xl)
@@ -79,6 +74,7 @@ internal fun SolvedBands(
                     )
                     Text(
                         text = count.toString(),
+                        modifier = Modifier.solvedStamp(countStart).testTag("recap.solved.game.${row.game.value}.count"),
                         style = MaterialTheme.typography.displaySmall.tabular().copy(fontSize = 40.sp, lineHeight = 44.sp, fontWeight = FontWeight.Bold),
                         color = colors.onAccent,
                     )
@@ -112,5 +108,6 @@ internal fun bandHeights(solves: List<Int>, totalHeight: Float, min: Float): Lis
 internal val BandMin = 56.dp
 internal val BandMinWithStripe = 48.dp
 private val SheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-private val SlideRise = 24.dp
+/** A band starts one band-height and a hair below its slot, so it comes up from under the sheet's edge. */
+private const val SlideTravel = 1.01f
 
