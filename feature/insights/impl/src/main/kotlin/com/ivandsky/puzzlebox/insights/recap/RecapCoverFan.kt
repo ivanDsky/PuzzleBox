@@ -1,83 +1,79 @@
 package com.ivandsky.puzzlebox.insights.recap
 
-import androidx.compose.animation.core.spring
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
-import com.ivandsky.puzzlebox.designsystem.MotionTokens
-import com.ivandsky.puzzlebox.designsystem.RecapMotion
+import com.ivandsky.puzzlebox.designsystem.RecapCard
 import com.ivandsky.puzzlebox.designsystem.colors
+import com.ivandsky.puzzlebox.designsystem.plate
 
 /**
- * Five game letters fanned like a hand of cards, the cover's art: Queens, Tango, Zip, Mini Sudoku and Strands, each in
- * its game's accent. The cards grow with the width, up to [MaxCardWidth], and are ink-outlined so they hold on the
- * cover's plate. From [startMs] on they spread out of one stack, one after another on the DeckSpring; under reduced
- * motion they sit fanned. Decoration only, so a screen reader skips it.
+ * Five game letters fanned like a hand of cards, the cover's art (prototype `.fanc`): Queens, Tango, Zip, Mini Sudoku and
+ * Strands, each in its game's accent, laid out in a 300 × 180 box (560 × 200 when [wide]) scaled to fit the room. Every
+ * tile sits in a ring of the cover's plate and then one of its ink, so it reads against the field whatever its colour.
+ * From [startMs] on the tiles spread out of one stack, one every [FanStagger] ms (prototype `@keyframes fan`); under
+ * reduced motion they sit fanned. Decoration only, so a screen reader skips it.
  */
 @Composable
-internal fun RecapCoverFan(modifier: Modifier = Modifier, startMs: Int = 0) {
+internal fun RecapCoverFan(modifier: Modifier = Modifier, wide: Boolean = false, startMs: Int = 0) {
     val ink = LocalContentColor.current
-    BoxWithConstraints(modifier.clearAndSetSemantics {}) {
-        val card = (maxWidth * CardWidthShare).coerceAtMost(MaxCardWidth)
-        val cardHeight = card * CardAspect
-        val step = ((maxWidth - card) * StepShare).coerceAtMost(card * MaxStepShare)
-        Box(Modifier.size(maxWidth, cardHeight + ArcDrop * 4)) {
-            Letters.forEachIndexed { i, (slot, letter) ->
-                val k = i - Letters.lastIndex / 2
+    val plate = RecapCard.Cover.plate
+    BoxWithConstraints(modifier.fillMaxSize().clearAndSetSemantics {}, contentAlignment = Alignment.Center) {
+        val boxWidth = if (wide) WideBoxWidth else BoxWidth
+        val boxHeight = if (wide) WideBoxHeight else BoxHeight
+        val scale = minOf(maxWidth / boxWidth, maxHeight / boxHeight, if (wide) WideMaxScale else MaxScale)
+        val spread = if (wide) WideSpread else Spread
+        Box(Modifier.size(boxWidth * scale, boxHeight * scale)) {
+            Letters.forEachIndexed { j, (slot, letter) ->
+                val k = j - Letters.lastIndex / 2
                 val accent = slot.colors()
-                val spread = coverEntrance(
-                    startMs + i * MotionTokens.EnterStagger,
-                    spring(RecapMotion.DeckSpringDamping, RecapMotion.DeckSpringStiffness),
-                )
+                val p by coverEntrance(startMs + j * FanStagger, tween(FanMs, easing = EasingSpring))
                 Box(
                     Modifier
                         .align(Alignment.Center)
-                        .offset(x = step * k, y = ArcDrop * (k * k) - ArcDrop * 2)
-                        .size(card, cardHeight)
+                        .size(TileWidth * scale, TileHeight * scale)
                         .graphicsLayer {
-                            val p = spread.value
-                            // Out of the stack: from under the middle card, lower and upright, into its place in the fan.
-                            translationX = (p - 1f) * (step * k).toPx()
-                            translationY = (1f - p) * RecapMotion.DealRise.toPx()
-                            rotationZ = p * k * TiltStep
-                            alpha = p.coerceIn(0f, 1f)
+                            val rest = p
+                            translationX = rest * k * spread.toPx() * scale
+                            translationY = rest * k * k * Drop.toPx() * scale + (1f - rest) * Rise.toPx() * scale
+                            rotationZ = rest * k * Tilt
+                            alpha = rest.coerceIn(0f, 1f)
                         }
-                        .clip(CardShape)
-                        .background(accent.accent)
-                        .border(BorderStroke(Outline, ink), CardShape)
-                        .padding(Outline)
-                        .border(BorderStroke(Inline, Color.White), InnerShape),
+                        .drawBehind {
+                            val radius = TileRadius.toPx() * scale
+                            val ring = Ring.toPx() * scale
+                            drawRoundRect(ink, Offset(-2 * ring, -2 * ring), Size(size.width + 4 * ring, size.height + 4 * ring), CornerRadius(radius + 2 * ring))
+                            drawRoundRect(plate, Offset(-ring, -ring), Size(size.width + 2 * ring, size.height + 2 * ring), CornerRadius(radius + ring))
+                            drawRoundRect(accent.accent, size = size, cornerRadius = CornerRadius(radius))
+                        },
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         letter,
                         color = accent.onAccent,
                         style = MaterialTheme.typography.displayMedium,
-                        fontSize = (card.value * LetterShare).sp,
-                        fontWeight = FontWeight.Bold,
-                        fontStyle = FontStyle.Italic,
+                        fontSize = (LetterSize * scale).sp,
+                        fontWeight = FontWeight.ExtraBold,
                     )
                 }
             }
@@ -93,22 +89,27 @@ private val Letters = listOf(
     AccentSlot.Pink to "S",
 )
 
-private val MaxCardWidth: Dp = 120.dp
-private val ArcDrop = 5.dp
-private val Outline = 2.dp
-private val Inline = 1.5.dp
-private val CardShape = RoundedCornerShape(20.dp)
-private val InnerShape = RoundedCornerShape(18.dp)
+// Prototype `.fanc` and its `.fitbox` (data-nw/nh, data-wnw/wnh, `--sx`), in dp at scale 1.
+private val BoxWidth = 300.dp
+private val BoxHeight = 180.dp
+private val WideBoxWidth = 560.dp
+private val WideBoxHeight = 200.dp
+private const val MaxScale = 1.5f
+private const val WideMaxScale = 3f
+private val TileWidth = 84.dp
+private val TileHeight = 120.dp
+private val TileRadius = 14.dp
+private val Spread = 44.dp
+private val WideSpread = 96.dp
+private val Drop = 4.dp
+private const val Tilt = 12f
+private const val LetterSize = 34f
 
-private const val CardWidthShare = 0.33f
-private const val CardAspect = 1.38f
+/** The plate ring and the ink ring around a tile are each this wide (prototype `box-shadow: 0 0 0 2px, 0 0 0 4px`). */
+private val Ring = 2.dp
 
-/** How much of the room left beside one card the neighbouring cards step across, and the most, in card widths. */
-private const val StepShare = 0.215f
-private const val MaxStepShare = 1.13f
-
-/** Each card turns this many degrees further than its inner neighbour. */
-private const val TiltStep = 9f
-
-/** The letter's size in sp per dp of card width. */
-private const val LetterShare = 0.4f
+// Prototype `@keyframes fan`: each tile rises from [Rise] below, on `--FanMs` after `--FanStagger` × its index.
+private val Rise = 40.dp
+private const val FanMs = 640
+private const val FanStagger = 60
+private val EasingSpring = CubicBezierEasing(0.34f, 1.3f, 0.64f, 1f)

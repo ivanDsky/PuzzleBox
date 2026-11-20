@@ -47,10 +47,7 @@ object RecapMotion {
     const val HoldThreshold = 280
     const val HoldPeek = 0.74f
 
-    // DeckStack: cards peek below the top one, each step lower and smaller; promote and hold reuse the Nav clocks.
-    val DeckStackStep: Dp = 14.dp
-    const val DeckStackScaleStep = 0.045f
-    const val DeckStackVisible = 3
+    // DeckStack: only the top card shows; promote and hold reuse the Nav clocks.
     const val DeckStackPromote = MotionTokens.NavFullSlideEnter
     const val DeckStackHoldIn = MotionTokens.NavFullSlideEnter
     const val DeckStackHoldOut = MotionTokens.NavFullSlidePop

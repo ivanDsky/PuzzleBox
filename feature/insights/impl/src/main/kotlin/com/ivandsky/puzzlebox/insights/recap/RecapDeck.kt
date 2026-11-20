@@ -52,8 +52,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 /**
- * The recap story as a stack of cards: the page on top over the next [RecapMotion.DeckStackVisible] - 1 peeking out
- * below it, each [RecapMotion.DeckStackStep] lower and [RecapMotion.DeckStackScaleStep] smaller. A tap on the left third
+ * The recap story as a deck of cards of which only the top one shows; nothing is drawn behind it. A tap on the left third
  * steps back and anywhere else steps on, and nothing moves by itself (A7). Stepping on throws the top card off to the left
  * while the next is promoted; stepping back brings the thrown card back over the stack. A drag follows the finger with a
  * tilt and rubber-bands past the first or last page; a hold slides the top card down to show the next. Reduced motion
@@ -114,11 +113,12 @@ internal fun RecapDeck(
         peek.animateTo(if (holding) 1f else 0f, tween(duration, easing = if (reduced) MotionTokens.EasingLinear else MotionTokens.EasingStandard))
     }
 
-    // The thrown card stays until it has flown; a card leaving the stack stays until it has faded.
+    // The thrown card stays until it has flown; a card leaving the top stays until it has faded.
     val lowest by remember { derivedStateOf { floor(thrown.value).toInt() } }
     val deepest by remember { derivedStateOf { ceil(stack.value).toInt() } }
     val first = min(top, lowest)
-    val last = min(max(top, deepest) + RecapMotion.DeckStackVisible - 1, deck.stackSize - 1)
+    val peeking by remember { derivedStateOf { peek.value > 0f } }
+    val last = min(max(top, deepest) + if (peeking) 1 else 0, deck.stackSize - 1)
     val shape = MaterialTheme.shapes.extraLarge
     Box(
         modifier
@@ -146,7 +146,7 @@ internal fun RecapDeck(
             }
             .testTag("recap.pager"),
     ) {
-        // Lowest page last, so the top card and a thrown one draw over the stack.
+        // Lowest page last, so the top card and a thrown one draw over the card fading up or out beneath.
         for (index in last downTo first) key(index) {
             val entry = palette(index)
             val onTop = index == top
@@ -157,10 +157,11 @@ internal fun RecapDeck(
                         val behind = (index - stack.value).coerceAtLeast(0f)
                         val flown = (thrown.value - index).coerceIn(0f, 1f)
                         val fade = if (flown >= 1f) 0f else ((1f - flown) / (1f - throwFrom)).coerceIn(0f, 1f)
-                        var scale = 1f - behind * RecapMotion.DeckStackScaleStep
+                        var scale = 1f
                         transformOrigin = TransformOrigin(0.5f, 1f)
-                        translationY = behind * RecapMotion.DeckStackStep.toPx()
-                        alpha = (RecapMotion.DeckStackVisible - behind).coerceIn(0f, 1f) * fade
+                        // A card below the top is not drawn; one coming up or going down fades in or out in place.
+                        // The hold is the one time the next card shows: the top card slides down off it.
+                        alpha = max((1f - behind).coerceIn(0f, 1f), if (index == top + 1) peek.value else 0f) * fade
                         if (!reduced) {
                             val flick = yearFlick(index)
                             translationX = flown * throwTravel(flick) * size.width
