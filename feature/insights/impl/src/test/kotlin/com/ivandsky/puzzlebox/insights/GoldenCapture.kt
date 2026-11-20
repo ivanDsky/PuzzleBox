@@ -10,7 +10,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
@@ -45,7 +50,7 @@ internal fun ComposeContentTestRule.showGolden(dark: Boolean, frozen: Boolean = 
 }
 
 /**
- * Lets entrances settle, then captures the whole screen, dialogs and sheets included, to
+ * Lets entrances settle (going past a recap's cover unless the group is the story shell), then captures the whole screen, dialogs and sheets included, to
  * `snapshots/<group>/<name>-<device>-<light|dark>.png`.
  * Rendered with `-Proborazzi.record=true` (untracked review captures in `snapshots/`).
  */
@@ -53,6 +58,11 @@ internal fun ComposeContentTestRule.showGolden(dark: Boolean, frozen: Boolean = 
 internal fun ComposeContentTestRule.settleAndCapture(group: String, name: String, device: String, dark: Boolean) {
     mainClock.autoAdvance = false
     mainClock.advanceTimeBy(SETTLE_MS)
+    if (group != "story-shell" && onAllNodesWithTag("recap.cover").fetchSemanticsNodes().isNotEmpty()) {
+        // A recap opens on its cover; every golden outside the story shell is of a card, so go past it.
+        onNodeWithTag("recap.pager").performTouchInput { click(Offset(width * 0.8f, height / 2f)) }
+        mainClock.advanceTimeBy(SETTLE_MS)
+    }
     val file = File(checkNotNull(System.getProperty("user.dir")))
         .resolve("snapshots/$group/$name-$device-${if (dark) "dark" else "light"}.png")
         .canonicalFile

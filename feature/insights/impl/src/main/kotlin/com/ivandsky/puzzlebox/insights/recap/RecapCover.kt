@@ -78,7 +78,7 @@ private val Spelled = listOf("One", "Two", "Three", "Four", "Five", "Six", "Seve
 private fun Int.spelled(): String = Spelled.getOrNull(this - 1) ?: toString()
 
 private val WideWidth = 600.dp
-private val TitleSize = 58.sp
+private val TitleSize = 48.sp
 private val WideTitleSize = 88.sp
 private val EyebrowSize = 14.sp
 private val EyebrowTracking = 2.sp
