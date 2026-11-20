@@ -1,11 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 250x110dp is the smallest size that still spans 4x2 cells (70n - 30). updatePeriodMillis stays 0: the widget is redrawn by the app and its own alarm, never by a timer. -->
+<!-- 250x110dp is the smallest size that still spans 4x2 cells (70n - 30). The resize range is 4x1 up (minResize*; 3 cells wide
+     is not offered) to 640x480dp, which holds the user's 4.5 by 4 cell placement of about 620x430dp; past it nothing grows. The max
+     attributes are honoured from Android 12, older launchers only miss the resize limit. updatePeriodMillis stays 0: the widget is
+     redrawn by the app and its own alarm, never by a timer. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:description="@string/widget_description"
     android:initialLayout="@layout/glance_default_loading_layout"
-    android:minWidth="250dp"
+    android:maxResizeHeight="480dp"
+    android:maxResizeWidth="640dp"
     android:minHeight="110dp"
+    android:minResizeHeight="90dp"
+    android:minResizeWidth="250dp"
+    android:minWidth="250dp"
     android:previewLayout="@layout/widget_preview"
     android:resizeMode="horizontal|vertical"
     android:targetCellWidth="4"

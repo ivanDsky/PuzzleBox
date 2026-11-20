@@ -65,10 +65,9 @@ class WidgetArtTest {
             R.drawable.widget_ring_dashed,
             R.drawable.widget_flame,
             R.drawable.widget_snowflake,
-            R.drawable.widget_play,
         )
 
-        assertEquals(13, drawables.toSet().size)
+        assertEquals(12, drawables.toSet().size)
         drawables.forEach { assertNotNull(context.getDrawable(it)) }
     }
 
@@ -93,13 +92,14 @@ class WidgetArtTest {
     }
 
     @Test
-    fun `the streak line reads in plain words for one day and for many`() {
+    fun `the streak reads in plain words for one day and for many, short and long`() {
         val resources = context.resources
 
-        assertEquals("1 day in a row · Best 4", resources.getQuantityString(R.plurals.widget_streak, 1, 1, 4))
-        assertEquals("0 days in a row · Best 4", resources.getQuantityString(R.plurals.widget_streak, 0, 0, 4))
-        assertEquals("3 days in a row · Best 12", resources.getQuantityString(R.plurals.widget_streak, 3, 3, 12))
-        assertEquals("Up next · Queens", context.getString(R.string.widget_up_next_game, "Queens"))
-        assertEquals("All done for today", context.getString(R.string.widget_all_done))
+        assertEquals("1 day in a row", resources.getQuantityString(R.plurals.widget_streak_long, 1, 1))
+        assertEquals("0 days in a row", resources.getQuantityString(R.plurals.widget_streak_long, 0, 0))
+        assertEquals("1 day", resources.getQuantityString(R.plurals.widget_streak_short, 1, 1))
+        assertEquals("12 days", resources.getQuantityString(R.plurals.widget_streak_short, 12, 12))
+        assertEquals("1 freeze", resources.getQuantityString(R.plurals.widget_freezes, 1, 1))
+        assertEquals("5 of 5 done", context.getString(R.string.widget_done_count, 5, 5))
     }
 }

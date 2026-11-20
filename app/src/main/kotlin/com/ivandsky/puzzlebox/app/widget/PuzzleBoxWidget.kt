@@ -19,18 +19,19 @@ import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
-import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
+import androidx.glance.layout.width
 import com.ivandsky.puzzlebox.app.R
 import com.ivandsky.puzzlebox.app.shortcut.ShortcutIntents
 import com.ivandsky.puzzlebox.app.shortcut.ShortcutTarget
 
 /**
- * The home-screen widget, and the only class that draws it: the streak line, Today's rings and the Up next button, drawn once
- * per render from one [reader] read, at the size the launcher gives it ([WidgetLayout]). Nothing in it changes on its own; a
- * redraw is [WidgetRefresher]. A ring opens its game and the button opens what it says; a tap anywhere else opens Today.
+ * The home-screen widget, and the only class that draws it: the streak line, Today's chips and the action pill, drawn once
+ * per render from one [reader] read, in the layout the size the launcher gives it asks for ([WidgetStep]). Nothing in it
+ * changes on its own; a redraw is [WidgetRefresher]. A chip opens its game and the pill opens what it says; a tap anywhere
+ * else opens Today.
  */
 class PuzzleBoxWidget(private val reader: WidgetStateReader) : GlanceAppWidget() {
 
@@ -53,16 +54,18 @@ internal fun WidgetContent(state: WidgetState?) {
             .appWidgetBackground()
             .background(colors.of(R.color.widget_surface))
             .rounded()
-            .padding(horizontal = WidgetLayout.HORIZONTAL_PADDING, vertical = layout.verticalPadding)
+            .padding(horizontal = layout.look.horizontalPadding, vertical = layout.look.verticalPadding)
             .clickable(actionStartActivity(ShortcutIntents.intent(context, ShortcutTarget.Today))),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        WidgetStreakLine(state?.streak, layout, colors)
-        if (!layout.compact) Spacer(GlanceModifier.height(layout.blockGap))
-        WidgetRings(state?.rings, layout, colors)
-        if (!layout.compact) Spacer(GlanceModifier.height(layout.blockGap))
-        WidgetUpNextRow(state?.upNext ?: WidgetUpNext.Unknown, layout, colors)
+        Column(modifier = GlanceModifier.width(layout.contentWidth).height(layout.contentHeight)) {
+            when (layout.step) {
+                WidgetStep.Chips1, WidgetStep.Chips2 -> WidgetChipsStep(state, layout.look, colors)
+                // The list layouts are not drawn yet: until they are, a tall widget shows the chips2 block, centred.
+                WidgetStep.ListNarrow, WidgetStep.ListWide -> WidgetChipsStep(state, layout.look, colors)
+            }
+        }
     }
 }
 
