@@ -1,11 +1,11 @@
-package com.ivandsky.puzzlebox.history.ranks
+package com.ivandsky.puzzlebox.designsystem
 
 import androidx.compose.foundation.gestures.Orientation
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /** When a horizontal drag commits to a board step: a quarter of the width, or a fling (A34, SC 1); and which drags are the board's at all. */
-class BoardSwipeTest {
+class SwipeGestureTest {
 
     private val width = 1_000f
     private val fling = 700f

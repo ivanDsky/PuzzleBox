@@ -1,11 +1,10 @@
-package com.ivandsky.puzzlebox.history.ranks
+package com.ivandsky.puzzlebox.designsystem
 
 import androidx.compose.animation.core.animate
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.setValue
-import com.ivandsky.puzzlebox.designsystem.SwipeMotion
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -17,7 +16,7 @@ import kotlin.math.abs
  * nothing on a spring in [scope]; a new drag picks the pull up wherever the settle has got to.
  */
 @Stable
-internal class EdgePull(private val scope: CoroutineScope) {
+class EdgePull(private val scope: CoroutineScope) {
     private var pulled by mutableFloatStateOf(0f)
     private var settling: Job? = null
 
