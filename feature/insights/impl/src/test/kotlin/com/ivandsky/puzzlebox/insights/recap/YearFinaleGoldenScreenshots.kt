@@ -70,7 +70,7 @@ class YearFinaleGoldenScreenshots {
         capture(cards, cards.size - 1, title, name, device, dark)
 
     private fun capture(cards: List<RecapCard>, page: Int, title: String, name: String, device: String, dark: Boolean) {
-        val state = readyYear(title, *cards.toTypedArray()).copy(initialPage = page)
+        val state = readyYear(title, *cards.toTypedArray()).onCard(page)
         rule.showGolden(dark = dark) {
             CompositionLocalProvider(LocalGameBrands provides SolvedFixtures.brands) {
                 RecapScreen(state, title, SolvedFixtures.gameName, onPage = {}, onWatchReplay = {}, onClose = {}, displayName = "Ivan")

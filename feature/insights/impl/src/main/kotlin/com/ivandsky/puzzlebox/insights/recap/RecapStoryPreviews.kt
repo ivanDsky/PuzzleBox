@@ -28,14 +28,14 @@ private val Cards = listOf(
 @PuzzleBoxPreviews
 @Composable
 private fun RecapStoryPreview() = PuzzleBoxTheme {
-    Surface(color = MaterialTheme.colorScheme.background) { Story(RecapDeckState(Cards.size, initialPage = 1).apply { dealt() }) }
+    Surface(color = MaterialTheme.colorScheme.background) { Story(RecapDeckState(pagesOf(Cards, share = false), initialPage = 1).apply { dealt() }) }
 }
 
 @PuzzleBoxPreviews
 @Composable
 private fun RecapStoryHeldPreview() = PuzzleBoxTheme {
     Surface(color = MaterialTheme.colorScheme.background) {
-        Story(RecapDeckState(Cards.size, initialPage = 1).apply { dealt(); hold(true) })
+        Story(RecapDeckState(pagesOf(Cards, share = false), initialPage = 1).apply { dealt(); hold(true) })
     }
 }
 

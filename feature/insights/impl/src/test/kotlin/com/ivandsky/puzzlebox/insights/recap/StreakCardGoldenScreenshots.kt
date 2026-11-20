@@ -88,15 +88,15 @@ class StreakCardGoldenScreenshots {
         period = RecapPeriod.Month(YearMonth.of(2026, 10)),
         title = "October 2026",
         cards = deck(streak, RecapFixtures.totalTime),
-        initialPage = 2,
-    )
+        initialPage = 0,
+    ).onCard(2)
 
     private fun year() = RecapUiState.Ready(
         period = RecapPeriod.Year(2026),
         title = "2026 so far",
         cards = deck(year, RecapFixtures.totalTime),
-        initialPage = 2,
-    )
+        initialPage = 0,
+    ).onCard(2)
 
     // The streak sits third, so the card opens on it whatever the deck starts with.
     private fun deck(streak: RecapCard.Streak, totalTime: RecapCard) =

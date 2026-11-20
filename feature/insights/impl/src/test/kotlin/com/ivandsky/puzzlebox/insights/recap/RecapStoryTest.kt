@@ -335,7 +335,7 @@ class RecapStoryTest {
 
     @Test
     fun `Replay story on the Share page goes back to the cover with nothing filled or selected, and the next tap leaves it`() {
-        val deck = RecapDeckState(pageCount = 3, initialPage = 2)
+        val deck = RecapDeckState(cardPages(3), initialPage = 2)
         rule.setContent {
             PuzzleBoxTheme {
                 RecapStory(

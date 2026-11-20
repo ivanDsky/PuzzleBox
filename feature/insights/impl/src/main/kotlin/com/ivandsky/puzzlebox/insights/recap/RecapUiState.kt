@@ -19,7 +19,8 @@ internal sealed interface RecapUiState {
     data object Error : RecapUiState
 
     /**
-     * The story: [cards] in order, opening on the page at [initialPage] (a saved position, kept inside the cards).
+     * The story: [cards] in order, opening on the page at [initialPage] (a saved position, kept inside the pages; each
+     * Fastest game is a page of its own).
      * [title] is what every card names the period as, "2026 so far" for a year under way (A22).
      */
     data class Ready(val period: RecapPeriod, val title: String, val cards: List<RecapCard>, val initialPage: Int) : RecapUiState

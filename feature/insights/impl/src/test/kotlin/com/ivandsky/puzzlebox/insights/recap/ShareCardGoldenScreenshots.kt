@@ -126,7 +126,7 @@ class ShareCardGoldenScreenshots {
         rule.showGolden(dark = dark) {
             CompositionLocalProvider(LocalGameBrands provides SolvedFixtures.brands) {
                 RecapScreen(
-                    readyOf(*all.toTypedArray()).copy(title = "October 2026", initialPage = all.size),
+                    readyOf(*all.toTypedArray()).copy(title = "October 2026").onCard(all.size),
                     "October 2026", SolvedFixtures.gameName,
                     onPage = {}, onWatchReplay = {}, onClose = {},
                     share = RecapShareState("October 2026", "Ivan", restoring = false, sharing = false, failed = failed),
@@ -159,7 +159,7 @@ class ShareCardGoldenScreenshots {
         rule.showGolden(dark = dark) {
             CompositionLocalProvider(LocalGameBrands provides SolvedFixtures.brands) {
                 RecapScreen(
-                    readyOf(*all.toTypedArray()).copy(title = "October 2026", initialPage = all.size),
+                    readyOf(*all.toTypedArray()).copy(title = "October 2026").onCard(all.size),
                     "October 2026", SolvedFixtures.gameName,
                     onPage = {}, onWatchReplay = {}, onClose = {},
                     share = RecapShareState("October 2026", name, restoring = false, sharing = false, failed = false),

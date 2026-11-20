@@ -108,7 +108,7 @@ class RecapYearCardsTest {
     }
 
     private fun showStory(cards: List<RecapCard>, page: Int, fontScale: Float = 1f) {
-        val deck = RecapDeckState(pageCount = cards.size, initialPage = page)
+        val deck = RecapDeckState(pagesOf(cards, share = false), initialPage = page)
         rule.setContent {
             CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, fontScale)) {
                 PuzzleBoxTheme {

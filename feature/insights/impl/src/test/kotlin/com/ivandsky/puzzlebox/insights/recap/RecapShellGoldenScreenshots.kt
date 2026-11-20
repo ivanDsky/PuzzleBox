@@ -67,16 +67,16 @@ class RecapShellGoldenScreenshots {
     @Test fun `hold tablet dark`() = capture("hold", "tablet", dark = true, held = true)
 
     @Config(qualifiers = GOLDEN_PHONE)
-    @Test fun `last phone light`() = capture("last", "phone", dark = false, state = October.copy(initialPage = 6))
+    @Test fun `last phone light`() = capture("last", "phone", dark = false, state = October.onCard(6))
 
     @Config(qualifiers = GOLDEN_PHONE)
-    @Test fun `last phone dark`() = capture("last", "phone", dark = true, state = October.copy(initialPage = 6))
+    @Test fun `last phone dark`() = capture("last", "phone", dark = true, state = October.onCard(6))
 
     @Config(qualifiers = GOLDEN_TABLET)
-    @Test fun `last tablet light`() = capture("last", "tablet", dark = false, state = October.copy(initialPage = 6))
+    @Test fun `last tablet light`() = capture("last", "tablet", dark = false, state = October.onCard(6))
 
     @Config(qualifiers = GOLDEN_TABLET)
-    @Test fun `last tablet dark`() = capture("last", "tablet", dark = true, state = October.copy(initialPage = 6))
+    @Test fun `last tablet dark`() = capture("last", "tablet", dark = true, state = October.onCard(6))
 
     @Config(qualifiers = GOLDEN_PHONE)
     @Test fun `loading phone light`() = capture("loading", "phone", dark = false, state = RecapUiState.Loading)
@@ -157,10 +157,10 @@ class RecapShellGoldenScreenshots {
     @Test fun `cover wide dark`() = capture("cover", "wide", dark = true, state = CoverStory, who = "Ivan", names = Games)
 
     @Config(qualifiers = GOLDEN_TABLET_WIDE)
-    @Test fun `last wide light`() = capture("last", "wide", dark = false, state = October.copy(initialPage = 6))
+    @Test fun `last wide light`() = capture("last", "wide", dark = false, state = October.onCard(6))
 
     @Config(qualifiers = GOLDEN_TABLET_WIDE)
-    @Test fun `last wide dark`() = capture("last", "wide", dark = true, state = October.copy(initialPage = 6))
+    @Test fun `last wide dark`() = capture("last", "wide", dark = true, state = October.onCard(6))
 
     @Config(qualifiers = GOLDEN_TABLET_WIDE)
     @Test fun `hold wide light`() = capture("hold", "wide", dark = false, held = true)
@@ -190,8 +190,8 @@ private val October = RecapUiState.Ready(
     period = RecapPeriod.Month(YearMonth.of(2026, 10)),
     title = "October 2026",
     cards = listOf(solved, fastest, streak, moments, friendsLoaded, totalTime),
-    initialPage = 2,
-)
+    initialPage = 0,
+).onCard(2)
 
 private val Share = RecapShareState("October 2026", "Ivan", restoring = false, sharing = false, failed = false)
 
