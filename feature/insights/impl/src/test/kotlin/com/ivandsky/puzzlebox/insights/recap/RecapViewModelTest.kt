@@ -108,6 +108,16 @@ class RecapViewModelTest {
     }
 
     @Test
+    fun `the streak card is handed the puzzle day, not the device date`() = runTest {
+        val streak = StreakFixtures.default.copy(today = null)
+        viewModel(providers = listOf(FakeRecapFactProvider(listOf(streak)))).uiState.test {
+            assertEquals(RecapUiState.Loading, awaitItem())
+            val ready = awaitItem() as RecapUiState.Ready
+            assertEquals(streak.copy(today = fixture.puzzleDay()), ready.cards.single())
+        }
+    }
+
+    @Test
     fun `a period with nothing solved is empty`() = runTest {
         fixture.store(fixture.solve(alpha, LocalDate.of(2026, 10, 31)))
 

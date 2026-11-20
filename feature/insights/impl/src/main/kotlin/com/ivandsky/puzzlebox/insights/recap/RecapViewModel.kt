@@ -103,7 +103,9 @@ internal class RecapViewModel(
             RecapUiState.Empty
         } else {
             val saved = savedState.get<Int>(PAGE_KEY) ?: 0
-            RecapUiState.Ready(period, period.title(puzzleDay()), cards, initialPage = saved.coerceIn(0, cards.size))
+            val today = puzzleDay()
+            val stamped = cards.map { if (it is RecapCard.Streak) it.copy(today = today) else it }
+            RecapUiState.Ready(period, period.title(today), stamped, initialPage = saved.coerceIn(0, cards.size))
         }
 
     private companion object {

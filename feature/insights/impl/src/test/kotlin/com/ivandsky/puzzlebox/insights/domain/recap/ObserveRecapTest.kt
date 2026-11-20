@@ -65,7 +65,10 @@ class ObserveRecapTest {
         )
         assertEquals(listOf(alpha, beta), (cards[1] as RecapCard.Fastest).rows.map { it.game })
         assertEquals(
-            RecapCard.Streak(days = 2, from = LocalDate.of(2026, 11, 1), to = LocalDate.of(2026, 11, 2), freezesSpent = 0),
+            RecapCard.Streak(
+                days = 2, from = LocalDate.of(2026, 11, 1), to = LocalDate.of(2026, 11, 2), freezesSpent = 0,
+                frozenDays = emptySet(), span = november,
+            ),
             cards[2],
         )
         // Each game's first, quick solve went under a mark, and Nov 2 finished both games' day.

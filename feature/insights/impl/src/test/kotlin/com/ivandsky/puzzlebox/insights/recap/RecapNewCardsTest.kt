@@ -148,7 +148,7 @@ class RecapNewCardsTest {
         show(streak.copy(days = 1, from = LocalDate.of(2026, 11, 9), to = LocalDate.of(2026, 11, 9), freezesSpent = 0))
 
         rule.onNodeWithTag("recap.streak.range").assertTextContains("Nov 9")
-        rule.onNodeWithTag("recap.streak.freezes").assertTextContains("0")
+        rule.onNodeWithTag("recap.streak.freezes").assertDoesNotExist()
     }
 
     @Test

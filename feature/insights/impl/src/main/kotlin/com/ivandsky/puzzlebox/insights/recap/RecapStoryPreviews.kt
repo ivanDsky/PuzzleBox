@@ -18,7 +18,10 @@ private val Zip = GameId("zip")
 
 private val Cards = listOf(
     RecapCard.Solved(total = 42, perGame = listOf(RecapCard.Solved.PerGame(Zip, 42))),
-    RecapCard.Streak(days = 17, from = LocalDate.of(2026, 11, 3), to = LocalDate.of(2026, 11, 19), freezesSpent = 2),
+    RecapCard.Streak(
+        days = 17, from = LocalDate.of(2026, 11, 3), to = LocalDate.of(2026, 11, 19), freezesSpent = 2,
+        frozenDays = emptySet(), span = RecapPeriod.Month(YearMonth.of(2026, 11)),
+    ),
     RecapCard.Solved(total = 1, perGame = listOf(RecapCard.Solved.PerGame(Zip, 1))),
 )
 

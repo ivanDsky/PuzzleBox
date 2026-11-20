@@ -6,7 +6,14 @@ internal object StreakRecapFactProvider : RecapFactProvider {
     override suspend fun cards(input: RecapInput): List<RecapCard> {
         val streak = input.facts.longestStreak ?: return emptyList()
         return listOf(
-            RecapCard.Streak(days = streak.days, from = streak.start, to = streak.end, freezesSpent = input.facts.freezesSpent),
+            RecapCard.Streak(
+                days = streak.days,
+                from = streak.start,
+                to = streak.end,
+                freezesSpent = input.facts.freezesSpent,
+                frozenDays = streak.frozen,
+                span = input.facts.period,
+            ),
         )
     }
 }
