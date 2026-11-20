@@ -31,7 +31,9 @@ import com.ivandsky.puzzlebox.data.match.SelfMatchRepository
 import com.ivandsky.puzzlebox.data.rankhistory.RankHistoryStore
 import com.ivandsky.puzzlebox.data.rankhistory.RoomRankHistoryStore
 import com.ivandsky.puzzlebox.data.insights.DataStoreRecapDismissals
+import com.ivandsky.puzzlebox.data.insights.DataStoreRecapOpenings
 import com.ivandsky.puzzlebox.data.insights.RecapDismissals
+import com.ivandsky.puzzlebox.data.insights.RecapOpenings
 import com.ivandsky.puzzlebox.data.reminder.OfflineReminderRepository
 import com.ivandsky.puzzlebox.data.reminder.ReminderRepository
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
@@ -108,6 +110,8 @@ val dataModule = module {
     single<GameSettingsRepository> { OfflineGameSettingsRepository(get()) }
     // Dismissed recap Today cards (A3): device-local, in the same Preferences file.
     single<RecapDismissals> { DataStoreRecapDismissals(get()) }
+    // Opened recap stories (A18): device-local, in the same Preferences file.
+    single<RecapOpenings> { DataStoreRecapOpenings(get()) }
     // The daily-reminder choice, in its own small file beside the LinkedIn and sync-state stores.
     single<ReminderRepository> { OfflineReminderRepository(get()) }
     // Saved in-progress plays; the slot cap is private to the Room adapter.
