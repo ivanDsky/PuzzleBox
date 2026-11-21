@@ -48,6 +48,11 @@ class YearFinaleGoldenScreenshots {
 
     @Config(qualifiers = TABLET_WIDE) @Test fun `year finale tablet-wide light`() = finale(year, "2026", "year-finale", "tablet-wide", false)
 
+    @Config(qualifiers = TABLET_SPLIT) @Test fun `year finale tablet-split light`() = finale(year, "2026", "year-finale", "tablet-split", false)
+    @Config(qualifiers = TABLET_SPLIT) @Test fun `year finale tablet-split dark`() = finale(year, "2026", "year-finale", "tablet-split", true)
+    @Config(qualifiers = TABLET_SPLIT) @Test fun `year finale imported tablet-split light`() = finale(imported, "2025", "year-finale-imported", "tablet-split", false)
+    @Config(qualifiers = TABLET_SPLIT) @Test fun `year finale so far tablet-split light`() = finale(soFar, "2026 so far", "year-finale-so-far", "tablet-split", false)
+
     @Config(qualifiers = GOLDEN_PHONE) @Test fun `year finale so far phone light`() = finale(soFar, "2026 so far", "year-finale-so-far", "phone", false)
     @Config(qualifiers = GOLDEN_PHONE) @Test fun `year finale so far phone dark`() = finale(soFar, "2026 so far", "year-finale-so-far", "phone", true)
     @Config(qualifiers = GOLDEN_TABLET) @Test fun `year finale so far tablet light`() = finale(soFar, "2026 so far", "year-finale-so-far", "tablet", false)
@@ -82,3 +87,6 @@ class YearFinaleGoldenScreenshots {
 
 /** The Galaxy Tab S9 Ultra, which the user reviews on: wider and taller than the 1280 x 800 tablet golden. */
 private const val TABLET_WIDE = "w1680dp-h1050dp-land-mdpi"
+
+/** A tablet in split screen: the pane is 560 x 1200dp, under 600dp wide, so it gets the phone layout on a tall page. */
+private const val TABLET_SPLIT = "w560dp-h1200dp-mdpi"

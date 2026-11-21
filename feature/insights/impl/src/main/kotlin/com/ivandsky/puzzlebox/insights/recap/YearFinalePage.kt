@@ -122,8 +122,8 @@ internal fun YearFinalePage(
                         Spacer(Modifier.height(Spacing.lg))
                         Hero(card.total, card.importedDays, HeroFontSize, wide = false)
                         Spacer(Modifier.height(Spacing.lg))
-                        tiles(Modifier)
-                        Spacer(Modifier.weight(1f))
+                        tiles(Modifier.weight(1f, fill = false))
+                        Spacer(Modifier.height(Spacing.lg))
                         Column(verticalArrangement = Arrangement.spacedBy(Spacing.md), content = actions)
                     }
                 }
