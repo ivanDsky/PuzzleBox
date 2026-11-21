@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.DeclaredFlags
 import com.ivandsky.puzzlebox.common.flags.FlagSet
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.domain.AppBuild
 import com.ivandsky.puzzlebox.domain.insights.rankhistory.SyncRankHistory
 import com.ivandsky.puzzlebox.domain.ranks.SubmitDailyReplay
