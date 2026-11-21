@@ -25,24 +25,20 @@ class IntroPlayerTest {
         runCurrent()
     }
 
-    /** Bug caught: the demo moving on by itself, which ran too fast to read (user-check round 4). */
+    /** Bug caught: the demo moving on by itself (too fast to read, round 4), or opening on the plain position (round 5). */
     @Test
-    fun `the intro opens on the first frame and stays there`() = runTest {
+    fun `the intro opens on the evidence and stays there`() = runTest {
         val player = IntroPlayer(entries(2), reduced = false, scope = backgroundScope)
         advance(60_000)
 
         assertEquals(0, player.variant.value)
-        assertEquals(0, player.frame.value)
+        assertEquals(EvidenceFrame, player.frame.value)
     }
 
-    /** Bug caught: Next step skipping the evidence, or the landing squares asking for a tap each instead of landing as one step. */
+    /** Bug caught: the landing squares asking for a tap each instead of landing as one step. */
     @Test
-    fun `next step shows the evidence, then the squares land one after another`() = runTest {
+    fun `next step lands the squares one after another`() = runTest {
         val player = IntroPlayer(entries(1), reduced = false, scope = backgroundScope)
-
-        player.next()
-        advance(60_000)
-        assertEquals(1, player.frame.value)
 
         player.next()
         runCurrent()
@@ -60,15 +56,13 @@ class IntroPlayerTest {
     fun `past a variant's last step next step opens the next variant, and the last has none`() = runTest {
         val player = IntroPlayer(entries(2), reduced = true, scope = backgroundScope)
         player.next()
-        player.next()
         assertEquals(4, player.frame.value)
         assertTrue(hasNextStep(0, 4, frames = 5, count = 2))
 
         player.next()
         assertEquals(1, player.variant.value)
-        assertEquals(0, player.frame.value)
+        assertEquals(EvidenceFrame, player.frame.value)
 
-        player.next()
         player.next()
         assertFalse(hasNextStep(1, 4, frames = 5, count = 2))
         player.next()
@@ -81,7 +75,6 @@ class IntroPlayerTest {
     fun `under reduced motion the landing step shows every square at once`() = runTest {
         val player = IntroPlayer(entries(1), reduced = true, scope = backgroundScope)
         player.next()
-        player.next()
         runCurrent()
 
         assertEquals(4, player.frame.value)
@@ -92,7 +85,6 @@ class IntroPlayerTest {
     fun `seek, select and start over stop the landing and show their frame`() = runTest {
         val player = IntroPlayer(entries(3), reduced = false, scope = backgroundScope)
         player.next()
-        player.next()
         runCurrent()
 
         player.seek(1)
@@ -101,11 +93,11 @@ class IntroPlayerTest {
 
         player.select(2)
         assertEquals(2, player.variant.value)
-        assertEquals(0, player.frame.value)
+        assertEquals(EvidenceFrame, player.frame.value)
 
         player.next()
         player.replay()
         assertEquals(2, player.variant.value)
-        assertEquals(0, player.frame.value)
+        assertEquals(EvidenceFrame, player.frame.value)
     }
 }
