@@ -82,7 +82,7 @@ class PuzzleBoxApplication : Application() {
         koin.get<ReminderAppHooks>().start()
         // The launcher long-press menu: published on every start.
         koin.get<ShortcutAppHooks>().start()
-        // The home widget: switched by its flag, redrawn on every change and activity start while the app runs.
+        // The home widget: enabled on every start, redrawn on every change and activity start while the app runs.
         koin.get<WidgetAppHooks>().start()
     }
 

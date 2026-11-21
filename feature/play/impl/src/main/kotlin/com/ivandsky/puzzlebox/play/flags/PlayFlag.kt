@@ -19,12 +19,6 @@ enum class PlayFlag(override val label: String, override val releaseDefault: Boo
      * beside "Open the lesson". Read only in [com.ivandsky.puzzlebox.play.LibraryViewModel] (ADR-0022 §3).
      */
     MakeOwnLink(label = "Game page: Make your own link in How to play (off: full-width Make one)", releaseDefault = false),
-
-    /**
-     * Home-screen widget (epic #1577): today's rings, the streak and Up next on the launcher. Read only in the app's
-     * widget DI (ADR-0022 §3).
-     */
-    HomeWidget(label = "Home-screen widget: today's rings, streak and Up next", releaseDefault = true),
     ;
 
     /** The entry's own name: the stored override's key in `release_flags`. Never change it. */
