@@ -5,9 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
-import com.ivandsky.puzzlebox.compete.CompeteFlag
 import com.ivandsky.puzzlebox.compete.create.DuelSignIn
 import com.ivandsky.puzzlebox.compete.create.DuelSignInStep
 import com.ivandsky.puzzlebox.compete.domain.DeleteSelfDuel
@@ -72,11 +69,7 @@ internal class DuelViewModel(
     dispatchers: DispatcherProvider,
     private val legTitles: ObserveLegTitles,
     private val saveDuelPuzzles: SaveDuelPuzzles,
-    releaseFlags: ReleaseFlags,
 ) : ViewModel() {
-
-    /** Past you wears the player's photo in the header ([CompeteFlag.PastYouPhoto]), read once. */
-    private val pastYouPhoto: Boolean = releaseFlags.isEnabled(CompeteFlag.PastYouPhoto)
 
     /** The boards of the duel's legs, for the tablet's detail column; kept while the screen is. */
     internal val legBoards: LegBoards = DuelLegBoards(loadLegPuzzle, plays, dispatchers)
@@ -124,7 +117,7 @@ internal class DuelViewModel(
             removal.step,
             showTimeLeft,
         ) { (duel, names), work, me, step, timeLeft ->
-            build(shareCode, duel, names, work, me?.displayName, me?.photoUrl.takeIf { pastYouPhoto }, step, timeLeft)
+            build(shareCode, duel, names, work, me?.displayName, me?.photoUrl, step, timeLeft)
         }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DuelUiState.Loading)
     }

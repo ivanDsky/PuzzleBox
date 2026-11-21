@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.compete.create
 
-import com.ivandsky.puzzlebox.compete.CompeteFlag
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -11,7 +10,7 @@ import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 
-/** The photo the Play against row's Past you wears: the player's own, only behind [CompeteFlag.PastYouPhoto]. */
+/** The photo the Play against row's Past you wears: the player's own, when signed in with one. */
 class NewDuelPastYouPhotoTest {
     @get:Rule
     val mainDispatcher = MainDispatcherRule()
@@ -22,23 +21,18 @@ class NewDuelPastYouPhotoTest {
     }
 
     @Test
-    fun `with the flag on the signed-in player's own photo goes to Past you`() = runTest {
-        assertEquals(PHOTO, photoOf(NewDuelHarness(true, PHOTO, CompeteFlag.PastYouPhoto)))
+    fun `the signed-in player's own photo goes to Past you`() = runTest {
+        assertEquals(PHOTO, photoOf(NewDuelHarness(true, PHOTO)))
     }
 
     @Test
-    fun `with the flag off the photo stays home and Past you keeps the initial`() = runTest {
-        assertNull(photoOf(NewDuelHarness(photoUrl = PHOTO)))
+    fun `a player with no photo keeps the initial`() = runTest {
+        assertNull(photoOf(NewDuelHarness(true, null)))
     }
 
     @Test
-    fun `a player with no photo keeps the initial even with the flag on`() = runTest {
-        assertNull(photoOf(NewDuelHarness(true, null, CompeteFlag.PastYouPhoto)))
-    }
-
-    @Test
-    fun `signed out there is no photo to show even with the flag on`() = runTest {
-        assertNull(photoOf(NewDuelHarness(false, PHOTO, CompeteFlag.PastYouPhoto)))
+    fun `signed out there is no photo to show`() = runTest {
+        assertNull(photoOf(NewDuelHarness(false, PHOTO)))
     }
 
     private companion object {

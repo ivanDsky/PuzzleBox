@@ -27,7 +27,6 @@ import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.compete.api.DuelRevealKey
 import com.ivandsky.puzzlebox.compete.create.NewDuelHarness
 import com.ivandsky.puzzlebox.compete.di.competeModule
@@ -60,7 +59,6 @@ import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.MatchLegKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -171,7 +169,6 @@ class DuelsTabPaneTest {
                     single { ObserveMyDuels(server, FakeSelfMatchRepository(), outbox, local, identity) { now } }
                     single { UpdateMatchSeat(server, local, identity) }
                     single<IdentityService> { identity }
-                    single<ReleaseFlags> { FakeReleaseFlags() }
                     viewModel { NewDuelHarness().viewModel }
                     single { ObserveDuel(observeMatch, FakeCompletionRepository(), FakeSavedPlayRepository()) }
                     single { DeleteSelfDuel(FakeSelfMatchRepository(), outbox, FakeSavedPlayRepository(), local) }

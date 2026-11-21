@@ -4,7 +4,6 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.compete.api.NewDuelKey
 import com.ivandsky.puzzlebox.compete.create.DuelChallenge
 import com.ivandsky.puzzlebox.compete.create.NewDuelHarness
@@ -15,7 +14,6 @@ import com.ivandsky.puzzlebox.compete.domain.UpdateMatchSeat
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.model.GameId
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchResultOutbox
 import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
@@ -62,7 +60,6 @@ class DuelsTabNewDuelTest {
                     single { ObserveMyDuels(harness.server, FakeSelfMatchRepository(), FakeMatchResultOutbox(), FakeMatchLocalRepository(), harness.identity) { now } }
                     single { UpdateMatchSeat(harness.server, FakeMatchLocalRepository(), harness.identity) }
                     single<IdentityService> { harness.identity }
-                    single<ReleaseFlags> { FakeReleaseFlags() }
                     viewModel { harness.viewModel }
                 },
             )

@@ -2,9 +2,6 @@ package com.ivandsky.puzzlebox.compete.reveal
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
-import com.ivandsky.puzzlebox.compete.CompeteFlag
 import com.ivandsky.puzzlebox.compete.domain.RecordRevealSeen
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.match.Match
@@ -103,14 +100,10 @@ internal class RevealViewModel(
     private val recordSeen: RecordRevealSeen,
     private val loadReplay: LoadSolveReplay,
     private val identity: IdentityService,
-    releaseFlags: ReleaseFlags,
 ) : ViewModel() {
 
     /** The race the machine plays for one run, and how the first run started. */
     private class Race(val plan: RevealPlan, val start: RevealStart, val rerun: Int)
-
-    /** Past you wears the player's photo in a self duel ([CompeteFlag.PastYouPhoto]), read once. */
-    private val pastYouPhoto: Boolean = releaseFlags.isEnabled(CompeteFlag.PastYouPhoto)
 
     private val shareCode: ShareCode? = ShareCode.parse(code)
     private val reruns = MutableStateFlow(0)
@@ -224,7 +217,7 @@ internal class RevealViewModel(
         }
         val me = identity.current.value
         val plan = revealPlan(
-            view, registry::displayName, registry::rankOrderOf, ownName = me?.displayName, pastYouPhotoUrl = me?.photoUrl.takeIf { pastYouPhoto },
+            view, registry::displayName, registry::rankOrderOf, ownName = me?.displayName, pastYouPhotoUrl = me?.photoUrl,
         )
         val current = race
         val next = when {

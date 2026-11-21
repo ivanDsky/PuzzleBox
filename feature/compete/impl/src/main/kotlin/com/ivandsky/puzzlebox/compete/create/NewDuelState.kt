@@ -25,7 +25,7 @@ internal data class NewDuelState(
     val opponent: Opponent = Opponent.Friend,
     /** The name Past you's avatar takes its initial from: the player's own, "You" while signed out. */
     val selfName: String = "You",
-    /** The signed-in player's photo for Past you's avatar; null signed out, without a photo, or with the PastYouPhoto flag off. */
+    /** The signed-in player's photo for Past you's avatar; null signed out or without a photo. */
     val selfPhotoUrl: String? = null,
     val self: SelfDuelView = SelfDuelView.initial(),
     /** The lineup editor Customize shows; it is Past you's own rows while Past you is chosen. */
