@@ -122,12 +122,13 @@ class PracticeIntroPaneTest {
         composeRule.onNodeWithTag("train.watch.caption", useUnmergedTree = true).assertTextEquals(captions[1])
     }
 
-    /** Bug caught: an intro that opens on the plain position, a step (and a caption) per landing square, or a Next step with nothing after it. */
+    /** Bug caught: an intro that opens on the plain position, a step (and a caption) per landing square, or Start practice before the walk is done. */
     @Test
-    fun `the intro opens on the evidence and next step lands the squares as one step under the reason's caption`() {
+    fun `the intro opens on the evidence and next step lands the squares, then turns into start practice`() {
         val intro = intro(1)
         show(PracticeState.Intro(intro), controls(intro))
         composeRule.onNodeWithTag("train.watch.caption", useUnmergedTree = true).assertTextEquals(captions[1])
+        composeRule.onNodeWithTag("train.watch.start").assertDoesNotExist()
 
         composeRule.onNodeWithTag("train.watch.next").performScrollTo().performClick()
         composeRule.onNodeWithTag("train.watch.caption", useUnmergedTree = true).assertTextEquals(captions[2])
@@ -135,6 +136,7 @@ class PracticeIntroPaneTest {
         composeRule.onNodeWithTag("train.watch.step.1").assertExists()
         composeRule.onNodeWithTag("train.watch.step.2").assertDoesNotExist()
         composeRule.onNodeWithTag("train.watch.next").assertDoesNotExist()
+        composeRule.onNodeWithTag("train.watch.start").assertTextEquals("Start practice")
     }
 
     /** Bug caught: Skip intro and Start practice not handing the board over, the one way out of the opening intro. */
@@ -144,6 +146,7 @@ class PracticeIntroPaneTest {
         show(PracticeState.Intro(intro), controls(intro))
 
         composeRule.onNodeWithTag("train.watch.skip").performClick()
+        composeRule.onNodeWithTag("train.watch.next").performScrollTo().performClick()
         composeRule.onNodeWithTag("train.watch.start").performScrollTo().performClick()
 
         assertEquals(2, started)
@@ -158,6 +161,7 @@ class PracticeIntroPaneTest {
 
         composeRule.onNodeWithText("Skip intro").assertDoesNotExist()
         composeRule.onNodeWithTag("train.watch.close").performClick()
+        composeRule.onNodeWithTag("train.watch.next").performScrollTo().performClick()
         composeRule.onNodeWithTag("train.watch.start").performScrollTo().assertTextEquals("Back to board 1").performClick()
 
         assertEquals(2, closed)

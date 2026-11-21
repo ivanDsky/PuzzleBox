@@ -19,7 +19,6 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
@@ -27,21 +26,19 @@ private val RowHeight = 48.dp
 
 /**
  * The watch column of the intro: the variants to pick from (only with two or more), the step track of the one shown
- * ("Watch it done"), its written rule with how to spot it and what to do, and Start over (back to the first step) with
- * the button that leaves the intro ([primary], "Start practice", or "Back to board 1" in a replay). [compact] is the phone's layout, with the two
- * buttons side by side; otherwise they are stacked full width (the prototype's action stack), so neither label wraps.
+ * ("Watch it done"), its written rule with how to spot it and what to do, and Start over (back to the first step).
+ * Start practice is not here: the main button under the board turns into it on the last step (user-check round 6).
+ * [compact] is the phone's layout, with the variants side by side.
  */
 @Composable
 internal fun WatchColumn(
     entries: List<IntroEntry>,
     variant: Int,
     frame: Int,
-    primary: String,
     compact: Boolean,
     onSelect: (Int) -> Unit,
     onSeek: (Int) -> Unit,
     onReplay: () -> Unit,
-    onPrimary: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val entry = entries[variant]
@@ -50,17 +47,7 @@ internal fun WatchColumn(
         Label("Watch it done")
         StepTrack(entry.demo.captions, frame, compact, onSeek)
         Rule(entry.variant.rule, entry.variant.spotIt, entry.variant.doIt)
-        if (compact) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                SecondaryButton("Start over", onReplay, Modifier.weight(1f).testTag("train.watch.replay"))
-                PrimaryButton(primary, onPrimary, Modifier.weight(1f).testTag("train.watch.start"))
-            }
-        } else {
-            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                SecondaryButton("Start over", onReplay, Modifier.fillMaxWidth().testTag("train.watch.replay"))
-                PrimaryButton(primary, onPrimary, Modifier.fillMaxWidth().testTag("train.watch.start"))
-            }
-        }
+        SecondaryButton("Start over", onReplay, Modifier.fillMaxWidth().testTag("train.watch.replay"))
     }
 }
 

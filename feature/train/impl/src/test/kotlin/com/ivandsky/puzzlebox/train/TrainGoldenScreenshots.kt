@@ -72,10 +72,10 @@ class TrainPhoneGoldenScreenshots : TrainGoldenScreenshots("phone") {
     @Test fun `chapter result light`() = capture("chapter-result", dark = false) { Page { Practice(Result, showBack = true) } }
     @Test fun `chapter result dark`() = capture("chapter-result", dark = true) { Page { Practice(Result, showBack = true) } }
     @Test fun `empty light`() = capture("empty", dark = false) { Page { Practice(PracticeState.Empty, showBack = true) } }
-    @Test fun `watch with one variant light`() = capture("watch", dark = false) { Page { Watch(count = 1, showBack = true) } }
+    @Test fun `watch with one variant light`() = capture("watch", dark = false) { Page { Watch(count = 1, showBack = true, frame = LastFrame) } }
     @Test fun `watch with two variants light`() = capture("watch-variants", dark = false) { Page { Watch(count = 2, showBack = true) } }
     @Test fun `watch with two variants dark`() = capture("watch-variants", dark = true) { Page { Watch(count = 2, showBack = true) } }
-    @Test fun `watch replay light`() = capture("watch-replay", dark = false) { Page { Watch(count = 2, showBack = true, replay = true) } }
+    @Test fun `watch replay light`() = capture("watch-replay", dark = false) { Page { Watch(count = 1, showBack = true, replay = true, frame = LastFrame) } }
     @Test fun `needs connection light`() = capture("needs-connection", dark = false) { Page { Practice(PracticeState.NeedsConnection, showBack = true) } }
     @Test fun `cant load light`() = capture("cant-load", dark = false) { Page { Practice(PracticeState.CantLoad(alternative = 918), showBack = true) } }
 }
@@ -93,9 +93,9 @@ class TrainTabletGoldenScreenshots : TrainGoldenScreenshots("tablet") {
     @Test fun `practice right dark`() = capture("practice-right", dark = true) { Beside(open = true) { Practice(Right, showBack = false, Three) } }
 
     @Test fun `practice done light`() = capture("practice-done", dark = false) { Beside(open = true) { Practice(Done, showBack = false, Three, MidHold) } }
-    @Test fun `watch with one variant light`() = capture("watch", dark = false) { Beside(open = true) { Watch(count = 1, showBack = false) } }
+    @Test fun `watch with one variant light`() = capture("watch", dark = false) { Beside(open = true) { Watch(count = 1, showBack = false, frame = LastFrame) } }
     @Test fun `watch with two variants light`() = capture("watch-variants", dark = false) { Beside(open = true) { Watch(count = 2, showBack = false) } }
-    @Test fun `watch replay light`() = capture("watch-replay", dark = false) { Beside(open = true) { Watch(count = 2, showBack = false, replay = true) } }
+    @Test fun `watch replay light`() = capture("watch-replay", dark = false) { Beside(open = true) { Watch(count = 1, showBack = false, replay = true, frame = LastFrame) } }
     @Test fun `chapter result light`() = capture("chapter-result", dark = false) { Beside(open = true) { Practice(Result, showBack = false) } }
     @Test fun `chapter result dark`() = capture("chapter-result", dark = true) { Beside(open = true) { Practice(Result, showBack = false) } }
 }
@@ -116,6 +116,8 @@ abstract class TrainGoldenScreenshots(private val device: String) {
         val Wrong = PracticeState.Practicing(StandInPracticeBoard(PracticeStatus.Wrong("Two queens would touch.")))
         val Done = PracticeState.Practicing(StandInPracticeBoard(PracticeStatus.Done(standInSpotlight())))
         val MidHold = BoardHold(remainingMs = 900, waitsForTap = false)
+        /** The stand-in demo's last frame: the squares landed, so the main button is Start practice. */
+        const val LastFrame = 3
         val Result = PracticeState.Result(
             ChapterResult(
                 technique = TrainerTechnique(TechniqueId("line-lock"), "Line lock", "A region sits inside one line."),
@@ -152,9 +154,9 @@ abstract class TrainGoldenScreenshots(private val device: String) {
             modifier = Modifier.fillMaxSize(),
         )
 
-        /** The intro's watching screen, [count] variants, variant 0 on frame 1 (the evidence, with Next step). */
+        /** The intro's watching screen, [count] variants, variant 0 on [frame]: 1 is the evidence (with Next step), [LastFrame] its last step (Start practice). */
         @Composable
-        fun Watch(count: Int, showBack: Boolean, replay: Boolean = false) = WatchPane(
+        fun Watch(count: Int, showBack: Boolean, replay: Boolean = false, frame: Int = 1) = WatchPane(
             chapter = standInChapter(board = 1, boards = 5),
             progress = Two,
             showBack = showBack,
@@ -166,7 +168,7 @@ abstract class TrainGoldenScreenshots(private val device: String) {
                 )
             },
             variant = 0,
-            frame = 1,
+            frame = frame,
             replay = replay,
             demo = { _, _, modifier -> StandInGrid(modifier) },
             onSelect = {},
