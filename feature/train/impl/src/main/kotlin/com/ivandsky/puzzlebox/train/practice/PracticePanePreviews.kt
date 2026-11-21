@@ -27,7 +27,6 @@ import com.ivandsky.puzzlebox.gameui.trainer.PracticeBoard
 import com.ivandsky.puzzlebox.gameui.trainer.PracticeStatus
 import com.ivandsky.puzzlebox.gameui.trainer.TrainerTechnique
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 
 // The practice pane: each status of the band and the empty messages (the finished board and the result page are in ChapterEndPreviews). The board is a stand-in: this module
 // sees no game's board, so a plain 6x6 grid with a few discs is drawn from the board colors.
@@ -80,10 +79,10 @@ private data object StandInGlyphs : SpotlightGlyphs {
     }
 }
 
-/** A practice board that is only a status and a Show me that does nothing. */
+/** A practice board that is only a status (which a test can move on) and a Show me that does nothing. */
 internal class StandInPracticeBoard(status: PracticeStatus) : PracticeBoard {
     override val technique = TechniqueId("line-lock")
-    override val status: StateFlow<PracticeStatus> = MutableStateFlow(status)
+    override val status = MutableStateFlow(status)
 
     override fun showMe() = Unit
 
