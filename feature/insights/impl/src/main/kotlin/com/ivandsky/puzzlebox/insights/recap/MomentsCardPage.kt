@@ -16,7 +16,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -155,8 +157,8 @@ private fun Hero(total: Int, shown: Int, ink: Color, modifier: Modifier = Modifi
 }
 
 /**
- * The kinds that came up: one rounded block of rows on a phone, a grid of two on a wide pane. Each row leads with the
- * shape its stickers have, so a kind reads by more than colour.
+ * The kinds that came up: one rounded block of rows on a phone, a grid of two on a wide pane. Each row leads with its
+ * stickers' glyph in a small dark disc, so the legend and the sheet read alike.
  */
 @Composable
 private fun KindRows(rows: List<KindRow>, wide: Boolean, ink: Color) {
@@ -192,7 +194,9 @@ private fun KindRowLine(row: KindRow, ink: Color, modifier: Modifier) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        Box(Modifier.size(MarkerSize).clip(row.kind.shape()).background(ink))
+        Box(Modifier.size(MarkerSize).clip(CircleShape).background(ink), contentAlignment = Alignment.Center) {
+            Icon(row.kind.glyph(), contentDescription = null, modifier = Modifier.size(MarkerGlyphSize), tint = PaletteEntry.Moments.field)
+        }
         Text(row.label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge, color = ink)
         Text(row.value, style = MaterialTheme.typography.titleMedium.tabular(), color = ink)
     }
@@ -242,6 +246,7 @@ private val HeroFontSize = 84.sp
 private val HeroLineHeight = 76.sp
 private val RowMinHeight = 48.dp
 private val WideSheetMinHeight = 200.dp
-private val MarkerSize = 24.dp
+private val MarkerSize = 28.dp
+private val MarkerGlyphSize = 16.dp
 private val WideWidth = 600.dp
 private const val HairlineAlpha = 0.3f

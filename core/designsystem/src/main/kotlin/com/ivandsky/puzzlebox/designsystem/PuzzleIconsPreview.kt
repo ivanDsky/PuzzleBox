@@ -72,6 +72,8 @@ internal fun PuzzleIconsPreview() {
             "Add" to PuzzleIcons.Add,
             "Copy" to PuzzleIcons.Copy,
             "Trophy" to PuzzleIcons.Trophy,
+            "Stopwatch" to PuzzleIcons.Stopwatch,
+            "FullSet" to PuzzleIcons.FullSet,
             "Share" to PuzzleIcons.Share,
             "Mail" to PuzzleIcons.Mail,
             "Play" to PuzzleIcons.Play,
