@@ -73,6 +73,7 @@ off  # user ruling 2026-11-05 (replaces 2026-10-31 `always`): publish the review
 - dates and stats share one baseline
 - chips in a row share one layout structure
 - tablet uses the app's two-pane convention, never a stretched phone layout
+- on tablet, content fills its pane's width; never a phone-width column floating inside a wider pane
 - rearrangement reuses existing animations, never clear-and-repaint
 - redesigning a surface never removes existing features (write a parity checklist first)
 - leaderboards are the primary content on Ranks surfaces
