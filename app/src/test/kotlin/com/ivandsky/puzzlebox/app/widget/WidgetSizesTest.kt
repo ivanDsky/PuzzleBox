@@ -33,6 +33,14 @@ class WidgetSizesTest {
     }
 
     @Test
+    fun `the narrow list has a size at 420 wide, so a 4x3 of 450 to 479dp keeps its wide block and its New best mark`() {
+        val lists = WidgetSizes.ALL.filter { it.width.value == 420f && WidgetStep.of(it) == WidgetStep.ListNarrow }
+
+        assertTrue(lists.isNotEmpty())
+        assertTrue(lists.all { WidgetLayout.of(it).contentWidth.value == 392f && WidgetLayout.of(it).newBestChip })
+    }
+
+    @Test
     fun `chips2 has a size for each of its rings, the 36dp phone look and the big ones`() {
         val rings = WidgetSizes.ALL
             .filter { WidgetStep.of(it) == WidgetStep.Chips2 }
