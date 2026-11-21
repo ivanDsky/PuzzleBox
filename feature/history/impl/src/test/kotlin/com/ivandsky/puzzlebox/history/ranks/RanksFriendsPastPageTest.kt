@@ -12,11 +12,9 @@ import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.history.HistoryTestSupport
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
 import com.ivandsky.puzzlebox.history.domain.ranks.RankScope
-import com.ivandsky.puzzlebox.history.flags.HistoryFlag
 import com.ivandsky.puzzlebox.history.ranks.RanksSelection.Window
 import com.ivandsky.puzzlebox.resultui.board.BoardRowValue
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Instant
@@ -44,8 +42,6 @@ class RanksFriendsPastPageTest {
     // Today and Tuesday: 99 strangers and Maya, the viewer's friend, fill the first 100 of 400 places. Bea, a second
     // friend, and Ann, the viewer, are both past them, so only a read of their own entries finds Bea.
     private val beyond = listOf(LocalDate.of(2026, 11, 10), today)
-
-    private val flags = FakeReleaseFlags(HistoryFlag.WeekMonthPoints)
 
     private fun entry(day: LocalDate, uid: String, name: String, timeMs: Long) =
         LeaderboardEntry(uid, name, "${ZIP.value}/$day/${HistoryTestSupport.PUZZLE_NUMBER}", timeMs, 0, 1_700_000_000_000)
@@ -95,7 +91,7 @@ class RanksFriendsPastPageTest {
     @Test
     fun `the Friends Day board ranks a friend past the global page, and the viewer's place counts them`() = runTest {
         for (day in beyond) {
-            val rows = rowsOf(hub().viewModel(releaseFlags = flags).friends(Window.Day, day))
+            val rows = rowsOf(hub().viewModel().friends(Window.Day, day))
 
             // Maya on the page, Bea past it, Ann, slower, past it too: 3rd of 3, not 2nd of 2.
             assertEquals("$day", listOf("Maya" to 1, "Bea" to 2, "Ann" to 3), rows.map { it.name to it.rank })
@@ -106,7 +102,7 @@ class RanksFriendsPastPageTest {
     @Test
     fun `the Friends Week and Month count the friend past the global page on each day they placed there`() = runTest {
         for (window in listOf(Window.Week, Window.Month)) {
-            val board = hub().viewModel(releaseFlags = flags).friends(window)
+            val board = hub().viewModel().friends(window)
 
             // Two days among Maya, Bea and Ann: 100, 66.67 and 33.33 points a day.
             val points = board.points()
@@ -120,7 +116,7 @@ class RanksFriendsPastPageTest {
 
     @Test
     fun `the Friends Overall counts the friend past the global page`() = runTest {
-        val viewModel = hub().viewModel(releaseFlags = flags)
+        val viewModel = hub().viewModel()
         viewModel.select { it.pickBoard(RanksBoard.Overall).setWindow(Window.Month).setScope(RankScope.Friends) }
 
         // Maya's two days say Zip's are in; Bea is found on the same two days by her own read.
@@ -146,7 +142,7 @@ class RanksFriendsPastPageTest {
     fun `the Friends chip counts the friend past the global page, the place the Friends Day board draws`() = runTest {
         for (day in beyond) {
             val h = hub()
-            val drawn = rowsOf(h.viewModel(releaseFlags = flags).friends(Window.Day, day)).single { it.isSelf }.rank
+            val drawn = rowsOf(h.viewModel().friends(Window.Day, day)).single { it.isSelf }.rank
 
             val reported = chip(h)(ZIP, day).first { it is ResultRank.Ranked && it.amongFriends } as ResultRank.Ranked
 

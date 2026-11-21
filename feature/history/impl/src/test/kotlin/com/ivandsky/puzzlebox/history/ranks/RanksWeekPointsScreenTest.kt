@@ -21,7 +21,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** A game's Week with WeekMonthPoints on (#1698), on a phone: rows and caption read as points over days, not averages. */
+/** A game's Week, on a phone: rows and caption read as points over days, not averages (#1698). */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = GOLDEN_PHONE)
@@ -36,12 +36,11 @@ class RanksWeekPointsScreenTest {
     )
     private val week = RanksBoardSlice("Zip · this week", RankOrder.TimeThenHints, DailyBoardState.Ranked(rows), caption = WEEK_MONTH_POINTS_CAPTION)
 
-    private fun show(weekMonthPoints: Boolean = true) {
+    private fun show() {
         val state = RanksUiState(
             week,
             window = RanksSelection.Window.Week,
             places = listOf(BoardPlace(RanksBoard.Overall, "Overall", Standing.Place(1))),
-            weekMonthPoints = weekMonthPoints,
         )
         composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, RanksActions(onSignIn = {}, onSwipe = {})) } }
     }
@@ -81,14 +80,5 @@ class RanksWeekPointsScreenTest {
         openHowRanksWork()
 
         composeRule.onNodeWithText("your Overall total, or a game's Week and Month total, shows as at least (≥).", substring = true).assertIsDisplayed()
-    }
-
-    @Test
-    fun `with the flag off How ranks work keeps the average rule`() {
-        show(weekMonthPoints = false)
-        openHowRanksWork()
-
-        composeRule.onNodeWithText("each game ranks the average of the days you played.", substring = true).assertIsDisplayed()
-        composeRule.onNodeWithText("past that you see 100+ with no exact place, and your Overall total shows as at least (≥).", substring = true).assertIsDisplayed()
     }
 }

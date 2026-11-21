@@ -11,11 +11,9 @@ import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO_PUZZLE_NUMBER
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.tangoRecord
 import com.ivandsky.puzzlebox.history.domain.ranks.RankScope
-import com.ivandsky.puzzlebox.history.flags.HistoryFlag
 import com.ivandsky.puzzlebox.history.ranks.RanksSelection.Window
 import com.ivandsky.puzzlebox.resultui.board.BoardRowValue
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Instant
@@ -23,13 +21,12 @@ import java.time.LocalDate
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
-/** WeekMonthPoints (#1698) ranks a game's Week and Month by its daily place points summed; off in release, averages as before. */
+/** A game's Week and Month rank by its daily place points summed (#1698); a day stays timed. */
 class RanksViewModelWeekPointsTest {
 
     @get:Rule
@@ -60,8 +57,8 @@ class RanksViewModelWeekPointsTest {
     }
 
     @Test
-    fun `flag on, Global ranks the week by points summed and says so, and the Month too`() = runTest {
-        val viewModel = hub().viewModel(releaseFlags = FakeReleaseFlags(HistoryFlag.WeekMonthPoints))
+    fun `Global ranks the week by points summed and says so, and the Month too`() = runTest {
+        val viewModel = hub().viewModel()
 
         val week = viewModel.zip(Window.Week, RankScope.Global, players = 4)
 
@@ -70,7 +67,6 @@ class RanksViewModelWeekPointsTest {
         assertEquals(300.0 + 2 * 100.0 / 3, bea.total, 1e-9)
         assertEquals(5, bea.days)
         assertEquals(WEEK_MONTH_POINTS_CAPTION, week.board.caption)
-        assertTrue(week.weekMonthPoints)
 
         val month = viewModel.zip(Window.Month, RankScope.Global, players = 4)
         assertEquals("Zip · this month", month.board.title)
@@ -78,11 +74,11 @@ class RanksViewModelWeekPointsTest {
     }
 
     @Test
-    fun `flag on, Friends ranks the week among friends by their points`() = runTest {
+    fun `Friends ranks the week among friends by their points`() = runTest {
         val h = hub()
         h.befriend("bea")
         h.befriend("cy", code = "AAAAA3")
-        val viewModel = h.viewModel(releaseFlags = FakeReleaseFlags(HistoryFlag.WeekMonthPoints))
+        val viewModel = h.viewModel()
 
         val friends = viewModel.zip(Window.Week, RankScope.Friends, players = 3)
 
@@ -92,25 +88,13 @@ class RanksViewModelWeekPointsTest {
     }
 
     @Test
-    fun `flag on keeps a game's day timed`() = runTest {
-        val viewModel = hub().viewModel(releaseFlags = FakeReleaseFlags(HistoryFlag.WeekMonthPoints))
+    fun `a game's day stays timed`() = runTest {
+        val viewModel = hub().viewModel()
 
         val today = viewModel.zip(Window.Day, RankScope.Global, players = 3)
 
         assertEquals(BoardRowValue.Timed(100_000, 0), rowsOf(today.board).first().scoreValue)
         assertNull(today.board.caption)
-    }
-
-    @Test
-    fun `flag off ranks the week by average as before, the easy Monday first`() = runTest {
-        val viewModel = hub().viewModel(releaseFlags = FakeReleaseFlags())
-
-        val week = viewModel.zip(Window.Week, RankScope.Global, players = 4)
-
-        assertEquals(listOf("Ann", "Cy", "Bea", "Dan"), rowsOf(week.board).map { it.name })
-        assertTrue(rowsOf(week.board).all { it.scoreValue is BoardRowValue.Average })
-        assertNull(week.board.caption)
-        assertFalse(week.weekMonthPoints)
     }
 
     // #1743: Ann solved Tango every day from the 1st to today, the 13th, but is on only 9 of its boards. Nobody posted on
@@ -144,11 +128,11 @@ class RanksViewModelWeekPointsTest {
     }
 
     @Test
-    fun `flag on, a month counts only the days on the boards and says the viewer's other solved days earn no points, Global and Friends`() = runTest {
+    fun `a month counts only the days on the boards and says the viewer's other solved days earn no points, Global and Friends`() = runTest {
         val h = RanksTestHub(FakeLeaderboardRepository(month))
         h.completions.setRecords(annSolves())
         h.befriend("bea")
-        val viewModel = h.viewModel(releaseFlags = FakeReleaseFlags(HistoryFlag.WeekMonthPoints))
+        val viewModel = h.viewModel()
 
         for (scope in listOf(RankScope.Global, RankScope.Friends)) {
             val board = viewModel.tangoMonth(scope).board
@@ -158,15 +142,6 @@ class RanksViewModelWeekPointsTest {
             // The 1st, 2nd and 5th can never post; today's is still on its way, so it is not one of them.
             assertEquals("$scope", "3 solved days are unofficial and earn no points", board.note)
         }
-    }
-
-    @Test
-    fun `flag off, the month's averages say nothing of unofficial days`() = runTest {
-        val h = RanksTestHub(FakeLeaderboardRepository(month))
-        h.completions.setRecords(annSolves())
-        val viewModel = h.viewModel(releaseFlags = FakeReleaseFlags())
-
-        assertNull(viewModel.tangoMonth(RankScope.Global).board.note)
     }
 
     // #1743, second pass: Ann solved Tango on all 19 days to today, 6 of them only on LinkedIn, so no board has her on
@@ -203,10 +178,10 @@ class RanksViewModelWeekPointsTest {
     }
 
     @Test
-    fun `flag on, Friends counts the viewer's LinkedIn-only days like a connection's, in the month and Overall, Global as before`() = runTest {
+    fun `Friends counts the viewer's LinkedIn-only days like a connection's, in the month and Overall, Global as before`() = runTest {
         val h = annOnLinkedIn()
         h.befriend("bea")
-        val viewModel = h.viewModel(linkedIn = true, releaseFlags = FakeReleaseFlags(HistoryFlag.WeekMonthPoints))
+        val viewModel = h.viewModel(linkedIn = true)
 
         // First of two every day: 100 points a day to Bea's 50, and nothing left unofficial.
         val friends = viewModel.tangoMonth(RankScope.Friends).board

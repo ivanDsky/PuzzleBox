@@ -79,7 +79,7 @@ internal fun RanksScreen(
             }
         }
     }
-    if (howRanksWork) HowRanksWorkSheet(onDismiss = { howRanksWork = false }, weekMonthPoints = shown.weekMonthPoints)
+    if (howRanksWork) HowRanksWorkSheet(onDismiss = { howRanksWork = false })
     playerSheet?.let {
         PlayerSheet(
             it,

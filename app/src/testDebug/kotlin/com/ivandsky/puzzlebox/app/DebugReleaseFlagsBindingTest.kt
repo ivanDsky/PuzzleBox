@@ -5,7 +5,6 @@ import com.ivandsky.puzzlebox.common.flags.DeclaredFlags
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.TopBarFlag
 import com.ivandsky.puzzlebox.gameui.flags.GameUiFlag
-import com.ivandsky.puzzlebox.history.flags.HistoryFlag
 import com.ivandsky.puzzlebox.insights.flags.InsightsFlag
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -77,7 +76,6 @@ class DebugReleaseFlagsBindingTest {
             assertEquals(declared.size, enumBacked.size)
             assertEquals(enumBacked.map { it.name }, declared.map { it.key })
             val keys = declared.map { it.key }
-            assertTrue(keys.containsAll(HistoryFlag.entries.map { it.key }))
             assertTrue(keys.containsAll(GameUiFlag.entries.map { it.key }))
             assertTrue(keys.containsAll(InsightsFlag.entries.map { it.key }))
         } finally {
