@@ -15,6 +15,8 @@ import com.ivandsky.puzzlebox.gameui.trainer.DrillSource
 import com.ivandsky.puzzlebox.gameui.trainer.PracticeBoard
 import com.ivandsky.puzzlebox.gameui.trainer.PracticeSpotlight
 import com.ivandsky.puzzlebox.gameui.trainer.TrainerGame
+import com.ivandsky.puzzlebox.gameui.trainer.IntroDemo
+import com.ivandsky.puzzlebox.gameui.trainer.IntroVariant
 import com.ivandsky.puzzlebox.gameui.trainer.TrainerTechnique
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
@@ -62,5 +64,21 @@ internal class QueensTrainer(private val compute: CoroutineDispatcher) : Trainer
             QueensPlayBoard(practice.state, Modifier.matchParentSize())
             PracticeSpotlight(practice, status)
         }
+    }
+
+    /** The variants of a technique the catalog lists, in intro order ([QueensIntroCopy]); Line lock has two. */
+    override fun variants(technique: TechniqueId): List<IntroVariant> = QueensIntroCopy.variants(technique)
+
+    /** Null for another game's puzzle or one that does not decode, and where no Focus board opens on that variant ([QueensIntroDemo.of]). */
+    override fun demo(puzzle: Puzzle, technique: TechniqueId, variant: Int): IntroDemo? {
+        if (puzzle.gameId != gameId) return null
+        val decoded = (QueensCodec.decode(puzzle.payload) as? DecodeResult.Ok)?.value ?: return null
+        return QueensIntroDemo.of(decoded, technique, variant)
+    }
+
+    @Composable
+    override fun Demo(demo: IntroDemo, frame: Int, modifier: Modifier) {
+        val recorded = demo as? QueensIntroDemo ?: error("a Queens trainer was handed another game's demo: $demo")
+        QueensIntroBoard(recorded, frame, compute, modifier)
     }
 }

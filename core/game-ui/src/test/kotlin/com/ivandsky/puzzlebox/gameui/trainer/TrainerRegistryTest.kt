@@ -30,6 +30,13 @@ private class FakeTrainerGame(override val gameId: GameId) : TrainerGame {
 
     @Composable
     override fun Board(board: PracticeBoard, modifier: Modifier) = Unit
+
+    override fun variants(technique: TechniqueId): List<IntroVariant> = listOf(IntroVariant("Fake", "Rule.", "Spot it.", "Do it."))
+
+    override fun demo(puzzle: Puzzle, technique: TechniqueId, variant: Int): IntroDemo? = null
+
+    @Composable
+    override fun Demo(demo: IntroDemo, frame: Int, modifier: Modifier) = Unit
 }
 
 class TrainerRegistryTest {

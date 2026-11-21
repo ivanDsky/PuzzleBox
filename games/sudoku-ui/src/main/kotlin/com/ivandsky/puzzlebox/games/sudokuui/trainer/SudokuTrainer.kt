@@ -12,9 +12,12 @@ import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.game.trainer.TrainerVerdict
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
+import com.ivandsky.puzzlebox.games.sudoku.engine.trainer.SudokuIntro
 import com.ivandsky.puzzlebox.games.sudoku.engine.trainer.SudokuPractice
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuStackedBoard
 import com.ivandsky.puzzlebox.gameui.trainer.DrillSource
+import com.ivandsky.puzzlebox.gameui.trainer.IntroDemo
+import com.ivandsky.puzzlebox.gameui.trainer.IntroVariant
 import com.ivandsky.puzzlebox.gameui.trainer.PracticeBoard
 import com.ivandsky.puzzlebox.gameui.trainer.PracticeSpotlight
 import com.ivandsky.puzzlebox.gameui.trainer.PracticeStatus
@@ -70,6 +73,25 @@ internal class SudokuTrainer : TrainerGame {
             val styled = remember(status, restyle) { status.restyled(restyle) }
             PracticeSpotlight(practice, styled)
         }
+    }
+
+    override fun variants(technique: TechniqueId): List<IntroVariant> = SudokuIntroVariants.of(technique)
+
+    /**
+     * Null for another game's puzzle, one that does not decode, one whose stored solution is not its unique solution, a
+     * technique that is never the easiest rung on this puzzle, and an opening step of another variant ([SudokuIntro.record]).
+     */
+    override fun demo(puzzle: Puzzle, technique: TechniqueId, variant: Int): IntroDemo? {
+        if (puzzle.gameId != gameId) return null
+        val decoded = (SudokuGames.MINI.decodePuzzle(puzzle.payload) as? DecodeResult.Ok)?.value ?: return null
+        return SudokuIntro.record(decoded, technique, variant)?.let { SudokuIntroDemo.of(decoded, it) }
+    }
+
+    /** A frame of a demo on the real play board, as [Board] draws it, with every touch consumed ([SudokuDemoBoard]). */
+    @Composable
+    override fun Demo(demo: IntroDemo, frame: Int, modifier: Modifier) {
+        val recorded = demo as? SudokuIntroDemo ?: error("a Sudoku trainer was handed another game's demo: $demo")
+        SudokuDemoBoard(recorded, frame, modifier)
     }
 }
 

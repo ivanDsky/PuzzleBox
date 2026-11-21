@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.games.queensui.trainer
 
 import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
-import com.ivandsky.puzzlebox.game.CommandHistory
 import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.game.trainer.TrainerVerdict
@@ -29,7 +28,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.time.Instant
 
 /**
  * One Queens practice board (spec §2.2): the play board's own [state], its gestures and its Auto-cross, played from
@@ -82,7 +80,7 @@ internal class QueensPracticeBoard(
     private var playId = 0
 
     /** The real play board's state: the board is drawn, tapped and dragged as in play. */
-    val state = QueensBoardState(startSession(puzzle, start), mode = HintMode.Stepwise(compute), scope = scope)
+    val state = QueensBoardState(unplayedSession(puzzle, start), mode = HintMode.Stepwise(compute), scope = scope)
 
     init {
         state.judge = this
@@ -242,16 +240,5 @@ internal class QueensPracticeBoard(
     private companion object {
         /** How long a tap on an empty square waits for a second tap before it is judged as a cross. */
         const val SETTLE_MS = 600L
-
-        /**
-         * [start] as a session nobody has played, Auto-cross on whatever the player's setting is (A11): the crosses,
-         * then the queens, so the crosses a queen forces fill in. The setup is no move: nothing to undo.
-         */
-        fun startSession(puzzle: QueensPuzzle, start: QueensBoard): QueensSession {
-            val fresh = QueensSession(ref = null, puzzle = puzzle.copy(solution = null, unknownTail = ByteArray(0)))
-            val crossed = start.manual.fold(fresh) { session, cell -> session.withCrossToggled(cell, Instant.EPOCH) }
-            return start.queens.fold(crossed) { session, cell -> session.withQueenPlaced(cell, Instant.EPOCH) }
-                .copy(history = CommandHistory())
-        }
     }
 }

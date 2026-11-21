@@ -19,16 +19,23 @@ internal object QueensTrainerFixtures {
     val trainer = QueensTrainer(Dispatchers.Default)
 
     /** The daily's puzzle with its solution. */
-    val puzzle: QueensPuzzle by lazy {
-        val body = QueensTrainerFixtures::class.java.getResourceAsStream("/fixtures/queens-daily-real-916.json")!!
-            .readBytes().decodeToString()
+    val puzzle: QueensPuzzle by lazy { daily("queens-daily-real-916.json") }
+
+    /** The 8×8 daily the walker's tests call unique (copied like 916): walked by every rung but the leftover queen. */
+    val unique: QueensPuzzle by lazy { daily("queens-daily-unique.json") }
+
+    private fun daily(name: String): QueensPuzzle {
+        val body = QueensTrainerFixtures::class.java.getResourceAsStream("/fixtures/$name")!!.readBytes().decodeToString()
         val wire = QueensGameExtractor.extract(body)?.queensGamePuzzleJson ?: body
-        when (val parsed = QueensWireParser.parse(wire, LocalDate.of(2026, 11, 2))) {
+        return when (val parsed = QueensWireParser.parse(wire, LocalDate.of(2026, 11, 2))) {
             is DecodeResult.Ok -> parsed.value.puzzle
-            is DecodeResult.Err -> throw AssertionError("daily 916 parse failed: ${parsed.error}")
+            is DecodeResult.Err -> throw AssertionError("$name parse failed: ${parsed.error}")
         }
     }
 
     /** [puzzle] as the app's canonical [Puzzle], the way a trainer is handed one. */
-    val canonical: Puzzle by lazy { (QueensDefinition.decode(QueensCodec.encode(puzzle)) as DecodeResult.Ok).value }
+    val canonical: Puzzle by lazy { canonical(puzzle) }
+
+    /** Any puzzle as the app's canonical [Puzzle]. */
+    fun canonical(puzzle: QueensPuzzle): Puzzle = (QueensDefinition.decode(QueensCodec.encode(puzzle)) as DecodeResult.Ok).value
 }

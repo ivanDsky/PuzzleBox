@@ -35,7 +35,15 @@ object TangoPractice {
      * the board without [technique] ever being the easiest rung, so both kinds exist on a puzzle exactly when the
      * walker counts [technique] there.
      */
-    fun start(puzzle: TangoPuzzle, solution: List<TangoCell>, technique: TechniqueId, kind: BoardKind): List<TangoCell?>? {
+    fun start(puzzle: TangoPuzzle, solution: List<TangoCell>, technique: TechniqueId, kind: BoardKind): List<TangoCell?>? =
+        opening(puzzle, solution, technique, kind)?.board
+
+    /**
+     * The point [start] opens a board of [kind] at, with the step the walk makes there: what the technique intro
+     * demonstrates (frame 0 is exactly the board practice opens at). Null where [start] is null; the step is of
+     * [technique]'s rung, never a reveal.
+     */
+    fun opening(puzzle: TangoPuzzle, solution: List<TangoCell>, technique: TechniqueId, kind: BoardKind): TangoPracticeOpening? {
         val order = TangoLadder.rungs.map { it.first.trainerId }
         val trainedAt = order.indexOf(technique)
         if (trainedAt < 0) return null
@@ -44,9 +52,9 @@ object TangoPractice {
             BoardKind.Focus -> { id -> id == technique }
             BoardKind.Review -> { id -> id != null && order.indexOf(id) <= trainedAt }
         }
-        var best: List<TangoCell?>? = null
+        var best: TangoWalkPoint? = null
         var bestTrained = 0
-        var open: List<TangoCell?>? = null
+        var open: TangoWalkPoint? = null
         var trained = 0
         for (point in walk(puzzle, solution)) {
             if (!inRun(point.technique)) {
@@ -55,14 +63,14 @@ object TangoPractice {
                 continue
             }
             if (point.technique != technique) continue
-            if (open == null) open = point.board
+            if (open == null) open = point
             trained++
             if (trained > bestTrained) {
                 best = open
                 bestTrained = trained
             }
         }
-        return best
+        return best?.let { TangoPracticeOpening(it.board, checkNotNull(it.step)) }
     }
 
     /**
@@ -98,8 +106,9 @@ object TangoPractice {
         var last: Int? = null
         while (grid.any { it == null }) {
             val steps = easiestSteps(puzzle, grid)
-            yield(TangoWalkPoint(grid.toList(), steps.firstOrNull()?.rung?.trainerId))
-            val step = nearestOrReveal(puzzle, solution, grid, last, steps) ?: return@sequence
+            val step = nearestOrReveal(puzzle, solution, grid, last, steps)
+            yield(TangoWalkPoint(grid.toList(), steps.firstOrNull()?.rung?.trainerId, step))
+            step ?: return@sequence
             step.squares.forEach { grid[it.idx] = it.value }
             last = step.squares.last().idx
         }

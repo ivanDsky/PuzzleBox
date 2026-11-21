@@ -8,6 +8,8 @@ import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.game.trainer.TrainerVerdict
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.trainer.DrillSource
+import com.ivandsky.puzzlebox.gameui.trainer.IntroDemo
+import com.ivandsky.puzzlebox.gameui.trainer.IntroVariant
 import com.ivandsky.puzzlebox.gameui.trainer.PracticeBoard
 import com.ivandsky.puzzlebox.gameui.trainer.TrainerGame
 import com.ivandsky.puzzlebox.gameui.trainer.TrainerRegistry
@@ -33,6 +35,13 @@ private class FakeTrainerGame(override val gameId: GameId) : TrainerGame {
 
     @Composable
     override fun Board(board: PracticeBoard, modifier: Modifier) = Unit
+
+    override fun variants(technique: TechniqueId): List<IntroVariant> = listOf(IntroVariant("Fake", "Rule.", "Spot it.", "Do it."))
+
+    override fun demo(puzzle: Puzzle, technique: TechniqueId, variant: Int): IntroDemo? = null
+
+    @Composable
+    override fun Demo(demo: IntroDemo, frame: Int, modifier: Modifier) = Unit
 }
 
 /** Games' Train tab follows the Trainer registry (R3): no adapter bound is no slot, any adapter is the Train slot, with its body and its right pane. */
