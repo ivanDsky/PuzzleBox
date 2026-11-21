@@ -1,8 +1,6 @@
 package com.ivandsky.puzzlebox.app.widget
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceModifier
 import androidx.glance.LocalContext
 import androidx.glance.action.clickable
@@ -30,7 +28,7 @@ import com.ivandsky.puzzlebox.app.shortcut.ShortcutTarget
 @Composable
 internal fun WidgetChips(rings: List<WidgetRing>?, look: WidgetLayout.Look, colors: WidgetColors) {
     Row(modifier = GlanceModifier.fillMaxWidth()) {
-        if (rings == null) repeat(SLOTS) { Chip(null, look, colors) } else rings.forEach { Chip(it, look, colors) }
+        if (rings == null) repeat(WidgetLayout.SLOTS) { Chip(null, look, colors) } else rings.forEach { Chip(it, look, colors) }
     }
 }
 
@@ -44,21 +42,19 @@ private fun RowScope.Chip(ring: WidgetRing?, look: WidgetLayout.Look, colors: Wi
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         WidgetRingArt(ring, look.ring, colors)
-        Spacer(GlanceModifier.height(2.dp))
+        Spacer(GlanceModifier.height(WidgetLayout.CHIP_TEXT_GAP))
         Text(
             text = text.first,
-            style = TextStyle(color = colors.of(R.color.widget_text), fontSize = 14.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
+            style = TextStyle(color = colors.of(R.color.widget_text), fontSize = look.chipFirstText, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
             maxLines = 1,
         )
         if (look.timeLine) {
-            Spacer(GlanceModifier.height(2.dp))
+            Spacer(GlanceModifier.height(WidgetLayout.CHIP_TEXT_GAP))
             Text(
                 text = text.second,
-                style = TextStyle(color = colors.of(R.color.widget_muted), fontSize = 12.sp, textAlign = TextAlign.Center),
+                style = TextStyle(color = colors.of(R.color.widget_muted), fontSize = look.chipSecondText, textAlign = TextAlign.Center),
                 maxLines = 1,
             )
         }
     }
 }
-
-private const val SLOTS = 5
