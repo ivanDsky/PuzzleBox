@@ -1,6 +1,9 @@
 package com.ivandsky.puzzlebox.train.practice
 
 import android.provider.Settings
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -51,7 +54,7 @@ class PracticeIntroPaneTest {
         onDismissHint = { hintDismissed += 1 },
     )
 
-    private fun show(state: PracticeState, controls: IntroControls) {
+    private fun show(state: PracticeState, controls: IntroControls, showBack: Boolean = true) {
         // Reduced motion: the landing step shows every square at once, so no frame is left to a running stagger.
         val resolver = RuntimeEnvironment.getApplication().contentResolver
         Settings.Global.putFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
@@ -61,9 +64,9 @@ class PracticeIntroPaneTest {
                     chapter = standInChapter(board = 1),
                     state = state,
                     progress = TechniqueProgress(TechniqueProgress.Mark.Practicing, inRow = 2, answeredAtMs = 1L),
-                    showBack = true,
+                    showBack = showBack,
                     onClose = {},
-                    board = { _, modifier -> StandInGrid(modifier) },
+                    board = { _, modifier -> StandInGrid(modifier.testTag("train.test.board")) },
                     onTryAgain = {},
                     onTryAnother = {},
                     hold = null,
@@ -188,6 +191,20 @@ class PracticeIntroPaneTest {
     fun `no chip on a done board`() {
         show(PracticeState.Practicing(StandInPracticeBoard(PracticeStatus.Done(null))), controls(intro(1)))
         composeRule.onNodeWithTag("train.howItWorks").assertDoesNotExist()
+    }
+
+    /** Bug caught: the board growing or moving the moment it is done (user-check round 7), as the header loses the chip's height. */
+    @Test
+    fun `a board keeps its place and size when it is done`() {
+        val board = StandInPracticeBoard(PracticeStatus.FindNextMove)
+        // No back arrow (the tablet), so the title row's height is the chip's and the name's alone.
+        show(PracticeState.Practicing(board), controls(intro(1)), showBack = false)
+        val live = composeRule.onNodeWithTag("train.test.board").getBoundsInRoot()
+
+        board.status.value = PracticeStatus.Done(null)
+        composeRule.waitForIdle()
+
+        assertEquals(live, composeRule.onNodeWithTag("train.test.board").getBoundsInRoot())
     }
 
     /** Bug caught: the hint bubble that cannot be answered, or one that shows when the hint is not due. */

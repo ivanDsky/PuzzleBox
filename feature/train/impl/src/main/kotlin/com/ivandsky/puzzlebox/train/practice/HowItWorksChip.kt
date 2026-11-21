@@ -19,7 +19,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Constraints
@@ -38,19 +40,22 @@ private fun Modifier.hangBelow(gap: Dp): Modifier = layout { measurable, _ ->
     layout(0, 0) { placeable.place(0, gap.roundToPx()) }
 }
 
-/** The header's "How it works" chip: [onClick] replays the intro. With [hint] the one-time bubble under it says so; [onDismissHint] is its OK. */
-internal class HowItWorks(val onClick: () -> Unit, val hint: Boolean, val onDismissHint: () -> Unit)
+/**
+ * The header's "How it works" chip: [onClick] replays the intro. With [hint] the one-time bubble under it says so;
+ * [onDismissHint] is its OK. [hidden] (a done board) keeps its room but draws, says and does nothing.
+ */
+internal class HowItWorks(val onClick: () -> Unit, val hint: Boolean, val onDismissHint: () -> Unit, val hidden: Boolean = false)
 
 /** A small outlined pill with an eye and "How it works", which opens the technique's intro again; the one-time hint hangs under it. */
 @Composable
 internal fun HowItWorksChip(chip: HowItWorks, modifier: Modifier = Modifier) {
-    Box(modifier) {
+    Box(if (chip.hidden) modifier.alpha(0f).clearAndSetSemantics {} else modifier) {
         Row(
             Modifier
                 .height(ChipHeight)
                 .clip(CircleShape)
                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
-                .clickable(onClick = chip.onClick)
+                .clickable(enabled = !chip.hidden, onClick = chip.onClick)
                 .padding(horizontal = Spacing.md)
                 .testTag("train.howItWorks"),
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),

@@ -31,11 +31,8 @@ import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.gameui.trainer.PracticeBoard
 import com.ivandsky.puzzlebox.gameui.trainer.PracticeStatus
 
-/** A pane narrower than this wraps the done band's Next board button under its text, which needs the taller band. */
+/** A pane narrower than this has the done band put its Next board button on a row under its title. */
 private val NarrowPane = 560.dp
-
-/** The done band's height when its button wraps under the text. */
-private val WrappedDoneBandHeight = 136.dp
 
 private const val GlowMillis = 200
 
@@ -84,9 +81,9 @@ internal fun PracticePane(
         } else {
             Column(Modifier.fillMaxSize().padding(bottom = Spacing.lg)) {
                 val live = (state as? PracticeState.Practicing)?.board
-                // The chip is for a board in play: not while it is done, and only for a technique that has an intro.
+                // The chip is for a board in play and only for a technique that has an intro. A done board hides it but keeps its room, so nothing below moves.
                 val ended = live?.let { it.status.collectAsStateWithLifecycle().value is PracticeStatus.Done } == true
-                val chip = if (intro?.intro != null && live != null && !ended) HowItWorks(intro.onShow, intro.hint, intro.onDismissHint) else null
+                val chip = if (intro?.intro != null && live != null) HowItWorks(intro.onShow, intro.hint && !ended, intro.onDismissHint, hidden = ended) else null
                 PracticeHeader(chapter, progress, showBack, onClose, howItWorks = chip)
                 Spacer(Modifier.size(Spacing.sm))
                 when (state) {
@@ -125,7 +122,6 @@ private fun PracticeBody(
                 },
                 board = { boardContent(board, Modifier) },
                 modifier = Modifier.glow(done),
-                bandHeight = if (done && narrow) WrappedDoneBandHeight else BandHeight,
                 overlay = { if (done) BoardEndStamp() },
             )
         }

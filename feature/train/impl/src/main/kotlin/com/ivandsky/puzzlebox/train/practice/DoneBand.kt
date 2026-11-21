@@ -30,6 +30,8 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ivandsky.puzzlebox.designsystem.PillShape
@@ -45,8 +47,9 @@ private val DrainHeight = 5.dp
  * The band of a finished board (prototype 03, variant A): solid primary, a check, "Board N of M done" and what comes
  * next: a countdown to the next board (or, on the chapter's last board, to its result) with a button that skips the
  * wait, or with [BoardHold.waitsForTap] (a screen reader is on) the tap that moves on. A bar along the bottom edge
- * drains over the hold unless motion is reduced; the count stays. [narrow] drops the button under the text. Only the
- * title is a live region, so "Board N of M done" is read out once and the ticking line is not.
+ * drains over the hold unless motion is reduced; the count stays. [narrow] puts the count and the button on a row under
+ * the title, so the band keeps the status band's height and the board never moves. Only the title is a live region,
+ * so "Board N of M done" is read out once and the ticking line is not.
  */
 @Composable
 internal fun DoneBand(chapter: PracticeChapter, hold: BoardHold?, narrow: Boolean, onSkip: () -> Unit, modifier: Modifier = Modifier) {
@@ -57,17 +60,24 @@ internal fun DoneBand(chapter: PracticeChapter, hold: BoardHold?, narrow: Boolea
     Box(modifier.fillMaxSize().clip(shape).background(scheme.primary).semantics(mergeDescendants = true) {}.testTag("train.status")) {
         val padding = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)
         if (narrow) {
-            Column(padding.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
-                    DoneCheck()
-                    DoneText(chapter, shown, last, Modifier.weight(1f))
+            // Within the band's fixed height: the title with a small check, then the countdown beside the button.
+            Column(padding.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+                    DoneCheck(SmallCheck)
+                    DoneTitle(chapter)
                 }
-                NextBoardButton(last, onSkip, Modifier.align(Alignment.End))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
+                    DoneNext(shown, last, Modifier.weight(1f))
+                    NextBoardButton(last, onSkip)
+                }
             }
         } else {
             Row(padding.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
-                DoneCheck()
-                DoneText(chapter, shown, last, Modifier.weight(1f))
+                DoneCheck(LargeCheck)
+                Column(Modifier.weight(1f)) {
+                    DoneTitle(chapter)
+                    DoneNext(shown, last)
+                }
                 NextBoardButton(last, onSkip)
             }
         }
@@ -81,32 +91,41 @@ internal fun DoneBand(chapter: PracticeChapter, hold: BoardHold?, narrow: Boolea
 /** The drain bar eases over one hold tick, so it reads as one steady drain. */
 private const val DrainTickMillis = 100
 
+private val LargeCheck = 40.dp
+private val SmallCheck = 26.dp
+
 @Composable
-private fun DoneCheck() {
-    Box(Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.onPrimary), contentAlignment = Alignment.Center) {
-        Icon(PuzzleIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+private fun DoneCheck(size: Dp) {
+    Box(Modifier.size(size).clip(CircleShape).background(MaterialTheme.colorScheme.onPrimary), contentAlignment = Alignment.Center) {
+        Icon(PuzzleIcons.Check, contentDescription = null, Modifier.size(size * 0.6f), tint = MaterialTheme.colorScheme.primary)
     }
 }
 
+/** "Board N of M done": the band's live region. */
 @Composable
-private fun DoneText(chapter: PracticeChapter, hold: BoardHold, last: Boolean, modifier: Modifier) {
-    val color = MaterialTheme.colorScheme.onPrimary
+private fun DoneTitle(chapter: PracticeChapter) {
+    Text(
+        "Board ${chapter.board} of ${chapter.boards} done",
+        style = MaterialTheme.typography.titleLarge.copy(fontSize = 20.sp, lineHeight = 26.sp, fontWeight = FontWeight.Bold),
+        color = MaterialTheme.colorScheme.onPrimary,
+        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+    )
+}
+
+/** What comes next: the countdown, or with [BoardHold.waitsForTap] the tap that moves on. */
+@Composable
+private fun DoneNext(hold: BoardHold, last: Boolean, modifier: Modifier = Modifier) {
     val next = if (last) "Chapter result" else "Next board"
-    Column(modifier) {
-        Text(
-            "Board ${chapter.board} of ${chapter.boards} done",
-            style = MaterialTheme.typography.titleLarge.copy(fontSize = 20.sp, lineHeight = 26.sp, fontWeight = FontWeight.Bold),
-            color = color,
-            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-        )
-        // The whole second left, never below 1.
-        val seconds = ceil(hold.remainingMs / 1000.0).toInt().coerceAtLeast(1)
-        Text(
-            if (hold.waitsForTap) "Tap ${if (last) "See result" else "Next board"} when you are ready." else "$next in $seconds",
-            style = MaterialTheme.typography.bodyMedium,
-            color = color,
-        )
-    }
+    // The whole second left, never below 1.
+    val seconds = ceil(hold.remainingMs / 1000.0).toInt().coerceAtLeast(1)
+    Text(
+        if (hold.waitsForTap) "Tap ${if (last) "See result" else "Next board"} when you are ready." else "$next in $seconds",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onPrimary,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier,
+    )
 }
 
 /** The skip: "Next board", or "See result" on the chapter's last board; a pill that is the on-primary fill with primary text. */
