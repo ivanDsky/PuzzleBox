@@ -24,8 +24,8 @@ internal data class WidgetLayout(
     val newBestChip: Boolean,
 ) {
     /**
-     * The sizes of a step: the streak line or header, the ring, whether the chips have a second line and the step has an action
-     * pill, and the chip's text sizes.
+     * The sizes of a step: the streak line or header, the ring, whether the chips have a second line, the step has an action
+     * pill and the chips have a [streakLine] above them, and the chip's text sizes.
      */
     data class Look(
         val horizontalPadding: Dp,
@@ -36,6 +36,7 @@ internal data class WidgetLayout(
         val longStreak: Boolean,
         val timeLine: Boolean,
         val pill: Boolean,
+        val streakLine: Boolean = true,
         val chipFirstText: TextUnit = 14.sp,
         val chipSecondText: TextUnit = 12.sp,
     ) {
@@ -84,6 +85,9 @@ internal data class WidgetLayout(
         val CHIP_TEXT_GAP: Dp = 2.dp
         val CHIP_FIRST_LARGE: TextUnit = 16.sp
         val CHIP_SECOND_LARGE: TextUnit = 13.sp
+
+        /** The least vertical padding a one-row chips1 keeps, so its ring is not on the widget's edge. */
+        private val CHIPS1_PADDING_MIN: Dp = 2.dp
         private const val LINE_HEIGHT_RATIO = 1.2f
 
         private val CHIPS1 = Look(
@@ -115,7 +119,7 @@ internal data class WidgetLayout(
         fun of(size: DpSize): WidgetLayout {
             val step = WidgetStep.of(size)
             val base = when (step) {
-                WidgetStep.Chips1 -> CHIPS1
+                WidgetStep.Chips1 -> fitChips1(size.height)
                 WidgetStep.Chips2 -> CHIPS2
                 WidgetStep.ListNarrow -> LIST_NARROW
                 WidgetStep.ListWide -> LIST_WIDE
@@ -136,6 +140,21 @@ internal data class WidgetLayout(
                 rowHeight = rowHeight,
                 newBestChip = size.width >= NEW_BEST_CHIP_FROM,
             )
+        }
+
+        /**
+         * Chips1 in the height it was given. A one-row widget is short, so what does not fit goes in this order: the vertical
+         * padding shrinks, from 8dp to 2dp at the least, then the streak line goes and the chips stay with the padding they can
+         * have. The five chips and their taps are never dropped.
+         */
+        private fun fitChips1(height: Dp): Look {
+            val chips = chipsRowHeight(CHIPS1)
+            val withStreak = chips + CHIPS1.streakHeight
+
+            fun padding(block: Dp) = floor(((height - block) / 2).value).dp.coerceIn(CHIPS1_PADDING_MIN, CHIPS1.verticalPadding)
+            val streakPadding = padding(withStreak)
+            if (height - streakPadding * 2 >= withStreak) return CHIPS1.copy(verticalPadding = streakPadding)
+            return CHIPS1.copy(verticalPadding = padding(chips), streakLine = false)
         }
 
         /** The room left for five rows once the header, the pill and their gaps are paid, shared out and kept between 48 and 58dp. */
@@ -164,6 +183,10 @@ internal data class WidgetLayout(
 
         /** A chip's text under its ring: two lines and the 2dp above each. */
         fun chipTextHeight(look: Look): Dp = CHIP_TEXT_GAP * 2 + lineHeight(look.chipFirstText) + lineHeight(look.chipSecondText)
+
+        /** A chip row: the ring and the text lines under it that the look has. */
+        fun chipsRowHeight(look: Look): Dp =
+            look.ring + if (look.timeLine) chipTextHeight(look) else CHIP_TEXT_GAP + lineHeight(look.chipFirstText)
 
         private fun lineHeight(text: TextUnit): Dp = ceil(text.value * LINE_HEIGHT_RATIO).dp
 

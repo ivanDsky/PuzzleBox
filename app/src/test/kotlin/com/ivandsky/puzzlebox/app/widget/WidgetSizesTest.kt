@@ -50,4 +50,23 @@ class WidgetSizesTest {
         assertTrue(36f in rings)
         assertTrue(rings.any { it >= 48f })
     }
+
+    @Test
+    fun `the shortest size is at most 56dp, the least one-row height, and its chips1 block fits with the chips in it`() {
+        val shortest = WidgetSizes.ALL.minBy { it.height }
+        val layout = WidgetLayout.of(shortest)
+
+        assertTrue(shortest.height.value <= 56f)
+        assertEquals(WidgetStep.Chips1, layout.step)
+        assertTrue(WidgetLayout.chipsRowHeight(layout.look) <= layout.contentHeight)
+        assertTrue(layout.contentHeight <= shortest.height)
+    }
+
+    @Test
+    fun `chips1 has a size where its streak line still fits one row, and one under it where only the chips do`() {
+        val chips1 = WidgetSizes.ALL.filter { WidgetStep.of(it) == WidgetStep.Chips1 }.map { WidgetLayout.of(it).look.streakLine to it.height.value }
+
+        assertTrue(chips1.any { it.first && it.second < 90f })
+        assertTrue(chips1.any { !it.first })
+    }
 }
