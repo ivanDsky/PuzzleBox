@@ -5,13 +5,15 @@ import kotlin.math.abs
 
 /**
  * How the Moments sheet lays out its stickers, in dp: [columns] across, each face [size] square in a cell [cellWidth]
- * wide (the face, or its day when that is wider), the day printed under each face when [dated]. [side] and [top] are
- * the sheet's insets: its padding plus the room a tilted, peeled sticker takes past its square (and on top its lift), so
- * no sticker touches or crosses the board's edge.
+ * wide (the face, or its day when that is wider), the day printed under each face when [dated]. The gaps scale with the
+ * face ([gapX], [gapY]). [side] and [top] are the sheet's insets: the padding, or the room a tilted, peeled sticker
+ * takes past its square plus a clearance when that is more (and on top its lift), so no sticker touches the board's edge.
  */
 internal data class StickerGrid(val columns: Int, val size: Float, val cellWidth: Float, val dated: Boolean) {
-    val side: Float get() = SheetPad + Reach * size
+    val side: Float get() = maxOf(SheetPad, Reach * size + EdgeClear)
     val top: Float get() = side + RecapMotion.PeelLift.value
+    val gapX: Float get() = StickerGap * size
+    val gapY: Float get() = (if (dated) DayGap else StickerGap) * size
 }
 
 /**
@@ -49,11 +51,26 @@ private fun bestGrid(n: Int, w: Float, h: Float, wide: Boolean, lw: Float, lh: F
  */
 private fun fitSize(n: Int, c: Int, w: Float, h: Float, cap: Float, lw: Float, lh: Float): Float {
     val rows = (n + c - 1) / c
-    val across = w - 2 * SheetPad - (c - 1) * StickerGapX
-    val byFace = across / (c + 2 * Reach)
-    val byWidth = if (byFace >= lw) byFace else (across - c * lw) / (2 * Reach)
-    val down = h - 2 * SheetPad - RecapMotion.PeelLift.value - (rows - 1) * StickerGapY - rows * lh
-    return minOf(cap, byWidth, down / (rows + 2 * Reach)).coerceAtLeast(0f)
+    val rowGap = if (lh > 0f) DayGap else StickerGap
+    val byFace = largest(w, 0f, c + (c - 1) * StickerGap)
+    // Days wider than the faces set the cells; only the gaps and insets still grow with the face.
+    val byWidth = if (byFace >= lw) byFace else largest(w, c * lw, (c - 1) * StickerGap)
+    val byHeight = largest(h, rows * lh + RecapMotion.PeelLift.value, rows + (rows - 1) * rowGap)
+    return minOf(cap, byWidth, byHeight).coerceAtLeast(0f)
+}
+
+/**
+ * The largest face s for which [perFace]·s + [fixed] and both insets fit [room]. An inset is the larger of the padding
+ * and the reach plus clearance, so s must fit with each.
+ */
+private fun largest(room: Float, fixed: Float, perFace: Float): Float =
+    minOf(within(room - fixed - 2 * SheetPad, perFace), within(room - fixed - 2 * EdgeClear, perFace + 2 * Reach))
+
+/** The largest s for which [perFace]·s fits [room]; any s when nothing grows with it and the room is there. */
+private fun within(room: Float, perFace: Float): Float = when {
+    perFace > 0f -> room / perFace
+    room >= 0f -> Float.POSITIVE_INFINITY
+    else -> 0f
 }
 
 /** The prototype's columns for [count] stickers: one row up to four, three for five or six, then as many as the width holds. */
@@ -73,18 +90,25 @@ private fun tabletSize(count: Int): Float = when {
     else -> 92f
 }
 
-/** The gaps between stickers across and between rows, in dp. */
-internal const val StickerGapX = 10f
-internal const val StickerGapY = 6f
+/**
+ * The gaps as shares of the face: between stickers across, and between rows when the faces stand alone. Under a day the
+ * day itself parts the rows, so only a smaller gap follows it.
+ */
+private const val StickerGap = 0.15f
+private const val DayGap = 0.09f
 
 /** The sheet's padding around the stickers, in dp. */
 private const val SheetPad = 12f
 
 /**
- * How far past its square, as a share of its size, a sticker can reach: tilted up to 8.5° (rest 4.5° plus the peel's 5°)
- * and scaled 1.08, a square's half-width grows to 0.614 of its size, 0.114 past the square.
+ * How far past its square, as a share of its size, a sticker can reach: tilted up to 9° (rest up to 4° plus the peel's
+ * 5°) and scaled 1.08, a square's half-width grows to 0.618 of its size, 0.118 past the square. The curl ends inside
+ * that too, as the lift raises it.
  */
 private const val Reach = 0.12f
+
+/** The least room, in dp, between the board's edge and the farthest a peeled sticker reaches. */
+private const val EdgeClear = 6f
 
 /** A phone's sticker caps: one or two alone, more beside each other. */
 private const val AloneSize = 120f

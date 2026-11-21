@@ -88,12 +88,12 @@ internal fun MomentStickerSheet(
         }
         Column(
             Modifier.padding(start = grid.side.dp, end = grid.side.dp, top = grid.top.dp, bottom = grid.side.dp),
-            verticalArrangement = Arrangement.spacedBy(StickerGapY.dp),
+            verticalArrangement = Arrangement.spacedBy(grid.gapY.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             var index = 0
             stickers.chunked(grid.columns).forEach { row ->
-                Row(horizontalArrangement = Arrangement.spacedBy(StickerGapX.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(grid.gapX.dp)) {
                     row.forEach { moment ->
                         val i = index++
                         Sticker(moment, i, grid, dayStyle, gameName, placed > i, peeled == i, { onPeel(i) })

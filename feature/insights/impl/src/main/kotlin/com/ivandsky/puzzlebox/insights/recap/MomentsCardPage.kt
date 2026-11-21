@@ -188,7 +188,7 @@ private fun KindRowLine(row: KindRow, ink: Color, modifier: Modifier) {
         modifier
             .fillMaxWidth()
             .heightIn(min = RowMinHeight)
-            .padding(horizontal = Spacing.lg)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
             .semantics(mergeDescendants = true) {}
             .testTag(row.tag),
         verticalAlignment = Alignment.CenterVertically,
@@ -197,8 +197,7 @@ private fun KindRowLine(row: KindRow, ink: Color, modifier: Modifier) {
         Box(Modifier.size(MarkerSize).clip(CircleShape).background(ink), contentAlignment = Alignment.Center) {
             Icon(row.kind.glyph(), contentDescription = null, modifier = Modifier.size(MarkerGlyphSize), tint = PaletteEntry.Moments.field)
         }
-        Text(row.label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge, color = ink)
-        Text(row.value, style = MaterialTheme.typography.titleMedium.tabular(), color = ink)
+        LabelThenValue(row.label, row.value, ink, Modifier.weight(1f))
     }
 }
 
