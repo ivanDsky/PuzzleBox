@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -107,8 +108,11 @@ internal fun StreakDial(card: RecapCard.Streak, modifier: Modifier = Modifier, o
         onSettled()
     }
     val ink = PaletteEntry.Streak.ink
-    // The lighter of the ice pair is the one that reads on the gold field in both modes.
-    val ice = LocalIce.current.let { if (it.container.luminance() > it.onContainer.luminance()) it.container else it.onContainer }
+    // Light: the pale container reads on the gold. Dark: the reference tick sits a step under the pale onContainer
+    // (the chip's label ink), so it is the ice pair blended toward onContainer rather than that ink itself.
+    val ice = LocalIce.current.let {
+        if (it.container.luminance() > it.onContainer.luminance()) it.container else lerp(it.container, it.onContainer, DARK_ICE_MIX)
+    }
     Box(
         modifier
             .graphicsLayer {
@@ -220,3 +224,4 @@ private const val CRACK_DP = 2
 private const val HALF = 0.34f
 private const val TRAIL = 3
 private const val TRAIL_STEP = 0.7f
+private const val DARK_ICE_MIX = 0.8f
