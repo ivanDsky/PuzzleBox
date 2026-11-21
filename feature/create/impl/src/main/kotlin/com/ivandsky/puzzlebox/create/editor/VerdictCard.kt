@@ -44,7 +44,7 @@ private val CueDrop = (Spacing.sm + Spacing.xs) / 2
  * The verdict in full (02 handoff, "Pill popover"): title, subtitle, the grade of a Unique
  * (its difficulty, or the Needs guessing flag, under `create.verdict.grade` with the grade's
  * machine name as state), a line on what the verdict means and, after Undetermined,
- * Check again ([onCheckAgain]), after 2+ solutions the witness A/B choice (quiet tiles when [modeTiles], else the segmented control), Show on board and Auto-show
+ * Check again ([onCheckAgain]), after 2+ solutions the witness A/B choice as quiet tiles, Show on board and Auto-show
  * ([VerdictWitness] over [overlay] and [autoShow], changes to [onOverlay] and [onAutoShow]), then the game's fix list ([issues], `GameEditorUi.Issues`).
  * Motion: a new verdict **Crossfade**s in on MotionTokens medium, emphasized decelerate;
  * under reduced motion a plain 120 ms fade. A check still running after [CHECKING_CUE_GRACE_MS]
@@ -60,7 +60,6 @@ fun VerdictCard(
     onOverlay: (EditorOverlay) -> Unit = {},
     autoShow: Boolean = true,
     onAutoShow: (Boolean) -> Unit = {},
-    modeTiles: Boolean = false,
     issues: @Composable (Modifier) -> Unit = {},
 ) {
     val reducedMotion = rememberReducedMotion()
@@ -87,7 +86,7 @@ fun VerdictCard(
                 label = "create-verdict-card",
                 contentKey = ::faceKey,
             ) { shown ->
-                CardFace(shown, checking = verdict == Verdict.Checking, reducedMotion, onCheckAgain, overlay, onOverlay, autoShow, onAutoShow, modeTiles)
+                CardFace(shown, checking = verdict == Verdict.Checking, reducedMotion, onCheckAgain, overlay, onOverlay, autoShow, onAutoShow)
             }
             // Outside the crossfade: the fix list follows the live draft, so it is never drawn twice.
             issues(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.sm))
@@ -105,12 +104,11 @@ private fun CardFace(
     onOverlay: (EditorOverlay) -> Unit,
     autoShow: Boolean,
     onAutoShow: (Boolean) -> Unit,
-    modeTiles: Boolean,
 ) {
     Column(
-        // The witness tiles wrap "Solution A" on two lines at 320 dp (60 dp tall, 20 more than the segmented row); the face gives
-        // back 4 dp of its bottom gap so the card's bottom still lands inside the half-open sheet. The 48 dp Auto-show row's own touch padding stays under its last line.
-        modifier = Modifier.padding(start = Spacing.lg, top = Spacing.lg, end = Spacing.lg, bottom = if (modeTiles && verdict is Verdict.Multiple) Spacing.xs else Spacing.sm),
+        // The witness tiles wrap "Solution A" on two lines at 320 dp (60 dp tall); the face gives back 4 dp of its bottom gap
+        // so the card's bottom still lands inside the half-open sheet. The 48 dp Auto-show row's own touch padding stays under its last line.
+        modifier = Modifier.padding(start = Spacing.lg, top = Spacing.lg, end = Spacing.lg, bottom = if (verdict is Verdict.Multiple) Spacing.xs else Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         // The cue hangs in the gap under the title and takes no height, so the Checking face is as
@@ -129,7 +127,7 @@ private fun CardFace(
         if (verdict is Verdict.Unique && verdict.gradeState() != null) {
             VerdictGrade(verdict)
         } else if (verdict !is Verdict.Multiple) {
-            // 2+ solutions says it under the witness segments instead, so the card keeps its height.
+            // 2+ solutions says it under the witness tiles instead, so the card keeps its height.
             Text(
                 text = subtitleOf(verdict),
                 style = MaterialTheme.typography.bodyMedium,
@@ -148,7 +146,7 @@ private fun CardFace(
                 modifier = Modifier.fillMaxWidth().testTag("create.verdict.checkAgain"),
             )
         }
-        if (verdict is Verdict.Multiple) VerdictWitness(overlay, autoShow, onOverlay, onAutoShow, legend = legendOf(verdict), modeTiles = modeTiles)
+        if (verdict is Verdict.Multiple) VerdictWitness(overlay, autoShow, onOverlay, onAutoShow, legend = legendOf(verdict))
     }
 }
 

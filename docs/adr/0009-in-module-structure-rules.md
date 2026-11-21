@@ -87,7 +87,7 @@ prose rules; the tests are their mechanical form and add no stricter bar:
 - Rule 20, one public top-level type per file (private helpers, extensions, typealiases and
   previews excepted): S1.
 
-The other rules (S0, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, P1, P4–P14, P15, P16) have no payload twin. Dependency direction between
+The other rules (S0, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, S14, P1, P4–P14, P15, P16) have no payload twin. Dependency direction between
 modules stays in ADR-0008.
 
 ### Adding a rule
@@ -293,6 +293,18 @@ Vibration switch silences it (#1686).
   `HapticsLabVibratorRows.kt` plays raw effects on it, past the gate on purpose (the same lab S9 allows). Release compiles none of it.
 - **How to fix:** play through `LocalHapticFeedback.current.performHapticFeedback(HapticFeedbackType.…)`; a new kind the
   system drops on a device gets a mapping in `VibratorHapticFeedback`.
+
+## S14
+No Material segmented button: the work surfaces' either/or choices are `ChoiceTiles` or `ChoiceRows` (#1976, after the
+ModeTiles and ChoiceRows flags were removed and `SegmentedToggle` deleted).
+
+- **Scope:** production files of every module.
+- **Detection:** in the file's code (comments and string contents removed), the name `SegmentedButton`,
+  `SegmentedButtonDefaults`, `SingleChoiceSegmentedButtonRow` or `MultiChoiceSegmentedButtonRow`, as an import, a bare
+  call or a qualified call. A name that only contains one of them is not matched. The violation is the file. Test source
+  sets are not scanned.
+- **Accepted misses:** a segmented button reached through an import alias or a project wrapper that hides the Material name.
+- **How to fix:** use `ChoiceTiles` (a mode switch) or `ChoiceRows` (a short list of options) from `core:designsystem`.
 
 ## P1
 Every production file's package is under its module's package root.

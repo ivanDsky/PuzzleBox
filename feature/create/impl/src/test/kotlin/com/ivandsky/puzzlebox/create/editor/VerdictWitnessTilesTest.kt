@@ -24,8 +24,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The A | B choice with `modeTiles` on and off: the same tags and the same overlay changes, quiet
- * 52 dp tiles when on, the old 40 dp segmented row when off.
+ * The A | B choice: the same tags and the same overlay changes as ever, quiet 52 dp tiles.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -37,10 +36,10 @@ class VerdictWitnessTilesTest {
 
     private var overlay by mutableStateOf(EditorOverlay(EditorOverlay.Witness.A, showOnBoard = true))
 
-    private fun show(modeTiles: Boolean) {
+    private fun show() {
         composeRule.setContent {
             PuzzleBoxTheme {
-                VerdictWitness(overlay, autoShow = true, onChange = { overlay = it }, onAutoShow = {}, legend = "legend", modeTiles = modeTiles)
+                VerdictWitness(overlay, autoShow = true, onChange = { overlay = it }, onAutoShow = {}, legend = "legend")
             }
         }
     }
@@ -48,8 +47,8 @@ class VerdictWitnessTilesTest {
     private fun rowHeight(tag: String) = composeRule.onNodeWithTag(tag).getBoundsInRoot().height
 
     @Test
-    fun `with tiles on, a tap on B picks it and keeps show on board`() {
-        show(modeTiles = true)
+    fun `a tap on B picks it and keeps show on board`() {
+        show()
         composeRule.onNodeWithTag(WITNESS_A).assertIsSelected()
         composeRule.onNodeWithTag(WITNESS_B).assertIsNotSelected()
 
@@ -61,28 +60,17 @@ class VerdictWitnessTilesTest {
     }
 
     @Test
-    fun `with tiles on, both choices are 52 dp tiles`() {
-        show(modeTiles = true)
+    fun `both choices are 52 dp tiles`() {
+        show()
 
         listOf(WITNESS_A, WITNESS_B).forEach { assertTrue("$it tile ${rowHeight(it)}", rowHeight(it) >= TILE_HEIGHT) }
-    }
-
-    @Test
-    fun `with tiles off, the segmented row stays under the tile height`() {
-        show(modeTiles = false)
-
-        listOf(WITNESS_A, WITNESS_B).forEach { assertTrue("$it segment ${rowHeight(it)}", rowHeight(it) < TILE_HEIGHT) }
-        composeRule.onNodeWithTag(WITNESS_B).performClick()
-
-        assertEquals(EditorOverlay.Witness.B, overlay.witness)
-        composeRule.onNodeWithTag(WITNESS_B).assertIsSelected()
     }
 
     private companion object {
         const val WITNESS_A = "create.verdict.witness.a"
         const val WITNESS_B = "create.verdict.witness.b"
 
-        /** `ChoiceTiles`' tile floor; the old segmented row is 40 dp. */
+        /** `ChoiceTiles`' tile floor. */
         val TILE_HEIGHT = 52.dp
     }
 }

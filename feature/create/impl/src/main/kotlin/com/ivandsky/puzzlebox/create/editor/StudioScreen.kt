@@ -47,7 +47,7 @@ private const val GlyphPillBelowDp = 360
  * over the pill on a wider one, the game's fix list ([issues]) inside it, closing through
  * [onDismissCard]. In [PlayLayout.TwoPane] the card sits inline in the side pane and there is
  * no pill. The card's Check again goes to [onCheckAgain], its witness choice ([overlay]) to
- * [onOverlay] and its Auto-show switch ([autoShow]) to [onAutoShow]; [modeTiles] draws its A | B choice as quiet tiles. The title and the overflow's Rename open the [RenameSheet], whose Save reports
+ * [onOverlay] and its Auto-show switch ([autoShow]) to [onAutoShow]. The title and the overflow's Rename open the [RenameSheet], whose Save reports
  * through [onRename]. While [testCleared] (a board edit invalidated the passed test) a toast
  * above the action area offers Undo ([onUndoTestClear]); it reports its timeout to [onTestClearedGone].
  * The [toast] slot shows the route's other notices in the same place. Once published
@@ -81,7 +81,6 @@ fun StudioScreen(
     onOverlay: (EditorOverlay) -> Unit = {},
     autoShow: Boolean = true,
     onAutoShow: (Boolean) -> Unit = {},
-    modeTiles: Boolean = false,
     issues: @Composable (Modifier) -> Unit = {},
     actionArea: @Composable (Modifier) -> Unit = {},
     testCleared: Boolean = false,
@@ -129,7 +128,6 @@ fun StudioScreen(
                             onOverlay = onOverlay,
                             autoShow = autoShow,
                             onAutoShow = onAutoShow,
-                            modeTiles = modeTiles,
                             issues = issues,
                         )
                     }
@@ -143,7 +141,6 @@ fun StudioScreen(
                 onOverlay = onOverlay,
                 autoShow = autoShow,
                 onAutoShow = onAutoShow,
-                modeTiles = modeTiles,
                 board = { boardModifier -> if (readOnly) ReadOnlyBoard(board, boardModifier) else board(boardModifier) },
                 toolStrip = { stripModifier -> ToolsOrPublished(readOnly, unpublished, toolStrip, onDuplicate, stripModifier) },
                 issues = issues,

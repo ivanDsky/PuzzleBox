@@ -122,7 +122,6 @@ internal fun EditorRoute(
                 onOverlay = viewModel.verdictCard::choose,
                 autoShow = autoShow,
                 onAutoShow = viewModel::setAutoShowWitness,
-                modeTiles = viewModel.modeTiles,
                 layout = layout,
                 onBack = onBack,
                 onRename = viewModel.meta::rename,
