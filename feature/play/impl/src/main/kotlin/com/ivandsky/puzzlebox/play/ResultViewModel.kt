@@ -101,8 +101,6 @@ class ResultViewModel internal constructor(
     submitPost: SubmitLinkedInResult? = null,
     nextThing: Lazy<ObserveResultNextThing>,
     daily: DailyRepository,
-    /** [com.ivandsky.puzzlebox.play.flags.PlayFlag.FirstSolveNoGap], read by the DI module (ADR-0022 §3): a not-best first solve skips the gap to the best. */
-    val firstSolveNoGap: Boolean = false,
 ) : ViewModel() {
     private val slot = PlaySlot.Daily(GameId(key.gameId), LocalDate.parse(key.day))
     private val solve = ActivePlay.Solve(key.timeMs, key.hintsUsed)

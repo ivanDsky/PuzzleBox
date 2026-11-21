@@ -15,13 +15,6 @@ enum class PlayFlag(override val label: String, override val releaseDefault: Boo
     ArchiveMonthSwipe(label = "Archive calendar swipes between months (off: crossfade)", releaseDefault = false),
 
     /**
-     * Result hero's first solve of a puzzle that is not a new best (backlog #1762): leads with "2nd fastest of your 5 Zip"
-     * (none when there is no rank to name) instead of "Your best is … · … off". Off, the gap line stays. Read only in
-     * [com.ivandsky.puzzlebox.play.di.playModule] (ADR-0022 §3), threaded into the result view model as a Boolean.
-     */
-    FirstSolveNoGap(label = "Result: first solve not best shows its rank, not the gap to your best", releaseDefault = true),
-
-    /**
      * Game page's Make one as a link (backlog #1567): no full-width button; How to play ends with "Make your own <Game>"
      * beside "Open the lesson". Read only in [com.ivandsky.puzzlebox.play.LibraryViewModel] (ADR-0022 §3).
      */

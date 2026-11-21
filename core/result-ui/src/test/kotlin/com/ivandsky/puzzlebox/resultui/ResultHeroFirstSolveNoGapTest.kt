@@ -33,7 +33,6 @@ class ResultHeroFirstSolveNoGapTest {
     private val hintsInsights = insights(listOf(BestScore(112_000L, 2), BestScore(90_000L, 0)), BestScore(100_000L, 1), hints)
 
     private fun facts(
-        flag: Boolean = true,
         verdict: RecordVerdict? = RecordVerdict.NotBest,
         order: RankOrder = time,
         previous: BestScore? = BestScore(90_000L, 0),
@@ -60,16 +59,9 @@ class ResultHeroFirstSolveNoGapTest {
         moments = emptyList(),
         challenge = null,
         samePuzzle = samePuzzle,
-        firstSolveNoGap = flag,
     )
 
     private fun bestLine(facts: ResultHeroFacts) = resultHeroModel(facts, Locale.US).bestLine
-
-    @Test
-    fun `flag off keeps the gap line`() {
-        assertEquals("Your best is 1:30 · 10s off", bestLine(facts(flag = false)))
-        assertEquals("Your best is Perfect", bestLine(facts(flag = false, order = hints)))
-    }
 
     @Test
     fun `a time-first not-best first solve leads with its rank`() {
