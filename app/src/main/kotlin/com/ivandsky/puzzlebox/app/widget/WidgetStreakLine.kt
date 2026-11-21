@@ -27,10 +27,10 @@ import com.ivandsky.puzzlebox.app.R
  * null [streak] (the read failed) keeps the line's height and draws nothing, so the chips do not jump.
  */
 @Composable
-internal fun WidgetStreakLine(streak: WidgetStreak?, done: String?, look: WidgetLayout.ChipLook, colors: WidgetColors) {
+internal fun WidgetStreakLine(streak: WidgetStreak?, done: String?, look: WidgetLayout.Look, colors: WidgetColors) {
     val resources = LocalContext.current.resources
     Row(
-        modifier = GlanceModifier.fillMaxWidth().height(look.flame + 4.dp),
+        modifier = GlanceModifier.fillMaxWidth().height(look.streakHeight),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (streak == null) return@Row

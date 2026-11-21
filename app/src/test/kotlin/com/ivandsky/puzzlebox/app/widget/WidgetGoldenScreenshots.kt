@@ -20,10 +20,11 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The home widget's chip layouts (#1939): chips1 (4 by 1) and chips2 (4 by 2) over every state, drawn through the same
- * RemoteViews path the launcher uses, on a wallpaper-grey backdrop so the corners show. Also chips2 at a wide and a tall size,
- * where the block is capped and centred. Light and dark. Recorded with `-Proborazzi.record=true` into `snapshots/widget/`
- * (untracked review captures).
+ * The home widget's layouts (#1939, #1940): the chip rows chips1 (4 by 1) and chips2 (4 by 2), and the lists listNarrow (4 by 3)
+ * and listWide (7 by 4), over every state, drawn through the same RemoteViews path the launcher uses, on a wallpaper-grey
+ * backdrop so the corners show. Also the lists at their narrowest, widest and 5 cells wide, and chips2 wide, where the block is
+ * capped and centred. Light and dark. Recorded with `-Proborazzi.record=true` into `snapshots/widget/` (untracked review
+ * captures).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -55,9 +56,20 @@ abstract class WidgetGoldenScreenshots(private val suffix: String) {
         }
     }
 
-    @Test fun `the capped block is centred in a wide and a tall widget`() {
+    @Test fun `listNarrow and listWide over every state`() {
+        for ((name, state) in states) {
+            capture(state, LIST_NARROW, "listnarrow-$name")
+            capture(state, LIST_WIDE, "listwide-$name")
+        }
+    }
+
+    @Test fun `the lists at their edges, and the capped block centred in a wide and a tall widget`() {
         capture(WidgetSamples.default, DpSize(620.dp, 220.dp), "chips2-wide")
         capture(WidgetSamples.mixed, DpSize(620.dp, 430.dp), "tall-mixed")
+        capture(WidgetSamples.mixed, DpSize(349.dp, 456.dp), "listnarrow5-mixed")
+        capture(WidgetSamples.longest, DpSize(480.dp, 338.dp), "listwide-min-longest")
+        capture(WidgetSamples.default, DpSize(480.dp, 338.dp), "listwide-min-default")
+        capture(WidgetSamples.default, DpSize(640.dp, 480.dp), "listwide-max-default")
     }
 
     // Roborazzi captures a View only inside an Activity window, so the widget is hosted in one, at its exact pixel size.
@@ -86,6 +98,8 @@ abstract class WidgetGoldenScreenshots(private val suffix: String) {
     private companion object {
         val CHIPS1 = DpSize(276.dp, 102.dp)
         val CHIPS2 = DpSize(276.dp, 220.dp)
+        val LIST_NARROW = DpSize(276.dp, 338.dp)
+        val LIST_WIDE = DpSize(495.dp, 456.dp)
         const val BACKDROP_MARGIN = 16
     }
 }
