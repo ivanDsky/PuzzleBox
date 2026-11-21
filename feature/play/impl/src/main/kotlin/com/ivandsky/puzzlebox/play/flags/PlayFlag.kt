@@ -21,12 +21,6 @@ enum class PlayFlag(override val label: String, override val releaseDefault: Boo
     MakeOwnLink(label = "Game page: Make your own link in How to play (off: full-width Make one)", releaseDefault = false),
 
     /**
-     * Launcher shortcuts (epic #1578): the long-press menu offers Play Up next and one entry per game. Read only in the
-     * app's shortcut DI (ADR-0022 §3).
-     */
-    AppShortcuts(label = "Launcher shortcuts: Play Up next and one per game", releaseDefault = true),
-
-    /**
      * Home-screen widget (epic #1577): today's rings, the streak and Up next on the launcher. Read only in the app's
      * widget DI (ADR-0022 §3).
      */
