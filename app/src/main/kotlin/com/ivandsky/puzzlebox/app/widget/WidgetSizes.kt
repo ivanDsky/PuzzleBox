@@ -14,18 +14,21 @@ import androidx.compose.ui.unit.dp
  *   3-cell width), 250 by 90 (the ring is 46dp from here, with the larger text, two cells tall at 4 wide), and 340 by 90 (the
  *   ring is 56dp, as its fifth of the width and its height both allow). A one-row widget taller than 90 is drawn as one of these
  *   and its chips are centred in the extra height.
- * - Chips2, from 160 tall: 200 and 250 wide at 160 (3 cells and 4 cells: 200 drops the padding and the done count to fit its five
- *   chips, 250 keeps both), and 420 at 200 (the long streak is from 348, and the ring is 49dp at 200 tall). A taller widget of
- *   any width, and a widget under 340 wide, is chips2 as well, drawn as one of these with the gaps wider.
- * - The lists, from 280 tall and 340 wide: 340 at 280 (the narrow list, its least), 420 and 480 at 280 and 320 (the 4 by 3
- *   widget, about 450 to 480 by 290 to 330, with the narrow list, and from 480 wide the wide list), where the rows are 48dp and
- *   the block is a little short of the whole list, so it keeps its height; then 340, 420 and 480 at 360, where the rows take the
- *   extra height instead; and 560 by 400 and 700 by 500, where the rings, the rows and the text step up one size each.
+ * - Chips2, from 160 tall: 200 and 250 wide at 160 (3 and 4 cells on a phone: 200 drops the horizontal padding and the done count
+ *   to fit its five chips, 250 keeps both, and both give up vertical padding so the pill fits at 160), and 340 and 420 wide at 200
+ *   (a 3 by 2 and a 4 by 2 on the tablet, about 350 and 470 wide: the ring grows with the width and the height, 46 and 49dp, and
+ *   the long streak is from 420). A taller widget of any width, and a widget under 340 wide, is chips2 as well, drawn as one of
+ *   these with the gaps wider.
+ * - The lists, from 280 tall and 340 wide. The narrow list, 340 to 479 wide, looks the same at every width, so its sizes are one
+ *   per height at 340: 280 and 320 (the 4 by 3 widget, about 450 to 480 by 290 to 330, and a 3 by 3), where the rows are 48dp and
+ *   the block is a little short of the whole list, so it keeps its height, and 360, where the rows take the extra height instead.
+ *   The wide list, from 480 wide, has those three heights at 480, and then 560 by 400 and 700 by 500, where the rings, the rows and
+ *   the text step up one size each.
  *
- * A list 340 to 419 wide and 320 to 359 tall is drawn as the 340 by 280 narrow list, its block short and centred, as there is
- * not a size for it, and a chips2 widget 420 or wider and 160 to 199 tall is drawn as 250 by 160 (the ring is 36dp, the streak
- * short), as no real 4 cell widget is that height. The 56 is the least one-row height the widget is designed for: a widget under
- * every size gets the smallest, clipped.
+ * A list 280 to 319 tall keeps the 280 block and one 320 to 359 tall the 320 block, centred in the extra height, as there is not a
+ * size between them, and a chips2 widget 340 or wider and 160 to 199 tall is drawn as 250 by 160 (the ring is 36dp, the streak
+ * short), as no real 3 or 4 cell widget is that height. The 56 is the least one-row height the widget is designed for: a widget
+ * under every size gets the smallest, clipped.
  */
 internal object WidgetSizes {
     val ALL: Set<DpSize> = setOf(
@@ -34,12 +37,11 @@ internal object WidgetSizes {
         DpSize(340.dp, 90.dp),
         DpSize(200.dp, 160.dp),
         DpSize(250.dp, 160.dp),
-        DpSize(340.dp, 360.dp),
+        DpSize(340.dp, 200.dp),
         DpSize(420.dp, 200.dp),
         DpSize(340.dp, 280.dp),
-        DpSize(420.dp, 280.dp),
-        DpSize(420.dp, 320.dp),
-        DpSize(420.dp, 360.dp),
+        DpSize(340.dp, 320.dp),
+        DpSize(340.dp, 360.dp),
         DpSize(480.dp, 280.dp),
         DpSize(480.dp, 320.dp),
         DpSize(480.dp, 360.dp),

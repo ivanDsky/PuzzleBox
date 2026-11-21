@@ -58,11 +58,14 @@ abstract class WidgetGoldenScreenshots(private val suffix: String) {
         }
     }
 
-    @Test fun `chips2 over every state, at 3 cells, 4 cells and on the tablet`() {
+    @Test fun `chips2 over every state, at 3 cells, 4 cells, the tablet's 3 by 2 and 4 by 2, and at its 160dp threshold`() {
         for ((name, state) in states) {
             capture(state, DpSize(200.dp, 160.dp), "chips2-3wide-$name", real = DpSize(200.dp, 200.dp))
             capture(state, DpSize(250.dp, 160.dp), "chips2-$name", real = DpSize(276.dp, 220.dp))
+            capture(state, DpSize(340.dp, 200.dp), "chips2-3x2-$name", real = DpSize(350.dp, 200.dp))
             capture(state, DpSize(420.dp, 200.dp), "chips2-tablet-$name", real = DpSize(470.dp, 200.dp))
+            capture(state, DpSize(200.dp, 160.dp), "chips2-3wide-160-$name")
+            capture(state, DpSize(250.dp, 160.dp), "chips2-160-$name")
         }
     }
 
@@ -75,21 +78,21 @@ abstract class WidgetGoldenScreenshots(private val suffix: String) {
 
     @Test fun `listNarrow and listWide over every state, at the tablet's 4 by 3`() {
         for ((name, state) in states) {
-            capture(state, DpSize(420.dp, 320.dp), "listnarrow-$name", real = DpSize(470.dp, 330.dp))
+            capture(state, DpSize(340.dp, 320.dp), "listnarrow-$name", real = DpSize(470.dp, 330.dp))
             capture(state, DpSize(480.dp, 320.dp), "listwide-$name", real = DpSize(485.dp, 330.dp))
         }
     }
 
     @Test fun `the 4 by 3 at its shortest, 290dp, and the narrow list at 3 cells, short and tall`() {
-        capture(WidgetSamples.mixed, DpSize(420.dp, 280.dp), "listnarrow-4x3-290-mixed", real = DpSize(470.dp, 290.dp))
+        capture(WidgetSamples.mixed, DpSize(340.dp, 280.dp), "listnarrow-4x3-290-mixed", real = DpSize(470.dp, 290.dp))
         capture(WidgetSamples.mixed, DpSize(480.dp, 280.dp), "listwide-4x3-290-mixed", real = DpSize(485.dp, 290.dp))
         capture(WidgetSamples.mixed, DpSize(340.dp, 280.dp), "listnarrow-3wide-mixed", real = DpSize(350.dp, 300.dp))
-        capture(WidgetSamples.mixed, DpSize(340.dp, 280.dp), "listnarrow-3wide-330-mixed", real = DpSize(350.dp, 330.dp))
+        capture(WidgetSamples.mixed, DpSize(340.dp, 320.dp), "listnarrow-3wide-330-mixed", real = DpSize(350.dp, 330.dp))
         capture(WidgetSamples.mixed, DpSize(340.dp, 360.dp), "listnarrow-3wide-tall-mixed", real = DpSize(350.dp, 420.dp))
     }
 
     @Test fun `the lists growing to fill a taller widget, then one size up, then another`() {
-        capture(WidgetSamples.mixed, DpSize(420.dp, 360.dp), "listnarrow-grow-mixed", real = DpSize(470.dp, 430.dp))
+        capture(WidgetSamples.mixed, DpSize(340.dp, 360.dp), "listnarrow-grow-mixed", real = DpSize(470.dp, 430.dp))
         capture(WidgetSamples.mixed, DpSize(480.dp, 360.dp), "listwide-grow-mixed", real = DpSize(485.dp, 430.dp))
         capture(WidgetSamples.longest, DpSize(480.dp, 360.dp), "listwide-grow-longest", real = DpSize(485.dp, 430.dp))
         for ((name, state) in states) {

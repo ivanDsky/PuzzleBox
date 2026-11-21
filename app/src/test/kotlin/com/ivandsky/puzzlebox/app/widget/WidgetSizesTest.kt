@@ -42,12 +42,12 @@ class WidgetSizesTest {
     }
 
     @Test
-    fun `the one-row heights are 56 and 90dp, chips2 is 160 and 200dp tall, and the 4x3 lists are 420 and 480 wide at 280 and 320`() {
+    fun `the one-row heights are 56 and 90dp, chips2 is 160 and 200dp tall, and the 4x3 lists are 340 and 480 wide at 280 and 320`() {
         fun heights(step: WidgetStep) = WidgetSizes.ALL.filter { WidgetStep.of(it) == step }.map { it.height.value }.toSet()
 
         assertEquals(setOf(56f, 90f), heights(WidgetStep.Chips1))
         assertEquals(setOf(160f, 200f), heights(WidgetStep.Chips2))
-        for (width in listOf(420, 480)) for (height in listOf(280, 320)) {
+        for (width in listOf(340, 480)) for (height in listOf(280, 320)) {
             assertTrue("$width x $height", DpSize(width.dp, height.dp) in WidgetSizes.ALL)
         }
     }
@@ -67,6 +67,14 @@ class WidgetSizesTest {
 
         assertTrue(narrow.any { WidgetLayout.of(it).fixedRows })
         assertTrue(narrow.any { !WidgetLayout.of(it).fixedRows })
+    }
+
+    @Test
+    fun `a 3 by 2 tablet widget, 340 by 200dp, has its own chips2 size with a ring over 36dp, not the phone's`() {
+        val size = DpSize(340.dp, 200.dp)
+
+        assertTrue(size in WidgetSizes.ALL)
+        assertTrue(WidgetLayout.of(size).look.ring.value > 36f)
     }
 
     @Test

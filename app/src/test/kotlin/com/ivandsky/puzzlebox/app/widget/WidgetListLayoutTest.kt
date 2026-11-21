@@ -65,13 +65,19 @@ class WidgetListLayoutTest {
 
     @Test
     fun `the 4 by 3 buckets, 280 and 320 tall, keep their rows and block height, and a taller bucket shares its height among the rows`() {
-        for (width in listOf(420, 480)) {
+        for (width in listOf(340, 480)) {
             assertTrue("$width x 280", layout(width, 280).fixedRows)
             assertTrue("$width x 320", layout(width, 320).fixedRows)
             assertFalse("$width x 360", layout(width, 360).fixedRows)
         }
-        assertTrue("340 x 280", layout(340, 280).fixedRows)
-        assertFalse("340 x 360", layout(340, 360).fixedRows)
+    }
+
+    @Test
+    fun `the narrow list looks the same at every width, 340 to 479, so its sizes are one per height at 340`() {
+        for (height in 280..600 step 20) {
+            val expected = layout(340, height)
+            for (width in listOf(341, 420, 479)) assertEquals("$width x $height", expected, layout(width, height))
+        }
     }
 
     @Test

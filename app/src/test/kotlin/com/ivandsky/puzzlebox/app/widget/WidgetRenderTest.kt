@@ -121,7 +121,8 @@ class WidgetRenderTest {
     @Test
     fun `every size the provider allows composes and inflates`() {
         val sizes = listOf(
-            DpSize(200.dp, 56.dp), DpSize(200.dp, 110.dp), DpSize(200.dp, 200.dp), DpSize(250.dp, 90.dp), CHIPS1, CHIPS2,
+            DpSize(200.dp, 56.dp), DpSize(200.dp, 110.dp), DpSize(200.dp, 160.dp), DpSize(250.dp, 160.dp), DpSize(200.dp, 200.dp),
+            DpSize(340.dp, 200.dp), DpSize(250.dp, 90.dp), CHIPS1, CHIPS2,
             DpSize(250.dp, 400.dp), NARROW_LIST, WIDE_LIST, DpSize(720.dp, 540.dp), DpSize(900.dp, 600.dp),
         )
         sizes.forEach { size ->

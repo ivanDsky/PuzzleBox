@@ -67,6 +67,9 @@ internal data class WidgetLayout(
         /** Under this widget width, 3 cells, chips2 trades its padding and the done count for the room its five chips need. */
         val CHIPS2_NARROW_UNDER: Dp = 250.dp
 
+        /** The least vertical padding chips2 gives up, at 160dp tall, to fit its pill; the streak line and the pill clear the rounded corners at it. */
+        val CHIPS2_PADDING_LEAST: Dp = 4.dp
+
         val LIST_HEADER_GAP: Dp = 2.dp
         val LIST_PILL_GAP: Dp = 4.dp
         val LIST_ROW_MIN: Dp = PILL_HEIGHT
@@ -84,13 +87,19 @@ internal data class WidgetLayout(
         /** Above this chips2 ring, and from it a chips1 ring, the chip text is the larger size. */
         val RING_LARGE_TEXT_ABOVE: Dp = 44.dp
 
-        /** The room a chips2 chip keeps on each side of its ring for its text, so a long time still sits in the chip's share. */
-        val CHIP_SIDE_ROOM: Dp = 24.dp
+        /**
+         * The room a chips2 chip's share of the width keeps around its ring, 8dp each side, so five rings do not touch and a 3 by 2
+         * widget (340dp wide) gets a ring that grows as the 4 by 2 does, not the 36dp floor. The chip's text sits in the share.
+         */
+        val CHIP_SIDE_ROOM: Dp = 16.dp
 
         /** The room a chips1 ring leaves its slice of the width: 2dp each side. */
         val CHIPS1_SLICE_GAP: Dp = 4.dp
 
-        /** The least gap above and below the chips, which the rest of the height is shared between. */
+        /**
+         * The gap above and below the chips that the ring and the padding are worked out with. At 160dp tall the padding is already
+         * at its least, so the gaps keep what is left, a little under this.
+         */
         val CHIP_GAP_MIN: Dp = 6.dp
 
         val CHIP_TEXT_GAP: Dp = 2.dp
@@ -121,7 +130,7 @@ internal data class WidgetLayout(
             val step = WidgetStep.of(size)
             val base = when (step) {
                 WidgetStep.Chips1 -> chips1(size)
-                WidgetStep.Chips2 -> if (size.width < CHIPS2_NARROW_UNDER) CHIPS2.copy(horizontalPadding = 8.dp, doneCount = false) else CHIPS2
+                WidgetStep.Chips2 -> chips2(size)
                 WidgetStep.ListNarrow -> LIST_NARROW
                 WidgetStep.ListWide -> listWide(size)
             }
@@ -138,6 +147,22 @@ internal data class WidgetLayout(
                 rowHeight = rowHeight,
                 fixedRows = isList && contentHeight < listHeight(look, rowHeight),
             )
+        }
+
+        /** Chips2 with the vertical padding its height leaves, and without the horizontal padding and the done count under [CHIPS2_NARROW_UNDER]. */
+        private fun chips2(size: DpSize): Look {
+            val padded = CHIPS2.copy(verticalPadding = chips2Padding(size.height))
+            return if (size.width < CHIPS2_NARROW_UNDER) padded.copy(horizontalPadding = 8.dp, doneCount = false) else padded
+        }
+
+        /**
+         * Chips2's vertical padding: 14dp, less as the height falls below what the streak line, the 36dp ring row, the pill and the
+         * two least gaps need with it (183dp), down to [CHIPS2_PADDING_LEAST]. So the pill fits from the 160dp the step starts at,
+         * the gaps there keep what is left, and the ring stays at its 36dp floor.
+         */
+        private fun chips2Padding(height: Dp): Dp {
+            val block = CHIPS2.streakHeight + chipsRowHeight(CHIPS2) + PILL_HEIGHT + CHIP_GAP_MIN * 2
+            return ((height - block) / 2).wholeDp().coerceIn(CHIPS2_PADDING_LEAST, CHIPS2.verticalPadding)
         }
 
         /**

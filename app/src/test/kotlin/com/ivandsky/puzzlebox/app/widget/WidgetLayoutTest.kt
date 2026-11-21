@@ -137,6 +137,41 @@ class WidgetLayoutTest {
     }
 
     @Test
+    fun `chips2 at its 160dp threshold, 250 and 200 wide, fits its streak line, 36dp ring row and pill with no more than 160dp`() {
+        for (width in listOf(200, 250)) {
+            val layout = layout(width, 160)
+            val block = layout.look.streakHeight + WidgetLayout.chipsRowHeight(layout.look) + WidgetLayout.PILL_HEIGHT
+
+            assertEquals(WidgetStep.Chips2, layout.step)
+            assertEquals("$width ring", 36f, layout.look.ring.value, EPS)
+            assertTrue("$width block $block of ${layout.contentHeight}", block <= layout.contentHeight)
+            assertTrue("$width block $block and its padding is over 160dp", block + layout.look.verticalPadding * 2 <= 160.dp)
+        }
+    }
+
+    @Test
+    fun `chips2 gives up its vertical padding before its ring, from 14dp at 183dp tall to 4dp at 160dp, and always fits its pill`() {
+        assertEquals(14f, layout(250, 183).look.verticalPadding.value, EPS)
+        assertEquals(4f, layout(250, 160).look.verticalPadding.value, EPS)
+        for (height in 160..182) for (width in 200..540) {
+            val layout = layout(width, height)
+            val block = layout.look.streakHeight + WidgetLayout.chipsRowHeight(layout.look) + WidgetLayout.PILL_HEIGHT
+
+            assertTrue("$width x $height block $block of ${layout.contentHeight}", block <= layout.contentHeight)
+            assertTrue("$width x $height padding ${layout.look.verticalPadding}", layout.look.verticalPadding.value in 4f..14f)
+        }
+    }
+
+    @Test
+    fun `chips2 on the tablet's 3 by 2, 340 by 200dp, has a ring over 44dp and the larger text, a little under the 4 by 2's 49dp`() {
+        val look = layout(340, 200).look
+
+        assertTrue("ring ${look.ring}", look.ring.value > 44f)
+        assertTrue("ring ${look.ring}", look.ring <= layout(420, 200).look.ring)
+        assertEquals(16f, look.chipFirstText.value, EPS)
+    }
+
+    @Test
     fun `chips2 says days in a row only from 320dp of content, so the freezes and the done count are never squeezed out`() {
         assertFalse(layout(276, 220).look.longStreak)
         assertFalse(layout(347, 220).look.longStreak)
