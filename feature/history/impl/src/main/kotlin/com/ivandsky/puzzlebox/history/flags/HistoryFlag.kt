@@ -22,21 +22,21 @@ enum class HistoryFlag(override val label: String, override val releaseDefault: 
      * past the global page, read for each board whose top 100 is full (backlog #1767). Off, such a friend is missing,
      * as before. Read only in a ViewModel or a DI module (ADR-0022 §3).
      */
-    FriendsPastGlobalPage(label = "Friends boards count friends past the top 100", releaseDefault = false),
+    FriendsPastGlobalPage(label = "Friends boards count friends past the top 100", releaseDefault = true),
 
     /**
      * Ranks gets a third filter, Games (backlog #1707): All games, or LinkedIn games only, so Overall and the game list can
      * leave Strands out. It combines with Who and When and can be saved as a default. Read only in a ViewModel or a DI
      * module (ADR-0022 §3).
      */
-    GamesFilter(label = "Ranks Games filter (All games or LinkedIn games)", releaseDefault = false),
+    GamesFilter(label = "Ranks Games filter (All games or LinkedIn games)", releaseDefault = true),
 
     /**
      * Settings' Ranks block gets a "LinkedIn games only" switch, the default the hub opens on (backlog #1770; the Tune
      * sheet that used to set it is gone). The hub lands on it only while [GamesFilter] is on too. Read only in a DI
      * module (ADR-0022 §3): the app binds the profile feature's `RanksLinkedInRow` from it.
      */
-    RanksLinkedInDefault(label = "Settings: Ranks LinkedIn games default row", releaseDefault = false),
+    RanksLinkedInDefault(label = "Settings: Ranks LinkedIn games default row", releaseDefault = true),
     ;
 
     /** The entry's own name: the stored override's key in `release_flags`. Never change it. */

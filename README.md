@@ -2,7 +2,7 @@
 
 One Android app for daily logic puzzles: play the NYT and LinkedIn dailies, build and share your own puzzles, and compete on per-game leaderboards and in 1v1 duels. Play never needs an account; signing in adds sync, ranks and duels.
 
-> **Status: alpha (0.x), currently 0.38.2.** Zip, Tango, Queens, Mini Sudoku and Strands are playable, with a Studio editor for each. Leaderboards, duels, replays and cloud sync are shipped and behind Google sign-in.
+> **Status: alpha (0.x), currently 0.39.0.** Zip, Tango, Queens, Mini Sudoku and Strands are playable, with a Studio editor for each. Leaderboards, duels, replays and cloud sync are shipped and behind Google sign-in.
 
 <p align="center">
   <img src="docs/screenshots/phone-today.png" width="260" alt="Today screen on a phone: 1 of 5 dailies done, Play Tango button, a 1-day streak with 2 streak freezes, and the Today, Games, Community and Ranks tabs">
