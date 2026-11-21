@@ -60,7 +60,7 @@ class ShareCountBlinkTest {
         rule.mainClock.autoAdvance = false
         rule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                CompositionLocalProvider(LocalGameBrands provides SolvedFixtures.brands) { RecapShareImage(content.counted(progress.value), ShareStyle.Classic) }
+                CompositionLocalProvider(LocalGameBrands provides SolvedFixtures.brands) { RecapShareImage(content, ShareStyle.Classic, count = { progress.value }) }
             }
         }
         rule.mainClock.advanceTimeBy(SettleMs)

@@ -65,18 +65,17 @@ class RecapShareContentTest {
     fun `the count-up climbs each number to its final value and no further`() {
         val content = of("November 2026", "Ada", everything)
 
-        assertEquals("21", content.counted(0.5f).hero!!.value)
-        assertEquals("1h 6m", content.counted(0.5f).tiles.last().value)
-        assertEquals(content, content.counted(1f))
+        assertEquals("21", content.hero!!.valueAt(0.5f))
+        assertEquals("1h 6m", content.tiles.last().valueAt(0.5f))
+        assertEquals(content.hero!!.value, content.hero!!.valueAt(1f))
     }
 
     @Test
     fun `a counting number keeps its final text to be sized by`() {
         val content = of("November 2026", "Ada", everything)
-        val counting = content.counted(0.5f)
 
-        assertEquals(content.hero!!.value, counting.hero!!.fit)
-        assertEquals(content.tiles.map { it.value }, counting.tiles.map { it.fit })
+        assertEquals(content.hero!!.value, content.hero!!.fit)
+        assertEquals(content.tiles.map { it.value }, content.tiles.map { it.fit })
     }
 
     @Test
