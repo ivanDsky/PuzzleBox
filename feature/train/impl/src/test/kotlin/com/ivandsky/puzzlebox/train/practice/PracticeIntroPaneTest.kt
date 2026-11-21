@@ -122,6 +122,18 @@ class PracticeIntroPaneTest {
         composeRule.onNodeWithTag("train.watch.caption", useUnmergedTree = true).assertTextEquals(captions[1])
     }
 
+    /** Bug caught: a step (and a caption) per landing square, so the track reads "Cross out this one too." over and over. */
+    @Test
+    fun `the landing squares are one step under the reason's caption`() {
+        val intro = intro(1)
+        // Reduced motion rests on the last frame: every square landed.
+        show(PracticeState.Intro(intro), controls(intro))
+
+        composeRule.onNodeWithTag("train.watch.step.2").assertExists()
+        composeRule.onNodeWithTag("train.watch.step.3").assertDoesNotExist()
+        composeRule.onNodeWithTag("train.watch.caption", useUnmergedTree = true).assertTextEquals(captions[2])
+    }
+
     /** Bug caught: Skip intro and Start practice not handing the board over, the one way out of the opening intro. */
     @Test
     fun `skip and start practice both hand over to board 1`() {

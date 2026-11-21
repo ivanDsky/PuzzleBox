@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -34,12 +35,13 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.gameui.trainer.IntroDemo
 
-private val BoardColumn = 380.dp
+/** The narrowest board column that still sits beside the watch column; the board itself grows to the pane's height. */
+private val MinBoardColumn = 320.dp
 private val WatchColumnWidth = 280.dp
 private val ColumnGap = Spacing.xl
 
 /** A pane at least this wide has the two columns side by side; a narrower one is a single column. */
-private val TwoPane = BoardColumn + ColumnGap + WatchColumnWidth
+private val TwoPane = MinBoardColumn + ColumnGap + WatchColumnWidth
 
 /**
  * The technique intro (spec §2.7) over [intro], playing: the demo starts at once (and under reduced motion rests on its
@@ -86,7 +88,7 @@ internal fun IntroWatch(
 /**
  * The intro's screen, stateless: a top bar ("Technique intro" and Skip intro, or Close in a [replay]), the title row
  * ("Watch first", no pips), then the demo of [entries]`[variant]` at [frame], drawn by [demo] under the watching band
- * (the frame's caption), and the [WatchColumn] beside it on a wide pane or below it on a narrow one. [onLeave] is the
+ * (the caption of the frame's step), and the [WatchColumn] beside it on a wide pane or below it on a narrow one. [onLeave] is the
  * top bar's button, [onPrimary] the column's Start practice (Back to board 1 in a replay).
  */
 @Composable
@@ -117,16 +119,17 @@ internal fun WatchPane(
             Spacer(Modifier.height(Spacing.sm))
             val board = @Composable {
                 BandOverBoard(
-                    band = { WatchBand(entry.variant.title, entry.demo.captions[frame]) },
+                    band = { WatchBand(entry.variant.title, stepCaption(entry.demo.captions, frame)) },
                     board = { demo(entry.demo, frame, Modifier) },
                 )
             }
             if (wide) {
+                // As in practice, the band and board take the whole height the header leaves, as wide as that allows.
                 Row(Modifier.fillMaxWidth().weight(1f), Arrangement.spacedBy(ColumnGap, Alignment.CenterHorizontally)) {
-                    Box(Modifier.width(BoardColumn)) { board() }
+                    Box(Modifier.weight(1f, fill = false).fillMaxHeight(), contentAlignment = Alignment.TopCenter) { board() }
                     WatchColumn(
                         entries, variant, frame, primary, compact = false, onSelect, onSeek, onReplay, onPrimary,
-                        Modifier.width(WatchColumnWidth).verticalScroll(rememberScrollState()),
+                        Modifier.width(WatchColumnWidth).fillMaxHeight().verticalScroll(rememberScrollState()),
                     )
                 }
             } else {

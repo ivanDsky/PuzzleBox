@@ -115,7 +115,7 @@ abstract class TrainGoldenScreenshots(private val device: String) {
         val Right = PracticeState.Practicing(StandInPracticeBoard(PracticeStatus.Right(standInSpotlight(), trained = true)))
         val Wrong = PracticeState.Practicing(StandInPracticeBoard(PracticeStatus.Wrong("Two queens would touch.")))
         val Done = PracticeState.Practicing(StandInPracticeBoard(PracticeStatus.Done(standInSpotlight())))
-        val MidHold = BoardHold(remainingMs = 2_000, waitsForTap = false)
+        val MidHold = BoardHold(remainingMs = 600, waitsForTap = false)
         val Result = PracticeState.Result(
             ChapterResult(
                 technique = TrainerTechnique(TechniqueId("line-lock"), "Line lock", "A region sits inside one line."),
