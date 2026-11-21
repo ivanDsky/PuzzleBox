@@ -24,7 +24,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Backlog #1585 on the play screen, with the CutWrongPart flag on: the finger sliding back onto the wrong
+ * Backlog #1585 on the play screen: the finger sliding back onto the wrong
  * part of the line cuts it there, onto the correct part it does not. Fingers are in cell pitches from the
  * middle of the top-left cell, as (column, row); the line is preloaded and one stroke starts on its end.
  */
@@ -39,9 +39,9 @@ class ZipCutWrongPartDragTest {
     private lateinit var controller: ZipPlayController
     private var n = 0
 
-    private fun show(puzzle: ZipPuzzle, line: List<Int>, cutWrongPart: Boolean = true) {
+    private fun show(puzzle: ZipPuzzle, line: List<Int>) {
         n = puzzle.board.n
-        controller = ZipPlayController(PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {}), cutWrongPart = cutWrongPart)
+        controller = ZipPlayController(PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {}))
         check(controller.adoptToday(ZipPlayFixture.envelope(puzzle), ZipPlayFixture.ref(LocalDate.of(2026, 10, 31))) == Adopt.Adopted)
         for (idx in line) controller.onDragEvent(DragEvent.Extend(GridCell(idx / n, idx % n)))
         check(controller.session?.path == ZipPlayFixture.path(*line.toIntArray())) { "the line did not preload" }
@@ -103,16 +103,5 @@ class ZipCutWrongPartDragTest {
         composeRule.onNodeWithTag("play.board").performTouchInput { up() }
         composeRule.waitForIdle()
         assertEquals(ZipCutWrongPartFixture.right3.dropLast(1), pathIdx())
-    }
-
-    @Test
-    fun `with the flag off the same slide over the detour changes nothing`() {
-        // Bug it catches: the cut live for every player before the flag is turned on.
-        show(ZipCutWrongPartFixture.daily527(), ZipCutWrongPartFixture.detour527, cutWrongPart = false)
-        down(2f, 1f)
-        drag(1.6f to 1f, 1.05f to 1f)
-        composeRule.onNodeWithTag("play.board").performTouchInput { up() }
-        composeRule.waitForIdle()
-        assertEquals(ZipCutWrongPartFixture.detour527, pathIdx())
     }
 }
