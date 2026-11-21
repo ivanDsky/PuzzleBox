@@ -81,6 +81,8 @@ internal fun PuzzleIconsPreview() {
             "Upload" to PuzzleIcons.Upload,
             "Info" to PuzzleIcons.Info,
             "Moon" to PuzzleIcons.Moon,
+            "Star" to PuzzleIcons.Star,
+            "Visibility" to PuzzleIcons.Visibility,
         )
         Column(
             modifier = Modifier.background(MaterialTheme.colorScheme.background).padding(Spacing.md),

@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.data.trainer.TechniqueProgress
@@ -64,10 +65,10 @@ internal fun PracticeHeader(chapter: PracticeChapter, progress: TechniqueProgres
     }
 }
 
-/** [filled] of [PIPS] discs: the count the text beside them already says, so they are not read out. */
+/** [filled] of [PIPS] discs, one image to a screen reader: "3 of 5 right in a row". */
 @Composable
 private fun Pips(filled: Int) {
-    Row(Modifier.clearAndSetSemantics {}, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+    Row(Modifier.clearAndSetSemantics { contentDescription = "$filled of $PIPS right in a row" }, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         repeat(PIPS) { index ->
             val on = index < filled
             Box(

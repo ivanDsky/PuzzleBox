@@ -34,16 +34,18 @@ internal class PracticeRig(
     val progress: FakeTrainerProgressRepository = FakeTrainerProgressRepository(),
     catalog: List<String> = listOf("naked-single", "line-lock"),
     opens: TechniqueId = LINE_LOCK,
+    screenReaderOn: Boolean = false,
 ) {
     val game = FakeTrainerGame(QUEENS, techniques(*catalog.toTypedArray()), drillSources = listOf(DrillSource { candidates }))
     val archive = FakeTrainerArchive()
     val onDevice = device.toMutableList()
     val vm: PracticeViewModel
+    val screenReader = FakeScreenReaderCheck(screenReaderOn)
 
     init {
         archive.onLoaded = { onDevice += it }
         val source = TrainerPuzzleSource { flow { onDevice.toList().forEach { emit(it) } } }
-        vm = PracticeViewModel(game, opens, source, archive, progress, RecordAnswer(progress), InlineDispatcherProvider)
+        vm = PracticeViewModel(game, opens, source, archive, progress, RecordAnswer(progress), InlineDispatcherProvider, screenReader)
         attempt?.let(vm::start)
     }
 
@@ -74,9 +76,14 @@ internal class PracticeRig(
 /** The tag of the puzzle the board was cut from. */
 internal val FakePracticeBoard.tag: Int get() = puzzle.payload.last().toInt()
 
-/** The board on screen ends ([PracticeStatus.Done]) and its pause passes, so the next board has opened when this returns. */
+/** The board on screen ends ([PracticeStatus.Done]) and its hold passes, so the next board has opened when this returns. */
 internal fun PracticeRig.finishBoard(main: MainDispatcherRule, last: Spotlight? = null) {
     board.say(PracticeStatus.Done(last))
-    main.testDispatcher.scheduler.advanceTimeBy(BOARD_DONE_PAUSE_MS)
+    main.testDispatcher.scheduler.advanceTimeBy(BoardEndHoldMillis)
     main.testDispatcher.scheduler.runCurrent()
+}
+
+/** A screen reader that is on or off as the test sets it. */
+internal class FakeScreenReaderCheck(var enabled: Boolean = false) : ScreenReaderCheck {
+    override fun on() = enabled
 }

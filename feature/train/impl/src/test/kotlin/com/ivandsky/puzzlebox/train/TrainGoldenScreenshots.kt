@@ -18,6 +18,12 @@ import com.ivandsky.puzzlebox.data.trainer.TechniqueProgress
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.gameui.trainer.PracticeStatus
+import com.ivandsky.puzzlebox.gameui.trainer.TrainerTechnique
+import com.ivandsky.puzzlebox.train.practice.BoardHold
+import com.ivandsky.puzzlebox.train.practice.BoardRow
+import com.ivandsky.puzzlebox.train.practice.BoardRowKind
+import com.ivandsky.puzzlebox.train.practice.ChapterOutcome
+import com.ivandsky.puzzlebox.train.practice.ChapterResult
 import com.ivandsky.puzzlebox.train.practice.PracticePane
 import com.ivandsky.puzzlebox.train.practice.PracticeState
 import com.ivandsky.puzzlebox.train.practice.StandInGrid
@@ -36,7 +42,8 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Review renders of the Train pane (ADR-0033: rendered on demand, never committed): the technique list, and a practice
- * board before a move, after a Right, after an undone Wrong move and done, and the page after the last board. The board is a stand-in grid, as this module
+ * board before a move, after a Right, after an undone Wrong move, finished with its hold running, and the chapter's
+ * result page. The board is a stand-in grid, as this module
  * sees no game's board. Each render sits in the padding the Games screen gives it: the phone's page inset, or the
  * tablet's 400dp list column with the practice board or the placeholder beside it.
  */
@@ -56,8 +63,10 @@ class TrainPhoneGoldenScreenshots : TrainGoldenScreenshots("phone") {
     @Test fun `practice wrong light`() = capture("practice-wrong", dark = false) { Page { Practice(Wrong, showBack = true) } }
     @Test fun `practice wrong dark`() = capture("practice-wrong", dark = true) { Page { Practice(Wrong, showBack = true) } }
 
-    @Test fun `practice done light`() = capture("practice-done", dark = false) { Page { Practice(Done, showBack = true, Three) } }
-    @Test fun `finished light`() = capture("finished", dark = false) { Page { Practice(PracticeState.Finished, showBack = true) } }
+    @Test fun `practice done light`() = capture("practice-done", dark = false) { Page { Practice(Done, showBack = true, Three, MidHold) } }
+    @Test fun `practice done dark`() = capture("practice-done", dark = true) { Page { Practice(Done, showBack = true, Three, MidHold) } }
+    @Test fun `chapter result light`() = capture("chapter-result", dark = false) { Page { Practice(Result, showBack = true) } }
+    @Test fun `chapter result dark`() = capture("chapter-result", dark = true) { Page { Practice(Result, showBack = true) } }
     @Test fun `empty light`() = capture("empty", dark = false) { Page { Practice(PracticeState.Empty, showBack = true) } }
     @Test fun `needs connection light`() = capture("needs-connection", dark = false) { Page { Practice(PracticeState.NeedsConnection, showBack = true) } }
     @Test fun `cant load light`() = capture("cant-load", dark = false) { Page { Practice(PracticeState.CantLoad(alternative = 918), showBack = true) } }
@@ -74,6 +83,10 @@ class TrainTabletGoldenScreenshots : TrainGoldenScreenshots("tablet") {
 
     @Test fun `practice right light`() = capture("practice-right", dark = false) { Beside(open = true) { Practice(Right, showBack = false, Three) } }
     @Test fun `practice right dark`() = capture("practice-right", dark = true) { Beside(open = true) { Practice(Right, showBack = false, Three) } }
+
+    @Test fun `practice done light`() = capture("practice-done", dark = false) { Beside(open = true) { Practice(Done, showBack = false, Three, MidHold) } }
+    @Test fun `chapter result light`() = capture("chapter-result", dark = false) { Beside(open = true) { Practice(Result, showBack = false) } }
+    @Test fun `chapter result dark`() = capture("chapter-result", dark = true) { Beside(open = true) { Practice(Result, showBack = false) } }
 }
 
 abstract class TrainGoldenScreenshots(private val device: String) {
@@ -91,6 +104,29 @@ abstract class TrainGoldenScreenshots(private val device: String) {
         val Right = PracticeState.Practicing(StandInPracticeBoard(PracticeStatus.Right(standInSpotlight(), trained = true)))
         val Wrong = PracticeState.Practicing(StandInPracticeBoard(PracticeStatus.Wrong("Two queens would touch.")))
         val Done = PracticeState.Practicing(StandInPracticeBoard(PracticeStatus.Done(standInSpotlight())))
+        val MidHold = BoardHold(remainingMs = 2_000, waitsForTap = false)
+        val Result = PracticeState.Result(
+            ChapterResult(
+                technique = TrainerTechnique(TechniqueId("line-lock"), "Line lock", "A region sits inside one line."),
+                next = TrainerTechnique(TechniqueId("pointing-pair"), "Pointing pair", "A pair points."),
+                outcome = ChapterOutcome.NewlyMastered,
+                boards = 5,
+                boardsDone = 5,
+                rights = 14,
+                shown = 1,
+                slips = 2,
+                best = 9,
+                rows = listOf(
+                    BoardRow(1, BoardRowKind.Clean, 3),
+                    BoardRow(2, BoardRowKind.Slip, 3),
+                    BoardRow(3, BoardRowKind.Clean, 2),
+                    BoardRow(4, BoardRowKind.Shown, 3),
+                    BoardRow(5, BoardRowKind.Slip, 3),
+                ),
+                allMastered = false,
+                techniques = 4,
+            ),
+        )
         val Three = TechniqueProgress(TechniqueProgress.Mark.Practicing, inRow = 3, answeredAtMs = 1L)
         val Two = TechniqueProgress(TechniqueProgress.Mark.Practicing, inRow = 2, answeredAtMs = 1L)
 
@@ -106,8 +142,13 @@ abstract class TrainGoldenScreenshots(private val device: String) {
         )
 
         @Composable
-        fun Practice(state: PracticeState, showBack: Boolean, progress: TechniqueProgress = Two) = PracticePane(
-            chapter = standInChapter(),
+        fun Practice(
+            state: PracticeState,
+            showBack: Boolean,
+            progress: TechniqueProgress = Two,
+            hold: BoardHold? = null,
+        ) = PracticePane(
+            chapter = standInChapter(board = 2, boards = 5),
             state = state,
             progress = progress,
             showBack = showBack,
@@ -115,6 +156,10 @@ abstract class TrainGoldenScreenshots(private val device: String) {
             board = { _, modifier -> StandInGrid(modifier) },
             onTryAgain = {},
             onTryAnother = {},
+            hold = hold,
+            onSkip = {},
+            onNextChapter = {},
+            onPracticeAgain = {},
         )
 
         @Composable

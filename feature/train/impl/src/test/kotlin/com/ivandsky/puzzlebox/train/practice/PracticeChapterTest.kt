@@ -15,8 +15,8 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * The chapter a technique's practice is: four focus boards and a review board, the next technique after them, a finished
- * page after the catalog's last. Every wait is virtual time on the main dispatcher.
+ * The chapter a technique's practice is: four focus boards and a review board, a result page after them, and the next
+ * technique only from that page's button. Every wait is virtual time on the main dispatcher.
  */
 class PracticeChapterTest {
 
@@ -36,11 +36,11 @@ class PracticeChapterTest {
 
     /** Bug caught: a finished board that opens the next one at once, so the player never sees what finished it. */
     @Test
-    fun `a finished board waits out its pause before the next opens`() {
+    fun `a finished board waits out its hold before the next opens`() {
         val rig = rig(listOf("naked-single", "line-lock"), LINE_LOCK)
 
         rig.board.say(PracticeStatus.Done(null))
-        advance(BOARD_DONE_PAUSE_MS - 1)
+        advance(BoardEndHoldMillis - 1)
         assertEquals(1, rig.game.boards.size)
         assertEquals(1, rig.vm.chapter.value.board)
 
@@ -61,13 +61,20 @@ class PracticeChapterTest {
         assertEquals(5, rig.vm.chapter.value.boards)
     }
 
-    /** Bug caught: the first technique, which has nothing before it to review, asking for a review board. */
+    /** Bug caught: the next technique opening by itself after the chapter, before the player has seen its result. */
     @Test
-    fun `the first technique has four focus boards and goes on to the next technique`() {
+    fun `the first technique has four focus boards and its next technique opens from the result page only`() {
         val rig = rig(listOf("naked-single", "line-lock"), NAKED_SINGLE)
         assertEquals(4, rig.vm.chapter.value.boards)
 
         repeat(4) { rig.finishBoard(main) }
+        assertEquals(List(4) { BoardKind.Focus }, rig.game.boards.map { it.kind })
+        assertEquals(NAKED_SINGLE, (rig.state as PracticeState.Result).result.technique.id)
+        assertEquals(LINE_LOCK, (rig.state as PracticeState.Result).result.next?.id)
+        advance(BoardEndHoldMillis * 3)
+        assertEquals("nothing opens on a timer", 4, rig.game.boards.size)
+
+        rig.vm.nextChapter()
 
         assertEquals(List(5) { BoardKind.Focus }, rig.game.boards.map { it.kind })
         assertEquals(listOf(NAKED_SINGLE, NAKED_SINGLE, NAKED_SINGLE, NAKED_SINGLE, LINE_LOCK), rig.game.boards.map { it.technique })
@@ -82,6 +89,7 @@ class PracticeChapterTest {
         val rig = rig(listOf("naked-single", "line-lock", "pair"), LINE_LOCK)
 
         repeat(5) { rig.finishBoard(main) }
+        rig.vm.nextChapter()
 
         assertEquals(pair, rig.board.technique)
         assertEquals(BoardKind.Focus, rig.board.kind)
@@ -105,7 +113,7 @@ class PracticeChapterTest {
         last.say(PracticeStatus.Done(null))
 
         last.turn(TrainerVerdict.Right)
-        advance(BOARD_DONE_PAUSE_MS)
+        advance(BoardEndHoldMillis)
 
         assertEquals(1, rig.progress.stored[QUEENS]?.get(LINE_LOCK)?.inRow)
         assertEquals(null, rig.progress.stored[QUEENS]?.get(pair))
@@ -113,14 +121,15 @@ class PracticeChapterTest {
 
     /** Bug caught: the last board of the last technique opening one more board, or leaving a dead page. */
     @Test
-    fun `the last board of the last technique opens the finished page`() {
+    fun `the last board of the last technique opens a result page with no next technique`() {
         val rig = rig(listOf("naked-single", "line-lock"), LINE_LOCK)
 
         repeat(4) { rig.finishBoard(main) }
         assertTrue(rig.state is PracticeState.Practicing)
         rig.finishBoard(main)
 
-        assertEquals(PracticeState.Finished, rig.state)
+        val result = (rig.state as PracticeState.Result).result
+        assertEquals(null, result.next)
         assertEquals(5, rig.game.boards.size)
     }
 
@@ -133,19 +142,19 @@ class PracticeChapterTest {
         assertTrue(rig.state is PracticeState.Practicing)
         rig.finishBoard(main)
 
-        assertEquals(PracticeState.Finished, rig.state)
+        assertTrue(rig.state is PracticeState.Result)
     }
 
-    /** Bug caught: the pause of a board that was left still opening the next board over the one the player started. */
+    /** Bug caught: the hold of a board that was left still opening the next board over the one the player started. */
     @Test
-    fun `a new attempt during the pause starts the chapter over and the old pause opens nothing`() {
+    fun `a new attempt during the hold starts the chapter over and the old hold opens nothing`() {
         val rig = rig(listOf("naked-single", "line-lock"), LINE_LOCK)
         repeat(2) { rig.finishBoard(main) }
         rig.board.say(PracticeStatus.Done(null))
 
         rig.vm.start(2)
         val fresh = rig.board
-        advance(BOARD_DONE_PAUSE_MS * 2)
+        advance(BoardEndHoldMillis * 2)
 
         assertEquals(1, rig.vm.chapter.value.board)
         assertEquals(LINE_LOCK, rig.vm.chapter.value.technique.id)

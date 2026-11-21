@@ -53,18 +53,6 @@ internal fun CantLoadPage(name: String, onTryAnother: () -> Unit) {
     )
 }
 
-/** Every chapter of the game's catalog is done: say so, and offer the way back. */
-@Composable
-internal fun FinishedPage(onClose: () -> Unit) {
-    EmptyState(
-        title = "All boards finished",
-        message = "You have been through every technique in this game.",
-        modifier = Modifier.fillMaxSize().testTag("train.finished"),
-        actionLabel = "Back to techniques",
-        onAction = onClose,
-    )
-}
-
 /** The back arrow of a title row, with the gap that follows it. */
 @Composable
 internal fun BackButton(onClose: () -> Unit) {
