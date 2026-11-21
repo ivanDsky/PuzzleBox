@@ -4,8 +4,8 @@ import com.ivandsky.puzzlebox.gameui.trainer.PracticeBoard
 
 /**
  * Where a technique's practice stands: a board being found or a puzzle loading, nothing to practice on, waiting for a
- * puzzle to be fetched, unable to load one, on a board, or past the last chapter of the game's catalog. What the board
- * itself says (the last move's outcome, a finished board) is its own [PracticeBoard.status], not part of this state.
+ * puzzle to be fetched, unable to load one, on a board, or on the result of a finished chapter. What the board itself
+ * says (the last move's outcome, a finished board) is its own [PracticeBoard.status], not part of this state.
  */
 internal sealed interface PracticeState {
 
@@ -27,6 +27,6 @@ internal sealed interface PracticeState {
     /** [board] is up. Each board is its own state (it compares by identity), so a new board always replaces the last. */
     class Practicing(val board: PracticeBoard) : PracticeState
 
-    /** Every chapter of the game's catalog is done: the finished page, whose one action is back to the techniques. */
-    data object Finished : PracticeState
+    /** A chapter's last board is done: the [result] page, whose buttons say where to go (the next chapter, again, or back). */
+    data class Result(val result: ChapterResult) : PracticeState
 }

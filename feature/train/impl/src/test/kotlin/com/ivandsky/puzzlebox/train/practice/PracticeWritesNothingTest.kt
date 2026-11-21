@@ -61,6 +61,7 @@ class PracticeWritesNothingTest {
                     single<TrainerPuzzleSource> { TrainerPuzzleSource { flow { emit(puzzle(1)); emit(puzzle(2)) } } }
                     single<TrainerProgressRepository> { progress }
                     single<DispatcherProvider> { InlineDispatcherProvider }
+                    factory<ScreenReaderCheck> { FakeScreenReaderCheck() }
                     single<CompletionRepository> { completions }
                     single<SavedPlayRepository> { savedPlays }
                     single<DailyRepository> { daily }
@@ -86,7 +87,7 @@ class PracticeWritesNothingTest {
         board.turn(TrainerVerdict.Wrong)
         board.turn(TrainerVerdict.ShowMe)
         board.say(PracticeStatus.Done(null))
-        main.testDispatcher.scheduler.advanceTimeBy(BOARD_DONE_PAUSE_MS)
+        main.testDispatcher.scheduler.advanceTimeBy(BoardEndHoldMillis)
         main.testDispatcher.scheduler.runCurrent()
         assertEquals("the next board opened on its own", 2, game.boards.size)
 

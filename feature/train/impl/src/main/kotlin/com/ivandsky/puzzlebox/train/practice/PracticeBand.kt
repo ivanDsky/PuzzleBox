@@ -26,6 +26,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
@@ -33,7 +34,7 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.trainer.PracticeStatus
 
 /** The status band's height: fixed, so the board below it never moves whatever the status says. */
-private val BandHeight = 96.dp
+internal val BandHeight = 96.dp
 
 /** What the band shows for one status: an [icon], a [title], the [why] line, and the colors it is drawn in. */
 private class Band(val icon: ImageVector, val title: String, val why: String, val container: Color, val content: Color)
@@ -42,8 +43,8 @@ private class Band(val icon: ImageVector, val title: String, val why: String, va
  * The one status band attached to the board's top edge (spec §2.2): the standing instruction, or the outcome of the
  * last move with its one-line reason. Right is the primary container, an undone Wrong move the error container, an
  * easier move the tertiary one, and the rest the quiet well. A polite live region, so a screen reader reads each
- * outcome as it lands. [chapter] names the trained technique, which the instruction and the Right line name, and the
- * board the Done line says finished.
+ * outcome as it lands. [chapter] names the trained technique, which the instruction and the Right line name. A done
+ * board is not drawn here: it has the [DoneBand].
  */
 @Composable
 internal fun StatusBand(status: PracticeStatus, chapter: PracticeChapter, onGotIt: () -> Unit, modifier: Modifier = Modifier) {
@@ -107,26 +108,36 @@ private fun band(status: PracticeStatus, chapter: PracticeChapter): Band {
         )
         is PracticeStatus.Wrong -> Band(PuzzleIcons.Undo, "Not there, undone", status.why, scheme.errorContainer, scheme.onErrorContainer)
         is PracticeStatus.Shown -> Band(PuzzleIcons.Info, "Here is the next move", "Look at the board, then tap Got it.", quiet.first, quiet.second)
-        is PracticeStatus.Done ->
-            Band(PuzzleIcons.Check, "Done", "Board ${chapter.board} of ${chapter.boards} finished.", scheme.primaryContainer, scheme.onPrimaryContainer)
+        is PracticeStatus.Done -> error("A done board shows the DoneBand, not the status band")
     }
 }
 
 /**
  * [band] attached to the top edge of [board]: the board is measured first, within the space given less the band, and the
- * band is then as wide as the board and [BandHeight] tall, so the two read as one frame whatever shape the game's board
- * takes.
+ * band is then as wide as the board and [bandHeight] tall, so the two read as one frame whatever shape the game's board
+ * takes. [overlay] is centered on the board, over it.
  */
 @Composable
-internal fun BandOverBoard(band: @Composable () -> Unit, board: @Composable () -> Unit, modifier: Modifier = Modifier) {
-    Layout(content = { Box { band() }; Box { board() } }, modifier = modifier) { measurables, constraints ->
-        val bandHeight = BandHeight.roundToPx()
-        val room = if (constraints.hasBoundedHeight) (constraints.maxHeight - bandHeight).coerceAtLeast(0) else Constraints.Infinity
+internal fun BandOverBoard(
+    band: @Composable () -> Unit,
+    board: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    bandHeight: Dp = BandHeight,
+    overlay: @Composable () -> Unit = {},
+) {
+    Layout(content = { Box { band() }; Box { board() }; Box { overlay() } }, modifier = modifier) { measurables, constraints ->
+        val bandPx = bandHeight.roundToPx()
+        val room = if (constraints.hasBoundedHeight) (constraints.maxHeight - bandPx).coerceAtLeast(0) else Constraints.Infinity
         val boardPlaceable = measurables[1].measure(constraints.copy(minWidth = 0, minHeight = 0, maxHeight = room))
-        val bandPlaceable = measurables[0].measure(Constraints.fixed(boardPlaceable.width, bandHeight))
-        layout(boardPlaceable.width, bandHeight + boardPlaceable.height) {
+        val bandPlaceable = measurables[0].measure(Constraints.fixed(boardPlaceable.width, bandPx))
+        val overlayPlaceable = measurables[2].measure(Constraints(maxWidth = boardPlaceable.width, maxHeight = boardPlaceable.height))
+        layout(boardPlaceable.width, bandPx + boardPlaceable.height) {
             bandPlaceable.placeRelative(0, 0)
-            boardPlaceable.placeRelative(0, bandHeight)
+            boardPlaceable.placeRelative(0, bandPx)
+            overlayPlaceable.placeRelative(
+                (boardPlaceable.width - overlayPlaceable.width) / 2,
+                bandPx + (boardPlaceable.height - overlayPlaceable.height) / 2,
+            )
         }
     }
 }

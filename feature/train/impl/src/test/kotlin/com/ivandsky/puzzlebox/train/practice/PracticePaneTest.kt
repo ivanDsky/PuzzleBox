@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.train.practice
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
@@ -8,11 +9,14 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.data.trainer.TechniqueProgress
 import com.ivandsky.puzzlebox.data.trainer.TechniqueProgress.Mark
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.trainer.BoardKind
+import com.ivandsky.puzzlebox.game.trainer.TechniqueId
+import com.ivandsky.puzzlebox.gameui.trainer.TrainerTechnique
 import com.ivandsky.puzzlebox.gameui.trainer.PracticeStatus
 import com.ivandsky.puzzlebox.train.FakePracticeBoard
 import com.ivandsky.puzzlebox.train.practice.PracticeRig.Companion.LINE_LOCK
@@ -39,6 +43,24 @@ class PracticePaneTest {
     private var closed = 0
     private var tryAgain = 0
     private var tryAnother = 0
+    private var skipped = 0
+    private var nextChapter = 0
+    private var practiceAgain = 0
+
+    private fun sampleResult() = ChapterResult(
+        technique = TrainerTechnique(LINE_LOCK, "Line lock", "A line is locked."),
+        next = TrainerTechnique(TechniqueId("pointing-pair"), "Pointing pair", "A pair points."),
+        outcome = ChapterOutcome.NewlyMastered,
+        boards = 5,
+        boardsDone = 5,
+        rights = 9,
+        shown = 1,
+        slips = 2,
+        best = 6,
+        rows = List(5) { BoardRow(it + 1, BoardRowKind.Clean, 2) },
+        allMastered = false,
+        techniques = 4,
+    )
 
     @After
     fun tearDown() = scope.coroutineContext[Job]!!.cancel()
@@ -47,6 +69,7 @@ class PracticePaneTest {
         state: PracticeState,
         progress: TechniqueProgress = TechniqueProgress(Mark.Practicing, inRow = 2, answeredAtMs = 1L),
         chapter: PracticeChapter = standInChapter(),
+        hold: BoardHold? = null,
     ) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
@@ -59,6 +82,10 @@ class PracticePaneTest {
                     board = { _, modifier -> StandInGrid(modifier) },
                     onTryAgain = { tryAgain++ },
                     onTryAnother = { tryAnother++ },
+                    hold = hold,
+                    onSkip = { skipped++ },
+                    onNextChapter = { nextChapter++ },
+                    onPracticeAgain = { practiceAgain++ },
                 )
             }
         }
@@ -67,7 +94,8 @@ class PracticePaneTest {
     private fun showBoard(
         progress: TechniqueProgress = TechniqueProgress(Mark.Practicing, inRow = 2, answeredAtMs = 1L),
         chapter: PracticeChapter = standInChapter(),
-    ) = show(PracticeState.Practicing(board), progress, chapter)
+        hold: BoardHold? = null,
+    ) = show(PracticeState.Practicing(board), progress, chapter, hold)
 
     private fun say(status: PracticeStatus) {
         board.say(status)
@@ -179,24 +207,79 @@ class PracticePaneTest {
 
     /** Catches a finished board that keeps asking for the next move, or a Done band that does not say which board finished. */
     @Test
-    fun `a finished board says Done with its number and takes no Show me`() {
+    fun `a finished board says it is done with its number and takes no Show me`() {
         showBoard(chapter = standInChapter(board = 2, boards = 5))
 
         say(PracticeStatus.Done(standInSpotlight()))
 
-        assertBand("Done", "Board 2 of 5 finished.")
+        composeRule.onNodeWithTag("train.status").assertTextContains("Board 2 of 5 done").assertTextContains("Next board in 3", substring = true)
         composeRule.onNodeWithTag("train.showMe").assertIsNotEnabled()
     }
 
-    /** Catches a finished page with no way back to the list, one wired to another action, or one that still offers a next board. */
+    /** Catches a count that is not the whole second left, one that reaches 0, or a skip that is not the view model's. */
     @Test
-    fun `the finished page offers Back to techniques only`() {
-        show(PracticeState.Finished)
+    fun `the done band counts the whole seconds left and its button skips the wait`() {
+        showBoard(hold = BoardHold(remainingMs = 1_001, waitsForTap = false))
+        say(PracticeStatus.Done(null))
+        composeRule.onNodeWithTag("train.status").assertTextContains("Next board in 2", substring = true)
 
-        composeRule.onNodeWithTag("train.finished").assertIsDisplayed()
-        composeRule.onNodeWithText("Next board").assertDoesNotExist()
-        composeRule.onNodeWithText("Back to techniques").performClick()
+        composeRule.onNodeWithTag("train.nextBoard").performClick()
+        assertEquals(1, skipped)
+    }
+
+    @Test
+    fun `the done band never counts below one`() {
+        showBoard(hold = BoardHold(remainingMs = 40, waitsForTap = false))
+        say(PracticeStatus.Done(null))
+        composeRule.onNodeWithTag("train.status").assertTextContains("Next board in 1", substring = true)
+    }
+
+    /** Catches the last board's band promising another board, or a button that does not say it goes to the result. */
+    @Test
+    fun `the last board's band counts down to the chapter result`() {
+        showBoard(chapter = standInChapter(board = 5, boards = 5))
+        say(PracticeStatus.Done(null))
+
+        composeRule.onNodeWithTag("train.status").assertTextContains("Board 5 of 5 done").assertTextContains("Chapter result in 3", substring = true)
+        composeRule.onNodeWithTag("train.nextBoard").assertTextContains("See result")
+    }
+
+    /** Catches a screen reader user left with a countdown that moves on by itself. */
+    @Test
+    fun `with a screen reader the band asks for the tap instead of counting`() {
+        showBoard(hold = BoardHold(remainingMs = 3_000, waitsForTap = true))
+        say(PracticeStatus.Done(null))
+
+        composeRule.onNodeWithTag("train.status").assertTextContains("Tap Next board when you are ready.", substring = true)
+        composeRule.onNodeWithText("Next board in 3", substring = true).assertDoesNotExist()
+    }
+
+    /** Catches steps that count the wrong number of boards, or one that does not turn done when its board finishes. */
+    @Test
+    fun `the steps are one image that names the board and follow the chapter's length`() {
+        showBoard(chapter = standInChapter(board = 3, boards = 4))
+        composeRule.onNodeWithContentDescription("Board 3 of 4").assertIsDisplayed()
+    }
+
+    /** Catches a result page drawn under the title row or the board, or one with no way back on the phone. */
+    @Test
+    fun `the result page takes the whole pane and has its own back`() {
+        show(PracticeState.Result(sampleResult()))
+
+        composeRule.onNodeWithTag("train.result").assertIsDisplayed()
+        composeRule.onNodeWithTag("train.count").assertDoesNotExist()
+        composeRule.onNodeWithTag("train.back").performClick()
         assertEquals(listOf(0, 0, 1), listOf(tryAgain, tryAnother, closed))
+    }
+
+    /** Catches result buttons wired to one another. */
+    @Test
+    fun `each result button is its own action`() {
+        show(PracticeState.Result(sampleResult()))
+        composeRule.onNodeWithTag("train.result.next").performScrollTo().performClick()
+        composeRule.onNodeWithTag("train.result.again").performScrollTo().performClick()
+        composeRule.onNodeWithTag("train.result.back").performScrollTo().performClick()
+        assertEquals(listOf(1, 1, 1), listOf(nextChapter, practiceAgain, closed))
     }
 
     /** Catches the load pages wired to each other's action: a fetch that opens a puzzle, an open that fetches, a close that does neither. */

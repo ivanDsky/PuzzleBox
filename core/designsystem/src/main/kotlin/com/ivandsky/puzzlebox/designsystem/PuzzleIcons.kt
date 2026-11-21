@@ -17,6 +17,7 @@ import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.Email
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Search
@@ -170,6 +171,13 @@ object PuzzleIcons {
 
     /** A duel invite: the envelope from the core set. */
     val Mail: ImageVector = Icons.Rounded.Email
+
+    /** A mastered technique: the star from the core set. */
+    val Star: ImageVector = Icons.Rounded.Star
+
+    /** A board where Show me was used: `visibility`, an open eye. */
+    val Visibility: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.ic_visibility)
 
     /** A duel waiting on my move: the play triangle from the core set. */
     val Play: ImageVector = Icons.Rounded.PlayArrow
