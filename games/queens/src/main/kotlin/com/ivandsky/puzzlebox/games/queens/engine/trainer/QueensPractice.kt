@@ -141,6 +141,10 @@ object QueensPractice {
     private fun crossings(candidates: QueensCandidates, step: QueensStep.Deduction): List<Cell> =
         (step.result as? QueensStep.Deduction.Result.Cross)?.cells.orEmpty().filter { candidates.isOpen(it.idx) }.sortedBy { it.idx }
 
+    /** [board] with [step] made on it: the squares it crosses added as manual crosses, or its queen placed. */
+    fun after(puzzle: QueensPuzzle, board: QueensBoard, step: QueensStep.Deduction): QueensBoard =
+        board.after(step, candidates(puzzle, board))
+
     private fun QueensBoard.after(step: QueensStep.Deduction, candidates: QueensCandidates): QueensBoard =
         when (val result = step.result) {
             is QueensStep.Deduction.Result.Cross -> copy(manual = manual + crossings(candidates, step))

@@ -8,6 +8,8 @@ import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.game.trainer.TrainerVerdict
 import com.ivandsky.puzzlebox.gameui.trainer.DrillSource
+import com.ivandsky.puzzlebox.gameui.trainer.IntroDemo
+import com.ivandsky.puzzlebox.gameui.trainer.IntroVariant
 import com.ivandsky.puzzlebox.gameui.trainer.PracticeBoard
 import com.ivandsky.puzzlebox.gameui.trainer.PracticeStatus
 import com.ivandsky.puzzlebox.gameui.trainer.TrainerGame
@@ -87,6 +89,13 @@ internal class FakeTrainerGame(
 
     @Composable
     override fun Board(board: PracticeBoard, modifier: Modifier) = StandInGrid(modifier)
+
+    override fun variants(technique: TechniqueId): List<IntroVariant> = listOf(IntroVariant("Fake", "Rule.", "Spot it.", "Do it."))
+
+    override fun demo(puzzle: Puzzle, technique: TechniqueId, variant: Int): IntroDemo? = null
+
+    @Composable
+    override fun Demo(demo: IntroDemo, frame: Int, modifier: Modifier) = Unit
 }
 
 /** Techniques named after their ids, for a catalog of [ids]. */

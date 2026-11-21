@@ -14,6 +14,8 @@ import com.ivandsky.puzzlebox.gameui.trainer.PracticeBoard
 import com.ivandsky.puzzlebox.gameui.trainer.PracticeSpotlight
 import com.ivandsky.puzzlebox.gameui.trainer.TrainerGame
 import com.ivandsky.puzzlebox.gameui.trainer.TrainerTechnique
+import com.ivandsky.puzzlebox.gameui.trainer.IntroDemo
+import com.ivandsky.puzzlebox.gameui.trainer.IntroVariant
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.games.tango.codec.TangoCodec
 import com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness
@@ -71,5 +73,27 @@ internal class TangoTrainer(private val compute: CoroutineDispatcher) : TrainerG
                 PracticeSpotlight(practice, status)
             },
         )
+    }
+
+    override fun variants(technique: TechniqueId): List<IntroVariant> = TangoIntroVariants.of(technique)
+
+    /**
+     * Null for another game's puzzle, one that does not decode, one without a unique solution, a variant the technique
+     * has no such index for, and a technique that is never the easiest rung on the puzzle. Otherwise the step that opens
+     * the puzzle's focus board ([TangoPractice.opening]), so frame 0 is exactly the board practice opens on.
+     */
+    override fun demo(puzzle: Puzzle, technique: TechniqueId, variant: Int): IntroDemo? {
+        if (puzzle.gameId != gameId) return null
+        val decoded = (TangoCodec.decode(puzzle.payload) as? DecodeResult.Ok)?.value ?: return null
+        val solution = TangoUniqueness.solve(decoded) ?: return null
+        val opening = TangoPractice.opening(decoded, solution, technique, BoardKind.Focus) ?: return null
+        if (variant !in variants(technique).indices) return null
+        return TangoIntroDemo.of(decoded, opening, variant)
+    }
+
+    @Composable
+    override fun Demo(demo: IntroDemo, frame: Int, modifier: Modifier) {
+        val tango = demo as? TangoIntroDemo ?: error("a Tango trainer was handed another game's demo: $demo")
+        TangoDemoBoard(tango, frame, compute, modifier)
     }
 }

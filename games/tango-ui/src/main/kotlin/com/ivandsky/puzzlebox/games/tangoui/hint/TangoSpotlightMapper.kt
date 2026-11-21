@@ -39,6 +39,23 @@ internal object TangoSpotlightMapper {
         TangoStep.Solved, TangoStep.Unavailable -> error("$step has no Spotlight")
     }
 
+    /**
+     * The Spotlight of a technique intro's evidence frames: the evidence of [step] lit (its what-if cells struck out for
+     * a count squeeze, as the hint draws them), no target and no callout, as the intro's caption says what to look at.
+     * The targets, which share cells with the evidence in a sign step, are the squares the demo then lands.
+     */
+    fun evidence(step: TangoStep.Deduction, targets: Set<Int>, puzzle: TangoPuzzle, playId: Int): Spotlight {
+        val role = if (step.rung == TangoStepRung.COUNT_SQUEEZE) SpotlightRole.EXCLUDED else SpotlightRole.EVIDENCE
+        return Spotlight(
+            rows = puzzle.n,
+            cols = puzzle.n,
+            roles = (step.evidence - targets).associateWith { role },
+            callout = null,
+            glyphs = TangoSpotlightGlyphs(puzzle.n, emptyMap()),
+            playId = playId,
+        )
+    }
+
     private fun spotlight(
         step: TangoStep,
         puzzle: TangoPuzzle,

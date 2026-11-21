@@ -49,6 +49,27 @@ interface TrainerGame {
     fun Board(board: PracticeBoard, modifier: Modifier)
 
     /**
+     * The variants of [technique] its intro writes down, in intro order (spec §2.7): one for a technique whose steps
+     * act on one kind of unit, one per kind otherwise (Queens' Line lock: "Fill the line", "Fill the region").
+     */
+    fun variants(technique: TechniqueId): List<IntroVariant>
+
+    /**
+     * The demo of variant [variant] of [technique] on [puzzle]: the step that opens a [BoardKind.Focus] board of
+     * [technique] on [puzzle], so frame 0 is exactly the position [practice] opens that board at. Null when [technique]
+     * is never the easiest rung on [puzzle] or that opening step is of another variant (the caller tries the next
+     * puzzle).
+     */
+    fun demo(puzzle: Puzzle, technique: TechniqueId, variant: Int): IntroDemo?
+
+    /**
+     * Frame [frame] of [demo], a demo this adapter made, drawn on the game's own board exactly as [Board] draws a
+     * practice board of the same size, with no input: the evidence lit, the step's squares landed so far shown.
+     */
+    @Composable
+    fun Demo(demo: IntroDemo, frame: Int, modifier: Modifier)
+
+    /**
      * What a game UI module binds so the [TrainerRegistry] can collect its adapter: [game] while the
      * game's Train flag is on, null while it is off. The module binds one of these per game, always
      * (a factory that reads the flag when asked), so a game whose flag is off adds nothing to the
