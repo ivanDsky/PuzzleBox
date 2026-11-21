@@ -190,7 +190,7 @@ internal fun GamePageTabletPreview() {
     }
 }
 
-// Preview: the phone page with MakeOwnLink on: no Make one bar, How to play ends with "Make your own Strands".
+// Preview: the phone page with the Make your own pill ending How to play.
 @Preview(name = "Make own link", widthDp = 360, heightDp = 1900, showBackground = true)
 @Composable
 internal fun GamePageMakeOwnPhonePreview() {
@@ -206,13 +206,12 @@ internal fun GamePageMakeOwnPhonePreview() {
                 onOpenLesson = {},
                 board = { PreviewBoard(row.card.name) },
                 onMakeOne = {},
-                makeOwnLink = true,
             )
         }
     }
 }
 
-// Preview: the tablet page with MakeOwnLink on.
+// Preview: the tablet page with the Make your own pill.
 @Preview(name = "Tablet make own link", widthDp = 1400, heightDp = 1200)
 @Composable
 internal fun GamePageMakeOwnTabletPreview() {
@@ -228,7 +227,6 @@ internal fun GamePageMakeOwnTabletPreview() {
                 onOpenLesson = {},
                 board = { PreviewBoard(row.card.name) },
                 onMakeOne = {},
-                makeOwnLink = true,
             )
         }
     }

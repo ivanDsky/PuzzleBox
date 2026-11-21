@@ -208,12 +208,6 @@ class LibraryViewModel(
     internal val monthSwipe: StateFlow<Boolean> =
         swipe.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), swipeOf(releaseFlags.enabled.value))
 
-    /** Whether the game page offers "Make your own <Game>" in How to play instead of the full-width Make one (backlog #1567, [PlayFlag.MakeOwnLink]). */
-    internal val makeOwnLink: StateFlow<Boolean> = releaseFlags.enabled
-        .map { PlayFlag.MakeOwnLink in it }
-        .distinctUntilChanged()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), PlayFlag.MakeOwnLink in releaseFlags.enabled.value)
-
     /** The day card's LinkedIn view; no stop grace, so a sync still in its debounce dies with the card. */
     internal val linkedInView: StateFlow<LinkedInDayView?> = linkedIn
         .libraryView(selected, picked, uiState, calendar)

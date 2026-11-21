@@ -204,7 +204,7 @@ class StudioDoorsE2ETest {
         const val PUBLISHED_ROW = "create.published.row"
         const val ZIP_ROW = "library.row.zip"
         const val ZIP_PAGE = "library.page.zip"
-        const val PAGE_MAKE_ONE = "library.page.makeOne"
+        const val PAGE_MAKE_ONE = "library.howto.makeOwn"
         const val RESULT_MAKE_ONE = "result.makeOne"
         const val RESULT_TIME = "result.hero.time"
         const val STUDIO_MORE = "create.studio.more"

@@ -13,12 +13,6 @@ enum class PlayFlag(override val label: String, override val releaseDefault: Boo
      * Read only in [com.ivandsky.puzzlebox.play.LibraryViewModel] (ADR-0022 §3).
      */
     ArchiveMonthSwipe(label = "Archive calendar swipes between months (off: crossfade)", releaseDefault = false),
-
-    /**
-     * Game page's Make one as a link (backlog #1567): no full-width button; How to play ends with "Make your own <Game>"
-     * beside "Open the lesson". Read only in [com.ivandsky.puzzlebox.play.LibraryViewModel] (ADR-0022 §3).
-     */
-    MakeOwnLink(label = "Game page: Make your own link in How to play (off: full-width Make one)", releaseDefault = false),
     ;
 
     /** The entry's own name: the stored override's key in `release_flags`. Never change it. */
