@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.app.widget
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.glance.appwidget.SizeMode
-import kotlinx.coroutines.flow.flow
+import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -11,7 +11,7 @@ import org.junit.Test
 class WidgetSizesTest {
     @Test
     fun `the widget hands the launcher every layout up front, so a resize redraws at once`() {
-        val widget = PuzzleBoxWidget(WidgetStateReader({ flow { } }, { flow { } }, testScoreboard(), BuildWidgetState()))
+        val widget = PuzzleBoxWidget(CachedWidgetReader({ null }, MemoryWidgetSnapshotStore(), { LocalDate.EPOCH }))
 
         val mode = widget.sizeMode
 

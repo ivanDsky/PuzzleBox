@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The launcher's initial layout: the widget's empty state (five bare tracks and the Open PuzzleBox pill, as a failed read
+     draws it), shown from placing the widget until its first session draws. A still picture with no click: the session's
+     own drawing replaces it, taps and all.
+     android:tint, not app:tint: the framework inflates a RemoteViews layout, so AppCompat never swaps in its ImageView. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_preview_background"
+    android:orientation="vertical"
+    android:padding="14dp"
+    tools:ignore="UseAppTint,ContentDescription">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1">
+
+            <ImageView
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_gravity="center"
+                android:src="@drawable/widget_ring_track"
+                android:tint="@color/widget_track" />
+        </FrameLayout>
+
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1">
+
+            <ImageView
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_gravity="center"
+                android:src="@drawable/widget_ring_track"
+                android:tint="@color/widget_track" />
+        </FrameLayout>
+
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1">
+
+            <ImageView
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_gravity="center"
+                android:src="@drawable/widget_ring_track"
+                android:tint="@color/widget_track" />
+        </FrameLayout>
+
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1">
+
+            <ImageView
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_gravity="center"
+                android:src="@drawable/widget_ring_track"
+                android:tint="@color/widget_track" />
+        </FrameLayout>
+
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1">
+
+            <ImageView
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_gravity="center"
+                android:src="@drawable/widget_ring_track"
+                android:tint="@color/widget_track" />
+        </FrameLayout>
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/widget_preview_button"
+        android:gravity="center"
+        android:text="@string/widget_open"
+        android:textColor="@color/widget_on_primary"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+</LinearLayout>

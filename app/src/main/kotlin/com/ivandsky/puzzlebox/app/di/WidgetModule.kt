@@ -7,6 +7,8 @@ import com.ivandsky.puzzlebox.app.widget.AndroidWidgetRefresher
 import com.ivandsky.puzzlebox.app.widget.AndroidWidgetRolloverAlarm
 import com.ivandsky.puzzlebox.app.widget.ArmWidgetRollover
 import com.ivandsky.puzzlebox.app.widget.BuildWidgetState
+import com.ivandsky.puzzlebox.app.widget.CachedWidgetReader
+import com.ivandsky.puzzlebox.app.widget.FileWidgetSnapshotStore
 import com.ivandsky.puzzlebox.app.widget.PuzzleBoxWidget
 import com.ivandsky.puzzlebox.app.widget.PuzzleBoxWidgetReceiver
 import com.ivandsky.puzzlebox.app.widget.ReadWidgetScoreboard
@@ -15,6 +17,7 @@ import com.ivandsky.puzzlebox.app.widget.WidgetComponentSwitch
 import com.ivandsky.puzzlebox.app.widget.WidgetRefresher
 import com.ivandsky.puzzlebox.app.widget.WidgetRolloverAlarm
 import com.ivandsky.puzzlebox.app.widget.WidgetStateReader
+import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
@@ -23,6 +26,7 @@ import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.game.Cadence
 import com.ivandsky.puzzlebox.game.GameRegistry
+import java.io.File
 import java.time.Clock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.combine
@@ -36,7 +40,8 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
 /**
- * The home widget's bindings: the reader over the same use cases Today uses plus the scoreboard's reads, the widget, the redraw seam, the rollover
+ * The home widget's bindings: the reader over the same use cases Today uses plus the scoreboard's reads, the widget with its
+ * cached last picture, the redraw seam, the rollover
  * wake-up and the app-start hook.
  */
 val widgetModule = module {
@@ -57,7 +62,19 @@ val widgetModule = module {
             build = BuildWidgetState(),
         )
     }
-    single { PuzzleBoxWidget(reader = get()) }
+    single {
+        PuzzleBoxWidget(
+            pictures = CachedWidgetReader(
+                read = { get<WidgetStateReader>().read() },
+                // Out of backups: a picture restored onto another phone would show someone else's last day.
+                store = FileWidgetSnapshotStore(
+                    File(androidContext().noBackupFilesDir, "widget_snapshot.json"),
+                    io = get<DispatcherProvider>().io,
+                ),
+                puzzleDay = { get<GetPuzzleDay>()() },
+            ),
+        )
+    }
     single<WidgetRefresher> { AndroidWidgetRefresher(androidContext(), widget = get()) }
     single<WidgetComponentSwitch> { AndroidWidgetComponentSwitch(androidContext()) }
     single<WidgetRolloverAlarm> { AndroidWidgetRolloverAlarm(androidContext()) }

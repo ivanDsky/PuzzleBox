@@ -3,6 +3,8 @@ package com.ivandsky.puzzlebox.app.widget
 import android.content.Context
 import android.os.Build
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceId
@@ -29,17 +31,24 @@ import com.ivandsky.puzzlebox.app.shortcut.ShortcutTarget
 
 /**
  * The home-screen widget, and the only class that draws it: the streak line, Today's games and the action pill, drawn once
- * per render from one [reader] read, in the layout the size the launcher gives it asks for ([WidgetStep]): chips for a short
+ * per render, in the layout the size the launcher gives it asks for ([WidgetStep]): chips for a short
  * widget, rows for a tall one. It fills the widget however large the user makes it. Nothing in it changes on its own; a redraw
  * is [WidgetRefresher]. A chip or row opens its game and the pill opens what it says; a tap anywhere else opens Today.
+ *
+ * Each session draws the last good picture first ([CachedWidgetReader.cached], the empty state on a first draw) and the fresh
+ * read over it when that lands, so a slow or failed read, or a session killed before its read ends, never leaves the
+ * launcher's initial layout on screen. A failed fresh read keeps the cached picture.
  */
-class PuzzleBoxWidget(private val reader: WidgetStateReader) : GlanceAppWidget() {
+class PuzzleBoxWidget(private val pictures: CachedWidgetReader) : GlanceAppWidget() {
 
     override val sizeMode: SizeMode = SizeMode.Responsive(WidgetSizes.ALL)
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val state = reader.read()
-        provideContent { WidgetContent(state) }
+        val cached = pictures.cached()
+        provideContent {
+            val state by produceState(cached) { pictures.fresh()?.let { value = it } }
+            WidgetContent(state)
+        }
     }
 }
 
