@@ -3,10 +3,10 @@ package com.ivandsky.puzzlebox.app.widget
 import android.content.res.Resources
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceModifier
 import androidx.glance.LocalContext
 import androidx.glance.layout.Alignment
+import androidx.glance.layout.ColumnScope
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.width
@@ -18,22 +18,23 @@ import com.ivandsky.puzzlebox.app.R
 
 /**
  * A one-line row of the wide list, in fixed columns: the ring, the name, the rank (left out when [showRank] is false, so a
- * signed-out player does not see an empty column), the time, which takes what is left, and the best. The New best mark
- * only follows a short time, so a long one never pushes it into the best column; Glance cannot measure text to know better.
- * A null [ring] is a bare track and nothing else.
+ * signed-out player does not see an empty column), the time, which takes what is left, and the best. The columns and the
+ * text step up with the layout's [WidgetLayout.Look.scale]. The New best mark only follows a short time, so a long one never
+ * pushes it into the best column; Glance cannot measure text to know better. A null [ring] is a bare track and nothing else.
  */
 @Composable
-internal fun WidgetWideRow(index: Int, ring: WidgetRing?, showRank: Boolean, layout: WidgetLayout, colors: WidgetColors) {
+internal fun ColumnScope.WidgetWideRow(index: Int, ring: WidgetRing?, showRank: Boolean, layout: WidgetLayout, colors: WidgetColors) {
     val resources = LocalContext.current.resources
     val text = ring?.let { rowText(it, resources) }
+    val look = layout.look
     WidgetListRow(index, ring, layout, colors) {
-        WidgetRingArt(ring, layout.look.ring, colors)
+        WidgetRingArt(ring, look.ring, colors)
         if (ring == null || text == null) return@WidgetListRow
         Spacer(GlanceModifier.width(COLUMN_GAP))
         Text(
             text = ring.displayName,
-            modifier = GlanceModifier.width(NAME_WIDTH),
-            style = TextStyle(color = colors.of(R.color.widget_text), fontSize = 16.sp, fontWeight = FontWeight.Bold),
+            modifier = GlanceModifier.width(look.size(NAME_WIDTH)),
+            style = TextStyle(color = colors.of(R.color.widget_text), fontSize = look.text(NAME_TEXT), fontWeight = FontWeight.Bold),
             maxLines = 1,
         )
         if (showRank) {
@@ -41,8 +42,8 @@ internal fun WidgetWideRow(index: Int, ring: WidgetRing?, showRank: Boolean, lay
             val rankColor = if (text.rankMuted) R.color.widget_muted else R.color.widget_text
             Text(
                 text = wideRank(ring, text.rank, resources),
-                modifier = GlanceModifier.width(RANK_WIDTH),
-                style = TextStyle(color = colors.of(rankColor), fontSize = 16.sp, fontWeight = FontWeight.Bold),
+                modifier = GlanceModifier.width(look.size(RANK_WIDTH)),
+                style = TextStyle(color = colors.of(rankColor), fontSize = look.text(NAME_TEXT), fontWeight = FontWeight.Bold),
                 maxLines = 1,
             )
         }
@@ -51,7 +52,7 @@ internal fun WidgetWideRow(index: Int, ring: WidgetRing?, showRank: Boolean, lay
             if (text.solved) {
                 Text(
                     text = text.status,
-                    style = TextStyle(color = colors.of(R.color.widget_text), fontSize = 16.sp, fontWeight = FontWeight.Bold),
+                    style = TextStyle(color = colors.of(R.color.widget_text), fontSize = look.text(NAME_TEXT), fontWeight = FontWeight.Bold),
                     maxLines = 1,
                 )
                 if (ring.newBest && text.status.length <= NEW_BEST_MAX_TIME_CHARS) {
@@ -59,14 +60,14 @@ internal fun WidgetWideRow(index: Int, ring: WidgetRing?, showRank: Boolean, lay
                     WidgetNewBestChip(ring.game, colors)
                 }
             } else {
-                Text(text = text.status, style = TextStyle(color = colors.of(R.color.widget_muted), fontSize = 14.sp), maxLines = 1)
+                Text(text = text.status, style = TextStyle(color = colors.of(R.color.widget_muted), fontSize = look.text(SECOND_TEXT)), maxLines = 1)
             }
         }
         Spacer(GlanceModifier.width(COLUMN_GAP))
         Text(
             text = text.best,
-            modifier = GlanceModifier.width(BEST_WIDTH),
-            style = TextStyle(color = colors.of(R.color.widget_muted), fontSize = 14.sp, textAlign = TextAlign.End),
+            modifier = GlanceModifier.width(look.size(BEST_WIDTH)),
+            style = TextStyle(color = colors.of(R.color.widget_muted), fontSize = look.text(SECOND_TEXT), textAlign = TextAlign.End),
             maxLines = 1,
         )
     }
@@ -82,5 +83,7 @@ private val COLUMN_GAP = 10.dp
 private val NAME_WIDTH = 116.dp
 private val RANK_WIDTH = 70.dp
 private val BEST_WIDTH = 84.dp
+private const val NAME_TEXT = 16
+private const val SECOND_TEXT = 14
 private const val NEW_BEST_MAX_TIME_CHARS = 5
 private const val MAX_RANK_CHARS = 9

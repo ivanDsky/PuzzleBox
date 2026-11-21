@@ -20,9 +20,9 @@ import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
 import androidx.glance.layout.fillMaxSize
+import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
-import androidx.glance.layout.width
 import com.ivandsky.puzzlebox.app.R
 import com.ivandsky.puzzlebox.app.shortcut.ShortcutIntents
 import com.ivandsky.puzzlebox.app.shortcut.ShortcutTarget
@@ -30,8 +30,8 @@ import com.ivandsky.puzzlebox.app.shortcut.ShortcutTarget
 /**
  * The home-screen widget, and the only class that draws it: the streak line, Today's games and the action pill, drawn once
  * per render from one [reader] read, in the layout the size the launcher gives it asks for ([WidgetStep]): chips for a short
- * widget, rows for a tall one. Nothing in it changes on its own; a redraw is [WidgetRefresher]. A chip or row opens its game
- * and the pill opens what it says; a tap anywhere else opens Today.
+ * widget, rows for a tall one. It fills the widget however large the user makes it. Nothing in it changes on its own; a redraw
+ * is [WidgetRefresher]. A chip or row opens its game and the pill opens what it says; a tap anywhere else opens Today.
  */
 class PuzzleBoxWidget(private val reader: WidgetStateReader) : GlanceAppWidget() {
 
@@ -48,6 +48,9 @@ internal fun WidgetContent(state: WidgetState?) {
     val context = LocalContext.current
     val colors = remember(context) { WidgetColors(context) }
     val layout = WidgetLayout.of(LocalSize.current)
+    // Under a responsive size mode the launcher lays the views out at the widget's real size, which is at least the size the
+    // layout was made for, so the block fills it. A list block of fixed rows is the one exception: it keeps its height, centred.
+    val block = if (layout.fixedRows) GlanceModifier.fillMaxWidth().height(layout.contentHeight) else GlanceModifier.fillMaxSize()
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
@@ -59,7 +62,7 @@ internal fun WidgetContent(state: WidgetState?) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = GlanceModifier.width(layout.contentWidth).height(layout.contentHeight)) {
+        Column(modifier = block) {
             when (layout.step) {
                 WidgetStep.Chips1, WidgetStep.Chips2 -> WidgetChipsStep(state, layout.look, colors)
                 WidgetStep.ListNarrow, WidgetStep.ListWide -> WidgetListStep(state, layout, colors)

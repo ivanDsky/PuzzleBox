@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.app.widget
 
 import android.app.Application
+import android.view.ViewGroup
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
@@ -48,17 +49,15 @@ class WidgetRenderTest {
     }
 
     @Test
-    fun `chips1 reads the short streak and one line per chip, with no pill`() {
-        assertEquals(
-            listOf("658 days", "5", "5 of 5 done", "#3", "#7", "#1", "#12", "4:11"),
-            draw(WidgetSamples.default, CHIPS1).texts,
-        )
+    fun `chips1 reads one line per chip, with no streak line, freeze count or pill`() {
+        assertEquals(listOf("#3", "#7", "#1", "#12", "4:11"), draw(WidgetSamples.default, CHIPS1).texts)
+        assertEquals(mixedChips, draw(WidgetSamples.mixed, CHIPS1).descriptions)
     }
 
     @Test
     fun `a rank that is missing or signed out shows the time on the first line`() {
         listOf(WidgetSamples.rankMissing, WidgetSamples.signedOut).forEach {
-            assertEquals(listOf("1:12", "0:48", "1:35", "2:13", "4:11"), draw(it, CHIPS1).texts.drop(3))
+            assertEquals(listOf("1:12", "0:48", "1:35", "2:13", "4:11"), draw(it, CHIPS1).texts)
         }
     }
 
@@ -66,7 +65,7 @@ class WidgetRenderTest {
     fun `the longest names and times still compose`() {
         assertTrue(draw(WidgetSamples.longest, WIDE_CHIPS2).texts.containsAll(listOf("1658 days in a row", "#40", "1:05:42")))
         assertTrue(draw(WidgetSamples.longest, CHIPS2).texts.containsAll(listOf("1658 days", "#40", "1:05:42")))
-        assertTrue(draw(WidgetSamples.longest, CHIPS1).texts.containsAll(listOf("1658 days", "#40")))
+        assertEquals(listOf("#3", "#7", "#1", "#40", "#112"), draw(WidgetSamples.longest, CHIPS1).texts)
     }
 
     @Test
@@ -121,29 +120,56 @@ class WidgetRenderTest {
 
     @Test
     fun `every size the provider allows composes and inflates`() {
-        listOf(DpSize(250.dp, 77.dp), DpSize(250.dp, 90.dp), CHIPS1, CHIPS2, NARROW_LIST, WIDE_LIST, DpSize(640.dp, 480.dp), DpSize(900.dp, 600.dp)).forEach { size ->
-            // The snowflake and the five games speak, and the pill, but chips1 has no pill and the wide header's snowflake is silent.
-            val expected = if (WidgetStep.of(size) in setOf(WidgetStep.Chips1, WidgetStep.ListWide)) 6 else 7
-            assertEquals(expected, draw(WidgetSamples.mixed, size).descriptions.size)
+        val sizes = listOf(
+            DpSize(200.dp, 56.dp), DpSize(200.dp, 110.dp), DpSize(200.dp, 200.dp), DpSize(250.dp, 90.dp), CHIPS1, CHIPS2,
+            DpSize(250.dp, 400.dp), NARROW_LIST, WIDE_LIST, DpSize(720.dp, 540.dp), DpSize(900.dp, 600.dp),
+        )
+        sizes.forEach { size ->
+            // The five games speak, and the snowflake and the pill: chips1 has neither and the wide header's snowflake is silent.
+            val expected = when (WidgetStep.of(size)) {
+                WidgetStep.Chips1 -> 5
+                WidgetStep.ListWide -> 6
+                else -> 7
+            }
+            assertEquals("$size", expected, draw(WidgetSamples.mixed, size).descriptions.size)
             draw(WidgetSamples.empty, size)
         }
     }
 
     @Test
-    fun `the shortest bucket, 250 by 56dp, draws the five chips with their taps and no streak line`() {
-        val drawn = draw(WidgetSamples.mixed, DpSize(250.dp, 56.dp))
+    fun `chips2 at 200dp wide, 3 cells, leaves out the done count so the streak line and the five chips fit`() {
+        val texts = draw(WidgetSamples.default, DpSize(200.dp, 200.dp)).texts
+
+        assertEquals(listOf("658 days", "5", "#3", "1:12", "#7", "0:48", "#1", "1:35", "#12", "2:13", "4:11"), texts.dropLast(1))
+        assertTrue(texts.last().startsWith("New puzzles at "))
+    }
+
+    @Test
+    fun `the shortest bucket, 200 by 56dp, draws the five chips with their taps and no streak line`() {
+        val drawn = draw(WidgetSamples.mixed, DpSize(200.dp, 56.dp))
 
         assertEquals(mixedChips, drawn.descriptions)
         assertEquals(6, drawn.clickable)
         assertEquals(ShortcutTarget.Game(GameId("zip")), drawn.tapDescribed(mixedChips.first()))
-        assertEquals(listOf("#3", "#7", "#1", "#12", "4:11"), draw(WidgetSamples.default, DpSize(250.dp, 56.dp)).texts)
+        assertEquals(listOf("#3", "#7", "#1", "#12", "4:11"), draw(WidgetSamples.default, DpSize(200.dp, 56.dp)).texts)
+    }
+
+    @Test
+    fun `a chips1 chip is a tap target as tall as the widget, a chips2 chip only as tall as its ring and text`() {
+        val chips1 = draw(WidgetSamples.mixed, CHIPS1)
+        val chips2 = draw(WidgetSamples.mixed)
+
+        mixedChips.forEach {
+            assertEquals(it, ViewGroup.LayoutParams.MATCH_PARENT, chips1.tapTargetHeightOf(it))
+            assertEquals(it, ViewGroup.LayoutParams.WRAP_CONTENT, chips2.tapTargetHeightOf(it))
+        }
     }
 
     private companion object {
         val CHIPS1 = DpSize(276.dp, 102.dp)
         val CHIPS2 = DpSize(276.dp, 220.dp)
         val WIDE_CHIPS2 = DpSize(400.dp, 220.dp)
-        val NARROW_LIST = DpSize(276.dp, 338.dp)
+        val NARROW_LIST = DpSize(340.dp, 338.dp)
         val WIDE_LIST = DpSize(620.dp, 430.dp)
     }
 }

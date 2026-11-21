@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.app.widget
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceModifier
 import androidx.glance.LocalContext
 import androidx.glance.layout.Alignment
@@ -16,7 +15,8 @@ import com.ivandsky.puzzlebox.app.R
 
 /**
  * The listNarrow and listWide block: a header, one row per game and the action pill, in the order a column reads. Rows are
- * fixed, not a scrolling list; with the pill under them (narrow) or in a footer beside a line of text (wide). A null
+ * fixed, not a scrolling list; with the pill under them (narrow) or in a footer beside a line of text (wide). The rows are
+ * [WidgetLayout.rowHeight] tall in a block of [WidgetLayout.fixedRows], and otherwise share the block's height. A null
  * [state] draws five bare tracks and the "Open PuzzleBox" pill.
  */
 @Composable
@@ -37,7 +37,7 @@ internal fun ColumnScope.WidgetListStep(state: WidgetState?, layout: WidgetLayou
             Text(
                 text = if (state?.wholeSet == true) context.getString(R.string.widget_whole_set) else "",
                 modifier = GlanceModifier.defaultWeight(),
-                style = TextStyle(color = colors.of(R.color.widget_muted), fontSize = 14.sp),
+                style = TextStyle(color = colors.of(R.color.widget_muted), fontSize = layout.look.text(FOOTER_TEXT)),
                 maxLines = 1,
             )
             WidgetActionPill(button, colors, fullWidth = false)
@@ -46,3 +46,5 @@ internal fun ColumnScope.WidgetListStep(state: WidgetState?, layout: WidgetLayou
         WidgetActionPill(button, colors)
     }
 }
+
+private const val FOOTER_TEXT = 14

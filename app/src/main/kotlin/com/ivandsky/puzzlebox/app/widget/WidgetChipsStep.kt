@@ -7,20 +7,21 @@ import androidx.glance.layout.ColumnScope
 import androidx.glance.layout.Spacer
 
 /**
- * The chips1 and chips2 block: the streak line (unless a one-row [look] is too short for it), the five chips and, in a look that
- * has one, the action pill. The block has a fixed height, and what the content leaves is shared into the gaps between its rows,
- * never into the chips.
+ * The chips1 and chips2 block. A [look] with an action pill is chips2: the streak line (without the done count when the look
+ * has none), the five chips and the pill, and what the block's height leaves is shared into the gaps between those rows, never
+ * into the chips. Without one it is chips1, which is the five chips alone, filling the block.
  */
 @Composable
 internal fun ColumnScope.WidgetChipsStep(state: WidgetState?, look: WidgetLayout.Look, colors: WidgetColors) {
     val context = LocalContext.current
-    if (look.streakLine) {
-        WidgetStreakLine(state?.streak, state?.let { doneCount(it, context.resources) }, look, colors)
-        Spacer(GlanceModifier.defaultWeight())
+    if (!look.pill) {
+        WidgetChips(state?.rings, look, colors, fillHeight = true)
+        return
     }
-    WidgetChips(state?.rings, look, colors)
-    if (look.pill) {
-        Spacer(GlanceModifier.defaultWeight())
-        WidgetActionPill(upNextButton(state, context), colors)
-    }
+    val done = if (look.doneCount) state?.let { doneCount(it, context.resources) } else null
+    WidgetStreakLine(state?.streak, done, look, colors)
+    Spacer(GlanceModifier.defaultWeight())
+    WidgetChips(state?.rings, look, colors, fillHeight = false)
+    Spacer(GlanceModifier.defaultWeight())
+    WidgetActionPill(upNextButton(state, context), colors)
 }

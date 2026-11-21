@@ -20,11 +20,12 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The home widget's layouts (#1939, #1940): the chip rows chips1 (4 by 1) and chips2 (4 by 2), and the lists listNarrow (4 by 3)
- * and listWide (7 by 4), over every state, drawn through the same RemoteViews path the launcher uses, on a wallpaper-grey
- * backdrop so the corners show. Also the lists at their narrowest, widest and 5 cells wide, and chips2 wide, where the block is
- * capped and centred. Light and dark. Recorded with `-Proborazzi.record=true` into `snapshots/widget/` (untracked review
- * captures).
+ * The home widget's layouts (#1939, #1940, #1960): the icon-only chips1, chips2 and the lists listNarrow and listWide over every
+ * state, drawn through the same RemoteViews path the launcher uses, on a wallpaper-grey backdrop so the corners show. A launcher
+ * composes at a declared size ([WidgetSizes]) and lays the views out at the widget's real size, so each capture names both: the
+ * 3 cell widths (200dp), the tablet's 4 by 1 to 4 by 3 (about 470 by 100, 200 and 290 to 330), and the bigger widgets, where the
+ * block fills its size and the rows, rings and text step up. Light and dark. Recorded with `-Proborazzi.record=true` into
+ * `snapshots/widget/` (untracked review captures).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -49,46 +50,62 @@ abstract class WidgetGoldenScreenshots(private val suffix: String) {
         "rankmissing" to WidgetSamples.rankMissing,
     )
 
-    @Test fun `chips1 and chips2 over every state`() {
+    @Test fun `chips1 over every state, at 3 cells, 4 cells and on the tablet`() {
         for ((name, state) in states) {
-            capture(state, CHIPS1, "chips1-$name")
-            capture(state, CHIPS2, "chips2-$name")
+            capture(state, DpSize(200.dp, 56.dp), "chips1-3wide-$name")
+            capture(state, DpSize(250.dp, 90.dp), "chips1-4wide-$name", real = DpSize(276.dp, 100.dp))
+            capture(state, DpSize(340.dp, 90.dp), "chips1-tablet-$name", real = DpSize(470.dp, 100.dp))
         }
     }
 
-    @Test fun `chips1 in one row, the 77dp with its streak line and the 56dp without`() {
+    @Test fun `chips2 over every state, at 3 cells, 4 cells and on the tablet`() {
         for ((name, state) in states) {
-            capture(state, DpSize(250.dp, 77.dp), "chips1-77-$name")
-            capture(state, DpSize(250.dp, 56.dp), "chips1-56-$name")
+            capture(state, DpSize(200.dp, 160.dp), "chips2-3wide-$name", real = DpSize(200.dp, 200.dp))
+            capture(state, DpSize(250.dp, 160.dp), "chips2-$name", real = DpSize(276.dp, 220.dp))
+            capture(state, DpSize(420.dp, 200.dp), "chips2-tablet-$name", real = DpSize(470.dp, 200.dp))
         }
     }
 
-    @Test fun `listNarrow and listWide over every state`() {
+    @Test fun `chips2 filling a widget that is wider, taller or only a little taller than its size`() {
+        capture(WidgetSamples.default, DpSize(420.dp, 200.dp), "chips2-wide", real = DpSize(620.dp, 220.dp))
+        capture(WidgetSamples.default, DpSize(250.dp, 160.dp), "chips2-tall", real = DpSize(250.dp, 400.dp))
+        capture(WidgetSamples.mixed, DpSize(200.dp, 160.dp), "chips2-3wide-tall-mixed", real = DpSize(200.dp, 400.dp))
+        capture(WidgetSamples.mixed, DpSize(250.dp, 160.dp), "chips2-tablet-170-mixed", real = DpSize(470.dp, 170.dp))
+    }
+
+    @Test fun `listNarrow and listWide over every state, at the tablet's 4 by 3`() {
         for ((name, state) in states) {
-            capture(state, LIST_NARROW, "listnarrow-$name")
-            capture(state, LIST_WIDE, "listwide-$name")
+            capture(state, DpSize(420.dp, 320.dp), "listnarrow-$name", real = DpSize(470.dp, 330.dp))
+            capture(state, DpSize(480.dp, 320.dp), "listwide-$name", real = DpSize(485.dp, 330.dp))
         }
     }
 
-    @Test fun `the lists at their edges, and the capped block centred in a wide and a tall widget`() {
-        capture(WidgetSamples.default, DpSize(620.dp, 220.dp), "chips2-wide")
-        capture(WidgetSamples.default, DpSize(470.dp, 200.dp), "chips2-tablet-default")
-        capture(WidgetSamples.longest, DpSize(470.dp, 200.dp), "chips2-tablet-longest")
-        capture(WidgetSamples.mixed, DpSize(420.dp, 240.dp), "chips2-420-mixed")
-        capture(WidgetSamples.mixed, DpSize(620.dp, 430.dp), "tall-mixed")
-        capture(WidgetSamples.mixed, DpSize(349.dp, 456.dp), "listnarrow5-mixed")
-        capture(WidgetSamples.longest, DpSize(480.dp, 338.dp), "listwide-min-longest")
-        capture(WidgetSamples.default, DpSize(480.dp, 338.dp), "listwide-min-default")
-        capture(WidgetSamples.default, DpSize(540.dp, 360.dp), "listwide-max-default")
+    @Test fun `the 4 by 3 at its shortest, 290dp, and the narrow list at 3 cells, short and tall`() {
+        capture(WidgetSamples.mixed, DpSize(420.dp, 280.dp), "listnarrow-4x3-290-mixed", real = DpSize(470.dp, 290.dp))
+        capture(WidgetSamples.mixed, DpSize(480.dp, 280.dp), "listwide-4x3-290-mixed", real = DpSize(485.dp, 290.dp))
+        capture(WidgetSamples.mixed, DpSize(340.dp, 280.dp), "listnarrow-3wide-mixed", real = DpSize(350.dp, 300.dp))
+        capture(WidgetSamples.mixed, DpSize(340.dp, 280.dp), "listnarrow-3wide-330-mixed", real = DpSize(350.dp, 330.dp))
+        capture(WidgetSamples.mixed, DpSize(340.dp, 360.dp), "listnarrow-3wide-tall-mixed", real = DpSize(350.dp, 420.dp))
+    }
+
+    @Test fun `the lists growing to fill a taller widget, then one size up, then another`() {
+        capture(WidgetSamples.mixed, DpSize(420.dp, 360.dp), "listnarrow-grow-mixed", real = DpSize(470.dp, 430.dp))
+        capture(WidgetSamples.mixed, DpSize(480.dp, 360.dp), "listwide-grow-mixed", real = DpSize(485.dp, 430.dp))
+        capture(WidgetSamples.longest, DpSize(480.dp, 360.dp), "listwide-grow-longest", real = DpSize(485.dp, 430.dp))
+        for ((name, state) in states) {
+            capture(state, DpSize(560.dp, 400.dp), "listwide-up1-$name", real = DpSize(590.dp, 440.dp))
+            capture(state, DpSize(700.dp, 500.dp), "listwide-up2-$name", real = DpSize(706.dp, 540.dp))
+        }
     }
 
     // Roborazzi captures a View only inside an Activity window, so the widget is hosted in one, at its exact pixel size.
-    private fun capture(state: WidgetState?, size: DpSize, name: String) {
+    // The launcher composes at the matched bucket ([size]) and lays the views out at the real size, so [real] can differ.
+    private fun capture(state: WidgetState?, size: DpSize, name: String, real: DpSize = size) {
         val activity = Robolectric.buildActivity(Activity::class.java).setup().get()
         val density = activity.resources.displayMetrics.density
         val margin = (BACKDROP_MARGIN * density).toInt()
-        val width = (size.width.value * density).toInt()
-        val height = (size.height.value * density).toInt()
+        val width = (real.width.value * density).toInt()
+        val height = (real.height.value * density).toInt()
         val views = runBlocking { GlanceRemoteViews().compose(activity, size) { WidgetContent(state) }.remoteViews }
         val backdrop = FrameLayout(activity).apply {
             setBackgroundColor(Color.parseColor(if (suffix.isEmpty()) "#B8C0CC" else "#2A2F3A"))
@@ -106,10 +123,6 @@ abstract class WidgetGoldenScreenshots(private val suffix: String) {
             .absolutePath
 
     private companion object {
-        val CHIPS1 = DpSize(276.dp, 102.dp)
-        val CHIPS2 = DpSize(276.dp, 220.dp)
-        val LIST_NARROW = DpSize(276.dp, 338.dp)
-        val LIST_WIDE = DpSize(495.dp, 456.dp)
         const val BACKDROP_MARGIN = 16
     }
 }

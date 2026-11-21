@@ -16,8 +16,16 @@ class WidgetStepTest {
 
     @Test
     fun `under 280dp tall is chips2 and 280dp is a list`() {
-        assertEquals(WidgetStep.Chips2, step(276f, 279.99f))
-        assertEquals(WidgetStep.ListNarrow, step(276f, 280f))
+        assertEquals(WidgetStep.Chips2, step(340f, 279.99f))
+        assertEquals(WidgetStep.ListNarrow, step(340f, 280f))
+    }
+
+    @Test
+    fun `a list needs 340dp of width, so a narrower tall widget is chips2 however tall`() {
+        assertEquals(WidgetStep.Chips2, step(339.99f, 280f))
+        assertEquals(WidgetStep.Chips2, step(250f, 600f))
+        assertEquals(WidgetStep.Chips2, step(200f, 900f))
+        assertEquals(WidgetStep.ListNarrow, step(340f, 600f))
     }
 
     @Test

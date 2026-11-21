@@ -36,6 +36,13 @@ internal class DrawnWidget private constructor(private val application: Applicat
         return ShortcutIntents.targetOf(shadowOf(application).nextStartedActivity)
     }
 
+    /** The height the tap target above the view described [description] asks of its parent: MATCH_PARENT for the whole of it. */
+    fun tapTargetHeightOf(description: String): Int {
+        var view: View = all.first { it.contentDescription?.toString() == description }
+        while (!view.hasOnClickListeners()) view = view.parent as View
+        return view.layoutParams.height
+    }
+
     private fun collect(view: View, into: MutableList<View>) {
         into += view
         if (view is ViewGroup) for (i in 0 until view.childCount) collect(view.getChildAt(i), into)
