@@ -30,7 +30,7 @@ class WidgetListRenderTest {
             listOf(
                 "658 days", "5", "5 of 5 done",
                 "Zip", "1:12", "#3 of 41", "Best 1:01",
-                "Tango", "0:48", "#7 of 41", "Best 0:48",
+                "Tango", "0:48", "New best", "#7 of 41", "Best 0:48",
                 "Queens", "1:35", "#1 of 38", "Best 1:30",
                 "Mini Sudoku", "2:13", "#12 of 40", "Best 2:00",
                 "Strands", "4:11", "–", "Best 4:00",
@@ -45,7 +45,7 @@ class WidgetListRenderTest {
         assertEquals(
             listOf(
                 "658 days", "5", "2 of 5 done",
-                "Zip", "1:12", "#3 of 41", "Best 1:01",
+                "Zip", "1:12", "New best", "#3 of 41", "Best 1:01",
                 "Tango", "0:48", "#7 of 41", "Best 0:44",
                 "Queens", "In progress 3:12", "Best 1:30",
                 "Mini Sudoku", "Not started", "Best 2:00",
@@ -57,9 +57,10 @@ class WidgetListRenderTest {
     }
 
     @Test
-    fun `New best shows in the narrow list from five cells wide, and never at four`() {
-        assertEquals(listOf("Zip", "1:12", "New best", "#3 of 41"), draw(WidgetSamples.mixed, NARROW_5).texts.subList(3, 7))
-        assertEquals(emptyList<String>(), draw(WidgetSamples.mixed, NARROW).texts.filter { it == "New best" })
+    fun `New best shows in the narrow list at every width it has, from 340dp`() {
+        listOf(NARROW, DpSize(479.dp, 338.dp)).forEach {
+            assertEquals(listOf("Zip", "1:12", "New best", "#3 of 41"), draw(WidgetSamples.mixed, it).texts.subList(3, 7))
+        }
     }
 
     @Test
@@ -164,8 +165,7 @@ class WidgetListRenderTest {
     }
 
     private companion object {
-        val NARROW = DpSize(276.dp, 338.dp)
-        val NARROW_5 = DpSize(349.dp, 338.dp)
+        val NARROW = DpSize(340.dp, 338.dp)
         val WIDE = DpSize(620.dp, 430.dp)
     }
 }

@@ -7,6 +7,7 @@ import androidx.glance.GlanceModifier
 import androidx.glance.LocalContext
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
+import androidx.glance.layout.ColumnScope
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.width
@@ -16,11 +17,11 @@ import androidx.glance.text.TextStyle
 import com.ivandsky.puzzlebox.app.R
 
 /**
- * A row of the narrow list: the ring, the game's name over its status line (the time, with the New best mark when there is
- * room, or where the game stands), and at the right the rank over the best time. A null [ring] is a bare track and nothing else.
+ * A row of the narrow list: the ring, the game's name over its status line (the time, with the New best mark, or where the
+ * game stands), and at the right the rank over the best time. A null [ring] is a bare track and nothing else.
  */
 @Composable
-internal fun WidgetNarrowRow(index: Int, ring: WidgetRing?, layout: WidgetLayout, colors: WidgetColors) {
+internal fun ColumnScope.WidgetNarrowRow(index: Int, ring: WidgetRing?, layout: WidgetLayout, colors: WidgetColors) {
     val text = ring?.let { rowText(it, LocalContext.current.resources) }
     WidgetListRow(index, ring, layout, colors) {
         WidgetRingArt(ring, layout.look.ring, colors)
@@ -39,7 +40,7 @@ internal fun WidgetNarrowRow(index: Int, ring: WidgetRing?, layout: WidgetLayout
                         style = TextStyle(color = colors.of(R.color.widget_text), fontSize = 15.sp, fontWeight = FontWeight.Bold),
                         maxLines = 1,
                     )
-                    if (ring.newBest && layout.newBestChip) {
+                    if (ring.newBest) {
                         Spacer(GlanceModifier.width(6.dp))
                         WidgetNewBestChip(ring.game, colors)
                     }

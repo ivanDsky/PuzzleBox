@@ -1,20 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 250x110dp is the smallest size that still spans 4x2 cells (70n - 30). The resize range is 4x1 up (minResize*; 3 cells wide
-     is not offered) to 540x360dp, about 4x3 on the user's tablet grid: 4 cells are at most about 525dp wide and 5 at least 580,
-     3 rows at most about 330dp tall and 4 at least 400, so the caps sit between and hold at any density. Past them the widget
-     would only add padding. minResizeHeight is 40dp because Samsung's launcher rounds (height + 30) / 70 up to cells, so one
-     row needs 40dp or less; 90dp made 4x2 the least. The max attributes are honoured from Android 12, older launchers only
-     miss the resize limit.
+<!-- 250x110dp is the smallest size that still spans 4x2 cells (70n - 30). The resize range is 3x1 up: Samsung's launcher
+     rounds (width + 30) / 70 and (height + 30) / 70 up to cells, so 180dp wide is 3 cells and 40dp tall, minResizeHeight, one
+     row (90dp made 4x2 the least). There is no upper limit, no maxResize*: the widget fills any size, its rows and chips
+     growing with it, and the launcher's own grid is the cap. A larger widget is drawn as the largest size it fits, see
+     WidgetSizes, so what the widget looks like past 4x3 is the layout, not this file.
      updatePeriodMillis stays 0: the widget is redrawn by the app and its own alarm, never by a timer. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:description="@string/widget_description"
     android:initialLayout="@layout/glance_default_loading_layout"
-    android:maxResizeHeight="360dp"
-    android:maxResizeWidth="540dp"
     android:minHeight="110dp"
     android:minResizeHeight="40dp"
-    android:minResizeWidth="250dp"
+    android:minResizeWidth="180dp"
     android:minWidth="250dp"
     android:previewLayout="@layout/widget_preview"
     android:resizeMode="horizontal|vertical"
