@@ -157,11 +157,56 @@ class WidgetLayoutTest {
     }
 
     @Test
-    fun `the 250 by 90dp minimum fits its chips1 block`() {
+    fun `the 250 by 90dp size keeps the full chips1 look, 8dp padding and the streak line`() {
         val layout = layout(250, 90)
 
         assertEquals(74f, layout.contentHeight.value, EPS)
         assertEquals(230f, layout.contentWidth.value, EPS)
+        assertEquals(8f, layout.look.verticalPadding.value, EPS)
+        assertTrue(layout.look.streakLine)
+    }
+
+    @Test
+    fun `a one-row chips1 gives up its padding first, down to 2dp, and keeps the streak line while the block fits`() {
+        val layout = layout(250, 77)
+
+        assertEquals(2f, layout.look.verticalPadding.value, EPS)
+        assertTrue(layout.look.streakLine)
+        assertEquals(73f, layout.contentHeight.value, EPS)
+    }
+
+    @Test
+    fun `a chips1 too short for the streak line and the chips drops the streak line and keeps the chips in the widget`() {
+        val layout = layout(250, 56)
+
+        assertEquals(WidgetStep.Chips1, layout.step)
+        assertFalse(layout.look.streakLine)
+        assertEquals(32f, layout.look.ring.value, EPS)
+        assertTrue(WidgetLayout.chipsRowHeight(layout.look) <= layout.contentHeight)
+        assertTrue(layout.contentHeight + layout.look.verticalPadding * 2 <= 56.dp)
+    }
+
+    @Test
+    fun `every chips1 height from 56dp holds its block, and the streak line stays from 77dp`() {
+        for (height in 56..159) {
+            val layout = layout(250, height)
+            val block = WidgetLayout.chipsRowHeight(layout.look) + if (layout.look.streakLine) layout.look.streakHeight else 0.dp
+
+            assertTrue("$height needs $block of ${layout.contentHeight}", block <= layout.contentHeight)
+            assertTrue("$height padding ${layout.look.verticalPadding}", layout.look.verticalPadding.value in 2f..8f)
+            assertEquals("$height", height >= 77, layout.look.streakLine)
+        }
+    }
+
+    @Test
+    fun `chips2 on the tablet's 4 by 2, 470 by 200dp, is as the user confirmed it, a 49dp ring in a 172dp block`() {
+        val layout = layout(470, 200)
+
+        assertEquals(49f, layout.look.ring.value, EPS)
+        assertEquals(14f, layout.look.verticalPadding.value, EPS)
+        assertEquals(172f, layout.contentHeight.value, EPS)
+        assertEquals(440f, layout.contentWidth.value, EPS)
+        assertTrue(layout.look.streakLine)
     }
 
     private companion object {

@@ -121,12 +121,22 @@ class WidgetRenderTest {
 
     @Test
     fun `every size the provider allows composes and inflates`() {
-        listOf(DpSize(250.dp, 90.dp), CHIPS1, CHIPS2, NARROW_LIST, WIDE_LIST, DpSize(640.dp, 480.dp), DpSize(900.dp, 600.dp)).forEach { size ->
+        listOf(DpSize(250.dp, 77.dp), DpSize(250.dp, 90.dp), CHIPS1, CHIPS2, NARROW_LIST, WIDE_LIST, DpSize(640.dp, 480.dp), DpSize(900.dp, 600.dp)).forEach { size ->
             // The snowflake and the five games speak, and the pill, but chips1 has no pill and the wide header's snowflake is silent.
             val expected = if (WidgetStep.of(size) in setOf(WidgetStep.Chips1, WidgetStep.ListWide)) 6 else 7
             assertEquals(expected, draw(WidgetSamples.mixed, size).descriptions.size)
             draw(WidgetSamples.empty, size)
         }
+    }
+
+    @Test
+    fun `the shortest bucket, 250 by 56dp, draws the five chips with their taps and no streak line`() {
+        val drawn = draw(WidgetSamples.mixed, DpSize(250.dp, 56.dp))
+
+        assertEquals(mixedChips, drawn.descriptions)
+        assertEquals(6, drawn.clickable)
+        assertEquals(ShortcutTarget.Game(GameId("zip")), drawn.tapDescribed(mixedChips.first()))
+        assertEquals(listOf("#3", "#7", "#1", "#12", "4:11"), draw(WidgetSamples.default, DpSize(250.dp, 56.dp)).texts)
     }
 
     private companion object {

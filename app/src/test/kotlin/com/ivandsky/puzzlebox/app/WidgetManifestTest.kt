@@ -63,7 +63,7 @@ class WidgetManifestTest {
     }
 
     @Test
-    fun `the provider spans 4 by 2 cells, resizes from 4 by 1 to 540 by 360dp both ways and is never timer-updated`() {
+    fun `the provider spans 4 by 2 cells, resizes from 4 by 1 (40dp tall) to 540 by 360dp both ways and is never timer-updated`() {
         val parser = context.resources.getXml(R.xml.puzzlebox_widget_info)
         while (parser.next() != XmlPullParser.START_TAG) Unit
         val attrs = context.obtainStyledAttributes(Xml.asAttributeSet(parser), PROVIDER_ATTRS)
@@ -72,7 +72,7 @@ class WidgetManifestTest {
         assertEquals(250, attrs.dimensionOf(android.R.attr.minWidth))
         assertEquals(110, attrs.dimensionOf(android.R.attr.minHeight))
         assertEquals(250, attrs.dimensionOf(android.R.attr.minResizeWidth))
-        assertEquals(90, attrs.dimensionOf(android.R.attr.minResizeHeight))
+        assertEquals(40, attrs.dimensionOf(android.R.attr.minResizeHeight))
         assertEquals(540, attrs.dimensionOf(android.R.attr.maxResizeWidth))
         assertEquals(360, attrs.dimensionOf(android.R.attr.maxResizeHeight))
         assertEquals(4, attrs.intOf(android.R.attr.targetCellWidth))

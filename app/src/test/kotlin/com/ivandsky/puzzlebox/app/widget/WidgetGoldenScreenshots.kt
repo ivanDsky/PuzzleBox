@@ -56,6 +56,13 @@ abstract class WidgetGoldenScreenshots(private val suffix: String) {
         }
     }
 
+    @Test fun `chips1 in one row, the 77dp with its streak line and the 56dp without`() {
+        for ((name, state) in states) {
+            capture(state, DpSize(250.dp, 77.dp), "chips1-77-$name")
+            capture(state, DpSize(250.dp, 56.dp), "chips1-56-$name")
+        }
+    }
+
     @Test fun `listNarrow and listWide over every state`() {
         for ((name, state) in states) {
             capture(state, LIST_NARROW, "listnarrow-$name")
