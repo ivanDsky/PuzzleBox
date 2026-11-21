@@ -38,23 +38,22 @@ import kotlinx.coroutines.withContext
 
 /**
  * A game's practice, a technique's chapter at a time (spec §2.2): four focus boards then one review board (the catalog's
- * first technique has the focus boards only). Each board is a [PracticeBoard] cut from a puzzle on the device, newest
- * first (the [source]'s, then the technique's bundled ones), played with the game's own gestures until it says
- * [PracticeStatus.Done]. A done board is held for [BoardEndHoldMillis] ([hold], [skip]), then the next board opens on
- * its own; after the chapter's last the state is [PracticeState.Result], the chapter's tally against the technique's
- * mastery. The next chapter ([nextChapter]) and a fresh run of this one ([practiceAgain]) open only from that page.
- * Boards live in memory only: turning the device keeps this view model and so the board, while a new attempt or a
- * restore starts again at the opened technique's first board (A6, A15). What a board judges is recorded through
- * [recordAnswer] as it happens, one verdict per trained turn, so the in-a-row count outlives the board ([progress]);
- * no puzzle is completed, saved or replayed, and nothing but the trainer's own progress is written.
+ * first technique has the focus boards only), each a [PracticeBoard] cut from a puzzle on the device (the [source]'s,
+ * newest first, then the technique's bundled ones) and played until it says [PracticeStatus.Done]. A technique never
+ * answered opens with its intro when it has one ([intros]; the board's chip replays it any time): demos to watch, then
+ * [startPractice] opens board 1 on the first demo's puzzle. A done board is held ([hold], [skip]), then the next opens on its own; after the last
+ * the state is [PracticeState.Result]. The next chapter ([nextChapter]) and a fresh run ([practiceAgain]) open only from
+ * that page. Boards live in memory only: turning the device keeps them, a new attempt starts the opened technique again
+ * (A6, A15). Each trained turn is recorded through [recordAnswer] as it happens ([progress]); nothing but the
+ * trainer's own progress is written.
  *
  * With nothing on the device the state is [PracticeState.Empty] when the technique's drill sources name no archive
  * puzzle, else [PracticeState.NeedsConnection]. [tryAgain] asks [archive] to load the first named puzzle not on the
- * device, one fetch at most, and opens a board on it. A load that gives no board leaves [PracticeState.CantLoad] naming
- * a puzzle already on the device, which [tryAnother] opens, or [PracticeState.NeedsConnection] when there is none. A
- * puzzle that is gone, untrusted or never has the technique as its easiest move is not asked for again until every
- * named puzzle has been tried; a busy or offline load asks for the same puzzle next tap. No load is ever an answer.
- * Each board is cut from the puzzles not played in this chapter first, then one fetch, then the played ones again.
+ * device, one fetch at most. A load that gives no board leaves [PracticeState.CantLoad] naming a puzzle already on the
+ * device, which [tryAnother] opens, or [PracticeState.NeedsConnection] when there is none. A puzzle that is gone,
+ * untrusted or never has the technique as its easiest move is not asked for again until every named one has been tried;
+ * a busy or offline load asks for the same puzzle next tap. Each board is cut from the puzzles not played in this
+ * chapter first, then one fetch, then the played ones again.
  */
 internal class PracticeViewModel(
     private val game: TrainerGame,
@@ -65,6 +64,7 @@ internal class PracticeViewModel(
     private val recordAnswer: RecordAnswer,
     private val dispatchers: DispatcherProvider,
     screenReader: ScreenReaderCheck,
+    hint: IntroHint,
 ) : ViewModel() {
 
     private val catalog = game.catalog()
@@ -101,6 +101,9 @@ internal class PracticeViewModel(
     /** The finished board's hold, null while no board has ended. */
     val hold: StateFlow<BoardHold?> = endHold.hold
 
+    /** The technique's intro and its replay from the board's chip. */
+    val intros = IntroGate(game, source, dispatchers, hint)
+
     /** Skips the rest of the hold (and with a screen reader on, ends it): the Done band's button. */
     fun skip() = endHold.skip()
 
@@ -110,9 +113,7 @@ internal class PracticeViewModel(
     /** Trained turns and queued work in the order the board reported them, so a Wrong never lands before the Right it followed. */
     private val queue = Channel<suspend () -> Unit>(Channel.UNLIMITED)
 
-    init {
-        viewModelScope.launch { for (work in queue) work() }
-    }
+    init { viewModelScope.launch { for (work in queue) work() } }
 
     /** The stored progress of the technique being trained, which every trained turn changes and which outlives the board. */
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -126,9 +127,7 @@ internal class PracticeViewModel(
         if (attempt == this.attempt) return
         this.attempt = attempt
         moveTo(opened, 0)
-        replaceBoard {
-            if (!openFromDevice()) mutableState.value = withContext(dispatchers.default) { nothingOnDevice(current) }
-        }
+        replaceBoard { if (!introduce() && !openFromDevice()) mutableState.value = withContext(dispatchers.default) { game.nothingOnDevice(current) } }
     }
 
     /** The needs-a-connection tap: loads the first named puzzle not on the device. Ignored in any other state, so a second tap while loading changes nothing. */
@@ -181,26 +180,39 @@ internal class PracticeViewModel(
     fun nextChapter() {
         if ((mutableState.value as? PracticeState.Result)?.result?.next == null) return
         moveTo(techniqueIndex + 1, 0)
-        replaceBoard { openNext() }
+        replaceBoard { if (!introduce()) openNext() }
     }
 
     /** The result page's practice-again button: the same technique's chapter from its first board, tallied anew. Ignored anywhere else. */
     fun practiceAgain() {
         if (mutableState.value !is PracticeState.Result) return
         moveTo(techniqueIndex, 0)
-        replaceBoard { openNext() }
+        replaceBoard { if (!introduce()) openNext() }
+    }
+
+    /** The intro's Skip and Start practice: board 1 opens on the puzzle the intro was recorded on. Ignored anywhere but the opening intro. */
+    fun startPractice() {
+        val first = (mutableState.value as? PracticeState.Intro)?.intro?.first ?: return
+        intros.handedOver()
+        replaceBoard(loading = false) { if (!open(first)) openNext() }
+    }
+
+    /** Finds the chapter's intro for the board's chip and shows it first for a technique never answered (spec §2.7); false when not shown. */
+    private suspend fun introduce(): Boolean {
+        val intro = intros.find(current) ?: return false
+        if ((store.observe(game.gameId).first()[current] ?: TechniqueProgress.NEW).mark != TechniqueProgress.Mark.New) return false
+        played += intro.first
+        mutableState.value = PracticeState.Intro(intro)
+        return true
     }
 
     /** Opens the board the chapter is at: a puzzle not played yet from the device, else one fetch, else the played ones round again. */
     private suspend fun openNext() {
         if (openFromDevice()) return
         val target = nextToFetch(withContext(dispatchers.default) { game.archiveNumbers(current) })
-        if (target != null) {
-            resolve(archive.load(game.gameId, current, target))
-            return
-        }
+        if (target != null) return resolve(archive.load(game.gameId, current, target))
         played.clear()
-        if (!openFromDevice()) mutableState.value = withContext(dispatchers.default) { nothingOnDevice(current) }
+        if (!openFromDevice()) mutableState.value = withContext(dispatchers.default) { game.nothingOnDevice(current) }
     }
 
     /** Ends the chapter: waits for every verdict to be recorded, then shows the tally against the technique's stored mark. */
@@ -221,6 +233,7 @@ internal class PracticeViewModel(
         boardLife?.cancel()
         boardLife = null
         endHold.clear()
+        intros.close()
         if (loading) mutableState.value = PracticeState.Loading
         load = viewModelScope.launch { work() }
     }
@@ -283,13 +296,5 @@ internal class PracticeViewModel(
         return true
     }
 
-    /** What the player sees with no board to play for [technique]: nothing to fetch at all, or a fetch to ask for. */
-    private fun nothingOnDevice(technique: TechniqueId): PracticeState =
-        if (game.archiveNumbers(technique).isEmpty()) PracticeState.Empty else PracticeState.NeedsConnection
-
-    /** The first of [numbers] that is neither on the device nor already found useless. */
-    private suspend fun nextToFetch(numbers: List<Int>): Int? {
-        val onDevice = archive.onDevice(game.gameId, current, numbers).toSet()
-        return numbers.firstOrNull { it !in onDevice && it !in skipped }
-    }
+    private suspend fun nextToFetch(numbers: List<Int>): Int? = game.nextToFetch(archive, current, numbers, skipped)
 }

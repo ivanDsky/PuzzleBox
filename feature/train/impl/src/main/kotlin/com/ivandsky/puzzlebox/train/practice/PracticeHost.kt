@@ -42,6 +42,9 @@ internal fun PracticeHost(
     val chapter by vm.chapter.collectAsStateWithLifecycle()
     val progress by vm.progress.collectAsStateWithLifecycle()
     val hold by vm.hold.collectAsStateWithLifecycle()
+    val intro by vm.intros.intro.collectAsStateWithLifecycle()
+    val replaying by vm.intros.replaying.collectAsStateWithLifecycle()
+    val hint by vm.intros.hintVisible.collectAsStateWithLifecycle()
     PracticePane(
         chapter = chapter,
         state = state,
@@ -56,5 +59,15 @@ internal fun PracticeHost(
         onNextChapter = vm::nextChapter,
         onPracticeAgain = vm::practiceAgain,
         modifier = modifier,
+        intro = IntroControls(
+            intro = intro,
+            replaying = replaying,
+            hint = hint,
+            demo = { demo, frame, demoModifier -> game.Demo(demo, frame, demoModifier) },
+            onShow = vm.intros::show,
+            onClose = vm.intros::close,
+            onStart = vm::startPractice,
+            onDismissHint = vm.intros::dismissHint,
+        ),
     )
 }

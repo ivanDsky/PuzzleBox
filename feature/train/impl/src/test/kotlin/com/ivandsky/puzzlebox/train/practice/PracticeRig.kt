@@ -41,11 +41,12 @@ internal class PracticeRig(
     val onDevice = device.toMutableList()
     val vm: PracticeViewModel
     val screenReader = FakeScreenReaderCheck(screenReaderOn)
+    val hint = IntroHint()
 
     init {
         archive.onLoaded = { onDevice += it }
         val source = TrainerPuzzleSource { flow { onDevice.toList().forEach { emit(it) } } }
-        vm = PracticeViewModel(game, opens, source, archive, progress, RecordAnswer(progress), InlineDispatcherProvider, screenReader)
+        vm = PracticeViewModel(game, opens, source, archive, progress, RecordAnswer(progress), InlineDispatcherProvider, screenReader, hint)
         attempt?.let(vm::start)
     }
 

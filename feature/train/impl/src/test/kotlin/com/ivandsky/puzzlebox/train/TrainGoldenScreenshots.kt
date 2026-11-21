@@ -18,16 +18,20 @@ import com.ivandsky.puzzlebox.data.trainer.TechniqueProgress
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.gameui.trainer.PracticeStatus
+import com.ivandsky.puzzlebox.gameui.trainer.IntroVariant
 import com.ivandsky.puzzlebox.gameui.trainer.TrainerTechnique
 import com.ivandsky.puzzlebox.train.practice.BoardHold
 import com.ivandsky.puzzlebox.train.practice.BoardRow
 import com.ivandsky.puzzlebox.train.practice.BoardRowKind
 import com.ivandsky.puzzlebox.train.practice.ChapterOutcome
 import com.ivandsky.puzzlebox.train.practice.ChapterResult
+import com.ivandsky.puzzlebox.train.practice.IntroEntry
 import com.ivandsky.puzzlebox.train.practice.PracticePane
 import com.ivandsky.puzzlebox.train.practice.PracticeState
+import com.ivandsky.puzzlebox.train.practice.StandInIntroDemo
 import com.ivandsky.puzzlebox.train.practice.StandInGrid
 import com.ivandsky.puzzlebox.train.practice.StandInPracticeBoard
+import com.ivandsky.puzzlebox.train.practice.WatchPane
 import com.ivandsky.puzzlebox.train.practice.standInChapter
 import com.ivandsky.puzzlebox.train.practice.standInSpotlight
 import com.ivandsky.puzzlebox.train.tab.TechniqueList
@@ -68,6 +72,10 @@ class TrainPhoneGoldenScreenshots : TrainGoldenScreenshots("phone") {
     @Test fun `chapter result light`() = capture("chapter-result", dark = false) { Page { Practice(Result, showBack = true) } }
     @Test fun `chapter result dark`() = capture("chapter-result", dark = true) { Page { Practice(Result, showBack = true) } }
     @Test fun `empty light`() = capture("empty", dark = false) { Page { Practice(PracticeState.Empty, showBack = true) } }
+    @Test fun `watch with one variant light`() = capture("watch", dark = false) { Page { Watch(count = 1, showBack = true) } }
+    @Test fun `watch with two variants light`() = capture("watch-variants", dark = false) { Page { Watch(count = 2, showBack = true) } }
+    @Test fun `watch with two variants dark`() = capture("watch-variants", dark = true) { Page { Watch(count = 2, showBack = true) } }
+    @Test fun `watch replay light`() = capture("watch-replay", dark = false) { Page { Watch(count = 2, showBack = true, replay = true) } }
     @Test fun `needs connection light`() = capture("needs-connection", dark = false) { Page { Practice(PracticeState.NeedsConnection, showBack = true) } }
     @Test fun `cant load light`() = capture("cant-load", dark = false) { Page { Practice(PracticeState.CantLoad(alternative = 918), showBack = true) } }
 }
@@ -85,6 +93,9 @@ class TrainTabletGoldenScreenshots : TrainGoldenScreenshots("tablet") {
     @Test fun `practice right dark`() = capture("practice-right", dark = true) { Beside(open = true) { Practice(Right, showBack = false, Three) } }
 
     @Test fun `practice done light`() = capture("practice-done", dark = false) { Beside(open = true) { Practice(Done, showBack = false, Three, MidHold) } }
+    @Test fun `watch with one variant light`() = capture("watch", dark = false) { Beside(open = true) { Watch(count = 1, showBack = false) } }
+    @Test fun `watch with two variants light`() = capture("watch-variants", dark = false) { Beside(open = true) { Watch(count = 2, showBack = false) } }
+    @Test fun `watch replay light`() = capture("watch-replay", dark = false) { Beside(open = true) { Watch(count = 2, showBack = false, replay = true) } }
     @Test fun `chapter result light`() = capture("chapter-result", dark = false) { Beside(open = true) { Practice(Result, showBack = false) } }
     @Test fun `chapter result dark`() = capture("chapter-result", dark = true) { Beside(open = true) { Practice(Result, showBack = false) } }
 }
@@ -139,6 +150,30 @@ abstract class TrainGoldenScreenshots(private val device: String) {
             onSelectGame = {},
             onOpen = {},
             modifier = Modifier.fillMaxSize(),
+        )
+
+        /** The intro's watching screen, [count] variants, variant 0 on frame 2. */
+        @Composable
+        fun Watch(count: Int, showBack: Boolean, replay: Boolean = false) = WatchPane(
+            chapter = standInChapter(board = 1, boards = 5),
+            progress = Two,
+            showBack = showBack,
+            onClose = {},
+            entries = (0 until count).map {
+                IntroEntry(
+                    IntroVariant("Variant $it", "A color in one line leaves the rest of the line.", "Find a color all in one row.", "Cross out the rest of the row."),
+                    StandInIntroDemo(it, listOf("Here is the position.", "The evidence lights up.", "The first square lands.", "The line is done.")),
+                )
+            },
+            variant = 0,
+            frame = 2,
+            replay = replay,
+            demo = { _, _, modifier -> StandInGrid(modifier) },
+            onSelect = {},
+            onSeek = {},
+            onReplay = {},
+            onLeave = {},
+            onPrimary = {},
         )
 
         @Composable
