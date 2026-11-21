@@ -49,7 +49,8 @@ private const val GlowMillis = 200
  * [onNextChapter], [onPracticeAgain] and [onClose] (Back to techniques) are the only ways on. [showBack] adds a back arrow
  * to the title row and the result page (the phone, where the board covers the list); [onClose] is also what the empty
  * message's action does. [onTryAgain] is the needs-a-connection action, which fetches a puzzle, and [onTryAnother] the
- * can't-load action, which opens a puzzle already on the device.
+ * can't-load action, which opens a puzzle already on the device. With [intro] the technique's intro shows before board 1
+ * and again, over the board, from the header's "How it works" chip, which [intro] also gives its one-time hint.
  */
 @Composable
 internal fun PracticePane(
@@ -66,14 +67,27 @@ internal fun PracticePane(
     onNextChapter: () -> Unit,
     onPracticeAgain: () -> Unit,
     modifier: Modifier = Modifier,
+    intro: IntroControls? = null,
 ) {
     val name = chapter.technique.name
+    val watched = when {
+        intro == null -> null
+        state is PracticeState.Intro -> state.intro
+        state is PracticeState.Practicing && intro.replaying -> intro.intro
+        else -> null
+    }
     Box(modifier.fillMaxSize().testTag("train.practice")) {
         if (state is PracticeState.Result) {
             ChapterResultPage(state.result, showBack, onNextChapter, onPracticeAgain, onClose)
+        } else if (watched != null) {
+            IntroWatch(chapter, progress, showBack, onClose, watched, replay = state !is PracticeState.Intro, intro!!)
         } else {
             Column(Modifier.fillMaxSize().padding(bottom = Spacing.lg)) {
-                PracticeHeader(chapter, progress, showBack, onClose)
+                val live = (state as? PracticeState.Practicing)?.board
+                // The chip is for a board in play: not while it is done, and only for a technique that has an intro.
+                val ended = live?.let { it.status.collectAsStateWithLifecycle().value is PracticeStatus.Done } == true
+                val chip = if (intro?.intro != null && live != null && !ended) HowItWorks(intro.onShow, intro.hint, intro.onDismissHint) else null
+                PracticeHeader(chapter, progress, showBack, onClose, howItWorks = chip)
                 Spacer(Modifier.size(Spacing.sm))
                 when (state) {
                     PracticeState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
@@ -82,7 +96,7 @@ internal fun PracticePane(
                     is PracticeState.CantLoad -> CantLoadPage(name, onTryAnother)
                     // One key per board, so the next board starts from its own state.
                     is PracticeState.Practicing -> key(state.board) { PracticeBody(chapter, state.board, board, hold, onSkip) }
-                    is PracticeState.Result -> Unit
+                    is PracticeState.Intro, is PracticeState.Result -> Unit
                 }
             }
         }

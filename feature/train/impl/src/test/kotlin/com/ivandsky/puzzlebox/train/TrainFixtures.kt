@@ -74,6 +74,10 @@ internal class FakeTrainerGame(
     val boards = mutableListOf<FakePracticeBoard>()
     val silent = mutableSetOf<Byte>()
 
+    /** The variants the technique has, and the demo of a puzzle for one of them (none by default, so a technique has no intro). */
+    var variantList = listOf(IntroVariant("Fake", "Rule.", "Spot it.", "Do it."))
+    var demoFor: (Puzzle, TechniqueId, Int) -> IntroDemo? = { _, _, _ -> null }
+
     override fun catalog(): List<TrainerTechnique> = techniques
 
     override fun practice(
@@ -90,9 +94,9 @@ internal class FakeTrainerGame(
     @Composable
     override fun Board(board: PracticeBoard, modifier: Modifier) = StandInGrid(modifier)
 
-    override fun variants(technique: TechniqueId): List<IntroVariant> = listOf(IntroVariant("Fake", "Rule.", "Spot it.", "Do it."))
+    override fun variants(technique: TechniqueId): List<IntroVariant> = variantList
 
-    override fun demo(puzzle: Puzzle, technique: TechniqueId, variant: Int): IntroDemo? = null
+    override fun demo(puzzle: Puzzle, technique: TechniqueId, variant: Int): IntroDemo? = demoFor(puzzle, technique, variant)
 
     @Composable
     override fun Demo(demo: IntroDemo, frame: Int, modifier: Modifier) = Unit

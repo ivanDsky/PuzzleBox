@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.ZeroCornerSize
@@ -49,19 +50,7 @@ private class Band(val icon: ImageVector, val title: String, val why: String, va
 @Composable
 internal fun StatusBand(status: PracticeStatus, chapter: PracticeChapter, onGotIt: () -> Unit, modifier: Modifier = Modifier) {
     val band = band(status, chapter)
-    val shape = MaterialTheme.shapes.medium.copy(bottomStart = ZeroCornerSize, bottomEnd = ZeroCornerSize)
-    Row(
-        modifier
-            .fillMaxSize()
-            .clip(shape)
-            .background(band.container)
-            .border(1.dp, LocalBoardColors.current.boardWall, shape)
-            .padding(horizontal = Spacing.md, vertical = Spacing.sm)
-            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
-            .testTag("train.status"),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+    BandFrame(band.container, "train.status", modifier) {
         Icon(band.icon, contentDescription = null, tint = band.content)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
             Text(band.title, style = MaterialTheme.typography.titleSmall, color = band.content)
@@ -71,6 +60,25 @@ internal fun StatusBand(status: PracticeStatus, chapter: PracticeChapter, onGotI
             TextButton(onClick = onGotIt, Modifier.testTag("train.gotIt")) { Text("Got it", color = band.content) }
         }
     }
+}
+
+/** The band's frame, [container]-colored and as large as the space it is given: a polite live region, so a screen reader reads each change as it lands. */
+@Composable
+internal fun BandFrame(container: Color, tag: String, modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) {
+    val shape = MaterialTheme.shapes.medium.copy(bottomStart = ZeroCornerSize, bottomEnd = ZeroCornerSize)
+    Row(
+        modifier
+            .fillMaxSize()
+            .clip(shape)
+            .background(container)
+            .border(1.dp, LocalBoardColors.current.boardWall, shape)
+            .padding(horizontal = Spacing.md, vertical = Spacing.sm)
+            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
+            .testTag(tag),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+        content = content,
+    )
 }
 
 @Composable

@@ -15,6 +15,9 @@ internal sealed interface PracticeState {
     /** The technique's index names no puzzle at all, so there is nothing to ask and nothing to fetch. */
     data object Empty : PracticeState
 
+    /** The technique's [intro] is up before board 1: demos to watch, then Skip or Start practice open the first board. */
+    class Intro(val intro: TechniqueIntro) : PracticeState
+
     /** Nothing on the device has a point where the technique is the easiest move, but its index names puzzles: one tap fetches the first. */
     data object NeedsConnection : PracticeState
 
