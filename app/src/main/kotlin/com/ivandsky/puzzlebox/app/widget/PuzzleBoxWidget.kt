@@ -35,7 +35,7 @@ import com.ivandsky.puzzlebox.app.shortcut.ShortcutTarget
  */
 class PuzzleBoxWidget(private val reader: WidgetStateReader) : GlanceAppWidget() {
 
-    override val sizeMode: SizeMode = SizeMode.Exact
+    override val sizeMode: SizeMode = SizeMode.Responsive(WidgetSizes.ALL)
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val state = reader.read()

@@ -36,6 +36,47 @@ class WidgetLayoutTest {
     }
 
     @Test
+    fun `chips2 on the tablet's 4 by 2, about 470 by 200dp, has a ring of at least 48dp with the larger chip text`() {
+        val look = layout(470, 200).look
+
+        assertTrue(look.ring.value >= 48f)
+        assertEquals(16f, look.chipFirstText.value, EPS)
+        assertEquals(13f, look.chipSecondText.value, EPS)
+    }
+
+    @Test
+    fun `chips2 on a phone, about 250 by 160dp, keeps its 36dp ring and 14 and 12sp chip text`() {
+        val look = layout(250, 160).look
+
+        assertEquals(36f, look.ring.value, EPS)
+        assertEquals(14f, look.chipFirstText.value, EPS)
+        assertEquals(12f, look.chipSecondText.value, EPS)
+    }
+
+    @Test
+    fun `the chips2 ring grows with the room, from 36 to 56dp, and the text steps up only above 44dp`() {
+        assertEquals(36f, layout(340, 160).look.ring.value, EPS)
+        assertEquals(56f, layout(540, 279).look.ring.value, EPS)
+        for (height in 160..279) for (width in 250..540) {
+            val look = layout(width, height).look
+            assertTrue("$width x $height ring ${look.ring}", look.ring.value in 36f..56f)
+            assertEquals("$width x $height", look.ring.value > 44f, look.chipFirstText.value == 16f)
+        }
+    }
+
+    @Test
+    fun `a chips2 block that grew its ring still fits its streak line, ring, chip text, pill and two gaps`() {
+        for (height in 160..279) for (width in 250..540) {
+            val layout = layout(width, height)
+            if (layout.look.ring.value <= 36f) continue
+
+            val needed = layout.look.streakHeight + layout.look.ring + WidgetLayout.chipTextHeight(layout.look) +
+                WidgetLayout.PILL_HEIGHT + WidgetLayout.CHIP_GAP_MIN * 2
+            assertTrue("$width x $height needs $needed of ${layout.contentHeight}", needed <= layout.contentHeight)
+        }
+    }
+
+    @Test
     fun `chips2 says days in a row only from 320dp of content, so the freezes and the done count are never squeezed out`() {
         assertFalse(layout(276, 220).look.longStreak)
         assertFalse(layout(347, 220).look.longStreak)

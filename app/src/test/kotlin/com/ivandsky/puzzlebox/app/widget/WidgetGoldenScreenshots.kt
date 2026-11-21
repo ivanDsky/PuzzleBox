@@ -65,11 +65,14 @@ abstract class WidgetGoldenScreenshots(private val suffix: String) {
 
     @Test fun `the lists at their edges, and the capped block centred in a wide and a tall widget`() {
         capture(WidgetSamples.default, DpSize(620.dp, 220.dp), "chips2-wide")
+        capture(WidgetSamples.default, DpSize(470.dp, 200.dp), "chips2-tablet-default")
+        capture(WidgetSamples.longest, DpSize(470.dp, 200.dp), "chips2-tablet-longest")
+        capture(WidgetSamples.mixed, DpSize(420.dp, 240.dp), "chips2-420-mixed")
         capture(WidgetSamples.mixed, DpSize(620.dp, 430.dp), "tall-mixed")
         capture(WidgetSamples.mixed, DpSize(349.dp, 456.dp), "listnarrow5-mixed")
         capture(WidgetSamples.longest, DpSize(480.dp, 338.dp), "listwide-min-longest")
         capture(WidgetSamples.default, DpSize(480.dp, 338.dp), "listwide-min-default")
-        capture(WidgetSamples.default, DpSize(640.dp, 480.dp), "listwide-max-default")
+        capture(WidgetSamples.default, DpSize(540.dp, 360.dp), "listwide-max-default")
     }
 
     // Roborazzi captures a View only inside an Activity window, so the widget is hosted in one, at its exact pixel size.

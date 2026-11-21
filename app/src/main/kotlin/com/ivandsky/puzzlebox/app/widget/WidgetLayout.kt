@@ -5,13 +5,15 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.ceil
 import kotlin.math.floor
 
 /**
- * What the widget draws with at the size the launcher gave it ([of]): the [step], its fixed [look], and the fixed-size block
- * ([contentWidth] by [contentHeight]) the widget centres. Sizes never grow with the widget: past the block's largest size the
- * extra space is background around it. The list steps also have a [rowHeight], the one size that follows the widget's height,
- * and [newBestChip], whether the narrow list has room for the New best mark.
+ * What the widget draws with at the size the launcher gave it ([of]; under a responsive size mode the launcher's size is the
+ * largest declared size that fits, see [WidgetSizes]): the [step], its [look], and the block ([contentWidth] by [contentHeight])
+ * the widget centres. Sizes do not follow the widget, except the chips2 ring, which grows with the room it has, and the list
+ * [rowHeight]; past the block's largest size the extra space is background around it. [newBestChip] is whether the narrow
+ * list has room for the New best mark.
  */
 internal data class WidgetLayout(
     val step: WidgetStep,
@@ -22,8 +24,8 @@ internal data class WidgetLayout(
     val newBestChip: Boolean,
 ) {
     /**
-     * The fixed sizes of a step: the streak line or header, the ring, and whether the chips have a second line and the step
-     * has an action pill.
+     * The sizes of a step: the streak line or header, the ring, whether the chips have a second line and the step has an action
+     * pill, and the chip's text sizes.
      */
     data class Look(
         val horizontalPadding: Dp,
@@ -34,6 +36,8 @@ internal data class WidgetLayout(
         val longStreak: Boolean,
         val timeLine: Boolean,
         val pill: Boolean,
+        val chipFirstText: TextUnit = 14.sp,
+        val chipSecondText: TextUnit = 12.sp,
     ) {
         /** The streak line's height: the flame and a little air. */
         val streakHeight: Dp get() = flame + 4.dp
@@ -63,6 +67,24 @@ internal data class WidgetLayout(
         val LIST_PILL_GAP: Dp = 4.dp
         val LIST_ROW_MIN: Dp = PILL_HEIGHT
         val LIST_ROW_MAX: Dp = 58.dp
+
+        /** The chips2 ring's range; the least is the phone's. */
+        val RING_MIN: Dp = 36.dp
+        val RING_MAX: Dp = 56.dp
+
+        /** Above this ring the chip text is the larger size. */
+        val RING_LARGE_TEXT_ABOVE: Dp = 44.dp
+
+        /** The room a chip keeps on each side of its ring for its text, so a long time still sits in the chip's share. */
+        val CHIP_SIDE_ROOM: Dp = 24.dp
+
+        /** The least gap above and below the chips, which the rest of the height is shared between. */
+        val CHIP_GAP_MIN: Dp = 6.dp
+
+        val CHIP_TEXT_GAP: Dp = 2.dp
+        val CHIP_FIRST_LARGE: TextUnit = 16.sp
+        val CHIP_SECOND_LARGE: TextUnit = 13.sp
+        private const val LINE_HEIGHT_RATIO = 1.2f
 
         private val CHIPS1 = Look(
             horizontalPadding = 10.dp,
@@ -101,15 +123,16 @@ internal data class WidgetLayout(
             val maxWidth = if (step == WidgetStep.ListWide) MAX_WIDE_LIST_WIDTH else MAX_CONTENT_WIDTH
             val contentWidth = (size.width - base.horizontalPadding * 2).coerceAtMost(maxWidth)
             // "658 days in a row" plus the freezes and "5 of 5 done" do not fit the 4-cell content width; the short words do.
-            val look = if (base.longStreak && contentWidth < LONG_STREAK_FROM) base.copy(longStreak = false) else base
-            val room = size.height - look.verticalPadding * 2
+            val baseLook = if (base.longStreak && contentWidth < LONG_STREAK_FROM) base.copy(longStreak = false) else base
+            val room = size.height - baseLook.verticalPadding * 2
             val isList = step == WidgetStep.ListNarrow || step == WidgetStep.ListWide
-            val rowHeight = if (isList) rowHeight(room, look) else 0.dp
+            val rowHeight = if (isList) rowHeight(room, baseLook) else 0.dp
+            val contentHeight = if (isList) listHeight(baseLook, rowHeight).coerceAtMost(room) else room.coerceAtMost(MAX_CONTENT_HEIGHT)
             return WidgetLayout(
                 step = step,
-                look = look,
+                look = if (step == WidgetStep.Chips2) withChipsRing(baseLook, contentWidth, contentHeight) else baseLook,
                 contentWidth = contentWidth,
-                contentHeight = if (isList) listHeight(look, rowHeight).coerceAtMost(room) else room.coerceAtMost(MAX_CONTENT_HEIGHT),
+                contentHeight = contentHeight,
                 rowHeight = rowHeight,
                 newBestChip = size.width >= NEW_BEST_CHIP_FROM,
             )
@@ -123,6 +146,30 @@ internal data class WidgetLayout(
 
         private fun listHeight(look: Look, rowHeight: Dp): Dp =
             look.streakHeight + LIST_HEADER_GAP + rowHeight * ROWS + LIST_PILL_GAP + PILL_HEIGHT
+
+        /**
+         * The chips2 ring: the smaller of what one chip's share of the width leaves once the text has its side room and what the
+         * height leaves once the streak line, the pill, the chip text and the two least gaps are paid, between 36 and 56dp. Above
+         * 44dp the chip's text steps up a size, which costs height, so the ring is worked out with the larger text first and
+         * falls back to the small text, and a ring of 44dp at most, when the larger one would not make 44dp.
+         */
+        private fun withChipsRing(look: Look, contentWidth: Dp, contentHeight: Dp): Look {
+            val widthBudget = contentWidth / SLOTS - CHIP_SIDE_ROOM
+            val rest = contentHeight - look.streakHeight - PILL_HEIGHT - CHIP_GAP_MIN * 2
+            val large = look.copy(chipFirstText = CHIP_FIRST_LARGE, chipSecondText = CHIP_SECOND_LARGE)
+            val largeRing = minOf(widthBudget, rest - chipTextHeight(large)).wholeDp().coerceAtMost(RING_MAX)
+            if (largeRing > RING_LARGE_TEXT_ABOVE) return large.copy(ring = largeRing)
+            return look.copy(ring = minOf(widthBudget, rest - chipTextHeight(look)).wholeDp().coerceIn(RING_MIN, RING_LARGE_TEXT_ABOVE))
+        }
+
+        /** A chip's text under its ring: two lines and the 2dp above each. */
+        fun chipTextHeight(look: Look): Dp = CHIP_TEXT_GAP * 2 + lineHeight(look.chipFirstText) + lineHeight(look.chipSecondText)
+
+        private fun lineHeight(text: TextUnit): Dp = ceil(text.value * LINE_HEIGHT_RATIO).dp
+
+        private fun Dp.wholeDp(): Dp = floor(value).dp
+
+        const val SLOTS = 5
 
         const val ROWS = 5
     }
