@@ -29,19 +29,6 @@ class BoardRowValueTextTest {
     }
 
     @Test
-    fun `an average on a time-first board is avg and the time`() {
-        assertEquals("avg 4:12", text(BoardRowValue.Average(252_000L, avgHints = 0.7)))
-    }
-
-    @Test
-    fun `an average on the Strands board leads with its average hints to one decimal`() {
-        assertEquals("0.7 hints · avg 3:05", text(BoardRowValue.Average(185_000L, avgHints = 0.7), RankOrder.HintsThenTime))
-        assertEquals("0.7 hints · avg 3:05", text(BoardRowValue.Average(185_000L, avgHints = 2.0 / 3.0), RankOrder.HintsThenTime))
-        assertEquals("0.0 hints · avg 3:05", text(BoardRowValue.Average(185_000L, avgHints = 0.0), RankOrder.HintsThenTime))
-        assertEquals("1.5 hints · avg 3:05", text(BoardRowValue.Average(185_000L, avgHints = 1.5), RankOrder.HintsThenTime))
-    }
-
-    @Test
     fun `points read as whole points with a thousands separator`() {
         assertEquals("1,240 pts", text(BoardRowValue.Points(1240.0, games = 5, atLeast = false)))
         assertEquals("33 pts", text(BoardRowValue.Points(33.333, games = 1, atLeast = false)))
@@ -71,7 +58,6 @@ class BoardRowValueTextTest {
         assertEquals("5 games", boardRowValueDetail(BoardRowValue.Points(1240.0, games = 5, atLeast = false)))
         assertEquals("1 game", boardRowValueDetail(BoardRowValue.Points(100.0, games = 1, atLeast = false)))
         assertNull(boardRowValueDetail(BoardRowValue.Timed(252_000L, hints = 0)))
-        assertNull(boardRowValueDetail(BoardRowValue.Average(252_000L, avgHints = 0.0)))
     }
 
     @Test

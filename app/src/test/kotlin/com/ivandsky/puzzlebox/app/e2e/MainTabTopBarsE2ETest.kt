@@ -6,7 +6,6 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.common.flags.TopBarFlag
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.play.api.CommunityKey
@@ -21,7 +20,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * MainTabsLargeBar over the real shell (#1597): Today, Games, Community and Ranks share Today's large top bar, so
+ * The large top bar over the real shell (#1597): Today, Games, Community and Ranks share Today's large top bar, so
  * the title, the bar's bottom and the first content sit at the same heights on every tab; the phone's avatar rides in
  * every tab's bar, and the tablet keeps it on the rail. Ranks' board menu still opens from the new bar.
  */
@@ -82,7 +81,7 @@ abstract class MainTabTopBarsE2ETest(private val phone: Boolean) {
 
     private fun inRoute(route: String) = hasAnyAncestor(hasTestTag(route))
 
-    protected fun largeBarGraph() = E2eKoinGraph(E2E_TODAY, module {}, FakeReleaseFlags(TopBarFlag.MainTabsLargeBar))
+    protected fun largeBarGraph() = E2eKoinGraph(E2E_TODAY, module {}, FakeReleaseFlags())
 
     private companion object {
         const val TIMEOUT_MS = 5_000L

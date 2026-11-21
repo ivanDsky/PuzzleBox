@@ -2,16 +2,12 @@ package com.ivandsky.puzzlebox.compete.tab
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
-import com.ivandsky.puzzlebox.compete.CompeteFlag
 import com.ivandsky.puzzlebox.compete.create.DuelChallenge
 import com.ivandsky.puzzlebox.compete.domain.DuelRow
 import com.ivandsky.puzzlebox.compete.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.compete.domain.SeatAction
 import com.ivandsky.puzzlebox.compete.domain.SeatResult
 import com.ivandsky.puzzlebox.compete.domain.UpdateMatchSeat
-import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Instant
@@ -77,7 +73,6 @@ internal class DuelsTabViewModel(
     private val updateSeat: UpdateMatchSeat,
     identity: IdentityService,
     clock: () -> Instant,
-    releaseFlags: ReleaseFlags,
 ) : ViewModel() {
 
     private val calls = MutableStateFlow(RowCalls())
@@ -87,11 +82,6 @@ internal class DuelsTabViewModel(
 
     /** One-shot: the duel screen to open for this code, after an accept or when sign-in is needed first. */
     val openDuel: Flow<ShareCode> = opens.receiveAsFlow()
-
-    /** Past you wears the signed-in player's photo ([CompeteFlag.PastYouPhoto]); the flag off, no one gets one. */
-    private val pastYouPhoto: Boolean = releaseFlags.isEnabled(CompeteFlag.PastYouPhoto)
-
-    private fun selfPhoto(who: Identity?): String? = who?.photoUrl?.takeIf { pastYouPhoto }
 
     /** The New duel being composed in the tablet's pane, or null. */
     val newDuel: StateFlow<NewDuelRequest?> = composing.asStateFlow()
@@ -112,7 +102,7 @@ internal class DuelsTabViewModel(
             rows = duels.rows,
             signedIn = who != null,
             selfName = who?.displayName ?: SELF_NAME_FALLBACK,
-            selfPhotoUrl = selfPhoto(who),
+            selfPhotoUrl = who?.photoUrl,
             now = now,
             inviter = who?.displayName,
             inFlight = pending.inFlight,
@@ -127,7 +117,7 @@ internal class DuelsTabViewModel(
                 rows = emptyList(),
                 signedIn = identity.current.value != null,
                 selfName = identity.current.value?.displayName ?: SELF_NAME_FALLBACK,
-                selfPhotoUrl = selfPhoto(identity.current.value),
+                selfPhotoUrl = identity.current.value?.photoUrl,
                 now = clock(),
                 inviter = identity.current.value?.displayName,
             ),

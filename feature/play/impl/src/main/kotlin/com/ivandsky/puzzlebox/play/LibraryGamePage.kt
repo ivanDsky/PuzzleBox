@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
  * The page carries the game's rank as one "You #12 of 340" row calling [onOpenRanks] with the game and
  * the day the page shows (the picked day, else the card's own).
  * A non-null [linkedIn] puts the LinkedIn sync chip on the day card, which collects its state while it is shown.
- * A non-null [onMakeOne] puts a "Make one" button on the page, handing back this page's game.
+ * A non-null [onMakeOne] ends How to play with "Make your own <Game>", handing back this page's game.
  * A non-null [onOpenStats] puts "See all stats" on the stats card, handing back this page's game.
  * A non-null [onRandom] puts a "Random" chip at the right edge of the calendar's jump row for a game with an archive, handing back this page's game.
  */

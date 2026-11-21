@@ -211,12 +211,13 @@ class RanksFilterChipsTest {
 
     @Test
     @Config(qualifiers = "w1280dp-h800dp-land-mdpi")
-    fun `on the tablet the chips sit under the right pane's board title, above the board, with no sideways scrolling`() {
+    fun `on the tablet the chips sit at the right pane's top, above the board, with no sideways scrolling`() {
         show(HistoryLayout.TwoPane)
 
         val pane = node("ranks.rightpane").getBoundsInRoot()
         val who = node("ranks.filter.who").getBoundsInRoot()
-        assertTrue(node("ranks.boardtitle").getBoundsInRoot().bottom <= who.top)
+        // The board's title rides the left pane's large bar, so nothing of it sits above the chips.
+        assertTrue(who.top >= pane.top)
         assertTrue(who.bottom <= node("ranks.board").getBoundsInRoot().top)
         assertTrue(node("ranks.filter.when").getBoundsInRoot().right <= pane.right)
     }

@@ -279,7 +279,7 @@ class LibraryRouteTest {
         composeRule.runOnIdle { reselect.tryEmit(Unit) }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithText("Games").assertIsDisplayed()
+        composeRule.onNodeWithTag("topbar.large").assertIsDisplayed()
         composeRule.onNodeWithTag("library.page.alpha").assertExists()
         composeRule.onNodeWithTag("library.row.alpha").assertIsSelected()
     }

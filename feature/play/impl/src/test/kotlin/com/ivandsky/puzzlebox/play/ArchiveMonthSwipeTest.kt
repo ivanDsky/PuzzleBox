@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.play
 
 import android.provider.Settings
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -50,7 +49,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Backlog #1668: with the flag on, the archive calendar swipes between months. The grid follows the finger and snaps to the
+ * Backlog #1668: the archive calendar swipes between months. The grid follows the finger and snaps to the
  * previous or next month on release, ‹ › and the jumps slide it the same way, and the first and last month do not page past
  * the archive. The #1551 rule holds throughout: the title names a month whose discs are all there, at one height.
  */
@@ -116,32 +115,30 @@ class ArchiveMonthSwipeTest {
     private val picked = mutableListOf<LocalDate>()
 
     /** The view model's side: a month asked for is loaded at once, unless [loads] is off. */
-    private fun show(swipe: Boolean = true, loads: Boolean = true) {
+    private fun show(loads: Boolean = true) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                CompositionLocalProvider(LocalArchiveMonthSwipe provides swipe) {
-                    LibraryGamePage(
-                        row = row,
-                        page = page,
-                        month = asked,
-                        layout = PlayLayout.SinglePane,
-                        calendar = CalendarActions(
-                            onShowMonth = {
-                                reported += it
-                                asked = it
-                                if (loads) page = pageOf(it)
-                            },
-                            onPick = { picked += it },
-                        ),
-                        onPlay = { _, _ -> },
-                        onRetry = {},
-                        onOpenLesson = {},
-                        onBack = null,
-                        offline = false,
-                        hasLesson = false,
-                        onOpenRanks = { _, _ -> },
-                    )
-                }
+                LibraryGamePage(
+                    row = row,
+                    page = page,
+                    month = asked,
+                    layout = PlayLayout.SinglePane,
+                    calendar = CalendarActions(
+                        onShowMonth = {
+                            reported += it
+                            asked = it
+                            if (loads) page = pageOf(it)
+                        },
+                        onPick = { picked += it },
+                    ),
+                    onPlay = { _, _ -> },
+                    onRetry = {},
+                    onOpenLesson = {},
+                    onBack = null,
+                    offline = false,
+                    hasLesson = false,
+                    onOpenRanks = { _, _ -> },
+                )
             }
         }
         composeRule.waitForIdle()
@@ -348,16 +345,6 @@ class ArchiveMonthSwipeTest {
         composeRule.mainClock.autoAdvance = true
         swipeAcross(towardStart = false)
         composeRule.waitForIdle()
-        assertEquals(september, titleMonth())
-    }
-
-    /** Bug it catches: the flag off still swiping, so the shipped crossfade calendar changes under a finger. */
-    @Test
-    fun `with the flag off a swipe does nothing`() {
-        show(swipe = false)
-        swipeAcross(towardStart = true)
-        composeRule.waitForIdle()
-        assertEquals(emptyList<YearMonth>(), reported)
         assertEquals(september, titleMonth())
     }
 

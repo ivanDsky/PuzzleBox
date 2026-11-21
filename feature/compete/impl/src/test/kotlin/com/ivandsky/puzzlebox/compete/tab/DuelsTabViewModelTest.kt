@@ -14,7 +14,6 @@ import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.match.WriteResult
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
@@ -86,7 +85,6 @@ class DuelsTabViewModelTest {
         updateSeat = UpdateMatchSeat(repo, local, identity),
         identity = identity,
         clock = { now },
-        releaseFlags = FakeReleaseFlags(),
     )
 
     private fun TestScope.started(vm: DuelsTabViewModel): DuelsTabViewModel {

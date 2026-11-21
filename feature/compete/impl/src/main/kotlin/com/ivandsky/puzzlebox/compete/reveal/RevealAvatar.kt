@@ -19,7 +19,7 @@ import com.ivandsky.puzzlebox.resultui.PlayerAvatar
 
 /**
  * What Past you's avatar wears in a self duel: the viewer's own [name] initial (past you looks like you) and, when
- * CompeteFlag.PastYouPhoto gave one, the viewer's [photoUrl].
+ * they have one, their [photoUrl].
  */
 internal data class PastYouLook(val name: String, val photoUrl: String?)
 

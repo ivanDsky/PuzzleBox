@@ -1,8 +1,6 @@
 package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.linkedin.LinkState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInDayData
@@ -38,9 +36,7 @@ import com.ivandsky.puzzlebox.play.domain.LoadPastDay
 import com.ivandsky.puzzlebox.play.domain.ObserveArchiveMonth
 import com.ivandsky.puzzlebox.play.domain.ObserveArchiveProgress
 import com.ivandsky.puzzlebox.play.domain.ObserveFriendPuzzles
-import com.ivandsky.puzzlebox.play.flags.PlayFlag
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInLink
@@ -142,7 +138,6 @@ class LibraryViewModelTest {
     private fun observedVm(
         delete: DeleteReceivedPuzzle = DeleteReceivedPuzzle(received, saved),
         linkedIn: ObserveLinkedInDayView? = null,
-        releaseFlags: ReleaseFlags = FakeReleaseFlags(),
     ): LibraryViewModel {
         val history = ObserveGameHistory(fakes.games, daily, GatedCompletionRepository(completions, historyOpen))
         return LibraryViewModel(
@@ -163,72 +158,23 @@ class LibraryViewModelTest {
             appScope = CoroutineScope(dispatcher + Job()),
             linkedIn = linkedIn,
             identity = identity,
-            releaseFlags = releaseFlags,
         ).also { vm ->
             screen.launch { vm.uiState.collect {} }
             screen.launch { vm.page.collect {} }
-            screen.launch { vm.monthSwipe.collect {} }
             screen.launch { vm.friends.collect {} }
             dispatcher.scheduler.runCurrent()
         }
     }
 
-    /** Bug it catches: a build with no flag on getting the swiping calendar, or the debug flag leaving it on the crossfade. */
-    @Test
-    fun `the calendar swipes between months only with its flag on`() {
-        assertFalse(observedVm().monthSwipe.value)
-        assertFalse(observedVm(releaseFlags = FakeReleaseFlags()).monthSwipe.value)
-        assertTrue(observedVm(releaseFlags = FakeReleaseFlags(PlayFlag.ArchiveMonthSwipe)).monthSwipe.value)
-    }
-
-    /** Bug it catches: a build with the flag off losing its Make one button, or the debug flag never turning the link on. */
-    @Test
-    fun `the game page offers the Make your own link only with its flag on, live`() {
-        val on = MutableStateFlow<Set<ReleaseFlagKey>>(emptySet())
-        val vm = observedVm(releaseFlags = object : ReleaseFlags { override val enabled = on })
-        screen.launch { vm.makeOwnLink.collect {} }
-        dispatcher.scheduler.runCurrent()
-        assertFalse(vm.makeOwnLink.value)
-
-        on.value = setOf(PlayFlag.MakeOwnLink)
-        dispatcher.scheduler.runCurrent()
-        assertTrue(vm.makeOwnLink.value)
-
-        on.value = emptySet()
-        dispatcher.scheduler.runCurrent()
-        assertFalse(vm.makeOwnLink.value)
-    }
-
-    /** Bug it catches: the debug switch read once at start, so flipping it in Settings needed an app restart to show. */
-    @Test
-    fun `flipping the swipe flag changes the calendar without a new view model`() {
-        val on = MutableStateFlow<Set<ReleaseFlagKey>>(emptySet())
-        val vm = observedVm(releaseFlags = object : ReleaseFlags { override val enabled = on })
-        assertFalse(vm.monthSwipe.value)
-
-        on.value = setOf(PlayFlag.ArchiveMonthSwipe)
-        dispatcher.scheduler.runCurrent()
-        assertTrue(vm.monthSwipe.value)
-
-        on.value = emptySet()
-        dispatcher.scheduler.runCurrent()
-        assertFalse(vm.monthSwipe.value)
-    }
-
     /**
-     * Bug it catches: a swipe dragging in a month whose days are not loaded (an empty grid, then marks popping in), or the
-     * flag-off page paying for two extra month queries it never draws.
+     * Bug it catches: a swipe dragging in a month whose days are not loaded (an empty grid, then marks popping in), or a
+     * page that drops the month beside the shown one.
      */
     @Test
-    fun `the page carries the months either side only while the calendar swipes`() {
+    fun `the page carries the months either side`() {
         daily.setArchiveRange(alpha, day.minusDays(60)..day)
         val month = YearMonth.from(day)
-        assertTrue("flag off: nothing beside", observedVm().page.value!!.around.isEmpty())
-
-        val on = MutableStateFlow<Set<ReleaseFlagKey>>(emptySet())
-        val vm = observedVm(releaseFlags = object : ReleaseFlags { override val enabled = on })
-        on.value = setOf(PlayFlag.ArchiveMonthSwipe)
-        dispatcher.scheduler.runCurrent()
+        val vm = observedVm()
         assertEquals(setOf(month.minusMonths(1), month.plusMonths(1)), vm.page.value!!.around.keys)
         assertEquals("the month before is all there", month.minusMonths(1).lengthOfMonth(), vm.page.value!!.around.getValue(month.minusMonths(1)).size)
         assertTrue("past today there is nothing", vm.page.value!!.around.getValue(month.plusMonths(1)).isEmpty())
@@ -236,10 +182,6 @@ class LibraryViewModelTest {
         vm.showMonth(month.minusMonths(1))
         dispatcher.scheduler.runCurrent()
         assertEquals(setOf(month.minusMonths(2), month), vm.page.value!!.around.keys)
-
-        on.value = emptySet()
-        dispatcher.scheduler.runCurrent()
-        assertTrue("flag off again: nothing beside", vm.page.value!!.around.isEmpty())
     }
 
     private fun LibraryViewModel.row(game: GameId) = uiState.value.rows.first { it.card.game == game }

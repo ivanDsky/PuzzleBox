@@ -66,12 +66,6 @@ abstract class ZipEditorGoldenScreenshots(private val device: String) {
     @Test fun `path step light`() = step("path-step", ZipEditorStep.Path, dark = false)
     @Test fun `path step dark`() = step("path-step", ZipEditorStep.Path, dark = true)
 
-    @Test fun `numbers step light`() = step("numbers-step", ZipEditorStep.Numbers, dark = false)
-    @Test fun `numbers step dark`() = step("numbers-step", ZipEditorStep.Numbers, dark = true)
-
-    @Test fun `walls step light`() = step("walls-step", ZipEditorStep.Walls, dark = false)
-    @Test fun `walls step dark`() = step("walls-step", ZipEditorStep.Walls, dark = true)
-
     @Test fun `numbers and walls step light`() = step("numbers-and-walls-step", ZipEditorStep.NumbersAndWalls, dark = false)
     @Test fun `numbers and walls step dark`() = step("numbers-and-walls-step", ZipEditorStep.NumbersAndWalls, dark = true)
 
@@ -97,7 +91,7 @@ abstract class ZipEditorGoldenScreenshots(private val device: String) {
     @Test fun `witness b dark`() = witness("witness-b", EditorOverlay.Witness.B, dark = true)
 
     private fun step(name: String, step: ZipEditorStep, dark: Boolean) {
-        val draft = if (step == ZipEditorStep.Walls || step == ZipEditorStep.NumbersAndWalls) WALLED else UNIQUE
+        val draft = if (step == ZipEditorStep.NumbersAndWalls) WALLED else UNIQUE
         capture(name, dark, draft, analyzed<Verdict.Unique>(draft), step)
     }
 
@@ -152,8 +146,7 @@ abstract class ZipEditorGoldenScreenshots(private val device: String) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val resolver = context.contentResolver
         Settings.Global.putFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
-        val combined = step == ZipEditorStep.NumbersAndWalls
-        val controller = ZipEditorController(EditorDraft(ZipEditor, DraftState(draft)), combined) {}
+        val controller = ZipEditorController(EditorDraft(ZipEditor, DraftState(draft))) {}
         step?.let(controller::select)
         overlay?.let(controller::adoptOverlay)
         rule.mainClock.autoAdvance = false

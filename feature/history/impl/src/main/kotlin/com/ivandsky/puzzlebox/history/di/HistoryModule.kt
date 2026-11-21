@@ -1,8 +1,5 @@
 package com.ivandsky.puzzlebox.history.di
 
-import com.ivandsky.puzzlebox.common.di.flagSet
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.domain.ranks.LoadFriendsPastPage
@@ -10,7 +7,6 @@ import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendBoards
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.history.domain.ranks.GetPlayerActions
 import com.ivandsky.puzzlebox.history.domain.ranks.ObserveWindowRefresh
-import com.ivandsky.puzzlebox.history.flags.HistoryFlag
 import com.ivandsky.puzzlebox.history.ranks.PlayerSheetViewModel
 import com.ivandsky.puzzlebox.history.ranks.RanksSelection
 import com.ivandsky.puzzlebox.history.ranks.RanksViewModel
@@ -26,12 +22,9 @@ import org.koin.dsl.module
  * [com.ivandsky.puzzlebox.game.GameRegistry] and the game brands ([com.ivandsky.puzzlebox.gameui.GamePlayRegistry])
  * from the app's aggregation (ADR-0001); [com.ivandsky.puzzlebox.data.cloud.CloudSync], which says whether history
  * is still being restored, comes from the data graph. The Ranks hub's [RanksViewModel] and its
- * [PlayerSheetViewModel] and [ReplayOptInViewModel] are bound here, and the feature's release flags ([HistoryFlag])
- * are declared here.
+ * [PlayerSheetViewModel] and [ReplayOptInViewModel] are bound here.
  */
 val historyModule = module {
-    flagSet("history", HistoryFlag.entries)
-
     factory { ObserveWindowRefresh(network = get()) }
     factory { GetPlayerActions(visibility = get(), completions = get()) }
 
@@ -46,7 +39,6 @@ val historyModule = module {
                 observeFriendUids = get(), identity = get(), completions = get(), linkedIn = if (withLinkedIn) get() else null, friendsPast = LoadFriendsPastPage(get<LeaderboardRepository>()),
             ),
             linkedIn = if (withLinkedIn) get() else null,
-            releaseFlags = get<ReleaseFlags>(),
             savedState = get(),
             opening = opening,
         )

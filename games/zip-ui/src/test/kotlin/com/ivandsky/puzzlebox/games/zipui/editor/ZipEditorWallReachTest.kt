@@ -50,7 +50,7 @@ class ZipEditorWallReachTest {
         rule.setContent {
             PuzzleBoxTheme { ZipEditorBoard(controller, Modifier.fillMaxSize()) }
         }
-        rule.onNodeWithTag("zip.editor.step.walls").performClick()
+        rule.onNodeWithTag("zip.editor.step.numbersandwalls").performClick()
         rule.waitForIdle()
         return controller
     }

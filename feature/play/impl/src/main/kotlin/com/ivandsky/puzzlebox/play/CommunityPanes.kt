@@ -33,7 +33,7 @@ internal val ListPaneWidth = 400.dp
  * tab's pick. The picks are saved, so a rotation and process death keep them. A tab with no pick of its own shows its
  * [default] (a list that fills in later supplies one when it has one). [detail] is told how to `clear` the pick (a
  * reported puzzle leaves its page), which returns that tab to its default. With no pick at all the pane shows [empty]
- * for the current tab, never a blank. With [largeBar] (MainTabsLargeBar) the list pane reaches the window's top.
+ * for the current tab, never a blank. The list pane reaches the window's top, under Today's large top bar.
  */
 @Composable
 internal fun CommunityPanes(
@@ -42,21 +42,19 @@ internal fun CommunityPanes(
     empty: @Composable (CommunityTab) -> Unit,
     detail: @Composable (pick: CommunityPick, clear: () -> Unit) -> Unit,
     modifier: Modifier = Modifier,
-    largeBar: Boolean = false,
 ) {
     val picks = rememberCommunityTabPicks(default)
     val home = picks.tab.ordinal
     val link = remember { TabFadeLink(home) }
     SideEffect { link.home = home }
     // Under the large top bar the list starts at the window's top, as Today's does; the page keeps its own inset.
-    val top = if (largeBar) 0.dp else Spacing.lg
-    Row(modifier.fillMaxSize().padding(start = Spacing.xl, top = top, end = Spacing.xxl, bottom = Spacing.xl)) {
+    Row(modifier.fillMaxSize().padding(start = Spacing.xl, end = Spacing.xxl, bottom = Spacing.xl)) {
         CompositionLocalProvider(LocalTabFadeLink provides link) {
             list(Modifier.width(ListPaneWidth).fillMaxHeight(), picks)
         }
         Spacer(Modifier.width(Spacing.xl))
         // The right pane fades with the tabs on the list's own progress, and shows each tab's pick as it fades in.
-        TabFadePane(link, Modifier.weight(1f).fillMaxHeight().then(if (largeBar) Modifier.padding(top = Spacing.lg) else Modifier)) { index ->
+        TabFadePane(link, Modifier.weight(1f).fillMaxHeight().padding(top = Spacing.lg)) { index ->
             val tab = CommunityTab.entries[index.coerceIn(CommunityTab.entries.indices)]
             // Another pick in the tab crossfades in place; its page starts settled, the fade is its entrance.
             HoldCrossfade(picks.pickOf(tab), label = "community-pane") { pick ->

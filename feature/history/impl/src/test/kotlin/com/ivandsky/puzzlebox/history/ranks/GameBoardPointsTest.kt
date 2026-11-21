@@ -31,7 +31,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** A game's Week and Month ranked by the sum of its daily place points (WeekMonthPoints, #1698): Overall's scoring, one game. */
+/** A game's Week and Month ranked by the sum of its daily place points (#1698): Overall's scoring, one game. */
 class GameBoardPointsTest {
 
     private val monday = LocalDate.of(2026, 11, 9)
@@ -47,7 +47,7 @@ class GameBoardPointsTest {
 
     private fun boards(vararg loads: BoardLoad) = RankWindowBoards.Boards(loads.toList())
 
-    /** [boards] as Ann sees this game's [kind] board with points on, her [records] telling which boards she solved officially. */
+    /** [boards] as Ann sees this game's [kind] board, her [records] telling which boards she solved officially. */
     private fun points(boards: RankWindowBoards, records: List<CompletionRecord> = emptyList(), kind: Window = Window.Week) =
         rows(boards.toGameBoardState(ZIP, RankOrder.TimeThenHints, kind, ann.uid) { windowStandings(it, ann, records) })
 
@@ -80,10 +80,6 @@ class GameBoardPointsTest {
         assertEquals(300.0 + 2 * percentilePoints(3, 3), rows[0].dayPoints().total, 1e-9)
         assertEquals(5, rows[0].dayPoints().days)
         assertEquals(BoardRowValue.DayPoints(100.0, days = 1, atLeast = false), rows[2].scoreValue)
-        // Averages, as with the flag off, put the one easy Monday first.
-        val averaged = rows(reported.toGameBoardState(ZIP, RankOrder.TimeThenHints, Window.Week, ann.uid))
-        assertEquals(listOf("a", "c", "b", "d"), averaged.map { it.playerId })
-        assertTrue(averaged.all { it.scoreValue is BoardRowValue.Average })
     }
 
     @Test
@@ -159,7 +155,7 @@ class GameBoardPointsTest {
     }
 
     @Test
-    fun `a friend's LinkedIn-only day averages into their one row, matched by name as on a day`() {
+    fun `a friend's LinkedIn-only day sums into their one row, matched by name as on a day`() {
         val global = boards(
             loaded(ref(0), entry("u1", 60_000), entry("maya", 70_000)),
             loaded(ref(1), entry("u1", 80_000)),
@@ -168,10 +164,11 @@ class GameBoardPointsTest {
         val saved = mapOf(ref(1) to LinkedInDayView(LinkedInDayStatus.Idle, LinkedInBoardView.Shown(listOf(mayaOnLinkedIn))))
 
         val friends = global.amongFriends(setOf("u1", "maya"), saved, ann)
-        val rows = rows(friends.toGameBoardState(ZIP, RankOrder.TimeThenHints, Window.Month, ann.uid))
+        val rows = points(friends, kind = Window.Month)
 
-        assertEquals(listOf("maya", "u1"), rows.map { it.playerId })
-        assertEquals(BoardRowValue.Average(60_000, 0.0), rows[0].scoreValue)
-        assertEquals("Maya", rows[0].name)
+        assertEquals(setOf("maya", "u1"), rows.map { it.playerId }.toSet())
+        val maya = rows.single { it.playerId == "maya" }
+        assertEquals(2, maya.dayPoints().days)
+        assertEquals("Maya", maya.name)
     }
 }

@@ -2,21 +2,14 @@ package com.ivandsky.puzzlebox.play
 
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -44,8 +37,8 @@ import com.ivandsky.puzzlebox.model.GameId
  * scrolls nothing back to the top. The friend puzzles live on the app's Community tab, so there is no From friends
  * carousel in the tabs. The Duels body is handed the pending [duelPrefill] and reports it taken ([onDuelPrefillTaken]).
  *
- * With [largeBar] (MainTabsLargeBar) the header is Today's large top bar ([GamesLargeBar]) and what follows it starts at
- * its bottom edge, the height Today's first section starts at.
+ * The header is Today's large top bar ([GamesLargeBar]) and what follows it starts at its bottom edge, the height
+ * Today's first section starts at.
  */
 @Composable
 internal fun LibraryList(
@@ -63,7 +56,6 @@ internal fun LibraryList(
     duelsScroll: LazyListState = rememberLazyListState(),
     duelPrefill: DuelPrefill? = null,
     onDuelPrefillTaken: () -> Unit = {},
-    largeBar: Boolean = false,
 ) {
     val phone = layout == PlayLayout.SinglePane
     val shownTab = tab.orDailies(gamesTabs(trainShown = train != null))
@@ -76,44 +68,21 @@ internal fun LibraryList(
     if (duels != null) {
         UnderlineTabbedList(
             state, phone, GamesScrolls(scroll, duelsScroll), onRow, modifier,
-            header = {
-                if (largeBar) {
-                    GamesLargeBar(shownTab.subtitle(), phone, headerAction)
-                } else {
-                    Box(if (phone) Modifier.padding(horizontal = Spacing.lg) else Modifier) { ListHeader(shownTab.subtitle(), headerAction) }
-                }
-            },
+            header = { GamesLargeBar(shownTab.subtitle(), phone, headerAction) },
             duels, train, shownTab, onTab, duelPrefill, onDuelPrefillTaken,
-            headerGap = if (largeBar) 0.dp else Spacing.md,
         )
         return
     }
-    if (largeBar) {
-        Column(modifier.testTag("library.list").verticalScroll(scroll).padding(bottom = if (phone) Spacing.xl else 0.dp)) {
-            GamesLargeBar(GamesTab.Dailies.subtitle(), phone, headerAction)
-            Column(
-                modifier = if (phone) Modifier.padding(horizontal = Spacing.lg) else Modifier,
-                verticalArrangement = Arrangement.spacedBy(Spacing.md),
-            ) {
-                if (phone && state.offline) OfflinePill()
-                friends()
-                DailyRows(state, phone, onRow)
-            }
+    Column(modifier.testTag("library.list").verticalScroll(scroll).padding(bottom = if (phone) Spacing.xl else 0.dp)) {
+        GamesLargeBar(GamesTab.Dailies.subtitle(), phone, headerAction)
+        Column(
+            modifier = if (phone) Modifier.padding(horizontal = Spacing.lg) else Modifier,
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            if (phone && state.offline) OfflinePill()
+            friends()
+            DailyRows(state, phone, onRow)
         }
-        return
-    }
-    Column(
-        modifier = modifier
-            .testTag("library.list")
-            .verticalScroll(scroll)
-            .then(if (phone) Modifier.padding(horizontal = Spacing.lg) else Modifier)
-            .padding(bottom = if (phone) Spacing.xl else 0.dp),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
-    ) {
-        ListHeader(GamesTab.Dailies.subtitle(), headerAction)
-        if (phone && state.offline) OfflinePill()
-        friends()
-        DailyRows(state, phone, onRow)
     }
 }
 
@@ -129,21 +98,6 @@ private fun GamesLargeBar(subtitle: String, phone: Boolean, headerAction: @Compo
         subtitle = { LargeTopBarSubtitle(subtitle) },
         actions = { headerAction() },
     )
-}
-
-@Composable
-private fun ListHeader(subtitle: String, headerAction: @Composable () -> Unit) {
-    Row(Modifier.fillMaxWidth().heightIn(min = 64.dp), verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) {
-            Text("Games", style = MaterialTheme.typography.headlineLarge)
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        headerAction()
-    }
 }
 
 /** Every game's row in registry order, each fading in staggered by its place. */

@@ -57,7 +57,7 @@ import org.koin.compose.koinInject
  * lets Enter code open a duel, and [train], when given, adds the Train tab after it. [custom] fills the Community tab, and [makeOne] backs the
  * Make-one doors on the game page and the Result. The shell draws the
  * avatar ([ShellAvatar]) over [identityService]'s signed-in player: in Today's header on the
- * phone (and every main tab's, with [mainTabBars]), at the rail's bottom on the tablet. Settings is reached through Profile's gear.
+ * phone (and every main tab's root), at the rail's bottom on the tablet. Settings is reached through Profile's gear.
  * Every entry sees [LocalHintCooldown] ([withHintCooldown]).
  */
 @Composable
@@ -76,7 +76,6 @@ internal fun PuzzleBoxNavShell(
     libraryRequests: LibraryRequests = rememberLibraryRequests(),
     store: PlaySessionStore = koinInject(),
     identityService: IdentityService = koinInject(),
-    mainTabBars: MainTabBars = koinInject(),
 ) {
     val visibility = rememberVisibilitySlot(koinInject())
     val releaseFlags by koinInject<ReleaseFlags>().enabled.collectAsStateWithLifecycle()
@@ -87,8 +86,8 @@ internal fun PuzzleBoxNavShell(
     val state = navigator.state
     LaunchedEffect(state.allKeys) { store.retain(state.allKeys) }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { store.flush() }
-    val shellChrome = remember(navigator, identityService, form, mainTabBars) {
-        shellChromeDecorator(navigator, identityService.current, avatarInHeader = form == NavForm.Phone, allMainTabs = mainTabBars.largeBar)
+    val shellChrome = remember(navigator, identityService, form) {
+        shellChromeDecorator(navigator, identityService.current, avatarInHeader = form == NavForm.Phone)
     }
     val entries = rememberTabEntries(
         state = navigator.state,

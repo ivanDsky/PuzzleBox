@@ -10,13 +10,12 @@ import java.util.Locale
 
 /**
  * Turns what [NewDuelViewModel] holds into what New duel draws; the clock, zone and locale are read at each build.
- * With [pastYouPhoto] (CompeteFlag.PastYouPhoto, read by the view model) Past you carries the signed-in player's photo.
+ * Past you carries the signed-in player's photo.
  */
 internal class NewDuelStateBuilder(
     private val clock: () -> Instant,
     private val zone: () -> ZoneId,
     private val locale: () -> Locale,
-    private val pastYouPhoto: Boolean = false,
 ) {
     fun build(work: DuelWorking, available: List<DuelGame>, who: Identity?, counts: SolvedCounts?): NewDuelState {
         val offered = work.challenge == null
@@ -45,7 +44,7 @@ internal class NewDuelStateBuilder(
             selfOffered = offered,
             opponent = opponent,
             selfName = who?.displayName ?: "You",
-            selfPhotoUrl = who?.photoUrl.takeIf { pastYouPhoto },
+            selfPhotoUrl = who?.photoUrl,
             self = self,
             lineup = lineup,
         )

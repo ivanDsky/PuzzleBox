@@ -94,9 +94,9 @@ class LinkedInGhostFriendsE2ETest {
             tuneRanks("Global", "Day")
             assertBoard("1 Sol Stranger 0:30", "2 Fay Friend 0:50", "3 Me Myself 1:30")
             tuneRanks("Global", "Week")
-            assertBoard("1 Sol Stranger avg 0:30", "2 Fay Friend avg 0:50", "3 Me Myself avg 1:30")
+            assertBoard("1 Sol Stranger 300 pts", "2 Fay Friend 200 pts", "3 Me Myself 100 pts")
             tuneRanks("Global", "Month")
-            assertBoard("1 Sol Stranger avg 0:30", "2 Fay Friend avg 0:55", "3 Me Myself avg 1:30")
+            assertBoard("1 Sol Stranger 400 pts", "2 Fay Friend 267 pts", "3 Me Myself 133 pts")
             pickOverallRanks()
             assertBoard("1 Sol Stranger 400 pts", "2 Fay Friend 267 pts", "3 Me Myself 133 pts")
         }
@@ -138,9 +138,9 @@ class LinkedInGhostFriendsE2ETest {
             // Fay's own score tells the boards apart with or without connections, so the note is read off the board asked for.
             assertNote("0:50", NOTE)
             tuneRanks("Friends", "Week")
-            assertNote("avg 0:50", NOTE)
+            assertNote("280 pts", NOTE)
             tuneRanks("Friends", "Month")
-            assertNote("avg 0:55", NOTE)
+            assertNote("380 pts", NOTE)
             tuneRanks("Friends", "Day")
             pickOverallRanks()
             assertNote("80 pts", NOTE)
@@ -161,13 +161,13 @@ class LinkedInGhostFriendsE2ETest {
         }
     }
 
-    /** Zip on Day, Week and Month, then Overall on Month and Day: the connections take places on each, and the viewer's is fourth. */
+    /** Zip on Day, Week and Month, then Overall on Month and Day: the connections take places on each, and the viewer's is fourth. Week and Month add up the day's place points. */
     private fun ShellRobot.assertFriendsBoards() {
         assertBoard(*FRIENDS_DAY)
         tuneRanks("Friends", "Week")
         assertBoard(*FRIENDS_WEEK)
         tuneRanks("Friends", "Month")
-        assertBoard("1 Ghost Ada avg 0:41", "2 Fay Friend avg 0:55", "3 Ghost Bea avg 1:17", "4 Me Myself avg 1:30", "5 Ghost Cyd avg 1:43")
+        assertBoard("1 Fay Friend 380 pts", "2 Me Myself 190 pts", "3 Ghost Ada 100 pts", "4 Ghost Bea 60 pts", "5 Ghost Cyd 20 pts")
         pickOverallRanks()
         // Points add up over the month's four boards, and the connections are on one of them.
         assertBoard("1 Fay Friend 380 pts", "2 Me Myself 190 pts", "3 Ghost Ada 100 pts", "4 Ghost Bea 60 pts", "5 Ghost Cyd 20 pts")
@@ -227,7 +227,8 @@ class LinkedInGhostFriendsE2ETest {
         /** Looper steps a tap gets to open a sheet before the test says it opened none. */
         const val SETTLE_STEPS = 20
         val FRIENDS_DAY = arrayOf("1 Ghost Ada 0:41", "2 Fay Friend 0:50", "3 Ghost Bea 1:17", "4 Me Myself 1:30", "5 Ghost Cyd 1:43")
+        // The connections are on today's board only, so over the week they hold today's place points and the two friends hold the rest.
         val FRIENDS_WEEK =
-            arrayOf("1 Ghost Ada avg 0:41", "2 Fay Friend avg 0:50", "3 Ghost Bea avg 1:17", "4 Me Myself avg 1:30", "5 Ghost Cyd avg 1:43")
+            arrayOf("1 Fay Friend 280 pts", "2 Me Myself 140 pts", "3 Ghost Ada 100 pts", "4 Ghost Bea 60 pts", "5 Ghost Cyd 20 pts")
     }
 }

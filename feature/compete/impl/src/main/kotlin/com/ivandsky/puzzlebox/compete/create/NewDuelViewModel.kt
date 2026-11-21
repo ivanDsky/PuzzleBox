@@ -4,9 +4,6 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
-import com.ivandsky.puzzlebox.compete.CompeteFlag
 import com.ivandsky.puzzlebox.compete.create.lineup.LineupDraft
 import com.ivandsky.puzzlebox.compete.create.lineup.LineupEditor
 import com.ivandsky.puzzlebox.compete.domain.ComputeSolvedPool
@@ -65,7 +62,6 @@ internal class NewDuelViewModel(
     zone: () -> ZoneId,
     locale: () -> Locale,
     private val legTitles: ObserveLegTitles,
-    releaseFlags: ReleaseFlags,
 ) : ViewModel() {
 
     private val signInStep = DuelSignInStep(identity, idTokens)
@@ -110,7 +106,7 @@ internal class NewDuelViewModel(
         )
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    private val builder = NewDuelStateBuilder(clock, zone, locale, pastYouPhoto = releaseFlags.isEnabled(CompeteFlag.PastYouPhoto))
+    private val builder = NewDuelStateBuilder(clock, zone, locale)
 
     val state: StateFlow<NewDuelState> = combine(working, games, identity.current, solved, builder::build)
         .stateIn(

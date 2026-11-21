@@ -33,7 +33,7 @@ import com.ivandsky.puzzlebox.resultui.board.DailyBoardRowModel
  * On [HistoryLayout.TwoPane] the hub is [RanksTwoPane] around the same stack, with no title menu, week strip or dots.
  * A day or window pick keeps the held board on screen until the next one answers ([rememberHeldBoard]); a held board's
  * rows open against the day and window it was picked from, not the new pick.
- * With [RanksUiState.largeBar] the tab's hub opens on Today's large top bar ([RanksLargeBar]).
+ * The tab's own hub opens on Today's large top bar ([RanksLargeBar]); the hub pushed from a game page keeps its back row and its compact bar.
  * The How ranks work sheet is owned here, so [RanksActions.onSheetOpen] hears whether any Ranks sheet (that one, a filter chip's or the [playerSheet]) is up.
  * The whole hub sits in the shown board's world ([RanksWorld]), which blends to the next board's as the hub moves to it.
  */
@@ -64,7 +64,7 @@ internal fun RanksScreen(
     val scrub = rememberBoardScrub(shown.position)
     val brands = remember(shown.places) { shown.places.map { it.brand } }
     // The tab's own hub only: the hub pushed from a game page keeps its back row and its compact bar.
-    val largeBar = state.largeBar && actions.onBack == null
+    val largeBar = actions.onBack == null
     RanksWorld(brands, scrub, wide = twoPane, modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
             if (actions.onBack != null) {
@@ -79,7 +79,7 @@ internal fun RanksScreen(
             }
         }
     }
-    if (howRanksWork) HowRanksWorkSheet(onDismiss = { howRanksWork = false }, weekMonthPoints = shown.weekMonthPoints)
+    if (howRanksWork) HowRanksWorkSheet(onDismiss = { howRanksWork = false })
     playerSheet?.let {
         PlayerSheet(
             it,

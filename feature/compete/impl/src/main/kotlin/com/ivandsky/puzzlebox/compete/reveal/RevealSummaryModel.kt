@@ -67,7 +67,7 @@ internal data class DuelSummary(
     val pastYou: Boolean = false,
     /** The line under the verdict of a self duel ("Faster on 2 of 3 · 0:41 quicker overall"); null without a comparable puzzle. */
     val improvement: String? = null,
-    /** The photo Past you's avatar wears in a self duel (my own, behind CompeteFlag.PastYouPhoto); null keeps the initial. */
+    /** The photo Past you's avatar wears in a self duel (my own); null keeps the initial. */
     val pastYouPhotoUrl: String? = null,
 ) {
     val pill: String get() = pillText(kind, opponent)

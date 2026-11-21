@@ -6,13 +6,11 @@ import com.ivandsky.puzzlebox.history.HistoryTestSupport.QUEENS
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
 import com.ivandsky.puzzlebox.history.domain.ranks.RankScope
-import com.ivandsky.puzzlebox.history.flags.HistoryFlag
 import com.ivandsky.puzzlebox.history.ranks.RanksSelection.Games
 import com.ivandsky.puzzlebox.history.ranks.RanksSelection.Window
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.resultui.board.BoardRowValue
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
@@ -104,18 +102,16 @@ class RanksViewModelGamesFilterTest {
     }
 
     @Test
-    fun `LinkedIn games counts the Week and the Month over the LinkedIn games only, with week and month points on or off`() = runTest {
-        listOf(FakeReleaseFlags(), FakeReleaseFlags(HistoryFlag.WeekMonthPoints)).forEach { flags ->
-            val viewModel = hub(*everyBoard()).viewModel(releaseFlags = flags)
+    fun `LinkedIn games counts the Week and the Month over the LinkedIn games only`() = runTest {
+        val viewModel = hub(*everyBoard()).viewModel()
 
-            listOf(Window.Week, Window.Month).forEach { window ->
-                val all = viewModel.overall(Games.All, window = window)
-                val linkedIn = viewModel.overall(Games.LinkedIn, window = window)
+        listOf(Window.Week, Window.Month).forEach { window ->
+            val all = viewModel.overall(Games.All, window = window)
+            val linkedIn = viewModel.overall(Games.LinkedIn, window = window)
 
-                assertEquals("$window with week and month points ${HistoryFlag.WeekMonthPoints in flags.enabled.value}", 250.0, totals(all.board).single { it.first == "u1" }.second, 0.0)
-                assertEquals("$window", 150.0, totals(linkedIn.board).single { it.first == "u1" }.second, 0.0)
-                assertFalse(RanksBoard.Game(strands) in linkedIn.places.map { it.board })
-            }
+            assertEquals("$window", 250.0, totals(all.board).single { it.first == "u1" }.second, 0.0)
+            assertEquals("$window", 150.0, totals(linkedIn.board).single { it.first == "u1" }.second, 0.0)
+            assertFalse(RanksBoard.Game(strands) in linkedIn.places.map { it.board })
         }
     }
 

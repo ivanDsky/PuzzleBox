@@ -21,7 +21,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The step switch under the Zip grid, in the three-step and the combined layout: one tile per step, a tap selecting it. */
+/** The step switch under the Zip grid: one tile per step, Path and Numbers & walls, a tap selecting it. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp-420dpi")
@@ -30,46 +30,27 @@ class ZipEditorStepTilesTest {
     @get:Rule
     val rule = createComposeRule()
 
-    private fun show(combined: Boolean): ZipEditorController {
-        val controller = ZipEditorController(EditorDraft.fresh(ZipEditor, ZipEditor.variants.first()), combined) {}
+    private fun show(): ZipEditorController {
+        val controller = ZipEditorController(EditorDraft.fresh(ZipEditor, ZipEditor.variants.first())) {}
         rule.setContent { PuzzleBoxTheme { ZipEditorBoard(controller, Modifier.fillMaxSize()) } }
         return controller
     }
 
     private fun tileHeight(step: String) = rule.onNodeWithTag("zip.editor.step.$step").getBoundsInRoot().height
 
-    private fun exists(tag: String) = rule.onNodeWithTag(tag).assertExists()
-
     @Test
-    fun `tiles show one per step of the three-step layout and a tap selects`() {
-        val controller = show(combined = false)
-
-        exists("zip.editor.step")
-        listOf("path", "numbers", "walls").forEach { assertTrue("$it tile", tileHeight(it) >= TILE_HEIGHT) }
-        rule.onNodeWithTag("zip.editor.step.numbersandwalls").assertDoesNotExist()
-        rule.onNodeWithTag("zip.editor.step.path").assertIsSelected()
-
-        rule.onNodeWithTag("zip.editor.step.walls").performClick()
-        rule.waitForIdle()
-
-        assertEquals(ZipEditorStep.Walls, controller.step.value)
-        rule.onNodeWithTag("zip.editor.step.walls").assertIsSelected()
-        exists("zip.editor.clearWalls")
-    }
-
-    @Test
-    fun `tiles show Path and Numbers and walls in the combined layout`() {
-        val controller = show(combined = true)
+    fun `tiles show Path and Numbers and walls and a tap selects`() {
+        val controller = show()
 
         listOf("path", "numbersandwalls").forEach { assertTrue("$it tile", tileHeight(it) >= TILE_HEIGHT) }
-        rule.onNodeWithTag("zip.editor.step.numbers").assertDoesNotExist()
-        rule.onNodeWithTag("zip.editor.step.walls").assertDoesNotExist()
+        rule.onNodeWithTag("zip.editor.step.path").assertIsSelected()
 
         rule.onNodeWithTag("zip.editor.step.numbersandwalls").performClick()
         rule.waitForIdle()
 
         assertEquals(ZipEditorStep.NumbersAndWalls, controller.step.value)
         rule.onNodeWithTag("zip.editor.step.numbersandwalls").assertIsSelected()
+        rule.onNodeWithTag("zip.editor.clearWalls").assertExists()
     }
 
     private companion object {

@@ -21,7 +21,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The editor's board stays put: switching Path, Numbers and Walls never moves or resizes it, the
+ * The editor's board stays put: switching Path and Numbers & walls never moves or resizes it, the
  * next-step hint never names the step the author is on, and an empty path gets one coach line.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -43,26 +43,21 @@ class ZipEditorStableBoardTest {
     private fun boardBounds() = rule.onNodeWithTag("zip.editor.board").getBoundsInRoot()
 
     @Test
-    fun `the board keeps its bounds across the Path, Numbers and Walls steps`() {
+    fun `the board keeps its bounds across the Path and Numbers and walls steps`() {
         show(SNAKE)
         val onPath = boardBounds()
 
-        rule.onNodeWithTag("zip.editor.step.numbers").performClick()
+        rule.onNodeWithTag("zip.editor.step.numbersandwalls").performClick()
         rule.waitForIdle()
-        assertEquals("Numbers", onPath, boardBounds())
-
-        rule.onNodeWithTag("zip.editor.step.walls").performClick()
-        rule.waitForIdle()
-        assertEquals("Walls", onPath, boardBounds())
+        assertEquals("Numbers & walls", onPath, boardBounds())
     }
 
     @Test
     fun `the hint never offers the step the author is on`() {
         val board = ZipDraft(5, emptySet(), SNAKE, listOf(0, 24))
 
-        assertEquals(ZipEditorStep.Numbers, ZipEditorHintState.of(board, ZipEditorStep.Path).next)
-        assertNull(ZipEditorHintState.of(board, ZipEditorStep.Numbers).next)
-        assertEquals(ZipEditorStep.Numbers, ZipEditorHintState.of(board, ZipEditorStep.Walls).next)
+        assertEquals(ZipEditorStep.NumbersAndWalls, ZipEditorHintState.of(board, ZipEditorStep.Path).next)
+        assertNull(ZipEditorHintState.of(board, ZipEditorStep.NumbersAndWalls).next)
     }
 
     @Test

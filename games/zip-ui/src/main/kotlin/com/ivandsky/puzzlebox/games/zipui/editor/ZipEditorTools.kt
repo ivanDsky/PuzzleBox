@@ -25,11 +25,10 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.games.zip.editor.ZipDraft
 
 /**
- * Under the grid: the step tabs (tags `zip.editor.step.<path|numbers|walls|numbersandwalls>`, the
- * controller's [ZipEditorController.steps]) as quiet tiles, and the current step's actions. Path offers Reverse
- * and Clear path (tags `zip.editor.reverse`, `zip.editor.clearPath`), or while the path is empty
- * one coach line (tag `zip.editor.coach`) in their place; Walls and Numbers & walls offer Clear
- * walls (tag `zip.editor.clearWalls`); Numbers leaves the row empty so it keeps its height.
+ * Under the grid: the step tabs (tags `zip.editor.step.<path|numbersandwalls>`, one per [ZipEditorStep]) as quiet
+ * tiles, and the current step's actions. Path offers Reverse and Clear path (tags `zip.editor.reverse`,
+ * `zip.editor.clearPath`), or while the path is empty one coach line (tag `zip.editor.coach`) in their place;
+ * Numbers & walls offers Clear walls (tag `zip.editor.clearWalls`).
  */
 @Composable
 internal fun ZipEditorTools(controller: ZipEditorController, modifier: Modifier = Modifier) {
@@ -43,7 +42,6 @@ internal fun ZipEditorTools(controller: ZipEditorController, modifier: Modifier 
         controller::clearWalls,
         modifier,
         pathEmpty = board.path.isEmpty(),
-        steps = controller.steps,
     )
 }
 
@@ -56,11 +54,10 @@ internal fun ZipEditorTools(
     onClearWalls: () -> Unit,
     modifier: Modifier = Modifier,
     pathEmpty: Boolean = false,
-    steps: List<ZipEditorStep> = ZipEditorStep.tabs(combined = false),
 ) {
     Column(modifier.fillMaxWidth().padding(top = Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         ChoiceTiles(
-            options = steps,
+            options = ZipEditorStep.entries,
             selected = step,
             onSelect = onSelect,
             label = { it.label },
@@ -86,7 +83,7 @@ internal fun ZipEditorTools(
                     TextButton(onReverse, Modifier.testTag("zip.editor.reverse")) { Text("Reverse") }
                     TextButton(onClearPath, Modifier.testTag("zip.editor.clearPath")) { Text("Clear path") }
                 }
-                step == ZipEditorStep.Walls || step == ZipEditorStep.NumbersAndWalls ->
+                step == ZipEditorStep.NumbersAndWalls ->
                     TextButton(onClearWalls, Modifier.testTag("zip.editor.clearWalls")) { Text("Clear walls") }
             }
         }
@@ -97,20 +94,17 @@ private val ActionRowHeight = 48.dp
 
 /**
  * How much of the board the path covers, [covered] of [total] cells, and the step the stepper
- * (04 handoff: 1 Path → 2 Numbers → 3 Walls, or with `combined` 1 Path → 2 Numbers & walls) asks
- * for next, or null while the path is short or once every step has work on it. It never names
- * the [step] the author is already on.
+ * (1 Path → 2 Numbers & walls) asks for next, or null while the path is short or once the step has work
+ * on it. It never names the [step] the author is already on.
  */
 internal data class ZipEditorHintState(val covered: Int, val total: Int, val next: ZipEditorStep? = null) {
     companion object {
-        fun of(board: ZipDraft, step: ZipEditorStep, combined: Boolean = false): ZipEditorHintState {
+        fun of(board: ZipDraft, step: ZipEditorStep): ZipEditorHintState {
             val total = board.n * board.n
             val noNumbers = board.waypoints.size <= ENDS
             val next = when {
                 board.path.size < total -> null
-                combined -> ZipEditorStep.NumbersAndWalls.takeIf { noNumbers || board.walls.isEmpty() }
-                noNumbers -> ZipEditorStep.Numbers
-                board.walls.isEmpty() -> ZipEditorStep.Walls
+                noNumbers || board.walls.isEmpty() -> ZipEditorStep.NumbersAndWalls
                 else -> null
             }
             return ZipEditorHintState(board.path.size, total, next.takeIf { it != step })
@@ -130,7 +124,7 @@ internal data class ZipEditorHintState(val covered: Int, val total: Int, val nex
 internal fun ZipEditorHint(controller: ZipEditorController, modifier: Modifier = Modifier) {
     val board by controller.shown.collectAsState()
     val step by controller.step.collectAsState()
-    ZipEditorHint(ZipEditorHintState.of(board, step, controller.combined), modifier)
+    ZipEditorHint(ZipEditorHintState.of(board, step), modifier)
 }
 
 @Composable
@@ -166,38 +160,12 @@ private fun ZipEditorToolsPathPreview() {
 }
 
 @PuzzleBoxPreviews
-@Preview(name = "Zip tools, Numbers", widthDp = 360, showBackground = true, group = "Zip editor tools")
-@Composable
-private fun ZipEditorToolsNumbersPreview() {
-    PuzzleBoxTheme {
-        Column {
-            ZipEditorTools(ZipEditorStep.Numbers, {}, {}, {}, {})
-            ZipEditorHint(ZipEditorHintState(covered = 25, total = 25, next = ZipEditorStep.Walls))
-        }
-    }
-}
-
-@PuzzleBoxPreviews
-@Preview(name = "Zip tools, Walls", widthDp = 360, showBackground = true, group = "Zip editor tools")
-@Composable
-private fun ZipEditorToolsWallsPreview() {
-    PuzzleBoxTheme { ZipEditorTools(ZipEditorStep.Walls, {}, {}, {}, {}) }
-}
-
-@PuzzleBoxPreviews
 @Preview(name = "Zip tools, Numbers & walls", widthDp = 360, showBackground = true, group = "Zip editor tools")
 @Composable
 private fun ZipEditorToolsNumbersAndWallsPreview() {
     PuzzleBoxTheme {
         Column {
-            ZipEditorTools(
-                ZipEditorStep.NumbersAndWalls,
-                {},
-                {},
-                {},
-                {},
-                steps = ZipEditorStep.tabs(combined = true),
-            )
+            ZipEditorTools(ZipEditorStep.NumbersAndWalls, {}, {}, {}, {})
             ZipEditorHint(ZipEditorHintState(covered = 25, total = 25))
         }
     }

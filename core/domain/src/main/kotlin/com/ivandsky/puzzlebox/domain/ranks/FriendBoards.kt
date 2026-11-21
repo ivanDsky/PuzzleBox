@@ -54,7 +54,7 @@ fun rankFriendBoard(
  * with the LinkedIn day the phone has saved for it in [days] counted on it for [viewer]; a board without a saved day
  * counts friends only. [viewerEntries] has the viewer's own entry of a board they placed past the page of
  * (`beyondPageEntries`), [friendEntries] the entries friends who placed past a board's page have on it. Ranking the result
- * with [rankBoard], `overall` or `gameWindowStandings` then gives places 1..n among them, with N those who played, so
+ * with [rankBoard], `overall` or [windowStandings] then gives places 1..n among them, with N those who played, so
  * percentile points and Overall are the friends' own.
  */
 fun RankWindowBoards.amongFriends(

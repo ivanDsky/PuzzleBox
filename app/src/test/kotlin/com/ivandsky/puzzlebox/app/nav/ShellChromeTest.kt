@@ -29,8 +29,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * On a phone's bar, only Today's header carries the shell's avatar (`shell.avatar`);
- * every other screen carries none, Profile and Settings in the layer above the tabs included. The tablet's rail placement
+ * On a phone's bar, the shell's avatar (`shell.avatar`) rides every main tab's large top bar; every other screen
+ * carries none, Profile and Settings in the layer above the tabs included. The tablet's rail placement
  * is pinned in the e2e tests; the avatar's opening and closing the layer in ProfileLayerShellTest.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -39,17 +39,21 @@ import org.robolectric.annotation.Config
 class ShellChromeTest {
 
     @Test
-    fun `the Today root shows the avatar, the History and Community roots do not`() = shellAt {
+    fun `every main tab's root shows the avatar`() = shellAt {
         assertRoute(HOME)
+        assertShellActions(shown = true)
+
+        tapTab(PlayKey)
+        assertRoute(LIBRARY)
         assertShellActions(shown = true)
 
         tapTab(HistoryRootKey)
         assertRoute(RANKS)
-        assertShellActions(shown = false)
+        assertShellActions(shown = true)
 
         tapTab(CommunityKey)
         assertRoute(COMMUNITY)
-        assertShellActions(shown = false)
+        assertShellActions(shown = true)
     }
 
     @Test
@@ -129,6 +133,7 @@ class ShellChromeTest {
         const val AVATAR = "shell.avatar"
         const val ZIP = "zip"
         const val HOME = "route.home"
+        const val LIBRARY = "route.library"
         const val RANKS = "route.ranks"
         const val COMMUNITY = "route.community"
         const val FRIEND = "route.friend"
