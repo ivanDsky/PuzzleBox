@@ -86,13 +86,10 @@ internal class RanksViewModel(
     private val saver = RanksSelectionSaver(savedState)
     private val boards = rankBoards(registry)
 
-    /** The Games filter (GamesFilter), read once: off, the hub counts All games whatever was saved or stored. */
-    private val gamesFilter = releaseFlags.isEnabled(HistoryFlag.GamesFilter)
-
     /** The games LinkedIn feeds: the ones the LinkedIn games pick keeps. */
     private val isLinkedInGame: (GameId) -> Boolean = { daily.linkedInGameTypeId(it) != null }
-    private val landing = RanksLanding(preferences, observeFriendUids().map { it.isNotEmpty() }, gamesFilter, viewModelScope)
-    private val _selection = MutableStateFlow(saver.restore(opening, boards).let { if (gamesFilter) it else it.copy(games = RanksSelection.Games.All) })
+    private val landing = RanksLanding(preferences, observeFriendUids().map { it.isNotEmpty() }, viewModelScope)
+    private val _selection = MutableStateFlow(saver.restore(opening, boards))
     val selection: StateFlow<RanksSelection> = _selection.asStateFlow()
 
     /** False until a fresh hub has its landing scope; a restored selection has nothing to wait for. */
@@ -191,11 +188,11 @@ internal class RanksViewModel(
         val position = listed.indexOf(board).coerceAtLeast(0)
         val slice = slices.getOrElse(position) { slices.first() }
         val places = boardPlaces(listed, registry, playRegistry::brandOf, slices)
-        RanksUiState(slice, signIn, position, listed.size, local.calendar, local.stats, local.yourSolve, scope, kind, places, local.nudge, slices, local.playThisDay, largeBar, weekMonthPoints, games, gamesFilter)
+        RanksUiState(slice, signIn, position, listed.size, local.calendar, local.stats, local.yourSolve, scope, kind, places, local.nudge, slices, local.playThisDay, largeBar, weekMonthPoints, games)
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
-        RanksUiState(overallSlice(RanksSelection.Window.Day, null, OverallState.Loading, null), largeBar = largeBar, weekMonthPoints = weekMonthPoints, games = _selection.value.games, gamesFilter = gamesFilter),
+        RanksUiState(overallSlice(RanksSelection.Window.Day, null, OverallState.Loading, null), largeBar = largeBar, weekMonthPoints = weekMonthPoints, games = _selection.value.games),
     )
 
     /** Applies one of [RanksSelection]'s transitions; the policy stays in the value. */
@@ -218,7 +215,7 @@ internal class RanksViewModel(
         select { it.setWindow(window) }
     }
 
-    /** The Games pick (GamesFilter): that board stays when it is still listed, else the hub moves to Overall. */
+    /** The Games pick: that board stays when it is still listed, else the hub moves to Overall. */
     fun setGames(games: RanksSelection.Games) {
         select { it.setGames(games, boardsOf(games)) }
     }

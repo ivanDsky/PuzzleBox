@@ -11,7 +11,7 @@ import com.ivandsky.puzzlebox.history.ranks.RanksSelection.Window
 
 /**
  * The active scope and window as the large bar's sub line ("Global · Day"), defaults too, so the bar keeps its two lines;
- * LinkedIn [games] (GamesFilter) adds a third part ("Global · Day · LinkedIn games"), All games adds nothing.
+ * LinkedIn [games] adds a third part ("Global · Day · LinkedIn games"), All games adds nothing.
  */
 internal fun rankSubLine(scope: RankScope, window: Window, games: Games = Games.All): String =
     "${scope.name} · ${window.name}" + if (games == Games.LinkedIn) " · ${games.label}" else ""
