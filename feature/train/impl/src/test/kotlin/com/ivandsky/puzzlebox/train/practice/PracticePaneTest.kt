@@ -212,7 +212,7 @@ class PracticePaneTest {
 
         say(PracticeStatus.Done(standInSpotlight()))
 
-        composeRule.onNodeWithTag("train.status").assertTextContains("Board 2 of 5 done").assertTextContains("Next board in 3", substring = true)
+        composeRule.onNodeWithTag("train.status").assertTextContains("Board 2 of 5 done").assertTextContains("Next board in 1", substring = true)
         composeRule.onNodeWithTag("train.showMe").assertIsNotEnabled()
     }
 
@@ -240,18 +240,18 @@ class PracticePaneTest {
         showBoard(chapter = standInChapter(board = 5, boards = 5))
         say(PracticeStatus.Done(null))
 
-        composeRule.onNodeWithTag("train.status").assertTextContains("Board 5 of 5 done").assertTextContains("Chapter result in 3", substring = true)
+        composeRule.onNodeWithTag("train.status").assertTextContains("Board 5 of 5 done").assertTextContains("Chapter result in 1", substring = true)
         composeRule.onNodeWithTag("train.nextBoard").assertTextContains("See result")
     }
 
     /** Catches a screen reader user left with a countdown that moves on by itself. */
     @Test
     fun `with a screen reader the band asks for the tap instead of counting`() {
-        showBoard(hold = BoardHold(remainingMs = 3_000, waitsForTap = true))
+        showBoard(hold = BoardHold(remainingMs = 1_000, waitsForTap = true))
         say(PracticeStatus.Done(null))
 
         composeRule.onNodeWithTag("train.status").assertTextContains("Tap Next board when you are ready.", substring = true)
-        composeRule.onNodeWithText("Next board in 3", substring = true).assertDoesNotExist()
+        composeRule.onNodeWithText("Next board in 1", substring = true).assertDoesNotExist()
     }
 
     /** Catches steps that count the wrong number of boards, or one that does not turn done when its board finishes. */

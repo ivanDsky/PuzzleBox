@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -66,11 +65,12 @@ internal fun ChapterResultPage(
     }
 }
 
+/** The two columns as one block, top-aligned to each other and centered in the pane both ways, so a short page leaves no gap below. */
 @Composable
 private fun WideResult(result: ChapterResult, onNext: () -> Unit, onAgain: () -> Unit, onBack: () -> Unit) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Row(
-            Modifier.widthIn(max = ContentMax).fillMaxHeight().rise().padding(Spacing.lg),
+            Modifier.widthIn(max = ContentMax).rise().padding(Spacing.lg),
             horizontalArrangement = Arrangement.spacedBy(Spacing.xxl),
         ) {
             ResultLeft(result, onNext, onAgain, onBack, Modifier.width(LeftColumn).verticalScroll(rememberScrollState()))
