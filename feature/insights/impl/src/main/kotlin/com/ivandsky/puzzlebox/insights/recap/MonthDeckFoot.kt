@@ -6,8 +6,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -21,7 +21,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.RecapMotion
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -75,11 +74,12 @@ internal fun DeckFoot(next: String, modifier: Modifier = Modifier) {
 }
 
 /**
- * Twelve squares, one per calendar month: the months before [current] done, [current] itself solid and the rest empty.
- * They flip in one after another ([RecapMotion.YearSquareStep] apart on the deck spring); reduced motion shows them flat.
+ * Twelve squares across the card, one per calendar month: the months before [current] done, [current] itself solid and
+ * the rest empty. They flip in one after another ([RecapMotion.YearSquareStep] apart on the deck spring); reduced motion
+ * shows them flat.
  */
 @Composable
-internal fun MonthSquares(current: Int, squareHeight: Dp, modifier: Modifier = Modifier) {
+internal fun MonthSquares(current: Int, modifier: Modifier = Modifier) {
     val ink = LocalContentColor.current
     Row(modifier.fillMaxWidth().clearAndSetSemantics {}.testTag("recap.month.squares"), horizontalArrangement = Arrangement.spacedBy(SquareGap)) {
         for (month in 1..SquareCount) {
@@ -92,7 +92,7 @@ internal fun MonthSquares(current: Int, squareHeight: Dp, modifier: Modifier = M
             Box(
                 Modifier
                     .weight(1f)
-                    .height(squareHeight)
+                    .aspectRatio(1f)
                     .graphicsLayer { rotationY = (1f - flip) * RecapMotion.YearSquareFromTurn }
                     .background(ink.copy(alpha = alpha), RoundedCornerShape(SquareRadius)),
             )

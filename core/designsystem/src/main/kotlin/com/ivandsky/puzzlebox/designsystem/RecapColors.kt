@@ -13,6 +13,7 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import java.time.Month
 
 // The ten recap cards, in story order. Each has one fixed field, an ink that sits on it and a plate, the same
 // everywhere the card shows (story card, tablet fact-row marker, share poster).
@@ -111,6 +112,42 @@ internal val DarkRecapCards: Map<RecapCard, RecapCardColors> = mapOf(
 /** A card's colours for the light or dark theme. */
 fun recapCardColors(card: RecapCard, darkTheme: Boolean): RecapCardColors =
     (if (darkTheme) DarkRecapCards else LightRecapCards).getValue(card)
+
+// Month palette (prototype 14): one hue per calendar month, January's sky round the wheel to December's mint, so no
+// two month cards share a field. Each ink reads 4.5:1 or more on its field and its plate in both themes.
+internal val LightMonthCards: Map<Month, RecapCardColors> = mapOf(
+    Month.JANUARY to RecapCardColors(Color(0xFF9AD6F4), Color(0xFF122A36), Color(0xFFD4EFFC)),
+    Month.FEBRUARY to RecapCardColors(Color(0xFF9AA9F4), Color(0xFF121836), Color(0xFFD4DBFC)),
+    Month.MARCH to RecapCardColors(Color(0xFFB89AF4), Color(0xFF1E1236), Color(0xFFE1D4FC)),
+    Month.APRIL to RecapCardColors(Color(0xFFE59AF4), Color(0xFF301236), Color(0xFFF6D4FC)),
+    Month.MAY to RecapCardColors(Color(0xFFF49AD6), Color(0xFF36122A), Color(0xFFFCD4EF)),
+    Month.JUNE to RecapCardColors(Color(0xFFF49AA9), Color(0xFF361218), Color(0xFFFCD4DB)),
+    Month.JULY to RecapCardColors(Color(0xFFF4B89A), Color(0xFF361E12), Color(0xFFFCE1D4)),
+    Month.AUGUST to RecapCardColors(Color(0xFFF4E59A), Color(0xFF363012), Color(0xFFFCF6D4)),
+    Month.SEPTEMBER to RecapCardColors(Color(0xFFD6F49A), Color(0xFF2A3612), Color(0xFFEFFCD4)),
+    Month.OCTOBER to RecapCardColors(Color(0xFFA9F49A), Color(0xFF183612), Color(0xFFDBFCD4)),
+    Month.NOVEMBER to RecapCardColors(Color(0xFF9AF4B8), Color(0xFF12361E), Color(0xFFD4FCE1)),
+    Month.DECEMBER to RecapCardColors(Color(0xFF9AF4E5), Color(0xFF123630), Color(0xFFD4FCF6)),
+)
+
+internal val DarkMonthCards: Map<Month, RecapCardColors> = mapOf(
+    Month.JANUARY to RecapCardColors(Color(0xFF83C2E2), Color(0xFF0F2733), Color(0xFFB7DDF0)),
+    Month.FEBRUARY to RecapCardColors(Color(0xFF8393E2), Color(0xFF0F1533), Color(0xFFB7C1F0)),
+    Month.MARCH to RecapCardColors(Color(0xFFA383E2), Color(0xFF1B0F33), Color(0xFFCAB7F0)),
+    Month.APRIL to RecapCardColors(Color(0xFFD283E2), Color(0xFF2D0F33), Color(0xFFE6B7F0)),
+    Month.MAY to RecapCardColors(Color(0xFFE283C2), Color(0xFF330F27), Color(0xFFF0B7DD)),
+    Month.JUNE to RecapCardColors(Color(0xFFE28393), Color(0xFF330F15), Color(0xFFF0B7C1)),
+    Month.JULY to RecapCardColors(Color(0xFFE2A383), Color(0xFF331B0F), Color(0xFFF0CAB7)),
+    Month.AUGUST to RecapCardColors(Color(0xFFE2D283), Color(0xFF332D0F), Color(0xFFF0E6B7)),
+    Month.SEPTEMBER to RecapCardColors(Color(0xFFC2E283), Color(0xFF27330F), Color(0xFFDDF0B7)),
+    Month.OCTOBER to RecapCardColors(Color(0xFF93E283), Color(0xFF15330F), Color(0xFFC1F0B7)),
+    Month.NOVEMBER to RecapCardColors(Color(0xFF83E2A3), Color(0xFF0F331B), Color(0xFFB7F0CA)),
+    Month.DECEMBER to RecapCardColors(Color(0xFF83E2D2), Color(0xFF0F332D), Color(0xFFB7F0E6)),
+)
+
+/** A year recap's [month] card colors for the light or dark theme: its own field, the ink on it and the plate its rows sit on. */
+fun monthPalette(month: Month, darkTheme: Boolean): RecapCardColors =
+    (if (darkTheme) DarkMonthCards else LightMonthCards).getValue(month)
 
 /** This card's field in the resolved theme ([LocalDarkTheme]), so a forced appearance still flips it. */
 val RecapCard.field: Color

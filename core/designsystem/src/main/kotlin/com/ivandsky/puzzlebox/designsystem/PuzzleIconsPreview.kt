@@ -80,6 +80,7 @@ internal fun PuzzleIconsPreview() {
             "Equals" to PuzzleIcons.Equals,
             "Upload" to PuzzleIcons.Upload,
             "Info" to PuzzleIcons.Info,
+            "Moon" to PuzzleIcons.Moon,
         )
         Column(
             modifier = Modifier.background(MaterialTheme.colorScheme.background).padding(Spacing.md),
