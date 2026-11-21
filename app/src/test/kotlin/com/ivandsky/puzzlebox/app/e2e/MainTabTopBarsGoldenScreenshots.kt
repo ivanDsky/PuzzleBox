@@ -11,7 +11,6 @@ import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.common.flags.TopBarFlag
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.play.api.CommunityKey
@@ -26,7 +25,7 @@ import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
 /**
- * MainTabsLargeBar (#1597): Today, Games, Community and Ranks over the real shell on Today's large top bar, on the
+ * The large top bar (#1597): Today, Games, Community and Ranks over the real shell on Today's large top bar, on the
  * narrowest phone and the tablet, light and dark. Recorded with `-Proborazzi.record=true` into
  * `snapshots/main-tab-bars/` (untracked review captures).
  */
@@ -50,7 +49,7 @@ abstract class MainTabTopBarsGoldenScreenshots(private val device: String) {
     private fun capture(dark: Boolean) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
-        val graph = E2eKoinGraph(E2E_TODAY, module {}, FakeReleaseFlags(TopBarFlag.MainTabsLargeBar))
+        val graph = E2eKoinGraph(E2E_TODAY, module {}, FakeReleaseFlags())
         shellRobot(graph = graph, darkTheme = dark) {
             for ((key, name) in TABS) {
                 tapTab(key)

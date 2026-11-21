@@ -12,7 +12,7 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
 
-// The tab's hub on Today's large top bar (MainTabsLargeBar on): phone at its narrowest and the tablet, light and dark.
+// The tab's hub on Today's large top bar: phone at its narrowest and the tablet, light and dark.
 
 private val BarRows = listOf(
     DailyBoardRowModel(1, "Maya", 62_000L, 0, isSelf = false, playerId = "maya"),
@@ -33,7 +33,6 @@ private fun barState(position: Int, title: String, scope: RankScope = RankScope.
         scope = scope,
         window = window,
         places = BarPlaces,
-        largeBar = true,
     )
 
 @Composable

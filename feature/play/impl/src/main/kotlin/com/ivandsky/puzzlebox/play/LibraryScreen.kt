@@ -50,7 +50,7 @@ import java.time.YearMonth
  * also leaves its [DuelPrefill] pending (saved here) for the Duels body, until the body takes it. The game page
  * shows its rank as a summary row that calls [onOpenRanks].
  * A non-null [linkedIn] puts the LinkedIn lines on the page's day card. [onMakeOne] puts "Make one" on the page; a non-null [onOpenStats] puts "See all stats" on its stats card.
- * With [largeBar] (MainTabsLargeBar) the list opens on Today's large top bar ([LibraryList]).
+ * The list opens on Today's large top bar ([LibraryList]).
  */
 @Composable
 internal fun LibraryScreen(
@@ -77,7 +77,6 @@ internal fun LibraryScreen(
     onRequestTaken: () -> Unit = {},
     linkedIn: LinkedInCardState? = null,
     onMakeOne: (GameId) -> Unit,
-    largeBar: Boolean = false,
     onOpenStats: ((GameId) -> Unit)? = null,
 ) {
     val listScroll = rememberScrollState()
@@ -125,22 +124,21 @@ internal fun LibraryScreen(
     fun GamesList(onRow: (GameId) -> Unit, modifier: Modifier = Modifier) = LibraryList(
         state, layout, listScroll, onRow, modifier, headerAction = headerAction, friends = fromFriends,
         duels = duels, train = train, tab = tab, onTab = { tab = it }, duelsScroll = duelsScroll,
-        duelPrefill = duelPrefill, onDuelPrefillTaken = { duelPrefill = null }, largeBar = largeBar,
+        duelPrefill = duelPrefill, onDuelPrefillTaken = { duelPrefill = null },
     )
     if (layout == PlayLayout.TwoPane) {
         val home = tabs.indexOf(tab.orDailies(tabs))
         val link = remember { TabFadeLink(home) }
         SideEffect { link.home = home }
         // Under the large top bar the list starts at the window's top, as Today's does; the page keeps its own inset.
-        val top = if (largeBar) 0.dp else Spacing.lg
-        Row(modifier.fillMaxSize().padding(start = Spacing.xl, top = top, end = Spacing.xxl, bottom = Spacing.xl)) {
+        Row(modifier.fillMaxSize().padding(start = Spacing.xl, end = Spacing.xxl, bottom = Spacing.xl)) {
             CompositionLocalProvider(LocalEnterSettled provides true, LocalTabFadeLink provides link) {
                 GamesList(onRow, Modifier.width(400.dp))
             }
             Spacer(Modifier.width(Spacing.xl))
             // The Duels and Train tabs' right panes are a duel and the open technique, never a game's page; going back
             // to Dailies shows the selected game again. Each fades with the tabs: the pager's own progress drives it.
-            TabFadePane(link, Modifier.weight(1f).fillMaxHeight().then(if (largeBar) Modifier.padding(top = Spacing.lg) else Modifier)) { index ->
+            TabFadePane(link, Modifier.weight(1f).fillMaxHeight().padding(top = Spacing.lg)) { index ->
                 val paneTab = tabs[index]
                 if (duels != null && paneTab == GamesTab.Duels) {
                     duels.pane(Modifier.fillMaxSize())

@@ -88,7 +88,7 @@ class LibraryTabletHeaderTest {
         val title = composeRule.onAllNodesWithText("Games")[0]
         title.assertIsDisplayed()
         val titleHeight = title.getBoundsInRoot().height
-        assertTrue("title is $titleHeight tall; one line is 45 dp, two 90", titleHeight <= 50.dp)
+        assertTrue("title is $titleHeight tall; one line is 64 dp, two 128", titleHeight <= 70.dp)
         val subtitle = composeRule.onNodeWithText("Every puzzle, back to #1")
         subtitle.assertIsDisplayed()
         val subtitleHeight = subtitle.getBoundsInRoot().height

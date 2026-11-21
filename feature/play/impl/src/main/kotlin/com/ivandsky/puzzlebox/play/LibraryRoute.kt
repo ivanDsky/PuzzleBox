@@ -128,7 +128,6 @@ internal fun LibraryRoute(
             onOpenRanks = onOpenRanks,
             onMakeOne = onMakeOne,
             onOpenStats = onOpenStats,
-            largeBar = rememberMainTabsLargeBar(),
         )
         FriendRemovedSnackbar(removedFriend, onUndo = viewModel::undoRemoveFriend, modifier = Modifier.align(Alignment.BottomCenter))
         if (enteringCode) {

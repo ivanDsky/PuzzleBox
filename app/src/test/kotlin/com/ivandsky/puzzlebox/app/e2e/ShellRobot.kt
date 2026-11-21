@@ -61,7 +61,6 @@ import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zipui.ZipPlayController
 import com.ivandsky.puzzlebox.gameui.DragEvent
 import com.ivandsky.puzzlebox.gameui.GridCell
-import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.ShareCode
@@ -629,11 +628,11 @@ class ShellRobot internal constructor(
 
     /**
      * Placement of the avatar (Settings opens from Profile's gear): on a [rail] it shows once wherever the rail
-     * shows (every screen but the immersive ones); on the bar only Today's root shows it.
+     * shows (every screen but the immersive ones); on the bar every main tab's root shows it, in the tab's large top bar.
      */
     fun assertChromeFor(rail: Boolean) {
         val top = state.layer.lastOrNull() ?: state.currentStack.last()
-        val shown = if (rail) !isImmersive(top) else top == HomeKey
+        val shown = if (rail) !isImmersive(top) else top in topLevelDestinations.map { it.key }
         if (shown) assertChromeActions() else assertNoChromeActions()
         if (shown && rail) {
             val avatar = rule.onNodeWithTag(AVATAR).fetchSemanticsNode().boundsInRoot
@@ -648,7 +647,7 @@ class ShellRobot internal constructor(
         assertEquals("avatars (state $state)", 1, rule.onAllNodesWithTag(AVATAR).fetchSemanticsNodes().size)
     }
 
-    /** No avatar shows: immersive play, or a bar screen but Today. */
+    /** No avatar shows: immersive play, or a bar screen that is no tab's root. */
     fun assertNoChromeActions() {
         assertEquals("avatars (state $state)", 0, rule.onAllNodesWithTag(AVATAR).fetchSemanticsNodes().size)
     }

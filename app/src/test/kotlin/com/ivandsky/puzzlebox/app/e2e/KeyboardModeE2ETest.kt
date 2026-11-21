@@ -11,6 +11,7 @@ import androidx.compose.ui.test.junit4.v2.AndroidComposeTestRule as v2AndroidCom
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.rules.ActivityScenarioRule
@@ -63,6 +64,9 @@ class KeyboardModeE2ETest {
             assertEquals(RESIZE, rule.activity.window.attributes.softInputMode and ADJUST)
             tap("nav.tab.community")
             tap(YOURS)
+            // Under Community's large top bar the empty state's Import sits below the first screen: scroll to it, as a player does.
+            awaitIdling { count(IMPORT) > 0 }
+            rule.onNodeWithTag(IMPORT).performScrollTo()
             tap(IMPORT)
             tap(TEXT)
             rule.onNodeWithTag(TEXT).performTextInput("puzzlebox queens v1")

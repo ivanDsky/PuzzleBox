@@ -133,7 +133,7 @@ class RanksGamesFilterScreenTest {
         assertEquals("Friends · Week", rankSubLine(RankScope.Friends, RanksSelection.Window.Week, Games.All))
         assertEquals("Global · Day · LinkedIn games", rankSubLine(RankScope.Global, RanksSelection.Window.Day, Games.LinkedIn))
 
-        state = state.copy(largeBar = true, games = Games.LinkedIn)
+        state = state.copy(games = Games.LinkedIn)
         show()
         node("ranks.tune.label").assertTextEquals("Global · Day · LinkedIn games")
     }

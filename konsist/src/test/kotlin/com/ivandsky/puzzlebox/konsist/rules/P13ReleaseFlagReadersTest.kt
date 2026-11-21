@@ -11,7 +11,7 @@ import org.junit.Test
  * one production file outside the enum's own file, in a source set that is not `debug*` and outside `:core:testing`.
  * Flag enums are the central `ReleaseFlag` in `com.ivandsky.puzzlebox.common.flags` and every enum, top-level or nested,
  * whose supertypes include `ReleaseFlagKey` or `ReleaseFlag` (plain or qualified), so an entry that moves to an owner
- * enum (`PlayFlag`) stays judged; the subjects are the flag enums. An enum named `ReleaseFlag` in another package is
+ * enum (`InsightsFlag`) stays judged; the subjects are the flag enums. An enum named `ReleaseFlag` in another package is
  * not one. Dark entries may wait for their first gate, as a trunk feature's ticket 01 adds its flag alone; a deleted
  * entry that a rebase brings back is shipped, so it is judged. A name counts as `<Enum>.<Entry>` (plain, fully
  * qualified, or through an alias of the enum), or as a bare `<Entry>` or alias in a file that imports the entry or

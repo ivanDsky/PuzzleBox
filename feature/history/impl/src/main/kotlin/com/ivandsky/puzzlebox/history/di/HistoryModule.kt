@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.history.di
 
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.domain.ranks.LoadFriendsPastPage
@@ -40,7 +39,6 @@ val historyModule = module {
                 observeFriendUids = get(), identity = get(), completions = get(), linkedIn = if (withLinkedIn) get() else null, friendsPast = LoadFriendsPastPage(get<LeaderboardRepository>()),
             ),
             linkedIn = if (withLinkedIn) get() else null,
-            releaseFlags = get<ReleaseFlags>(),
             savedState = get(),
             opening = opening,
         )

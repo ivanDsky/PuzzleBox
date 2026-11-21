@@ -1,10 +1,12 @@
 package com.ivandsky.puzzlebox.app.e2e
 
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.performClick
 import androidx.navigation3.runtime.NavKey
@@ -195,7 +197,25 @@ class StrandsArchiveE2ETest {
         }
         awaitTag(STRANDS_PAGE)
         showMonth(YearMonth.from(day))
+        revealDay("$CALENDAR_DAY$day")
         tap("$CALENDAR_DAY$day")
+    }
+
+    /**
+     * A late row of the month sits below the first screen, and the month pager inside the page takes a scroll to the
+     * day for itself: scroll the page by a screenful, as a player does, until the day has a place on screen.
+     */
+    private fun ShellRobot.revealDay(tag: String) {
+        awaitTag(tag)
+        fun placed() = rule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().first().boundsInRoot.height > 0f
+        repeat(REVEAL_SCROLLS) {
+            if (!placed()) {
+                // The page's own scroll, by a screenful: the month pager inside it takes the scroll that would reach the day.
+                rule.onNodeWithTag(STRANDS_PAGE).performSemanticsAction(SemanticsActions.ScrollBy) { it(0f, SCROLL_PX) }
+                rule.waitForIdle()
+            }
+        }
+        check(placed()) { "$tag has no place on screen after $REVEAL_SCROLLS scrolls" }
     }
 
     /** The year jump to [target]'s year, then ‹ › to its month. */
@@ -310,6 +330,8 @@ class StrandsArchiveE2ETest {
         const val MONTH = "library.calendar.month."
         const val JUMP = "library.calendar.jump."
         const val PREV = "library.calendar.prev"
+        const val REVEAL_SCROLLS = 3
+        const val SCROLL_PX = 600f
         const val NEXT = "library.calendar.next"
         const val SAVE_GAP_MS = 5L
     }

@@ -1,9 +1,6 @@
 package com.ivandsky.puzzlebox.play.di
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.TopBarFlag
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.domain.ranks.LoadFriendsPastPage
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
@@ -14,7 +11,6 @@ import com.ivandsky.puzzlebox.play.GamePageRankViewModel
 import com.ivandsky.puzzlebox.play.GameViewModel
 import com.ivandsky.puzzlebox.play.HowToPlayRules
 import com.ivandsky.puzzlebox.play.LibraryViewModel
-import com.ivandsky.puzzlebox.play.MainTabsLargeBar
 import com.ivandsky.puzzlebox.play.MatchLegResultViewModel
 import com.ivandsky.puzzlebox.play.MatchLegViewModel
 import com.ivandsky.puzzlebox.play.PlaySessionStore
@@ -163,8 +159,6 @@ val playModule = module {
             linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
         )
     }
-    // MainTabsLargeBar (backlog #1597): Games and Community open on Today's large top bar while it is on.
-    single { MainTabsLargeBar(enabled = get<ReleaseFlags>().isEnabled(TopBarFlag.MainTabsLargeBar)) }
     // The memory forgets the last pick with the process.
     single { RandomPickMemory() }
     // The preset game is the one parameter: the page whose Random opened the sheet.

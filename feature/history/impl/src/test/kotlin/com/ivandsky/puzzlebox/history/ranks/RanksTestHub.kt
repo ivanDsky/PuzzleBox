@@ -41,9 +41,6 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Clock
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
@@ -116,7 +113,6 @@ internal class RanksTestHub(
 
     fun viewModel(
         linkedIn: Boolean = false,
-        releaseFlags: ReleaseFlags = FakeReleaseFlags(),
         savedState: SavedStateHandle = SavedStateHandle(),
         opening: RanksSelection = RanksSelection(),
     ): RanksViewModel {
@@ -144,7 +140,6 @@ internal class RanksTestHub(
             // As historyModule wires it: the Friends boards also read the friends a full global page leaves out.
             friendBoards = ObserveFriendBoards(ObserveFriendUids(matches, this.identity), this.identity, completions, linkedInView().takeIf { linkedIn }, LoadFriendsPastPage(leaderboard)),
             linkedIn = linkedInView().takeIf { linkedIn },
-            releaseFlags = releaseFlags,
             savedState = savedState,
             opening = opening,
         )
