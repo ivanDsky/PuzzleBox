@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.tangoui.trainer
 
+import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TrainerVerdict
 import com.ivandsky.puzzlebox.gameui.trainer.PracticeStatus
 import com.ivandsky.puzzlebox.games.tango.TangoCell
@@ -41,7 +42,7 @@ class TangoPracticeBoardPlayTest {
         play.settle()
         assertEquals(TangoCell.MOON, play.grid[moon.idx])
         val status = play.status
-        assertTrue((status as? PracticeStatus.Right)?.trained == true || (status as? PracticeStatus.KeepGoing)?.trained == true)
+        assertTrue(status.isTrainedProgress())
         assertEquals(trainedTurns(moon), play.turns)
     }
 
@@ -120,7 +121,7 @@ class TangoPracticeBoardPlayTest {
 
     @Test
     fun `Show me on another rung reports nothing`() = runTest {
-        val play = TangoPracticePlay.all(this).first { board ->
+        val play = TangoPracticePlay.all(this, BoardKind.Review).first { board ->
             board.showUntil { it.easiestRung?.let { rung -> rung.trainerId != it.technique } == true }
         }
         play.turns.clear()
@@ -154,7 +155,8 @@ class TangoPracticeBoardPlayTest {
 
         play.board.gotIt()
 
-        assertEquals(PracticeStatus.FindNextMove, play.status)
+        val ended = TangoPractice.isDone(play.decoded, play.grid, play.technique, play.kind)
+        assertEquals(if (ended) PracticeStatus.Done(null) else PracticeStatus.FindNextMove, play.status)
         assertEquals(after, play.session)
     }
 
@@ -174,37 +176,42 @@ class TangoPracticeBoardPlayTest {
     }
 
     @Test
-    fun `playing every step to the end solves the board, the last tap at once`() = runTest {
-        for (play in TangoPracticePlay.all(this).take(3)) {
-            val label = play.technique.value
-            while (true) {
-                val step = checkNotNull(TangoPractice.show(play.decoded, play.solution, play.grid, null))
-                for (square in step.squares) {
-                    val last = play.emptySquares.size == 1
-                    play.tap(square.idx, square.value)
-                    if (last) break
-                    play.settle()
+    fun `playing every step of a board ends it with the last step's Spotlight, the last tap at once`() = runTest {
+        for (kind in BoardKind.entries) {
+            for (play in TangoPracticePlay.all(this, kind).take(6)) {
+                val label = "${play.technique.value} $kind"
+                while (play.status !is PracticeStatus.Done) {
+                    val step = checkNotNull(TangoPractice.show(play.decoded, play.solution, play.grid, null))
+                    for (square in step.squares) {
+                        val last = play.emptySquares.size == 1
+                        play.tap(square.idx, square.value)
+                        if (last) break
+                        play.settle()
+                    }
                 }
-                if (play.emptySquares.isEmpty()) break
+                val done = play.status as PracticeStatus.Done
+                assertTrue(label, done.last != null)
+                assertTrue(label, TangoPractice.isDone(play.decoded, play.grid, play.technique, kind))
+                assertEquals(label, play.session.isComplete, play.emptySquares.isEmpty())
             }
-            assertEquals(label, PracticeStatus.Solved, play.status)
-            assertEquals(label, play.solution, play.grid)
-            assertTrue(label, play.session.isComplete)
         }
     }
 
     @Test
-    fun `Show me to the end solves the board and leaves no completion behind`() = runTest {
-        for (play in TangoPracticePlay.all(this)) {
-            val label = play.technique.value
-            while (play.emptySquares.isNotEmpty()) {
-                play.board.showMe()
-                play.board.gotIt()
-            }
+    fun `Show me to the end leaves no completion behind`() = runTest {
+        for (kind in BoardKind.entries) {
+            for (play in TangoPracticePlay.all(this, kind)) {
+                val label = "${play.technique.value} $kind"
+                while (play.status !is PracticeStatus.Done) {
+                    play.board.showMe()
+                    assertTrue(label, play.status is PracticeStatus.Shown)
+                    play.board.gotIt()
+                }
 
-            assertEquals(label, PracticeStatus.Solved, play.status)
-            assertEquals(label, play.solution, play.grid)
-            assertNull(label, play.session.ref)
+                assertEquals(label, PracticeStatus.Done(null), play.status)
+                assertTrue(label, TangoPractice.isDone(play.decoded, play.grid, play.technique, kind))
+                assertNull(label, play.session.ref)
+            }
         }
     }
 

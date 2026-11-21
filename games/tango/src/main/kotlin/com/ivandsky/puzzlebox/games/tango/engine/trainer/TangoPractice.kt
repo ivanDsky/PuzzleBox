@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.tango.engine.trainer
 
+import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
@@ -21,16 +22,68 @@ import com.ivandsky.puzzlebox.games.tango.engine.step.chebyshev
 object TangoPractice {
 
     /**
-     * The board a drill for [technique] starts on, or null when there is none: the first point of [walk] where
-     * [technique] is the easiest rung. The grid holds the givens and solution values only.
+     * The board a drill of [kind] for [technique] opens on, or null when there is none (spec §2.2, [BoardKind]). The
+     * grid holds the givens and solution values only. [walk]'s points whose easiest rung is no rung (a reveal) break
+     * runs, as they end a board ([isDone]).
+     * - [BoardKind.Focus]: the first point of the longest run of consecutive walk points where [technique] is the
+     *   easiest rung (ties: the earliest run).
+     * - [BoardKind.Review]: the run of consecutive walk points whose easiest rung is learned ([technique] and every rung
+     *   before it on [TangoLadder]) with the most [technique] points (ties: the earliest), at its first [technique]
+     *   point.
      *
      * Null when [technique] is no Tango technique, when [solution] is no solution of [puzzle], and when the walk fills
-     * the board without [technique] ever being the easiest rung (a reveal-only point does not count).
+     * the board without [technique] ever being the easiest rung, so both kinds exist on a puzzle exactly when the
+     * walker counts [technique] there.
      */
-    fun start(puzzle: TangoPuzzle, solution: List<TangoCell>, technique: TechniqueId): List<TangoCell?>? {
-        if (TangoStepRung.entries.none { it.trainerId == technique }) return null
+    fun start(puzzle: TangoPuzzle, solution: List<TangoCell>, technique: TechniqueId, kind: BoardKind): List<TangoCell?>? {
+        val order = TangoLadder.rungs.map { it.first.trainerId }
+        val trainedAt = order.indexOf(technique)
+        if (trainedAt < 0) return null
         if (!isSolution(puzzle, solution)) return null
-        return walk(puzzle, solution).firstOrNull { it.technique == technique }?.board
+        val inRun: (TechniqueId?) -> Boolean = when (kind) {
+            BoardKind.Focus -> { id -> id == technique }
+            BoardKind.Review -> { id -> id != null && order.indexOf(id) <= trainedAt }
+        }
+        var best: List<TangoCell?>? = null
+        var bestTrained = 0
+        var open: List<TangoCell?>? = null
+        var trained = 0
+        for (point in walk(puzzle, solution)) {
+            if (!inRun(point.technique)) {
+                trained = 0
+                open = null
+                continue
+            }
+            if (point.technique != technique) continue
+            if (open == null) open = point.board
+            trained++
+            if (trained > bestTrained) {
+                best = open
+                bestTrained = trained
+            }
+        }
+        return best
+    }
+
+    /**
+     * Whether a board of [kind] for [technique] is done on [grid] (spec §2.2): the puzzle is solved (no square is
+     * left), or the easiest rung on [grid] is another technique ([BoardKind.Focus]) or a technique later than
+     * [technique] on [TangoLadder] ([BoardKind.Review]), or no rung fires on [grid]: the next move would be a reveal,
+     * which no learned technique finds, so nothing more is asked.
+     *
+     * @throws IllegalArgumentException when [technique] is no Tango technique.
+     */
+    fun isDone(puzzle: TangoPuzzle, grid: List<TangoCell?>, technique: TechniqueId, kind: BoardKind): Boolean {
+        val rungs = TangoLadder.rungs
+        val trainedAt = rungs.indexOfFirst { it.first.trainerId == technique }
+        require(trainedAt >= 0) { "${technique.value} is no Tango technique" }
+        if (grid.none { it == null }) return true
+        val easiest = rungs.indexOfFirst { (_, rule) -> rule.forced(puzzle, grid).isNotEmpty() }
+        if (easiest < 0) return true
+        return when (kind) {
+            BoardKind.Focus -> easiest != trainedAt
+            BoardKind.Review -> easiest > trainedAt
+        }
     }
 
     /**

@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.game.trainer.TrainerVerdict
 import com.ivandsky.puzzlebox.gameui.trainer.DrillSource
@@ -26,6 +27,7 @@ import kotlin.coroutines.CoroutineContext
  */
 internal class FakePracticeBoard(
     override val technique: TechniqueId,
+    val kind: BoardKind,
     val puzzle: Puzzle,
     val scope: CoroutineScope,
     private val onTrainedTurn: (TrainerVerdict) -> Unit,
@@ -75,11 +77,12 @@ internal class FakeTrainerGame(
     override fun practice(
         puzzle: Puzzle,
         technique: TechniqueId,
+        kind: BoardKind,
         scope: CoroutineScope,
         onTrainedTurn: (TrainerVerdict) -> Unit,
     ): PracticeBoard? {
         if (puzzle.payload.last() in silent) return null
-        return FakePracticeBoard(technique, puzzle, scope, onTrainedTurn).also { boards += it }
+        return FakePracticeBoard(technique, kind, puzzle, scope, onTrainedTurn).also { boards += it }
     }
 
     @Composable

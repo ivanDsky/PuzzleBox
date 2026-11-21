@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.game.trainer.TrainerVerdict
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
@@ -41,18 +42,19 @@ internal class SudokuTrainer : TrainerGame {
     /**
      * Null for another game's puzzle, one that does not decode, one whose stored solution is not its unique solution
      * (every move is judged against it), a technique the ladder does not know, and a technique that is never the
-     * easiest rung on this puzzle. A move is judged on the board's own state, with no coroutine: [scope] goes unused.
+     * easiest rung on this puzzle (for either [kind]). A move is judged on the board's own state, with no coroutine: [scope] goes unused.
      */
     override fun practice(
         puzzle: Puzzle,
         technique: TechniqueId,
+        kind: BoardKind,
         scope: CoroutineScope,
         onTrainedTurn: (TrainerVerdict) -> Unit,
     ): PracticeBoard? {
         if (puzzle.gameId != gameId) return null
         val decoded = (SudokuGames.MINI.decodePuzzle(puzzle.payload) as? DecodeResult.Ok)?.value ?: return null
-        val start = SudokuPractice.start(decoded, technique) ?: return null
-        return SudokuPracticeBoard(decoded, start, technique, onTrainedTurn)
+        val start = SudokuPractice.start(decoded, technique, kind) ?: return null
+        return SudokuPracticeBoard(decoded, start, technique, kind, onTrainedTurn)
     }
 
     /**
@@ -76,5 +78,6 @@ private fun PracticeStatus.restyled(restyle: (Spotlight) -> Spotlight): Practice
     is PracticeStatus.Right -> copy(spotlight = restyle(spotlight))
     is PracticeStatus.Easier -> copy(spotlight = restyle(spotlight))
     is PracticeStatus.Shown -> copy(spotlight = restyle(spotlight))
-    PracticeStatus.FindNextMove, is PracticeStatus.KeepGoing, is PracticeStatus.Wrong, PracticeStatus.Solved -> this
+    is PracticeStatus.Done -> copy(last = last?.let(restyle))
+    PracticeStatus.FindNextMove, is PracticeStatus.KeepGoing, is PracticeStatus.Wrong -> this
 }

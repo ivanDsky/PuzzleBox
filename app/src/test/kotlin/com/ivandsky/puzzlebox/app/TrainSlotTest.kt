@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.app
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.game.trainer.TrainerVerdict
 import com.ivandsky.puzzlebox.gameui.PlayLayout
@@ -25,6 +26,7 @@ private class FakeTrainerGame(override val gameId: GameId) : TrainerGame {
     override fun practice(
         puzzle: Puzzle,
         technique: TechniqueId,
+        kind: BoardKind,
         scope: CoroutineScope,
         onTrainedTurn: (TrainerVerdict) -> Unit,
     ): PracticeBoard? = null

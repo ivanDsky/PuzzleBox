@@ -100,7 +100,7 @@ class PracticeBoardTest {
         rig.board.turn(TrainerVerdict.Right)
         rig.board.turn(TrainerVerdict.Right)
 
-        rig.vm.nextBoard()
+        rig.finishBoard(main)
         assertEquals(2, rig.vm.progress.value.inRow)
 
         val fresh = PracticeRig(named, device = listOf(puzzle(1), puzzle(2)), progress = rig.progress)
@@ -136,54 +136,54 @@ class PracticeBoardTest {
         assertTrue(rig.alive)
     }
 
-    /** Bug caught: Next board repeating the puzzle just played, or stopping when the device's puzzles are used up. */
+    /** Bug caught: the next board repeating the puzzle just played, or stopping when the device's puzzles are used up. */
     @Test
-    fun `Next board opens another puzzle on the device and cycles when none are left`() {
+    fun `a finished board is followed by another puzzle on the device, and they cycle when none are left`() {
         val rig = PracticeRig(emptyList(), device = listOf(puzzle(1), puzzle(2)))
         val tags = mutableListOf(rig.board.tag)
 
         repeat(3) {
-            rig.vm.nextBoard()
+            rig.finishBoard(main)
             tags += rig.board.tag
         }
 
         assertEquals(listOf(1, 2, 1, 2), tags)
     }
 
-    /** Bug caught: Next board dropping the board it replaces without ending its scope. */
+    /** Bug caught: the next board dropping the board it replaces without ending its scope. */
     @Test
-    fun `Next board ends the board it replaces`() {
+    fun `the next board ends the board it replaces`() {
         val rig = PracticeRig(emptyList(), device = listOf(puzzle(1), puzzle(2)))
         val first = rig.board
 
-        rig.vm.nextBoard()
+        rig.finishBoard(main)
 
         assertFalse(first.scope.coroutineContext[Job]!!.isActive)
     }
 
-    /** Bug caught: Next board fetching before the device's own puzzles are used, or fetching more than one puzzle for one tap. */
+    /** Bug caught: the next board fetching before the device's own puzzles are used, or fetching more than one puzzle for one board. */
     @Test
-    fun `Next board falls back to one fetch when the device's puzzles are played`() {
+    fun `the next board falls back to one fetch when the device's puzzles are played`() {
         val rig = PracticeRig(named, device = listOf(puzzle(1)))
 
-        rig.vm.nextBoard()
+        rig.finishBoard(main)
 
         assertEquals(listOf(20), rig.archive.loads)
         assertEquals(20, rig.board.tag)
 
-        rig.vm.nextBoard()
-        assertEquals("one fetch a tap, the played puzzles are not asked for again", listOf(20, 30), rig.archive.loads)
+        rig.finishBoard(main)
+        assertEquals("one fetch a board, the played puzzles are not asked for again", listOf(20, 30), rig.archive.loads)
         assertEquals(30, rig.board.tag)
     }
 
-    /** Bug caught: a fetch that fails after a solved board leaving the player on a dead page instead of the connection message. */
+    /** Bug caught: a fetch that fails after a finished board leaving the player on a dead page instead of the connection message. */
     @Test
     fun `a failed fetch after a board leaves the connection message and the progress alone`() {
         val rig = PracticeRig(named, device = listOf(puzzle(1)))
         rig.board.turn(TrainerVerdict.Right)
         rig.archive.script(20, ArchiveLoad.CantLoad(20, ArchiveLoad.CantLoad.Reason.Offline))
 
-        rig.vm.nextBoard()
+        rig.finishBoard(main)
 
         assertEquals(PracticeState.NeedsConnection, rig.state)
         assertEquals(1, rig.stored?.inRow)

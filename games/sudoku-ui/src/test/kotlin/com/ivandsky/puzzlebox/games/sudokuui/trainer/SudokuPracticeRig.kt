@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.games.sudokuui.trainer
 
+import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
+import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.game.trainer.TrainerVerdict
 import com.ivandsky.puzzlebox.games.sudoku.SudokuBoard
@@ -19,19 +21,34 @@ import kotlinx.coroutines.Job
  * digit key, in notes mode for a note). The engine's own judge picks the moves a test plays; what the tests assert is
  * what the board did with them.
  */
-internal class SudokuPracticeRig(val name: String, val puzzle: SudokuPuzzle, val technique: TechniqueId) {
+internal class SudokuPracticeRig(val name: String, val puzzle: SudokuPuzzle, val technique: TechniqueId, val kind: BoardKind) {
 
     /** What the board reported to the trainer's count, in order. */
     val verdicts = ArrayList<TrainerVerdict>()
 
     val practice: SudokuPracticeBoard =
-        SudokuTrainerFixtures.trainer.practice(SudokuTrainerFixtures.canonical(puzzle), technique, CoroutineScope(Job())) { verdicts += it }
+        SudokuTrainerFixtures.trainer.practice(SudokuTrainerFixtures.canonical(puzzle), technique, kind, CoroutineScope(Job())) { verdicts += it }
             as SudokuPracticeBoard
 
-    val label: String get() = "$name ${technique.value}"
+    val label: String get() = "$name ${technique.value} $kind"
+
+    /** A new board on the same puzzle, technique and kind. */
+    fun fresh() = SudokuPracticeRig(name, puzzle, technique, kind)
+
     val state get() = practice.state
     val board: SudokuBoard get() = state.session.board
     val status: PracticeStatus get() = practice.status.value
+
+    /** The step the board is flashing: a Right's, or the step that ended the board; null when none is. */
+    val flash: Spotlight?
+        get() = when (val now = status) {
+            is PracticeStatus.Right -> now.spotlight
+            is PracticeStatus.Done -> now.last
+            else -> null
+        }
+
+    /** The first move the judge reads as Right, null when the board has none. */
+    fun rightMove(): SudokuTrainerMove? = moves().firstOrNull { judge(it) is SudokuPracticeJudgement.Right }
 
     /** Every move open on the board now: each digit on each open square, and each shown note taken off. */
     fun moves(): List<SudokuTrainerMove> = board.cells.indices.filter { board.digitAt(it) == 0 }.flatMap { idx ->
@@ -80,9 +97,14 @@ internal class SudokuPracticeRig(val name: String, val puzzle: SudokuPuzzle, val
 
     companion object {
 
-        /** A fresh rig for every fixture and every technique it can start a practice for. */
+        /** A fresh rig for every fixture, every technique and every kind it can start a practice for. */
         fun all(): List<SudokuPracticeRig> = SudokuTrainerFixtures.all.flatMap { (name, puzzle) ->
-            SudokuTechniqueIds.all.filter { SudokuPractice.start(puzzle, it) != null }.map { SudokuPracticeRig(name, puzzle, it) }
+            SudokuTechniqueIds.all.flatMap { technique ->
+                BoardKind.entries.filter { SudokuPractice.start(puzzle, technique, it) != null }.map { SudokuPracticeRig(name, puzzle, technique, it) }
+            }
         }
+
+        /** [all] of one [kind]. */
+        fun all(kind: BoardKind): List<SudokuPracticeRig> = all().filter { it.kind == kind }
     }
 }

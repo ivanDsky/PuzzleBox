@@ -2,13 +2,16 @@ package com.ivandsky.puzzlebox.train.practice
 
 import com.ivandsky.puzzlebox.data.trainer.TechniqueProgress
 import com.ivandsky.puzzlebox.data.trainer.TrainerPuzzleSource
+import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.gameui.trainer.DrillCandidate
 import com.ivandsky.puzzlebox.gameui.trainer.DrillSource
+import com.ivandsky.puzzlebox.gameui.trainer.PracticeStatus
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeTrainerProgressRepository
+import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import com.ivandsky.puzzlebox.train.FakePracticeBoard
 import com.ivandsky.puzzlebox.train.FakeTrainerArchive
 import com.ivandsky.puzzlebox.train.FakeTrainerGame
@@ -20,15 +23,19 @@ import kotlinx.coroutines.flow.flow
 /**
  * A practice view model with its fakes. [candidates] are the archive numbers the technique's drill sources name,
  * [device] the puzzles on the device (newest first; a fetched puzzle is added), [attempt] the attempt it is started with,
- * or none. A puzzle's tag, the last byte of its payload, is its archive number for a fetched one.
+ * or none. A puzzle's tag, the last byte of its payload, is its archive number for a fetched one. The game's [catalog]
+ * is two techniques by default and [opens] the second, so the chapter has the four focus boards and a review; opening
+ * the first has the focus boards only.
  */
 internal class PracticeRig(
     candidates: List<DrillCandidate>,
     device: List<Puzzle> = emptyList(),
     attempt: Int? = 1,
     val progress: FakeTrainerProgressRepository = FakeTrainerProgressRepository(),
+    catalog: List<String> = listOf("naked-single", "line-lock"),
+    opens: TechniqueId = LINE_LOCK,
 ) {
-    val game = FakeTrainerGame(QUEENS, techniques("line-lock"), drillSources = listOf(DrillSource { candidates }))
+    val game = FakeTrainerGame(QUEENS, techniques(*catalog.toTypedArray()), drillSources = listOf(DrillSource { candidates }))
     val archive = FakeTrainerArchive()
     val onDevice = device.toMutableList()
     val vm: PracticeViewModel
@@ -36,7 +43,7 @@ internal class PracticeRig(
     init {
         archive.onLoaded = { onDevice += it }
         val source = TrainerPuzzleSource { flow { onDevice.toList().forEach { emit(it) } } }
-        vm = PracticeViewModel(game, LINE_LOCK, source, archive, progress, RecordAnswer(progress), InlineDispatcherProvider)
+        vm = PracticeViewModel(game, opens, source, archive, progress, RecordAnswer(progress), InlineDispatcherProvider)
         attempt?.let(vm::start)
     }
 
@@ -51,6 +58,7 @@ internal class PracticeRig(
     companion object {
         val QUEENS = GameId("queens")
         val LINE_LOCK = TechniqueId("line-lock")
+        val NAKED_SINGLE = TechniqueId("naked-single")
 
         /** Archive numbers 10, 20 and 30 with the steps that order them 20, 30, 10. */
         val named = listOf(
@@ -65,3 +73,10 @@ internal class PracticeRig(
 
 /** The tag of the puzzle the board was cut from. */
 internal val FakePracticeBoard.tag: Int get() = puzzle.payload.last().toInt()
+
+/** The board on screen ends ([PracticeStatus.Done]) and its pause passes, so the next board has opened when this returns. */
+internal fun PracticeRig.finishBoard(main: MainDispatcherRule, last: Spotlight? = null) {
+    board.say(PracticeStatus.Done(last))
+    main.testDispatcher.scheduler.advanceTimeBy(BOARD_DONE_PAUSE_MS)
+    main.testDispatcher.scheduler.runCurrent()
+}

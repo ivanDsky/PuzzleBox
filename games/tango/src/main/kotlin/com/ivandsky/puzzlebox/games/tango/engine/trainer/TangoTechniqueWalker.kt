@@ -13,8 +13,9 @@ import com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness
  * givens, one whole deduction of the easiest ladder rung at every point) and counts, per technique id, the points where
  * that technique was the easiest rung. A reveal counts for nothing.
  *
- * So a technique is counted exactly when [TangoPractice.start] has a board for it: every puzzle the technique index or
- * the generated set lists for a technique opens a practice board for it.
+ * So a technique is counted exactly when [TangoPractice.start] has a board for it, a focus board and a review board
+ * alike (both need one point where the technique is the easiest rung): every puzzle the technique index or the
+ * generated set lists for a technique opens a practice board for it.
  */
 object TangoTechniqueWalker : TechniqueWalker {
 

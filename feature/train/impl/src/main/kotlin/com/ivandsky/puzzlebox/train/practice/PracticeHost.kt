@@ -10,10 +10,11 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * [open]'s practice board, on its own view model, one per game and technique so a board survives the screen turning. Each
- * opening of the technique carries a new attempt number, and [PracticeViewModel.start] opens a fresh board for it.
- * [showBack] puts a back arrow in the title row, for the phone where the board covers the technique list; [onClose]
- * closes the practice. The game draws its own board and its own Spotlight; this only frames them.
+ * [open]'s practice, on its own view model, one per game and technique so a board survives the screen turning. Each
+ * opening of the technique carries a new attempt number, and [PracticeViewModel.start] opens the technique's first board
+ * for it; the chapters after it follow on their own, so the title row shows the technique the view model is on, not
+ * [open]'s. [showBack] puts a back arrow in the title row, for the phone where the board covers the technique list;
+ * [onClose] closes the practice. The game draws its own board and its own Spotlight; this only frames them.
  */
 @Composable
 internal fun PracticeHost(
@@ -32,16 +33,15 @@ internal fun PracticeHost(
     // shows the previous board for a frame.
     remember(vm, open.attempt) { vm.start(open.attempt) }
     val state by vm.state.collectAsStateWithLifecycle()
+    val chapter by vm.chapter.collectAsStateWithLifecycle()
     val progress by vm.progress.collectAsStateWithLifecycle()
     PracticePane(
-        name = open.technique.name,
-        line = open.technique.line,
+        chapter = chapter,
         state = state,
         progress = progress,
         showBack = showBack,
         onClose = onClose,
         board = { board, boardModifier -> game.Board(board, boardModifier) },
-        onNextBoard = vm::nextBoard,
         onTryAgain = vm::tryAgain,
         onTryAnother = vm::tryAnother,
         modifier = modifier,

@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.sudoku.engine.trainer
 
+import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.games.sudoku.KnownSolutions
 import com.ivandsky.puzzlebox.games.sudoku.SudokuBoard
@@ -37,14 +38,16 @@ internal object SudokuTrainerFixtures {
         real.mapValues { puzzle(it.value) } + generated.values.filterIndexed { n, _ -> n % 20 == 0 }.associate { it.id to puzzle(it) }
     }
 
-    /** A practice for [technique] on [puzzle] (the fixture [name]), starting at [board]. */
-    data class PracticeStart(val name: String, val puzzle: SudokuPuzzle, val technique: TechniqueId, val board: SudokuBoard)
+    /** A practice of [kind] for [technique] on [puzzle] (the fixture [name]), starting at [board]. */
+    data class PracticeStart(val name: String, val puzzle: SudokuPuzzle, val technique: TechniqueId, val kind: BoardKind, val board: SudokuBoard)
 
-    /** Every practice the fixtures can start, in fixture then ladder order. */
+    /** Every practice of either kind the fixtures can start, in fixture, ladder, then kind order. */
     val starts: List<PracticeStart> by lazy {
         all.flatMap { (name, puzzle) ->
-            SudokuTechniqueIds.all.mapNotNull { technique ->
-                SudokuPractice.start(puzzle, technique)?.let { PracticeStart(name, puzzle, technique, it) }
+            SudokuTechniqueIds.all.flatMap { technique ->
+                BoardKind.entries.mapNotNull { kind ->
+                    SudokuPractice.start(puzzle, technique, kind)?.let { PracticeStart(name, puzzle, technique, kind, it) }
+                }
             }
         }
     }

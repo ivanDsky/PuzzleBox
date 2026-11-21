@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.tangoui.trainer
 
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.game.trainer.TrainerVerdict
 import com.ivandsky.puzzlebox.gameui.trainer.PracticeStatus
@@ -27,6 +28,7 @@ internal class TangoPracticePlay private constructor(
     private val scope: TestScope,
     val puzzle: Puzzle,
     val technique: TechniqueId,
+    val kind: BoardKind,
     val board: TangoPracticeBoard,
     val turns: MutableList<TrainerVerdict>,
 ) {
@@ -89,14 +91,20 @@ internal class TangoPracticePlay private constructor(
     /** Plays [move] and waits for the judgement. */
     fun play(move: Move) = play(move.idx, move.value)
 
-    /** Show me, step after step, until [done] holds; false when the board fills first. */
+    /** Plays the engine's easiest step square by square with taps, as a player who knows the answer would. */
+    fun playNextStep() {
+        val step = checkNotNull(TangoPractice.show(decoded, solution, grid, null)) { "a step on $grid" }
+        step.squares.forEach { play(it.idx, it.value) }
+    }
+
+    /** Show me, step after step, until [done] holds; false when the board fills or ends first. */
     fun showUntil(done: (TangoPracticePlay) -> Boolean): Boolean {
-        while (!done(this)) {
-            if (emptySquares.isEmpty()) return false
+        while (true) {
+            if (status is PracticeStatus.Done || emptySquares.isEmpty()) return false
+            if (done(this)) return true
             board.showMe()
             board.gotIt()
         }
-        return true
     }
 
     companion object {
@@ -104,19 +112,27 @@ internal class TangoPracticePlay private constructor(
         /** The pause the board waits out after a tap before it judges (a cycle's last tap). */
         const val SETTLE_MILLIS = 500L
 
-        /** A board on [puzzle] for [technique], or null when the trainer offers none. */
-        fun open(scope: TestScope, puzzle: Puzzle, technique: TechniqueId): TangoPracticePlay? {
+        /** A board of [kind] on [puzzle] for [technique], or null when the trainer offers none. */
+        fun open(scope: TestScope, puzzle: Puzzle, technique: TechniqueId, kind: BoardKind = BoardKind.Focus): TangoPracticePlay? {
             val turns = mutableListOf<TrainerVerdict>()
-            val board = TangoTrainerFixtures.trainer.practice(puzzle, technique, scope, turns::add) as TangoPracticeBoard?
-            return board?.let { TangoPracticePlay(scope, puzzle, technique, it, turns) }
+            val board = TangoTrainerFixtures.trainer.practice(puzzle, technique, kind, scope, turns::add) as TangoPracticeBoard?
+            return board?.let { TangoPracticePlay(scope, puzzle, technique, kind, it, turns) }
         }
 
-        /** A fresh board for every technique of every daily the trainer has a start board for. */
-        fun all(scope: TestScope): List<TangoPracticePlay> = TangoTrainerFixtures.dailies.flatMap { puzzle ->
-            TangoTrainerFixtures.trainer.catalog().mapNotNull { open(scope, puzzle, it.id) }
-        }
+        /** A fresh board of [kind] for every technique of every daily the trainer has one for. */
+        fun all(scope: TestScope, kind: BoardKind = BoardKind.Focus): List<TangoPracticePlay> =
+            TangoTrainerFixtures.dailies.flatMap { puzzle ->
+                TangoTrainerFixtures.trainer.catalog().mapNotNull { open(scope, puzzle, it.id, kind) }
+            }
     }
 }
+
+/** After a finished trained step: Right, or Done when that step ended the board. */
+internal fun PracticeStatus.isTrainedRightOrDone(): Boolean = (this as? PracticeStatus.Right)?.trained == true || this is PracticeStatus.Done
+
+/** After a trained square: Keep going, Right, or Done when that square ended the board. */
+internal fun PracticeStatus.isTrainedProgress(): Boolean =
+    isTrainedRightOrDone() || (this as? PracticeStatus.KeepGoing)?.trained == true
 
 /** The first board with a move [match] accepts, and that move; fails naming [what] when no start board has one. */
 internal fun List<TangoPracticePlay>.firstWith(what: String, match: (TangoPracticePlay.Move) -> Boolean) =

@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.queens.engine.trainer
 
+import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensBoard
@@ -24,14 +25,60 @@ import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensVerifier
 object QueensPractice {
 
     /**
-     * The board a practice of [technique] starts from: [puzzle] walked from the empty board, a deduction of the
-     * easiest rung at every point (the simplest of its instances, as Show me makes it), up to the first point where
-     * [technique] is the easiest rung that has one. Null when [technique] is no Queens technique, [puzzle] has no true
-     * solution, or the walk never meets [technique] (it solves the puzzle without it, or the ladder stalls first).
+     * The board a practice of [technique] and [kind] starts from (spec §2.2): [puzzle] walked from the empty board, a
+     * deduction of the easiest rung at every point (the simplest of its instances, as Show me makes it). A focus board
+     * opens at the start of the longest run of walk points where [technique] is the easiest rung; a review board at
+     * the first such point of the run of learned points (see [BoardKind.Review]) that has the most of them. Ties go to
+     * the earliest run. Points of the attack rung, which Auto-cross makes on its own, never break a run. Null when
+     * [technique] is no Queens technique, [puzzle] has no true solution, or the walk never meets [technique] (it
+     * solves the puzzle without it, or the ladder stalls first): so [kind] makes no difference to whether a board exists.
      */
-    fun start(puzzle: QueensPuzzle, technique: TechniqueId): QueensBoard? {
-        if (QueensLadder.Stepwise.rungs.none { it.trainerId == technique }) return null
-        return walk(puzzle).firstOrNull { (_, easiest) -> easiest == technique }?.first
+    fun start(puzzle: QueensPuzzle, technique: TechniqueId, kind: BoardKind): QueensBoard? {
+        val order = learnedOrder()
+        val trained = order.indexOf(technique)
+        if (trained < 0) return null
+        var best: QueensBoard? = null
+        var bestCount = 0
+        var open: QueensBoard? = null
+        var count = 0
+        for ((board, easiest) in walk(puzzle)) {
+            val rank = easiest?.let(order::indexOf) ?: continue
+            if (!kind.asks(rank, trained)) {
+                open = null
+                count = 0
+                continue
+            }
+            if (rank != trained) continue
+            if (open == null) open = board
+            count++
+            if (count > bestCount) {
+                best = open
+                bestCount = count
+            }
+        }
+        return best
+    }
+
+    /**
+     * Whether a board of [technique] and [kind] is over on [board] (the live board, Auto-cross on): the puzzle is solved
+     * or the ladder has nothing left, or the easiest rung there is one [kind] no longer asks for: any other technique
+     * for a focus board, a later one than [technique] for a review board. The attack rung, which has no technique,
+     * never ends a board.
+     */
+    fun isDone(puzzle: QueensPuzzle, board: QueensBoard, technique: TechniqueId, kind: BoardKind): Boolean {
+        val rung = easiestRung(puzzle, candidates(puzzle, board)) ?: return true
+        val order = learnedOrder()
+        val easiest = rung.trainerId?.let(order::indexOf) ?: return false
+        return !kind.asks(easiest, order.indexOf(technique))
+    }
+
+    /** The Queens techniques, easiest first: the step ladder's rungs that have a Trainer identity. */
+    private fun learnedOrder(): List<TechniqueId> = QueensLadder.Stepwise.rungs.mapNotNull { it.trainerId }
+
+    /** Whether a board of this kind asks for the technique at [rank], the trained one being at [trained]. */
+    private fun BoardKind.asks(rank: Int, trained: Int): Boolean = when (this) {
+        BoardKind.Focus -> rank == trained
+        BoardKind.Review -> rank <= trained
     }
 
     /**

@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.queensui.trainer
 
 import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
 import com.ivandsky.puzzlebox.game.CommandHistory
+import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.game.trainer.TrainerVerdict
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
@@ -32,7 +33,7 @@ import java.time.Instant
 
 /**
  * One Queens practice board (spec §2.2): the play board's own [state], its gestures and its Auto-cross, played from
- * [start] to the end. Each move is judged by [QueensPractice] against the easiest rung with a deduction on the board
+ * [start] until it is done ([PracticeStatus.Done], as [kind] says). Each move is judged by [QueensPractice] against the easiest rung with a deduction on the board
  * the move was made on, and any move that is not Right is undone at once, the board back as it was. The judging runs
  * on the move's own call (a look-ahead rung takes up to 90 ms), so the undo is never seen late.
  *
@@ -53,7 +54,9 @@ import java.time.Instant
  * reports [PracticeStatus.KeepGoing] with how many are left; [PracticeStatus.Right] comes with the last one.
  *
  * **Explanations.** While [PracticeStatus.Easier] or [PracticeStatus.Shown] stands the board takes no move (each is
- * put back, unjudged) and Show me does nothing, until [gotIt].
+ * put back, unjudged) and Show me does nothing, until [gotIt]. The same holds once the board is [PracticeStatus.Done]:
+ * the move that ends it is judged and kept, and then the board is closed. When Show me makes the step that ends the
+ * board, the status is [PracticeStatus.Shown] first, and [gotIt] closes the board.
  *
  * [onTrainedTurn] gets each trained turn once: Right when a step of the trained technique is finished, Wrong
  * for each undone move made while it was the easiest rung, ShowMe for Show me.
@@ -61,6 +64,7 @@ import java.time.Instant
 internal class QueensPracticeBoard(
     private val puzzle: QueensPuzzle,
     override val technique: TechniqueId,
+    private val kind: BoardKind,
     start: QueensBoard,
     compute: CoroutineDispatcher,
     private val scope: CoroutineScope,
@@ -82,6 +86,7 @@ internal class QueensPracticeBoard(
 
     init {
         state.judge = this
+        if (QueensPractice.isDone(puzzle, state.session.board, technique, kind)) mutableStatus.value = PracticeStatus.Done(null)
     }
 
     /** A cross waiting for its tap cycle to settle: the session from before it, and the pause that settles it. */
@@ -96,6 +101,10 @@ internal class QueensPracticeBoard(
     private val explaining: Boolean
         get() = mutableStatus.value.let { it is PracticeStatus.Easier || it is PracticeStatus.Shown }
 
+    /** The board takes no move and Show me does nothing: an explanation stands, or the board is done. */
+    private val closed: Boolean
+        get() = explaining || mutableStatus.value is PracticeStatus.Done
+
     override fun input(idx: Int, drag: Boolean) {
         this.drag = drag
         halted = false
@@ -105,7 +114,7 @@ internal class QueensPracticeBoard(
 
     override fun judged(before: QueensSession, after: QueensSession, move: QueensReplayMove): QueensSession = when {
         showing -> after
-        explaining -> before
+        closed -> before
         move is QueensReplayMove.Cross -> crossed(before, after, move.cell)
         move is QueensReplayMove.Place -> placed(before, after, move.cell)
         move is QueensReplayMove.Hint || move is QueensReplayMove.AutoCross -> after
@@ -120,7 +129,7 @@ internal class QueensPracticeBoard(
     private fun crossed(before: QueensSession, after: QueensSession, cell: Cell): QueensSession {
         if (halted) return before
         if (drag) {
-            if (accepts(before, QueensPracticeMove.Cross(cell))) return after
+            if (accepts(before, after, QueensPracticeMove.Cross(cell))) return after
             halted = true
             return before
         }
@@ -137,15 +146,14 @@ internal class QueensPracticeBoard(
         // A queen on the held cross closes the cycle: it is judged against the board from before the cross.
         val origin = held?.takeIf { it.cell == cell }?.before ?: before
         dropHeld()
-        if (!accepts(origin, QueensPracticeMove.Place(cell))) return origin
-        if (after.isComplete) mutableStatus.value = PracticeStatus.Solved
+        if (!accepts(origin, after, QueensPracticeMove.Place(cell))) return origin
         return after
     }
 
     private fun settleHeld() {
         val waiting = held ?: return
         dropHeld()
-        if (!accepts(waiting.before, QueensPracticeMove.Cross(waiting.cell))) state.restore(waiting.before)
+        if (!accepts(waiting.before, state.session, QueensPracticeMove.Cross(waiting.cell))) state.restore(waiting.before)
     }
 
     private fun dropHeld() {
@@ -153,8 +161,12 @@ internal class QueensPracticeBoard(
         held = null
     }
 
-    /** A square of a right step was made; [left] are the squares it still crosses. The step is Right, and counted, only when none are. */
-    private fun progressed(spotlight: Spotlight, trained: Boolean, left: Set<Cell>) {
+    /**
+     * A square of a right step was made, leaving [after]; [left] are the squares the step still crosses. The step is
+     * Right, and counted, only when none are: and then, if [after] ends the board, the status is Done with the step
+     * in hand, not Right.
+     */
+    private fun progressed(spotlight: Spotlight, trained: Boolean, left: Set<Cell>, after: QueensSession) {
         if (left.isNotEmpty()) {
             running = Running(spotlight, trained, left)
             mutableStatus.value = PracticeStatus.KeepGoing(left.size, trained)
@@ -162,21 +174,23 @@ internal class QueensPracticeBoard(
         }
         running = null
         if (trained) onTrainedTurn(TrainerVerdict.Right)
-        mutableStatus.value = PracticeStatus.Right(spotlight, trained)
+        mutableStatus.value =
+            if (after.isComplete || QueensPractice.isDone(puzzle, after.board, technique, kind)) PracticeStatus.Done(spotlight)
+            else PracticeStatus.Right(spotlight, trained)
     }
 
-    /** Judges [move] made on [before] and reports it; true when the move stays. */
-    private fun accepts(before: QueensSession, move: QueensPracticeMove): Boolean {
+    /** Judges [move] made on [before], which left [after], and reports it; true when the move stays. */
+    private fun accepts(before: QueensSession, after: QueensSession, move: QueensPracticeMove): Boolean {
         val partway = running
         if (move is QueensPracticeMove.Cross && partway != null && move.cell in partway.remaining) {
-            progressed(partway.spotlight, partway.trained, partway.remaining - move.cell)
+            progressed(partway.spotlight, partway.trained, partway.remaining - move.cell, after)
             return true
         }
         return when (val verdict = QueensPractice.judge(puzzle, before.board, move)) {
             // No rung has a deduction here: nothing to judge by, and nothing to count.
             null -> true
             is QueensPracticeVerdict.Right -> {
-                progressed(spotlightOf(verdict.step), verdict.rung.trainerId == technique, verdict.remaining)
+                progressed(spotlightOf(verdict.step), verdict.rung.trainerId == technique, verdict.remaining, after)
                 true
             }
             is QueensPracticeVerdict.Easier -> {
@@ -197,12 +211,18 @@ internal class QueensPracticeBoard(
     }
 
     override fun gotIt() {
-        if (explaining) mutableStatus.value = PracticeStatus.FindNextMove
+        mutableStatus.value = when (mutableStatus.value) {
+            is PracticeStatus.Easier -> PracticeStatus.FindNextMove
+            is PracticeStatus.Shown ->
+                if (QueensPractice.isDone(puzzle, state.session.board, technique, kind)) PracticeStatus.Done(null) else PracticeStatus.FindNextMove
+            else -> return
+        }
     }
 
     override fun showMe() {
-        if (explaining) return
+        if (closed) return
         settleHeld()
+        if (mutableStatus.value is PracticeStatus.Done) return // the held cross was the step that ended the board
         val board = state.session.takeUnless { it.isComplete }?.board ?: return
         val deduction = QueensPractice.show(puzzle, board) ?: return
         running = null
@@ -214,7 +234,7 @@ internal class QueensPracticeBoard(
         }
         showing = false
         if (deduction.unit.rung.trainerId == technique) onTrainedTurn(TrainerVerdict.ShowMe)
-        mutableStatus.value = if (state.session.isComplete) PracticeStatus.Solved else PracticeStatus.Shown(spotlightOf(deduction))
+        mutableStatus.value = PracticeStatus.Shown(spotlightOf(deduction))
     }
 
     private fun spotlightOf(step: QueensStep.Deduction): Spotlight = QueensSpotlightMapper.map(step, puzzle, ++playId)

@@ -8,6 +8,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.game.trainer.TrainerVerdict
 import com.ivandsky.puzzlebox.gameui.trainer.DrillSource
@@ -43,13 +44,14 @@ internal class QueensTrainer(private val compute: CoroutineDispatcher) : Trainer
     override fun practice(
         puzzle: Puzzle,
         technique: TechniqueId,
+        kind: BoardKind,
         scope: CoroutineScope,
         onTrainedTurn: (TrainerVerdict) -> Unit,
     ): PracticeBoard? {
         if (puzzle.gameId != gameId) return null
         val decoded = (QueensCodec.decode(puzzle.payload) as? DecodeResult.Ok)?.value ?: return null
-        val start = QueensPractice.start(decoded, technique) ?: return null
-        return QueensPracticeBoard(decoded, technique, start, compute, scope, onTrainedTurn)
+        val start = QueensPractice.start(decoded, technique, kind) ?: return null
+        return QueensPracticeBoard(decoded, technique, kind, start, compute, scope, onTrainedTurn)
     }
 
     @Composable

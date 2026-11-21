@@ -9,7 +9,8 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 /**
  * The Mini Sudoku [TechniqueWalker]: walks a puzzle the way a practice board plays it ([SudokuPractice.walk]: every open
  * cell noted, the easiest rung's deduction made at each point) and counts, per [SudokuTechniqueIds] id, the points where
- * that id was the easiest rung. So a technique is counted exactly when [SudokuPractice.start] has a board for it: every
+ * that id was the easiest rung. So a technique is counted exactly when [SudokuPractice.start] has a board for it (of
+ * either [com.ivandsky.puzzlebox.game.trainer.BoardKind]): every
  * puzzle the index or the drill set lists for a technique opens a practice. A stuck walk counts only the points it
  * reached; a reveal, a triple and the walk's end count for nothing.
  */

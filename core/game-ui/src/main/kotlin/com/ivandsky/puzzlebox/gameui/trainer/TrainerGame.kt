@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.gameui.trainer
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.game.trainer.TrainerVerdict
 import com.ivandsky.puzzlebox.model.GameId
@@ -24,16 +25,16 @@ interface TrainerGame {
     val drillSources: List<DrillSource>
 
     /**
-     * A practice board for [technique] on [puzzle] (spec §2.2): the puzzle walked easiest-rung-first from its
-     * givens up to the first point where [technique] is the easiest rung that applies, every move before it
-     * already made. Null when [technique] is never the easiest rung on [puzzle] (the caller skips the puzzle).
-     * [scope] is the board's lifetime. [onTrainedTurn] receives one verdict per turn where [technique] was the
-     * easiest rung: Right once per step (a step's several squares count once), Wrong for an undone move,
-     * ShowMe for Show me.
+     * A practice board of [kind] for [technique] on [puzzle] (spec §2.2, [BoardKind]): the puzzle walked
+     * easiest-rung-first from its givens up to the point [kind] opens at, every move before it already made.
+     * Null when [technique] is never the easiest rung on [puzzle] (the caller skips the puzzle). [scope] is the
+     * board's lifetime. [onTrainedTurn] receives one verdict per turn where [technique] was the easiest rung:
+     * Right once per step (a step's several squares count once), Wrong for an undone move, ShowMe for Show me.
      */
     fun practice(
         puzzle: Puzzle,
         technique: TechniqueId,
+        kind: BoardKind,
         scope: CoroutineScope,
         onTrainedTurn: (TrainerVerdict) -> Unit,
     ): PracticeBoard?

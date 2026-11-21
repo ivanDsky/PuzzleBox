@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.tango.engine.trainer
 
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
@@ -22,7 +23,7 @@ import org.junit.Test
 class TangoTechniqueWalkerTest {
 
     @Test
-    fun `a technique is counted exactly when its practice board opens, on every archive daily`() {
+    fun `a technique is counted exactly when a focus or a review board opens, on every archive daily`() {
         val techniques = TangoStepRung.entries.map { it.trainerId }
         val dailies = TangoDailyBoards.all.map { draft ->
             TangoPuzzle(TangoDraft.variantOf(draft.n), draft.n, draft.givens, draft.markers)
@@ -33,11 +34,13 @@ class TangoTechniqueWalkerTest {
             val counts = TangoTechniqueWalker.techniqueCounts(canonical(puzzle))
             assertTrue("daily $i: no zero entries", counts.values.all { it > 0 })
             for (technique in techniques) {
-                assertEquals(
-                    "daily $i ${technique.value}",
-                    TangoPractice.start(puzzle, solution, technique) != null,
-                    (counts[technique] ?: 0) > 0,
-                )
+                BoardKind.entries.forEach { kind ->
+                    assertEquals(
+                        "daily $i ${technique.value} $kind",
+                        TangoPractice.start(puzzle, solution, technique, kind) != null,
+                        (counts[technique] ?: 0) > 0,
+                    )
+                }
             }
         }
     }
