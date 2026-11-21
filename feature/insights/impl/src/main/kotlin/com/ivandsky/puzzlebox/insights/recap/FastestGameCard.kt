@@ -133,7 +133,7 @@ internal fun FastestGameCard(
 /**
  * The middle of the page: the ghost average (or the first solve's line) over the timer, centred, the timer's font as big
  * as the widest of the time and the average lets it be across the room and the ghost's row fits above it, and no bigger
- * than the Solved page's number.
+ * than [heroCeilingSp].
  */
 @Composable
 private fun FastestHero(row: RecapCard.Fastest.Row, slam: Slam, ink: Color, tight: Boolean, wide: Boolean, u: Float, modifier: Modifier) {
@@ -284,6 +284,6 @@ private const val FirstSolveRoom = 34
 private const val FIT = 0.98f
 private const val MinHeroSp = 40f
 
-/** The time never outgrows the Solved page's number: a three-digit total's size on the same layout. */
-private fun heroCeilingSp(wide: Boolean): Float = totalFontSize(total = 100, striped = false, wide = wide).value
+/** The time's ceiling: the size a three-digit Solved total had on the same layout, 132sp on a phone and 240sp in a wide pane. */
+private fun heroCeilingSp(wide: Boolean): Float = if (wide) 240f else 132f
 private const val ProbeSp = 100f

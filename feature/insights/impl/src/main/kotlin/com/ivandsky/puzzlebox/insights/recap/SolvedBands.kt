@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.insights.recap
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,10 +14,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -24,63 +26,69 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ivandsky.puzzlebox.designsystem.MotionTokens
+import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteEntry
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
-import com.ivandsky.puzzlebox.designsystem.rememberCountUp
+import com.ivandsky.puzzlebox.designsystem.ink
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.model.GameId
 
 /**
  * The games' bands: one per game, stacked on a sheet that fills the [modifier]'s height, each as tall as its share of
- * the solves (never under [minBand]) in the game's own colour, with its name left and its count right. The bands slide in
- * one after the other from below the sheet, and each count rolls up and lands with the Stamp spring (Solved motion); reduced motion shows them settled.
+ * the solves (never under [minBand]) in the game's own accent, with its name left and its count right. The [tide] fills
+ * the sheet from its bottom edge over a faint glass track; each band's name enters and its count lands with the Stamp
+ * spring as the level clears the band (Solved motion). Reduced motion shows them settled.
  */
 @Composable
 internal fun SolvedBands(
     perGame: List<RecapCard.Solved.PerGame>,
     gameName: (GameId) -> String,
     minBand: Dp,
+    tide: SolvedTide,
     modifier: Modifier = Modifier,
 ) {
-    val brands = LocalGameBrands.current
     BoxWithConstraints(modifier.clip(SheetShape).testTag("recap.solved.games")) {
         val heights = bandHeights(perGame.map { it.solved }, maxHeight.value, minBand.value)
-        Column(Modifier.fillMaxSize()) {
+        val bands = remember(perGame, heights) { tideBands(perGame.map { it.solved }, heights) }
+        SideEffect { tide.bands = bands }
+        Box(Modifier.matchParentSize().tideTrack(PaletteEntry.Solved.ink))
+        Column(Modifier.fillMaxSize().tideClip(tide)) {
             perGame.forEachIndexed { index, row ->
-                val colors = brands(row.game).accent.colors()
-                val slide = rememberSolvedMove(bandStartMs(index))
-                val countStart = bandStartMs(index) + BandCountDelayMs
-                val count = rememberCountUp(row.solved.toLong(), delayMs = countStart, durationMs = MotionTokens.ScoreCountUpDuration)
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(heights[index].dp)
-                        .graphicsLayer {
-                            translationY = (1f - slide) * size.height * SlideTravel
-                        }
-                        .background(colors.accent)
-                        .padding(horizontal = Spacing.xl)
-                        .semantics(mergeDescendants = true) { contentDescription = "${gameName(row.game)}, ${row.solved}" }
-                        .testTag("recap.solved.game.${row.game.value}"),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(
-                        text = gameName(row.game),
-                        style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, lineHeight = 28.sp, fontWeight = FontWeight.Bold),
-                        color = colors.onAccent,
-                    )
-                    Text(
-                        text = count.toString(),
-                        modifier = Modifier.solvedStamp(countStart).testTag("recap.solved.game.${row.game.value}.count"),
-                        style = MaterialTheme.typography.displaySmall.tabular().copy(fontSize = 40.sp, lineHeight = 44.sp, fontWeight = FontWeight.Bold),
-                        color = colors.onAccent,
-                    )
-                }
+                val landMs = bands.getOrNull(index)?.let { tideLandMs(it.reach) } ?: 0
+                TideBandRow(row, gameName(row.game), heights[index].dp, landMs)
             }
         }
+    }
+}
+
+/** One game's band in its accent: its name enters and its count lands (Stamp) at [landMs], when the tide clears it. */
+@Composable
+private fun TideBandRow(row: RecapCard.Solved.PerGame, name: String, height: Dp, landMs: Int) {
+    val colors = LocalGameBrands.current(row.game).accent.colors()
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(height)
+            .background(colors.accent)
+            .padding(horizontal = Spacing.xl)
+            .semantics(mergeDescendants = true) { contentDescription = "$name, ${row.solved}" }
+            .testTag("recap.solved.game.${row.game.value}"),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            text = name,
+            modifier = Modifier.solvedEnter(landMs).testTag("recap.solved.game.${row.game.value}.name"),
+            style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, lineHeight = 28.sp, fontWeight = FontWeight.Bold),
+            color = colors.onAccent,
+        )
+        Text(
+            text = row.solved.toString(),
+            modifier = Modifier.solvedStamp(landMs).testTag("recap.solved.game.${row.game.value}.count"),
+            style = MaterialTheme.typography.displaySmall.tabular().copy(fontSize = 40.sp, lineHeight = 44.sp, fontWeight = FontWeight.Bold),
+            color = colors.onAccent,
+        )
     }
 }
 
@@ -108,6 +116,3 @@ internal fun bandHeights(solves: List<Int>, totalHeight: Float, min: Float): Lis
 internal val BandMin = 56.dp
 internal val BandMinWithStripe = 48.dp
 private val SheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-/** A band starts one band-height and a hair below its slot, so it comes up from under the sheet's edge. */
-private const val SlideTravel = 1.01f
-

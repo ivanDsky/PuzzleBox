@@ -201,14 +201,14 @@ class RecapDeckStateTest {
     }
 
     @Test
-    fun `each card and the Share page paint with their own palette entry, each game its own accent edge to edge`() {
+    fun `each card and the Share page paint with their own palette entry, Solved and each game edge to edge`() {
         val deck = RecapDeckState(pages, coverFirst = true)
         val palette = { pagePalette(cards, deck.current, dark = false, accent = ::accentOf) }
         val entry = { it: PaletteEntry -> RecapPagePalette(recapCardColors(it, darkTheme = false)) }
 
         assertEquals(entry(PaletteEntry.Cover), palette())
         deck.forward()
-        assertEquals(entry(PaletteEntry.Solved), palette())
+        assertEquals(RecapPagePalette(recapCardColors(PaletteEntry.Solved, darkTheme = false), flat = true, toFloor = true), palette())
         for (game in 0 until 3) {
             deck.forward()
             val accent = accentOf((cards[1] as RecapCard.Fastest).rows[game].game)

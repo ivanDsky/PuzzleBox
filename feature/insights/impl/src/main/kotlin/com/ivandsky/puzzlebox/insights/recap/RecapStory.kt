@@ -23,13 +23,16 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
@@ -124,6 +127,10 @@ internal fun RecapStory(
                     ChromeButton(PuzzleIcons.Close, "Close recap", "recap.close", reduced, onClick = onClose)
                 }
             }
+            val deckBottom = Spacing.xl
+            // A year deck keeps the foot's row on every card, so the deck does not resize between pages.
+            val yearDeck = cards.any { it is RecapCard.Month || it is RecapCard.YearFinale }
+            var footHeight by remember { mutableIntStateOf(0) }
             RecapDeck(
                 deck = deck,
                 palette = { at -> pagePalette(cards, deck.pageAt(at)) },
@@ -131,8 +138,10 @@ internal fun RecapStory(
                     .weight(1f)
                     .fillMaxWidth()
                     .padding(start = Spacing.lg, end = Spacing.lg)
-                    .padding(bottom = Spacing.xl),
+                    .padding(bottom = deckBottom),
                 yearFlick = { at -> deck.pageAt(at)?.let { cards.getOrNull(it.cardIndex) } is RecapCard.Month },
+                // A page down to the floor runs past the deck's inset and the foot's row to the story's bottom edge.
+                floor = { deckBottom.roundToPx() + if (yearDeck) footHeight else 0 },
             ) { at ->
                 val page = deck.pageAt(at)
                 if (page == null) {
@@ -155,9 +164,16 @@ internal fun RecapStory(
                     ShareCardPage(cards, gameName, share, onShare, Modifier.fillMaxSize())
                 }
             }
-            // A year deck keeps the foot's row on every card, so the deck does not resize between pages.
-            if (cards.any { it is RecapCard.Month || it is RecapCard.YearFinale }) {
-                Box(Modifier.fillMaxWidth().graphicsLayer { alpha = chrome }.padding(horizontal = Spacing.lg).padding(bottom = Spacing.md).heightIn(min = FootHeight)) {
+            if (yearDeck) {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .onSizeChanged { footHeight = it.height }
+                        .graphicsLayer { alpha = chrome }
+                        .padding(horizontal = Spacing.lg)
+                        .padding(bottom = Spacing.md)
+                        .heightIn(min = FootHeight),
+                ) {
                     deckFootOf(cards, deck.current?.cardIndex ?: -1)?.let { DeckFoot(it) }
                 }
             }
