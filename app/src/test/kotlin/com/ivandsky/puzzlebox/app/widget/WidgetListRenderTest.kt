@@ -72,7 +72,7 @@ class WidgetListRenderTest {
                 "Zip", "#3 of 41", "1:12", "Best 1:01",
                 "Tango", "#7 of 41", "0:48", "New best", "Best 0:48",
                 "Queens", "#1 of 38", "1:35", "Best 1:30",
-                "Mini Sudoku", "#12 of 40", "2:13", "Best 2:00",
+                "Mini Sudoku", "#12", "2:13", "Best 2:00",
                 "Strands", "–", "4:11", "Best 4:00",
                 "That’s the whole set",
             ),
@@ -98,10 +98,19 @@ class WidgetListRenderTest {
     fun `a solve over an hour is shown whole in the wide list, with no New best squeezed after it`() {
         val texts = draw(WidgetSamples.longest, WIDE).texts
 
-        assertTrue(texts.containsAll(listOf("1658 days in a row", "15 freezes", "#40 of 40", "1:05:42", "#112 of 120")))
+        assertTrue(texts.containsAll(listOf("1658 days in a row", "15 freezes", "1:05:42")))
         val longest = WidgetSamples.longest.copy(rings = WidgetSamples.longest.rings.map { it.copy(newBest = true) })
         val withChips = draw(longest, WIDE).texts
         assertEquals(4, withChips.count { it == "New best" })
+    }
+
+    @Test
+    fun `a place too long for the wide rank column shows the chip form, a short one keeps its board`() {
+        val texts = draw(WidgetSamples.longest, WIDE).texts
+
+        assertTrue(texts.containsAll(listOf("#40", "#112")))
+        assertEquals(emptyList<String>(), texts.filter { it == "#112 of 120" || it == "#40 of 40" })
+        assertTrue(draw(WidgetSamples.default, WIDE).texts.containsAll(listOf("#3 of 41", "#7 of 41", "#1 of 38")))
     }
 
     @Test
