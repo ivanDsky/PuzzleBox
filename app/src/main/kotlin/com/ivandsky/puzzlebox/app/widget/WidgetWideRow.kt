@@ -72,7 +72,7 @@ internal fun WidgetWideRow(index: Int, ring: WidgetRing?, showRank: Boolean, lay
     }
 }
 
-/** The 70dp rank column fits "#3 of 41" with room to spare; a longer place ("#12 of 40", "#112 of 120") falls back to the chip's "#12". */
+/** The 70dp rank column fits "#12 of 40" (9 characters); a longer place ("#112 of 120") falls back to the chip's "#112". */
 private fun wideRank(ring: WidgetRing, full: String, resources: Resources): String {
     val place = ring.rank as? WidgetRank.Ranked
     return if (place != null && full.length > MAX_RANK_CHARS) resources.getString(R.string.widget_chip_rank, place.position) else full
@@ -83,4 +83,4 @@ private val NAME_WIDTH = 116.dp
 private val RANK_WIDTH = 70.dp
 private val BEST_WIDTH = 84.dp
 private const val NEW_BEST_MAX_TIME_CHARS = 5
-private const val MAX_RANK_CHARS = 8
+private const val MAX_RANK_CHARS = 9
