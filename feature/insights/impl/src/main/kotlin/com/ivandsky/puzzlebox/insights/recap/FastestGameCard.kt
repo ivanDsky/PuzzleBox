@@ -124,7 +124,7 @@ internal fun FastestGameCard(
                 }
                 if (!row.hasReplay) ImportedPill()
             }
-            FastestHero(row, slam, ink, tight, u, Modifier.weight(1f).fillMaxWidth())
+            FastestHero(row, slam, ink, tight, wide, u, Modifier.weight(1f).fillMaxWidth())
             FastestGameFoot(row, gameName, periodLabel, slam, colors.accent, ink, tight, wide, u, onWatchReplay)
         }
     }
@@ -132,10 +132,11 @@ internal fun FastestGameCard(
 
 /**
  * The middle of the page: the ghost average (or the first solve's line) over the timer, centred, the timer's font as big
- * as the widest of the time and the average lets it be across the room and the ghost's row fits above it.
+ * as the widest of the time and the average lets it be across the room and the ghost's row fits above it, and no bigger
+ * than the Solved page's number.
  */
 @Composable
-private fun FastestHero(row: RecapCard.Fastest.Row, slam: Slam, ink: Color, tight: Boolean, u: Float, modifier: Modifier) {
+private fun FastestHero(row: RecapCard.Fastest.Row, slam: Slam, ink: Color, tight: Boolean, wide: Boolean, u: Float, modifier: Modifier) {
     val average = row.averageMs
     val base = MaterialTheme.typography.displayLarge.tabular().copy(fontWeight = FontWeight.ExtraBold)
     val measurer = rememberTextMeasurer()
@@ -152,7 +153,7 @@ private fun FastestHero(row: RecapCard.Fastest.Row, slam: Slam, ink: Color, tigh
             val extra = if (average == null) (FirstSolveRoom * u).dp.toPx() else 0f
             val rows = WINDOW_EM + if (average != null) WINDOW_EM * GHOST_SCALE + HERO_GAP_EM else 0f
             val fit = minOf(constraints.maxWidth / em, (constraints.maxHeight - extra) / rows) * FIT
-            fit.toSp().value.coerceIn(MinHeroSp, MaxHeroSp)
+            fit.toSp().value.coerceIn(MinHeroSp, heroCeilingSp(wide))
         }
         val heroStyle = base.copy(fontSize = heroSp.sp)
         Column(
@@ -282,5 +283,7 @@ private const val FirstSolveRoom = 34
 /** The share of the room the timer may take: a pixel more and a column would clip. */
 private const val FIT = 0.98f
 private const val MinHeroSp = 40f
-private const val MaxHeroSp = 560f
+
+/** The time never outgrows the Solved page's number: a three-digit total's size on the same layout. */
+private fun heroCeilingSp(wide: Boolean): Float = totalFontSize(total = 100, striped = false, wide = wide).value
 private const val ProbeSp = 100f
