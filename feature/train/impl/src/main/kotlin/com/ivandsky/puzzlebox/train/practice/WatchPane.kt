@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -32,8 +31,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.data.trainer.TechniqueProgress
+import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
-import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.gameui.trainer.IntroDemo
@@ -43,9 +42,8 @@ private val MinBoardColumn = 320.dp
 private val WatchColumnWidth = 280.dp
 private val ColumnGap = Spacing.xl
 
-/** The slot under the board for Next step: kept when the button is gone, so the board does not grow on the last step. */
-private val NextStepSlot = 48.dp
-private val NextStepMinWidth = 200.dp
+/** The main button under the board: wide enough that "Next step" and the label it turns into keep one size. */
+private val MainActionMinWidth = 240.dp
 
 /** A pane at least this wide has the two columns side by side; a narrower one is a single column. */
 private val TwoPane = MinBoardColumn + ColumnGap + WatchColumnWidth
@@ -53,9 +51,10 @@ private val TwoPane = MinBoardColumn + ColumnGap + WatchColumnWidth
 /**
  * The technique intro (spec §2.7) over [intro], walked through by the player: each variant opens on its evidence and
  * Next step shows the squares landing, then the next variant (user-check rounds 4 and 5: autoplay ran too fast to
- * read, and the plain position before the evidence told nothing). Skip and Start practice call
- * [IntroControls.onStart]; in a [replay] over a live board Close and Back to board 1 call [IntroControls.onClose]. The
- * walk is this composition's: leaving the intro and coming back starts it again from the first variant.
+ * read, and the plain position before the evidence told nothing). On the last step Next step turns into Start
+ * practice (round 6); it and Skip intro call [IntroControls.onStart]. In a [replay] over a live board Back to board 1
+ * and Close call [IntroControls.onClose]. The walk is this composition's: leaving the intro and coming back starts it
+ * again from the first variant.
  */
 @Composable
 internal fun IntroWatch(
@@ -97,9 +96,9 @@ internal fun IntroWatch(
 /**
  * The intro's screen, stateless: a top bar ("Technique intro" and Skip intro, or Close in a [replay]), the title row
  * ("Watch first", no pips), then the demo of [entries]`[variant]` at [frame], drawn by [demo] under the watching band
- * (the caption of the frame's step) and over Next step ([onNext], while there is a step or variant after it), and the
- * [WatchColumn] beside it on a wide pane or below it on a narrow one. [onLeave] is the top bar's button, [onPrimary]
- * the column's Start practice (Back to board 1 in a replay).
+ * (the caption of the frame's step) and over the main button, and the [WatchColumn] beside it on a wide pane or below
+ * it on a narrow one. The main button is Next step ([onNext]) while there is a step or variant after the one shown,
+ * then [onPrimary]'s Start practice (Back to board 1 in a replay). [onLeave] is the top bar's button.
  */
 @Composable
 internal fun WatchPane(
@@ -128,7 +127,7 @@ internal fun WatchPane(
             TopBar(replay, showBack, onClose, onLeave)
             PracticeHeader(chapter, progress, showBack = false, onClose = onClose, watching = true)
             Spacer(Modifier.height(Spacing.sm))
-            val next = onNext.takeIf { hasNextStep(variant, frame, entry.frames, entries.size) }
+            val next = hasNextStep(variant, frame, entry.frames, entries.size)
             val band = @Composable { WatchBand(entry.variant.title, stepCaption(entry.demo.captions, frame)) }
             val board = @Composable { demo(entry.demo, frame, Modifier) }
             if (wide) {
@@ -136,10 +135,10 @@ internal fun WatchPane(
                 Row(Modifier.fillMaxWidth().weight(1f), Arrangement.spacedBy(ColumnGap, Alignment.CenterHorizontally)) {
                     Column(Modifier.weight(1f, fill = false).fillMaxHeight(), Arrangement.spacedBy(Spacing.md), Alignment.CenterHorizontally) {
                         BandOverBoard(band, board, Modifier.weight(1f, fill = false))
-                        NextStep(next)
+                        MainAction(next, primary, onNext, onPrimary)
                     }
                     WatchColumn(
-                        entries, variant, frame, primary, compact = false, onSelect, onSeek, onReplay, onPrimary,
+                        entries, variant, frame, compact = false, onSelect, onSeek, onReplay,
                         Modifier.width(WatchColumnWidth).fillMaxHeight().verticalScroll(rememberScrollState()),
                     )
                 }
@@ -150,8 +149,8 @@ internal fun WatchPane(
                     Alignment.CenterHorizontally,
                 ) {
                     BandOverBoard(band, board)
-                    NextStep(next)
-                    WatchColumn(entries, variant, frame, primary, compact = true, onSelect, onSeek, onReplay, onPrimary)
+                    MainAction(next, primary, onNext, onPrimary)
+                    WatchColumn(entries, variant, frame, compact = true, onSelect, onSeek, onReplay)
                 }
             }
         }
@@ -175,13 +174,17 @@ private fun TopBar(replay: Boolean, showBack: Boolean, onClose: () -> Unit, onLe
     }
 }
 
-/** Next step, centered under the board; without [onNext] (nothing after the step shown) its slot stays empty. */
+/**
+ * The intro's one main button, centered under the board: Next step while [next] (a step or variant follows the one
+ * shown), then [primary] (Start practice, or Back to board 1 in a replay) in the same place on the last step.
+ */
 @Composable
-private fun NextStep(onNext: (() -> Unit)?) {
-    Box(Modifier.heightIn(min = NextStepSlot), contentAlignment = Alignment.Center) {
-        if (onNext != null) {
-            SecondaryButton("Next step", onNext, Modifier.widthIn(min = NextStepMinWidth).testTag("train.watch.next"))
-        }
+private fun MainAction(next: Boolean, primary: String, onNext: () -> Unit, onPrimary: () -> Unit) {
+    val modifier = Modifier.widthIn(min = MainActionMinWidth)
+    if (next) {
+        PrimaryButton("Next step", onNext, modifier.testTag("train.watch.next"))
+    } else {
+        PrimaryButton(primary, onPrimary, modifier.testTag("train.watch.start"))
     }
 }
 
