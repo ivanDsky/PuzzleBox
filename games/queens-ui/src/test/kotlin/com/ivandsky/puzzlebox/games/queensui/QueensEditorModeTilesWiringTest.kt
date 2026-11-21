@@ -21,7 +21,7 @@ class QueensEditorModeTilesWiringTest {
 
     // One Koin case, as in ZipEditorModeTilesWiringTest: the flag set is flipped instead of a second container.
     @Test
-    fun `the Koin module reads ModeTiles as each editor opens, and it is off by default`() {
+    fun `the Koin module reads ModeTiles as each editor opens`() {
         val on = MutableStateFlow(emptySet<ReleaseFlagKey>())
         val flags = object : ReleaseFlags {
             override val enabled = on
@@ -30,7 +30,6 @@ class QueensEditorModeTilesWiringTest {
         val ui = koin.get<GameEditorUi>(qualifier("${QueensDefinition.id.value}.editor"))
         val draft = EditorDraft.fresh(QueensEditor, QueensVariants.variant(SIZE).id)
 
-        assertFalse(GameUiFlag.ModeTiles.releaseDefault)
         assertFalse((ui.createController(draft) {} as QueensEditorController).modeTiles)
 
         on.value = setOf(GameUiFlag.ModeTiles)

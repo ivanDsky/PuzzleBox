@@ -18,7 +18,7 @@ enum class TopBarFlag(override val label: String, override val releaseDefault: B
      * feature/profile and feature/play can read, and the flag-removal batch deletes it. Read only in a ViewModel or a
      * DI module (ADR-0022 §3).
      */
-    ChoiceRows(label = "Radio rows for settings-style choices: Appearance, Random source", releaseDefault = false),
+    ChoiceRows(label = "Radio rows for settings-style choices: Appearance, Random source", releaseDefault = true),
     ;
 
     /** The entry's own name: the stored override's key in `release_flags`. Never change it. */

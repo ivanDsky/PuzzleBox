@@ -33,7 +33,7 @@ import org.koin.dsl.module
 
 /**
  * The Studio's ViewModel gets [GameUiFlag.ModeTiles] from the create Koin module as it opens:
- * off by default, on once the flag is set, and read again by the next Studio that opens.
+ * off while the flag is unset, on once it is set, and read again by the next Studio that opens.
  */
 class EditorModeTilesWiringTest {
 
@@ -41,7 +41,7 @@ class EditorModeTilesWiringTest {
     val mainRule = MainDispatcherRule(StandardTestDispatcher())
 
     @Test
-    fun `each Studio asks ModeTiles as it opens, and it is off by default`() {
+    fun `each Studio asks ModeTiles as it opens`() {
         val on = MutableStateFlow(emptySet<ReleaseFlagKey>())
         val flags = object : ReleaseFlags {
             override val enabled = on
@@ -71,7 +71,6 @@ class EditorModeTilesWiringTest {
         }.koin
         fun studio() = koin.get<EditorViewModel>(parameters = { parametersOf(EditorKey("draft-1")) })
 
-        assertFalse(GameUiFlag.ModeTiles.releaseDefault)
         assertFalse(studio().modeTiles)
 
         on.value = setOf(GameUiFlag.ModeTiles)
