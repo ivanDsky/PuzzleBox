@@ -29,14 +29,16 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.lerp as lerpColor
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import com.ivandsky.puzzlebox.designsystem.LocalDarkTheme
@@ -54,8 +56,9 @@ import com.ivandsky.puzzlebox.model.GameId
 
 /**
  * The sticker sheet: a dashed slot for every earned Moment, oldest day first, and a sticker stamped onto each slot once
- * [placed] reaches it. Stickers share the sheet's room: as large as it allows (a phone caps them), in as many columns as
- * the count and the width call for, the last row centred. Tapping a sticker calls [onPeel]; the [peeled] one lifts.
+ * [placed] reaches it. The grid is sized to the board ([stickerGrid]): as large as the room allows (the phone and
+ * tablet ladders cap them), in the columns that fit, the last row centred, nothing touching the board's edge. Tapping a
+ * sticker calls [onPeel]; the [peeled] one lifts.
  */
 @Composable
 internal fun MomentStickerSheet(
@@ -66,29 +69,34 @@ internal fun MomentStickerSheet(
     onPeel: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val dayStyle = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    // The widest day and the height a day takes under its sticker, gap included, in dp.
+    val (dayWidth, dayHeight) = remember(stickers, dayStyle, density) {
+        val days = stickers.map { measurer.measure(it.day.shortLabel(), dayStyle).size }
+        with(density) { (days.maxOfOrNull { it.width } ?: 0).toDp().value to Spacing.sm.value + (days.maxOfOrNull { it.height } ?: 0).toDp().value }
+    }
     BoxWithConstraints(
         modifier.clip(MaterialTheme.shapes.extraLarge).background(PaletteEntry.Moments.plate),
         contentAlignment = Alignment.Center,
     ) {
+        // Every sheet fits its room; a wide one takes the tablet ladder's caps and columns.
         val wide = maxWidth >= WideSheet
-        val columns = columnsFor(stickers.size, wide)
-        val rows = stickers.chunked(columns)
-        val cellWidth = (maxWidth - SheetPad * 2 - GapX * (columns - 1)) / columns
-        // A wide sheet takes the prototype's tablet ladder and the height it needs (the card scrolls); a phone's fits its room.
-        val size = if (wide) {
-            minOf(tabletSize(stickers.size), cellWidth).coerceAtLeast(MinSize)
-        } else {
-            val cellHeight = (maxHeight - SheetPad * 2 - GapY * (rows.size - 1)) / rows.size - LabelHeight
-            minOf(if (stickers.size <= 2) AloneSize else MultiSize, cellWidth, cellHeight).coerceAtLeast(MinSize)
+        val grid = remember(stickers.size, maxWidth, maxHeight, dayWidth, dayHeight) {
+            stickerGrid(stickers.size, maxWidth.value, maxHeight.value, wide, dayWidth, dayHeight)
         }
-        val pad = if (wide) Modifier.padding(SheetPad) else Modifier
-        Column(pad, verticalArrangement = Arrangement.spacedBy(GapY), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            Modifier.padding(start = grid.side.dp, end = grid.side.dp, top = grid.top.dp, bottom = grid.side.dp),
+            verticalArrangement = Arrangement.spacedBy(grid.gapY.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             var index = 0
-            rows.forEach { row ->
-                Row(horizontalArrangement = Arrangement.spacedBy(GapX)) {
+            stickers.chunked(grid.columns).forEach { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(grid.gapX.dp)) {
                     row.forEach { moment ->
                         val i = index++
-                        Sticker(moment, i, size, gameName, placed > i, peeled == i, { onPeel(i) })
+                        Sticker(moment, i, grid, dayStyle, gameName, placed > i, peeled == i, { onPeel(i) })
                     }
                 }
             }
@@ -96,17 +104,19 @@ internal fun MomentStickerSheet(
     }
 }
 
-/** One slot and the sticker on it. The whole cell, sticker and day, is one button for touch and for a screen reader. */
+/** One slot and the sticker on it, its day under it when the [grid] has room. The whole cell is one button for touch and for a screen reader. */
 @Composable
 private fun Sticker(
     moment: EarnedMoment,
     index: Int,
-    size: Dp,
+    grid: StickerGrid,
+    dayStyle: TextStyle,
     gameName: (GameId) -> String,
     placed: Boolean,
     peeled: Boolean,
     onPeel: () -> Unit,
 ) {
+    val size = grid.size.dp
     val ink = PaletteEntry.Moments.ink
     val reduced = rememberReducedMotion()
     val shape = moment.kind.shape()
@@ -117,7 +127,7 @@ private fun Sticker(
     val day = moment.day.shortLabel()
     Column(
         Modifier
-            .width(size)
+            .width(grid.cellWidth.dp)
             // No ripple: the peel lift is the feedback.
             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, enabled = placed, onClickLabel = "Peel", role = Role.Button, onClick = onPeel)
             .semantics(mergeDescendants = true) {
@@ -151,13 +161,16 @@ private fun Sticker(
                 StickerFace(moment, size, recapCardColors(PaletteEntry.Moments, LocalDarkTheme.current))
             }
         }
-        Text(
-            text = day,
-            modifier = Modifier.padding(top = Spacing.sm).clearAndSetSemantics { }.graphicsLayer { alpha = stamp.value.coerceIn(0f, 1f) },
-            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-            color = ink,
-            maxLines = 1,
-        )
+        if (grid.dated) {
+            Text(
+                text = day,
+                modifier = Modifier.padding(top = Spacing.sm).clearAndSetSemantics { }.graphicsLayer { alpha = stamp.value.coerceIn(0f, 1f) },
+                style = dayStyle,
+                color = ink,
+                maxLines = 1,
+                softWrap = false,
+            )
+        }
     }
 }
 
@@ -169,31 +182,7 @@ internal fun EarnedMoment.Kind.shape(): Shape = when (this) {
     EarnedMoment.Kind.Streak -> RoundedCornerShape(topStartPercent = 50, topEndPercent = 14, bottomEndPercent = 50, bottomStartPercent = 50)
 }
 
-/** Columns for [count] stickers: one row up to four, three for five or six, then as many as the width holds. */
-private fun columnsFor(count: Int, wide: Boolean): Int = when {
-    count <= 4 -> count.coerceAtLeast(1)
-    count <= 6 -> 3
-    count <= 8 -> 4
-    wide -> 7
-    else -> 5
-}
-
-/** The prototype's tablet ladder: the sticker size for [count] stickers, as large as 176dp alone down to 92dp past eight. */
-private fun tabletSize(count: Int): Dp = when {
-    count <= 2 -> 176.dp
-    count <= 4 -> 144.dp
-    count <= 8 -> 128.dp
-    else -> 92.dp
-}
-
 private val WideSheet = 600.dp
-private val SheetPad = 12.dp
-private val GapX = 10.dp
-private val GapY = 6.dp
-private val LabelHeight = 28.dp
-private val MinSize = 48.dp
-private val AloneSize = 120.dp
-private val MultiSize = 68.dp
 private const val CurlTint = 0.55f
 private const val RestStride = 37
 private const val RestSpread = 9

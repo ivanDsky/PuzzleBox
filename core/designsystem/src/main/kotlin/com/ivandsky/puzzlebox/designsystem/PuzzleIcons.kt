@@ -32,7 +32,8 @@ import androidx.compose.ui.res.vectorResource
  * its Rounded glyphs (Outlined for the unselected nav states); the rest are Material
  * Symbols Rounded 24dp drawables in res/drawable (`ic_<symbol name>.xml`, FILL 0), read
  * through a `@Composable` getter. [Box]/[BoxFilled] are the custom four-tile mark
- * (BoxMark.kt). Game glyphs are not here: each game owns its glyph on its brand.
+ * (BoxMark.kt) and [FullSet] the four-petal set mark (SetMark.kt). Game glyphs are not here:
+ * each game owns its glyph on its brand.
  */
 object PuzzleIcons {
     val Home: ImageVector = Icons.Outlined.Home
@@ -165,6 +166,13 @@ object PuzzleIcons {
     /** Duel result and record: `emoji_events`, the trophy. */
     val Trophy: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.ic_emoji_events)
+
+    /** A first solve under a time: `timer`, the stopwatch. */
+    val Stopwatch: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.ic_timer)
+
+    /** A full set done, every puzzle of the day: four petals (SetMark.kt). */
+    val FullSet: ImageVector = SetMark
 
     /** Share a result or invite: the share glyph from the core set. */
     val Share: ImageVector = Icons.Rounded.Share

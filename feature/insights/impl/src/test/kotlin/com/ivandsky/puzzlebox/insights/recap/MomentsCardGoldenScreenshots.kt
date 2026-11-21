@@ -17,9 +17,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Moments card in the four contract states (default, empty, longest, peeled) on phone and tablet, light and dark, each
- * the sheet as it rests after the stickers are placed. The peeled frames tap a sticker as a user would.
- * Goldens in `snapshots/recap/`.
+ * Moments card in the four contract states (default, empty, longest, peeled), and a year's 32 stickers, on phone and
+ * tablet, light and dark, each the sheet as it rests after the stickers are placed. The peeled frames tap a sticker as a
+ * user would. Goldens in `snapshots/recap/`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -49,9 +49,15 @@ class MomentsCardGoldenScreenshots {
     @Config(qualifiers = GOLDEN_TABLET) @Test fun `moments peeled tablet light`() = capture("peeled", "tablet", false, MomentsFixtures.default, peel = 4)
     @Config(qualifiers = GOLDEN_TABLET) @Test fun `moments peeled tablet dark`() = capture("peeled", "tablet", true, MomentsFixtures.default, peel = 4)
 
-    private fun capture(state: String, device: String, dark: Boolean, card: RecapCard.Moments, peel: Int? = null) {
+    @Config(qualifiers = GOLDEN_PHONE) @Test fun `moments year phone light`() = capture("year", "phone", false, MomentsFixtures.year, year = true)
+    @Config(qualifiers = GOLDEN_PHONE) @Test fun `moments year phone dark`() = capture("year", "phone", true, MomentsFixtures.year, year = true)
+    @Config(qualifiers = GOLDEN_TABLET) @Test fun `moments year tablet light`() = capture("year", "tablet", false, MomentsFixtures.year, year = true)
+    @Config(qualifiers = GOLDEN_TABLET) @Test fun `moments year tablet dark`() = capture("year", "tablet", true, MomentsFixtures.year, year = true)
+
+    private fun capture(state: String, device: String, dark: Boolean, card: RecapCard.Moments, peel: Int? = null, year: Boolean = false) {
+        val story = if (year) MomentsFixtures.story(card, RecapFixtures.year2025, "2025") else MomentsFixtures.story(card)
         rule.showGolden(dark = dark) {
-            RecapScreen(MomentsFixtures.story(card), "October 2026", FastestFixtures.gameName, onPage = {}, onWatchReplay = {}, onClose = {})
+            RecapScreen(story, story.title, FastestFixtures.gameName, onPage = {}, onWatchReplay = {}, onClose = {})
         }
         if (peel != null) {
             rule.onNodeWithTag("recap.moments.sticker.$peel").performClick()

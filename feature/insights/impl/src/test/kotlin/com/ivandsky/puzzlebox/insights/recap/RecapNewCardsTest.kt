@@ -244,6 +244,16 @@ class RecapNewCardsTest {
 
         rule.onNodeWithTag("recap.moments.sticker.2").assertContentDescriptionEquals("7-day streak, Oct 12")
         rule.onNodeWithTag("recap.moments.sticker.3").assertContentDescriptionEquals("Personal best in Queens, Oct 17")
+        rule.onNodeWithTag("recap.moments.sticker.4").assertContentDescriptionEquals("First under 1:00 in Zip, Oct 22")
+    }
+
+    // Catches a dense sheet that drops the days under its stickers losing them for a screen reader too.
+    @Test
+    fun `a year of stickers still tells a screen reader each one's time and day`() {
+        show(MomentsFixtures.year, FastestFixtures.gameName)
+
+        rule.onNodeWithTag("recap.moments.sticker.24").assertContentDescriptionEquals("100-day streak, Sep 25")
+        rule.onNodeWithTag("recap.moments.sticker.31").assertContentDescriptionEquals("First under 0:30 in Zip, Dec 11")
     }
 
     @Test

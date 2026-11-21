@@ -104,11 +104,3 @@ internal fun EarnedMoment.label(gameName: (GameId) -> String): String {
         EarnedMoment.Kind.Streak -> "$streakDays-day streak"
     }
 }
-
-/** The few characters a sticker carries on its face: "PB", the time, "SET" or "7d". */
-internal fun EarnedMoment.face(): String = when (kind) {
-    EarnedMoment.Kind.PersonalBest -> "PB"
-    EarnedMoment.Kind.FirstSubX -> formatDuration(thresholdMs ?: 0L)
-    EarnedMoment.Kind.FullSet -> "SET"
-    EarnedMoment.Kind.Streak -> "${streakDays}d"
-}

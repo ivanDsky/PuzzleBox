@@ -3,8 +3,6 @@ package com.ivandsky.puzzlebox.insights.recap
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -16,7 +14,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -92,8 +92,8 @@ internal fun MomentsCardPage(
     BoxWithConstraints(modifier.fillMaxSize().graphicsLayer { alpha = fade }.background(PaletteEntry.Moments.field).testTag("recap.moments")) {
         val wide = maxWidth >= WideWidth
         Column(
-            // A wide card's sheet is as tall as its stickers need and the card scrolls; a phone's sheet fills what is left.
-            Modifier.fillMaxSize().then(if (wide) Modifier.verticalScroll(rememberScrollState()) else Modifier).padding(horizontal = Spacing.lg, vertical = Spacing.lg),
+            // The sheet fills what is left, on a phone and a wide pane alike; the card never scrolls.
+            Modifier.fillMaxSize().padding(horizontal = Spacing.lg, vertical = Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             Text(
@@ -109,7 +109,7 @@ internal fun MomentsCardPage(
                 placed = placed,
                 peeled = peeled,
                 onPeel = { peeled = it },
-                modifier = (if (wide) Modifier.heightIn(min = WideSheetMinHeight) else Modifier.weight(1f)).fillMaxWidth().testTag("recap.moments.sheet"),
+                modifier = Modifier.weight(1f).fillMaxWidth().testTag("recap.moments.sheet"),
             )
             MomentPlaque(shown, stickers, gameName)
             KindRows(card.kindRows(), wide, ink)
@@ -155,8 +155,8 @@ private fun Hero(total: Int, shown: Int, ink: Color, modifier: Modifier = Modifi
 }
 
 /**
- * The kinds that came up: one rounded block of rows on a phone, a grid of two on a wide pane. Each row leads with the
- * shape its stickers have, so a kind reads by more than colour.
+ * The kinds that came up: one rounded block of rows on a phone, a grid of two on a wide pane. Each row leads with its
+ * stickers' glyph in a small dark disc, so the legend and the sheet read alike.
  */
 @Composable
 private fun KindRows(rows: List<KindRow>, wide: Boolean, ink: Color) {
@@ -186,15 +186,16 @@ private fun KindRowLine(row: KindRow, ink: Color, modifier: Modifier) {
         modifier
             .fillMaxWidth()
             .heightIn(min = RowMinHeight)
-            .padding(horizontal = Spacing.lg)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
             .semantics(mergeDescendants = true) {}
             .testTag(row.tag),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        Box(Modifier.size(MarkerSize).clip(row.kind.shape()).background(ink))
-        Text(row.label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge, color = ink)
-        Text(row.value, style = MaterialTheme.typography.titleMedium.tabular(), color = ink)
+        Box(Modifier.size(MarkerSize).clip(CircleShape).background(ink), contentAlignment = Alignment.Center) {
+            Icon(row.kind.glyph(), contentDescription = null, modifier = Modifier.size(MarkerGlyphSize), tint = PaletteEntry.Moments.field)
+        }
+        LabelThenValue(row.label, row.value, ink, Modifier.weight(1f))
     }
 }
 
@@ -241,7 +242,7 @@ private fun RecapCard.Moments.kindRows(): List<KindRow> = listOfNotNull(
 private val HeroFontSize = 84.sp
 private val HeroLineHeight = 76.sp
 private val RowMinHeight = 48.dp
-private val WideSheetMinHeight = 200.dp
-private val MarkerSize = 24.dp
+private val MarkerSize = 28.dp
+private val MarkerGlyphSize = 16.dp
 private val WideWidth = 600.dp
 private const val HairlineAlpha = 0.3f
