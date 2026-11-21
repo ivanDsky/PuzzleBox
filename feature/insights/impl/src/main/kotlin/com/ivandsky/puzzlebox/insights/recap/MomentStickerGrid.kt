@@ -17,9 +17,9 @@ internal data class StickerGrid(val columns: Int, val size: Float, val cellWidth
 }
 
 /**
- * The grid for [count] stickers on a sheet [widthDp] by [heightDp] (infinite on a [wide] sheet, which grows while the
- * card scrolls), each day [labelWidthDp] wide and [labelHeightDp] tall with its gap. Every column count is sized to the
- * board and capped by the phone or tablet ladder. Up to the [ReferenceMost] stickers the reference draws, its count
+ * The grid for [count] stickers on a sheet [widthDp] by [heightDp] (a phone's, or a [wide] tablet's), each day
+ * [labelWidthDp] wide and [labelHeightDp] tall with its gap. Every column count is sized to the board and capped by the
+ * phone or tablet ladder. Up to the [ReferenceMost] stickers the reference draws, its count
  * ([columnsFor]) stays unless another one makes the stickers a quarter larger or more; past that the largest stickers
  * win. The days go when they would shrink the stickers below [DatedMin]: the plaque still names the peeled sticker's
  * day, and every sticker's description keeps its own.
@@ -82,7 +82,7 @@ private fun columnsFor(count: Int, wide: Boolean): Int = when {
     else -> 5
 }
 
-/** The prototype's tablet ladder: the sticker size for [count] stickers, as large as 176dp alone down to 92dp past eight. */
+/** The prototype's tablet ladder, the largest sticker for [count] stickers: 176dp alone down to 92dp past eight. */
 private fun tabletSize(count: Int): Float = when {
     count <= 2 -> 176f
     count <= 4 -> 144f

@@ -56,9 +56,9 @@ import com.ivandsky.puzzlebox.model.GameId
 
 /**
  * The sticker sheet: a dashed slot for every earned Moment, oldest day first, and a sticker stamped onto each slot once
- * [placed] reaches it. The grid is sized to the board ([stickerGrid]): as large as the room allows (a phone caps them),
- * in the columns that fit, the last row centred, nothing touching the board's edge. Tapping a sticker calls [onPeel];
- * the [peeled] one lifts.
+ * [placed] reaches it. The grid is sized to the board ([stickerGrid]): as large as the room allows (the phone and
+ * tablet ladders cap them), in the columns that fit, the last row centred, nothing touching the board's edge. Tapping a
+ * sticker calls [onPeel]; the [peeled] one lifts.
  */
 @Composable
 internal fun MomentStickerSheet(
@@ -81,7 +81,7 @@ internal fun MomentStickerSheet(
         modifier.clip(MaterialTheme.shapes.extraLarge).background(PaletteEntry.Moments.plate),
         contentAlignment = Alignment.Center,
     ) {
-        // A wide sheet takes the tablet ladder and the height it needs (the card scrolls); a phone's fits its room.
+        // Every sheet fits its room; a wide one takes the tablet ladder's caps and columns.
         val wide = maxWidth >= WideSheet
         val grid = remember(stickers.size, maxWidth, maxHeight, dayWidth, dayHeight) {
             stickerGrid(stickers.size, maxWidth.value, maxHeight.value, wide, dayWidth, dayHeight)
