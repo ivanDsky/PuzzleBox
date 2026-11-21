@@ -24,7 +24,6 @@ import com.ivandsky.puzzlebox.domain.ranks.LoadFriendsPastPage
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.gameui.flags.GameUiFlag
-import com.ivandsky.puzzlebox.history.flags.HistoryFlag
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -48,7 +47,6 @@ import com.ivandsky.puzzlebox.games.sudokuui.SudokuHighlightSettings
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.FirstScreenReady
 import com.ivandsky.puzzlebox.profile.settings.GameOptions
-import com.ivandsky.puzzlebox.profile.settings.RanksLinkedInRow
 import com.ivandsky.puzzlebox.data.visibility.SkippedPosts
 import com.ivandsky.puzzlebox.data.visibility.VisibilityRepository
 import kotlinx.coroutines.CoroutineScope
@@ -89,10 +87,8 @@ val appModule = module {
     single {
         RankHistoryStarter(flags = get<ReleaseFlags>(), fill = get<SyncRankHistory>()::invoke, scope = get<CoroutineScope>())
     }
-    // With HistoryFlag.FriendsPastGlobalPage on, the ranks outside the hub and Result's Friends board also count the friends a full global page leaves out.
-    factory {
-        LoadFriendsPastPage.Binding(if (get<ReleaseFlags>().isEnabled(HistoryFlag.FriendsPastGlobalPage)) LoadFriendsPastPage(get<LeaderboardRepository>()) else null)
-    }
+    // The ranks outside the hub and Result's Friends board also count the friends a full global page leaves out.
+    factory { LoadFriendsPastPage(get<LeaderboardRepository>()) }
     // The ranks outside the hub (Home, Result, the play summary) follow its Friends/Global setting.
     factory {
         ObserveFriendDay.Binding(
@@ -101,7 +97,7 @@ val appModule = module {
                 friendUids = get<ObserveFriendUids>(),
                 linkedInDay = get<ObserveLinkedInDay>(),
                 completions = get<CompletionRepository>(),
-                friendsPast = get<LoadFriendsPastPage.Binding>().loader,
+                friendsPast = get<LoadFriendsPastPage>(),
             ),
         )
     }
@@ -136,7 +132,7 @@ val appModule = module {
     single { GameEditorRegistry(getAll<GameEditorUi>()) }
 
     // Every game's Trainer adapter, bound inside a TrainerGame.Binding that holds it only while that game's flag is on
-    // (the LoadFriendsPastPage.Binding shape: a definition cannot be left out by a flag). A factory, so each resolve reads
+    // (a definition cannot be left out by a flag). A factory, so each resolve reads
     // the flags afresh. Empty until a game's flag is on, and the Train tab shows only while it is not.
     factory { TrainerRegistry(getAll<TrainerGame.Binding>().mapNotNull { it.game }, TRAINER_ORDER) }
 
@@ -148,8 +144,6 @@ val appModule = module {
     single { MainTabBars(largeBar = get<ReleaseFlags>().isEnabled(TopBarFlag.MainTabsLargeBar)) }
     // Declared in core:game-ui, which has no Koin, so registered here too.
     flagSet("game-ui", GameUiFlag.entries)
-    // Settings' Ranks LinkedIn games switch (backlog #1770): a factory, so Settings reads the flag each time it opens.
-    factory { RanksLinkedInRow(shown = get<ReleaseFlags>().isEnabled(HistoryFlag.RanksLinkedInDefault)) }
 
     // The installed build GetAppUpdate compares against; debug never checks.
     single {

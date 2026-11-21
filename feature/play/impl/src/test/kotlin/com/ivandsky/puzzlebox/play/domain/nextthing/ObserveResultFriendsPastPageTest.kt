@@ -42,8 +42,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * #1779: Result's Friends board counts a friend who placed past the board's read page, as the hub's does, with
- * `FriendsPastGlobalPage` on. The page is 99 strangers and Ann, 30 s; Bea, 70 s, is past it. A 60 s solve passes Bea
+ * #1779: Result's Friends board counts a friend who placed past the board's read page, as the hub's does.
+ * The page is 99 strangers and Ann, 30 s; Bea, 70 s, is past it. A 60 s solve passes Bea
  * only if she is on the board.
  */
 class ObserveResultFriendsPastPageTest {
@@ -76,7 +76,7 @@ class ObserveResultFriendsPastPageTest {
         leaderboard.setPastPage(board, listOf(entry("bea", 70_000)))
     }
 
-    private fun observe(friendsPast: LoadFriendsPastPage?) = ObserveResultNextThing(
+    private fun observe(friendsPast: LoadFriendsPastPage) = ObserveResultNextThing(
         registry = registry,
         identity = identity,
         history = ObserveGameHistory(registry, daily, completions),
@@ -103,13 +103,5 @@ class ObserveResultFriendsPastPageTest {
         scene()
 
         assertEquals(listOf(Moment.PassedFriend("bea", "bea")), moments(observe(LoadFriendsPastPage(leaderboard))).filterIsInstance<Moment.PassedFriend>())
-    }
-
-    @Test
-    fun `flag off, the friend past the read page is not on the board, as before`() = runTest {
-        scene()
-
-        assertEquals(emptyList<Moment>(), moments(observe(friendsPast = null)).filterIsInstance<Moment.PassedFriend>())
-        assertEquals(emptyList<Any>(), leaderboard.playersFetched)
     }
 }

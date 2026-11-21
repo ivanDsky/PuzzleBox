@@ -29,14 +29,6 @@ enum class GameUiFlag(override val label: String, override val releaseDefault: B
      * is on. Read only in a game UI module's DI (ADR-0022 §3).
      */
     TrainSudoku(label = "Mini Sudoku in the Train tab", releaseDefault = false),
-
-    /**
-     * Mode tiles (epic segmented-replace): the work surfaces' mode switches, the Zip editor's step list and the Queens editor's
-     * Queen | Paint and Solution A | B, show as quiet violet tiles instead of the segmented control. Lives here because
-     * games/zip-ui, games/queens-ui and feature/create/impl all depend on core:game-ui. Read only in a game UI module's DI
-     * or a ViewModel (ADR-0022 §3); the entry goes once the tiles are the only control.
-     */
-    ModeTiles(label = "Mode tiles on the work surfaces: Zip editor, Queens editor, Solution A | B", releaseDefault = true),
     ;
 
     /** The entry's own name: the stored override's key in `release_flags`. Never change it. */

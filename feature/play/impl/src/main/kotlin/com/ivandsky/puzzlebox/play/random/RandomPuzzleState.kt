@@ -22,15 +22,11 @@ internal sealed interface RandomPhase {
     data class Said(val message: RandomMessage) : RandomPhase
 }
 
-/**
- * The sheet's filters and phase. [game] null is Any game; [difficulty] null is any, and applies to Community only.
- * [choiceRows] (the ChoiceRows flag, read by DI) shows the source as radio rows, not the segmented control.
- */
+/** The sheet's filters and phase. [game] null is Any game; [difficulty] null is any, and applies to Community only. */
 internal data class RandomPuzzleState(
     val source: RandomSource,
     val game: GameId?,
     val unsolvedOnly: Boolean,
     val difficulty: DifficultyChoice?,
     val phase: RandomPhase,
-    val choiceRows: Boolean = false,
 )

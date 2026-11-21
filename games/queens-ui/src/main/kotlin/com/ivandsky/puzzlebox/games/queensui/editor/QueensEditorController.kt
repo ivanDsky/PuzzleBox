@@ -25,12 +25,10 @@ import kotlinx.coroutines.flow.asStateFlow
  * [settle] it at once, and while tapping a Fill chip does ([queensFillRegion]). In either mode a [stroke] (a drag out from a
  * coloured cell) paints that cell's colour along the drag. Every edit goes out through
  * [onEdit]; the VM hands replacement drafts back through [adopt]. The verdict card's witness
- * choice arrives through [adoptOverlay] and the board draws it from [overlay]. [modeTiles] picks the mode
- * switch's look, tiles or the segmented control, and changes no behaviour.
+ * choice arrives through [adoptOverlay] and the board draws it from [overlay].
  */
 class QueensEditorController(
     initial: EditorDraft<*>,
-    val modeTiles: Boolean = false,
     private val onEdit: (EditorDraft<*>) -> Unit,
 ) : GameEditorController {
 

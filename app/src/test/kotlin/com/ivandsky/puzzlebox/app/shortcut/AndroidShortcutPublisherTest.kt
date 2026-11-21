@@ -57,13 +57,10 @@ class AndroidShortcutPublisherTest {
     }
 
     @Test
-    fun `publish replaces the earlier set and clear removes it`() {
+    fun `publish replaces the earlier set`() {
         publisher.publish(entries)
         publisher.publish(entries.take(1))
         assertEquals(listOf("up_next"), published().map { it.id })
-
-        publisher.clear()
-        assertTrue(published().isEmpty())
     }
 
     @Test

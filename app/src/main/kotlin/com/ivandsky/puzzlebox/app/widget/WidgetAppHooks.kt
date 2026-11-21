@@ -12,29 +12,22 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 
 /**
- * The widget's app-start work. It switches the receiver by [enabled] once per start, so a flag-off build has no widget and
- * an earlier placed one goes away, and the rollover wake-up an earlier build left is cancelled. With it on, it redraws the
+ * The widget's app-start work. It enables the receiver once per start (the manifest ships it disabled), redraws the
  * widget when [changes] emits (a burst within one second is one redraw) and each time an activity starts, so opening the app
  * never shows a stale widget behind it, and arms the rollover wake-up at the start and at each activity start. The widget is
- * a convenience: a failed switch, redraw or arm is logged, never a reason to fail the start or stop the collection.
+ * a convenience: a failed enable, redraw or arm is logged, never a reason to fail the start or stop the collection.
  */
 class WidgetAppHooks(
-    private val enabled: Boolean,
     private val componentSwitch: WidgetComponentSwitch,
     private val changes: Flow<Unit>,
     private val refresher: WidgetRefresher,
     private val armRollover: ArmWidgetRollover,
-    private val alarm: WidgetRolloverAlarm,
     private val application: Application,
     private val scope: CoroutineScope,
 ) {
 
     fun start() {
-        scope.launch { switchComponent() }
-        if (!enabled) {
-            scope.launch { cancelRollover() }
-            return
-        }
+        scope.launch { enableComponent() }
         scope.launch { armRollover() }
         scope.launch { collectChanges() }
         application.registerActivityLifecycleCallbacks(
@@ -54,19 +47,11 @@ class WidgetAppHooks(
         )
     }
 
-    private fun switchComponent() {
+    private fun enableComponent() {
         try {
-            componentSwitch.setEnabled(enabled)
+            componentSwitch.enable()
         } catch (e: Exception) {
-            Log.w(TAG, "widget component not switched: ${e.message}")
-        }
-    }
-
-    private fun cancelRollover() {
-        try {
-            alarm.cancel()
-        } catch (e: Exception) {
-            Log.w(TAG, "widget rollover not cancelled: ${e.message}")
+            Log.w(TAG, "widget component not enabled: ${e.message}")
         }
     }
 

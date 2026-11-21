@@ -19,7 +19,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
-/** The start hook: the component switch by the flag, one redraw per change burst, one per activity start, the rollover alarm. */
+/** The start hook: the component enable, one redraw per change burst, one per activity start, the rollover alarm. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = DrainTestApplication::class)
 class WidgetAppHooksTest {
@@ -39,13 +39,11 @@ class WidgetAppHooksTest {
         clock = Clock.fixed(Instant.parse("2026-11-20T23:00:00Z"), ZoneOffset.UTC),
     )
 
-    private fun TestScope.hooks(enabled: Boolean, switch: WidgetComponentSwitch) = WidgetAppHooks(
-        enabled = enabled,
+    private fun TestScope.hooks(switch: WidgetComponentSwitch = FakeWidgetComponentSwitch()) = WidgetAppHooks(
         componentSwitch = switch,
         changes = changes,
         refresher = refresher,
         armRollover = armRollover,
-        alarm = alarm,
         application = RuntimeEnvironment.getApplication(),
         scope = backgroundScope,
     ).also {
@@ -58,42 +56,17 @@ class WidgetAppHooksTest {
     }
 
     @Test
-    fun `flag on enables the component`() = runTest {
+    fun `the start enables the component`() = runTest {
         val switch = FakeWidgetComponentSwitch()
 
-        hooks(enabled = true, switch)
+        hooks(switch)
 
-        assertEquals(listOf(true), switch.switched)
+        assertEquals(1, switch.enables)
     }
 
     @Test
-    fun `flag off disables the component and redraws nothing`() = runTest {
-        val switch = FakeWidgetComponentSwitch()
-        hooks(enabled = false, switch)
-
-        changes.emit(Unit)
-        startActivity()
-        advanceTimeBy(2_000)
-        runCurrent()
-
-        assertEquals(listOf(false), switch.switched)
-        assertEquals(0, refreshes)
-    }
-
-    @Test
-    fun `flag off cancels the rollover alarm and arms nothing, even on an activity start`() = runTest {
-        hooks(enabled = false, FakeWidgetComponentSwitch())
-
-        startActivity()
-        runCurrent()
-
-        assertEquals(1, alarm.cancels)
-        assertEquals(emptyList<Instant>(), alarm.scheduled)
-    }
-
-    @Test
-    fun `flag on arms the rollover at start and never cancels it`() = runTest {
-        hooks(enabled = true, FakeWidgetComponentSwitch())
+    fun `the start arms the rollover and never cancels it`() = runTest {
+        hooks()
 
         assertEquals(listOf(ROLLOVER), alarm.scheduled)
         assertEquals(0, alarm.cancels)
@@ -101,7 +74,7 @@ class WidgetAppHooksTest {
 
     @Test
     fun `each activity start arms the rollover once more`() = runTest {
-        hooks(enabled = true, FakeWidgetComponentSwitch())
+        hooks()
 
         startActivity()
         runCurrent()
@@ -111,7 +84,7 @@ class WidgetAppHooksTest {
 
     @Test
     fun `a switch failure does not stop the redraws`() = runTest {
-        hooks(enabled = true, FakeWidgetComponentSwitch(IllegalStateException("user locked")))
+        hooks(FakeWidgetComponentSwitch(IllegalStateException("user locked")))
 
         changes.emit(Unit)
         advanceTimeBy(1_000)
@@ -122,7 +95,7 @@ class WidgetAppHooksTest {
 
     @Test
     fun `one change gives one redraw after the debounce`() = runTest {
-        hooks(enabled = true, FakeWidgetComponentSwitch())
+        hooks()
 
         changes.emit(Unit)
         advanceTimeBy(999)
@@ -136,7 +109,7 @@ class WidgetAppHooksTest {
 
     @Test
     fun `a burst of changes inside the window gives one redraw`() = runTest {
-        hooks(enabled = true, FakeWidgetComponentSwitch())
+        hooks()
 
         repeat(5) {
             changes.emit(Unit)
@@ -150,7 +123,7 @@ class WidgetAppHooksTest {
 
     @Test
     fun `a throwing redraw is swallowed and a later change still redraws`() = runTest {
-        hooks(enabled = true, FakeWidgetComponentSwitch())
+        hooks()
         refreshFailure = IllegalStateException("glance gone")
 
         changes.emit(Unit)
@@ -166,7 +139,7 @@ class WidgetAppHooksTest {
 
     @Test
     fun `an activity start redraws once`() = runTest {
-        hooks(enabled = true, FakeWidgetComponentSwitch())
+        hooks()
 
         startActivity()
         runCurrent()

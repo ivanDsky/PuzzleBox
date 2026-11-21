@@ -40,7 +40,7 @@ internal fun RandomPuzzleContent(
     val busy = state.phase is RandomPhase.Picking || state.phase is RandomPhase.Opened
     val failed = (state.phase as? RandomPhase.Said)?.message?.isFailure() == true
     val source: @Composable (Modifier) -> Unit = {
-        RandomSourceToggle(state.source, !busy, actions.onSource, it.fillMaxWidth(), state.choiceRows, failed)
+        RandomSourceToggle(state.source, !busy, actions.onSource, it.fillMaxWidth(), failed)
     }
     val chips: @Composable (Modifier) -> Unit = { RandomFilterChips(state, games, !busy, actions, onOpenFilter, it) }
     val pick: @Composable (Modifier) -> Unit = { RandomPickControls(state, busy, actions, it) }

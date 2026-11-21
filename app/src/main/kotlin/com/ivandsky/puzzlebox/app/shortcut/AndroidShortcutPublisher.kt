@@ -16,10 +16,6 @@ class AndroidShortcutPublisher(private val context: Context) : ShortcutPublisher
         ShortcutManagerCompat.setDynamicShortcuts(context, kept.mapNotNull(::shortcutOf))
     }
 
-    override fun clear() {
-        ShortcutManagerCompat.removeAllDynamicShortcuts(context)
-    }
-
     /** Null for a Today entry: that request rides the widget's intents, never a launcher shortcut. */
     private fun shortcutOf(entry: ShortcutEntry): ShortcutInfoCompat? {
         val (id, shortLabel, longLabel, icon) = when (val target = entry.target) {

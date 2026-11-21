@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.history.ranks
 
-import androidx.lifecycle.SavedStateHandle
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.QUEENS
@@ -38,7 +37,6 @@ class RanksViewModelGamesFilterTest {
     private val today = LocalDate.of(2026, 11, 13)
     private val strands = GameId("strands")
     private val registry = TestGames.registry(listOf(ZIP, TANGO, QUEENS, strands))
-    private val on = FakeReleaseFlags(HistoryFlag.GamesFilter)
 
     private fun entry(game: GameId, uid: String, timeMs: Long) =
         LeaderboardEntry(uid, uid, "${game.value}/$today/1", timeMs, 0, 1_700_000_000_000)
@@ -76,7 +74,7 @@ class RanksViewModelGamesFilterTest {
 
     @Test
     fun `LinkedIn games sums Overall over the LinkedIn games only and Strands leaves the list`() = runTest {
-        val viewModel = hub(*everyBoard()).viewModel(releaseFlags = on)
+        val viewModel = hub(*everyBoard()).viewModel()
 
         val all = viewModel.overall(Games.All)
         assertEquals(listOf("u1" to 250.0, "maya" to 200.0, "jonas" to 100.0), totals(all.board))
@@ -95,7 +93,7 @@ class RanksViewModelGamesFilterTest {
     fun `LinkedIn games in Friends sums the viewer and their friends over the LinkedIn games only`() = runTest {
         val h = hub(*everyBoard())
         h.befriend("maya")
-        val viewModel = h.viewModel(releaseFlags = on)
+        val viewModel = h.viewModel()
 
         val all = viewModel.overall(Games.All, RankScope.Friends)
         assertEquals(listOf("u1" to 250.0, "maya" to 200.0), totals(all.board))
@@ -107,7 +105,7 @@ class RanksViewModelGamesFilterTest {
 
     @Test
     fun `LinkedIn games counts the Week and the Month over the LinkedIn games only, with week and month points on or off`() = runTest {
-        listOf(FakeReleaseFlags(HistoryFlag.GamesFilter), FakeReleaseFlags(HistoryFlag.GamesFilter, HistoryFlag.WeekMonthPoints)).forEach { flags ->
+        listOf(FakeReleaseFlags(), FakeReleaseFlags(HistoryFlag.WeekMonthPoints)).forEach { flags ->
             val viewModel = hub(*everyBoard()).viewModel(releaseFlags = flags)
 
             listOf(Window.Week, Window.Month).forEach { window ->
@@ -123,7 +121,7 @@ class RanksViewModelGamesFilterTest {
 
     @Test
     fun `x of y counts only the LinkedIn games under LinkedIn games`() = runTest {
-        val viewModel = hub(zip, strandsBoard).viewModel(releaseFlags = on)
+        val viewModel = hub(zip, strandsBoard).viewModel()
 
         assertEquals("2 of 4 games", viewModel.overall(Games.All).board.note)
         assertEquals("1 of 3 games", viewModel.overall(Games.LinkedIn).board.note)
@@ -131,7 +129,7 @@ class RanksViewModelGamesFilterTest {
 
     @Test
     fun `games played counts only the LinkedIn games under LinkedIn games`() = runTest {
-        val viewModel = hub(*everyBoard()).viewModel(releaseFlags = on)
+        val viewModel = hub(*everyBoard()).viewModel()
 
         val me = { slice: RanksBoardSlice -> rowsOf(slice).single { it.playerId == "u1" }.scoreValue as BoardRowValue.Points }
         assertEquals(3, me(viewModel.overall(Games.All).board).games)
@@ -140,7 +138,7 @@ class RanksViewModelGamesFilterTest {
 
     @Test
     fun `switching back to All games restores the full Overall and the full list`() = runTest {
-        val viewModel = hub(*everyBoard()).viewModel(releaseFlags = on)
+        val viewModel = hub(*everyBoard()).viewModel()
         val before = viewModel.overall(Games.All)
 
         viewModel.overall(Games.LinkedIn)
@@ -153,7 +151,7 @@ class RanksViewModelGamesFilterTest {
 
     @Test
     fun `picking LinkedIn games on Strands opens Overall, and on a LinkedIn game keeps that game`() = runTest {
-        val viewModel = hub(*everyBoard()).viewModel(releaseFlags = on)
+        val viewModel = hub(*everyBoard()).viewModel()
 
         viewModel.pickBoard(RanksBoard.Game(strands))
         viewModel.setGames(Games.LinkedIn)
@@ -167,7 +165,7 @@ class RanksViewModelGamesFilterTest {
 
     @Test
     fun `each LinkedIn game's own board is the same under both picks`() = runTest {
-        val viewModel = hub(*everyBoard()).viewModel(releaseFlags = on)
+        val viewModel = hub(*everyBoard()).viewModel()
 
         listOf(ZIP, TANGO, QUEENS).forEach { game ->
             viewModel.pickBoard(RanksBoard.Game(game))
@@ -179,7 +177,7 @@ class RanksViewModelGamesFilterTest {
 
     @Test
     fun `a swipe from the last LinkedIn game does not reach Strands, and does under All games`() = runTest {
-        val viewModel = hub(*everyBoard()).viewModel(releaseFlags = on)
+        val viewModel = hub(*everyBoard()).viewModel()
         viewModel.pickBoard(RanksBoard.Game(QUEENS))
 
         viewModel.setGames(Games.LinkedIn)
@@ -193,7 +191,7 @@ class RanksViewModelGamesFilterTest {
 
     @Test
     fun `the position is the board's place among the listed ones`() = runTest {
-        val viewModel = hub(*everyBoard()).viewModel(releaseFlags = on)
+        val viewModel = hub(*everyBoard()).viewModel()
         viewModel.pickBoard(RanksBoard.Game(QUEENS))
 
         val state = viewModel.overall(Games.LinkedIn)
@@ -202,46 +200,25 @@ class RanksViewModelGamesFilterTest {
     }
 
     @Test
-    fun `with the flag off there is no Games filter and a stored LinkedIn games default is ignored`() = runTest {
-        val viewModel = hub(*everyBoard(), linkedInDefault = true).viewModel()
-
-        val state = viewModel.uiState.first { it.board.state is DailyBoardState.Ranked }
-
-        assertFalse(state.gamesFilter)
-        assertEquals(Games.All, state.games)
-        assertEquals(listOf("u1" to 250.0, "maya" to 200.0, "jonas" to 100.0), totals(state.board))
-    }
-
-    @Test
-    fun `with the flag off a restored LinkedIn games pick is counted as All games`() = runTest {
-        val handle = SavedStateHandle()
-        RanksSelectionSaver(handle).save(RanksSelection(games = Games.LinkedIn))
-
-        val viewModel = hub(*everyBoard()).viewModel(savedState = handle)
-
-        assertEquals(Games.All, viewModel.selection.value.games)
-    }
-
-    @Test
-    fun `with the flag on a saved LinkedIn games default opens the hub on it, and a link to Strands keeps All games`() = runTest {
+    fun `a saved LinkedIn games default opens the hub on it, and a link to Strands keeps All games`() = runTest {
         val h = hub(*everyBoard(), linkedInDefault = true)
 
-        assertEquals(Games.LinkedIn, h.viewModel(releaseFlags = on).selection.value.games)
-        assertEquals(Games.All, h.viewModel(releaseFlags = on, opening = RanksSelection.opening(RanksBoard.Game(strands), null)).selection.value.games)
-        assertEquals(Games.LinkedIn, h.viewModel(releaseFlags = on, opening = RanksSelection.opening(RanksBoard.Game(ZIP), null)).selection.value.games)
+        assertEquals(Games.LinkedIn, h.viewModel().selection.value.games)
+        assertEquals(Games.All, h.viewModel(opening = RanksSelection.opening(RanksBoard.Game(strands), null)).selection.value.games)
+        assertEquals(Games.LinkedIn, h.viewModel(opening = RanksSelection.opening(RanksBoard.Game(ZIP), null)).selection.value.games)
     }
 
     @Test
     fun `without a saved default the hub opens on All games, and a pick not saved is gone next time`() = runTest {
         val h = hub(*everyBoard())
-        h.viewModel(releaseFlags = on).setGames(Games.LinkedIn)
+        h.viewModel().setGames(Games.LinkedIn)
 
-        assertEquals(Games.All, h.viewModel(releaseFlags = on).selection.value.games)
+        assertEquals(Games.All, h.viewModel().selection.value.games)
     }
 
     @Test
     fun `a reselect reset lands on the saved games default`() = runTest {
-        val viewModel = hub(*everyBoard(), linkedInDefault = true).viewModel(releaseFlags = on)
+        val viewModel = hub(*everyBoard(), linkedInDefault = true).viewModel()
         viewModel.setGames(Games.All)
 
         viewModel.resetSelection()

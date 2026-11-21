@@ -5,7 +5,4 @@ interface ShortcutPublisher {
 
     /** Replaces the whole dynamic set with [entries]. */
     fun publish(entries: List<ShortcutEntry>)
-
-    /** Removes every dynamic shortcut. */
-    fun clear()
 }

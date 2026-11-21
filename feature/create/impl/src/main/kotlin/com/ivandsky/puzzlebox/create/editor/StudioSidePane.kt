@@ -46,7 +46,6 @@ internal fun StudioSidePane(
     onOverlay: (EditorOverlay) -> Unit,
     autoShow: Boolean,
     onAutoShow: (Boolean) -> Unit,
-    modeTiles: Boolean,
     issues: @Composable (Modifier) -> Unit,
     toolStrip: @Composable (Modifier) -> Unit,
     actionArea: @Composable (Modifier) -> Unit,
@@ -75,7 +74,6 @@ internal fun StudioSidePane(
                     onOverlay = onOverlay,
                     autoShow = autoShow,
                     onAutoShow = onAutoShow,
-                    modeTiles = modeTiles,
                     issues = issues,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -110,7 +108,6 @@ private fun PreviewPane(verdict: Verdict) {
         onOverlay = {},
         autoShow = true,
         onAutoShow = {},
-        modeTiles = false,
         issues = {},
         toolStrip = { stripModifier ->
             ToolStrip(

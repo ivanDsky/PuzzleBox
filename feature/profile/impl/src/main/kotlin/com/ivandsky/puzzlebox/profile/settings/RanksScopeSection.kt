@@ -23,16 +23,16 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 /**
  * The Settings Ranks block: which board the hub opens on, Friends or Global ([friends] selects Friends). It is the
  * default every landing uses (the tab, a game's rank row, Result's chip, Today's rank row); a pick made on the hub
- * itself is a session choice and does not change it. [linkedIn] (null: no switch) is the same kind of default for the
- * games counted, LinkedIn games only or all. Stateless: it reports the tapped default.
+ * itself is a session choice and does not change it. [linkedIn] is the same kind of default for the games counted,
+ * LinkedIn games only or all. Stateless: it reports the tapped default.
  */
 @Composable
 internal fun RanksScopeSection(
     friends: Boolean,
     onSelect: (friends: Boolean) -> Unit,
+    linkedIn: Boolean,
+    onSetLinkedIn: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
-    linkedIn: Boolean? = null,
-    onSetLinkedIn: (Boolean) -> Unit = {},
 ) {
     Column(
         modifier = modifier.fillMaxWidth().testTag("settings.ranks"),
@@ -43,15 +43,13 @@ internal fun RanksScopeSection(
             ScopeRow("Friends", "Ranks open on you and the people you've played.", selected = friends, tag = "settings.ranks.friends") { onSelect(true) }
             ScopeRow("Global", "Ranks open on everyone.", selected = !friends, tag = "settings.ranks.global") { onSelect(false) }
         }
-        if (linkedIn != null) {
-            SettingsSwitchRow(
-                label = "LinkedIn games only",
-                checked = linkedIn,
-                tag = "settings.ranks.linkedin",
-                onCheckedChange = onSetLinkedIn,
-                support = "Ranks open counting only the LinkedIn games, which leaves Strands out.",
-            )
-        }
+        SettingsSwitchRow(
+            label = "LinkedIn games only",
+            checked = linkedIn,
+            tag = "settings.ranks.linkedin",
+            onCheckedChange = onSetLinkedIn,
+            support = "Ranks open counting only the LinkedIn games, which leaves Strands out.",
+        )
     }
 }
 
@@ -79,5 +77,5 @@ private val MinRowHeight = 56.dp
 @PuzzleBoxPreviews
 @Composable
 internal fun RanksScopeSectionPreview() {
-    PuzzleBoxTheme { RanksScopeSection(friends = true, onSelect = {}) }
+    PuzzleBoxTheme { RanksScopeSection(friends = true, onSelect = {}, linkedIn = false, onSetLinkedIn = {}) }
 }

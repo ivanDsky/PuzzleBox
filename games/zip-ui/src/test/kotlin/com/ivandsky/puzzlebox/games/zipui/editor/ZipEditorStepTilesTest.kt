@@ -21,10 +21,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/**
- * The step switch under the Zip grid with [ZipEditorController.modeTiles] on and off, in the three-step
- * and the combined layout: the same tags, the same step changes, tiles only when the flag is on.
- */
+/** The step switch under the Zip grid, in the three-step and the combined layout: one tile per step, a tap selecting it. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp-420dpi")
@@ -33,12 +30,8 @@ class ZipEditorStepTilesTest {
     @get:Rule
     val rule = createComposeRule()
 
-    private fun show(combined: Boolean, modeTiles: Boolean): ZipEditorController {
-        val controller = ZipEditorController(
-            EditorDraft.fresh(ZipEditor, ZipEditor.variants.first()),
-            combined,
-            modeTiles,
-        ) {}
+    private fun show(combined: Boolean): ZipEditorController {
+        val controller = ZipEditorController(EditorDraft.fresh(ZipEditor, ZipEditor.variants.first()), combined) {}
         rule.setContent { PuzzleBoxTheme { ZipEditorBoard(controller, Modifier.fillMaxSize()) } }
         return controller
     }
@@ -48,8 +41,8 @@ class ZipEditorStepTilesTest {
     private fun exists(tag: String) = rule.onNodeWithTag(tag).assertExists()
 
     @Test
-    fun `tiles show one per step of the three-step layout and a tap selects like the old control`() {
-        val controller = show(combined = false, modeTiles = true)
+    fun `tiles show one per step of the three-step layout and a tap selects`() {
+        val controller = show(combined = false)
 
         exists("zip.editor.step")
         listOf("path", "numbers", "walls").forEach { assertTrue("$it tile", tileHeight(it) >= TILE_HEIGHT) }
@@ -66,7 +59,7 @@ class ZipEditorStepTilesTest {
 
     @Test
     fun `tiles show Path and Numbers and walls in the combined layout`() {
-        val controller = show(combined = true, modeTiles = true)
+        val controller = show(combined = true)
 
         listOf("path", "numbersandwalls").forEach { assertTrue("$it tile", tileHeight(it) >= TILE_HEIGHT) }
         rule.onNodeWithTag("zip.editor.step.numbers").assertDoesNotExist()
@@ -79,28 +72,8 @@ class ZipEditorStepTilesTest {
         rule.onNodeWithTag("zip.editor.step.numbersandwalls").assertIsSelected()
     }
 
-    @Test
-    fun `flag off keeps the segmented control in the three-step layout`() = segmentsStillWork(combined = false)
-
-    @Test
-    fun `flag off keeps the segmented control in the combined layout`() = segmentsStillWork(combined = true)
-
-    private fun segmentsStillWork(combined: Boolean) {
-        val controller = show(combined, modeTiles = false)
-        val last = ZipEditorStep.tabs(combined).last()
-        val tag = "zip.editor.step.${last.name.lowercase()}"
-
-        exists("zip.editor.step")
-        assertTrue("segmented control", tileHeight("path") < TILE_HEIGHT)
-        rule.onNodeWithTag(tag).performClick()
-        rule.waitForIdle()
-
-        assertEquals(last, controller.step.value)
-        rule.onNodeWithTag(tag).assertIsSelected()
-    }
-
     private companion object {
-        /** `ChoiceTiles`' tile floor; the old segmented row is 40 dp. */
+        /** `ChoiceTiles`' tile floor. */
         val TILE_HEIGHT = 52.dp
     }
 }

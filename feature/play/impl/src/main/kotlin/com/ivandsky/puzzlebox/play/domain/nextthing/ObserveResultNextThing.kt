@@ -71,7 +71,7 @@ import kotlinx.coroutines.withTimeoutOrNull
  * the friend Challenge would offer, whether the chain's rung, the row or both ask, and a read that fails offers
  * nothing (ADR-0031 §15).
  *
- * With [friendsPast] (backlog #1779, `FriendsPastGlobalPage`) a friend who placed past the board's read page is read by
+ * With [friendsPast] (backlog #1779) a friend who placed past the board's read page is read by
  * id and is on the Friends board, as on the hub's, under the same [timeout]: a board that is slow for it is no board.
  */
 class ObserveResultNextThing(

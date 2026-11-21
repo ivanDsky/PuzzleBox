@@ -54,7 +54,6 @@ internal fun StudioLayout(
     onOverlay: (EditorOverlay) -> Unit,
     autoShow: Boolean,
     onAutoShow: (Boolean) -> Unit,
-    modeTiles: Boolean,
     board: @Composable (Modifier) -> Unit,
     toolStrip: @Composable (Modifier) -> Unit,
     issues: @Composable (Modifier) -> Unit,
@@ -94,7 +93,6 @@ internal fun StudioLayout(
                 onOverlay = onOverlay,
                 autoShow = autoShow,
                 onAutoShow = onAutoShow,
-                modeTiles = modeTiles,
                 issues = issues,
                 toolStrip = toolStrip,
                 actionArea = actionArea,
@@ -183,7 +181,6 @@ private fun PreviewLayout(layout: PlayLayout) {
         onOverlay = {},
         autoShow = true,
         onAutoShow = {},
-        modeTiles = false,
         board = { boardModifier ->
             Box(boardModifier, contentAlignment = Alignment.Center) {
                 Box(Modifier.aspectRatio(1f, matchHeightConstraintsFirst = true).background(MaterialTheme.colorScheme.surfaceContainerHighest, AppShapes.small))

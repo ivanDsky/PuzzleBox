@@ -17,7 +17,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The Random body's source choice behind the ChoiceRows flag: radio rows on, the segmented control off. */
+/** The Random body's source choice: radio rows with a line under each. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w412dp-h900dp-420dpi")
@@ -28,8 +28,7 @@ class RandomSourceRowsTest {
     private fun stateOf(
         phase: RandomPhase = RandomPhase.Idle,
         source: RandomSource = RandomSource.Past,
-        choiceRows: Boolean = true,
-    ) = RandomPuzzleState(source, game = null, unsolvedOnly = true, difficulty = null, phase = phase, choiceRows = choiceRows)
+    ) = RandomPuzzleState(source, game = null, unsolvedOnly = true, difficulty = null, phase = phase)
 
     private fun show(state: RandomPuzzleState, onSource: (RandomSource) -> Unit = {}, layout: PlayLayout = PlayLayout.SinglePane) =
         rule.setContent {
@@ -39,21 +38,12 @@ class RandomSourceRowsTest {
     private fun node(tag: String) = rule.onNodeWithTag(tag)
 
     @Test
-    fun `flag on shows both rows with their lines and the chosen one selected`() {
+    fun `shows both rows with their lines and the chosen one selected`() {
         show(stateOf(source = RandomSource.Community))
 
         rule.onNode(hasText("Ones you can still play from the archive")).assertExists()
         rule.onNode(hasText("Shared by other people today")).assertExists()
         node("random.source.community").assertIsSelected()
-    }
-
-    @Test
-    fun `flag off keeps the segmented control with no lines`() {
-        show(stateOf(choiceRows = false))
-
-        node("random.source.past").assertIsSelected()
-        node("random.source.community").assertExists()
-        rule.onNode(hasText("Shared by other people today")).assertDoesNotExist()
     }
 
     @Test

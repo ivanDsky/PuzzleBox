@@ -22,10 +22,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/**
- * The Queen | Paint switch in the hint slot with [QueensEditorController.modeTiles] on and off: the same tags,
- * the same mode changes, tiles only when the flag is on.
- */
+/** The Queen | Paint switch in the hint slot: Queen and Paint tiles, a tap switching the mode. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp-420dpi")
@@ -34,11 +31,8 @@ class QueensModeTilesTest {
     @get:Rule
     val rule = createComposeRule()
 
-    private fun show(modeTiles: Boolean): QueensEditorController {
-        val controller = QueensEditorController(
-            EditorDraft.fresh(QueensEditor, QueensVariants.variant(SIZE).id),
-            modeTiles,
-        ) {}
+    private fun show(): QueensEditorController {
+        val controller = QueensEditorController(EditorDraft.fresh(QueensEditor, QueensVariants.variant(SIZE).id)) {}
         rule.setContent { PuzzleBoxTheme { QueensEditorUi().ToolHint(controller, Modifier.fillMaxWidth()) } }
         return controller
     }
@@ -46,8 +40,8 @@ class QueensModeTilesTest {
     private fun height(tag: String) = rule.onNodeWithTag(tag).getBoundsInRoot().height
 
     @Test
-    fun `tiles show a Queen and a Paint tile and a tap switches the mode like the old control`() {
-        val controller = show(modeTiles = true)
+    fun `tiles show a Queen and a Paint tile and a tap switches the mode`() {
+        val controller = show()
 
         rule.onNodeWithTag(GROUP).assertExists()
         listOf(CROWN, PAINT).forEach { assertTrue("$it tile", height(it) >= TILE_HEIGHT) }
@@ -66,28 +60,13 @@ class QueensModeTilesTest {
         rule.onNodeWithTag(CROWN).assertIsSelected()
     }
 
-    @Test
-    fun `flag off keeps the segmented control and a tap still switches the mode`() {
-        val controller = show(modeTiles = false)
-
-        rule.onNodeWithTag(GROUP).assertExists()
-        assertTrue("segmented control", height(CROWN) < TILE_HEIGHT)
-        rule.onNodeWithTag(CROWN).assertIsSelected()
-
-        rule.onNodeWithTag(PAINT).performClick()
-        rule.waitForIdle()
-
-        assertEquals(QueensEditorMode.Paint, controller.mode.value)
-        rule.onNodeWithTag(PAINT).assertIsSelected()
-    }
-
     private companion object {
         const val SIZE = 6
         const val GROUP = "queens.editor.mode"
         const val CROWN = "queens.editor.mode.crown"
         const val PAINT = "queens.editor.mode.paint"
 
-        /** `ChoiceTiles`' tile floor; the old segmented row is 40 dp. */
+        /** `ChoiceTiles`' tile floor. */
         val TILE_HEIGHT = 52.dp
     }
 }

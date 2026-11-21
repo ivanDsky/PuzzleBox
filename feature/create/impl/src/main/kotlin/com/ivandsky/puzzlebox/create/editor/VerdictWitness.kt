@@ -11,9 +11,6 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -32,15 +29,13 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
-import com.ivandsky.puzzlebox.designsystem.segmentedButtonColors
 import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 
 /**
  * The 2+ solutions card's witness controls (spec A7, 02 handoff card layout): the A/B
  * choice (`create.verdict.witness.a` / `.b`, the chosen one tinted in the Studio's violet,
  * like the board's Crown | Paint toggle) picks which solution the card describes: two quiet
- * [ChoiceTiles] with the letter glyphs when [modeTiles] is on, the segmented control (chosen one
- * checked) when off. **Show on board** (`create.verdict.showOnBoard`, a selected chip in the same
+ * [ChoiceTiles] with the letter glyphs. **Show on board** (`create.verdict.showOnBoard`, a selected chip in the same
  * violet while on) has the board draw it. Both report through [onChange]. Beside it the
  * **Auto-show** switch (`create.verdict.autoShow`, announced as a switch with its On/Off state)
  * reads the saved [autoShow] and reports a flip through [onAutoShow]; switching it on also puts
@@ -59,35 +54,19 @@ internal fun VerdictWitness(
     onAutoShow: (Boolean) -> Unit,
     legend: String,
     modifier: Modifier = Modifier,
-    modeTiles: Boolean = false,
 ) {
     val accent = AccentSlot.Violet.colors()
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        val witnesses = EditorOverlay.Witness.entries
-        if (modeTiles) {
-            ChoiceTiles(
-                options = witnesses,
-                selected = overlay.witness,
-                onSelect = { onChange(overlay.copy(witness = it)) },
-                label = { "Solution ${it.name}" },
-                icon = WitnessGlyphs::icon,
-                tag = { "create.verdict.witness.${it.name.lowercase()}" },
-                accent = AccentSlot.Violet,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        } else {
-            SingleChoiceSegmentedButtonRow {
-                witnesses.forEachIndexed { index, witness ->
-                    SegmentedButton(
-                        selected = overlay.witness == witness,
-                        onClick = { onChange(overlay.copy(witness = witness)) },
-                        shape = SegmentedButtonDefaults.itemShape(index = index, count = witnesses.size),
-                        colors = AccentSlot.Violet.segmentedButtonColors(),
-                        modifier = Modifier.testTag("create.verdict.witness.${witness.name.lowercase()}"),
-                    ) { Text("Solution ${witness.name}", maxLines = 1) }
-                }
-            }
-        }
+        ChoiceTiles(
+            options = EditorOverlay.Witness.entries,
+            selected = overlay.witness,
+            onSelect = { onChange(overlay.copy(witness = it)) },
+            label = { "Solution ${it.name}" },
+            icon = WitnessGlyphs::icon,
+            tag = { "create.verdict.witness.${it.name.lowercase()}" },
+            accent = AccentSlot.Violet,
+            modifier = Modifier.fillMaxWidth(),
+        )
         Text(
             legend,
             style = MaterialTheme.typography.bodySmall,
@@ -143,30 +122,12 @@ private fun VerdictWitnessPreview() {
     PuzzleBoxTheme {
         Surface {
             VerdictWitness(
-                EditorOverlay(EditorOverlay.Witness.B, showOnBoard = true),
-                autoShow = true,
-                onChange = {},
-                onAutoShow = {},
-                legend = "A and B differ in 6 cells, marked on the board",
-                modifier = Modifier.padding(Spacing.lg),
-            )
-        }
-    }
-}
-
-@PuzzleBoxPreviews
-@Composable
-private fun VerdictWitnessTilesPreview() {
-    PuzzleBoxTheme {
-        Surface {
-            VerdictWitness(
                 EditorOverlay(EditorOverlay.Witness.A, showOnBoard = true),
                 autoShow = true,
                 onChange = {},
                 onAutoShow = {},
                 legend = "A and B differ in 6 cells, marked on the board",
                 modifier = Modifier.padding(Spacing.lg),
-                modeTiles = true,
             )
         }
     }

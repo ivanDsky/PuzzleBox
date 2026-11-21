@@ -80,9 +80,9 @@ class PuzzleBoxApplication : Application() {
         koin.get<CloudSyncRunner>().start()
         // The daily reminder: follows the stored choice and the foreground.
         koin.get<ReminderAppHooks>().start()
-        // The launcher long-press menu: published with the flag on, cleared with it off.
+        // The launcher long-press menu: published on every start.
         koin.get<ShortcutAppHooks>().start()
-        // The home widget: switched by its flag, redrawn on every change and activity start while the app runs.
+        // The home widget: enabled on every start, redrawn on every change and activity start while the app runs.
         koin.get<WidgetAppHooks>().start()
     }
 

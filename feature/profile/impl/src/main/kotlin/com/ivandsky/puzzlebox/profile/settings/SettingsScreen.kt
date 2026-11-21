@@ -74,7 +74,7 @@ internal fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(Spacing.xl),
         ) {
             Column(Modifier.testTag("settings.appearance")) {
-                AppearanceRow(current = state.themeMode, onSelect = onSetThemeMode, choiceRows = state.choiceRows)
+                AppearanceRow(current = state.themeMode, onSelect = onSetThemeMode)
             }
             VibrationSection(enabled = state.vibration, onSet = onSetVibration)
             GamesSection(
