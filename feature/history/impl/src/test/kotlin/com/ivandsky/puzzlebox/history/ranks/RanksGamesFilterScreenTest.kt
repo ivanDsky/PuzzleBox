@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.history.ranks
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
@@ -12,7 +11,6 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -61,7 +59,6 @@ class RanksGamesFilterScreenTest {
             boardCount = places.size,
             calendar = CalendarState(shownDay = today, earliestDay = today.minusDays(30), daysWithRows = setOf(today), gamesPerDay = 1, today = today),
             places = places,
-            gamesFilter = true,
         ),
     )
 
@@ -91,20 +88,11 @@ class RanksGamesFilterScreenTest {
     }
 
     @Test
-    fun `with the flag on the Games chip sits after Who and When and reads Games`() {
+    fun `the Games chip sits after Who and When and reads Games`() {
         show()
 
         node("ranks.filter.games").assertIsDisplayed().assertTextEquals("Games")
         assertTrue(node("ranks.filter.when").getBoundsInRoot().right <= node("ranks.filter.games").getBoundsInRoot().left)
-    }
-
-    @Test
-    fun `with the flag off the filter row has no Games chip`() {
-        state = state.copy(gamesFilter = false)
-        show()
-
-        node("ranks.filter.who").assertIsDisplayed()
-        assertEquals(0, count("ranks.filter.games"))
     }
 
     @Test
@@ -145,26 +133,16 @@ class RanksGamesFilterScreenTest {
         assertEquals("Friends · Week", rankSubLine(RankScope.Friends, RanksSelection.Window.Week, Games.All))
         assertEquals("Global · Day · LinkedIn games", rankSubLine(RankScope.Global, RanksSelection.Window.Day, Games.LinkedIn))
 
-        state = state.copy(largeBar = true, games = Games.LinkedIn)
+        state = state.copy(games = Games.LinkedIn)
         show()
         node("ranks.tune.label").assertTextEquals("Global · Day · LinkedIn games")
     }
 
     @Test
-    fun `How ranks work has one Games line with the flag on`() {
+    fun `How ranks work has one Games line`() {
         show()
         openHowRanksWork()
         composeRule.onNodeWithText("LinkedIn games adds up only the LinkedIn games in Overall", substring = true).assertIsDisplayed()
-    }
-
-    @Test
-    fun `How ranks work has no Games line with the flag off`() {
-        state = state.copy(gamesFilter = false)
-        show()
-        openHowRanksWork()
-
-        node("ranks.how.sheet").assertIsDisplayed()
-        composeRule.onAllNodesWithText("LinkedIn games adds up", substring = true).assertCountEquals(0)
     }
 
     @Test

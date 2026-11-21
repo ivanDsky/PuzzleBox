@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.rankhistory.RankHistoryStore
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.guardedAsk
+import com.ivandsky.puzzlebox.domain.ranks.OverallStandings
 import com.ivandsky.puzzlebox.domain.ranks.OverallState
 import com.ivandsky.puzzlebox.domain.ranks.RankWindow
 import com.ivandsky.puzzlebox.model.GameId
@@ -78,7 +79,7 @@ internal class ResolveFriendsStanding(
             ?: FriendsStanding.Unavailable
     }
 
-    /** The answer from the reads; a [settling] month keeps its state unless the reads find no friends, as no number is needed. */
+    /** The answer from the reads; a [settling] month keeps its state, now with the friends the reads found, as no number is needed. */
     private suspend fun answer(window: RankWindow, viewer: String, played: List<GameId>, settling: FriendsStanding.Settling?): FriendsStanding {
         val reads = friendsOverall.settledEach(window, played)
         val states = reads.map { it.second }
@@ -86,7 +87,8 @@ internal class ResolveFriendsStanding(
             OverallState.SignedOut in states -> FriendsStanding.NotApplicable
             states.any { it !is OverallState.Complete && it != OverallState.Empty } -> settling ?: FriendsStanding.Unavailable
             states.none { state -> state.rows().any { it.uid != viewer } } -> FriendsStanding.NotApplicable
-            else -> settling ?: best(reads, viewer)
+            settling != null -> settling.withFriends(friendsOf(reads.map { it.second.rows() }, viewer))
+            else -> best(reads, viewer)
         }
     }
 
@@ -108,13 +110,21 @@ internal class ResolveFriendsStanding(
         return FriendsStanding.Settling(month.plusMonths(1).atDay(SETTLE_DAY)).takeIf { month == justEnded && today.dayOfMonth < SETTLE_DAY }
     }
 
+    private fun FriendsStanding.Settling.withFriends(friends: List<String>) =
+        copy(friendCount = friends.size, friendNames = friends.take(FriendsStanding.MAX_FRIEND_NAMES))
+
+    /** The display names of the friends on [boards] that played, once each, in board order; the viewer is not their own friend. */
+    private fun friendsOf(boards: List<List<OverallStandings.Row>>, viewer: String): List<String> =
+        boards.flatten().filter { it.uid != viewer && it.games > 0 }.distinctBy { it.uid }.map { it.displayName }
+
     private fun best(reads: List<Pair<GameId, OverallState>>, viewer: String): FriendsStanding {
         val mine = reads.mapNotNull { (game, state) ->
             val row = state.rows().firstOrNull { it.uid == viewer && it.games > 0 }
             row?.let { game to it.total }
         }
         val (game, points) = mine.maxByOrNull { it.second } ?: return FriendsStanding.NotApplicable
-        return FriendsStanding.Loaded(game, points)
+        val friends = friendsOf(listOf(reads.first { it.first == game }.second.rows()), viewer)
+        return FriendsStanding.Loaded(game, points, friendCount = friends.size, friendNames = friends.take(FriendsStanding.MAX_FRIEND_NAMES))
     }
 
     internal companion object {

@@ -50,10 +50,18 @@ import com.ivandsky.puzzlebox.games.sudokuui.hint.withDigitStyle
  *
  * [spotlight] draws in a sibling layer over the cells and the lines, inside the same frame padding, so its cells are
  * the grid's cells; its digits are measured in the grid's digit style. It takes no taps, so a tap on a lit or dimmed
- * cell still selects it. Null composes nothing.
+ * cell still selects it. Null composes nothing. [overlay] is a layer of the caller's over the same cells, drawn above the
+ * [spotlight]; it gets a function that measures a Spotlight's digits in the grid's digit style, and it decides what
+ * touches it takes.
  */
 @Composable
-fun SudokuGrid(model: SudokuBoardModel, onSelect: ((Int) -> Unit)?, modifier: Modifier = Modifier, spotlight: Spotlight? = null) {
+fun SudokuGrid(
+    model: SudokuBoardModel,
+    onSelect: ((Int) -> Unit)?,
+    modifier: Modifier = Modifier,
+    spotlight: Spotlight? = null,
+    overlay: (@Composable BoxScope.(restyle: (Spotlight) -> Spotlight) -> Unit)? = null,
+) {
     val geometry = LocalBoardGeometry.current
     val strokes = gridStrokes(geometry)
     val board = LocalBoardColors.current
@@ -96,29 +104,36 @@ fun SudokuGrid(model: SudokuBoardModel, onSelect: ((Int) -> Unit)?, modifier: Mo
                 }
             }
         }
-        if (spotlight != null) SpotlightLayer(spotlight, model.size, strokes.box)
+        if (spotlight != null || overlay != null) SpotlightLayer(spotlight, overlay, model.size, strokes.box)
     }
 }
 
-/** The overlay over the base (lines included), in the cells' box; measures the Sudoku digits once per Spotlight. */
+/**
+ * The layer over the base (lines included), in the cells' box: the [spotlight] measured once in the grid's digit style,
+ * and the caller's [overlay], which is handed that same measuring to apply to Spotlights of its own.
+ */
 @Composable
-private fun BoxScope.SpotlightLayer(spotlight: Spotlight, size: Int, frame: Dp) {
+private fun BoxScope.SpotlightLayer(spotlight: Spotlight?, overlay: (@Composable BoxScope.(restyle: (Spotlight) -> Spotlight) -> Unit)?, size: Int, frame: Dp) {
     BoxWithConstraints(Modifier.matchParentSize().padding(frame)) {
         val digits = rememberGridDigits(min(maxWidth, maxHeight), size)
-        val shown = remember(spotlight, digits) { spotlight.withDigitStyle(digits.measurer, digits.style, digits.cellPx) }
-        SpotlightOverlay(shown, Modifier.testTag(SPOTLIGHT_TAG))
+        val restyle = remember(digits) { { lit: Spotlight -> lit.withDigitStyle(digits.measurer, digits.style, digits.cellPx) } }
+        if (spotlight != null) {
+            val shown = remember(spotlight, restyle) { restyle(spotlight) }
+            SpotlightOverlay(shown, Modifier.testTag(SPOTLIGHT_TAG))
+        }
+        overlay?.invoke(this, restyle)
     }
 }
 
 /** What a Spotlight needs to draw Sudoku digits where the grid draws them: the [measurer], the cell's digit [style], and the cell pitch [cellPx]. */
-internal class GridDigits(val measurer: TextMeasurer, val style: TextStyle, val cellPx: Float)
+private class GridDigits(val measurer: TextMeasurer, val style: TextStyle, val cellPx: Float)
 
 /**
- * The digit look of a grid of [size] cells a side in a square [side] wide. The grid's own Spotlight layer and the
- * Trainer's reveal both read it, so a glyph sits exactly where the grid draws that digit.
+ * The digit look of a grid of [size] cells a side in a square [side] wide. The grid's Spotlight layer reads it, so a
+ * glyph sits exactly where the grid draws that digit.
  */
 @Composable
-internal fun rememberGridDigits(side: Dp, size: Int): GridDigits {
+private fun rememberGridDigits(side: Dp, size: Int): GridDigits {
     val grid = gridMetrics(side, size)
     val cellPx = with(LocalDensity.current) { grid.cell.toPx() }
     val measurer = rememberTextMeasurer()

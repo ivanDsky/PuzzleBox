@@ -1,8 +1,6 @@
 package com.ivandsky.puzzlebox.compete.reveal
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.compete.CompeteFlag
 import com.ivandsky.puzzlebox.compete.domain.RecordRevealSeen
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.match.LegRef
@@ -50,7 +48,6 @@ import com.ivandsky.puzzlebox.game.replay.ReplayOutcome
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.model.SolveReplay
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.replay.FixtureSession
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
@@ -169,7 +166,7 @@ class RevealViewModelTest {
         )
     }
 
-    private fun viewModel(load: LoadSolveReplay = loadReplay(), releaseFlags: ReleaseFlags = FakeReleaseFlags()) = RevealViewModel(
+    private fun viewModel(load: LoadSolveReplay = loadReplay()) = RevealViewModel(
         code = code.value,
         reducedMotion = false,
         zone = ZoneOffset.UTC,
@@ -180,7 +177,6 @@ class RevealViewModelTest {
         recordSeen = RecordRevealSeen(counted) { createdAt.plusSeconds(3_600) },
         loadReplay = load,
         identity = identity,
-        releaseFlags = releaseFlags,
     )
 
     private fun TestScope.started(vm: RevealViewModel): RevealViewModel {
@@ -366,14 +362,12 @@ class RevealViewModelTest {
     }
 
     @Test
-    fun aSelfRevealCarriesThePlayersPhotoForPastYouOnlyBehindTheFlag() = runTest {
+    fun aSelfRevealCarriesThePlayersPhotoForPastYou() = runTest {
         identity.currentIdentity = Identity("ann", "Ann", "https://example.test/ann.jpg")
-        val on = started(viewModel(releaseFlags = FakeReleaseFlags(CompeteFlag.PastYouPhoto)))
-        val off = started(viewModel())
+        val vm = started(viewModel())
         matches.value = loaded(revealed = setOf(0, 1), of = selfMatch)
 
-        assertEquals("https://example.test/ann.jpg", running(on).race.pastYouPhotoUrl)
-        assertNull(running(off).race.pastYouPhotoUrl)
+        assertEquals("https://example.test/ann.jpg", running(vm).race.pastYouPhotoUrl)
     }
 
     @Test

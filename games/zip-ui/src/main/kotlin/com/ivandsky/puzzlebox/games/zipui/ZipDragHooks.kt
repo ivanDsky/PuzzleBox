@@ -50,7 +50,7 @@ class ZipDragHooks internal constructor(
         }
     }
 
-    /** With the cut-the-wrong-part flag on ([ZipWrongPart], ticket 1585); off, no earlier cell can be cut to. */
+    /** Cuts back to the last cell that agrees with the solution ([ZipWrongPart], ticket 1585); with none given, no earlier cell can be cut to. */
     override fun cutFrom(path: List<GridCell>): Int = wrongPart?.cutFrom(path.map(::cellOf)) ?: path.size
 
     private fun cellOf(cell: GridCell) = Cell(cell.row * board.n + cell.col)

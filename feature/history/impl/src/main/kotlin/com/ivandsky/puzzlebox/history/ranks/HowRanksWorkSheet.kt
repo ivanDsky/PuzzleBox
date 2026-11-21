@@ -26,36 +26,35 @@ internal const val RANKS_RULE =
 
 /**
  * The lead word of each line, then what it says: how a board orders, what Overall sums, and the unofficial and 100+ cases.
- * With [weekMonthPoints] (WeekMonthPoints) a game's Week and Month add up its daily scores instead of averaging, so their
- * totals can read "≥" past the top 100 too. With [gamesFilter] (GamesFilter) a line says what the Games chip's LinkedIn games does.
+ * A game's Week and Month add up its daily scores (backlog #1698), so their totals can read "≥" past the top 100 too.
  */
-private fun rules(weekMonthPoints: Boolean, gamesFilter: Boolean) = listOfNotNull(
+private val RULES = listOf(
     "Per game" to "fastest time wins and fewer hints break a tie. Strands ranks hints first.",
     "Overall" to "your scores from every game's Ranks in the window. Players with the same total share a place.",
-    if (gamesFilter) "Games" to "LinkedIn games adds up only the LinkedIn games in Overall and leaves Strands off the list. Each game's own board is the same." else null,
-    "Week and Month" to if (weekMonthPoints) "each game adds up your daily scores in the window." else "each game ranks the average of the days you played.",
-    "Top 100" to "past that you see 100+ with no exact place, and your Overall total${if (weekMonthPoints) ", or a game's Week and Month total," else ""} shows as at least (≥).",
+    "Games" to "LinkedIn games adds up only the LinkedIn games in Overall and leaves Strands off the list. Each game's own board is the same.",
+    "Week and Month" to "each game adds up your daily scores in the window.",
+    "Top 100" to "past that you see 100+ with no exact place, and your Overall total, or a game's Week and Month total, shows as at least (≥).",
     "Unofficial" to "a solve posted after its day's submit window closed stays on this device. Only you see it, marked. It earns no points and takes no one's place.",
 )
 
 /** "How ranks work": the rule and what it means for ties, windows, the cap and unofficial solves. [onDismiss] closes it. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun HowRanksWorkSheet(onDismiss: () -> Unit, modifier: Modifier = Modifier, weekMonthPoints: Boolean = false, gamesFilter: Boolean = false) {
+internal fun HowRanksWorkSheet(onDismiss: () -> Unit, modifier: Modifier = Modifier) {
     AppModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier.testTag("ranks.how.sheet")) {
-        HowRanksWork(weekMonthPoints, gamesFilter)
+        HowRanksWork()
     }
 }
 
 @Composable
-private fun HowRanksWork(weekMonthPoints: Boolean = false, gamesFilter: Boolean = false) {
+private fun HowRanksWork() {
     Column(
         Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.xl),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         Text("How ranks work", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
         Text(RANKS_RULE, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
-        rules(weekMonthPoints, gamesFilter).forEach { (lead, rest) ->
+        RULES.forEach { (lead, rest) ->
             Text(
                 buildAnnotatedString {
                     withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)) { append(lead) }
@@ -73,6 +72,6 @@ private fun HowRanksWork(weekMonthPoints: Boolean = false, gamesFilter: Boolean 
 @Composable
 private fun HowRanksWorkPreview() {
     RanksPreviewHost {
-        HowRanksWork(gamesFilter = true)
+        HowRanksWork()
     }
 }

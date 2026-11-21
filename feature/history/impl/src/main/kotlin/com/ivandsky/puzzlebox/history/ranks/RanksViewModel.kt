@@ -5,9 +5,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.TopBarFlag
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
@@ -29,7 +26,6 @@ import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
 import com.ivandsky.puzzlebox.history.domain.ranks.ObserveWindowRefresh
 import com.ivandsky.puzzlebox.domain.ranks.OverallState
 import com.ivandsky.puzzlebox.history.domain.ranks.RankScope
-import com.ivandsky.puzzlebox.history.flags.HistoryFlag
 import com.ivandsky.puzzlebox.history.historyRows
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.Clock
@@ -78,7 +74,6 @@ internal class RanksViewModel(
     private val clock: Clock = Clock.systemUTC(),
     friendBoards: ObserveFriendBoards,
     linkedIn: ObserveLinkedInDayView? = null,
-    releaseFlags: ReleaseFlags,
     savedState: SavedStateHandle = SavedStateHandle(),
     opening: RanksSelection = RanksSelection(),
 ) : ViewModel() {
@@ -86,13 +81,10 @@ internal class RanksViewModel(
     private val saver = RanksSelectionSaver(savedState)
     private val boards = rankBoards(registry)
 
-    /** The Games filter (GamesFilter), read once: off, the hub counts All games whatever was saved or stored. */
-    private val gamesFilter = releaseFlags.isEnabled(HistoryFlag.GamesFilter)
-
     /** The games LinkedIn feeds: the ones the LinkedIn games pick keeps. */
     private val isLinkedInGame: (GameId) -> Boolean = { daily.linkedInGameTypeId(it) != null }
-    private val landing = RanksLanding(preferences, observeFriendUids().map { it.isNotEmpty() }, gamesFilter, viewModelScope)
-    private val _selection = MutableStateFlow(saver.restore(opening, boards).let { if (gamesFilter) it else it.copy(games = RanksSelection.Games.All) })
+    private val landing = RanksLanding(preferences, observeFriendUids().map { it.isNotEmpty() }, viewModelScope)
+    private val _selection = MutableStateFlow(saver.restore(opening, boards))
     val selection: StateFlow<RanksSelection> = _selection.asStateFlow()
 
     /** False until a fresh hub has its landing scope; a restored selection has nothing to wait for. */
@@ -124,11 +116,6 @@ internal class RanksViewModel(
 
     private val reads = RanksWindowReads(observeRankWindow, observeWindowRefresh, window, games, viewModelScope)
     private val scopedBoards = RanksScopedBoards(reads.boards, friendBoards, viewModelScope)
-
-    /** The tab's hub on Today's large top bar (MainTabsLargeBar), read once. */
-    private val largeBar = releaseFlags.isEnabled(TopBarFlag.MainTabsLargeBar)
-    /** A game's Week and Month add up its daily place points (WeekMonthPoints), read once the same way. */
-    private val weekMonthPoints = releaseFlags.isEnabled(HistoryFlag.WeekMonthPoints)
 
     // The LinkedIn part of the hub (the line, the pull's sync) exists only with LinkedIn in the graph.
     private val freshness = linkedIn?.let { RanksFreshness(clock) }
@@ -169,7 +156,7 @@ internal class RanksViewModel(
 
     private val local = combine(calendarState, stats, solves.yourSolve, nudge, solves.playThisDay, ::Local)
 
-    private val slices = RanksBoardSlices(boards, window, scopedBoards::of, observeOverall, viewer, history, calendar, registry, isLinkedInGame, freshness, weekMonthPoints)
+    private val slices = RanksBoardSlices(boards, window, scopedBoards::of, observeOverall, viewer, history, calendar, registry, isLinkedInGame, freshness)
 
     /**
      * Every board as its slot draws it in the picked scope and games, with both: the one a swipe scrubs to is already
@@ -191,11 +178,11 @@ internal class RanksViewModel(
         val position = listed.indexOf(board).coerceAtLeast(0)
         val slice = slices.getOrElse(position) { slices.first() }
         val places = boardPlaces(listed, registry, playRegistry::brandOf, slices)
-        RanksUiState(slice, signIn, position, listed.size, local.calendar, local.stats, local.yourSolve, scope, kind, places, local.nudge, slices, local.playThisDay, largeBar, weekMonthPoints, games, gamesFilter)
+        RanksUiState(slice, signIn, position, listed.size, local.calendar, local.stats, local.yourSolve, scope, kind, places, local.nudge, slices, local.playThisDay, games)
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
-        RanksUiState(overallSlice(RanksSelection.Window.Day, null, OverallState.Loading, null), largeBar = largeBar, weekMonthPoints = weekMonthPoints, games = _selection.value.games, gamesFilter = gamesFilter),
+        RanksUiState(overallSlice(RanksSelection.Window.Day, null, OverallState.Loading, null), games = _selection.value.games),
     )
 
     /** Applies one of [RanksSelection]'s transitions; the policy stays in the value. */
@@ -218,7 +205,7 @@ internal class RanksViewModel(
         select { it.setWindow(window) }
     }
 
-    /** The Games pick (GamesFilter): that board stays when it is still listed, else the hub moves to Overall. */
+    /** The Games pick: that board stays when it is still listed, else the hub moves to Overall. */
     fun setGames(games: RanksSelection.Games) {
         select { it.setGames(games, boardsOf(games)) }
     }

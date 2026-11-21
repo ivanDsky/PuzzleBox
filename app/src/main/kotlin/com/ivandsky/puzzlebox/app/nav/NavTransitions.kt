@@ -13,7 +13,9 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.navigation3.runtime.NavKey
 import androidx.navigationevent.NavigationEvent
+import com.ivandsky.puzzlebox.designsystem.ContainerTransform
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
+import com.ivandsky.puzzlebox.insights.api.InsightsRecapKey
 import kotlin.math.roundToInt
 
 /** Scene metadata carries the entry's key as `Any`; these read it as the [NavKey] it is. */
@@ -146,9 +148,11 @@ internal data class NavMotion(
 
 /**
  * The shell's one chooser over NavDisplay scene metadata ([OWNER_TAB], [ENTRY_KEY]); [from] is
- * the outgoing entry's, [to] the incoming one's. [liftable] says the game has a card to grow
- * out of (push) or shrink back into (pop); only the tablet form reads it.
+ * the outgoing entry's, [to] the incoming one's. [liftable] says the screen has a card to grow
+ * out of (push) or shrink back into (pop): a game's on the tablet form, a recap story's on both.
  * - Reduced motion: the upper page fades for every case.
+ * - A recap story opening or closing, either form: it grows out of its tile and shrinks back by
+ *   [ContainerTransform], unscrimmed, or crossfades for [MotionTokens.ReducedFadeDuration] without a tile.
  * - Another owner tab, or the layer above the tabs opening or closing: phone fade-through;
  *   tablet an in-place crossfade of [MotionTokens.TabletTabCrossfade] (the Profile/Settings layer opening or closing takes [MotionTokens.TabletPageCrossfade]).
  * - Phone, same tab: the full-screen slide, result included.
@@ -165,8 +169,11 @@ internal fun navMotion(
 ): NavMotion {
     val opensGame = !pop && to[ENTRY_KEY].isBoardEntry() && !from[ENTRY_KEY].isResultEntry()
     val closesGame = pop && from[ENTRY_KEY].isBoardEntry()
+    val opensRecap = !pop && to[ENTRY_KEY] is InsightsRecapKey
+    val closesRecap = pop && from[ENTRY_KEY] is InsightsRecapKey
     return when {
         reduceMotion -> reduced(pop, MotionTokens.ReducedFadeDuration)
+        opensRecap || closesRecap -> if (liftable) recapLift(pop) else crossfade(pop, MotionTokens.ReducedFadeDuration)
         from[OWNER_TAB] != to[OWNER_TAB] -> when {
             form == NavForm.Phone -> tabFadeThrough(pop)
             // Opening or closing the Profile/Settings layer is a page move, not a tab switch.
@@ -215,6 +222,13 @@ private fun lift(pop: Boolean) = NavMotion(
     durationMillis = if (pop) MotionTokens.LiftExit else MotionTokens.LiftEnter,
     easing = MotionTokens.EasingStandard,
     scrimAlpha = MotionTokens.LiftScrimAlpha,
+)
+
+private fun recapLift(pop: Boolean) = NavMotion(
+    NavMotionKind.Lift,
+    pop = pop,
+    durationMillis = if (pop) ContainerTransform.exitDurationMillis else ContainerTransform.enterDurationMillis,
+    easing = if (pop) ContainerTransform.exitEasing else ContainerTransform.enterEasing,
 )
 
 private fun crossfade(pop: Boolean, millis: Int) = NavMotion(

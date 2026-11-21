@@ -31,8 +31,8 @@ import org.robolectric.annotation.Config
  * The real shell (SC1, SC5, SC6), on a phone's bar and a tablet's rail: the tab set
  * is Today, Games, Community and Ranks; the rail carries the avatar once at
  * its bottom on every screen it shows, centres its tabs on the window and gives the avatar a 48dp
- * target below them, the bar carries the avatar only in Today's header and nowhere else; the
- * avatar opens Profile and Profile's gear opens Settings in the layer over the current tab (on a bar from Today),
+ * target below them, the bar carries the avatar at the end of every main tab's large top bar and nowhere else; the
+ * avatar opens Profile and Profile's gear opens Settings in the layer over the current tab,
  * and Back returns to the screen left; Dark reaches the preferences store, Settings
  * survives a saved-state restore, and the Profile in the layer has no Appearance block.
  */
@@ -51,7 +51,7 @@ class ShellTabsE2ETest {
 
     @Test
     @Config(qualifiers = PHONE)
-    fun `on a phone only Today shows the avatar`() = browseChrome(rail = false)
+    fun `on a phone every main tab's root shows the avatar and no other screen does`() = browseChrome(rail = false)
 
     @Test
     @Config(qualifiers = RAIL)
@@ -70,12 +70,12 @@ class ShellTabsE2ETest {
     @Test
     @Config(qualifiers = PHONE)
     fun `on a phone the avatar opens Profile and Profile's gear opens Settings from every root and Back returns`() =
-        avatarAndGearFromEveryRoot(rail = false)
+        avatarAndGearFromEveryRoot()
 
     @Test
     @Config(qualifiers = RAIL)
     fun `on a tablet the avatar opens Profile and Profile's gear opens Settings from every root and Back returns`() =
-        avatarAndGearFromEveryRoot(rail = true)
+        avatarAndGearFromEveryRoot()
 
     @Test
     @Config(qualifiers = PHONE)
@@ -145,7 +145,8 @@ class ShellTabsE2ETest {
         assertChromeFor(rail)
         tap("library.row.$ZIP")
         awaitTag("library.page.$ZIP")
-        assertChromeFor(rail)
+        // On a phone the opened page replaces the list and its large bar; the rail still carries the avatar.
+        if (rail) assertChromeFor(rail) else assertNoChromeActions()
 
         tapTab(CommunityKey)
         assertRoute(FRIEND)
@@ -195,13 +196,10 @@ class ShellTabsE2ETest {
         }
     }
 
-    private fun avatarAndGearFromEveryRoot(rail: Boolean) = shellRobot {
-        ROOTS.forEach { (tab, tabRoute) ->
-            tapTab(tab)
-            assertRoute(tabRoute)
-            // A bar shows the actions on Today only: reach them from there, Back returns to it.
-            val (root, route) = if (rail) tab to tabRoute else HomeKey to HOME
-            if (!rail) tapTab(root)
+    private fun avatarAndGearFromEveryRoot() = shellRobot {
+        ROOTS.forEach { (root, route) ->
+            tapTab(root)
+            assertRoute(route)
 
             tapAvatar()
             assertState(tabAt(root).copy(layer = listOf(ProfileKey)))

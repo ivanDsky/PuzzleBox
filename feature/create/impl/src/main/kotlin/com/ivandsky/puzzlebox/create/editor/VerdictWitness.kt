@@ -5,14 +5,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -26,18 +24,18 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
+import com.ivandsky.puzzlebox.designsystem.ChoiceTiles
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
-import com.ivandsky.puzzlebox.designsystem.segmentedButtonColors
 import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 
 /**
  * The 2+ solutions card's witness controls (spec A7, 02 handoff card layout): the A/B
- * segments (`create.verdict.witness.a` / `.b`, the chosen one tinted and checked in the
- * Studio's violet, like the board's Crown | Paint toggle) pick which solution the card
- * describes, and **Show on board** (`create.verdict.showOnBoard`, a selected chip in the same
+ * choice (`create.verdict.witness.a` / `.b`, the chosen one tinted in the Studio's violet,
+ * like the board's Crown | Paint toggle) picks which solution the card describes: two quiet
+ * [ChoiceTiles] with the letter glyphs. **Show on board** (`create.verdict.showOnBoard`, a selected chip in the same
  * violet while on) has the board draw it. Both report through [onChange]. Beside it the
  * **Auto-show** switch (`create.verdict.autoShow`, announced as a switch with its On/Off state)
  * reads the saved [autoShow] and reports a flip through [onAutoShow]; switching it on also puts
@@ -45,7 +43,7 @@ import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
  * [Spacing.sm] gap, tight enough to keep one line on a 320 dp phone at default font size, so the
  * card still fits the half-open sheet; at a large font scale the switch wraps under the chip
  * instead of spilling past the card, and the sheet drags up. The one-line [legend]
- * (`create.verdict.witness.legend`) under the segments says what A and B are and what the board marks. No motion: the selection swaps at once.
+ * (`create.verdict.witness.legend`) under the choice says what A and B are and what the board marks. No motion: the selection swaps at once.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -59,18 +57,16 @@ internal fun VerdictWitness(
 ) {
     val accent = AccentSlot.Violet.colors()
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        val witnesses = EditorOverlay.Witness.entries
-        SingleChoiceSegmentedButtonRow {
-            witnesses.forEachIndexed { index, witness ->
-                SegmentedButton(
-                    selected = overlay.witness == witness,
-                    onClick = { onChange(overlay.copy(witness = witness)) },
-                    shape = SegmentedButtonDefaults.itemShape(index = index, count = witnesses.size),
-                    colors = AccentSlot.Violet.segmentedButtonColors(),
-                    modifier = Modifier.testTag("create.verdict.witness.${witness.name.lowercase()}"),
-                ) { Text("Solution ${witness.name}", maxLines = 1) }
-            }
-        }
+        ChoiceTiles(
+            options = EditorOverlay.Witness.entries,
+            selected = overlay.witness,
+            onSelect = { onChange(overlay.copy(witness = it)) },
+            label = { "Solution ${it.name}" },
+            icon = WitnessGlyphs::icon,
+            tag = { "create.verdict.witness.${it.name.lowercase()}" },
+            accent = AccentSlot.Violet,
+            modifier = Modifier.fillMaxWidth(),
+        )
         Text(
             legend,
             style = MaterialTheme.typography.bodySmall,
@@ -126,7 +122,7 @@ private fun VerdictWitnessPreview() {
     PuzzleBoxTheme {
         Surface {
             VerdictWitness(
-                EditorOverlay(EditorOverlay.Witness.B, showOnBoard = true),
+                EditorOverlay(EditorOverlay.Witness.A, showOnBoard = true),
                 autoShow = true,
                 onChange = {},
                 onAutoShow = {},

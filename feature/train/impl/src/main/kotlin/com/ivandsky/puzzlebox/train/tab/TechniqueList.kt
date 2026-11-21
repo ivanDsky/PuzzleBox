@@ -33,7 +33,7 @@ internal data class GameChip(val id: GameId, val label: String, val brand: GameB
 /**
  * The Train list: a row of the games that have a trainer, then the [selected] game's techniques in catalog order, each
  * with its mark. A tap on a game calls [onSelectGame]; a tap on a technique calls [onOpen]. [openId] is the technique
- * whose round is showing beside the list (tablet), drawn as the selected row; null on the phone.
+ * whose practice board is showing beside the list (tablet), drawn as the selected row; null on the phone.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

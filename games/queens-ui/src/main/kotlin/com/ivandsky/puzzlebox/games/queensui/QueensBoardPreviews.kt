@@ -34,7 +34,7 @@ private val previewT0: java.time.Instant = java.time.Instant.parse("2026-11-02T0
 private fun previewSession(): QueensSession = QueensSession(ref = null, puzzle = previewPuzzle())
 
 /** Runs a block on the calling thread; a preview never presses the hint button, so nothing is ever dispatched. */
-private object PreviewDispatcher : CoroutineDispatcher() {
+internal object PreviewDispatcher : CoroutineDispatcher() {
     override fun dispatch(context: CoroutineContext, block: Runnable) = block.run()
 }
 

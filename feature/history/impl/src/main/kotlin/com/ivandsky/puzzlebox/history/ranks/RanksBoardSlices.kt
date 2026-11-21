@@ -33,7 +33,7 @@ import kotlinx.coroutines.flow.shareIn
 private const val OVERALL_CAPTION = "Points from every game's Ranks. Higher is better."
 private const val LINKEDIN_OVERALL_CAPTION = "Points from the LinkedIn games' Ranks. Higher is better."
 
-/** A game's Week or Month caption when it adds up its days' points (WeekMonthPoints). */
+/** A game's Week or Month caption: it adds up its days' points. */
 internal const val WEEK_MONTH_POINTS_CAPTION = "Points from each day's Ranks. Higher is better."
 
 /**
@@ -42,7 +42,7 @@ internal const val WEEK_MONTH_POINTS_CAPTION = "Points from each day's Ranks. Hi
  * to a neighbouring board reads nothing. Every slice of one list answers the same scope: in Friends each game and
  * Overall rank friends among themselves, with the LinkedIn connections counted on every one. With [freshness]
  * a game's Friends Day board also says when its LinkedIn part was last read, and the boards are drawn again each minute to keep it current.
- * With [weekMonthPoints] a game's Week and Month rank by its daily place points summed, as Overall sums every game's,
+ * A game's Week and Month rank by its daily place points summed, as Overall sums every game's,
  * and say how many of the viewer's solved days are unofficial there, so add no day and no points to their row.
  * Under [RanksSelection.Games.LinkedIn] the list holds only the LinkedIn games ([isLinkedInGame]) and Overall sums only
  * their boards; each game's own board is the same, and nothing is read that the shared window boards do not already hold.
@@ -59,7 +59,6 @@ internal class RanksBoardSlices(
     private val registry: GameRegistry,
     private val isLinkedInGame: (GameId) -> Boolean,
     private val freshness: RanksFreshness? = null,
-    private val weekMonthPoints: Boolean = false,
 ) {
     private val gameIds = boards.filterIsInstance<RanksBoard.Game>().map { it.id }
 
@@ -105,7 +104,7 @@ internal class RanksBoardSlices(
         val friends = scope == RankScope.Friends
         val oneDay = kind == RanksSelection.Window.Day
         val photos = if (friends) inWindow?.photos().orEmpty() else emptyMap()
-        val records = if (weekMonthPoints && !oneDay) rows.mapNotNull { it.record } else null
+        val records = if (!oneDay) rows.mapNotNull { it.record } else null
         // Leaderboard rows carry no photo: every slice's own row joins the signed-in account's, after the connections' pictures.
         return boards.listed(games, isLinkedInGame).map { board ->
             when (board) {
@@ -123,7 +122,7 @@ internal class RanksBoardSlices(
         }.map { it.copy(state = it.state.withOwnPhoto(me?.photoUrl)) }
     }
 
-    /** With [records] (WeekMonthPoints on a Week or Month) the board ranks by points and says which of the viewer's solved days earn none. */
+    /** With [records] (a Week or Month) the board ranks by points and says which of the viewer's solved days earn none. */
     private fun game(
         game: GameId,
         kind: RanksSelection.Window,

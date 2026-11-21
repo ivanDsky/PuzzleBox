@@ -18,7 +18,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The Ranks LinkedIn games switch on the Settings screen (#1770): drawn only when its state is given, a tap reports the flipped value. */
+/** The Ranks LinkedIn games switch on the Settings screen (#1770): it shows the stored default, a tap reports the flipped value. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], application = Application::class)
@@ -29,7 +29,7 @@ class SettingsRanksLinkedInTest {
 
     private val taps = mutableListOf<Boolean>()
 
-    private fun setContent(linkedIn: Boolean?) {
+    private fun setContent(linkedIn: Boolean) {
         composeRule.setContent {
             PuzzleBoxTheme {
                 SettingsScreen(
@@ -60,13 +60,5 @@ class SettingsRanksLinkedInTest {
         setContent(linkedIn = true)
 
         composeRule.onNodeWithTag("settings.ranks.linkedin").performScrollTo().assertIsOn()
-    }
-
-    @Test
-    fun `without the state the ranks block has no LinkedIn games switch`() {
-        setContent(linkedIn = null)
-
-        composeRule.onNodeWithTag("settings.ranks").performScrollTo()
-        composeRule.onNodeWithTag("settings.ranks.linkedin").assertDoesNotExist()
     }
 }

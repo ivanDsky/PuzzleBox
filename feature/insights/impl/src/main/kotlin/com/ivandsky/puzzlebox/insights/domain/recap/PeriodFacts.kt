@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.insights.domain.recap
 
-import com.ivandsky.puzzlebox.domain.moments.Moment
 import com.ivandsky.puzzlebox.model.GameId
 
 /**
@@ -17,6 +16,8 @@ internal data class PeriodFacts(
     val solvedByGame: Map<GameId, Int>,
     /** Each game's quickest counted solve in the period (time, then fewer hints, then the earlier day); a game with no solve has no entry. */
     val fastestByGame: Map<GameId, FastestSolve>,
+    /** The floor of the mean play time of each game's counted solves in the period, imports included; a game with no solve has no entry. */
+    val averageTimeMsByGame: Map<GameId, Long> = emptyMap(),
     /**
      * The longest streak's part inside the period, frozen days included; null when no streak day falls in it. A streak
      * across the period's edge counts only the days on this side of it.
@@ -36,11 +37,11 @@ internal data class PeriodFacts(
     /** The play time of the period's counted solves, pauses and background left out; an import adds its LinkedIn time (A8). */
     val totalTimeMs: Long,
     /**
-     * The Moments the period's solves earned, oldest day first. Friends are absent, so only the local kinds appear:
+     * The Moments the period's solves earned, each with its puzzle day and game, oldest day first. Friends are absent, so only the local kinds appear:
      * personal best, first sub-X, full set and streak (A6). They are read off the full history, so a personal best in
      * month 2 is relative to month 1.
      */
-    val moments: List<Moment>,
+    val moments: List<DatedMoment>,
     /** For a year: its months that have a counted solve, January first. Empty for a month, which has no months in it. */
     val months: List<MonthFacts> = emptyList(),
     /**

@@ -151,9 +151,21 @@ private fun BoxScope.TangoBoardArea(
  * host both draw it, so a lesson's taps are the daily ones. Capped at [paneCap] in a
  * two-pane toolbar pane, [PhoneBoardCap] otherwise. Draws nothing until [controller]
  * holds a session.
+ *
+ * The Trainer's practice board draws it too, through its own judge: [onTap] and [onPlacement] are where the input
+ * goes, and [overlay] is the practice Spotlight layer over the grid. The defaults are the controller's own, so the
+ * daily board is unchanged. The renderer keeps the first lambdas it gets (it is keyed on [controller]), so they must
+ * stay valid for the controller's lifetime.
  */
 @Composable
-private fun TangoBoard(controller: TangoPlayController, paneCap: Dp?, modifier: Modifier) {
+internal fun TangoBoard(
+    controller: TangoPlayController,
+    paneCap: Dp?,
+    modifier: Modifier,
+    onTap: (Int) -> Unit = controller::onTap,
+    onPlacement: (TangoPlacement) -> Unit = controller::onPlacement,
+    overlay: (@Composable BoxScope.() -> Unit)? = null,
+) {
     MoveHapticsEffect({ controller.session }, ::tangoMoveHaptic)
     // suppressedSets is a key: the settle debounce clears it 0.5 s after the last touch,
     // and the model must rebuild then or newly introduced violations stay hidden forever.
@@ -171,9 +183,10 @@ private fun TangoBoard(controller: TangoPlayController, paneCap: Dp?, modifier: 
     // rides the board modifier (§2 — the Zip outline pattern).
     val renderer = remember(controller) {
         TangoBoardRenderer(
-            onTap = controller::onTap,
-            onPlacement = controller::onPlacement,
+            onTap = onTap,
+            onPlacement = onPlacement,
             spotlight = { controller.spotlight },
+            overlay = overlay,
             guideGhosts = true,
         )
     }

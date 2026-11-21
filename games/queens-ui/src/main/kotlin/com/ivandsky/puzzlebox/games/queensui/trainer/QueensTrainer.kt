@@ -1,30 +1,38 @@
 package com.ivandsky.puzzlebox.games.queensui.trainer
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.game.trainer.TrainerVerdict
 import com.ivandsky.puzzlebox.gameui.trainer.DrillSource
-import com.ivandsky.puzzlebox.gameui.trainer.Snippet
+import com.ivandsky.puzzlebox.gameui.trainer.PracticeBoard
+import com.ivandsky.puzzlebox.gameui.trainer.PracticeSpotlight
 import com.ivandsky.puzzlebox.gameui.trainer.TrainerGame
+import com.ivandsky.puzzlebox.gameui.trainer.IntroDemo
+import com.ivandsky.puzzlebox.gameui.trainer.IntroVariant
 import com.ivandsky.puzzlebox.gameui.trainer.TrainerTechnique
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
-import com.ivandsky.puzzlebox.games.queens.engine.trainer.QueensSnippets
-import com.ivandsky.puzzlebox.games.queensui.hint.QueensSpotlightMapper
+import com.ivandsky.puzzlebox.games.queens.engine.trainer.QueensPractice
+import com.ivandsky.puzzlebox.games.queensui.QueensPlayBoard
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 
 /**
- * The Queens [TrainerGame]: the Compose half of [QueensSnippets] and the Queens technique walker. The technique list
- * shares its sentences with the hints ([QueensTrainerCatalog]), a snippet board is the live board's face over a board
- * the walk reached ([QueensSnippetBoard]), and the reveal after a verdict is the hint's own Spotlight.
+ * The Queens [TrainerGame]: the Compose half of [QueensPractice] and the Queens technique walker. The technique list
+ * shares its sentences with the hints ([QueensTrainerCatalog]), a practice board is the real play board over a board
+ * the walk reached ([QueensPracticeBoard]), and the Spotlight over it is the hint's own.
  *
- * [com.ivandsky.puzzlebox.games.queensui.queensUiModule] binds it while TrainQueens is on. [compute] runs the move
- * check, which a long look-ahead makes take up to 90 ms.
+ * [com.ivandsky.puzzlebox.games.queensui.queensUiModule] binds it while TrainQueens is on. [compute] is the dispatcher
+ * the play board's hint stepper is given; a practice board has no hint button, so it never runs on it.
  */
 internal class QueensTrainer(private val compute: CoroutineDispatcher) : TrainerGame {
 
@@ -32,25 +40,45 @@ internal class QueensTrainer(private val compute: CoroutineDispatcher) : Trainer
 
     override fun catalog(): List<TrainerTechnique> = QueensTrainerCatalog.techniques
 
-    override val drillSources: List<DrillSource> = listOf(QueensIndexDrillSource())
+    override val drillSources: List<DrillSource> = listOf(QueensIndexDrillSource(), QueensGeneratedDrillSource())
 
-    /** Empty for another game's puzzle, one that does not decode, one without a true solution, and a technique it never uses. */
-    override fun buildSnippets(puzzle: Puzzle, technique: TechniqueId, count: Int): List<Snippet> {
-        if (puzzle.gameId != gameId) return emptyList()
-        val decoded = (QueensCodec.decode(puzzle.payload) as? DecodeResult.Ok)?.value ?: return emptyList()
-        return QueensSnippets.cut(decoded, technique, count).map { QueensSnippet(decoded, it) }
+    /** Null for another game's puzzle, one that does not decode, one without a true solution, and a technique it never uses. */
+    override fun practice(
+        puzzle: Puzzle,
+        technique: TechniqueId,
+        kind: BoardKind,
+        scope: CoroutineScope,
+        onTrainedTurn: (TrainerVerdict) -> Unit,
+    ): PracticeBoard? {
+        if (puzzle.gameId != gameId) return null
+        val decoded = (QueensCodec.decode(puzzle.payload) as? DecodeResult.Ok)?.value ?: return null
+        val start = QueensPractice.start(decoded, technique, kind) ?: return null
+        return QueensPracticeBoard(decoded, technique, kind, start, compute, scope, onTrainedTurn)
     }
 
     @Composable
-    override fun Board(snippet: Snippet, onVerdict: (TrainerVerdict) -> Unit, modifier: Modifier) {
-        QueensSnippetBoard(snippet.asQueens(), compute, onVerdict, modifier)
+    override fun Board(board: PracticeBoard, modifier: Modifier) {
+        val practice = board as? QueensPracticeBoard ?: error("a Queens trainer was handed another game's board: $board")
+        val status by practice.status.collectAsState()
+        Box(modifier.aspectRatio(1f)) {
+            QueensPlayBoard(practice.state, Modifier.matchParentSize())
+            PracticeSpotlight(practice, status)
+        }
     }
 
-    override fun spotlight(snippet: Snippet): Spotlight {
-        val queens = snippet.asQueens()
-        return QueensSpotlightMapper.map(queens.cut.step, queens.puzzle, playId = 0)
+    /** The variants of a technique the catalog lists, in intro order ([QueensIntroCopy]); Line lock has two. */
+    override fun variants(technique: TechniqueId): List<IntroVariant> = QueensIntroCopy.variants(technique)
+
+    /** Null for another game's puzzle or one that does not decode, and where no Focus board opens on that variant ([QueensIntroDemo.of]). */
+    override fun demo(puzzle: Puzzle, technique: TechniqueId, variant: Int): IntroDemo? {
+        if (puzzle.gameId != gameId) return null
+        val decoded = (QueensCodec.decode(puzzle.payload) as? DecodeResult.Ok)?.value ?: return null
+        return QueensIntroDemo.of(decoded, technique, variant)
     }
 
-    private fun Snippet.asQueens(): QueensSnippet =
-        this as? QueensSnippet ?: error("a Queens trainer was handed another game's snippet: $this")
+    @Composable
+    override fun Demo(demo: IntroDemo, frame: Int, modifier: Modifier) {
+        val recorded = demo as? QueensIntroDemo ?: error("a Queens trainer was handed another game's demo: $demo")
+        QueensIntroBoard(recorded, frame, compute, modifier)
+    }
 }

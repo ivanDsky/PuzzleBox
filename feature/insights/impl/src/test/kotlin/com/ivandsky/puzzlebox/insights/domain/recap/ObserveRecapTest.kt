@@ -48,7 +48,7 @@ class ObserveRecapTest {
     private val cardA = RecapCard.Solved(total = 99, perGame = emptyList())
 
     @Test
-    fun `the default chain, signed out, is the Solved, Fastest, Streak, Hint-free, Moments and Total time cards over the period's facts`() = runTest {
+    fun `the default chain, signed out, is the Solved, Fastest, Streak, Moments and Total time cards over the period's facts`() = runTest {
         fixture.store(
             fixture.solve(alpha, LocalDate.of(2026, 11, 1)),
             fixture.solve(alpha, LocalDate.of(2026, 11, 2)),
@@ -58,20 +58,34 @@ class ObserveRecapTest {
 
         val cards = defaultRecap(november).first()
 
-        assertEquals(6, cards.size)
+        assertEquals(5, cards.size)
         assertEquals(
-            RecapCard.Solved(3, listOf(RecapCard.Solved.PerGame(alpha, 2), RecapCard.Solved.PerGame(beta, 1))),
+            RecapCard.Solved(3, listOf(RecapCard.Solved.PerGame(alpha, 2), RecapCard.Solved.PerGame(beta, 1)), hintFree = 3, longestHintFreeRun = 3),
             cards[0],
         )
         assertEquals(listOf(alpha, beta), (cards[1] as RecapCard.Fastest).rows.map { it.game })
         assertEquals(
-            RecapCard.Streak(days = 2, from = LocalDate.of(2026, 11, 1), to = LocalDate.of(2026, 11, 2), freezesSpent = 0),
+            RecapCard.Streak(
+                days = 2, from = LocalDate.of(2026, 11, 1), to = LocalDate.of(2026, 11, 2), freezesSpent = 0,
+                frozenDays = emptySet(), span = november,
+            ),
             cards[2],
         )
-        assertEquals(RecapCard.HintFree(hintFree = 3, solved = 3), cards[3])
         // Each game's first, quick solve went under a mark, and Nov 2 finished both games' day.
-        assertEquals(RecapCard.Moments(personalBests = 0, firstSubX = 2, fullSets = 1, streakMilestones = emptyList()), cards[4])
-        assertEquals(RecapCard.TotalTime(totalMs = 90_000, solved = 3), cards[5])
+        val moments = cards[3] as RecapCard.Moments
+        assertEquals(listOf(0, 2, 1), listOf(moments.personalBests, moments.firstSubX, moments.fullSets))
+        assertEquals(
+            RecapCard.TotalTime(
+                totalMs = 90_000,
+                solved = 3,
+                days = listOf(
+                    DayTally(LocalDate.of(2026, 11, 1), solved = 1, timeMs = 30_000, hintFree = 1),
+                    DayTally(LocalDate.of(2026, 11, 2), solved = 2, timeMs = 60_000, hintFree = 2),
+                ),
+                period = november,
+            ),
+            cards[4],
+        )
     }
 
     @Test
@@ -111,7 +125,7 @@ class ObserveRecapTest {
             failures,
         )(november).first()
 
-        assertEquals(listOf(RecapCard.Solved(1, listOf(RecapCard.Solved.PerGame(alpha, 1)))), cards)
+        assertEquals(listOf(RecapCard.Solved(1, listOf(RecapCard.Solved.PerGame(alpha, 1)), hintFree = 1, longestHintFreeRun = 1)), cards)
     }
 
     /** The friends read as the story sees it: [read] answers the one read of every game, [today] sets the puzzle day. */
@@ -148,20 +162,20 @@ class ObserveRecapTest {
     private fun List<RecapCard>.kinds() = map { it::class.simpleName }
 
     @Test
-    fun `the friends card is the sixth card, before total time, with every card present`() = runTest {
+    fun `the friends card is the fifth card, before total time, with every card present`() = runTest {
         storeNovember()
         val recap = friendsRecap { flowOf(standings(if (it == beta) 640.0 else 210.0)) }
 
         recap(november).test {
             val placeholder = awaitItem()
             assertEquals(
-                listOf("Solved", "Fastest", "Streak", "HintFree", "Moments", "Friends", "TotalTime"),
+                listOf("Solved", "Fastest", "Streak", "Moments", "Friends", "TotalTime"),
                 placeholder.kinds(),
             )
-            assertEquals(RecapCard.Friends(FriendsStanding.Reading), placeholder[5])
+            assertEquals(RecapCard.Friends(FriendsStanding.Reading), placeholder[4])
             val settled = awaitItem()
             assertEquals(placeholder.kinds(), settled.kinds())
-            assertEquals(RecapCard.Friends(FriendsStanding.Loaded(beta, 640.0)), settled[5])
+            assertEquals(RecapCard.Friends(FriendsStanding.Loaded(beta, 640.0, friendCount = 1, friendNames = listOf("maya"))), settled[4])
             awaitComplete()
         }
     }
@@ -179,15 +193,15 @@ class ObserveRecapTest {
 
         recap(november).test {
             val local = awaitItem()
-            assertEquals(7, local.size)
-            assertEquals(RecapCard.Friends(FriendsStanding.Reading), local[5])
+            assertEquals(6, local.size)
+            assertEquals(RecapCard.Friends(FriendsStanding.Reading), local[4])
 
             gate.complete(Unit)
 
             val settled = awaitItem()
             assertEquals(local.size, settled.size)
             assertEquals(local.filterNot { it is RecapCard.Friends }, settled.filterNot { it is RecapCard.Friends })
-            assertEquals(RecapCard.Friends(FriendsStanding.Loaded(beta, 640.0)), settled[5])
+            assertEquals(RecapCard.Friends(FriendsStanding.Loaded(beta, 640.0, friendCount = 1, friendNames = listOf("maya"))), settled[4])
             awaitComplete()
         }
     }
@@ -201,7 +215,7 @@ class ObserveRecapTest {
         recap(november).test {
             awaitItem()
             val settled = awaitItem()
-            assertEquals(RecapCard.Friends(FriendsStanding.Loaded(alpha, 300.0)), settled[5])
+            assertEquals(RecapCard.Friends(FriendsStanding.Loaded(alpha, 300.0, friendCount = 1, friendNames = listOf("linkedin:connection"))), settled[4])
             awaitComplete()
         }
     }
@@ -215,9 +229,9 @@ class ObserveRecapTest {
         val recap = friendsRecap { flowOf(onlyMe) }
 
         recap(november).test {
-            assertEquals(7, awaitItem().size)
+            assertEquals(6, awaitItem().size)
             val settled = awaitItem()
-            assertEquals(6, settled.size)
+            assertEquals(5, settled.size)
             assertEquals(false, settled.any { it is RecapCard.Friends })
             awaitComplete()
         }
@@ -230,7 +244,7 @@ class ObserveRecapTest {
 
         recap(november).test {
             val local = awaitItem()
-            assertEquals(7, local.size)
+            assertEquals(6, local.size)
             val settled = awaitItem()
             assertEquals(local.map { if (it is RecapCard.Friends) RecapCard.Friends(FriendsStanding.Unavailable) else it }, settled)
             awaitComplete()
@@ -244,8 +258,8 @@ class ObserveRecapTest {
 
         recap(november).test {
             val local = awaitItem()
-            assertEquals(7, local.size)
-            assertEquals(RecapCard.Friends(FriendsStanding.Unavailable), awaitItem()[5])
+            assertEquals(6, local.size)
+            assertEquals(RecapCard.Friends(FriendsStanding.Unavailable), awaitItem()[4])
             awaitComplete()
         }
     }
@@ -258,8 +272,9 @@ class ObserveRecapTest {
         val settling = RecapCard.Friends(FriendsStanding.Settling(LocalDate.of(2026, 12, 4)))
 
         recap(november).test {
-            assertEquals(settling, awaitItem()[5])
+            assertEquals(settling, awaitItem()[4])
             gate.complete(Unit)
+            assertEquals(RecapCard.Friends(FriendsStanding.Settling(LocalDate.of(2026, 12, 4), friendCount = 1, friendNames = listOf("maya"))), awaitItem()[4])
             awaitComplete()
         }
     }
@@ -274,7 +289,7 @@ class ObserveRecapTest {
 
         recap(november).test {
             val local = awaitItem()
-            assertEquals(RecapCard.Friends(FriendsStanding.Settling(LocalDate.of(2026, 12, 4))), local[5])
+            assertEquals(RecapCard.Friends(FriendsStanding.Settling(LocalDate.of(2026, 12, 4))), local[4])
             val settled = awaitItem()
             assertEquals(local.filterNot { it is RecapCard.Friends }, settled)
             awaitComplete()
@@ -287,7 +302,7 @@ class ObserveRecapTest {
 
         friendsRecap(viewer = null) { error("a signed-out viewer reads no board") }(november).test {
             val story = awaitItem()
-            assertEquals(6, story.size)
+            assertEquals(5, story.size)
             assertEquals(false, story.any { it is RecapCard.Friends })
             awaitComplete()
         }
@@ -330,14 +345,15 @@ class ObserveRecapTest {
     }
 
     @Test
-    fun `a year's month cards follow the totals`() = runTest {
+    fun `a year's month cards follow the totals and the finale closes the story`() = runTest {
         fixture.store(fixture.solve(alpha, LocalDate.of(2026, 3, 1)), fixture.solve(alpha, LocalDate.of(2026, 5, 2)))
 
         val cards = defaultRecap(RecapPeriod.Year(2026)).first()
 
-        val solvedAt = cards.indexOfFirst { it is RecapCard.Solved }
         val months = cards.filterIsInstance<RecapCard.Month>()
         assertEquals(listOf(YearMonth.of(2026, 3), YearMonth.of(2026, 5)), months.map { it.month })
-        assertEquals(solvedAt + 1, cards.indexOf(months.first()))
+        assertEquals(cards.indexOfFirst { it is RecapCard.TotalTime } + 1, cards.indexOf(months.first()))
+        assertEquals(cards.indexOf(months.last()) + 1, cards.indexOfFirst { it is RecapCard.YearFinale })
+        assertEquals(cards.lastIndex, cards.indexOfFirst { it is RecapCard.YearFinale })
     }
 }

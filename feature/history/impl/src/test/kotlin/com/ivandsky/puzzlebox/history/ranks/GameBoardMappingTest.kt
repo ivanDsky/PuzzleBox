@@ -30,7 +30,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-/** One game's slice of the shared window boards as the kit's board: day timed, week and month averaged (A36). */
+/** One game's day as the kit's board: timed rows, the viewer marked, and the notes on a window's days still out (A36). */
 class GameBoardMappingTest {
 
     private val monday = LocalDate.of(2026, 11, 9)
@@ -45,8 +45,8 @@ class GameBoardMappingTest {
 
     private fun boards(vararg loads: BoardLoad) = RankWindowBoards.Boards(loads.toList())
 
-    private fun state(boards: RankWindowBoards?, kind: Window = Window.Day, game: GameId = ZIP, order: RankOrder = RankOrder.TimeThenHints) =
-        boards.toGameBoardState(game, order, kind, selfUid = "u1")
+    private fun state(boards: RankWindowBoards?, game: GameId = ZIP, order: RankOrder = RankOrder.TimeThenHints) =
+        boards.toGameBoardState(game, order, Window.Day, selfUid = "u1")
 
     private fun rows(state: DailyBoardState) = (state as DailyBoardState.Ranked).rows
 
@@ -71,24 +71,6 @@ class GameBoardMappingTest {
         )
 
         assertEquals(listOf("slow", "fast"), rows(result).map { it.playerId })
-    }
-
-    @Test
-    fun `week averages each player's days and ranks by the average`() {
-        val result = state(
-            boards(
-                loaded(ref(0), entry("maya", 60_000), entry("u1", 80_000)),
-                loaded(ref(1), entry("maya", 100_000), entry("u1", 70_000)),
-                loaded(ref(2), entry("jonas", 50_000)),
-            ),
-            kind = Window.Week,
-        )
-
-        val rows = rows(result)
-        assertEquals(listOf("jonas", "u1", "maya"), rows.map { it.playerId })
-        assertEquals(listOf(1, 2, 3), rows.map { it.rank })
-        assertEquals(BoardRowValue.Average(75_000, 0.0), rows[1].scoreValue)
-        assertEquals(true, rows[1].isSelf)
     }
 
     @Test
@@ -118,7 +100,7 @@ class GameBoardMappingTest {
     fun `a week with days still out says how many are in`() {
         val partial = boards(loaded(ref(0), entry("u1", 70_000)), BoardLoad.Loading(ref(1), RankOrder.TimeThenHints))
 
-        assertEquals(listOf("u1"), rows(state(partial, Window.Week)).map { it.playerId })
+        assertEquals(listOf("u1"), rows(state(partial)).map { it.playerId })
         assertEquals("1 of 2 days", partial.gameBoardNote(ZIP, Window.Week))
         assertNull(partial.gameBoardNote(ZIP, Window.Day))
         assertNull(boards(loaded(ref(0), entry("u1", 1))).gameBoardNote(ZIP, Window.Week))

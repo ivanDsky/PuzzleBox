@@ -6,19 +6,27 @@ import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.assertContentDescriptionContains
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.runtime.CompositionLocalProvider
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.insights.domain.recap.EarnedMoment
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.fastest
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.gameName
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.queens
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.streak
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -39,37 +47,89 @@ class RecapNewCardsTest {
 
     private val opened = mutableListOf<RecapCard.Fastest.Row>()
 
-    private fun show(card: RecapCard) = rule.setContent {
-        PuzzleBoxTheme { RecapCardPage(card, "November 2026", gameName, onWatchReplay = { opened += it }) }
+    private fun show(card: RecapCard, names: (GameId) -> String = gameName, sub: Int = 0) {
+        rule.setContent { PuzzleBoxTheme { RecapCardPage(card, "November 2026", names, onWatchReplay = { opened += it }, sub = sub) } }
+        settle()
     }
 
+    /** Lets a card's slam play out: its delays are not idling work, so the clock is moved by hand. */
+    private fun settle() = rule.mainClock.advanceTimeBy(3_000)
+
     @Test
-    fun `fastest lists each game's time and day`() {
+    fun `fastest opens on the first game with its time, day and puzzle`() {
         show(fastest)
 
         rule.onNodeWithTag("recap.fastest").assertIsDisplayed()
-        rule.onNodeWithTag("recap.fastest.game.zip").assertTextContains("Zip").assertTextContains("0:58").assertTextContains("Nov 3")
-        rule.onNodeWithTag("recap.fastest.game.queens").assertTextContains("2:21").assertTextContains("Nov 12")
+        rule.onNodeWithTag("recap.fastest.card.zip").assertContentDescriptionContains("fastest 0:58", substring = true)
+        rule.onNodeWithTag("recap.fastest.meta").assertTextContains("Nov 3 · Puzzle #212")
+        rule.onNodeWithText("Zip").assertExists()
     }
 
     @Test
-    fun `a row with a replay opens it`() {
+    fun `the replay pill opens that game's replay with its day and number`() {
         show(fastest)
 
-        rule.onNodeWithTag("recap.fastest.game.queens").assertHasClickAction().performClick()
+        rule.onNodeWithTag("recap.fastest.replay").assertHasClickAction().performClick()
+
+        assertEquals(listOf(fastest.rows[0]), opened)
+        assertEquals(LocalDate.of(2026, 11, 3), opened.single().day)
+        assertEquals(212, opened.single().puzzleNumber)
+    }
+
+    @Test
+    fun `each game is its own page and its pill replays that game`() {
+        show(fastest, sub = 1)
+
+        rule.onNodeWithTag("recap.fastest.card.queens").assertContentDescriptionContains("fastest 2:21", substring = true)
+        rule.onNodeWithTag("recap.fastest.meta").assertTextContains("Nov 12 · Puzzle #190")
+        rule.onNodeWithTag("recap.fastest.replay").performClick()
 
         assertEquals(listOf(fastest.rows[1]), opened)
         assertEquals(queens, opened.single().game)
-        assertEquals(LocalDate.of(2026, 11, 12), opened.single().day)
     }
 
     @Test
-    fun `an imported row says there is no replay and opens nothing`() {
-        show(fastest)
+    fun `an imported game says so and has no replay to open`() {
+        show(fastest, sub = 2)
 
-        rule.onNodeWithTag("recap.fastest.game.sudoku").assertTextContains("No replay", substring = true).assertTextContains("5:12").assertHasNoClickAction()
-        rule.onNode(hasTestTag("recap.fastest.game.sudoku").and(hasClickAction())).assertDoesNotExist()
+        rule.onNodeWithTag("recap.fastest.card.sudoku").assertContentDescriptionContains("fastest 5:12", substring = true)
+        rule.onNodeWithText("Imported from LinkedIn").assertExists()
+        rule.onNodeWithTag("recap.fastest.replay").assertDoesNotExist()
+        rule.onNode(hasTestTag("recap.fastest.card.sudoku").and(hasClickAction())).assertDoesNotExist()
         assertEquals(emptyList<RecapCard.Fastest.Row>(), opened)
+    }
+
+    @Test
+    fun `a game with one solve says there is no average yet`() {
+        show(fastest, sub = 2)
+
+        rule.onNodeWithText("First solve — no average yet").assertExists()
+    }
+
+    @Test
+    fun `a page that is being thrown away takes no tap on its replay pill`() {
+        rule.setContent {
+            PuzzleBoxTheme {
+                CompositionLocalProvider(LocalCardLive provides false) {
+                    RecapCardPage(fastest, "November 2026", gameName, onWatchReplay = { opened += it })
+                }
+            }
+        }
+        settle()
+
+        rule.onNodeWithTag("recap.fastest.replay").assertIsNotEnabled().performClick()
+        assertEquals(emptyList<RecapCard.Fastest.Row>(), opened)
+    }
+
+    @Test
+    fun `the tablet fact lists each game's time and day`() {
+        rule.setContent { PuzzleBoxTheme { FastestCardFact(fastest, gameName, onWatchReplay = { opened += it }) } }
+
+        rule.onNodeWithTag("recap.fastest.game.zip").assertTextContains("Zip").assertTextContains("0:58").assertTextContains("Nov 3")
+        rule.onNodeWithTag("recap.fastest.game.queens").assertTextContains("2:21").assertTextContains("Nov 12")
+        rule.onNodeWithTag("recap.fastest.game.queens").assertHasClickAction().performClick()
+        assertEquals(listOf(fastest.rows[1]), opened)
+        rule.onNodeWithTag("recap.fastest.game.sudoku").assertTextContains("No replay", substring = true).assertHasNoClickAction()
     }
 
     @Test
@@ -87,7 +147,7 @@ class RecapNewCardsTest {
         show(streak.copy(days = 1, from = LocalDate.of(2026, 11, 9), to = LocalDate.of(2026, 11, 9), freezesSpent = 0))
 
         rule.onNodeWithTag("recap.streak.range").assertTextContains("Nov 9")
-        rule.onNodeWithTag("recap.streak.freezes").assertTextContains("0")
+        rule.onNodeWithTag("recap.streak.freezes").assertDoesNotExist()
     }
 
     @Test
@@ -98,38 +158,65 @@ class RecapNewCardsTest {
     }
 
     @Test
-    fun `hint-free shows its count, its share and the solves that used a hint`() {
-        show(RecapFixtures.hintFree)
+    fun `solved reads the settled total, each game's count and the stripe's numbers`() {
+        show(RecapFixtures.solved)
 
-        rule.onNodeWithTag("recap.hintfree").assertIsDisplayed()
-        rule.onNodeWithTag("recap.hintfree.count").assertTextContains("36")
-        rule.onNodeWithTag("recap.hintfree.share").assertTextContains("Share of your solves").assertTextContains("86%")
-        rule.onNodeWithTag("recap.hintfree.hinted").assertTextContains("6")
+        rule.onNodeWithTag("recap.solved.total").assertContentDescriptionEquals("42 puzzles solved")
+        rule.onNodeWithTag("recap.solved.game.queens").assertContentDescriptionEquals("Queens, 15")
+        rule.onNodeWithTag("recap.hintfree.count").assertContentDescriptionEquals("36 without a hint")
+        rule.onNodeWithTag("recap.hintfree.share").assertTextContains("86% of solves")
+        rule.onNodeWithTag("recap.hintfree.hinted").assertTextContains("6 with a hint")
+        rule.onNodeWithTag("recap.hintfree.run").assertTextContains("Longest run: 9 in a row")
     }
 
     @Test
-    fun `hint-free one solve is singular and the full share`() {
-        show(RecapCard.HintFree(hintFree = 1, solved = 1))
+    fun `solved with every solve hint-free is the full share and has no hinted segment`() {
+        show(RecapCard.Solved(1, listOf(RecapCard.Solved.PerGame(RecapFixtures.zip, 1)), hintFree = 1, longestHintFreeRun = 1))
 
-        rule.onNodeWithTag("recap.hintfree.count").assertContentDescriptionEquals("1 solve without a hint")
-        rule.onNodeWithTag("recap.hintfree.share").assertTextContains("100%")
+        rule.onNodeWithTag("recap.hintfree.count").assertContentDescriptionEquals("1 without a hint")
+        rule.onNodeWithTag("recap.hintfree.share").assertTextContains("100% of solves")
+        rule.onNodeWithTag("recap.hintfree.hinted").assertDoesNotExist()
+    }
+
+    @Test
+    fun `solved with no hint-free solve shows no stripe`() {
+        show(RecapFixtures.solved.copy(hintFree = 0, longestHintFreeRun = null))
+
+        rule.onNodeWithTag("recap.solved.total").assertIsDisplayed()
+        rule.onNodeWithTag("recap.hintfree.count").assertDoesNotExist()
+        rule.onNodeWithTag("recap.hintfree.share").assertDoesNotExist()
+    }
+
+    @Test
+    fun `solved with no single run to name leaves out the longest run and keeps the hinted count`() {
+        show(RecapFixtures.solved.copy(longestHintFreeRun = null))
+
+        rule.onNodeWithTag("recap.hintfree.run").assertDoesNotExist()
+        rule.onNodeWithTag("recap.hintfree.hinted").assertTextContains("6 with a hint")
+    }
+
+    @Test
+    fun `solved says how many imported days a year covers`() {
+        show(RecapFixtures.solvedImported)
+
+        rule.onNodeWithTag("recap.solved.imported").assertTextContains("From 312 imported days")
     }
 
     @Test
     fun `moments shows the count and a row for each kind that came up`() {
-        show(RecapFixtures.moments)
+        show(RecapFixtures.moments, FastestFixtures.gameName)
 
         rule.onNodeWithTag("recap.moments").assertIsDisplayed()
-        rule.onNodeWithTag("recap.moments.count").assertTextContains("23")
+        rule.onNodeWithTag("recap.moments.count").assertContentDescriptionEquals("14 moments earned")
         rule.onNodeWithTag("recap.moments.personalBest").assertTextContains("Personal bests").assertTextContains("5")
-        rule.onNodeWithTag("recap.moments.firstSubX").assertTextContains("2")
-        rule.onNodeWithTag("recap.moments.fullSet").assertTextContains("14")
+        rule.onNodeWithTag("recap.moments.firstSubX").assertTextContains("3")
+        rule.onNodeWithTag("recap.moments.fullSet").assertTextContains("4")
         rule.onNodeWithTag("recap.moments.streak").assertTextContains("7 days · 30 days")
     }
 
     @Test
     fun `moments leaves out the kinds that did not come up`() {
-        show(RecapCard.Moments(personalBests = 0, firstSubX = 0, fullSets = 1, streakMilestones = emptyList()))
+        show(RecapCard.Moments(listOf(EarnedMoment(EarnedMoment.Kind.FullSet, LocalDate.of(2026, 10, 8)))))
 
         rule.onNodeWithTag("recap.moments.count").assertContentDescriptionEquals("1 moment earned")
         rule.onNodeWithTag("recap.moments.fullSet").assertIsDisplayed()
@@ -139,11 +226,42 @@ class RecapNewCardsTest {
     }
 
     @Test
+    fun `the plaque names the last sticker, and tapping another sticker names that one`() {
+        show(MomentsFixtures.default, FastestFixtures.gameName)
+
+        rule.onNodeWithTag("recap.moments.plaque").assertTextContains("Full set done").assertTextContains("Oct 25")
+        rule.onNodeWithTag("recap.moments.sticker.4").performClick()
+        settle()
+
+        rule.onNodeWithTag("recap.moments.plaque").assertTextContains("First under 1:00 in Zip").assertTextContains("Oct 22")
+        rule.onNodeWithTag("recap.moments.sticker.4").assertIsSelected()
+        rule.onNodeWithTag("recap.moments.sticker.5").assertIsNotSelected()
+    }
+
+    @Test
+    fun `a sticker tells a screen reader what it is and when`() {
+        show(MomentsFixtures.default, FastestFixtures.gameName)
+
+        rule.onNodeWithTag("recap.moments.sticker.2").assertContentDescriptionEquals("7-day streak, Oct 12")
+        rule.onNodeWithTag("recap.moments.sticker.3").assertContentDescriptionEquals("Personal best in Queens, Oct 17")
+        rule.onNodeWithTag("recap.moments.sticker.4").assertContentDescriptionEquals("First under 1:00 in Zip, Oct 22")
+    }
+
+    // Catches a dense sheet that drops the days under its stickers losing them for a screen reader too.
+    @Test
+    fun `a year of stickers still tells a screen reader each one's time and day`() {
+        show(MomentsFixtures.year, FastestFixtures.gameName)
+
+        rule.onNodeWithTag("recap.moments.sticker.24").assertContentDescriptionEquals("100-day streak, Sep 25")
+        rule.onNodeWithTag("recap.moments.sticker.31").assertContentDescriptionEquals("First under 0:30 in Zip, Dec 11")
+    }
+
+    @Test
     fun `total time shows the time, the puzzles and the average per puzzle`() {
         show(RecapFixtures.totalTime)
 
         rule.onNodeWithTag("recap.totaltime").assertIsDisplayed()
-        rule.onNodeWithTag("recap.totaltime.time").assertTextContains("3:12:15")
+        rule.onNodeWithTag("recap.totaltime.time").assertTextContains("3h 12m")
         rule.onNodeWithTag("recap.totaltime.solved").assertTextContains("42")
         rule.onNodeWithTag("recap.totaltime.average").assertTextContains("4:34")
     }
@@ -157,8 +275,8 @@ class RecapNewCardsTest {
     }
 
     @Test
-    fun `nothing on the hint-free, moments or total time pages is a button`() {
-        show(RecapFixtures.hintFree)
+    fun `nothing on the solved page is a button`() {
+        show(RecapFixtures.solved)
         rule.onNode(hasClickAction()).assertDoesNotExist()
     }
 }

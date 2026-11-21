@@ -3,9 +3,11 @@ package com.ivandsky.puzzlebox.insights.domain.recap
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
+import java.time.LocalDate
 import java.time.YearMonth
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class SolvedRecapFactProviderTest {
@@ -46,6 +48,25 @@ class SolvedRecapFactProviderTest {
     }
 
     @Test
+    fun `the card carries the hint-free count and the longest run from the period's facts`() = runTest {
+        val run = HintFreeRun(solves = 12, start = LocalDate.of(2026, 11, 3), last = SolveRef(alpha, LocalDate.of(2026, 11, 14), puzzleNumber = null, hasReplay = false))
+        val facts = emptyFacts().copy(solved = 40, solvedByGame = mapOf(alpha to 40), hintFree = 31, longestHintFreeRun = run)
+
+        val card = SolvedRecapFactProvider.cards(RecapInput(facts, games = listOf(alpha))).single() as RecapCard.Solved
+
+        assertEquals(31, card.hintFree)
+        assertEquals(12, card.longestHintFreeRun)
+    }
+
+    @Test
+    fun `a period with no hint-free solve has a count of 0 and no run`() = runTest {
+        val card = SolvedRecapFactProvider.cards(input(mapOf(alpha to 3))).single() as RecapCard.Solved
+
+        assertEquals(0, card.hintFree)
+        assertNull(card.longestHintFreeRun)
+    }
+
+    @Test
     fun `a game the app no longer lists still adds to its rows, after the listed ones`() = runTest {
         val cards = SolvedRecapFactProvider.cards(input(mapOf(gone to 1, alpha to 2)))
 
@@ -55,3 +76,8 @@ class SolvedRecapFactProviderTest {
         )
     }
 }
+
+internal fun emptyFacts(period: RecapPeriod = RecapPeriod.Month(YearMonth.of(2026, 11))) = PeriodFacts(
+    period, scope = null, solved = 0, solvedByGame = emptyMap(), fastestByGame = emptyMap(), longestStreak = null,
+    freezesSpent = 0, hintFree = 0, totalTimeMs = 0, moments = emptyList(),
+)

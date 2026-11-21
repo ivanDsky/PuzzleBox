@@ -18,7 +18,7 @@ private val WindowOptions = listOf(Window.Week, Window.Month).map { FilterOption
 private val GamesOptions = listOf(FilterOption(Games.LinkedIn, Games.LinkedIn.label, tag = "ranks.tune.games.LinkedIn"))
 
 /**
- * Who and When as single-pick chips, and with GamesFilter on Games (All games or LinkedIn games) as a third.
+ * Who and When as single-pick chips and Games (All games or LinkedIn games) as a third.
  * [onOpenChange] hears each sheet open and close so the screen can hold other sheets back.
  */
 @Composable
@@ -44,17 +44,15 @@ internal fun RanksFilterChips(state: RanksUiState, actions: RanksActions, onOpen
             tag = "ranks.filter.when",
             allTag = "ranks.tune.window.Day",
         )
-        if (state.gamesFilter) {
-            SingleFilterChip(
-                name = "Games",
-                allLabel = Games.All.label,
-                options = GamesOptions,
-                selected = state.games.takeIf { it != Games.All },
-                onSelect = { actions.onGames(it ?: Games.All) },
-                onOpenChange = onOpenChange,
-                tag = "ranks.filter.games",
-                allTag = "ranks.tune.games.All",
-            )
-        }
+        SingleFilterChip(
+            name = "Games",
+            allLabel = Games.All.label,
+            options = GamesOptions,
+            selected = state.games.takeIf { it != Games.All },
+            onSelect = { actions.onGames(it ?: Games.All) },
+            onOpenChange = onOpenChange,
+            tag = "ranks.filter.games",
+            allTag = "ranks.tune.games.All",
+        )
     }
 }

@@ -2,6 +2,33 @@
 # A release adds its entry at the top in the same commit as its version bump.
 # "## <version> <date>" starts a release; "- " starts a note; "#" lines are comments.
 
+## 0.40.1 2026-11-21
+- Games, Community and Ranks share Today's large top bar, with your picture at the end on every tab.
+- Past you in duels shows your own photo.
+- Week and Month boards for a game add up daily points, so several good days beat one lucky one.
+- The archive calendar swipes between months, and the arrows slide the same way.
+- A game's How to play ends with a "Make your own" link instead of a wide button.
+- The Zip editor puts numbers and walls in one mode: tap a cell to number it, tap an edge for a wall.
+- In Zip, sliding back over a wrong part of your line cuts it there.
+
+## 0.40.0 2026-11-21
+- Monthly recaps: in the first days of a month, Today and Profile open your month as a story of cards, with your solves, fastest game, streak, the moments you earned and a card to share.
+- Yearly recaps: from Dec 20, Profile opens your year as a story that ends with all twelve months on one page. Past years stay in Profile.
+- A stats page: the stats on a game's page and in Profile open your trends, records and how you compare with friends.
+
+## 0.39.0 2026-11-21
+- A home-screen widget shows today's five puzzles with your rank and time, your streak and an Up next button. It fits sizes from one row up to a full page.
+- Long-press the app icon for shortcuts to Up next and to each game.
+- The Zip and Queens editors and the Solution A | B switch use clear mode tiles.
+- Appearance and the Random puzzle source are now lists you pick one row from.
+- Ranks Friends boards count friends who finished outside the global top 100.
+- Ranks has a Games filter, All games or LinkedIn games, and Settings sets which one Ranks opens on.
+- A first solve that isn't your best now shows its rank instead of how far you were from your best.
+- The splash mark stays sharp on tablets.
+- On a tablet, the game's loading board sits where the board will be.
+- Post to LinkedIn waits until LinkedIn says whether it already has your result.
+- The loading board shimmers like the rest of the page.
+
 ## 0.38.2 2026-11-19
 - Ranks Friends boards now count your LinkedIn days, and keep you on days you placed outside the global top 100.
 - A friend whose days came partly from LinkedIn now shows as one row on the Week and Month boards.

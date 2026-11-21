@@ -14,7 +14,6 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.PlayKey
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
@@ -60,7 +59,6 @@ class DuelsPaneTest {
                             updateSeat = UpdateMatchSeat(server, FakeMatchLocalRepository(), identity),
                             identity = identity,
                             clock = { now },
-                            releaseFlags = FakeReleaseFlags(),
                         )
                     }
                     viewModel { harness.viewModel }

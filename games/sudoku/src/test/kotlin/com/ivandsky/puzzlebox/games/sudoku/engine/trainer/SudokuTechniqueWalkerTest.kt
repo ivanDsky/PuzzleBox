@@ -2,42 +2,47 @@ package com.ivandsky.puzzlebox.games.sudoku.engine.trainer
 
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
-import com.ivandsky.puzzlebox.games.sudoku.SudokuBoard
-import com.ivandsky.puzzlebox.games.sudoku.SudokuCell
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
 import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuCodec
-import com.ivandsky.puzzlebox.games.sudoku.engine.hints.step.SudokuStep
-import com.ivandsky.puzzlebox.games.sudoku.engine.hints.step.SudokuStepper
 import com.ivandsky.puzzlebox.games.sudoku.sudokuPlugin
 import com.ivandsky.puzzlebox.model.GameId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
-import org.junit.Assert.fail
 import org.junit.Test
 
 class SudokuTechniqueWalkerTest {
 
     @Test
-    fun `the walk takes the stepper's own steps and ends solved`() {
-        for ((name, puzzle) in SudokuTrainerFixtures.all) {
-            val walk = SudokuTechniqueWalker.walk(puzzle)
-            assertEquals(name, rerun(puzzle), walk.map { Triple(it.boardBefore, it.struckBefore, it.step) })
-            assertEquals(name, SudokuStep.Solved, walk.last().step)
-            walk.forEach { assertEquals("$name ${it.step}", SudokuTechniqueIds.of(it.step), it.technique) }
+    fun `a technique is counted exactly where a practice of either kind can start`() {
+        val disagree = SudokuTrainerFixtures.corpus.flatMap { (name, puzzle) ->
+            val counts = SudokuTechniqueWalker.techniqueCounts(canonical(puzzle))
+            SudokuTechniqueIds.all.flatMap { technique ->
+                val counted = (counts[technique] ?: 0) > 0
+                BoardKind.entries.mapNotNull { kind ->
+                    val opens = SudokuPractice.start(puzzle, technique, kind) != null
+                    "$name ${technique.value} $kind: counted=$counted opens=$opens".takeIf { counted != opens }
+                }
+            }
         }
+        assertEquals(emptyList<String>(), disagree)
     }
 
     @Test
-    fun `counts are the rerun's steps per technique id, nothing for the end`() {
-        for ((name, puzzle) in SudokuTrainerFixtures.all) {
-            val expected = rerun(puzzle).mapNotNull { SudokuTechniqueIds.of(it.third) }.groupingBy { it }.eachCount()
-            assertTrue(name, expected.isNotEmpty())
-            assertEquals(name, expected, SudokuTechniqueWalker.techniqueCounts(canonical(puzzle)))
-        }
+    fun `a single the stepper defers still counts when it is the easiest rung`() {
+        // li:111 is a real daily where naked single is the lowest rung at some point of the walk.
+        val counts = SudokuTechniqueWalker.techniqueCounts(canonical(SudokuTrainerFixtures.dailies.getValue("li:111")))
+        assertEquals(EXPECTED_LI_111, counts.mapKeys { it.key.value })
+        assertNotNull(SudokuPractice.start(SudokuTrainerFixtures.dailies.getValue("li:111"), TechniqueId("naked-single"), BoardKind.Focus))
+    }
+
+    @Test
+    fun `a generated board counts its eliminations`() {
+        val counts = SudokuTechniqueWalker.techniqueCounts(canonical(SudokuTrainerFixtures.eliminating.getValue("rnd:517")))
+        assertEquals(EXPECTED_RND_517, counts.mapKeys { it.key.value })
     }
 
     @Test
@@ -68,37 +73,10 @@ class SudokuTechniqueWalkerTest {
     }
 
     private companion object {
+        val EXPECTED_LI_111 = mapOf("last-cell" to 13, "hidden-single-box" to 12, "hidden-single-line" to 1, "naked-single" to 1)
+        val EXPECTED_RND_517 = mapOf("hidden-single-box" to 3, "claiming" to 1, "naked-pair" to 1)
+
         fun canonical(puzzle: SudokuPuzzle): Puzzle =
             (SudokuGames.MINI.decode(SudokuCodec.encode(puzzle)) as DecodeResult.Ok).value
-
-        /** A direct stepper replay as play drives it, written out here with the `known` accumulation. */
-        fun rerun(puzzle: SudokuPuzzle): List<Triple<SudokuBoard, Map<Int, Int>, SudokuStep>> {
-            var board = SudokuBoard.of(puzzle)
-            var known = emptyMap<Int, Int>()
-            var last: Int? = null
-            val steps = mutableListOf<Triple<SudokuBoard, Map<Int, Int>, SudokuStep>>()
-            repeat(puzzle.geometry.cellCount + 40) {
-                val step = SudokuStepper.next(puzzle, board, last, known)
-                steps += Triple(board, known, step)
-                when (step) {
-                    SudokuStep.Solved -> return steps
-                    is SudokuStep.Mistake -> fail("replay produced $step")
-                    is SudokuStep.Single -> {
-                        board = board.with(step.place.cell, SudokuCell.Entry(step.place.digit))
-                        last = step.place.cell
-                    }
-                    is SudokuStep.Reveal -> {
-                        board = board.with(step.cell, SudokuCell.Entry(step.digit))
-                        last = null
-                    }
-                    is SudokuStep.Elimination -> {
-                        val merged = known.toMutableMap()
-                        for ((cell, mask) in step.struck) merged[cell] = (merged[cell] ?: 0) or mask
-                        known = merged
-                    }
-                }
-            }
-            throw AssertionError("replay did not finish")
-        }
     }
 }

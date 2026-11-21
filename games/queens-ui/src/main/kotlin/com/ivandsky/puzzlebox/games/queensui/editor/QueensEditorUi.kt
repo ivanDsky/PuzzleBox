@@ -14,7 +14,7 @@ import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import com.ivandsky.puzzlebox.model.GameId
 
 /** Queens' editor UI: the crown-and-paint board over a [QueensEditorController]. */
-object QueensEditorUi : GameEditorUi {
+class QueensEditorUi : GameEditorUi {
 
     override val gameId: GameId = QueensDefinition.id
 

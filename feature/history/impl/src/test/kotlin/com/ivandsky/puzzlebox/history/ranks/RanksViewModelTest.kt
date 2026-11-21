@@ -400,14 +400,14 @@ class RanksViewModelTest {
     }
 
     @Test
-    fun `Week and Month rank a game by average over the days played, titled for the window`() = runTest {
+    fun `Week and Month rank a game by points over the days played, titled for the window`() = runTest {
         val viewModel = hub(mapOf(zipBoard)).viewModel()
         viewModel.select { it.pickBoard(RanksBoard.Game(ZIP)) }
 
         viewModel.setWindow(RanksSelection.Window.Week)
         val week = viewModel.uiState.first { it.window == RanksSelection.Window.Week && it.board.state is DailyBoardState.Ranked }
         assertEquals("Zip · this week", week.board.title)
-        assertTrue(rowsOf(week.board).all { it.scoreValue is BoardRowValue.Average })
+        assertTrue(rowsOf(week.board).all { it.scoreValue is BoardRowValue.DayPoints })
 
         viewModel.setWindow(RanksSelection.Window.Month)
         viewModel.selectDay(today.minusDays(3))

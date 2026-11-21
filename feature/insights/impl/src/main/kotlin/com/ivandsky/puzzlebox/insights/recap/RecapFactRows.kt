@@ -14,26 +14,35 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.tabular
+import com.ivandsky.puzzlebox.gameui.GameBrand
+import com.ivandsky.puzzlebox.gameui.GameGlyph
+import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 
 /** One label-and-value line of a card's fact block; [tag] names its row for tests. */
-internal data class RecapFactRow(val tag: String, val label: String, val value: String)
+internal data class RecapFactRow(val tag: String, val label: String, val value: String, val game: GameBrand? = null)
 
 /**
  * A card's facts as one rounded block of label-and-value rows, each row one item for a screen reader. The block of the
  * hint-free, Moments and total time cards, in the story and in the tablet list.
  */
 @Composable
-internal fun RecapFactRows(rows: List<RecapFactRow>, tag: String, modifier: Modifier = Modifier) {
+internal fun RecapFactRows(
+    rows: List<RecapFactRow>,
+    tag: String,
+    modifier: Modifier = Modifier,
+    container: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
+) {
     Column(
         modifier
             .fillMaxWidth()
             .clip(MaterialTheme.shapes.large)
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .background(container)
             .testTag(tag),
     ) {
         rows.forEachIndexed { index, row ->
@@ -54,6 +63,7 @@ internal fun RecapFactRows(rows: List<RecapFactRow>, tag: String, modifier: Modi
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                 )
+                row.game?.let { GameGlyph(it, GameGlyphSize.Inline) }
                 Text(
                     text = row.value,
                     style = MaterialTheme.typography.titleMedium.tabular(),

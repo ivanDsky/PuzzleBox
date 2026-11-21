@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.insights.recap
 
+import android.content.Context
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -8,17 +10,23 @@ import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
+import androidx.test.core.app.ApplicationProvider
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.insights.domain.recap.FriendsStanding
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.friendsLoaded
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.friendsReading
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.friendsSettling
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.friendsUnavailable
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.gameName
+import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -34,6 +42,13 @@ class RecapFriendsCardTest {
 
     @get:Rule
     val rule = createAndroidComposeRule<ComponentActivity>()
+
+    @Before
+    fun animationsOff() {
+        // The page's entrance is final at once, and the waiting crowd's wobble never keeps the test from going idle.
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
+    }
 
     private fun show(card: RecapCard) = rule.setContent {
         PuzzleBoxTheme { RecapCardPage(card, "November 2026", gameName, onWatchReplay = {}) }
@@ -61,7 +76,7 @@ class RecapFriendsCardTest {
     fun `a settling month says results settle on the 4th and shows no number`() {
         show(friendsSettling)
 
-        rule.onNodeWithTag("recap.friends.settling").assertIsDisplayed().assertTextContains("Results settle on the 4th")
+        rule.onNodeWithTag("recap.friends.settling").assertIsDisplayed().assertTextContains("Settles on the 4th")
         rule.onNodeWithTag("recap.friends.game").assertDoesNotExist()
         rule.onNodeWithTag("recap.friends.points").assertDoesNotExist()
     }
@@ -72,6 +87,41 @@ class RecapFriendsCardTest {
 
         rule.onNodeWithTag("recap.friends.unavailable").assertIsDisplayed().assertTextContains("Can't load right now")
         rule.onNodeWithTag("recap.friends.game").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a best game among a crowd names the game, the points and how many friends`() {
+        show(FriendsFixtures.loaded)
+
+        rule.onNodeWithTag("recap.friends.loaded")
+            .assertTextContains("Zip").assertTextContains("412 pts among friends").assertTextContains("Among 9 friends")
+    }
+
+    @Test
+    fun `a year's best game shows a daily average over its weeks and no friend count`() {
+        show(FriendsFixtures.year)
+
+        rule.onNodeWithTag("recap.friends.loaded").assertTextContains("212 pts a day among friends")
+        rule.onNodeWithTag("recap.friends.weeks", useUnmergedTree = true).assertTextContains("Based on 14 weeks")
+        rule.onNodeWithText("Among", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun `a settling month still counts the friends once the read has them`() {
+        show(FriendsFixtures.settling)
+
+        rule.onNodeWithTag("recap.friends.settling").assertTextContains("Settles on the 4th").assertTextContains("Among 9 friends")
+    }
+
+    @Test
+    fun `a friend with no name shows a question mark instead of an empty or crashing avatar`() {
+        val unnamed = RecapCard.Friends(FriendsStanding.Loaded(RecapFixtures.zip, 90.0, friendCount = 2, friendNames = listOf("  ", "Maya Rao")))
+        show(unnamed)
+
+        rule.onAllNodesWithText("?", useUnmergedTree = true).onFirst().assertExists()
+        rule.onAllNodesWithText("MR", useUnmergedTree = true).onFirst().assertExists()
+        assertEquals("?", initials(" "))
+        assertEquals("MR", initials("maya rao"))
     }
 
     @Test
@@ -89,7 +139,7 @@ class RecapFriendsCardTest {
         }
 
         rule.onNodeWithTag("recap.friends.fact.game").assertTextContains("Queens").assertTextContains("1,340 pts")
-        rule.onNodeWithTag("recap.fact.1").assertTextContains("Results settle on the 4th")
+        rule.onNodeWithTag("recap.fact.1").assertTextContains("Settles on the 4th")
         rule.onNodeWithTag("recap.fact.2").assertTextContains("Can't load right now")
         rule.onNodeWithTag("recap.fact.3").assertTextContains("Checking how your friends did\u2026")
     }
@@ -103,6 +153,7 @@ class RecapFriendsCardTest {
                 RecapScreen(state, "November 2026", gameName, onPage = {}, onWatchReplay = {}, onClose = {})
             }
         }
+        rule.tapPastCover()
         rule.onNodeWithTag("recap.pager").performTouchInput { swipeLeft() }
         rule.waitForIdle()
         rule.onNodeWithTag("recap.friends.reading").assertIsDisplayed()

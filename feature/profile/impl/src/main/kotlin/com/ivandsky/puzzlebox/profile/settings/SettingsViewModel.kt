@@ -30,8 +30,7 @@ private data class SignInProgress(val running: Boolean = false, val message: Str
 /**
  * Settings state: the stored theme mode, the Games switches (live from [games]) and [AppBuild.versionName]; a pick is
  * saved through [preferences] and a switch through [games]. [visibility] (null: no Visibility section, repository untouched)
- * supplies and saves the player's own tier. [showRanksLinkedIn] (the app's RanksLinkedInDefault read) adds the Ranks
- * LinkedIn games switch; off, that preference is neither read nor written.
+ * supplies and saves the player's own tier.
  */
 internal class SettingsViewModel(
     private val preferences: UserPreferencesRepository,
@@ -40,15 +39,12 @@ internal class SettingsViewModel(
     private val identityService: IdentityService,
     private val idTokenProvider: GoogleIdTokenProvider,
     private val visibility: VisibilitySlot? = null,
-    private val showRanksLinkedIn: Boolean = false,
 ) : ViewModel() {
 
     private val gamesSection: Flow<GamesSectionState> =
         combine(games.queensAutoCross, games.sudokuPeerHighlight, games.sudokuSameDigitHighlight, ::GamesSectionState)
 
     private val signIn = MutableStateFlow(SignInProgress())
-
-    private val ranksLinkedIn: Flow<Boolean?> = if (showRanksLinkedIn) preferences.ranksLinkedInDefault else flowOf(null)
 
     val uiState: StateFlow<SettingsUiState> =
         combine(
@@ -69,7 +65,7 @@ internal class SettingsViewModel(
             )
         }.combine(signIn) { state, progress ->
             state.copy(signingIn = progress.running, signInMessage = progress.message)
-        }.combine(ranksLinkedIn) { state, linkedIn ->
+        }.combine(preferences.ranksLinkedInDefault) { state, linkedIn ->
             state.copy(ranksLinkedInDefault = linkedIn)
         }.combine(identityService.current) { state, identity -> state.copy(signedIn = identity != null) }.stateIn(
             scope = viewModelScope,
@@ -117,9 +113,8 @@ internal class SettingsViewModel(
         viewModelScope.launch { preferences.setRanksFriendsDefault(friends) }
     }
 
-    /** Ranks: whether a hub landing counts LinkedIn games only. Only with [showRanksLinkedIn], else the stored value stays. */
+    /** Ranks: whether a hub landing counts LinkedIn games only. */
     fun onSetRanksLinkedInDefault(linkedIn: Boolean) {
-        if (!showRanksLinkedIn) return
         viewModelScope.launch { preferences.setRanksLinkedInDefault(linkedIn) }
     }
 

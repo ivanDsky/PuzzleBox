@@ -191,6 +191,20 @@ class ComputePeriodFactsTest {
     }
 
     @Test
+    fun `the average is the floor of the mean of the counted solves, imports in and the rest out`() = runTest {
+        fixture.store(
+            fixture.solve(alpha, day(11, 1), time = 40_001),
+            fixture.imported(alpha, day(11, 2)).copy(time = 50_000),
+            fixture.solve(alpha, day(11, 3), time = 60_000),
+            fixture.playAgain(alpha, day(11, 3)).copy(time = 900_000),
+            fixture.solve(alpha, day(10, 31), time = 900_000),
+            fixture.solve(beta, day(11, 4), time = 70_000),
+        )
+
+        assertEquals(mapOf(alpha to 50_000L, beta to 70_000L), facts(november).averageTimeMsByGame)
+    }
+
+    @Test
     fun `an app solve has a replay`() = runTest {
         fixture.store(fixture.solve(alpha, day(11, 1)))
 
@@ -365,7 +379,7 @@ class ComputePeriodFactsTest {
     }
 
     @Test
-    fun `a year groups its counted solves by month with the month's fastest solve`() = runTest {
+    fun `a year groups its counted solves by month with the month's fastest solve and every game's month best`() = runTest {
         fixture.store(
             fixture.solve(alpha, day(3, 1), time = 90_000),
             fixture.solve(beta, day(3, 2), time = 40_000),
@@ -377,11 +391,80 @@ class ComputePeriodFactsTest {
 
         assertEquals(
             listOf(
-                MonthFacts(YearMonth.of(2026, 3), solved = 3, fastestGame = beta, fastestTimeMs = 40_000),
-                MonthFacts(YearMonth.of(2026, 5), solved = 1, fastestGame = alpha, fastestTimeMs = 70_000),
+                MonthFacts(
+                    YearMonth.of(2026, 3), 3, beta, 40_000, bestGame = alpha, bestTimeMs = 40_000, underAveragePercent = 40,
+                    byGame = mapOf(
+                        alpha to MonthFacts.MonthBest(day(3, 3), timeMs = 40_000, averageMs = 66_666, monthSolves = 2, yearSolves = 3),
+                        beta to MonthFacts.MonthBest(day(3, 2), timeMs = 40_000, averageMs = 40_000, monthSolves = 1, yearSolves = 1),
+                    ),
+                ),
+                MonthFacts(
+                    YearMonth.of(2026, 5), 1, alpha, 70_000, bestGame = alpha, bestTimeMs = 70_000, underAveragePercent = 0,
+                    byGame = mapOf(alpha to MonthFacts.MonthBest(day(5, 2), timeMs = 70_000, averageMs = 66_666, monthSolves = 1, yearSolves = 3)),
+                ),
             ),
             facts(RecapPeriod.Year(2026)).months,
         )
+    }
+
+    @Test
+    fun `a month's best is the game that beat its own year average most, not the absolute fastest`() = runTest {
+        fixture.store(
+            fixture.solve(alpha, day(1, 1), time = 20_000),
+            fixture.solve(alpha, day(2, 1), time = 20_000),
+            fixture.solve(beta, day(1, 2), time = 100_000),
+            fixture.solve(beta, day(2, 2), time = 200_000),
+        )
+
+        val january = facts(RecapPeriod.Year(2026)).months.first()
+        assertEquals(alpha, january.fastestGame)
+        assertEquals(beta, january.bestGame)
+        assertEquals(100_000L, january.bestTimeMs)
+        assertEquals(33, january.underAveragePercent)
+    }
+
+    @Test
+    fun `a game with one solve in the year is skipped when another game has an average to beat`() = runTest {
+        fixture.store(
+            fixture.solve(alpha, day(1, 1), time = 60_000),
+            fixture.solve(alpha, day(2, 1), time = 30_000),
+            fixture.solve(beta, day(1, 2), time = 10_000),
+        )
+
+        assertEquals(alpha, facts(RecapPeriod.Year(2026)).months.first().bestGame)
+    }
+
+    @Test
+    fun `a game with one solve in the year is the month's best when it is the only game`() = runTest {
+        fixture.store(fixture.solve(beta, day(3, 2), time = 50_000))
+
+        val march = facts(RecapPeriod.Year(2026)).months.single()
+        assertEquals(beta, march.bestGame)
+        assertEquals(0, march.underAveragePercent)
+    }
+
+    @Test
+    fun `equal ratios go to the game with more solves that month`() = runTest {
+        fixture.store(
+            fixture.solve(alpha, day(1, 1), time = 10_000),
+            fixture.solve(alpha, day(2, 1), time = 30_000),
+            fixture.solve(beta, day(1, 2), time = 10_000),
+            fixture.solve(beta, day(1, 3), time = 30_000),
+        )
+
+        assertEquals(beta, facts(RecapPeriod.Year(2026)).months.first().bestGame)
+    }
+
+    @Test
+    fun `equal ratios and counts go to the game the app lists first`() = runTest {
+        fixture.store(
+            fixture.solve(beta, day(1, 1), time = 10_000),
+            fixture.solve(beta, day(2, 1), time = 30_000),
+            fixture.solve(alpha, day(1, 2), time = 10_000),
+            fixture.solve(alpha, day(2, 2), time = 30_000),
+        )
+
+        assertEquals(alpha, facts(RecapPeriod.Year(2026)).months.first().bestGame)
     }
 
     @Test

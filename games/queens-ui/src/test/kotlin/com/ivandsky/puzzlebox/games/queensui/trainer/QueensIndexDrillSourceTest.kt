@@ -60,9 +60,4 @@ class QueensIndexDrillSourceTest {
         source.candidates(squeeze)
         assertEquals(1, reads)
     }
-
-    @Test
-    fun `this build ships no index yet, so the default source offers nothing`() {
-        assertEquals(emptyList<DrillCandidate>(), QueensIndexDrillSource().candidates(singles))
-    }
 }

@@ -1,10 +1,6 @@
 package com.ivandsky.puzzlebox.play.di
 
-import com.ivandsky.puzzlebox.common.di.flagSet
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.TopBarFlag
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.domain.ranks.LoadFriendsPastPage
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
@@ -15,7 +11,6 @@ import com.ivandsky.puzzlebox.play.GamePageRankViewModel
 import com.ivandsky.puzzlebox.play.GameViewModel
 import com.ivandsky.puzzlebox.play.HowToPlayRules
 import com.ivandsky.puzzlebox.play.LibraryViewModel
-import com.ivandsky.puzzlebox.play.MainTabsLargeBar
 import com.ivandsky.puzzlebox.play.MatchLegResultViewModel
 import com.ivandsky.puzzlebox.play.MatchLegViewModel
 import com.ivandsky.puzzlebox.play.PlaySessionStore
@@ -50,7 +45,6 @@ import com.ivandsky.puzzlebox.play.domain.nextthing.ObserveResultNextThing
 import com.ivandsky.puzzlebox.play.domain.random.LoadRandomDay
 import com.ivandsky.puzzlebox.play.domain.random.LoadRandomPuzzle
 import com.ivandsky.puzzlebox.play.domain.random.LoadRandomShared
-import com.ivandsky.puzzlebox.play.flags.PlayFlag
 import com.ivandsky.puzzlebox.play.random.RandomPickMemory
 import com.ivandsky.puzzlebox.play.random.RandomPuzzleViewModel
 import java.time.Instant
@@ -75,8 +69,7 @@ import org.koin.dsl.module
  * [FinishLeg] and [ObserveLegTarget], Report's [ReportPuzzle], the result's LinkedIn post
  * ([ObserveLinkedInPost], [SubmitLinkedInResult]), a past day's [LoadPastDay], the community
  * list ([ListCommunityPuzzles]), and the random pick ([LoadRandomDay], [LoadRandomShared],
- * [LoadRandomPuzzle]), which shuffles with [Random.Default]. The feature's release flags
- * ([PlayFlag]) are declared here.
+ * [LoadRandomPuzzle]), which shuffles with [Random.Default].
  *
  * [PlaySessionStore] is a single so live plays outlive their entries' compositions. Its
  * slot opening and every slot's writer share ONE [WriteLane], so a released slot's final
@@ -85,7 +78,6 @@ import org.koin.dsl.module
  */
 val playModule = module {
     includes(friendModule)
-    flagSet("play", PlayFlag.entries)
     single {
         val lane = WriteLane()
         val saved = get<SavedPlayRepository>()
@@ -148,7 +140,6 @@ val playModule = module {
             get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
             linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
             identity = get(),
-            releaseFlags = get(),
         )
     }
     viewModel { (key: GameKey) -> GameViewModel(key, get(), get(), get(), get()) }
@@ -168,12 +159,12 @@ val playModule = module {
             linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
         )
     }
-    // MainTabsLargeBar (backlog #1597): Games and Community open on Today's large top bar while it is on.
-    single { MainTabsLargeBar(enabled = get<ReleaseFlags>().isEnabled(TopBarFlag.MainTabsLargeBar)) }
     // The memory forgets the last pick with the process.
     single { RandomPickMemory() }
     // The preset game is the one parameter: the page whose Random opened the sheet.
-    viewModel { params -> RandomPuzzleViewModel(params.get<GameId>(), get(), get(), get()) }
+    viewModel { params ->
+        RandomPuzzleViewModel(params.get<GameId>(), get(), get(), get())
+    }
     // How to play opens the rules sheet over the live play for a game with rules copy.
     single { HowToPlayRules() }
     factory {
@@ -198,7 +189,7 @@ val playModule = module {
             puzzleDay = get(),
             nextRollover = get(),
             communityPuzzles = get(),
-            friendsPast = get<LoadFriendsPastPage.Binding>().loader,
+            friendsPast = get<LoadFriendsPastPage>(),
         )
     }
     // The flag-as-parameter rule again: with it off the result never touches LinkedIn. The Post button's flag is
@@ -225,7 +216,6 @@ val playModule = module {
             submitPost = if (linkedIn) get() else null,
             nextThing = inject(),
             daily = get(),
-            firstSolveNoGap = get<ReleaseFlags>().isEnabled(PlayFlag.FirstSolveNoGap),
         )
     }
     viewModel { (key: ReplayKey) -> ReplayViewModel(key, get(), get(), get(), get(), get()) }

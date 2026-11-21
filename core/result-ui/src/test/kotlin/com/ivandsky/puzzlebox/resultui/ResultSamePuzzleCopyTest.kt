@@ -79,12 +79,10 @@ class ResultSamePuzzleCopyTest {
     }
 
     @Test
-    fun `no earlier solve keeps today's first-solve and not-best wording`() {
+    fun `no earlier solve keeps today's first-solve wording`() {
         val first = resultHeroModel(facts(SamePuzzleSolves.None, verdict = RecordVerdict.FirstSolve, previous = null))
-        val notBest = resultHeroModel(facts(SamePuzzleSolves.None, verdict = RecordVerdict.NotBest, previous = BestScore(90_000L, 0)))
 
         assertEquals("First solve — this is your time to beat", first.bestLine)
-        assertEquals("Your best is 1:30 · 12s off", notBest.bestLine)
         assertNull(first.compareColumns)
         assertTrue(first.compare)
     }

@@ -5,6 +5,7 @@ import app.cash.turbine.test
 import com.ivandsky.puzzlebox.common.log.FailureLog
 import com.ivandsky.puzzlebox.data.cloud.CloudSyncState
 import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ranks.OverallStandings
 import com.ivandsky.puzzlebox.domain.ranks.OverallState
 import com.ivandsky.puzzlebox.insights.domain.recap.FriendsRecapFactProvider
@@ -20,6 +21,7 @@ import com.ivandsky.puzzlebox.insights.domain.recap.SolvedRecapFactProvider
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
+import com.ivandsky.puzzlebox.testing.insights.FakeRecapOpenings
 import java.io.IOException
 import java.time.LocalDate
 import java.time.YearMonth
@@ -44,6 +46,7 @@ class RecapViewModelTest {
 
     private val fixture = RecapHistoryFixture()
     private val cloudSync = FakeCloudSync()
+    private val openings = FakeRecapOpenings()
     private val november = RecapPeriod.Month(YearMonth.of(2026, 11))
 
     private fun day(dayOfMonth: Int) = LocalDate.of(2026, 11, dayOfMonth)
@@ -60,10 +63,11 @@ class RecapViewModelTest {
         savedState: SavedStateHandle = SavedStateHandle(),
         providers: List<RecapFactProvider> = listOf(SolvedRecapFactProvider),
         resolveFriends: ResolveFriendsStanding = fixture.resolveFriends(),
+        history: ObserveGameHistory = fixture.observeHistory,
     ) = RecapViewModel(
         period = november,
         observeRecap = ObserveRecap(
-            fixture.observeHistory,
+            history,
             fixture.computePeriodFacts,
             fixture.registry,
             resolveFriends,
@@ -72,7 +76,9 @@ class RecapViewModelTest {
         ),
         cloudSync = cloudSync,
         puzzleDay = fixture.puzzleDay,
+        openings = openings,
         savedState = savedState,
+        failures = FailureLog { _, _, _ -> },
     )
 
     private fun solved(total: Int) = RecapCard.Solved(total, listOf(RecapCard.Solved.PerGame(alpha, total)))
@@ -94,13 +100,54 @@ class RecapViewModelTest {
                     period = november,
                     title = november.title(fixture.puzzleDay()),
                     cards = listOf(
-                        RecapCard.Solved(2, listOf(RecapCard.Solved.PerGame(alpha, 1), RecapCard.Solved.PerGame(beta, 1))),
+                        RecapCard.Solved(2, listOf(RecapCard.Solved.PerGame(alpha, 1), RecapCard.Solved.PerGame(beta, 1)), hintFree = 2, longestHintFreeRun = 2),
                     ),
                     initialPage = 0,
                 ),
                 awaitItem(),
             )
             expectNoEvents()
+        }
+    }
+
+    @Test
+    fun `the streak card is handed the puzzle day, not the device date`() = runTest {
+        val streak = StreakFixtures.default.copy(today = null)
+        viewModel(providers = listOf(FakeRecapFactProvider(listOf(streak)))).uiState.test {
+            assertEquals(RecapUiState.Loading, awaitItem())
+            val ready = awaitItem() as RecapUiState.Ready
+            assertEquals(streak.copy(today = fixture.puzzleDay()), ready.cards.single())
+        }
+    }
+
+    @Test
+    fun `a story that shows cards marks its period opened, once`() = runTest {
+        fixture.store(fixture.solve(alpha, day(1)))
+
+        viewModel().uiState.test {
+            assertEquals(RecapUiState.Loading, awaitItem())
+            assertEquals(RecapUiState.Ready::class, awaitItem()::class)
+            advanceUntilIdle()
+
+            assertEquals(setOf("2026-11"), openings.opened)
+            assertEquals(1, openings.writes)
+        }
+    }
+
+    @Test
+    fun `a story still loading, restoring or empty marks nothing`() = runTest {
+        cloudSync.state.value = CloudSyncState.Syncing(firstRestore = true)
+
+        viewModel().uiState.test {
+            assertEquals(RecapUiState.Loading, awaitItem())
+            assertEquals(RecapUiState.Restoring, awaitItem())
+            assertEquals(emptySet<String>(), openings.opened)
+
+            cloudSync.state.value = CloudSyncState.Synced(atMs = 1L)
+            assertEquals(RecapUiState.Empty, awaitItem())
+            advanceUntilIdle()
+
+            assertEquals(0, openings.writes)
         }
     }
 
@@ -136,7 +183,7 @@ class RecapViewModelTest {
         viewModel(providers = listOf(SolvedRecapFactProvider, FakeRecapFactProvider(failure = IOException("no connection")))).uiState.test {
             assertEquals(RecapUiState.Loading, awaitItem())
             val ready = awaitItem() as RecapUiState.Ready
-            assertEquals(listOf(RecapCard.Solved(1, listOf(RecapCard.Solved.PerGame(alpha, 1)))), ready.cards)
+            assertEquals(listOf(RecapCard.Solved(1, listOf(RecapCard.Solved.PerGame(alpha, 1)), hintFree = 1, longestHintFreeRun = 1)), ready.cards)
         }
     }
 
@@ -152,7 +199,7 @@ class RecapViewModelTest {
             cloudSync.state.value = CloudSyncState.Synced(atMs = 1L)
 
             val ready = awaitItem() as RecapUiState.Ready
-            assertEquals(listOf(RecapCard.Solved(1, listOf(RecapCard.Solved.PerGame(alpha, 1)))), ready.cards)
+            assertEquals(listOf(RecapCard.Solved(1, listOf(RecapCard.Solved.PerGame(alpha, 1)), hintFree = 1, longestHintFreeRun = 1)), ready.cards)
         }
     }
 
@@ -213,6 +260,44 @@ class RecapViewModelTest {
     }
 
     @Test
+    fun `a saved page counts each Fastest game as a page and is kept on the share page after them`() = runTest {
+        val cards = listOf(solved(1), fastestOf(3))
+
+        viewModel(SavedStateHandle(mapOf("recap.page" to 9)), listOf(FakeRecapFactProvider(cards))).uiState.test {
+            assertEquals(RecapUiState.Loading, awaitItem())
+            assertEquals("Solved, three games, then Share", 4, (awaitItem() as RecapUiState.Ready).initialPage)
+        }
+    }
+
+    @Test
+    fun `a history read that fails is an Error, and Try again loads again and reopens on the saved page`() = runTest {
+        fixture.store(fixture.solve(alpha, day(1)))
+        var failing = true
+        val history = ObserveGameHistory(
+            fixture.registry, fixture.daily, fixture.completions,
+            duelOpponents = flow {
+                if (failing) throw IOException("database is locked")
+                emit(emptyMap())
+            },
+        )
+        val viewModel = viewModel(SavedStateHandle(mapOf("recap.page" to 1)), history = history)
+
+        viewModel.uiState.test {
+            assertEquals(RecapUiState.Loading, awaitItem())
+            assertEquals(RecapUiState.Error, awaitItem())
+            assertEquals(0, openings.writes)
+
+            failing = false
+            viewModel.retry()
+
+            assertEquals(RecapUiState.Loading, awaitItem())
+            assertEquals(1, (awaitItem() as RecapUiState.Ready).initialPage)
+            advanceUntilIdle()
+            assertEquals(setOf("2026-11"), openings.opened)
+        }
+    }
+
+    @Test
     fun `the page the story reaches is saved as a position`() {
         val saved = SavedStateHandle()
 
@@ -248,13 +333,13 @@ class RecapViewModelTest {
         viewModel(saved, providers = listOf(SolvedRecapFactProvider, FriendsRecapFactProvider), resolveFriends = friends).uiState.test {
             assertEquals(RecapUiState.Loading, awaitItem())
             val local = awaitItem() as RecapUiState.Ready
-            val solved = RecapCard.Solved(1, listOf(RecapCard.Solved.PerGame(alpha, 1)))
+            val solved = RecapCard.Solved(1, listOf(RecapCard.Solved.PerGame(alpha, 1)), hintFree = 1, longestHintFreeRun = 1)
             assertEquals(listOf(solved, RecapCard.Friends(FriendsStanding.Reading)), local.cards)
 
             gate.complete(Unit)
 
             val full = awaitItem() as RecapUiState.Ready
-            assertEquals(listOf(solved, RecapCard.Friends(FriendsStanding.Loaded(alpha, 310.0))), full.cards)
+            assertEquals(listOf(solved, RecapCard.Friends(FriendsStanding.Loaded(alpha, 310.0, friendCount = 1, friendNames = listOf("Maya")))), full.cards)
             assertEquals(local.initialPage, full.initialPage)
             expectNoEvents()
         }

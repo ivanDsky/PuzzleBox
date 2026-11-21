@@ -132,6 +132,7 @@ private fun ColumnScope.HeroPage(
     val signInNote by viewModel.signInNote.collectAsStateWithLifecycle()
     val linkedInPost by viewModel.linkedInPost.collectAsStateWithLifecycle()
     val postTimeMs by viewModel.linkedInPostTimeMs.collectAsStateWithLifecycle()
+    val postPending by viewModel.linkedInPostPending.collectAsStateWithLifecycle()
     val chip = if (state.practice || viewModel.playAgain) {
         null
     } else {
@@ -157,7 +158,6 @@ private fun ColumnScope.HeroPage(
             moments = next.moments,
             challenge = next.challenge,
             samePuzzle = state.samePuzzle,
-            firstSolveNoGap = viewModel.firstSolveNoGap,
         ),
         onSignIn = { viewModel.signIn(context) },
         signInNote = signInNote,
@@ -184,7 +184,7 @@ private fun ColumnScope.HeroPage(
                     post = linkedInPost,
                     time = postTimeMs?.let(::formatDuration),
                     onPost = viewModel::postToLinkedIn,
-                    pending = primary == null,
+                    pending = primary == null || postPending,
                     columnGap = columnGap,
                     replay = viewModel.playUi?.let { ui ->
                         { hairline ->

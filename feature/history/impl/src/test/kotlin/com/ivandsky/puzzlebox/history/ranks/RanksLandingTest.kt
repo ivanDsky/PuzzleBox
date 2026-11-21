@@ -23,7 +23,7 @@ class RanksLandingTest {
     fun `the default with no friends is Global`() = runTest {
         val scope = scope()
 
-        val landing = RanksLanding(FakeUserPreferencesRepository(), flowOf(false), gamesFilter = false, scope)
+        val landing = RanksLanding(FakeUserPreferencesRepository(), flowOf(false), scope)
 
         assertEquals(RankScope.Global, landing.scope.value)
         scope.cancel()
@@ -33,7 +33,7 @@ class RanksLandingTest {
     fun `the default with a friend is Friends`() = runTest {
         val scope = scope()
 
-        val landing = RanksLanding(FakeUserPreferencesRepository(), flowOf(true), gamesFilter = false, scope)
+        val landing = RanksLanding(FakeUserPreferencesRepository(), flowOf(true), scope)
 
         assertEquals(RankScope.Friends, landing.scope.value)
         scope.cancel()
@@ -44,7 +44,7 @@ class RanksLandingTest {
         val scope = scope()
         val preferences = FakeUserPreferencesRepository(ranksFriendsDefault = true)
         val friends = MutableStateFlow(true)
-        val landing = RanksLanding(preferences, friends, gamesFilter = false, scope)
+        val landing = RanksLanding(preferences, friends, scope)
 
         preferences.setRanksFriendsDefault(false)
         assertEquals(RankScope.Global, landing.scope.value)
@@ -58,25 +58,14 @@ class RanksLandingTest {
     }
 
     @Test
-    fun `with the Games filter on a saved LinkedIn games default lands on LinkedIn games and follows a change`() = runTest {
+    fun `a saved LinkedIn games default lands on LinkedIn games and follows a change`() = runTest {
         val scope = scope()
         val preferences = FakeUserPreferencesRepository(ranksLinkedInDefault = true)
-        val landing = RanksLanding(preferences, flowOf(false), gamesFilter = true, scope)
+        val landing = RanksLanding(preferences, flowOf(false), scope)
 
         assertEquals(RanksSelection.Games.LinkedIn, landing.games.value)
 
         preferences.setRanksLinkedInDefault(false)
-        assertEquals(RanksSelection.Games.All, landing.games.value)
-        scope.cancel()
-    }
-
-    @Test
-    fun `with the Games filter off a saved LinkedIn games default still lands on All games`() = runTest {
-        val scope = scope()
-        val preferences = FakeUserPreferencesRepository(ranksLinkedInDefault = true)
-
-        val landing = RanksLanding(preferences, flowOf(false), gamesFilter = false, scope)
-
         assertEquals(RanksSelection.Games.All, landing.games.value)
         scope.cancel()
     }

@@ -58,8 +58,8 @@ class ObserveOverall(
 }
 
 /**
- * Ranks [loaded] by points (A10): Overall over every game's boards, and a game's Week or Month over that game's days
- * (WeekMonthPoints). [me], when signed in, is placed past a board's read page where [records] hold an official solve
+ * Ranks [loaded] by points (A10): Overall over every game's boards, and a game's Week or Month over that game's days.
+ * [me], when signed in, is placed past a board's read page where [records] hold an official solve
  * of that board but the page has no row of theirs (A11), and is named from the profile where no page names them. A
  * friend's connection is the friend ([withConnectionsAsFriends]), so their days played only on LinkedIn are in their row.
  */

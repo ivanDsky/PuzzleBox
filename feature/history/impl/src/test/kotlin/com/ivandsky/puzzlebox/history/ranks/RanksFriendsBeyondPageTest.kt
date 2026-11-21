@@ -11,11 +11,9 @@ import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.history.HistoryTestSupport
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
 import com.ivandsky.puzzlebox.history.domain.ranks.RankScope
-import com.ivandsky.puzzlebox.history.flags.HistoryFlag
 import com.ivandsky.puzzlebox.history.ranks.RanksSelection.Window
 import com.ivandsky.puzzlebox.resultui.board.BoardRowValue
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Instant
@@ -104,7 +102,7 @@ class RanksFriendsBeyondPageTest {
     @Test
     fun `the Friends Week and Month count the days the viewer placed past the global page, none called unofficial`() = runTest {
         for (window in listOf(Window.Week, Window.Month)) {
-            val board = hub().viewModel(releaseFlags = FakeReleaseFlags(HistoryFlag.WeekMonthPoints)).friends(window)
+            val board = hub().viewModel().friends(window)
 
             // Two days among Maya and Ann: 100 points for 1st, 50 for 2nd, each day.
             val points = rowsOf(board).associate { it.name to (it.scoreValue as BoardRowValue.DayPoints).let { value -> value.total to value.days } }

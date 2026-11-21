@@ -25,6 +25,7 @@ import com.ivandsky.puzzlebox.gameui.LocalHintCooldown
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.history.HistoryLayout
 import com.ivandsky.puzzlebox.home.HomeLayout
+import com.ivandsky.puzzlebox.insights.api.InsightsRecapKey
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.CustomSlot
 import com.ivandsky.puzzlebox.play.DuelsSlot
@@ -38,8 +39,9 @@ import org.koin.compose.koinInject
  * Hosts [NavDisplay] over [navigator]'s visible entries, the tabs' and the layer's above them
  * (decorated by [rememberTabEntries]); every move takes its [NavMotion] from [navMotion] (NavTransitions.kt)
  * for the window's [NavForm], gated by the live reduce-motion flag, and publishes it to the
- * scenes' scrims ([LocalNavMotion]). On the tablet form a push of a game whose card is on
- * screen lifts out of that card ([NavLift]), and its pop shrinks back into it. System back is
+ * scenes' scrims ([LocalNavMotion]). A push of a game on the tablet form, or of a recap story on
+ * either form, whose card is on screen lifts out of that card ([NavLift]), and its pop shrinks
+ * back into it (the screen fades out instead when its card is gone by then). System back is
  * [Navigator.pop]: it pops the layer while that is open, else the current tab, returns a
  * Games/Community/Ranks root to Today, and at the
  * Home root returns false so the back press falls through and the app exits.
@@ -55,7 +57,7 @@ import org.koin.compose.koinInject
  * lets Enter code open a duel, and [train], when given, adds the Train tab after it. [custom] fills the Community tab, and [makeOne] backs the
  * Make-one doors on the game page and the Result. The shell draws the
  * avatar ([ShellAvatar]) over [identityService]'s signed-in player: in Today's header on the
- * phone (and every main tab's, with [mainTabBars]), at the rail's bottom on the tablet. Settings is reached through Profile's gear.
+ * phone (and every main tab's root), at the rail's bottom on the tablet. Settings is reached through Profile's gear.
  * Every entry sees [LocalHintCooldown] ([withHintCooldown]).
  */
 @Composable
@@ -74,19 +76,18 @@ internal fun PuzzleBoxNavShell(
     libraryRequests: LibraryRequests = rememberLibraryRequests(),
     store: PlaySessionStore = koinInject(),
     identityService: IdentityService = koinInject(),
-    mainTabBars: MainTabBars = koinInject(),
 ) {
     val visibility = rememberVisibilitySlot(koinInject())
     val releaseFlags by koinInject<ReleaseFlags>().enabled.collectAsStateWithLifecycle()
-    val recap = rememberRecapSlot(releaseFlags, navigator, koinInject(), koinInject())
+    val recap = rememberRecapSlot(releaseFlags, navigator, koinInject(), koinInject(), koinInject(), koinInject(), koinInject())
     val reduceMotion = rememberReducedMotion()
     val layoutDirection = LocalLayoutDirection.current
     val form = if (homeLayout == HomeLayout.TwoPane) NavForm.Tablet else NavForm.Phone
     val state = navigator.state
     LaunchedEffect(state.allKeys) { store.retain(state.allKeys) }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { store.flush() }
-    val shellChrome = remember(navigator, identityService, form, mainTabBars) {
-        shellChromeDecorator(navigator, identityService.current, avatarInHeader = form == NavForm.Phone, allMainTabs = mainTabBars.largeBar)
+    val shellChrome = remember(navigator, identityService, form) {
+        shellChromeDecorator(navigator, identityService.current, avatarInHeader = form == NavForm.Phone)
     }
     val entries = rememberTabEntries(
         state = navigator.state,
@@ -110,8 +111,6 @@ internal fun PuzzleBoxNavShell(
         shellChrome = shellChrome,
     )
     val motion = remember { mutableStateOf(NavMotion.Idle) }
-    // The board that lifted in last: only it shrinks back into a card on its pop.
-    val lifted = remember { LiftedKey() }
     SharedTransitionLayout(modifier) {
         val lift = remember(this) { NavLift(this) }
         // NavDisplay evaluates these specs inside its scenes' composition, so the scrims and
@@ -123,21 +122,22 @@ internal fun PuzzleBoxNavShell(
         }.transform(layoutDirection)
         CompositionLocalProvider(
             LocalNavMotion provides motion,
-            LocalNavLift provides lift.takeIf { form == NavForm.Tablet },
+            LocalNavLift provides lift,
         ) {
             NavDisplay(
                 entries = entries,
                 transitionSpec = {
                     val to = targetState.metadata
-                    val liftable = form == NavForm.Tablet && lift.isOnScreen(to[ENTRY_KEY])
+                    val liftable = (form == NavForm.Tablet || to[ENTRY_KEY] is InsightsRecapKey) && lift.isOnScreen(to[ENTRY_KEY])
                     val chosen = navMotion(initialState.metadata, to, pop = false, reduceMotion, form, liftable)
-                    lifted.key = to[ENTRY_KEY].takeIf { chosen.kind == NavMotionKind.Lift }
+                    lift.key = to[ENTRY_KEY].takeIf { chosen.kind == NavMotionKind.Lift }
                     play(chosen)
                 },
                 popTransitionSpec = {
+                    // Only the screen that lifted in shrinks back. Its card is not composed yet while this
+                    // runs (the page below composes after), so a gone card is handled by the screen itself.
                     val from = initialState.metadata
-                    val liftable = from[ENTRY_KEY] != null && from[ENTRY_KEY] == lifted.key &&
-                        lift.isOnScreen(lifted.key)
+                    val liftable = from[ENTRY_KEY] != null && from[ENTRY_KEY] == lift.key
                     play(navMotion(from, targetState.metadata, pop = true, reduceMotion, form, liftable))
                 },
                 predictivePopTransitionSpec = { swipeEdge ->
@@ -147,11 +147,6 @@ internal fun PuzzleBoxNavShell(
             )
         }
     }
-}
-
-/** Plain holder: written while a spec is evaluated, never observed. */
-private class LiftedKey {
-    var key: Any? = null
 }
 
 /**

@@ -141,4 +141,27 @@ class MotionTokensTest {
         assertEquals(0, MotionTokens.DurationNone)
         assertEquals(900, MotionTokens.RevealQuietFade)
     }
+    // Recap tokens 1-10 are reused, never re-tuned: a drift here would silently re-time every recap card.
+    @Test
+    fun `reused recap tokens keep the contract values`() {
+        assertEquals(240, MotionTokens.EnterDuration)
+        assertEquals(8.dp, MotionTokens.EnterRise)
+        assertEquals(40, MotionTokens.EnterStagger)
+        assertEquals(5, MotionTokens.EnterStaggerCap)
+        assertEquals(150, MotionTokens.DurationExit)
+        assertEquals(0.97f, MotionTokens.PressScale, 0f)
+        assertEquals(100, MotionTokens.PressDuration)
+        assertEquals(120, MotionTokens.ReducedFadeDuration)
+        assertEquals(90, MotionTokens.NavTransitionExit)
+        assertEquals(200, MotionTokens.NavTransitionEnter)
+        assertEquals(90, MotionTokens.NavTransitionEnterDelay)
+        assertEquals(0.55f, MotionTokens.StampSpringDamping, 0f)
+        assertEquals(600f, MotionTokens.StampSpringStiffness, 0f)
+        assertEquals(1.15f, MotionTokens.StampFromScale, 0f)
+        assertEquals(120, MotionTokens.StampFadeDuration)
+        assertEquals(360, MotionTokens.PulseDuration)
+        assertEquals(1.12f, MotionTokens.PulseScale, 0f)
+        assertEquals(400, MotionTokens.DurationExpressive)
+        assertEquals(700, MotionTokens.ScoreCountUpDuration)
+    }
 }

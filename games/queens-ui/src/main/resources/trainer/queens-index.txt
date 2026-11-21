@@ -1,0 +1,936 @@
+technique-index 1
+game queens
+technique-set 2
+cutoff 2026-11-18
+1 line-lock=1 singles=8
+2 line-lock=9 shared-squares=1 singles=9
+3 line-lock=4 singles=8
+4 line-lock=6 shared-squares=3 singles=7
+5 line-lock=4 pigeonhole-regions=1 shared-squares=4 singles=11
+6 line-lock=5 singles=7
+7 line-lock=4 shared-squares=3 singles=8
+8 line-lock=3 pigeonhole-regions=1 shared-squares=6 singles=8
+9 line-lock=3 pigeonhole-regions=2 shared-squares=6 singles=9
+10 line-lock=4 pigeonhole-regions=1 singles=10
+11 line-lock=7 singles=10
+12 line-lock=1 pigeonhole-regions=5 shared-squares=9 singles=9
+13 line-lock=1 pigeonhole-regions=1 shared-squares=1 singles=8
+14 line-lock=4 shared-squares=1 singles=8
+15 line-lock=2 pigeonhole-regions=3 shared-squares=1 singles=8
+16 line-lock=6 shared-squares=1 singles=9
+17 line-lock=1 pigeonhole-regions=2 shared-squares=2 singles=9
+18 line-lock=6 shared-squares=2 singles=9
+19 line-lock=4 pigeonhole-regions=2 shared-squares=6 singles=9
+20 line-lock=6 shared-squares=3 singles=7
+21 line-lock=3 singles=9
+22 line-lock=4 pigeonhole-regions=1 shared-squares=6 singles=8
+23 line-lock=4 pigeonhole-regions=2 shared-squares=4 singles=9
+24 leftover-queen=1 line-lock=6 pigeonhole-regions=2 shared-squares=2 singles=9
+25 line-lock=7 pigeonhole-regions=3 shared-squares=6 singles=10
+26 line-lock=5 pigeonhole-regions=1 shared-squares=3 singles=9
+27 line-lock=5 singles=8
+28 line-lock=4 pigeonhole-regions=2 shared-squares=10 singles=9
+29 line-lock=6 pigeonhole-regions=1 shared-squares=3 singles=10
+30 line-lock=7 pigeonhole-regions=1 shared-squares=6 singles=9
+31 line-lock=6 pigeonhole-regions=1 shared-squares=4 singles=9
+32 line-lock=7 pigeonhole-regions=2 shared-squares=6 singles=11
+33 leftover-queen=1 line-lock=1 pigeonhole-regions=3 shared-squares=3 singles=10
+34 line-lock=5 shared-squares=2 singles=8
+35 line-lock=5 shared-squares=3 singles=8
+36 line-lock=3 shared-squares=5 singles=9 squeeze=2
+37 line-lock=5 pigeonhole-regions=1 shared-squares=1 singles=10
+38 line-lock=4 pigeonhole-regions=2 shared-squares=4 singles=9
+39 leftover-queen=2 line-lock=7 pigeonhole-regions=1 shared-squares=13 singles=11
+40 line-lock=3 pigeonhole-regions=3 shared-squares=6 singles=10
+41 line-lock=3 shared-squares=2 singles=9
+42 leftover-queen=6 line-lock=1 shared-squares=1 singles=8
+43 leftover-queen=1 line-lock=5 shared-squares=1 singles=8
+44 line-lock=2 pigeonhole-regions=2 shared-squares=3 singles=8
+45 line-lock=4 shared-squares=1 singles=8
+46 line-lock=5 pigeonhole-regions=1 shared-squares=3 singles=8
+47 line-lock=7 singles=10
+48 line-lock=1 pigeonhole-regions=2 shared-squares=1 singles=9
+49 line-lock=8 shared-squares=6 singles=8
+50 line-lock=4 pigeonhole-regions=3 shared-squares=6 singles=8
+51 line-lock=5 pigeonhole-regions=2 shared-squares=5 singles=10
+52 leftover-queen=4 line-lock=2 pigeonhole-regions=2 shared-squares=2 singles=10
+53 leftover-queen=4 line-lock=4 pigeonhole-regions=1 shared-squares=4 singles=11
+54 line-lock=10 pigeonhole-regions=1 shared-squares=5 singles=10
+55 line-lock=4 singles=8
+56 line-lock=4 shared-squares=4 singles=7
+57 line-lock=3 pigeonhole-regions=2 shared-squares=5 singles=8
+58 line-lock=4 pigeonhole-regions=1 singles=8
+59 line-lock=3 singles=9
+60 line-lock=2 pigeonhole-regions=1 shared-squares=4 singles=8
+61 leftover-queen=3 line-lock=3 pigeonhole-regions=1 shared-squares=1 singles=9
+62 line-lock=5 shared-squares=1 singles=7
+63 line-lock=1 singles=9
+64 line-lock=6 shared-squares=1 singles=8
+65 line-lock=4 singles=10
+66 leftover-queen=1 line-lock=5 pigeonhole-regions=1 shared-squares=3 singles=8
+67 leftover-queen=4 line-lock=4 pigeonhole-regions=2 shared-squares=2 singles=9 squeeze=1
+68 leftover-queen=5 line-lock=5 pigeonhole-lines=1 pigeonhole-regions=1 shared-squares=4 singles=9
+69 line-lock=1 pigeonhole-regions=2 shared-squares=3 singles=7
+70 leftover-queen=1 line-lock=5 pigeonhole-regions=1 shared-squares=5 singles=8
+71 line-lock=2 pigeonhole-regions=2 shared-squares=4 singles=7
+72 line-lock=2 pigeonhole-regions=1 shared-squares=4 singles=9
+73 line-lock=2 pigeonhole-regions=1 shared-squares=4 singles=8
+74 line-lock=3 singles=8
+75 line-lock=6 shared-squares=1 singles=9
+76 line-lock=2 pigeonhole-regions=1 shared-squares=2 singles=8
+77 singles=8
+78 line-lock=7 singles=9
+79 line-lock=3 pigeonhole-regions=1 shared-squares=8 singles=9
+80 leftover-queen=1 line-lock=4 pigeonhole-regions=1 shared-squares=4 singles=8
+81 line-lock=3 pigeonhole-regions=2 shared-squares=7 singles=8
+82 line-lock=4 pigeonhole-regions=2 shared-squares=3 singles=10
+83 line-lock=2 pigeonhole-regions=1 shared-squares=2 singles=8
+84 line-lock=8 shared-squares=1 singles=9
+85 line-lock=4 shared-squares=1 singles=8
+86 line-lock=4 singles=10
+87 line-lock=7 shared-squares=6 singles=9
+88 line-lock=6 pigeonhole-regions=1 shared-squares=3 singles=10
+89 leftover-queen=1 line-lock=3 pigeonhole-regions=1 shared-squares=3 singles=9
+90 line-lock=7 shared-squares=3 singles=8
+91 line-lock=3 pigeonhole-regions=1 singles=9
+92 line-lock=2 singles=8
+93 line-lock=5 shared-squares=3 singles=8
+94 leftover-queen=2 line-lock=4 pigeonhole-regions=1 shared-squares=4 singles=9 squeeze=1
+95 line-lock=5 pigeonhole-regions=1 shared-squares=6 singles=8
+96 leftover-queen=1 line-lock=5 pigeonhole-regions=2 shared-squares=7 singles=8
+97 line-lock=5 shared-squares=1 singles=7
+98 line-lock=3 pigeonhole-regions=2 shared-squares=4 singles=8
+99 line-lock=3 shared-squares=1 singles=7
+100 line-lock=7 pigeonhole-regions=1 shared-squares=4 singles=11
+101 line-lock=3 pigeonhole-regions=1 shared-squares=3 singles=7
+102 leftover-queen=1 line-lock=6 pigeonhole-regions=1 shared-squares=3 singles=9
+103 leftover-queen=3 line-lock=2 pigeonhole-regions=4 shared-squares=4 singles=9
+104 line-lock=4 shared-squares=2 singles=7
+105 line-lock=3 pigeonhole-regions=1 shared-squares=5 singles=8
+106 line-lock=4 pigeonhole-regions=1 shared-squares=4 singles=7
+107 line-lock=3 shared-squares=2 singles=9
+108 leftover-queen=1 line-lock=1 pigeonhole-regions=2 shared-squares=5 singles=8
+109 leftover-queen=1 line-lock=6 shared-squares=3 singles=8
+110 line-lock=3 pigeonhole-regions=3 shared-squares=7 singles=9
+111 line-lock=2 singles=7
+112 line-lock=5 singles=8
+113 line-lock=2 pigeonhole-regions=1 shared-squares=4 singles=9
+114 leftover-queen=1 line-lock=2 pigeonhole-regions=2 shared-squares=4 singles=8
+115 leftover-queen=1 line-lock=6 shared-squares=6 singles=9
+116 line-lock=3 pigeonhole-regions=1 shared-squares=5 singles=9
+117 line-lock=2 pigeonhole-regions=2 shared-squares=5 singles=10
+118 line-lock=2 pigeonhole-regions=2 shared-squares=8 singles=8
+119 line-lock=6 singles=10
+120 line-lock=4 singles=9
+121 line-lock=6 pigeonhole-regions=1 shared-squares=4 singles=10
+122 leftover-queen=1 line-lock=2 pigeonhole-regions=3 shared-squares=4 singles=8
+123 line-lock=6 pigeonhole-regions=2 shared-squares=6 singles=10
+124 line-lock=8 shared-squares=1 singles=11
+125 line-lock=3 shared-squares=2 singles=7
+126 line-lock=2 shared-squares=3 singles=8
+127 line-lock=6 shared-squares=3 singles=9
+128 line-lock=1 pigeonhole-regions=1 shared-squares=2 singles=9
+129 line-lock=6 shared-squares=4 singles=8
+130 pigeonhole-regions=2 shared-squares=2 singles=10
+131 line-lock=5 singles=11
+132 line-lock=4 singles=7
+133 line-lock=8 shared-squares=6 singles=9
+134 line-lock=6 shared-squares=1 singles=10
+135 line-lock=4 shared-squares=1 singles=8
+136 line-lock=3 shared-squares=7 singles=8
+137 line-lock=8 shared-squares=2 singles=9
+138 line-lock=3 pigeonhole-regions=2 shared-squares=6 singles=11
+139 line-lock=3 shared-squares=1 singles=7
+140 line-lock=6 singles=10
+141 line-lock=3 singles=11
+142 line-lock=5 singles=9
+143 line-lock=1 singles=9
+144 line-lock=7 shared-squares=5 singles=10
+145 line-lock=3 pigeonhole-regions=1 shared-squares=3 singles=9
+146 leftover-queen=1 line-lock=1 pigeonhole-regions=2 shared-squares=1 singles=8
+147 line-lock=3 shared-squares=1 singles=9
+148 line-lock=3 pigeonhole-regions=1 singles=8
+149 line-lock=1 shared-squares=5 singles=7
+150 line-lock=8 singles=11
+151 leftover-queen=1 line-lock=5 pigeonhole-regions=2 shared-squares=6 singles=8
+152 line-lock=2 pigeonhole-regions=3 shared-squares=2 singles=10
+153 line-lock=1 singles=8
+154 line-lock=5 shared-squares=2 singles=8
+155 leftover-queen=1 line-lock=5 shared-squares=2 singles=9
+156 pigeonhole-regions=2 shared-squares=2 singles=8
+157 line-lock=7 shared-squares=1 singles=9
+158 line-lock=4 shared-squares=1 singles=10
+159 line-lock=5 pigeonhole-regions=2 shared-squares=3 singles=10
+160 line-lock=4 shared-squares=2 singles=7
+161 line-lock=1 shared-squares=1 singles=9
+162 line-lock=1 pigeonhole-regions=1 shared-squares=1 singles=8
+163 line-lock=6 pigeonhole-regions=2 shared-squares=1 singles=10
+164 line-lock=6 shared-squares=3 singles=9
+165 leftover-queen=2 line-lock=7 shared-squares=3 singles=8 squeeze=2
+166 line-lock=3 pigeonhole-regions=2 shared-squares=8 singles=7
+167 line-lock=2 pigeonhole-regions=1 shared-squares=2 singles=9
+168 line-lock=1 singles=9
+169 line-lock=6 shared-squares=1 singles=9
+170 leftover-queen=3 line-lock=6 shared-squares=5 singles=8
+171 line-lock=7 shared-squares=2 singles=9
+172 leftover-queen=1 line-lock=5 shared-squares=5 singles=9
+173 pigeonhole-regions=3 shared-squares=5 singles=10
+174 line-lock=2 singles=7
+175 line-lock=6 singles=9
+176 pigeonhole-regions=2 shared-squares=1 singles=9
+177 line-lock=3 pigeonhole-regions=1 singles=10
+178 line-lock=6 pigeonhole-regions=2 shared-squares=4 singles=9
+179 line-lock=5 shared-squares=3 singles=8
+180 leftover-queen=6 line-lock=3 pigeonhole-regions=2 shared-squares=3 singles=8
+181 singles=8
+182 line-lock=2 pigeonhole-regions=3 shared-squares=4 singles=8
+183 line-lock=4 pigeonhole-regions=3 shared-squares=5 singles=9
+184 line-lock=2 singles=11
+185 line-lock=5 pigeonhole-regions=1 shared-squares=4 singles=9
+186 line-lock=3 pigeonhole-regions=1 shared-squares=1 singles=10
+187 line-lock=3 pigeonhole-regions=2 shared-squares=1 singles=10
+188 line-lock=6 shared-squares=2 singles=8
+189 line-lock=6 singles=7
+190 line-lock=7 singles=9
+191 line-lock=2 singles=10
+192 line-lock=5 pigeonhole-regions=1 shared-squares=6 singles=9
+193 line-lock=4 pigeonhole-regions=2 shared-squares=6 singles=9
+194 line-lock=4 pigeonhole-regions=1 shared-squares=10 singles=10
+195 line-lock=5 shared-squares=1 singles=8
+196 line-lock=3 pigeonhole-regions=1 shared-squares=5 singles=7
+197 line-lock=2 pigeonhole-regions=1 shared-squares=3 singles=10
+198 line-lock=3 shared-squares=7 singles=8
+199 line-lock=5 pigeonhole-regions=1 shared-squares=2 singles=9
+200 line-lock=5 pigeonhole-regions=3 shared-squares=7 singles=11
+201 line-lock=3 shared-squares=1 singles=9
+202 line-lock=2 singles=7
+203 line-lock=3 shared-squares=3 singles=7
+204 line-lock=3 pigeonhole-regions=1 shared-squares=2 singles=9
+205 line-lock=1 singles=9
+206 line-lock=6 shared-squares=4 singles=8
+207 line-lock=7 pigeonhole-regions=1 shared-squares=8 singles=10
+208 line-lock=2 pigeonhole-regions=2 shared-squares=6 singles=9
+209 line-lock=4 singles=8
+210 line-lock=3 shared-squares=4 singles=8
+211 line-lock=3 singles=8
+212 line-lock=3 shared-squares=1 singles=9
+213 line-lock=5 shared-squares=5 singles=9
+214 line-lock=3 shared-squares=1 singles=10
+215 line-lock=4 shared-squares=4 singles=9
+216 line-lock=2 shared-squares=2 singles=7
+217 line-lock=3 pigeonhole-regions=2 shared-squares=3 singles=8
+218 line-lock=2 pigeonhole-regions=1 shared-squares=3 singles=8
+219 line-lock=4 shared-squares=1 singles=8
+220 line-lock=3 pigeonhole-regions=1 shared-squares=5 singles=10
+221 line-lock=4 pigeonhole-regions=1 shared-squares=4 singles=8
+222 leftover-queen=1 line-lock=3 pigeonhole-regions=3 shared-squares=6 singles=9
+223 line-lock=5 singles=7
+224 line-lock=2 singles=9
+225 line-lock=7 singles=8
+226 line-lock=5 pigeonhole-regions=1 shared-squares=3 singles=9
+227 line-lock=3 pigeonhole-regions=2 shared-squares=1 singles=9
+228 line-lock=5 pigeonhole-regions=1 shared-squares=1 singles=9
+229 line-lock=6 singles=9
+230 line-lock=3 singles=8
+231 line-lock=5 singles=8
+232 line-lock=1 singles=10
+233 line-lock=5 pigeonhole-regions=1 shared-squares=2 singles=9
+234 leftover-queen=1 line-lock=4 pigeonhole-lines=1 pigeonhole-regions=2 shared-squares=4 singles=9
+235 line-lock=3 singles=10
+236 leftover-queen=1 line-lock=4 pigeonhole-regions=1 shared-squares=3 singles=9
+237 singles=8
+238 line-lock=3 singles=9
+239 line-lock=2 shared-squares=1 singles=9
+240 line-lock=5 shared-squares=1 singles=8
+241 line-lock=4 singles=8
+242 line-lock=3 pigeonhole-regions=4 shared-squares=3 singles=10
+243 leftover-queen=3 line-lock=5 shared-squares=3 singles=10
+244 singles=8
+245 line-lock=6 singles=11
+246 line-lock=4 pigeonhole-regions=2 shared-squares=3 singles=11
+247 line-lock=7 shared-squares=3 singles=8
+248 line-lock=2 pigeonhole-regions=1 shared-squares=1 singles=9
+249 line-lock=3 pigeonhole-regions=1 shared-squares=2 singles=10
+250 line-lock=6 pigeonhole-regions=1 shared-squares=6 singles=11
+251 line-lock=5 shared-squares=1 singles=7
+252 line-lock=2 pigeonhole-regions=1 shared-squares=3 singles=8
+253 line-lock=2 singles=8
+254 line-lock=7 shared-squares=2 singles=9
+255 line-lock=3 shared-squares=1 singles=8 squeeze=3
+256 line-lock=4 pigeonhole-regions=1 singles=9
+257 line-lock=6 pigeonhole-regions=1 shared-squares=7 singles=10
+258 line-lock=2 shared-squares=1 singles=7
+259 line-lock=4 singles=8
+260 leftover-queen=1 line-lock=3 shared-squares=5 singles=9
+261 line-lock=2 pigeonhole-regions=2 shared-squares=7 singles=8
+262 line-lock=3 pigeonhole-regions=3 shared-squares=6 singles=9
+263 line-lock=3 pigeonhole-regions=2 shared-squares=3 singles=10
+264 line-lock=4 pigeonhole-regions=1 shared-squares=3 singles=10
+265 line-lock=5 singles=7
+266 line-lock=4 shared-squares=2 singles=8
+267 line-lock=4 pigeonhole-regions=1 shared-squares=2 singles=9
+268 leftover-queen=3 line-lock=1 pigeonhole-regions=1 shared-squares=2 singles=9 squeeze=1
+269 line-lock=5 pigeonhole-regions=2 shared-squares=4 singles=8
+270 line-lock=2 pigeonhole-regions=2 shared-squares=2 singles=10
+271 leftover-queen=1 line-lock=5 pigeonhole-regions=1 shared-squares=8 singles=10
+272 line-lock=4 singles=7
+273 line-lock=2 pigeonhole-regions=2 shared-squares=3 singles=8
+274 line-lock=3 singles=8
+275 line-lock=3 shared-squares=2 singles=9
+276 line-lock=6 pigeonhole-regions=1 shared-squares=3 singles=9
+277 line-lock=3 pigeonhole-regions=1 shared-squares=3 singles=10
+278 leftover-queen=2 line-lock=5 pigeonhole-lines=1 pigeonhole-regions=2 shared-squares=5 singles=9
+279 singles=8
+280 line-lock=2 shared-squares=1 singles=8
+281 line-lock=3 singles=8
+282 line-lock=1 pigeonhole-regions=3 shared-squares=3 singles=9
+283 line-lock=6 pigeonhole-regions=1 shared-squares=3 singles=8
+284 line-lock=7 pigeonhole-regions=1 shared-squares=4 singles=10
+285 leftover-queen=1 line-lock=1 pigeonhole-regions=4 shared-squares=6 singles=9
+286 line-lock=2 singles=7
+287 line-lock=2 singles=8
+288 line-lock=6 pigeonhole-regions=2 shared-squares=4 singles=9
+289 line-lock=4 pigeonhole-regions=1 shared-squares=4 singles=9
+290 leftover-queen=1 line-lock=3 pigeonhole-regions=3 shared-squares=5 singles=9
+291 line-lock=6 pigeonhole-regions=1 shared-squares=4 singles=9
+292 line-lock=2 pigeonhole-regions=1 singles=11
+293 line-lock=2 singles=7
+294 line-lock=6 singles=9
+295 line-lock=2 shared-squares=1 singles=8
+296 line-lock=4 pigeonhole-regions=1 shared-squares=4 singles=9
+297 line-lock=2 pigeonhole-regions=1 shared-squares=4 singles=9
+298 line-lock=1 pigeonhole-regions=1 singles=10
+299 line-lock=2 singles=10
+300 line-lock=3 shared-squares=1 singles=7
+301 line-lock=1 singles=8
+302 line-lock=3 shared-squares=1 singles=8
+303 pigeonhole-regions=1 shared-squares=4 singles=8
+304 line-lock=3 pigeonhole-regions=2 shared-squares=6 singles=8
+305 line-lock=5 pigeonhole-regions=2 shared-squares=8 singles=9
+306 line-lock=1 pigeonhole-regions=1 shared-squares=1 singles=10
+307 line-lock=1 singles=7
+308 line-lock=5 singles=9
+309 line-lock=5 pigeonhole-regions=2 shared-squares=4 singles=8
+310 line-lock=3 pigeonhole-regions=1 shared-squares=3 singles=9
+311 leftover-queen=1 line-lock=3 pigeonhole-regions=1 shared-squares=3 singles=8
+312 leftover-queen=2 line-lock=4 pigeonhole-regions=2 shared-squares=3 singles=9
+313 line-lock=5 pigeonhole-regions=1 shared-squares=1 singles=11
+314 line-lock=5 shared-squares=1 singles=7
+315 line-lock=4 shared-squares=1 singles=9
+316 line-lock=5 singles=8
+317 line-lock=5 pigeonhole-regions=1 shared-squares=2 singles=9
+318 line-lock=2 shared-squares=3 singles=9
+319 line-lock=3 pigeonhole-regions=3 shared-squares=3 singles=9
+320 leftover-queen=1 line-lock=3 shared-squares=4 singles=8
+321 line-lock=3 singles=8
+322 line-lock=7 shared-squares=3 singles=9
+323 line-lock=3 shared-squares=2 singles=7
+324 line-lock=6 shared-squares=2 singles=9
+325 line-lock=5 singles=9
+326 line-lock=5 shared-squares=3 singles=9
+327 leftover-queen=1 line-lock=1 pigeonhole-regions=1 shared-squares=2 singles=10
+328 line-lock=5 shared-squares=1 singles=8
+329 line-lock=2 shared-squares=1 singles=7
+330 line-lock=2 singles=8
+331 line-lock=5 shared-squares=1 singles=8
+332 line-lock=1 shared-squares=1 singles=8
+333 line-lock=5 pigeonhole-regions=1 shared-squares=2 singles=8
+334 leftover-queen=1 line-lock=2 pigeonhole-regions=3 shared-squares=3 singles=8
+335 singles=7
+336 singles=9
+337 line-lock=2 shared-squares=3 singles=8
+338 line-lock=3 pigeonhole-regions=1 shared-squares=2 singles=7
+339 line-lock=1 pigeonhole-regions=1 shared-squares=1 singles=9
+340 line-lock=2 pigeonhole-regions=2 shared-squares=4 singles=8
+341 line-lock=5 pigeonhole-regions=3 shared-squares=4 singles=9
+342 line-lock=5 shared-squares=2 singles=8
+343 pigeonhole-regions=2 shared-squares=1 singles=8
+344 line-lock=1 singles=8
+345 line-lock=6 singles=7
+346 line-lock=6 shared-squares=3 singles=7
+347 line-lock=4 shared-squares=2 singles=8
+348 line-lock=7 singles=10
+349 line-lock=4 shared-squares=1 singles=8
+350 line-lock=5 shared-squares=1 singles=8
+351 singles=8
+352 line-lock=4 singles=9
+353 leftover-queen=2 line-lock=4 pigeonhole-regions=1 shared-squares=6 singles=7
+354 line-lock=7 pigeonhole-regions=1 shared-squares=1 singles=10
+355 line-lock=6 shared-squares=1 singles=9
+356 line-lock=4 singles=7
+357 line-lock=1 pigeonhole-regions=1 shared-squares=2 singles=7
+358 singles=9
+359 line-lock=3 pigeonhole-regions=1 shared-squares=1 singles=8
+360 line-lock=9 shared-squares=4 singles=9
+361 line-lock=3 pigeonhole-regions=1 shared-squares=5 singles=9
+362 leftover-queen=6 line-lock=4 shared-squares=4 singles=10
+363 line-lock=3 shared-squares=2 singles=7
+364 leftover-queen=2 line-lock=3 shared-squares=3 singles=7
+365 line-lock=6 shared-squares=1 singles=9
+366 line-lock=10 singles=10
+367 line-lock=1 pigeonhole-regions=1 shared-squares=2 singles=8
+368 leftover-queen=1 pigeonhole-regions=3 shared-squares=7 singles=10
+369 line-lock=4 pigeonhole-regions=1 shared-squares=5 singles=9
+370 line-lock=4 shared-squares=1 singles=7
+371 line-lock=2 singles=8
+372 line-lock=5 shared-squares=3 singles=8
+373 line-lock=3 shared-squares=2 singles=8
+374 line-lock=5 singles=8
+375 line-lock=6 shared-squares=1 singles=10
+376 line-lock=6 shared-squares=1 singles=9
+377 line-lock=4 shared-squares=5 singles=7
+378 line-lock=4 shared-squares=1 singles=7
+379 line-lock=2 pigeonhole-regions=2 shared-squares=5 singles=8
+380 line-lock=2 pigeonhole-regions=3 shared-squares=4 singles=8
+381 line-lock=8 shared-squares=4 singles=8
+382 line-lock=6 singles=9
+383 line-lock=2 pigeonhole-regions=2 shared-squares=3 singles=9
+384 line-lock=3 shared-squares=1 singles=8
+385 line-lock=6 pigeonhole-regions=1 shared-squares=6 singles=8
+386 singles=9
+387 line-lock=4 singles=9
+388 line-lock=6 pigeonhole-lines=1 pigeonhole-regions=1 shared-squares=4 singles=9
+389 line-lock=6 singles=10
+390 leftover-queen=2 line-lock=3 pigeonhole-regions=2 shared-squares=5 singles=9
+391 line-lock=4 pigeonhole-regions=1 shared-squares=4 singles=8
+392 line-lock=7 singles=8
+393 line-lock=4 pigeonhole-regions=2 shared-squares=4 singles=8
+394 line-lock=3 singles=8
+395 line-lock=3 shared-squares=3 singles=9
+396 line-lock=5 pigeonhole-regions=2 shared-squares=5 singles=9
+397 leftover-queen=2 line-lock=3 pigeonhole-regions=1 shared-squares=2 singles=9
+398 singles=7
+399 shared-squares=3 singles=8
+400 line-lock=1 pigeonhole-regions=1 shared-squares=2 singles=8
+401 line-lock=5 singles=8
+402 line-lock=3 shared-squares=1 singles=9
+403 leftover-queen=2 line-lock=2 pigeonhole-regions=2 shared-squares=5 singles=9
+404 line-lock=7 shared-squares=7 singles=8
+405 line-lock=4 shared-squares=1 singles=8
+406 line-lock=5 shared-squares=2 singles=8
+407 line-lock=7 singles=9
+408 line-lock=4 shared-squares=1 singles=9
+409 line-lock=2 pigeonhole-regions=3 shared-squares=4 singles=8
+410 line-lock=4 shared-squares=1 singles=8
+411 line-lock=7 pigeonhole-regions=1 shared-squares=3 singles=9
+412 line-lock=2 singles=8
+413 line-lock=4 pigeonhole-regions=1 shared-squares=3 singles=8
+414 line-lock=4 pigeonhole-regions=1 shared-squares=6 singles=8
+415 line-lock=5 shared-squares=1 singles=8
+416 line-lock=5 pigeonhole-regions=1 shared-squares=1 singles=9
+417 line-lock=3 pigeonhole-regions=2 shared-squares=3 singles=9
+418 line-lock=5 pigeonhole-regions=1 shared-squares=5 singles=9
+419 line-lock=6 shared-squares=1 singles=8
+420 line-lock=4 shared-squares=3 singles=8
+421 leftover-queen=1 line-lock=6 pigeonhole-regions=1 shared-squares=3 singles=9
+422 line-lock=4 singles=8
+423 line-lock=3 singles=9
+424 line-lock=7 shared-squares=1 singles=8
+425 line-lock=3 pigeonhole-regions=1 singles=9
+426 line-lock=3 singles=7
+427 line-lock=2 shared-squares=1 singles=8
+428 line-lock=7 pigeonhole-regions=1 shared-squares=4 singles=8
+429 line-lock=7 shared-squares=1 singles=9
+430 line-lock=7 singles=9
+431 line-lock=6 pigeonhole-regions=1 singles=9
+432 line-lock=3 pigeonhole-regions=2 shared-squares=2 singles=10
+433 line-lock=3 singles=7
+434 singles=9
+435 line-lock=5 shared-squares=1 singles=8
+436 leftover-queen=1 line-lock=3 pigeonhole-lines=1 pigeonhole-regions=3 shared-squares=2 singles=8
+437 line-lock=5 pigeonhole-regions=1 shared-squares=5 singles=8
+438 line-lock=4 pigeonhole-regions=1 shared-squares=2 singles=9
+439 line-lock=5 singles=9
+440 singles=7
+441 line-lock=6 singles=8
+442 line-lock=3 singles=9
+443 line-lock=3 pigeonhole-regions=1 shared-squares=3 singles=8
+444 line-lock=7 shared-squares=3 singles=8
+445 line-lock=6 singles=9
+446 line-lock=5 pigeonhole-regions=2 shared-squares=5 singles=10
+447 line-lock=1 singles=7
+448 line-lock=4 shared-squares=1 singles=8
+449 line-lock=3 singles=7
+450 line-lock=7 singles=8
+451 line-lock=2 singles=8
+452 line-lock=3 pigeonhole-regions=2 shared-squares=4 singles=9
+453 leftover-queen=1 line-lock=2 pigeonhole-regions=2 shared-squares=7 singles=9
+454 line-lock=2 singles=7
+455 line-lock=3 shared-squares=1 singles=8
+456 line-lock=6 shared-squares=4 singles=8
+457 line-lock=2 shared-squares=3 singles=9
+458 line-lock=7 singles=9
+459 line-lock=4 pigeonhole-regions=1 shared-squares=5 singles=8
+460 line-lock=3 pigeonhole-regions=2 shared-squares=1 singles=10
+461 line-lock=2 singles=7
+462 line-lock=3 shared-squares=2 singles=7
+463 line-lock=3 shared-squares=1 singles=8
+464 line-lock=3 pigeonhole-regions=3 shared-squares=4 singles=8
+465 line-lock=3 pigeonhole-regions=1 shared-squares=2 singles=8
+466 line-lock=7 pigeonhole-regions=2 singles=9
+467 leftover-queen=1 line-lock=2 pigeonhole-regions=2 shared-squares=1 singles=9
+468 line-lock=1 singles=8
+469 line-lock=5 singles=10
+470 line-lock=5 pigeonhole-regions=1 shared-squares=4 singles=8
+471 line-lock=1 singles=8
+472 leftover-queen=1 pigeonhole-regions=1 shared-squares=1 singles=9
+473 leftover-queen=1 line-lock=4 pigeonhole-regions=2 shared-squares=4 singles=8
+474 line-lock=4 pigeonhole-regions=1 shared-squares=3 singles=10
+475 line-lock=5 shared-squares=1 singles=7
+476 line-lock=2 singles=8
+477 line-lock=1 singles=11
+478 line-lock=4 pigeonhole-regions=1 shared-squares=1 singles=11
+479 leftover-queen=1 line-lock=3 pigeonhole-regions=3 shared-squares=5 singles=8
+480 leftover-queen=1 line-lock=2 pigeonhole-regions=1 shared-squares=1 singles=11
+481 leftover-queen=2 pigeonhole-regions=2 shared-squares=4 singles=9
+482 line-lock=6 singles=8
+483 line-lock=2 pigeonhole-regions=1 shared-squares=4 singles=8
+484 line-lock=2 shared-squares=1 singles=9
+485 line-lock=7 singles=10
+486 line-lock=4 pigeonhole-regions=3 shared-squares=5 singles=9
+487 line-lock=4 singles=11
+488 line-lock=6 pigeonhole-regions=1 singles=11
+489 line-lock=8 singles=11
+490 line-lock=1 pigeonhole-regions=3 shared-squares=3 singles=9
+491 line-lock=7 pigeonhole-regions=1 shared-squares=1 singles=10
+492 line-lock=4 pigeonhole-regions=1 singles=9
+493 line-lock=7 shared-squares=2 singles=9
+494 line-lock=2 pigeonhole-regions=3 shared-squares=2 singles=10
+495 line-lock=6 singles=10
+496 line-lock=3 singles=7
+497 singles=7
+498 line-lock=5 singles=9
+499 line-lock=7 shared-squares=6 singles=9
+500 line-lock=3 pigeonhole-regions=2 shared-squares=6 singles=11
+501 line-lock=5 pigeonhole-regions=3 shared-squares=5 singles=11
+502 leftover-queen=2 line-lock=2 pigeonhole-regions=2 shared-squares=2 singles=11
+503 line-lock=4 singles=7
+504 line-lock=3 singles=11
+505 line-lock=6 singles=11
+506 line-lock=8 pigeonhole-regions=1 shared-squares=4 singles=11
+507 line-lock=6 shared-squares=4 singles=11
+508 line-lock=6 pigeonhole-regions=1 shared-squares=3 singles=9
+509 line-lock=4 pigeonhole-regions=2 shared-squares=1 singles=10
+510 line-lock=2 pigeonhole-regions=1 shared-squares=3 singles=10
+511 line-lock=2 pigeonhole-regions=1 shared-squares=2 singles=11
+512 line-lock=4 singles=11
+513 line-lock=4 pigeonhole-regions=2 shared-squares=1 singles=10
+514 line-lock=3 shared-squares=1 singles=10
+515 leftover-queen=1 line-lock=4 pigeonhole-regions=2 shared-squares=6 singles=9
+516 leftover-queen=3 line-lock=3 pigeonhole-regions=1 shared-squares=5 singles=9
+517 line-lock=7 shared-squares=1 singles=7
+518 line-lock=2 singles=7
+519 line-lock=1 singles=8
+520 line-lock=3 pigeonhole-regions=2 shared-squares=1 singles=8
+521 line-lock=2 pigeonhole-regions=1 shared-squares=4 singles=9
+522 line-lock=3 pigeonhole-regions=3 shared-squares=5 singles=8
+523 line-lock=4 pigeonhole-regions=1 shared-squares=3 singles=9
+524 line-lock=3 shared-squares=1 singles=7
+525 line-lock=2 shared-squares=1 singles=8
+526 line-lock=6 shared-squares=2 singles=8
+527 line-lock=5 shared-squares=1 singles=8
+528 line-lock=4 shared-squares=1 singles=10
+529 line-lock=7 pigeonhole-regions=1 shared-squares=6 singles=8
+530 line-lock=5 pigeonhole-regions=3 shared-squares=5 singles=9
+531 singles=8
+532 line-lock=3 singles=8
+533 singles=8
+534 line-lock=5 pigeonhole-regions=2 shared-squares=2 singles=8
+535 leftover-queen=1 line-lock=4 pigeonhole-regions=1 shared-squares=3 singles=9
+536 line-lock=3 pigeonhole-regions=2 shared-squares=4 singles=9
+537 line-lock=4 pigeonhole-regions=1 shared-squares=3 singles=9
+538 singles=7
+539 line-lock=3 pigeonhole-regions=1 shared-squares=3 singles=8
+540 line-lock=3 shared-squares=1 singles=8
+541 line-lock=3 pigeonhole-regions=2 shared-squares=5 singles=9
+542 leftover-queen=2 line-lock=3 pigeonhole-regions=2 shared-squares=3 singles=9
+543 leftover-queen=1 line-lock=2 pigeonhole-regions=2 shared-squares=1 singles=9
+544 line-lock=4 pigeonhole-regions=1 shared-squares=4 singles=9
+545 line-lock=3 shared-squares=2 singles=8
+546 line-lock=2 singles=8
+547 line-lock=2 singles=8
+548 line-lock=2 shared-squares=1 singles=8
+549 line-lock=2 singles=8
+550 line-lock=4 pigeonhole-regions=1 shared-squares=2 singles=9
+551 line-lock=3 pigeonhole-regions=1 shared-squares=1 singles=9
+552 line-lock=3 singles=8
+553 line-lock=4 shared-squares=1 singles=8
+554 line-lock=4 singles=8
+555 line-lock=3 singles=8
+556 line-lock=5 shared-squares=4 singles=9
+557 line-lock=6 pigeonhole-regions=2 shared-squares=4 singles=8
+558 leftover-queen=1 line-lock=1 pigeonhole-regions=2 shared-squares=2 singles=9
+559 singles=7
+560 line-lock=3 singles=8
+561 line-lock=6 shared-squares=3 singles=8
+562 line-lock=5 pigeonhole-regions=1 shared-squares=4 singles=9
+563 line-lock=8 pigeonhole-regions=1 shared-squares=6 singles=9
+564 line-lock=2 pigeonhole-lines=1 pigeonhole-regions=2 shared-squares=5 singles=8
+565 line-lock=2 singles=9
+566 line-lock=2 singles=7
+567 line-lock=4 shared-squares=2 singles=7
+568 line-lock=3 pigeonhole-regions=1 shared-squares=3 singles=8
+569 line-lock=1 singles=8
+570 line-lock=5 shared-squares=2 singles=8
+571 leftover-queen=1 line-lock=4 pigeonhole-regions=2 shared-squares=2 singles=9
+572 leftover-queen=2 line-lock=1 pigeonhole-regions=3 shared-squares=3 singles=9
+573 line-lock=2 singles=7
+574 line-lock=2 singles=7
+575 line-lock=4 shared-squares=2 singles=7
+576 line-lock=6 shared-squares=1 singles=9
+577 line-lock=5 shared-squares=1 singles=9
+578 line-lock=1 pigeonhole-regions=3 shared-squares=2 singles=8
+579 line-lock=1 pigeonhole-regions=2 singles=8
+580 line-lock=4 shared-squares=1 singles=7
+581 line-lock=4 shared-squares=1 singles=7
+582 line-lock=2 shared-squares=1 singles=7
+583 line-lock=7 pigeonhole-regions=1 shared-squares=3 singles=8
+584 line-lock=5 shared-squares=3 singles=9
+585 line-lock=3 pigeonhole-regions=1 shared-squares=3 singles=8
+586 line-lock=2 pigeonhole-regions=1 shared-squares=2 singles=9
+587 line-lock=1 singles=7
+588 line-lock=4 singles=7
+589 line-lock=5 shared-squares=1 singles=7
+590 line-lock=4 shared-squares=1 singles=8
+591 line-lock=2 pigeonhole-regions=1 shared-squares=3 singles=9
+592 line-lock=8 singles=8
+593 line-lock=1 pigeonhole-regions=3 shared-squares=3 singles=9
+594 line-lock=4 singles=8
+595 line-lock=2 shared-squares=1 singles=7
+596 line-lock=4 shared-squares=1 singles=7
+597 line-lock=2 singles=8
+598 line-lock=4 singles=8
+599 line-lock=5 pigeonhole-regions=2 shared-squares=4 singles=9
+600 leftover-queen=1 line-lock=3 pigeonhole-regions=4 shared-squares=4 singles=8
+601 line-lock=1 singles=7
+602 line-lock=2 shared-squares=1 singles=8
+603 line-lock=1 singles=8
+604 line-lock=3 singles=9
+605 pigeonhole-regions=1 shared-squares=1 singles=8
+606 line-lock=4 shared-squares=2 singles=9
+607 leftover-queen=1 line-lock=5 pigeonhole-regions=2 shared-squares=5 singles=9
+608 singles=7
+609 line-lock=4 singles=7
+610 singles=9
+611 line-lock=5 shared-squares=1 singles=9
+612 line-lock=3 pigeonhole-regions=2 shared-squares=2 singles=8
+613 line-lock=1 pigeonhole-regions=1 shared-squares=3 singles=8
+614 leftover-queen=2 line-lock=1 pigeonhole-regions=2 shared-squares=4 singles=8
+615 line-lock=3 singles=7
+616 line-lock=4 shared-squares=1 singles=7
+617 line-lock=5 shared-squares=1 singles=7
+618 line-lock=6 shared-squares=1 singles=7
+619 line-lock=4 singles=8
+620 line-lock=2 shared-squares=1 singles=9
+621 leftover-queen=1 line-lock=6 pigeonhole-regions=2 shared-squares=4 singles=9
+622 line-lock=1 singles=7
+623 line-lock=2 pigeonhole-regions=1 shared-squares=2 singles=7
+624 line-lock=4 singles=8
+625 leftover-queen=2 line-lock=1 pigeonhole-regions=1 shared-squares=3 singles=8
+626 leftover-queen=5 line-lock=4 pigeonhole-regions=1 shared-squares=2 singles=8
+627 line-lock=3 shared-squares=1 singles=9
+628 line-lock=2 pigeonhole-regions=4 shared-squares=4 singles=8
+629 line-lock=1 singles=7
+630 line-lock=3 shared-squares=1 singles=7
+631 line-lock=4 singles=8
+632 line-lock=5 shared-squares=1 singles=8
+633 line-lock=4 shared-squares=2 singles=9
+634 line-lock=5 shared-squares=1 singles=9
+635 line-lock=5 pigeonhole-regions=3 shared-squares=12 singles=9
+636 line-lock=5 shared-squares=1 singles=7
+637 line-lock=3 shared-squares=1 singles=7
+638 line-lock=1 shared-squares=7 singles=8
+639 line-lock=7 shared-squares=2 singles=9
+640 line-lock=8 shared-squares=3 singles=9
+641 line-lock=5 pigeonhole-regions=1 shared-squares=6 singles=9
+642 line-lock=5 shared-squares=4 singles=9
+643 line-lock=1 singles=7
+644 line-lock=5 singles=7
+645 line-lock=3 pigeonhole-regions=1 shared-squares=7 singles=8
+646 line-lock=5 singles=8
+647 line-lock=6 shared-squares=3 singles=8
+648 line-lock=5 pigeonhole-regions=1 singles=9
+649 line-lock=1 pigeonhole-regions=2 shared-squares=1 singles=9
+650 line-lock=1 singles=7
+651 line-lock=1 singles=7
+652 line-lock=2 singles=8
+653 line-lock=1 pigeonhole-regions=1 shared-squares=2 singles=9
+654 line-lock=5 shared-squares=6 singles=8
+655 line-lock=4 pigeonhole-regions=2 shared-squares=5 singles=9
+656 line-lock=3 pigeonhole-regions=4 shared-squares=10 singles=9
+657 line-lock=1 singles=7
+658 line-lock=3 singles=7
+659 line-lock=4 shared-squares=4 singles=7
+660 line-lock=4 shared-squares=2 singles=9
+661 line-lock=2 shared-squares=1 singles=8
+662 line-lock=6 pigeonhole-regions=1 shared-squares=5 singles=9
+663 line-lock=3 pigeonhole-regions=2 shared-squares=5 singles=9
+664 line-lock=3 shared-squares=1 singles=7
+665 line-lock=4 shared-squares=1 singles=7
+666 line-lock=5 singles=8
+667 leftover-queen=1 shared-squares=3 singles=7
+668 line-lock=4 singles=9
+669 line-lock=5 pigeonhole-regions=1 shared-squares=4 singles=9
+670 leftover-queen=1 line-lock=3 pigeonhole-regions=3 shared-squares=5 singles=8 squeeze=2
+671 line-lock=5 singles=7
+672 line-lock=1 singles=7
+673 line-lock=1 shared-squares=3 singles=8
+674 line-lock=6 shared-squares=4 singles=8
+675 line-lock=4 shared-squares=6 singles=9
+676 leftover-queen=1 line-lock=7 shared-squares=6 singles=8
+677 line-lock=1 pigeonhole-lines=1 pigeonhole-regions=3 shared-squares=1 singles=9
+678 singles=7
+679 line-lock=5 shared-squares=3 singles=8
+680 line-lock=4 shared-squares=1 singles=8
+681 line-lock=4 pigeonhole-regions=1 shared-squares=1 singles=8
+682 line-lock=7 shared-squares=2 singles=9
+683 line-lock=5 pigeonhole-regions=2 shared-squares=4 singles=8
+684 line-lock=3 pigeonhole-regions=1 shared-squares=3 singles=9
+685 line-lock=2 shared-squares=2 singles=7
+686 line-lock=4 singles=7
+687 line-lock=4 singles=8
+688 line-lock=5 shared-squares=3 singles=7
+689 line-lock=7 shared-squares=1 singles=8
+690 line-lock=5 pigeonhole-regions=1 shared-squares=1 singles=9
+691 line-lock=1 pigeonhole-regions=2 shared-squares=4 singles=9
+692 singles=7
+693 line-lock=3 shared-squares=1 singles=7
+694 line-lock=7 singles=8
+695 line-lock=4 pigeonhole-regions=1 singles=9
+696 line-lock=7 pigeonhole-regions=1 shared-squares=3 singles=8
+697 line-lock=6 shared-squares=1 singles=9
+698 line-lock=6 pigeonhole-regions=1 shared-squares=4 singles=9
+699 line-lock=2 singles=8
+700 line-lock=7 singles=8
+701 line-lock=4 pigeonhole-regions=1 shared-squares=4 singles=8
+702 line-lock=1 shared-squares=2 singles=9
+703 line-lock=5 pigeonhole-regions=1 singles=9
+704 leftover-queen=1 line-lock=2 pigeonhole-regions=3 shared-squares=4 singles=8
+705 leftover-queen=1 line-lock=2 pigeonhole-regions=1 shared-squares=4 singles=9
+706 line-lock=2 singles=7
+707 line-lock=3 shared-squares=1 singles=7
+708 line-lock=3 singles=8
+709 line-lock=3 singles=9
+710 line-lock=2 pigeonhole-regions=1 shared-squares=2 singles=8
+711 line-lock=6 shared-squares=1 singles=8
+712 line-lock=3 pigeonhole-regions=2 shared-squares=5 singles=9
+713 line-lock=1 singles=8
+714 line-lock=1 singles=7
+715 line-lock=5 shared-squares=2 singles=8
+716 line-lock=1 pigeonhole-regions=2 shared-squares=4 singles=8
+717 line-lock=4 shared-squares=2 singles=9
+718 line-lock=2 pigeonhole-regions=2 shared-squares=2 singles=9
+719 line-lock=2 pigeonhole-regions=1 shared-squares=3 singles=9
+720 line-lock=1 singles=7
+721 line-lock=3 singles=7
+722 line-lock=3 shared-squares=1 singles=8
+723 line-lock=4 shared-squares=1 singles=8
+724 line-lock=5 pigeonhole-regions=1 shared-squares=3 singles=8
+725 line-lock=1 singles=9
+726 line-lock=4 shared-squares=1 singles=9
+727 singles=7
+728 line-lock=2 shared-squares=1 singles=7
+729 line-lock=6 shared-squares=2 singles=8
+730 line-lock=4 singles=8
+731 line-lock=5 pigeonhole-regions=1 shared-squares=1 singles=8
+732 line-lock=3 singles=9
+733 leftover-queen=2 line-lock=5 pigeonhole-regions=2 shared-squares=4 singles=9 squeeze=1
+734 singles=7
+735 line-lock=3 singles=8
+736 line-lock=4 shared-squares=2 singles=8
+737 line-lock=7 shared-squares=2 singles=7
+738 line-lock=3 pigeonhole-regions=2 shared-squares=1 singles=9
+739 line-lock=8 shared-squares=3 singles=9
+740 line-lock=1 pigeonhole-regions=3 shared-squares=7 singles=9
+741 singles=7
+742 line-lock=2 singles=7
+743 line-lock=1 pigeonhole-regions=1 shared-squares=5 singles=8
+744 line-lock=7 singles=8
+745 line-lock=6 shared-squares=2 singles=8
+746 line-lock=5 shared-squares=2 singles=9
+747 leftover-queen=4 line-lock=5 pigeonhole-regions=2 shared-squares=4 singles=9
+748 line-lock=1 singles=7
+749 singles=8
+750 line-lock=6 shared-squares=3 singles=8
+751 line-lock=6 shared-squares=2 singles=8
+752 line-lock=5 pigeonhole-regions=1 shared-squares=1 singles=9
+753 leftover-queen=1 line-lock=3 shared-squares=3 singles=9
+754 leftover-queen=3 line-lock=3 pigeonhole-lines=1 pigeonhole-regions=1 shared-squares=5 singles=9
+755 singles=8
+756 line-lock=1 singles=8
+757 line-lock=5 shared-squares=2 singles=7
+758 line-lock=2 singles=9
+759 line-lock=7 shared-squares=1 singles=8
+760 line-lock=2 pigeonhole-regions=2 shared-squares=2 singles=8
+761 line-lock=5 shared-squares=1 singles=9
+762 singles=7
+763 line-lock=5 shared-squares=4 singles=7
+764 line-lock=4 shared-squares=1 singles=8
+765 line-lock=3 pigeonhole-regions=1 shared-squares=2 singles=8
+766 line-lock=3 pigeonhole-regions=2 shared-squares=6 singles=9
+767 line-lock=3 pigeonhole-regions=2 shared-squares=5 singles=9
+768 leftover-queen=1 line-lock=5 pigeonhole-regions=2 shared-squares=4 singles=8
+769 line-lock=1 singles=8
+770 line-lock=5 shared-squares=3 singles=8
+771 line-lock=3 shared-squares=1 singles=7
+772 line-lock=5 pigeonhole-regions=1 shared-squares=5 singles=8
+773 line-lock=3 pigeonhole-regions=1 shared-squares=3 singles=9
+774 line-lock=6 shared-squares=2 singles=9
+775 line-lock=5 pigeonhole-regions=1 singles=9
+776 singles=7
+777 line-lock=3 singles=7
+778 line-lock=2 pigeonhole-regions=2 shared-squares=1 singles=8
+779 line-lock=4 pigeonhole-regions=2 shared-squares=5 singles=8
+780 leftover-queen=1 line-lock=6 pigeonhole-regions=2 shared-squares=3 singles=9
+781 leftover-queen=3 line-lock=6 shared-squares=4 singles=8
+782 line-lock=6 pigeonhole-regions=1 shared-squares=1 singles=9
+783 singles=7
+784 line-lock=1 singles=8
+785 line-lock=1 singles=7
+786 line-lock=1 pigeonhole-regions=1 shared-squares=1 singles=8
+787 leftover-queen=4 line-lock=3 pigeonhole-regions=1 shared-squares=8 singles=9
+788 leftover-queen=1 line-lock=4 pigeonhole-regions=2 shared-squares=5 singles=9
+789 line-lock=7 shared-squares=4 singles=9
+790 line-lock=1 singles=7
+791 singles=8
+792 line-lock=4 singles=9
+793 line-lock=5 singles=8
+794 line-lock=5 pigeonhole-regions=1 shared-squares=1 singles=9
+795 line-lock=3 pigeonhole-regions=2 shared-squares=4 singles=9
+796 line-lock=5 shared-squares=1 singles=9
+797 line-lock=3 singles=7
+798 line-lock=1 singles=7
+799 line-lock=6 shared-squares=1 singles=7
+800 line-lock=5 shared-squares=2 singles=8
+801 line-lock=3 pigeonhole-regions=3 shared-squares=6 singles=9
+802 line-lock=2 pigeonhole-regions=2 shared-squares=3 singles=9
+803 leftover-queen=1 line-lock=3 pigeonhole-regions=2 shared-squares=4 singles=9
+804 line-lock=1 singles=7
+805 line-lock=1 singles=8
+806 line-lock=2 singles=9
+807 pigeonhole-regions=1 shared-squares=1 singles=9
+808 line-lock=9 shared-squares=5 singles=9
+809 line-lock=7 shared-squares=4 singles=9
+810 leftover-queen=4 line-lock=2 pigeonhole-regions=3 shared-squares=2 singles=9
+811 line-lock=4 shared-squares=2 singles=7
+812 line-lock=5 shared-squares=2 singles=8
+813 line-lock=3 singles=8
+814 leftover-queen=1 line-lock=3 pigeonhole-lines=1 shared-squares=2 singles=8
+815 line-lock=6 singles=9
+816 line-lock=4 pigeonhole-regions=2 shared-squares=6 singles=9
+817 line-lock=6 singles=9
+818 singles=7
+819 line-lock=2 shared-squares=2 singles=8
+820 leftover-queen=1 line-lock=3 shared-squares=2 singles=8
+821 line-lock=2 pigeonhole-regions=1 shared-squares=6 singles=9
+822 line-lock=7 shared-squares=2 singles=9
+823 line-lock=5 shared-squares=2 singles=9
+824 line-lock=4 singles=9
+825 singles=7
+826 line-lock=2 singles=7
+827 line-lock=5 singles=8
+828 line-lock=3 shared-squares=1 singles=8
+829 leftover-queen=1 line-lock=4 shared-squares=4 singles=9 squeeze=1
+830 line-lock=4 pigeonhole-regions=1 shared-squares=1 singles=9
+831 leftover-queen=2 line-lock=4 pigeonhole-regions=2 shared-squares=7 singles=9
+832 singles=7
+833 line-lock=2 singles=7
+834 line-lock=2 singles=8
+835 line-lock=5 pigeonhole-regions=1 shared-squares=5 singles=9
+836 line-lock=2 singles=9
+837 line-lock=6 pigeonhole-regions=1 shared-squares=3 singles=9
+838 line-lock=5 pigeonhole-regions=3 shared-squares=5 singles=9 squeeze=4
+839 singles=7
+840 line-lock=2 singles=7
+841 line-lock=5 singles=8
+842 line-lock=4 pigeonhole-regions=1 singles=9
+843 line-lock=1 pigeonhole-regions=2 shared-squares=3 singles=8
+844 line-lock=5 pigeonhole-regions=2 shared-squares=2 singles=9
+845 leftover-queen=2 line-lock=6 pigeonhole-regions=1 shared-squares=5 singles=9
+846 singles=9
+847 line-lock=3 singles=7
+848 line-lock=4 shared-squares=1 singles=7
+849 line-lock=3 shared-squares=2 singles=8
+850 line-lock=3 pigeonhole-regions=2 shared-squares=4 singles=9
+851 line-lock=2 pigeonhole-regions=2 shared-squares=2 singles=9
+852 leftover-queen=1 line-lock=6 pigeonhole-regions=1 singles=9
+853 line-lock=6 singles=7
+854 line-lock=3 shared-squares=1 singles=7
+855 line-lock=4 singles=7
+856 line-lock=8 shared-squares=5 singles=9
+857 line-lock=5 pigeonhole-regions=1 shared-squares=5 singles=9
+858 line-lock=5 pigeonhole-regions=1 shared-squares=5 singles=9
+859 line-lock=6 pigeonhole-regions=1 shared-squares=4 singles=9
+860 line-lock=2 singles=7
+861 line-lock=2 singles=7
+862 line-lock=8 shared-squares=3 singles=8
+863 line-lock=6 shared-squares=1 singles=8
+864 line-lock=6 singles=9
+865 line-lock=5 pigeonhole-regions=1 singles=9
+866 line-lock=4 pigeonhole-regions=2 shared-squares=6 singles=9
+867 line-lock=4 singles=7
+868 line-lock=1 singles=7
+869 line-lock=3 singles=7
+870 line-lock=7 singles=8
+871 line-lock=3 shared-squares=2 singles=8 squeeze=2
+872 leftover-queen=1 line-lock=1 shared-squares=4 singles=9 squeeze=1
+873 leftover-queen=4 line-lock=4 pigeonhole-regions=3 shared-squares=5 singles=9
+874 line-lock=3 shared-squares=1 singles=8
+875 line-lock=3 singles=8
+876 line-lock=7 shared-squares=2 singles=7
+877 line-lock=5 shared-squares=4 singles=9
+878 line-lock=6 shared-squares=2 singles=8
+879 leftover-queen=4 line-lock=3 shared-squares=1 singles=9
+880 leftover-queen=1 line-lock=4 pigeonhole-regions=3 shared-squares=4 singles=9
+881 line-lock=4 singles=7
+882 line-lock=1 singles=8
+883 line-lock=5 shared-squares=2 singles=8
+884 leftover-queen=4 line-lock=2 pigeonhole-regions=1 shared-squares=3 singles=8
+885 leftover-queen=1 line-lock=4 pigeonhole-regions=3 shared-squares=7 singles=8
+886 line-lock=4 pigeonhole-lines=1 pigeonhole-regions=1 shared-squares=4 singles=9
+887 leftover-queen=5 line-lock=3 pigeonhole-regions=4 shared-squares=4 singles=9
+888 line-lock=3 shared-squares=2 singles=7
+889 line-lock=2 shared-squares=1 singles=7
+890 line-lock=2 shared-squares=2 singles=9
+891 line-lock=4 shared-squares=2 singles=8
+892 line-lock=1 pigeonhole-regions=1 shared-squares=4 singles=8
+893 line-lock=1 pigeonhole-regions=1 singles=9
+894 line-lock=2 pigeonhole-regions=3 shared-squares=6 singles=9
+895 line-lock=3 singles=7
+896 line-lock=4 singles=9
+897 line-lock=3 shared-squares=1 singles=7
+898 line-lock=7 shared-squares=2 singles=8
+899 line-lock=2 pigeonhole-regions=2 shared-squares=1 singles=8
+900 leftover-queen=1 line-lock=6 shared-squares=2 singles=9
+901 line-lock=8 pigeonhole-regions=1 shared-squares=6 singles=9 squeeze=2
+902 line-lock=3 singles=7
+903 line-lock=5 singles=8
+904 line-lock=2 singles=7
+905 line-lock=5 shared-squares=1 singles=8
+906 line-lock=6 shared-squares=5 singles=8
+907 line-lock=7 shared-squares=4 singles=9
+908 line-lock=5 pigeonhole-regions=2 shared-squares=3 singles=9
+909 line-lock=7 singles=8
+910 line-lock=4 shared-squares=2 singles=7
+911 line-lock=5 shared-squares=2 singles=7
+912 line-lock=5 singles=8
+913 line-lock=4 pigeonhole-regions=3 shared-squares=3 singles=8
+914 line-lock=3 pigeonhole-regions=3 shared-squares=2 singles=9
+915 leftover-queen=2 line-lock=5 pigeonhole-regions=1 shared-squares=3 singles=9
+916 line-lock=1 singles=7
+917 line-lock=1 singles=7
+918 pigeonhole-regions=1 shared-squares=5 singles=7
+919 line-lock=4 pigeonhole-regions=1 shared-squares=6 singles=9
+920 line-lock=3 shared-squares=2 singles=8
+921 line-lock=5 pigeonhole-regions=2 shared-squares=1 singles=9
+922 line-lock=1 pigeonhole-lines=1 pigeonhole-regions=2 shared-squares=5 singles=9
+923 line-lock=2 singles=7
+924 line-lock=5 shared-squares=3 singles=7
+925 line-lock=3 shared-squares=2 singles=8
+926 line-lock=2 pigeonhole-regions=1 singles=8
+927 line-lock=6 pigeonhole-regions=1 shared-squares=4 singles=8
+928 line-lock=4 shared-squares=1 singles=9
+929 line-lock=3 pigeonhole-regions=2 shared-squares=8 singles=9
+930 singles=7
+931 line-lock=5 shared-squares=1 singles=8
+932 line-lock=6 shared-squares=2 singles=7

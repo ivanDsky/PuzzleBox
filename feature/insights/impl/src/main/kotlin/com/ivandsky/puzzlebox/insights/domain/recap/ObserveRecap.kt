@@ -24,7 +24,7 @@ import kotlinx.coroutines.flow.flow
  * second emission is the same story with that card settled in place; it is left out when nothing changed. Only an
  * answer that finds no friends takes the card out again.
  *
- * A year is the same chain over the year's days, with its month cards after the totals ([MonthsRecapFactProvider]). Its
+ * A year is the same chain over the year's days, with its month cards after the totals ([MonthsRecapFactProvider]) and the finale after them ([YearFinaleRecapFactProvider]). Its
  * friends card comes from the kept weekly history on the device, so it is already settled in the first emission (or
  * absent) and there is no second one.
  */

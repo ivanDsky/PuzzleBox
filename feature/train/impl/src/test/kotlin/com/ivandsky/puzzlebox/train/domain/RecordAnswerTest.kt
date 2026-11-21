@@ -20,10 +20,9 @@ class RecordAnswerTest {
     private val now = 1_700_000_000_000L
     private val clock = Clock.fixed(Instant.ofEpochMilli(now), ZoneOffset.UTC)
 
-    private val right = RecordAnswer.Answer.Verdict(TrainerVerdict.Right)
-    private val anotherWay = RecordAnswer.Answer.Verdict(TrainerVerdict.AnotherWay)
-    private val wrong = RecordAnswer.Answer.Verdict(TrainerVerdict.Wrong)
-    private val showMe = RecordAnswer.Answer.ShowMe
+    private val right = TrainerVerdict.Right
+    private val wrong = TrainerVerdict.Wrong
+    private val showMe = TrainerVerdict.ShowMe
 
     private fun p(mark: Mark, row: Int, at: Long = 5L) = TechniqueProgress(mark, row, at)
 
@@ -34,19 +33,16 @@ class RecordAnswerTest {
             Triple(p(Mark.Practicing, 4), right, p(Mark.Mastered, 5, now)),
             Triple(p(Mark.Mastered, 7), wrong, p(Mark.Mastered, 0, now)),
             Triple(p(Mark.Mastered, 7), showMe, p(Mark.Mastered, 0, now)),
-            Triple(p(Mark.Mastered, 7), anotherWay, p(Mark.Mastered, 7, now)),
-            Triple(p(Mark.Practicing, 3), anotherWay, p(Mark.Practicing, 3, now)),
-            Triple(TechniqueProgress.NEW, anotherWay, p(Mark.Practicing, 0, now)),
             Triple(p(Mark.Practicing, 3), wrong, p(Mark.Practicing, 0, now)),
             Triple(TechniqueProgress.NEW, wrong, p(Mark.Practicing, 0, now)),
             Triple(p(Mark.Practicing, 3), showMe, p(Mark.Practicing, 0, now)),
             Triple(TechniqueProgress.NEW, showMe, p(Mark.New, 0, now)),
         )
-        for ((start, answer, expected) in table) {
+        for ((start, verdict, expected) in table) {
             val repo = FakeTrainerProgressRepository()
             repo.update(game, technique) { start }
-            val result = RecordAnswer(repo, clock)(game, technique, answer)
-            assertEquals("$start + $answer", expected, result)
+            val result = RecordAnswer(repo, clock)(game, technique, verdict)
+            assertEquals("$start + $verdict", expected, result)
             assertEquals(expected, repo.stored.getValue(game).getValue(technique))
         }
     }

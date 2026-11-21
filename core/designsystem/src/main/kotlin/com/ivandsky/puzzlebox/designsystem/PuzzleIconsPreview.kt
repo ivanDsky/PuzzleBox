@@ -72,6 +72,8 @@ internal fun PuzzleIconsPreview() {
             "Add" to PuzzleIcons.Add,
             "Copy" to PuzzleIcons.Copy,
             "Trophy" to PuzzleIcons.Trophy,
+            "Stopwatch" to PuzzleIcons.Stopwatch,
+            "FullSet" to PuzzleIcons.FullSet,
             "Share" to PuzzleIcons.Share,
             "Mail" to PuzzleIcons.Mail,
             "Play" to PuzzleIcons.Play,
@@ -80,6 +82,9 @@ internal fun PuzzleIconsPreview() {
             "Equals" to PuzzleIcons.Equals,
             "Upload" to PuzzleIcons.Upload,
             "Info" to PuzzleIcons.Info,
+            "Moon" to PuzzleIcons.Moon,
+            "Star" to PuzzleIcons.Star,
+            "Visibility" to PuzzleIcons.Visibility,
         )
         Column(
             modifier = Modifier.background(MaterialTheme.colorScheme.background).padding(Spacing.md),

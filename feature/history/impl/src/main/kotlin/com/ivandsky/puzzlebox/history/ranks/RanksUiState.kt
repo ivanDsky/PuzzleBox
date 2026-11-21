@@ -16,10 +16,7 @@ import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
  * title menu; [nudge] says the one-time swipe hint has not been shown yet. [boards] is every board's
  * slice in swipe order ([board] is the one at [position]), there for a swipe to scrub to; empty when only [board] is known.
  * [playThisDay] is what the button where Your solve would be opens: set for a game's day the viewer has not played.
- * [largeBar] (MainTabsLargeBar on) puts the tab's hub on Today's large top bar ([RanksLargeBar]).
- * [weekMonthPoints] (WeekMonthPoints on) says a game's Week and Month add up daily place points.
- * [gamesFilter] (GamesFilter on) puts the Games chip in the filter row; [games] is its pick, and [boards], [places] and
- * [boardCount] already list only the games it counts.
+ * [games] is the Games chip's pick, and [boards], [places] and [boardCount] already list only the games it counts.
  */
 internal data class RanksUiState(
     val board: RanksBoardSlice,
@@ -35,10 +32,7 @@ internal data class RanksUiState(
     val nudge: Boolean = false,
     val boards: List<RanksBoardSlice> = emptyList(),
     val playThisDay: PlayThisDay? = null,
-    val largeBar: Boolean = false,
-    val weekMonthPoints: Boolean = false,
     val games: RanksSelection.Games = RanksSelection.Games.All,
-    val gamesFilter: Boolean = false,
 )
 
 /** True for a list of rows holding nobody but the viewer, and no LinkedIn ghost either; empty counts. Any other state is not "alone". */

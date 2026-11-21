@@ -13,6 +13,15 @@ class ObserveDueRecap internal constructor(private val availability: ObserveReca
 
     operator fun invoke(): Flow<List<DueRecap>> =
         availability.due().map { periods ->
-            periods.map { DueRecap(periodId = it.id, label = it.label(), yearly = it is RecapPeriod.Year) }
+            periods.map {
+                DueRecap(
+                    periodId = it.period.id,
+                    label = it.period.label(),
+                    yearly = it.period is RecapPeriod.Year,
+                    solved = it.summary.solved,
+                    solvedByGame = it.summary.byGame,
+                    months = it.summary.months,
+                )
+            }
         }
 }

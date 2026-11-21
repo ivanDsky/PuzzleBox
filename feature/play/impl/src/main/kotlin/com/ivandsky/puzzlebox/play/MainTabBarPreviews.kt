@@ -23,7 +23,7 @@ import com.ivandsky.puzzlebox.play.community.CommunityRowModel
 import com.ivandsky.puzzlebox.play.community.CommunityState
 import com.ivandsky.puzzlebox.play.community.GameChoice
 
-// Games and Community on Today's large top bar (MainTabsLargeBar on): phone at its narrowest and the tablet, light and dark.
+// Games and Community on Today's large top bar: phone at its narrowest and the tablet, light and dark.
 
 private val BarZip = GameBrand(AccentSlot.Blue, GameGlyphs.Zip)
 
@@ -56,7 +56,6 @@ private fun Games(layout: PlayLayout) {
                 onOpenRanks = { _, _ -> },
                 onEnterCode = {},
                 onMakeOne = {},
-                largeBar = true,
             )
         }
     }
@@ -67,16 +66,15 @@ private fun Community(layout: PlayLayout) {
     PuzzleBoxTheme {
         Surface(Modifier.fillMaxSize()) {
             if (layout == PlayLayout.SinglePane) {
-                CommunityTabs(BarCommunity, BarActions, FriendPreviewCards, previewYoursSlot(3), onOpen = {}, onRemove = {}, onEnterCode = {}, largeBar = true)
+                CommunityTabs(BarCommunity, BarActions, FriendPreviewCards, previewYoursSlot(3), onOpen = {}, onRemove = {}, onEnterCode = {})
             } else {
                 CommunityPanes(
                     default = { null },
                     list = { size, picks ->
-                        CommunityTabs(BarCommunity, BarActions, FriendPreviewCards, previewYoursSlot(3), {}, {}, {}, size, picks, largeBar = true)
+                        CommunityTabs(BarCommunity, BarActions, FriendPreviewCards, previewYoursSlot(3), {}, {}, {}, size, picks)
                     },
                     empty = { tab -> CommunityEmptyPane(tab, BarCommunity.phase) },
                     detail = { _, _ -> },
-                    largeBar = true,
                 )
             }
         }

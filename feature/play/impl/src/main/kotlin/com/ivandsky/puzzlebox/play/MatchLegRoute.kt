@@ -68,7 +68,7 @@ internal fun GameRoute(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val playing = state as? MatchLegState.Playing
     if (playing == null) {
-        GameLoading(onBack)
+        GameLoading(layout, onBack)
         return
     }
 

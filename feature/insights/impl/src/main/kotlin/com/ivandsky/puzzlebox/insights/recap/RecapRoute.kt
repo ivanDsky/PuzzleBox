@@ -1,12 +1,14 @@
 package com.ivandsky.puzzlebox.insights.recap
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapPeriod
 import com.ivandsky.puzzlebox.insights.label
@@ -30,6 +32,17 @@ internal fun RecapRoute(periodId: String, onOpenReplay: (ReplayKey) -> Unit, onC
     val watchReplay: (RecapCard.Fastest.Row) -> Unit = { row ->
         onOpenReplay(ReplayKey.daily(row.game.value, row.day.toString(), row.puzzleNumber, latest = false))
     }
+    val playRegistry = koinInject<GamePlayRegistry>()
+    CompositionLocalProvider(LocalGameBrands provides playRegistry::brandOf) { RecapContent(periodId, gameName, watchReplay, onClose) }
+}
+
+@Composable
+private fun RecapContent(
+    periodId: String,
+    gameName: (GameId) -> String,
+    watchReplay: (RecapCard.Fastest.Row) -> Unit,
+    onClose: () -> Unit,
+) {
     val period = RecapPeriod.parse(periodId)
     if (period == null) {
         RecapScreen(RecapUiState.Empty, periodLabel = "Recap", gameName = gameName, onPage = {}, onWatchReplay = watchReplay, onClose = onClose)
@@ -45,8 +58,11 @@ internal fun RecapRoute(periodId: String, onOpenReplay: (ReplayKey) -> Unit, onC
             onPage = viewModel::showPage,
             onWatchReplay = watchReplay,
             onClose = onClose,
+            displayName = share.displayName?.takeIf { it.isNotBlank() },
             share = share,
             onShare = shareViewModel::share,
+            onRetry = viewModel::retry,
+            coverRise = rememberCoverRise(),
         )
     }
 }

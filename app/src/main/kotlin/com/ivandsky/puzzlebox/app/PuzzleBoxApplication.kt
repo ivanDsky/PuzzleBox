@@ -4,11 +4,15 @@ import android.app.Application
 import com.ivandsky.puzzlebox.app.di.appModule
 import com.ivandsky.puzzlebox.app.di.buildTypeReleaseFlagsModule
 import com.ivandsky.puzzlebox.app.di.reminderModule
+import com.ivandsky.puzzlebox.app.di.shortcutModule
+import com.ivandsky.puzzlebox.app.di.widgetModule
 import com.ivandsky.puzzlebox.app.insights.RankHistoryStarter
 import com.ivandsky.puzzlebox.app.leaderboard.CustomBoardSubmitter
 import com.ivandsky.puzzlebox.app.leaderboard.DailyReplayPublisher
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.app.reminder.ReminderAppHooks
+import com.ivandsky.puzzlebox.app.shortcut.ShortcutAppHooks
+import com.ivandsky.puzzlebox.app.widget.WidgetAppHooks
 import com.ivandsky.puzzlebox.data.match.MatchResultPoster
 import com.ivandsky.puzzlebox.backend.firebase.PendingCacheClear
 import com.ivandsky.puzzlebox.backend.firebase.firebaseBackendModule
@@ -76,6 +80,10 @@ class PuzzleBoxApplication : Application() {
         koin.get<CloudSyncRunner>().start()
         // The daily reminder: follows the stored choice and the foreground.
         koin.get<ReminderAppHooks>().start()
+        // The launcher long-press menu: published on every start.
+        koin.get<ShortcutAppHooks>().start()
+        // The home widget: enabled on every start, redrawn on every change and activity start while the app runs.
+        koin.get<WidgetAppHooks>().start()
     }
 
     companion object {
@@ -90,6 +98,6 @@ class PuzzleBoxApplication : Application() {
         }
 
         val appModules =
-            listOf(commonModule, dataModule, cloudSyncModule, firebaseBackendModule, domainModule, homeModule, historyModule, playModule, createModule, authModule(R.string.default_web_client_id), profileModule, competeModule, insightsModule, trainModule, zipModule, zipUiModule, queensModule, queensUiModule, tangoModule, tangoUiModule, strandsModule, strandsUiModule, miniSudokuModule, miniSudokuUiModule, appModule, reminderModule, buildTypeReleaseFlagsModule) + buildTypeGameModules
+            listOf(commonModule, dataModule, cloudSyncModule, firebaseBackendModule, domainModule, homeModule, historyModule, playModule, createModule, authModule(R.string.default_web_client_id), profileModule, competeModule, insightsModule, trainModule, zipModule, zipUiModule, queensModule, queensUiModule, tangoModule, tangoUiModule, strandsModule, strandsUiModule, miniSudokuModule, miniSudokuUiModule, appModule, reminderModule, shortcutModule, widgetModule, buildTypeReleaseFlagsModule) + buildTypeGameModules
     }
 }

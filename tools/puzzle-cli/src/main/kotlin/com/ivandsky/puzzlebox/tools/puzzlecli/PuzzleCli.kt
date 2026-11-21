@@ -25,7 +25,10 @@ import java.time.Clock
 import kotlin.time.Duration
 import kotlin.system.exitProcess
 
-/** The composition root and the only file under tools/ that names games (ADR-0021 §4). */
+/**
+ * The composition root: the one file that builds the plugin registry. [DrillGames] and the drill generators beside it
+ * also name games, because `generate-drills` needs each game's own puzzle builder (ADR-0021 §4).
+ */
 object PuzzleCli {
 
     /** Every non-UI game plugin; a game reaches the CLI only via NotationText/GamePlugin.editor. */
@@ -44,7 +47,7 @@ object PuzzleCli {
     const val BUDGET_MS: Long = 30_000
 
     private const val USAGE_MESSAGE =
-        "usage: puzzle-cli validate <file> | puzzle-cli solve <file> | ${IndexCommand.USAGE}"
+        "usage: puzzle-cli validate <file> | puzzle-cli solve <file> | ${IndexCommand.USAGE} | ${GenerateDrillsCommand.USAGE}"
 
     private val json = Json
 
@@ -99,7 +102,14 @@ object PuzzleCli {
         io: IndexIo,
         out: (String) -> Unit,
         err: (String) -> Unit,
-    ): Int = IndexCommand(indexTargets(transport), clock, sleep, io, out, err).run(args)
+    ): Int = IndexCommand(indexTargets(transport), clock, sleep, io, out, err, progress = out).run(args)
+
+    /**
+     * `generate-drills` (see [GenerateDrillsCommand]) over every registered game with a technique walker, on the
+     * file seams [io]; returns a CliExit code. [args] are the arguments after `generate-drills`.
+     */
+    fun runGenerateDrills(args: List<String>, io: IndexIo, out: (String) -> Unit, err: (String) -> Unit): Int =
+        GenerateDrillsCommand(DrillGames.of(registry), io, out, err).run(args)
 
     /** 0 ⇔ unique with no board-level publish block (§9.2); malformed text is 2. */
     private fun exitCode(verdict: CliVerdict): Int =
@@ -120,6 +130,10 @@ fun main(args: Array<String>) {
             )
         }
         exitProcess(code)
+    }
+    if (args.firstOrNull() == "generate-drills") {
+        // Offline: no transport, no network (A7); the walkers and generators run on this machine.
+        exitProcess(PuzzleCli.runGenerateDrills(args.drop(1), IndexIo.files(), ::println, System.err::println))
     }
     exitProcess(PuzzleCli.run(args.toList(), { path -> File(path).readText() }, ::println, System.err::println))
 }

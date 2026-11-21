@@ -13,7 +13,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.UnderlineTab
@@ -30,8 +29,8 @@ import kotlinx.coroutines.launch
  * Every tab owns its scroll ([scrolls]), so a swipe away
  * and back finds it where it was, and a tap on the current tab glides that tab to its top. On the tablet the bodies
  * keep [OutlineRoom] at each side so the selected row's outline stays inside the list's edges, and the pager clips the
- * shifted page at the column's gutters rather than at the list's edge. [headerGap] is the room between the [header] and
- * the strip: none under a large top bar, whose own bottom padding is that room.
+ * shifted page at the column's gutters rather than at the list's edge. No room is left between the [header] and the
+ * strip: the large top bar's own bottom padding is that room.
  */
 @Composable
 internal fun UnderlineTabbedList(
@@ -47,14 +46,13 @@ internal fun UnderlineTabbedList(
     onTab: (GamesTab) -> Unit,
     duelPrefill: DuelPrefill?,
     onDuelPrefillTaken: () -> Unit,
-    headerGap: Dp = Spacing.md,
 ) {
     val scope = rememberCoroutineScope()
     val tabs = gamesTabs(trainShown = train != null)
     val shown = tabs.indexOf(tab)
     val needYou = duels.needYou()
     val strip = tabs.map { it.underlineTab(needYou) }
-    Column(modifier.testTag("library.list"), verticalArrangement = Arrangement.spacedBy(headerGap)) {
+    Column(modifier.testTag("library.list")) {
         header()
         UnderlineTabPager(
             tabs = strip,

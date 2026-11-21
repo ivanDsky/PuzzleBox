@@ -27,13 +27,24 @@ class StreakRecapFactProviderTest {
     }
 
     @Test
-    fun `the card holds the streak's length, dates and the period's freezes`() = runTest {
+    fun `the card holds the streak's length, dates, frozen days and the period the dial draws`() = runTest {
         val streak = StreakRun(day(3), day(9), setOf(day(5)))
 
         assertEquals(
-            listOf(RecapCard.Streak(days = 7, from = day(3), to = day(9), freezesSpent = 2)),
+            listOf(RecapCard.Streak(days = 7, from = day(3), to = day(9), freezesSpent = 2, frozenDays = setOf(day(5)), span = period)),
             StreakRecapFactProvider.cards(input(streak, freezesSpent = 2)),
         )
+    }
+
+    @Test
+    fun `the freezes spent count the whole period while the frozen days are the longest streak's own`() = runTest {
+        // Two freezes were spent in the period, but only one of them held the longest streak.
+        val streak = StreakRun(day(10), day(20), setOf(day(12)))
+
+        val card = StreakRecapFactProvider.cards(input(streak, freezesSpent = 2)).single() as RecapCard.Streak
+
+        assertEquals(2, card.freezesSpent)
+        assertEquals(setOf(day(12)), card.frozenDays)
     }
 
     @Test
@@ -41,7 +52,7 @@ class StreakRecapFactProviderTest {
         val streak = StreakRun(day(9), day(9), emptySet())
 
         assertEquals(
-            listOf(RecapCard.Streak(days = 1, from = day(9), to = day(9), freezesSpent = 0)),
+            listOf(RecapCard.Streak(days = 1, from = day(9), to = day(9), freezesSpent = 0, frozenDays = emptySet(), span = period)),
             StreakRecapFactProvider.cards(input(streak)),
         )
     }

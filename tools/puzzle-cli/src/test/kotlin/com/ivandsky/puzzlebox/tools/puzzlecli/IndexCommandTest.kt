@@ -44,6 +44,8 @@ class IndexCommandTest {
             { d, _ -> ScriptedDailySource.puzzleOf(game, d, since) },
     ) = ScriptedDailySource(game, since, events, reply)
 
+    private val progressLines = mutableListOf<String>()
+
     private suspend fun run(
         source: ScriptedDailySource,
         vararg args: String,
@@ -56,6 +58,7 @@ class IndexCommandTest {
             io = files.io,
             out = { outLines += it },
             err = { errLines += it },
+            progress = { progressLines += it },
         )
         val flags = args.toList().ifEmpty { listOf("--out", "idx", "--checkpoint", checkpointPath) }
         return command.run(flags)
@@ -69,6 +72,30 @@ class IndexCommandTest {
         assertEquals(CliExit.PUBLISHABLE, run(source))
         assertEquals(10.seconds, IndexCommand.PACE)
         assertEquals((1..5).flatMap { listOf("fetch ${day(it)}", "sleep 10s") }, events)
+    }
+
+    @Test
+    fun `pace sets the wait after every fetch and refuses a pace under five seconds`() = runTest {
+        assertEquals(CliExit.PUBLISHABLE, run(source(), "--out", "idx", "--checkpoint", checkpointPath, "--pace", "6"))
+        assertEquals((1..5).flatMap { listOf("fetch ${day(it)}", "sleep 6s") }, events)
+        assertEquals(CliExit.USAGE, run(source(), "--out", "idx", "--checkpoint", "cp2.txt", "--pace", "4"))
+    }
+
+    @Test
+    fun `every settled number is logged, and failures and skips also go to the error stream`() = runTest {
+        val source = source { d, attempt ->
+            when {
+                d == day(2) && attempt < 1 -> FetchResult.Err(FetchError.Throttled("cooldown"))
+                d == day(4) -> FetchResult.Err(FetchError.NotFound("no #4"))
+                else -> ScriptedDailySource.puzzleOf(game, d, since)
+            }
+        }
+        assertEquals(CliExit.PUBLISHABLE, run(source))
+        assertEquals(5, progressLines.size)
+        assertTrue(progressLines[0], progressLines[0].endsWith("[1/5] ${day(1)} fakegame 1 ok singles=1"))
+        assertEquals(2, errLines.size)
+        assertTrue(errLines[0], "fakegame 2 Throttled (cooldown), failure 1 of 3; retrying" in errLines[0])
+        assertTrue(errLines[1], "fakegame 4 skip" in errLines[1])
     }
 
     @Test

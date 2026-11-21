@@ -1,0 +1,776 @@
+technique-index 1
+game tango
+technique-set 2
+cutoff 2026-11-18
+1 full-line=8 pair=6 sandwich=5 sign=8
+2 equal-pair=2 full-line=5 pair=9 sandwich=2 sign=6
+3 full-line=6 pair=8 sandwich=3 sign=6
+4 equal-pair=1 full-line=6 pair=8 sandwich=2 sign=7 sign-count=2
+5 full-line=4 pair=7 sandwich=3 sign=10 sign-count=1
+6 full-line=4 pair=14 sandwich=2 sign=6
+7 full-line=5 pair=9 sandwich=5 sign=10
+8 equal-pair=1 full-line=7 pair=9 sandwich=3 sign=5
+9 equal-pair=1 full-line=7 pair=8 sandwich=2 sign=5
+10 full-line=7 pair=6 sandwich=2 sign=7 sign-count=1
+11 full-line=4 pair=7 sandwich=4 sign=4 sign-count=1
+12 equal-pair=2 full-line=6 pair=11 sandwich=1 sign=3 sign-count=1
+13 equal-pair=1 full-line=3 pair=8 sandwich=5 sign=7
+14 full-line=6 pair=10 sandwich=1 sign=6
+15 equal-pair=1 full-line=7 pair=5 sandwich=3 sign=5
+16 count-squeeze=1 full-line=8 pair=7 sandwich=6 sign=6
+17 equal-pair=1 full-line=8 pair=8 sandwich=4 sign=3
+18 equal-pair=1 full-line=9 pair=10 sandwich=2 sign=3
+19 equal-pair=2 full-line=6 pair=4 sandwich=3 sign=10 sign-count=1
+20 full-line=4 pair=10 sandwich=1 sign=7 sign-count=1
+21 equal-pair=1 full-line=7 pair=8 sandwich=1 sign=12
+22 equal-pair=3 full-line=7 pair=5 sandwich=3 sign=5
+23 full-line=5 pair=5 sandwich=6 sign=5 sign-count=2
+24 full-line=5 pair=14 sign=6
+25 full-line=7 pair=7 sandwich=3 sign=8
+26 full-line=8 pair=7 sandwich=5 sign=2 sign-count=1
+27 count-squeeze=1 full-line=6 pair=7 sandwich=6 sign=5
+28 full-line=4 pair=14 sandwich=2 sign=6
+29 equal-pair=1 full-line=7 pair=8 sandwich=4 sign=2
+30 full-line=6 pair=10 sandwich=4 sign=7
+31 full-line=4 pair=11 sandwich=1 sign=4
+32 equal-pair=2 full-line=3 pair=12 sandwich=4 sign=2
+33 equal-pair=4 full-line=7 pair=11 sign=4
+34 count-squeeze=1 full-line=5 pair=11 sandwich=5 sign=4
+35 equal-pair=1 full-line=8 pair=9 sign=5
+36 full-line=6 pair=9 sandwich=1 sign=8
+37 full-line=8 pair=9 sandwich=4 sign=4
+38 equal-pair=1 full-line=5 pair=10 sandwich=3 sign=5
+39 equal-pair=1 full-line=6 pair=9 sandwich=2 sign=3 split-pair=1
+40 equal-pair=1 full-line=5 pair=12 sandwich=3 sign=3 sign-count=1 split-pair=1
+41 count-squeeze=1 equal-pair=1 full-line=6 pair=8 sandwich=1 sign=5 sign-count=2 split-pair=1
+42 full-line=7 pair=15 sign=4
+43 full-line=4 line-options=1 pair=10 sandwich=3 sign=3
+44 full-line=9 pair=4 sandwich=4 sign=11
+45 full-line=4 line-options=1 pair=9 sandwich=6 sign=3 sign-count=1
+46 equal-pair=2 full-line=6 pair=8 sandwich=3 sign=4 sign-count=1 split-pair=1
+47 count-squeeze=1 equal-pair=1 full-line=4 line-options=1 pair=4 sandwich=4 sign=3 sign-count=2 split-pair=1
+48 full-line=4 pair=12 sandwich=3 sign=3 sign-count=3
+49 full-line=5 pair=5 sandwich=2 sign=10
+50 equal-pair=1 full-line=5 pair=10 sandwich=4 sign=3
+51 equal-pair=1 full-line=7 pair=10 sandwich=2 sign=2
+52 full-line=5 pair=7 sandwich=8 sign=1 sign-count=1
+53 equal-pair=1 full-line=6 line-options=1 pair=9 sandwich=4 sign=4 sign-count=1
+54 full-line=8 line-options=1 pair=7 sandwich=3 sign=9 split-pair=1
+55 count-squeeze=3 full-line=8 line-options=2 pair=5 sandwich=1 sign=4 sign-count=1 split-pair=1
+56 equal-pair=1 full-line=5 pair=11 sandwich=3 sign=3
+57 full-line=10 pair=13 sign=6
+58 equal-pair=1 full-line=10 pair=7 sandwich=1 sign=9
+59 full-line=4 pair=14 sign=6
+60 equal-pair=3 full-line=5 pair=11 sandwich=2 sign=5 sign-count=1
+61 full-line=4 pair=8 sandwich=4 sign=8 sign-count=1
+62 count-squeeze=1 full-line=4 pair=14 sign=8 sign-count=1
+63 equal-pair=2 full-line=3 pair=10
+64 full-line=3 pair=8 sandwich=3 sign=10
+65 equal-pair=3 full-line=5 pair=11 sandwich=2 sign=7
+66 count-squeeze=1 full-line=5 pair=12 sign=6
+67 full-line=7 pair=2 sandwich=7 sign=4
+68 equal-pair=6 full-line=9 pair=5 sandwich=4 sign=1 sign-count=1
+69 equal-pair=1 full-line=6 pair=8 sandwich=6 sign=3 sign-count=1
+70 full-line=5 pair=11 sandwich=3 sign=4
+71 full-line=3 pair=3 sandwich=2 sign=18
+72 full-line=6 pair=8 sandwich=8 sign=2
+73 equal-pair=3 full-line=4 pair=14 sign=3
+74 count-squeeze=2 equal-pair=2 full-line=6 pair=6 sandwich=2 sign=4 sign-count=2
+75 equal-pair=1 full-line=5 pair=10 sandwich=3 sign=3 sign-count=1
+76 count-squeeze=1 full-line=4 line-options=1 pair=7 sandwich=2 sign=5 split-pair=1
+77 full-line=6 pair=8 sandwich=1 sign=8
+78 equal-pair=1 full-line=5 pair=4 sandwich=1 sign=6
+79 equal-pair=2 full-line=7 pair=10 sign=10
+80 full-line=3 pair=7 sandwich=5 sign=3 sign-count=1
+81 equal-pair=2 full-line=6 pair=7 sandwich=5 sign=3 sign-count=1
+82 count-squeeze=3 equal-pair=1 full-line=9 pair=9 sandwich=2 sign=2
+83 full-line=4 line-options=1 pair=6 sandwich=7 sign=9 sign-count=2
+84 full-line=6 pair=9 sandwich=3 sign=8
+85 equal-pair=1 full-line=6 pair=11 sandwich=1 sign=7
+86 full-line=7 pair=11 sandwich=3 sign=6 sign-count=1
+87 full-line=9 pair=9 sandwich=3 sign=6
+88 equal-pair=1 full-line=5 pair=9 sandwich=1 sign=8
+89 full-line=4 pair=14 sign=4 sign-count=2
+90 full-line=6 pair=9 sandwich=5 sign=3 sign-count=2
+91 equal-pair=1 full-line=9 pair=6 sandwich=1 sign=4
+92 equal-pair=1 full-line=5 pair=10 sandwich=3 sign=1
+93 equal-pair=1 full-line=8 pair=11 sandwich=1 sign=4
+94 full-line=8 pair=9 sandwich=3 sign=4
+95 count-squeeze=1 full-line=5 line-options=1 pair=8 sandwich=3 sign=4 sign-count=1
+96 equal-pair=2 full-line=7 pair=11 sandwich=1 sign=4 split-pair=1
+97 count-squeeze=1 full-line=6 pair=4 sandwich=4 sign=8 sign-count=1
+98 equal-pair=1 full-line=7 pair=10 sandwich=3 sign=1
+99 equal-pair=1 full-line=9 pair=9 sign=5
+100 equal-pair=2 full-line=5 pair=8 sign=10
+101 equal-pair=2 full-line=5 pair=7 sandwich=6 sign=4
+102 full-line=6 pair=10 sandwich=1 sign=8 sign-count=1
+103 full-line=2 pair=11 sandwich=2 sign=9 sign-count=2
+104 count-squeeze=1 equal-pair=1 full-line=4 pair=6 sandwich=5 sign=7 split-pair=1
+105 full-line=3 pair=9 sandwich=2 sign=8 sign-count=1
+106 full-line=4 pair=17 sign=8
+107 full-line=8 pair=9 sandwich=4 sign=8
+108 full-line=7 pair=12 sandwich=1 sign=8
+109 full-line=7 pair=9 sandwich=2 sign=6 sign-count=1
+110 count-squeeze=1 equal-pair=1 full-line=6 pair=11 sandwich=3 sign=4 sign-count=1
+111 count-squeeze=1 equal-pair=2 full-line=3 pair=10 sandwich=1 sign=4 sign-count=3 split-pair=1
+112 full-line=6 pair=8 sandwich=2 sign=8
+113 equal-pair=3 full-line=8 pair=8 sandwich=3 sign=3
+114 full-line=9 pair=5 sandwich=5 sign=12 sign-count=1
+115 full-line=6 pair=11 sandwich=2 sign=4 sign-count=1 split-pair=1
+116 full-line=8 pair=5 sandwich=3 sign=8
+117 count-squeeze=1 full-line=8 pair=8 sandwich=4 sign=4
+118 count-squeeze=2 full-line=3 line-options=1 pair=10 sandwich=1 sign=3 sign-count=2
+119 full-line=6 pair=6 sandwich=3 sign=11
+120 full-line=10 pair=5 sign=14 sign-count=1
+121 full-line=8 pair=6 sandwich=6 sign=2 sign-count=1
+122 full-line=7 pair=8 sandwich=3 sign=4 sign-count=1
+123 full-line=5 line-options=1 pair=11 sandwich=4 sign=5 sign-count=2
+124 count-squeeze=3 equal-pair=2 full-line=9 pair=9 sandwich=3
+125 count-squeeze=4 full-line=6 pair=6 sandwich=5 sign=6
+126 full-line=5 pair=14 sign=3
+127 full-line=6 pair=12 sandwich=1 sign=6
+128 full-line=5 pair=9 sandwich=2 sign=6 sign-count=2
+129 count-squeeze=1 full-line=8 pair=10 sandwich=1 sign=5
+130 equal-pair=1 full-line=8 pair=11 sandwich=1 sign=5
+131 equal-pair=1 full-line=5 pair=8 sandwich=2 sign=5 sign-count=1 split-pair=1
+132 count-squeeze=1 equal-pair=1 full-line=4 pair=12 sandwich=3 sign=6 sign-count=1 split-pair=1
+133 equal-pair=1 full-line=7 pair=9 sandwich=1 sign=5
+134 equal-pair=1 full-line=5 pair=8 sandwich=4 sign=6
+135 full-line=8 pair=7 sign=8
+136 full-line=2 pair=9 sandwich=2 sign=14 sign-count=1
+137 equal-pair=2 full-line=6 line-options=1 pair=4 sandwich=8 sign=1 sign-count=1
+138 count-squeeze=1 full-line=5 pair=10 sandwich=1 sign=13 sign-count=1
+139 equal-pair=2 full-line=5 pair=11 sign=6 sign-count=1
+140 equal-pair=1 full-line=8 pair=12 sign=3
+141 full-line=10 pair=5 sandwich=1 sign=8
+142 full-line=8 pair=11 sign=8
+143 full-line=7 pair=8 sandwich=2 sign=16
+144 count-squeeze=1 equal-pair=1 full-line=6 pair=8 sign=5 sign-count=1
+145 count-squeeze=1 full-line=7 pair=9 sandwich=1 sign=8 sign-count=1
+146 equal-pair=1 full-line=8 pair=11 sign=6 sign-count=1
+147 equal-pair=1 full-line=6 pair=9 sign=11
+148 equal-pair=1 full-line=7 pair=2 sandwich=4 sign=8 sign-count=1
+149 equal-pair=1 full-line=8 pair=10 sandwich=1 sign=4
+150 equal-pair=1 full-line=9 pair=5 sandwich=1 sign=10 sign-count=1
+151 count-squeeze=1 equal-pair=3 full-line=4 pair=12 sign=7
+152 equal-pair=1 full-line=8 pair=9 sandwich=1 sign=9
+153 equal-pair=2 full-line=6 pair=8 sandwich=2 sign=7 sign-count=1
+154 equal-pair=1 full-line=8 pair=8 sandwich=2 sign=5
+155 full-line=4 pair=13 sandwich=2 sign=6
+156 full-line=8 pair=9 sandwich=2 sign=4
+157 count-squeeze=1 full-line=4 pair=6 sandwich=6 sign=8 sign-count=3
+158 full-line=6 line-options=1 pair=9 sign=2 split-pair=1
+159 equal-pair=1 full-line=3 pair=9 sandwich=3 sign=10 sign-count=2
+160 count-squeeze=2 equal-pair=1 full-line=3 pair=10 sandwich=3 sign=4 split-pair=1
+161 equal-pair=2 full-line=3 pair=12 sandwich=1 sign=4
+162 equal-pair=1 full-line=2 pair=4 sandwich=1 sign=24
+163 equal-pair=1 full-line=5 pair=13 sandwich=1 sign=7
+164 count-squeeze=1 equal-pair=1 full-line=8 pair=6 sandwich=4 sign=3
+165 full-line=6 pair=10 sign=8 sign-count=1
+166 equal-pair=1 full-line=6 pair=8 sandwich=3 sign=11 sign-count=1
+167 count-squeeze=2 equal-pair=1 full-line=6 pair=4 sandwich=1 sign=7 sign-count=1
+168 full-line=2 pair=8 sandwich=1 sign=15
+169 full-line=4 pair=6 sandwich=3 sign=6 sign-count=3
+170 count-squeeze=1 equal-pair=1 full-line=5 pair=8 sandwich=4 sign=5
+171 equal-pair=2 full-line=7 pair=11 sandwich=4 sign=2
+172 equal-pair=5 full-line=6 pair=6 sign=7 sign-count=2
+173 full-line=3 pair=5 sandwich=7 sign=8 sign-count=1
+174 full-line=8 pair=11 sign=6 sign-count=1
+175 full-line=3 pair=13 sandwich=1 sign=8
+176 equal-pair=1 full-line=7 pair=4 sandwich=3 sign=7
+177 equal-pair=1 full-line=5 pair=12 sandwich=1 sign=7
+178 full-line=5 pair=7 sandwich=3 sign=8 sign-count=2
+179 count-squeeze=1 full-line=6 pair=11 sandwich=1 sign=6
+180 count-squeeze=1 full-line=8 pair=10 sandwich=4 sign=3
+181 count-squeeze=2 equal-pair=3 full-line=7 pair=9 sandwich=1 sign=3
+182 full-line=4 pair=10 sandwich=2 sign=8 sign-count=2
+183 equal-pair=1 full-line=7 pair=12 sandwich=1 sign=5
+184 full-line=5 pair=13 sandwich=1 sign=4
+185 equal-pair=3 full-line=5 pair=8 sandwich=5 sign=5
+186 equal-pair=2 full-line=9 pair=7 sandwich=2 sign=12
+187 full-line=7 line-options=1 pair=4 sandwich=4 sign=8
+188 equal-pair=1 full-line=4 pair=2 sandwich=6 sign=15 sign-count=2
+189 full-line=5 pair=7 sandwich=2 sign=4
+190 equal-pair=1 full-line=3 pair=8 sandwich=1 sign=8 sign-count=2
+191 count-squeeze=2 equal-pair=1 full-line=8 pair=9 sign=5
+192 full-line=5 pair=8 sandwich=2 sign=8 sign-count=2
+193 full-line=3 pair=7 sandwich=6 sign=8 sign-count=1
+194 full-line=7 pair=9 sandwich=5 sign=9
+195 equal-pair=1 full-line=5 line-options=1 pair=6 sandwich=3 sign=10
+196 equal-pair=2 full-line=4 pair=5 sandwich=5 sign=10
+197 full-line=4 pair=8 sandwich=5 sign=8 sign-count=2
+198 equal-pair=2 full-line=7 pair=8 sandwich=2 sign=6 sign-count=2
+199 equal-pair=1 full-line=7 pair=9 sandwich=2 sign=4 split-pair=2
+200 equal-pair=1 full-line=3 pair=7 sandwich=4 sign=11 sign-count=2
+201 equal-pair=1 full-line=7 pair=5 sandwich=3 sign=5 sign-count=1 split-pair=1
+202 count-squeeze=1 equal-pair=1 full-line=5 line-options=1 pair=4 sandwich=3 sign=7 sign-count=1
+203 full-line=3 pair=14 sign=6
+204 full-line=7 pair=9 sandwich=5 sign=5 sign-count=1
+205 equal-pair=2 full-line=7 pair=9 sandwich=3 sign=4
+206 count-squeeze=1 equal-pair=1 full-line=6 pair=11 sandwich=1 sign=9
+207 full-line=4 pair=6 sandwich=1 sign=12 sign-count=2
+208 count-squeeze=1 equal-pair=2 full-line=9 pair=7 sandwich=2 sign=6
+209 equal-pair=1 full-line=8 pair=5 sandwich=5 sign=6 sign-count=1
+210 equal-pair=1 full-line=4 pair=8 sandwich=2 sign=9
+211 full-line=5 pair=11 sandwich=3 sign=6
+212 full-line=3 pair=12 sign=5 sign-count=2
+213 full-line=3 pair=14 sandwich=2 sign=5 split-pair=1
+214 count-squeeze=1 full-line=6 pair=5 sandwich=5 sign=6 sign-count=1
+215 count-squeeze=1 equal-pair=1 full-line=6 pair=7 sandwich=4 sign=9 sign-count=1
+216 full-line=6 line-options=1 pair=8 sandwich=2 sign=5 sign-count=1
+217 full-line=5 pair=6 sandwich=8 sign=8
+218 full-line=6 pair=8 sandwich=5 sign=6
+219 equal-pair=1 full-line=3 pair=5 sandwich=4 sign=2 sign-count=1
+220 equal-pair=2 full-line=7 pair=11 sign=10
+221 count-squeeze=1 full-line=6 pair=11 sandwich=1 sign=8
+222 equal-pair=1 full-line=6 pair=11 sandwich=2 sign=4 sign-count=1 split-pair=1
+223 count-squeeze=1 full-line=8 pair=7 sandwich=2 sign=1 sign-count=1 split-pair=1
+224 full-line=6 pair=7 sign=9
+225 full-line=3 pair=7 sandwich=1 sign=16
+226 equal-pair=2 full-line=4 pair=11 sandwich=2 sign=6
+227 equal-pair=2 full-line=10 sandwich=6 sign=6
+228 equal-pair=3 full-line=6 line-options=1 pair=8 sandwich=4 sign=3 sign-count=1
+229 full-line=6 pair=9 sandwich=1 sign=6 sign-count=1
+230 full-line=4 line-options=3 pair=4 sandwich=2 sign=6 sign-count=2
+231 equal-pair=1 full-line=5 pair=9 sandwich=2 sign=3
+232 equal-pair=1 full-line=7 pair=7 sandwich=5 sign=3 sign-count=1
+233 full-line=7 pair=9 sandwich=5 sign=2 sign-count=1
+234 equal-pair=1 full-line=7 pair=6 sandwich=5 sign=8 split-pair=1
+235 equal-pair=1 full-line=3 pair=2 sandwich=6 sign=15 sign-count=2
+236 full-line=6 pair=9 sandwich=4 sign=6 sign-count=1
+237 full-line=5 pair=5 sandwich=2 sign=17 sign-count=2
+238 equal-pair=1 full-line=6 pair=6 sandwich=2 sign=2
+239 equal-pair=1 full-line=3 pair=6 sandwich=2 sign=7
+240 equal-pair=1 full-line=3 pair=14 sign=10
+241 full-line=8 pair=5 sandwich=9 sign=6
+242 equal-pair=2 full-line=3 pair=10 sandwich=4 sign=8
+243 full-line=6 pair=9 sandwich=2 sign=8 sign-count=1
+244 count-squeeze=1 equal-pair=1 full-line=7 pair=6 sandwich=1 sign=8
+245 equal-pair=1 full-line=5 pair=5 sandwich=6 sign=5 sign-count=1
+246 equal-pair=1 full-line=6 pair=11 sign=3
+247 equal-pair=1 full-line=4 pair=9 sandwich=3 sign=5
+248 count-squeeze=1 full-line=5 pair=11 sandwich=3 sign=6
+249 equal-pair=1 full-line=8 pair=5 sandwich=2 sign=6 sign-count=1
+250 count-squeeze=1 full-line=5 line-options=3 pair=9 sign=6
+251 count-squeeze=1 equal-pair=3 full-line=5 pair=8 sandwich=3 sign=5 sign-count=1 split-pair=1
+252 full-line=5 pair=13 sandwich=2 sign=5 sign-count=1
+253 equal-pair=1 full-line=6 pair=8 sandwich=4 sign=5
+254 equal-pair=1 full-line=6 pair=10 sandwich=6 sign=1
+255 equal-pair=2 full-line=8 pair=6 sandwich=1 sign=4 sign-count=1
+256 full-line=5 pair=7 sandwich=2 sign=14 sign-count=1
+257 count-squeeze=1 equal-pair=2 full-line=8 pair=5 sandwich=4 sign=4
+258 equal-pair=1 full-line=4 pair=7 sandwich=7 sign=7 sign-count=3
+259 equal-pair=3 full-line=4 pair=10 sandwich=2 sign=5
+260 equal-pair=1 full-line=9 pair=11 sign=5
+261 full-line=4 pair=11 sandwich=5 sign=7 sign-count=1
+262 count-squeeze=1 equal-pair=1 full-line=7 pair=7 sandwich=6 sign=5
+263 equal-pair=2 full-line=3 pair=9 sandwich=4 sign=5 sign-count=2
+264 full-line=3 pair=11 sandwich=1 sign=6 sign-count=1 split-pair=1
+265 equal-pair=3 full-line=8 line-options=1 pair=5 sandwich=4 sign=4
+266 full-line=6 pair=8 sandwich=4 sign=4
+267 equal-pair=1 full-line=6 pair=10 sandwich=1 sign=7
+268 full-line=2 pair=7 sandwich=5 sign=5 sign-count=1
+269 full-line=5 pair=11 sandwich=3 sign=8 sign-count=1
+270 equal-pair=1 full-line=4 pair=8 sandwich=8 sign=2 sign-count=1
+271 equal-pair=2 full-line=3 pair=11 sandwich=5 sign=5 sign-count=1 split-pair=1
+272 equal-pair=2 full-line=7 pair=6 sandwich=2 sign=8 sign-count=2
+273 equal-pair=1 full-line=10 pair=11 sign=3
+274 equal-pair=1 full-line=7 pair=3 sandwich=5 sign=7
+275 equal-pair=1 full-line=7 pair=10 sandwich=3 sign=3
+276 equal-pair=1 full-line=8 pair=9 sandwich=5 sign=3
+277 equal-pair=1 full-line=4 line-options=1 pair=7 sandwich=7 sign=3
+278 equal-pair=3 full-line=5 pair=10 sandwich=2 sign=3 sign-count=2
+279 count-squeeze=2 full-line=6 pair=5 sandwich=3 sign=8 sign-count=1
+280 full-line=1 pair=12 sandwich=3 sign=2
+281 equal-pair=1 full-line=4 pair=10 sandwich=5 sign=3
+282 full-line=8 pair=11 sign=3 sign-count=2
+283 equal-pair=1 full-line=6 pair=8 sandwich=2 sign=7 sign-count=2
+284 equal-pair=3 full-line=5 pair=11 sign=5 sign-count=1
+285 count-squeeze=3 equal-pair=1 full-line=9 pair=9 sandwich=2 sign=2
+286 count-squeeze=2 full-line=7 pair=8 sign=7 sign-count=1
+287 equal-pair=1 full-line=3 pair=2 sandwich=4 sign=13
+288 full-line=5 pair=8 sandwich=3 sign=8
+289 full-line=5 pair=5 sandwich=6 sign=5 sign-count=2
+290 equal-pair=2 full-line=3 pair=6 sandwich=8 sign=5 sign-count=1
+291 equal-pair=2 full-line=8 pair=6 sandwich=3 sign=7 sign-count=2
+292 full-line=4 pair=11 sandwich=3 sign=5 sign-count=2 split-pair=1
+293 count-squeeze=1 equal-pair=1 full-line=8 pair=12 sign=3
+294 equal-pair=1 full-line=7 pair=9 sandwich=1 sign=3
+295 full-line=4 line-options=1 pair=10 sandwich=3 sign=3
+296 equal-pair=1 full-line=8 pair=8 sandwich=4 sign=3
+297 equal-pair=1 full-line=1 pair=13 sandwich=2 sign=8
+298 equal-pair=1 full-line=6 pair=9 sign=7 sign-count=1
+299 equal-pair=2 full-line=6 pair=5 sandwich=1 sign=15
+300 count-squeeze=1 full-line=4 pair=11 sandwich=2 sign=12
+301 full-line=6 pair=10 sandwich=2 sign=4
+302 equal-pair=1 full-line=9 pair=10 sandwich=2 sign=3
+303 equal-pair=2 full-line=6 pair=4 sandwich=3 sign=10 sign-count=1
+304 equal-pair=1 full-line=8 pair=6 sandwich=2 sign=6
+305 full-line=3 pair=12 sandwich=2 sign=8
+306 equal-pair=1 full-line=5 pair=5 sign=19 sign-count=2
+307 count-squeeze=2 equal-pair=1 full-line=3 line-options=1 pair=9 sandwich=2 sign=4 sign-count=2
+308 full-line=8 pair=8 sandwich=2 sign=4
+309 equal-pair=2 full-line=2 pair=8 sandwich=2 sign=14 sign-count=1
+310 count-squeeze=1 full-line=8 pair=7 sandwich=6 sign=6
+311 equal-pair=1 full-line=3 pair=10 sandwich=4 sign=1 sign-count=1 split-pair=1
+312 equal-pair=2 full-line=3 pair=14 sandwich=2 sign=4
+313 equal-pair=1 full-line=4 pair=8 sandwich=3 sign=11 sign-count=2
+314 equal-pair=2 full-line=8 pair=8 sandwich=3 sign=2 sign-count=1
+315 full-line=3 pair=11 sign=2
+316 full-line=4 pair=10 sandwich=1 sign=7 sign-count=1
+317 count-squeeze=1 full-line=7 line-options=1 pair=5 sandwich=6 sign=4
+318 count-squeeze=1 equal-pair=1 full-line=7 pair=11 sandwich=1 sign=6
+319 equal-pair=2 full-line=7 line-options=1 pair=7 sandwich=2 sign=6 sign-count=1
+320 count-squeeze=2 equal-pair=1 full-line=6 pair=2 sandwich=3 sign=7 sign-count=1
+321 count-squeeze=3 full-line=11 pair=15 sandwich=8 sign=4 split-pair=1
+322 equal-pair=1 full-line=7 pair=5 sandwich=3 sign=5
+323 equal-pair=1 full-line=5 pair=6 sandwich=3 sign=7
+324 equal-pair=2 full-line=7 pair=8 sandwich=1 sign=6
+325 full-line=7 pair=10 sandwich=3 sign=3
+326 full-line=5 pair=12 sandwich=2 sign=3
+327 count-squeeze=1 equal-pair=1 full-line=2 line-options=1 pair=12 sandwich=1 sign=7 sign-count=1
+328 equal-pair=2 full-line=2 pair=5 sandwich=4 sign=10 sign-count=1
+329 equal-pair=1 full-line=7 pair=8 sandwich=1 sign=12
+330 full-line=4 pair=10 sign=16 sign-count=1
+331 equal-pair=1 full-line=4 pair=7 sandwich=3 sign=16
+332 equal-pair=1 full-line=7 pair=9 sandwich=3 sign=11
+333 full-line=6 pair=10 sign=6 sign-count=1
+334 count-squeeze=1 equal-pair=1 full-line=5 pair=7 sandwich=3 sign=11 sign-count=3
+335 count-squeeze=1 full-line=5 pair=10 sandwich=1 sign=8
+336 equal-pair=3 full-line=7 pair=5 sandwich=3 sign=5
+337 full-line=8 pair=10 sandwich=2 sign=6
+338 full-line=7 pair=8 sandwich=2 sign=4
+339 equal-pair=2 full-line=10 pair=8 sandwich=1 sign=6
+340 count-squeeze=1 full-line=6 line-options=1 pair=10 sandwich=2 sign=4
+341 count-squeeze=1 equal-pair=2 full-line=7 pair=9 sandwich=2 sign=6
+342 count-squeeze=1 equal-pair=1 full-line=8 line-options=1 pair=9 sign=4
+343 equal-pair=2 full-line=6 pair=10 sandwich=1 sign=2
+344 equal-pair=1 full-line=7 pair=9 sandwich=3 sign=3
+345 full-line=5 pair=7 sandwich=5 sign=2
+346 full-line=2 line-options=1 pair=11 sandwich=2 sign=5 sign-count=2
+347 full-line=3 pair=11 sandwich=2 sign=6 split-pair=1
+348 count-squeeze=4 equal-pair=1 full-line=6 pair=8 sandwich=2 sign=3 sign-count=1
+349 count-squeeze=1 equal-pair=2 full-line=8 pair=12 sandwich=1 sign=4
+350 full-line=6 pair=8 sandwich=2 sign=8
+351 full-line=7 pair=7 sandwich=2 sign=8
+352 full-line=8 line-options=1 pair=7 sandwich=3 sign=2
+353 equal-pair=1 full-line=4 pair=10 sandwich=1 sign=7
+354 equal-pair=1 full-line=8 pair=8 sandwich=1 sign=4 sign-count=1
+355 count-squeeze=1 full-line=5 line-options=1 pair=7 sandwich=3 sign=11
+356 count-squeeze=1 equal-pair=1 full-line=5 pair=6 sandwich=5 sign=9 sign-count=1
+357 full-line=4 pair=11 sandwich=1 sign=10
+358 equal-pair=1 full-line=7 pair=8 sandwich=4 sign=2 sign-count=1
+359 full-line=6 pair=10 sandwich=2 sign=7 sign-count=1
+360 equal-pair=1 full-line=6 pair=9 sign=5 sign-count=1
+361 full-line=7 pair=12 sign=6 sign-count=1
+362 count-squeeze=2 equal-pair=3 full-line=5 pair=8 sandwich=2 sign=4 sign-count=2
+363 equal-pair=1 full-line=4 pair=8 sandwich=1 sign=5 sign-count=2 split-pair=1
+364 full-line=1 pair=11 sandwich=2 sign=10
+365 equal-pair=2 full-line=7 pair=8 sandwich=3 sign=10
+366 full-line=7 pair=7 sandwich=5 sign=8
+367 equal-pair=1 full-line=9 pair=10 sign=3
+368 full-line=4 pair=6 sandwich=5 sign=5 sign-count=5
+369 count-squeeze=1 equal-pair=1 full-line=6 pair=11 sandwich=2 sign=4 sign-count=1
+370 equal-pair=1 full-line=3 pair=11 sandwich=2 sign=5 sign-count=2
+371 full-line=5 pair=11 sign=10
+372 equal-pair=1 full-line=5 pair=10 sandwich=1 sign=5
+373 count-squeeze=1 full-line=6 line-options=1 pair=4 sandwich=5 sign=5
+374 count-squeeze=1 full-line=7 line-options=2 pair=7 sign=2 sign-count=1
+375 full-line=3 pair=9 sandwich=2 sign=6 sign-count=1
+376 equal-pair=1 full-line=6 line-options=1 pair=10 sign=7
+377 count-squeeze=2 full-line=7 line-options=1 pair=9 sandwich=3 sign-count=1
+378 equal-pair=2 full-line=6 pair=6 sign=8
+379 full-line=3 pair=8 sandwich=3 sign=10 sign-count=1
+380 count-squeeze=2 full-line=5 pair=11 sandwich=4 sign=4
+381 count-squeeze=4 equal-pair=2 full-line=6 pair=6 sign=9 sign-count=1
+382 full-line=7 pair=10 sandwich=2 sign=6
+383 equal-pair=3 full-line=3 pair=10 sandwich=2 sign=8 sign-count=3
+384 count-squeeze=2 equal-pair=1 full-line=7 pair=9 sandwich=1 sign=5 sign-count=1
+385 full-line=2 pair=12 sign=5 sign-count=2
+386 full-line=5 pair=4 sandwich=5 sign=8 sign-count=1
+387 full-line=5 pair=15 sign=5 sign-count=2
+388 full-line=4 line-options=2 pair=7 sandwich=4 sign=6
+389 full-line=2 line-options=1 pair=12 sandwich=2 sign=2 sign-count=2
+390 full-line=5 line-options=1 pair=10 sandwich=3 sign=9 split-pair=1
+391 count-squeeze=1 full-line=3 pair=13 sign=7 sign-count=1
+392 full-line=6 pair=7 sandwich=2 sign=5
+393 equal-pair=2 full-line=9 pair=9 sandwich=2 sign=2
+394 count-squeeze=1 equal-pair=3 full-line=7 pair=8 sandwich=1 sign=2 split-pair=1
+395 equal-pair=1 full-line=7 pair=9 sandwich=1 sign=11
+396 full-line=3 line-options=1 pair=6 sandwich=2 sign=5 sign-count=2
+397 count-squeeze=4 full-line=5 line-options=1 pair=7 sign=6
+398 count-squeeze=4 equal-pair=3 full-line=7 pair=9 sandwich=2 sign=3 sign-count=1
+399 full-line=8 pair=4 sandwich=6 sign=6
+400 full-line=5 pair=11 sandwich=2 sign=8
+401 full-line=7 pair=11 sign=6
+402 full-line=8 pair=8 sandwich=3 sign=6
+403 equal-pair=2 full-line=6 pair=8 sign=6
+404 count-squeeze=3 full-line=7 line-options=2 pair=7 sign=2
+405 full-line=7 pair=10 sandwich=1 sign=9 sign-count=1
+406 full-line=2 pair=9 sandwich=2 sign=6
+407 equal-pair=1 full-line=6 pair=4 sandwich=5 sign=7
+408 full-line=7 pair=11 sandwich=2 sign=2
+409 equal-pair=1 full-line=7 pair=11 sandwich=3 sign=7
+410 equal-pair=3 full-line=7 pair=4 sandwich=5 sign=3
+411 equal-pair=2 full-line=6 line-options=1 pair=4 sandwich=2 sign=3
+412 equal-pair=1 full-line=4 pair=7 sandwich=5 sign=5 sign-count=2 split-pair=1
+413 full-line=5 pair=7 sandwich=2 sign=10
+414 equal-pair=2 full-line=6 pair=10 sandwich=2 sign=2
+415 full-line=5 pair=8 sandwich=5 sign=3 sign-count=1
+416 full-line=4 pair=11 sandwich=2 sign=5 sign-count=1
+417 equal-pair=1 full-line=3 pair=15 sign=3 sign-count=1
+418 count-squeeze=1 full-line=7 line-options=2 pair=8 sandwich=3 sign=3
+419 full-line=6 pair=9 sandwich=2 sign=5 sign-count=2 split-pair=1
+420 equal-pair=1 full-line=5 pair=11 sign=7
+421 full-line=4 pair=8 sandwich=3 sign=6
+422 full-line=5 pair=7 sandwich=5 sign=6
+423 equal-pair=1 full-line=6 pair=10 sandwich=3 sign=2 sign-count=1
+424 full-line=6 pair=9 sandwich=4 sign=6 split-pair=2
+425 count-squeeze=1 full-line=5 pair=5 sandwich=4 sign=4 sign-count=3 split-pair=1
+426 count-squeeze=1 equal-pair=2 full-line=4 pair=13 sign=4 sign-count=1
+427 full-line=8 pair=7 sandwich=5 sign=4
+428 equal-pair=1 full-line=9 pair=8 sandwich=1 sign=3
+429 full-line=4 pair=8 sandwich=5 sign=6
+430 full-line=6 pair=8 sandwich=4 sign=5 sign-count=1
+431 count-squeeze=1 full-line=4 pair=5 sandwich=3 sign=10 sign-count=1 split-pair=1
+432 count-squeeze=1 equal-pair=1 full-line=6 pair=12 sandwich=2 sign=2 sign-count=1
+433 count-squeeze=2 equal-pair=1 full-line=9 line-options=2 pair=8 sign=4
+434 equal-pair=1 full-line=7 pair=10 sign=3
+435 full-line=11 pair=8 sign=6
+436 full-line=4 pair=10 sandwich=4 sign=8
+437 equal-pair=2 full-line=6 pair=11 sandwich=1 sign=2 sign-count=1
+438 equal-pair=3 full-line=6 pair=9 sandwich=2 sign=5
+439 full-line=6 line-options=1 pair=7 sandwich=4 sign=1 sign-count=1 split-pair=1
+440 count-squeeze=1 full-line=3 line-options=2 pair=8 sandwich=4 sign=4 sign-count=2 split-pair=1
+441 full-line=6 pair=8 sandwich=4 sign=6
+442 equal-pair=2 full-line=6 pair=9 sandwich=1 sign=3
+443 equal-pair=1 full-line=6 pair=12 sandwich=2 sign=3
+444 count-squeeze=3 full-line=3 pair=10 sandwich=1 sign=4 sign-count=2 split-pair=2
+445 count-squeeze=2 full-line=4 line-options=1 pair=8 sandwich=2 sign=2 sign-count=2 split-pair=1
+446 full-line=5 line-options=1 pair=10 sandwich=3 sign=4
+447 full-line=6 pair=7 sandwich=2 sign=3 sign-count=1 split-pair=1
+448 full-line=3 pair=12 sandwich=1 sign=4
+449 full-line=6 pair=10 sandwich=2 sign=8
+450 equal-pair=1 full-line=5 pair=7 sandwich=8 sign=2
+451 full-line=6 pair=9 sandwich=5 sign=7
+452 full-line=5 pair=11 sandwich=4 sign=4 sign-count=1
+453 count-squeeze=1 equal-pair=1 full-line=8 pair=9 sandwich=1 sign=3 split-pair=1
+454 count-squeeze=6 equal-pair=1 full-line=5 pair=8 sandwich=2 sign=7
+455 full-line=4 pair=8 sandwich=3 sign=9
+456 full-line=6 pair=8 sandwich=3 sign=6
+457 full-line=7 pair=9 sandwich=1 sign=4
+458 full-line=7 pair=9 sandwich=4 sign=4
+459 equal-pair=1 full-line=8 pair=8 sandwich=1 sign=5
+460 count-squeeze=2 full-line=3 line-options=1 pair=9 sandwich=4 sign=2 sign-count=2
+461 count-squeeze=1 full-line=6 line-options=1 pair=8 sandwich=2 sign=4
+462 full-line=7 pair=7 sandwich=4 sign=4
+463 full-line=6 pair=7 sandwich=4 sign=4
+464 full-line=5 pair=10 sandwich=1 sign=9
+465 full-line=6 pair=10 sign=7 sign-count=2
+466 full-line=6 pair=9 sandwich=4 sign=4
+467 count-squeeze=1 full-line=6 line-options=1 pair=5 sandwich=5 sign=4
+468 full-line=7 line-options=1 pair=10 sign=3 sign-count=1
+469 full-line=7 pair=11 sandwich=2 sign=6
+470 full-line=5 pair=8 sandwich=2 sign=8
+471 full-line=7 pair=10 sandwich=4 sign=4
+472 equal-pair=1 full-line=5 pair=11 sign=5
+473 full-line=5 pair=8 sandwich=7 sign=2 sign-count=2
+474 count-squeeze=2 equal-pair=1 full-line=7 pair=10 sandwich=1 sign=5
+475 count-squeeze=1 full-line=4 pair=9 sandwich=3 sign=6 sign-count=1 split-pair=1
+476 full-line=6 pair=10 sandwich=4 sign=5
+477 full-line=6 pair=13 sandwich=2 sign=4
+478 full-line=9 pair=8 sign=6
+479 equal-pair=1 full-line=5 pair=3 sandwich=8 sign=13 sign-count=1
+480 full-line=4 line-options=1 pair=12 sandwich=1 sign=1 sign-count=2
+481 count-squeeze=1 full-line=6 pair=14 sandwich=1 sign=3 sign-count=1
+482 full-line=6 pair=7 sandwich=5 sign=6 sign-count=2
+483 full-line=4 pair=13 sign=6
+484 full-line=9 pair=8 sandwich=1 sign=6
+485 equal-pair=1 full-line=4 pair=7 sandwich=7 sign=2
+486 full-line=5 pair=11 sandwich=1 sign=6 sign-count=1
+487 full-line=2 pair=13 sign=4 sign-count=2
+488 count-squeeze=4 full-line=5 line-options=1 pair=7 sandwich=2 sign=4
+489 count-squeeze=2 full-line=8 pair=10 sandwich=2 sign=4 split-pair=1
+490 full-line=8 pair=11 sandwich=1 sign=2
+491 equal-pair=1 full-line=6 pair=8 sandwich=3 sign=8
+492 equal-pair=2 full-line=5 pair=9 sandwich=1 sign=8
+493 full-line=7 pair=9 sandwich=2 sign=5
+494 count-squeeze=1 full-line=8 pair=11 sign=6
+495 count-squeeze=1 full-line=6 line-options=1 pair=7 sandwich=2 sign=5
+496 count-squeeze=3 full-line=6 pair=5 sandwich=3 sign=4 sign-count=2 split-pair=1
+497 full-line=6 pair=9 sandwich=1 sign=4
+498 equal-pair=1 full-line=10 pair=2 sandwich=1 sign=2
+499 equal-pair=1 full-line=7 pair=11 sandwich=2 sign=4
+500 equal-pair=1 full-line=9 pair=6 sandwich=2 sign=5 sign-count=1
+501 equal-pair=1 full-line=8 pair=10 sandwich=3 sign=4
+502 count-squeeze=2 full-line=3 line-options=1 pair=11 sandwich=2 sign=5
+503 count-squeeze=2 full-line=8 pair=11 sandwich=1 sign=3 sign-count=1
+504 full-line=8 pair=8 sign=5
+505 equal-pair=2 full-line=7 pair=12 sandwich=1 sign=2
+506 equal-pair=1 full-line=6 pair=14 sign=2
+507 equal-pair=1 full-line=8 pair=10 sandwich=3 sign=2
+508 count-squeeze=2 equal-pair=2 full-line=8 pair=10 sandwich=1 sign=4 split-pair=1
+509 count-squeeze=1 equal-pair=1 full-line=9 pair=10 sandwich=3 sign=2
+510 count-squeeze=1 equal-pair=1 full-line=7 pair=6 sandwich=3 sign=5
+511 full-line=6 pair=13 sandwich=2 sign=4
+512 equal-pair=1 full-line=7 pair=9 sandwich=2 sign=5
+513 full-line=6 pair=14 sandwich=2 sign=4
+514 full-line=6 pair=6 sandwich=2 sign=10 sign-count=1
+515 count-squeeze=1 full-line=6 pair=10 sandwich=4 sign=4 split-pair=1
+516 count-squeeze=1 full-line=6 pair=7 sandwich=3 sign=5
+517 equal-pair=2 full-line=4 pair=9 sandwich=4 sign=2 sign-count=2 split-pair=1
+518 full-line=6 pair=12 sandwich=1 sign=6
+519 equal-pair=2 full-line=8 pair=9 sign=7
+520 equal-pair=2 full-line=9 pair=9 sign=4
+521 full-line=1 pair=15 sign=3 sign-count=3
+522 count-squeeze=1 full-line=8 pair=7 sandwich=4 sign=6
+523 count-squeeze=1 equal-pair=1 full-line=4 pair=9 sandwich=2 sign=4 sign-count=1
+524 count-squeeze=2 full-line=6 pair=11 sign=8
+525 full-line=5 pair=10 sign=4
+526 full-line=8 pair=13 sign=4
+527 full-line=1 pair=13 sandwich=6 sign=6
+528 equal-pair=1 full-line=8 pair=3 sandwich=6 sign=5
+529 count-squeeze=1 equal-pair=2 full-line=2 pair=9 sandwich=1 sign=4 sign-count=2
+530 equal-pair=1 full-line=9 pair=6 sandwich=2 sign=5 sign-count=1
+531 count-squeeze=4 equal-pair=1 full-line=4 pair=6 sandwich=1 sign=5 split-pair=1
+532 full-line=7 pair=7 sign=8
+533 equal-pair=1 full-line=5 pair=9 sandwich=3 sign=2
+534 equal-pair=2 full-line=6 pair=11 sandwich=2 sign=4
+535 equal-pair=2 full-line=9 pair=2 sandwich=6 sign=4 sign-count=1
+536 count-squeeze=2 full-line=8 pair=12 sign=4
+537 count-squeeze=3 full-line=5 pair=9 sandwich=3 sign=4 sign-count=2
+538 equal-pair=1 full-line=7 pair=7 sandwich=2 sign=5 sign-count=1 split-pair=1
+539 full-line=9 pair=4 sandwich=1 sign=8
+540 full-line=6 pair=6 sandwich=6 sign=4
+541 equal-pair=2 full-line=7 pair=6 sandwich=3 sign=2
+542 equal-pair=1 full-line=7 pair=10 sandwich=3 sign=1 sign-count=2
+543 count-squeeze=2 full-line=4 line-options=1 pair=10 sandwich=1 sign=4
+544 count-squeeze=1 full-line=7 pair=9 sandwich=1 sign=4 sign-count=1
+545 count-squeeze=4 equal-pair=1 full-line=3 line-options=1 pair=11 sandwich=1 sign=3
+546 full-line=6 pair=14 sign=4
+547 full-line=8 pair=11 sandwich=1 sign=4
+548 equal-pair=1 full-line=5 pair=13 sandwich=1 sign=5
+549 full-line=5 pair=9 sandwich=5 sign=6 sign-count=1
+550 full-line=6 pair=9 sandwich=7 sign=3 sign-count=1
+551 count-squeeze=1 full-line=5 line-options=2 pair=9 sandwich=1 sign=5
+552 equal-pair=1 full-line=4 pair=8 sandwich=1 sign=9 sign-count=2
+553 full-line=9 pair=10 sign=4
+554 equal-pair=1 full-line=7 pair=12 sign=2
+555 full-line=6 pair=5 sandwich=5 sign=6 sign-count=1
+556 equal-pair=2 full-line=6 pair=8 sandwich=4 sign=10
+557 count-squeeze=2 full-line=4 pair=11 sign=8 sign-count=1
+558 count-squeeze=3 full-line=4 line-options=1 pair=11 sign=5 sign-count=1
+559 count-squeeze=2 equal-pair=1 full-line=6 pair=12 sandwich=1 sign=3 sign-count=2
+560 full-line=5 pair=10 sign=8
+561 equal-pair=2 full-line=7 pair=8 sandwich=3 sign=4
+562 full-line=7 pair=10 sandwich=1 sign=7
+563 equal-pair=1 full-line=6 pair=13 sandwich=1 sign=3
+564 count-squeeze=2 full-line=5 line-options=1 pair=8 sandwich=4 sign=4 split-pair=1
+565 count-squeeze=3 full-line=4 pair=7 sandwich=2 sign=6 split-pair=1
+566 count-squeeze=1 equal-pair=2 full-line=4 pair=12 sign=2 sign-count=1 split-pair=1
+567 full-line=10 pair=9 sign=4
+568 full-line=5 pair=14 sandwich=1 sign=5
+569 count-squeeze=1 full-line=5 pair=4 sandwich=9 sign=6 sign-count=1
+570 count-squeeze=2 full-line=2 pair=14 sign=8
+571 count-squeeze=2 equal-pair=1 full-line=6 pair=9 sandwich=2 sign=7
+572 equal-pair=1 full-line=4 pair=9 sandwich=3 sign=5 sign-count=1
+573 count-squeeze=3 full-line=5 pair=12 sandwich=1 sign=8 split-pair=2
+574 full-line=8 pair=10 sign=6
+575 equal-pair=3 full-line=6 pair=14 sandwich=1 sign=2
+576 full-line=6 pair=11 sign=9
+577 count-squeeze=1 full-line=8 pair=4 sandwich=3 sign=8 sign-count=1
+578 count-squeeze=1 full-line=3 pair=12 sandwich=1 sign=6 sign-count=1
+579 full-line=4 line-options=1 pair=11 sandwich=1 sign=3 split-pair=1
+580 count-squeeze=5 full-line=6 pair=10 sandwich=1 sign=5 sign-count=1
+581 full-line=9 pair=8 sandwich=4 sign=6
+582 equal-pair=1 full-line=6 pair=8 sign=13
+583 equal-pair=2 full-line=9 pair=8 sandwich=4 sign=4
+584 equal-pair=1 full-line=6 pair=10 sandwich=2 sign=1 sign-count=1
+585 full-line=5 pair=10 sandwich=3 sign=7 sign-count=1 split-pair=1
+586 equal-pair=3 full-line=6 pair=10 sign=9 sign-count=1
+587 count-squeeze=4 full-line=5 line-options=2 pair=8 sandwich=3 sign=4 sign-count=1 split-pair=2
+588 equal-pair=2 full-line=7 pair=6 sandwich=4 sign=2
+589 full-line=5 pair=14 sandwich=3 sign=6
+590 full-line=2 pair=12 sign=8
+591 full-line=5 pair=10 sandwich=3 sign=8 sign-count=1
+592 count-squeeze=2 equal-pair=2 full-line=8 pair=10 sandwich=1 sign=4 split-pair=1
+593 count-squeeze=1 full-line=6 line-options=1 pair=11 sign=3
+594 count-squeeze=5 equal-pair=1 full-line=7 pair=6 sandwich=4 sign=5 split-pair=1
+595 full-line=4 pair=12 sign=8
+596 full-line=8 pair=11 sandwich=4 sign=3
+597 full-line=7 pair=8 sandwich=3 sign=6
+598 equal-pair=1 full-line=4 pair=11 sandwich=1 sign=6 sign-count=1
+599 count-squeeze=2 full-line=8 line-options=1 pair=10 sandwich=2 sign=2
+600 count-squeeze=1 full-line=7 line-options=1 pair=12 sandwich=1 sign=4
+601 count-squeeze=1 equal-pair=1 full-line=5 pair=10 sandwich=2 sign=2 sign-count=2
+602 equal-pair=1 full-line=5 pair=11 sandwich=2 sign=5
+603 equal-pair=1 full-line=8 pair=10 sandwich=1 sign=5
+604 full-line=6 line-options=1 pair=8 sandwich=1 sign=2 sign-count=1
+605 full-line=8 pair=7 sandwich=6 sign=3 sign-count=1
+606 count-squeeze=1 equal-pair=1 full-line=3 pair=13 sandwich=1 sign=4 sign-count=3
+607 count-squeeze=2 full-line=5 pair=10 sandwich=1 sign=6 sign-count=1
+608 count-squeeze=1 full-line=6 line-options=1 pair=9 sign=4 sign-count=1 split-pair=1
+609 full-line=8 pair=9 sandwich=2 sign=5
+610 full-line=4 pair=12 sandwich=1 sign=4
+611 full-line=5 pair=11 sandwich=2 sign=4 sign-count=1
+612 full-line=8 pair=7 sandwich=2 sign=3 sign-count=1
+613 count-squeeze=3 equal-pair=1 full-line=8 pair=10 sandwich=1 sign=3
+614 count-squeeze=1 full-line=5 pair=4 sandwich=4 sign=8 sign-count=1 split-pair=1
+615 count-squeeze=3 equal-pair=1 full-line=7 pair=8 sandwich=1 sign=11
+616 full-line=9 pair=11 sandwich=2 sign=8
+617 equal-pair=2 full-line=5 pair=14 sign=4
+618 equal-pair=1 full-line=8 pair=9 sandwich=2 sign=3
+619 full-line=7 pair=7 sandwich=4 sign=12
+620 full-line=4 line-options=1 pair=7 sandwich=6 sign=5 split-pair=2
+621 count-squeeze=2 equal-pair=1 full-line=7 pair=14 sign=2
+622 count-squeeze=4 equal-pair=1 full-line=5 line-options=1 pair=10 sandwich=1 sign=2
+623 full-line=9 pair=10 sign=4
+624 full-line=6 pair=9 sandwich=5 sign=4
+625 full-line=2 pair=15 sign=3 sign-count=1
+626 full-line=5 pair=10 sandwich=3 sign=5 sign-count=2
+627 count-squeeze=1 full-line=3 pair=10 sandwich=4 sign=5 sign-count=2 split-pair=1
+628 count-squeeze=1 equal-pair=1 full-line=7 pair=6 sandwich=5 sign=5
+629 equal-pair=1 full-line=7 line-options=1 pair=6 sandwich=5 sign=4 sign-count=1
+630 full-line=1 pair=14 sign=10
+631 full-line=4 pair=14 sign=8
+632 full-line=6 pair=6 sandwich=9 sign=4 sign-count=1
+633 full-line=7 pair=10 sandwich=1 sign=6 sign-count=1
+634 equal-pair=1 full-line=4 pair=9 sandwich=3 sign=5 sign-count=1 split-pair=1
+635 count-squeeze=1 equal-pair=1 full-line=6 pair=10 sandwich=1 sign=6 sign-count=1
+636 count-squeeze=3 full-line=7 line-options=1 pair=11 sandwich=1 sign=4
+637 equal-pair=1 full-line=2 pair=16 sandwich=1 sign=3
+638 equal-pair=2 full-line=8 pair=5 sandwich=2 sign=3
+639 equal-pair=1 full-line=5 pair=11 sandwich=4 sign=2
+640 equal-pair=1 full-line=4 pair=8 sandwich=2 sign=10 sign-count=2
+641 equal-pair=1 full-line=7 pair=10 sandwich=2 sign=3 split-pair=1
+642 count-squeeze=4 full-line=7 pair=7 sandwich=3 sign=2 split-pair=1
+643 count-squeeze=2 full-line=4 pair=12 sign=11 sign-count=2 split-pair=1
+644 equal-pair=2 full-line=7 pair=7 sign=5
+645 full-line=6 pair=12 sandwich=2 sign=2
+646 full-line=7 pair=5 sandwich=4 sign=8 sign-count=1
+647 count-squeeze=1 equal-pair=1 full-line=8 pair=9 sandwich=3 sign=3
+648 count-squeeze=2 equal-pair=1 full-line=4 pair=7 sandwich=5 sign=7 sign-count=1
+649 equal-pair=1 full-line=6 pair=7 sandwich=3 sign=3 sign-count=2
+650 count-squeeze=1 full-line=3 pair=14 sandwich=1 sign=4 sign-count=1 split-pair=1
+651 full-line=5 pair=12 sign=8
+652 full-line=6 pair=10 sandwich=4 sign=5 sign-count=1
+653 equal-pair=2 full-line=7 pair=11 sandwich=2 sign=6
+654 count-squeeze=1 full-line=4 line-options=1 pair=13 sign=3
+655 count-squeeze=2 full-line=4 line-options=1 pair=5 sandwich=6 sign=4 sign-count=1
+656 full-line=5 pair=7 sandwich=3 sign=6 sign-count=2 split-pair=1
+657 count-squeeze=1 equal-pair=2 full-line=5 pair=12 sandwich=2 sign=2 split-pair=2
+658 equal-pair=1 full-line=2 pair=14 sandwich=3 sign=1
+659 full-line=7 pair=10 sandwich=1 sign=4
+660 equal-pair=1 full-line=9 pair=9 sandwich=2 sign=7
+661 count-squeeze=2 full-line=6 line-options=1 pair=10 sandwich=3 sign=3
+662 count-squeeze=2 equal-pair=2 full-line=7 pair=12 sandwich=1
+663 count-squeeze=1 equal-pair=1 full-line=8 line-options=1 pair=5 sandwich=4 sign=2
+664 count-squeeze=4 equal-pair=1 full-line=3 pair=10 sandwich=2 sign=5 sign-count=2
+665 equal-pair=1 full-line=6 pair=13 sign=1
+666 equal-pair=1 full-line=4 pair=10 sandwich=4 sign=2
+667 equal-pair=1 full-line=6 pair=12 sandwich=2 sign=2
+668 count-squeeze=1 equal-pair=1 full-line=5 pair=8 sandwich=5 sign=3 sign-count=1 split-pair=1
+669 count-squeeze=1 full-line=9 pair=7 sandwich=3 sign=6 sign-count=1
+670 count-squeeze=2 equal-pair=2 full-line=9 pair=8 sandwich=1 sign=2
+671 count-squeeze=5 equal-pair=1 full-line=7 pair=9 sandwich=1 sign=3
+672 full-line=7 pair=11 sign=7
+673 full-line=7 pair=8 sandwich=3 sign=6
+674 full-line=7 pair=13 sandwich=1 sign=4
+675 full-line=9 pair=7 sandwich=3 sign=4 sign-count=1
+676 count-squeeze=4 equal-pair=2 full-line=8 pair=7 sandwich=2 sign=2
+677 full-line=6 pair=10 sign=9 sign-count=1
+678 count-squeeze=3 full-line=7 pair=7 sandwich=4 sign=3 split-pair=2
+679 full-line=5 pair=11 sign=8
+680 equal-pair=1 full-line=6 pair=6 sandwich=2 sign=7
+681 equal-pair=1 full-line=6 pair=6 sandwich=7 sign=1 sign-count=1
+682 full-line=8 line-options=1 pair=8 sandwich=3 sign=4 sign-count=1
+683 count-squeeze=1 equal-pair=1 full-line=7 pair=12 sign=3
+684 count-squeeze=3 full-line=5 pair=7 sandwich=4 sign=5
+685 count-squeeze=4 full-line=5 pair=7 sandwich=2 sign=13 sign-count=2
+686 full-line=6 pair=10 sandwich=4 sign=5
+687 equal-pair=1 full-line=5 pair=14 sandwich=1 sign=7
+688 full-line=9 pair=10 sandwich=2 sign=6
+689 equal-pair=1 full-line=8 pair=11 sign=3 split-pair=1
+690 count-squeeze=2 equal-pair=1 full-line=7 pair=8 sandwich=4 sign=3
+691 count-squeeze=1 equal-pair=1 full-line=6 line-options=1 pair=10 sign=7
+692 count-squeeze=4 full-line=7 line-options=1 pair=9 sandwich=3 sign=4
+693 equal-pair=1 full-line=2 pair=10 sign=14
+694 full-line=6 pair=9 sandwich=3 sign=10
+695 equal-pair=2 full-line=6 pair=10 sandwich=5 sign=4
+696 equal-pair=1 full-line=7 pair=12 sign=1 sign-count=1
+697 count-squeeze=2 equal-pair=1 full-line=6 pair=8 sandwich=7 sign=2 sign-count=2
+698 count-squeeze=1 equal-pair=1 full-line=6 pair=9 sandwich=4 sign=3 split-pair=1
+699 count-squeeze=1 equal-pair=1 full-line=3 line-options=1 pair=9 sandwich=7 sign=3 sign-count=1
+700 equal-pair=2 full-line=4 pair=15 sandwich=1 sign=2
+701 equal-pair=1 full-line=6 pair=9 sandwich=4 sign=4
+702 equal-pair=1 full-line=7 pair=12 sandwich=2 sign=3
+703 count-squeeze=3 full-line=7 pair=8 sandwich=1 sign=4
+704 count-squeeze=1 full-line=6 line-options=1 pair=11 sandwich=2 sign=4 sign-count=1
+705 count-squeeze=1 equal-pair=1 full-line=8 pair=4 sandwich=3 sign=2
+706 equal-pair=1 full-line=6 pair=12 sandwich=2 sign=4 sign-count=2 split-pair=1
+707 full-line=4 pair=16 sandwich=1 sign=4
+708 equal-pair=1 full-line=8 pair=9 sandwich=5 sign=3
+709 full-line=9 pair=8 sandwich=1 sign=4
+710 full-line=5 pair=8 sandwich=4 sign=8 sign-count=1
+711 count-squeeze=1 full-line=8 line-options=1 pair=10 sandwich=3 sign=3
+712 count-squeeze=2 equal-pair=1 full-line=5 pair=13 sign=2 split-pair=1
+713 count-squeeze=2 full-line=6 pair=8 sandwich=1 sign=4 sign-count=2 split-pair=2
+714 full-line=5 pair=10 sandwich=4 sign=3 sign-count=2
+715 equal-pair=1 full-line=8 pair=10 sandwich=2 sign=3
+716 full-line=6 pair=8 sandwich=1 sign=5 sign-count=1
+717 count-squeeze=1 full-line=5 pair=12 sandwich=3 sign=5
+718 equal-pair=1 full-line=6 pair=12 sandwich=2 sign=7 sign-count=1
+719 count-squeeze=3 full-line=4 pair=7 sandwich=3 sign=6 sign-count=1 split-pair=1
+720 count-squeeze=4 equal-pair=1 full-line=11 pair=8 sandwich=1 sign=2
+721 full-line=3 pair=13 sandwich=1 sign=8
+722 full-line=8 pair=11 sign=4
+723 full-line=5 pair=14 sandwich=1 sign=1 sign-count=4
+724 count-squeeze=1 equal-pair=2 full-line=6 pair=10 sandwich=1 sign=2
+725 count-squeeze=1 full-line=9 pair=7 sandwich=3 sign=5 sign-count=1
+726 count-squeeze=1 equal-pair=1 full-line=7 pair=7 sandwich=2 sign=7
+727 count-squeeze=1 full-line=3 line-options=1 pair=11 sandwich=4 sign=4 sign-count=2 split-pair=1
+728 full-line=5 pair=10 sandwich=5 sign=2
+729 equal-pair=1 full-line=5 pair=14 sandwich=2 sign=2 sign-count=1
+730 full-line=9 pair=12 sandwich=1 sign=4
+731 full-line=5 pair=11 sandwich=3 sign=2 sign-count=3
+732 count-squeeze=1 equal-pair=1 full-line=7 pair=7 sandwich=3 sign=5
+733 equal-pair=1 full-line=7 pair=10 sandwich=1 sign=4 sign-count=1
+734 count-squeeze=2 full-line=7 pair=10 sandwich=2 sign=4 sign-count=1
+735 equal-pair=1 full-line=4 pair=8 sandwich=3 sign=8
+736 equal-pair=1 full-line=7 pair=8 sandwich=1 sign=13
+737 full-line=7 pair=12 sign=4
+738 count-squeeze=1 equal-pair=1 full-line=7 pair=10 sandwich=4 sign=3 sign-count=1
+739 equal-pair=1 full-line=7 pair=8 sandwich=6 sign=3
+740 count-squeeze=2 equal-pair=1 full-line=5 pair=11 sandwich=3 sign=4 split-pair=1
+741 count-squeeze=3 full-line=4 pair=10 sandwich=1 sign=5 sign-count=2
+742 full-line=4 pair=12 sandwich=2 sign=4
+743 equal-pair=2 full-line=5 pair=10 sandwich=2 sign=2
+744 equal-pair=1 full-line=7 pair=11 sign=4
+745 count-squeeze=1 equal-pair=1 full-line=8 pair=6 sandwich=5 sign=5
+746 count-squeeze=2 full-line=8 line-options=1 pair=7 sandwich=1 sign=6 sign-count=1
+747 count-squeeze=1 equal-pair=1 full-line=6 pair=8 sandwich=3 sign=7 sign-count=2
+748 count-squeeze=4 equal-pair=1 full-line=7 line-options=1 pair=9 sandwich=2 sign=2
+749 full-line=6 pair=15 sign=4
+750 equal-pair=1 full-line=8 pair=10 sandwich=2 sign=3
+751 full-line=7 pair=14 sandwich=1 sign=3
+752 equal-pair=1 full-line=8 pair=13 sandwich=1 sign=2
+753 count-squeeze=2 full-line=5 line-options=1 pair=10 sandwich=1 sign=5
+754 count-squeeze=2 equal-pair=2 full-line=9 pair=7 sandwich=4 sign=6
+755 count-squeeze=5 full-line=3 pair=9 sandwich=3 sign=7 sign-count=2
+756 equal-pair=3 full-line=9 pair=8 sandwich=5
+757 equal-pair=2 full-line=7 pair=12 sandwich=1 sign=3
+758 count-squeeze=2 equal-pair=1 full-line=5 pair=9 sandwich=1 sign=4
+759 count-squeeze=2 full-line=5 pair=10 sandwich=3 sign=6 sign-count=1
+760 count-squeeze=2 full-line=3 pair=9 sandwich=4 sign=6
+761 count-squeeze=4 equal-pair=1 full-line=6 pair=8 sandwich=3 sign=7
+762 count-squeeze=2 equal-pair=1 full-line=4 line-options=1 pair=12 sandwich=2 sign=3 sign-count=1
+763 full-line=8 pair=10 sandwich=1 sign=4
+764 full-line=6 pair=13 sandwich=2 sign=3
+765 full-line=9 pair=12 sign=4
+766 full-line=6 pair=13 sign=6 sign-count=1
+767 count-squeeze=2 full-line=8 pair=12 sign=6
+768 count-squeeze=4 full-line=7 pair=6 sandwich=4 sign=4
+769 count-squeeze=3 equal-pair=1 full-line=6 line-options=1 pair=7 sandwich=2 sign=3
+770 full-line=6 pair=11 sandwich=2 sign=6
+771 equal-pair=1 full-line=7 pair=9 sandwich=2 sign=5
+772 equal-pair=1 full-line=9 pair=11 sign=5

@@ -83,6 +83,20 @@ class LinkedInEditionTest {
         assertNull(zip.check(plain(500), 500))
     }
 
+    /** Bug caught: a number that maps to another day than the one it numbers, or a number below 1 that maps to a day. */
+    @Test
+    fun `dayOf is the inverse of number from day1, and is null below number 1`() {
+        for (offset in 0L until 1000L) {
+            val day = zip.day1.plusDays(offset)
+            assertEquals(day, zip.dayOf(zip.number(day)))
+        }
+        assertEquals(zip.day1, zip.dayOf(1))
+        assertEquals(LocalDate.of(2026, 11, 5), zip.dayOf(598))
+        assertNull(zip.dayOf(0))
+        assertNull(zip.dayOf(-1))
+        assertNull(zip.dayOf(Int.MIN_VALUE))
+    }
+
     @Test
     fun `check refuses an entityUrn number other than the requested one as Untrusted`() {
         val error = zip.check(normalized(6, 591), 592)

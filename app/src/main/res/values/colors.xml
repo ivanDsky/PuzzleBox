@@ -6,4 +6,31 @@
     <color name="ic_launcher_mark">#58CC02</color>
     <!-- Brand primary (LightColorScheme.primary, ColorTokens.kt) for the splash mark; app resources cannot import it. -->
     <color name="puzzlebox_splash_mark">#58CC02</color>
+    <!-- Launcher shortcut discs: the game accent hues (LightAccentTokens, AccentTokens.kt) and the neutral ink (LightColorScheme.onSurface), the same in both themes. -->
+    <color name="shortcut_accent_blue">#00B4FE</color>
+    <color name="shortcut_accent_orange">#FF7F02</color>
+    <color name="shortcut_accent_violet">#9582FF</color>
+    <color name="shortcut_accent_teal">#00C8BD</color>
+    <color name="shortcut_accent_pink">#FF478A</color>
+    <color name="shortcut_ink">#33363D</color>
+    <color name="shortcut_glyph">#FFFFFF</color>
+    <!-- Home widget (light): each game's accent and its deep onAccent shade (LightAccentTokens, AccentTokens.kt), the neutral for an unmapped game (the ink and surface roles), and the widget's roles from LightColorScheme (ColorTokens.kt). App resources cannot import tokens, so edit both together; values-night holds the dark set. -->
+    <color name="widget_accent_blue">#00B4FE</color>
+    <color name="widget_on_accent_blue">#002A3F</color>
+    <color name="widget_accent_orange">#FF7F02</color>
+    <color name="widget_on_accent_orange">#401A00</color>
+    <color name="widget_accent_violet">#9582FF</color>
+    <color name="widget_on_accent_violet">#27145C</color>
+    <color name="widget_accent_teal">#00C8BD</color>
+    <color name="widget_on_accent_teal">#002E2B</color>
+    <color name="widget_accent_pink">#FF478A</color>
+    <color name="widget_on_accent_pink">#4D0021</color>
+    <color name="widget_accent_neutral">#33363D</color>
+    <color name="widget_on_accent_neutral">#FFFFFF</color>
+    <color name="widget_track">#D9DCE0</color>
+    <color name="widget_muted">#454A54</color>
+    <color name="widget_surface">#FFFFFF</color>
+    <color name="widget_text">#33363D</color>
+    <color name="widget_primary">#58CC02</color>
+    <color name="widget_on_primary">#1F3A0D</color>
 </resources>

@@ -210,18 +210,10 @@ class ZipEditorPathTest {
     }
 
     @Test
-    fun `a covered board with only its ends numbered names Numbers next`() {
+    fun `a covered board with only its ends numbered names Numbers and walls next`() {
         val controller = show(path = SNAKE)
 
-        assertEquals(ZipEditorStep.Numbers, covered(controller).next)
-        rule.onAllNodesWithTag("zip.editor.hint.next").assertCountEquals(1)
-    }
-
-    @Test
-    fun `once a middle number is placed the hint names Walls, not Numbers`() {
-        val controller = show(path = SNAKE, marks = listOf(SNAKE[12]))
-
-        assertEquals(ZipEditorStep.Walls, covered(controller).next)
+        assertEquals(ZipEditorStep.NumbersAndWalls, covered(controller).next)
         rule.onAllNodesWithTag("zip.editor.hint.next").assertCountEquals(1)
     }
 
@@ -245,10 +237,8 @@ class ZipEditorPathTest {
         val controller = show()
         assertEquals(ZipEditorStep.Path, controller.step.value)
 
-        tap("zip.editor.step.numbers")
-        assertEquals(ZipEditorStep.Numbers, controller.step.value)
-        tap("zip.editor.step.walls")
-        assertEquals(ZipEditorStep.Walls, controller.step.value)
+        tap("zip.editor.step.numbersandwalls")
+        assertEquals(ZipEditorStep.NumbersAndWalls, controller.step.value)
         tap("zip.editor.step.path")
         assertEquals(ZipEditorStep.Path, controller.step.value)
         assertTrue(edits.isEmpty())
@@ -257,7 +247,7 @@ class ZipEditorPathTest {
     @Test
     fun `Reverse and Clear path show in the Path step only`() {
         show(path = listOf(0, 1))
-        tap("zip.editor.step.numbers")
+        tap("zip.editor.step.numbersandwalls")
 
         rule.onAllNodesWithTag("zip.editor.reverse").assertCountEquals(0)
         rule.onAllNodesWithTag("zip.editor.clearPath").assertCountEquals(0)
@@ -266,7 +256,7 @@ class ZipEditorPathTest {
     @Test
     fun `dragging outside the Path step draws nothing`() {
         val controller = show()
-        tap("zip.editor.step.numbers")
+        tap("zip.editor.step.numbersandwalls")
         drag(0, 1, 2)
 
         assertEquals(emptyList<Int>(), controller.shown.value.path)

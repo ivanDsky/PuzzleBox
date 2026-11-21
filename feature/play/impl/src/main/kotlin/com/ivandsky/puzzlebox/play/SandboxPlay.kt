@@ -12,10 +12,11 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 
 /**
  * The regular play screen over a board the caller holds, outside the play store: the Studio's test solve (ticket 98).
- * Called as `SandboxPlay(ui, controller, title, label, layout, onBack, onSolved)`. It is the screen a daily plays on
- * (the same top bar, timer, board size and controls) with [PlayBoardChrome] drawing both, and nothing a
- * stored play adds: no tutorial, no How to play, no stats panel, no record. The bar reads `title`, the board's name,
- * then `label`, what the screen is: a name too long for the bar is cut with an ellipsis and the label stays whole.
+ * Called as `SandboxPlay(ui, controller, title, label, layout, onBack, onSolved)`. It is the
+ * screen a daily plays on (the same top bar, timer, board size and controls) with [PlayBoardChrome] drawing both, and
+ * nothing a stored play adds: no tutorial, no How to play, no stats panel, no record. The bar reads `title`, the
+ * board's name, then `label`, what the screen is: a name too long for the bar is cut with an ellipsis and the label
+ * stays whole.
  *
  * The solve plays the sweep, rests on the board (the play chrome's rest: no stamp, a tap skips it) and then
  * calls `onSolved`.

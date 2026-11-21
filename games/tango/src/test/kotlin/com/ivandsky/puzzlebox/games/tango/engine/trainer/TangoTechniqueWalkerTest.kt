@@ -2,63 +2,68 @@ package com.ivandsky.puzzlebox.games.tango.engine.trainer
 
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
 import com.ivandsky.puzzlebox.games.tango.TangoTestSupport
 import com.ivandsky.puzzlebox.games.tango.codec.TangoCodec
+import com.ivandsky.puzzlebox.games.tango.editor.TangoDailyBoards
+import com.ivandsky.puzzlebox.games.tango.editor.TangoDraft
 import com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness
-import com.ivandsky.puzzlebox.games.tango.engine.step.TangoStep
-import com.ivandsky.puzzlebox.games.tango.engine.step.TangoStepper
+import com.ivandsky.puzzlebox.games.tango.engine.step.TangoStepRung
 import com.ivandsky.puzzlebox.games.tango.tangoPlugin
 import com.ivandsky.puzzlebox.model.GameId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
-import org.junit.Assert.fail
 import org.junit.Test
 
 class TangoTechniqueWalkerTest {
 
     @Test
-    fun `the walk takes the stepper's own steps and ends solved`() {
-        for ((name, puzzle) in dailies) {
+    fun `a technique is counted exactly when a focus or a review board opens, on every archive daily`() {
+        val techniques = TangoStepRung.entries.map { it.trainerId }
+        val dailies = TangoDailyBoards.all.map { draft ->
+            TangoPuzzle(TangoDraft.variantOf(draft.n), draft.n, draft.givens, draft.markers)
+        }
+        assertEquals(756, dailies.size)
+        for ((i, puzzle) in dailies.withIndex()) {
             val solution = TangoUniqueness.solve(puzzle)!!
-            val walk = TangoTechniqueWalker.walk(puzzle, solution)
-            assertEquals(name, rerun(puzzle, solution), walk.map { it.gridBefore to it.step })
-            assertEquals(name, TangoStep.Solved, walk.last().step)
-            walk.forEach { w ->
-                val expected = (w.step as? TangoStep.Deduction)?.rung?.trainerId
-                assertEquals("$name ${w.step}", expected, w.technique)
+            val counts = TangoTechniqueWalker.techniqueCounts(canonical(puzzle))
+            assertTrue("daily $i: no zero entries", counts.values.all { it > 0 })
+            for (technique in techniques) {
+                BoardKind.entries.forEach { kind ->
+                    assertEquals(
+                        "daily $i ${technique.value} $kind",
+                        TangoPractice.start(puzzle, solution, technique, kind) != null,
+                        (counts[technique] ?: 0) > 0,
+                    )
+                }
             }
         }
     }
 
     @Test
-    fun `counts are the rerun's deductions per technique id, reveals skipped`() {
-        for ((name, puzzle) in dailies) {
-            val expected = countsOf(rerun(puzzle, TangoUniqueness.solve(puzzle)!!).map { it.second })
-            assertTrue(name, expected.isNotEmpty())
-            assertEquals(name, expected, TangoTechniqueWalker.techniqueCounts(canonical(puzzle)))
+    fun `a count is the points where the technique was the easiest rung`() {
+        for ((name, expected) in EXACT_COUNTS) {
+            val puzzle = dailies.getValue(name)
+            val counts = tangoPlugin.techniqueWalker!!.techniqueCounts(canonical(puzzle))
+            assertEquals(name, expected.mapKeys { TechniqueId(it.key) }, counts)
         }
     }
 
     @Test
-    fun `the plugin carries the walker and counts from the canonical puzzle`() {
-        val walker = tangoPlugin.techniqueWalker
-        assertNotNull(walker)
+    fun `the walk starts on the givens and each point is one deduction`() {
         for ((name, puzzle) in dailies) {
-            val expected = countsOf(rerun(puzzle, TangoUniqueness.solve(puzzle)!!).map { it.second })
-            assertEquals(name, expected, walker!!.techniqueCounts(canonical(puzzle)))
+            val solution = TangoUniqueness.solve(puzzle)!!
+            val points = TangoPractice.walk(puzzle, solution).toList()
+            val counts = TangoTechniqueWalker.techniqueCounts(canonical(puzzle))
+            assertEquals(name, List(puzzle.cellCount) { puzzle.givens[it] }, points.first().board)
+            assertEquals(name, points.size, counts.values.sum())
+            assertTrue(name, points.zipWithNext().all { (a, b) -> b.board.count { it != null } > a.board.count { it != null } })
         }
-    }
-
-    @Test
-    fun `the walk covers eight of the nine techniques`() {
-        val seen = dailies.values.flatMapTo(HashSet()) { TangoTechniqueWalker.techniqueCounts(canonical(it)).keys }
-        listOf("sign", "pair", "sandwich", "full-line", "equal-pair", "sign-count", "count-squeeze", "line-options")
-            .forEach { assertTrue(it, TechniqueId(it) in seen) }
     }
 
     @Test
@@ -72,6 +77,12 @@ class TangoTechniqueWalkerTest {
         assertEquals(emptyMap<TechniqueId, Int>(), TangoTechniqueWalker.techniqueCounts(canonical(ambiguous)))
     }
 
+    @Test
+    fun `the plugin carries the walker`() {
+        assertNotNull(tangoPlugin.techniqueWalker)
+        assertEquals(2, tangoPlugin.techniqueWalker!!.techniqueSetVersion)
+    }
+
     private companion object {
         val dailies: Map<String, TangoPuzzle> by lazy {
             mapOf(
@@ -81,34 +92,15 @@ class TangoTechniqueWalkerTest {
             )
         }
 
+        val EXACT_COUNTS: Map<String, Map<String, Int>> = mapOf(
+            "byid-1" to mapOf("sign" to 8, "pair" to 6, "sandwich" to 5, "full-line" to 8),
+            "byid-301" to mapOf("sign" to 4, "pair" to 10, "sandwich" to 2, "full-line" to 6),
+            "byid-758" to mapOf(
+                "sign" to 4, "pair" to 9, "sandwich" to 1, "full-line" to 5, "equal-pair" to 1, "count-squeeze" to 2,
+            ),
+        )
+
         fun canonical(puzzle: TangoPuzzle): Puzzle =
             (TangoDefinition.decode(TangoCodec.encode(puzzle)) as DecodeResult.Ok).value
-
-        fun countsOf(steps: List<TangoStep>): Map<TechniqueId, Int> =
-            steps.filterIsInstance<TangoStep.Deduction>().map { it.rung.trainerId }.groupingBy { it }.eachCount()
-
-        /** A direct stepper replay as play drives it: each step with the grid it was asked on, the last move the previous step's cell. */
-        fun rerun(puzzle: TangoPuzzle, solution: List<TangoCell>): List<Pair<List<TangoCell?>, TangoStep>> {
-            var grid: List<TangoCell?> = List(puzzle.cellCount) { puzzle.givens[it] }
-            var last: Int? = null
-            val steps = mutableListOf<Pair<List<TangoCell?>, TangoStep>>()
-            repeat(puzzle.cellCount * 2) {
-                val step = TangoStepper.next(puzzle, grid, last, solution)
-                steps += grid to step
-                when (step) {
-                    TangoStep.Solved -> return steps
-                    is TangoStep.Deduction -> {
-                        grid = grid.toMutableList().also { it[step.idx] = step.value }
-                        last = step.idx
-                    }
-                    is TangoStep.Reveal -> {
-                        grid = grid.toMutableList().also { it[step.idx] = step.value }
-                        last = step.idx
-                    }
-                    is TangoStep.Mistake, TangoStep.Unavailable -> fail("replay produced $step on $grid")
-                }
-            }
-            throw AssertionError("replay did not finish")
-        }
     }
 }

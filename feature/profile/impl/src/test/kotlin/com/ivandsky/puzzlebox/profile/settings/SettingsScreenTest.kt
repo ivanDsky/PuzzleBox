@@ -228,6 +228,25 @@ class SettingsScreenTest {
     }
 
     @Test
+    fun `each Appearance row says its line, marks the stored mode and a tap reports its mode`() {
+        setContent(state = SettingsUiState(themeMode = ThemeMode.LIGHT, versionName = "1.4.0"))
+
+        composeRule.onNodeWithText("Appearance").assertExists()
+        composeRule.onNodeWithText("Follows your phone's setting").assertExists()
+        composeRule.onNodeWithText("Always light").assertExists()
+        composeRule.onNodeWithText("Always dark").assertExists()
+        composeRule.onNodeWithTag("profile.appearance").assertExists()
+        composeRule.onNodeWithTag("profile.appearance.light").assertIsSelected()
+        composeRule.onNodeWithTag("profile.appearance.system").assertIsNotSelected()
+
+        composeRule.onNodeWithTag("profile.appearance.system").performClick()
+        composeRule.onNodeWithTag("profile.appearance.light").performClick()
+        composeRule.onNodeWithTag("profile.appearance.dark").performClick()
+
+        assertEquals(listOf(ThemeMode.SYSTEM, ThemeMode.LIGHT, ThemeMode.DARK), themes)
+    }
+
+    @Test
     fun `developer section and catalog button exist only with an open-catalog callback`() {
         setContent(showCatalog = true)
 

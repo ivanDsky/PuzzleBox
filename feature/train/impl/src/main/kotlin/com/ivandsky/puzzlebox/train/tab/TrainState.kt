@@ -7,7 +7,7 @@ import com.ivandsky.puzzlebox.model.GameId
 
 /**
  * What the Train pane shows: the trainer [games] in the registry's order, the [selected] one, its techniques with their
- * progress ([techniques], in the catalog's own order) and the technique whose round is [open], if any.
+ * progress ([techniques], in the catalog's own order) and the technique whose practice board is [open], if any.
  */
 internal data class TrainState(
     val games: List<GameId>,
@@ -23,8 +23,9 @@ internal data class TechniqueRow(
 )
 
 /**
- * The technique whose round is open, with the [game] that trains it. [attempt] counts the times a technique was opened,
- * so opening one again starts a new round while turning the device, which keeps the number, keeps the round.
+ * The technique whose practice board is open, with the [game] that trains it. [attempt] counts the times a technique
+ * was opened, so opening one again starts a new board while turning the device, which keeps the number, keeps the
+ * board.
  */
 internal data class OpenTechnique(
     val game: TrainerGame,

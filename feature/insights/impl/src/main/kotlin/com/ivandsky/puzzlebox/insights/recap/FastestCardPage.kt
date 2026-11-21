@@ -1,20 +1,16 @@
 package com.ivandsky.puzzlebox.insights.recap
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -22,23 +18,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.designsystem.MaxTextWidth
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.model.GameId
 
 /**
- * The Fastest solve page: one time per game played in the period, each with its day. A solve with a replay is a row
- * that opens it through [onWatchReplay]; an imported time has none and says so (A5).
+ * One page of the Fastest solve card: game [sub]'s page, on its brand's accent (Neutral until the route provides the
+ * brands). The deck steps between the games as between cards, so this draws only the one; the replay pill is the only
+ * thing on it that takes a tap (A5: an imported time has none).
  */
 @Composable
 internal fun FastestCardPage(
@@ -47,33 +42,24 @@ internal fun FastestCardPage(
     gameName: (GameId) -> String,
     onWatchReplay: (RecapCard.Fastest.Row) -> Unit,
     modifier: Modifier = Modifier,
+    sub: Int = 0,
 ) {
-    Column(
-        modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = Spacing.xl, vertical = Spacing.lg)
-            .testTag("recap.fastest"),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = periodLabel,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+    val row = card.rows.getOrNull(sub) ?: return
+    val brand = LocalGameBrands.current(row.game)
+    Box(modifier.fillMaxSize().testTag("recap.fastest")) {
+        FastestGameCard(
+            row,
+            gameName(row.game),
+            periodLabel,
+            brand.glyph,
+            brand.accent.colors(),
+            onWatchReplay = { onWatchReplay(row) },
+            modifier = Modifier.fillMaxSize(),
         )
-        Text(
-            text = "Fastest solves",
-            style = MaterialTheme.typography.displaySmall,
-            color = MaterialTheme.colorScheme.primary,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(Spacing.xl))
-        FastestRows(card.rows, gameName, onWatchReplay, Modifier.widthIn(max = MaxTextWidth))
     }
 }
 
-/** Each game's fastest solve as one rounded block. Shared by the story and the tablet list. */
+/** Each game's fastest solve as one flat row of the tablet's selected fact. */
 @Composable
 internal fun FastestRows(
     rows: List<RecapCard.Fastest.Row>,
@@ -84,8 +70,6 @@ internal fun FastestRows(
     Column(
         modifier
             .fillMaxWidth()
-            .clip(MaterialTheme.shapes.large)
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .testTag("recap.fastest.games"),
     ) {
         rows.forEachIndexed { index, row ->
@@ -151,12 +135,14 @@ internal fun FastestCardFact(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Text(
-            text = "Fastest solves",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(vertical = Spacing.sm),
-        )
+        Row(Modifier.padding(vertical = Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+            FactMarker()
+            Text(
+                text = "Fastest solves",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
         FastestRows(card.rows, gameName, onWatchReplay)
     }
 }

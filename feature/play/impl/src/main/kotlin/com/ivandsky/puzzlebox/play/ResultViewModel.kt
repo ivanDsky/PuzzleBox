@@ -15,7 +15,7 @@ import com.ivandsky.puzzlebox.domain.ResultInsights
 import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.domain.TodayEntry
 import com.ivandsky.puzzlebox.domain.TodayStatus
-import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.PuzzleRef
@@ -93,7 +93,7 @@ class ResultViewModel internal constructor(
     games: GameRegistry,
     insights: ObserveResultInsights,
     rank: ObserveResultRank,
-    linkedIn: ObserveLinkedInDay?,
+    linkedIn: ObserveLinkedInDayView?,
     private val board: FriendPuzzleBoard,
     completions: CompletionRepository,
     loadReplay: LoadSolveReplay,
@@ -101,8 +101,6 @@ class ResultViewModel internal constructor(
     submitPost: SubmitLinkedInResult? = null,
     nextThing: Lazy<ObserveResultNextThing>,
     daily: DailyRepository,
-    /** [com.ivandsky.puzzlebox.play.flags.PlayFlag.FirstSolveNoGap], read by the DI module (ADR-0022 §3): a not-best first solve skips the gap to the best. */
-    val firstSolveNoGap: Boolean = false,
 ) : ViewModel() {
     private val slot = PlaySlot.Daily(GameId(key.gameId), LocalDate.parse(key.day))
     private val solve = ActivePlay.Solve(key.timeMs, key.hintsUsed)
@@ -212,16 +210,20 @@ class ResultViewModel internal constructor(
      * The hero page's rank on the slot's day's board: today's, or for a play again the replayed past day's. A
      * play again's rank is the player's counting solve of that day, not this play again's time, and stays
      * [ResultRank.Hidden] while the player is not on that day's board. With [linkedIn] on, the day's connections
-     * already on the phone fold into it; the day is only observed here, never fetched.
+     * already on the phone fold into it; the rank only observes the day. The Post to LinkedIn row is what asks
+     * LinkedIn about it (see [ResultPostButton]), and only when it would offer Post.
      */
     val heroRank: StateFlow<ResultRank> =
-        rank(slot.gameId, slot.day, connections = linkedIn?.invoke(slot.gameId, slot.day))
+        rank(slot.gameId, slot.day, connections = linkedIn?.observed(ObserveLinkedInDayView.Target(slot.gameId, slot.day)))
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), ResultRank.Hidden)
 
-    private val post = ResultPostButton(viewModelScope, observePost, submitPost, slot.gameId, slot.day)
+    private val post = ResultPostButton(viewModelScope, observePost, submitPost, linkedIn, slot.gameId, slot.day)
 
     /** The Post to LinkedIn button, null for no button; see [ResultPostButton]. */
     val linkedInPost: StateFlow<LinkedInPostRowState?> get() = post.state
+
+    /** The button is in its slot but not yet to be shown or tapped: LinkedIn has not said whether it holds the day's result. */
+    val linkedInPostPending: StateFlow<Boolean> get() = post.pending
 
     /**
      * The time the Post to LinkedIn row names: the day's record row, the solve a post sends and LinkedIn holds,

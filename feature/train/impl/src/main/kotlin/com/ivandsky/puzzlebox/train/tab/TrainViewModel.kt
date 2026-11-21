@@ -28,16 +28,16 @@ private const val KEY_GAME = "train.open.game"
 private const val KEY_TECHNIQUE = "train.open.technique"
 private const val KEY_ATTEMPT = "train.open.attempt"
 
-/** The open technique as [SavedStateHandle] keeps it: ids only, resolved against the registry when shown. */
+/** The open technique as [SavedStateHandle] keeps it: ids, resolved against the registry when shown. */
 private data class OpenKey(val game: GameId, val technique: TechniqueId, val attempt: Int)
 
 /**
  * The Train pane's state: the games that have a trainer, the chosen game, its techniques with their marks, and which
- * technique's round is open. The chosen game is the last one the player picked ([UserPreferencesRepository.lastTrainGame])
+ * technique's practice board is open. The chosen game is the last one the player picked ([UserPreferencesRepository.lastTrainGame])
  * while the [registry] still has it, else the registry's first (spec A13); picking a game stores it. Marks follow
  * [progress]; a technique never answered reads New (A5). The open technique's ids live in [savedState], so turning the
- * device and a restore after the system closed the app both keep which technique is open; the round itself is the
- * round view model's, and starts again after a restore (A15).
+ * device and a restore after the system closed the app both keep which technique is open; the practice board is the
+ * practice view model's own, and starts again after a restore (A15).
  *
  * The tablet's list and right pane and the phone's single page all read this one view model.
  */
@@ -68,7 +68,7 @@ internal class TrainViewModel(
         viewModelScope.launch { prefs.setLastTrainGame(game) }
     }
 
-    /** Opens [technique] of [game] and starts its round; opening the technique already open leaves its round as it is. */
+    /** Opens [technique] of [game] and starts its practice board; opening the technique already open leaves its board as it is. */
     fun openTechnique(game: GameId, technique: TechniqueId) {
         val current = open.value
         if (current != null && current.game == game && current.technique == technique) return
@@ -79,7 +79,7 @@ internal class TrainViewModel(
         setOpen(OpenKey(game, technique, attempts))
     }
 
-    /** Closes the open technique's round. */
+    /** Closes the open technique's practice board. */
     fun closeTechnique() = setOpen(null)
 
     private fun setOpen(key: OpenKey?) {

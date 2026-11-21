@@ -130,7 +130,7 @@ class NewPuzzleSheetStrandsGateTest {
 
     private fun open() {
         val games = GameRegistry(listOf(queensPlugin, strandsPlugin))
-        val editors = GameEditorRegistry(listOf(QueensEditorUi, StrandsEditorUi))
+        val editors = GameEditorRegistry(listOf(QueensEditorUi(), StrandsEditorUi))
         var next = 0
         val createDraft = CreateDraft(games, drafts, newId = { "draft-${++next}" }, clock = { NOW })
         // One stored Queens draft keeps the draft list, and its New puzzle button, on screen.

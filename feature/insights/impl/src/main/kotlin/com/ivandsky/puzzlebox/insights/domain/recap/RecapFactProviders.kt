@@ -6,11 +6,11 @@ package com.ivandsky.puzzlebox.insights.domain.recap
  */
 internal val RecapFactProviders: List<RecapFactProvider> = listOf(
     SolvedRecapFactProvider,
-    MonthsRecapFactProvider,
     FastestRecapFactProvider,
     StreakRecapFactProvider,
-    HintFreeRecapFactProvider,
     MomentsRecapFactProvider,
     FriendsRecapFactProvider,
     TotalTimeRecapFactProvider,
+    MonthsRecapFactProvider,
+    YearFinaleRecapFactProvider,
 )

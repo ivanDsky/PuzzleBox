@@ -2,11 +2,12 @@ package com.ivandsky.puzzlebox.gameui.trainer
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.game.trainer.TrainerVerdict
 import com.ivandsky.puzzlebox.model.GameId
+import kotlinx.coroutines.CoroutineScope
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -19,12 +20,23 @@ private class FakeTrainerGame(override val gameId: GameId) : TrainerGame {
 
     override val drillSources: List<DrillSource> = emptyList()
 
-    override fun buildSnippets(puzzle: Puzzle, technique: TechniqueId, count: Int): List<Snippet> = emptyList()
+    override fun practice(
+        puzzle: Puzzle,
+        technique: TechniqueId,
+        kind: BoardKind,
+        scope: CoroutineScope,
+        onTrainedTurn: (TrainerVerdict) -> Unit,
+    ): PracticeBoard? = null
 
     @Composable
-    override fun Board(snippet: Snippet, onVerdict: (TrainerVerdict) -> Unit, modifier: Modifier) = Unit
+    override fun Board(board: PracticeBoard, modifier: Modifier) = Unit
 
-    override fun spotlight(snippet: Snippet): Spotlight = error("unused")
+    override fun variants(technique: TechniqueId): List<IntroVariant> = listOf(IntroVariant("Fake", "Rule.", "Spot it.", "Do it."))
+
+    override fun demo(puzzle: Puzzle, technique: TechniqueId, variant: Int): IntroDemo? = null
+
+    @Composable
+    override fun Demo(demo: IntroDemo, frame: Int, modifier: Modifier) = Unit
 }
 
 class TrainerRegistryTest {

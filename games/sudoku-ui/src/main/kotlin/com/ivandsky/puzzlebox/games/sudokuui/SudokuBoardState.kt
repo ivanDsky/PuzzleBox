@@ -278,4 +278,14 @@ class SudokuBoardState(
         session = next
         onSessionChanged(next)
     }
+
+    /**
+     * Stores [next] as the session without judging it: [settle] and the win record never see it. The Trainer's practice
+     * board makes Show me's deduction through here, since [settle] is its verdict on the player's own moves. A won
+     * board holds no selection, as after any winning move.
+     */
+    internal fun adopt(next: SudokuSession) {
+        store(next)
+        if (next.isComplete) selected = null
+    }
 }

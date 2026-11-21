@@ -30,8 +30,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The Numbers step through its tags: tap a path cell to number it or remove its number, numbers
- * follow path order, the ends stay put, off-path taps do nothing; each tap is one undo step.
+ * The number half of the Numbers & walls step through its tags: tap a path cell's middle to number it or remove
+ * its number, numbers follow path order, the ends stay put, off-path taps do nothing; each tap is one undo step.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -43,7 +43,7 @@ class ZipEditorNumbersTest {
 
     private val edits = ArrayList<EditorDraft<*>>()
 
-    /** The path 0, 1, 2, 3, 4 along the top row, shown in the Numbers step. */
+    /** The path 0, 1, 2, 3, 4 along the top row, shown in the Numbers & walls step. */
     private fun show(marks: List<Int> = emptyList()): ZipEditorController {
         val blank = EditorDraft.fresh(ZipEditor, ZipEditor.variants.first())
         val path = listOf(0, 1, 2, 3, 4)
@@ -52,7 +52,7 @@ class ZipEditorNumbersTest {
         rule.setContent {
             PuzzleBoxTheme { ZipEditorBoard(controller, Modifier.fillMaxSize()) }
         }
-        rule.onNodeWithTag("zip.editor.step.numbers").performClick()
+        rule.onNodeWithTag("zip.editor.step.numbersandwalls").performClick()
         rule.waitForIdle()
         return controller
     }

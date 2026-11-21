@@ -63,6 +63,72 @@ class ComponentContrastFloorsTest {
         }
     }
 
+    @Test
+    fun `chosen choice tile ink meets 4_5 to 1 on every accent container`() {
+        for (mode in modes) {
+            for ((slot, accent) in accentPalette(mode.name == "dark")) {
+                val ratio = contrast(accent.onContainer, accent.container)
+                assertTrue("${mode.name} $slot chosen tile = $ratio", ratio >= 4.5f)
+            }
+        }
+    }
+
+    @Test
+    fun `idle choice tile ink meets 4_5 to 1 on its well fill`() {
+        for (mode in modes) {
+            val ratio = contrast(mode.scheme.onSurface, mode.scheme.surfaceContainerHigh)
+            assertTrue("${mode.name} idle tile = $ratio", ratio >= 4.5f)
+        }
+    }
+
+    @Test
+    fun `disabled choice ink and message ink meet 4_5 to 1 on every surface and on the muted chosen fill`() {
+        for (mode in modes) {
+            for (surface in buttonSurfaces(mode.scheme)) {
+                val ratio = contrast(mode.scheme.onSurfaceVariant, surface)
+                assertTrue("${mode.name} disabled ink on $surface = $ratio", ratio >= 4.5f)
+            }
+            val muted = contrast(mode.scheme.onSurfaceVariant, mode.scheme.surfaceContainerHighest)
+            assertTrue("${mode.name} muted chosen tile = $muted", muted >= 4.5f)
+        }
+    }
+
+    @Test
+    fun `choice error message ink meets 4_5 to 1 on every surface`() {
+        for (mode in modes) {
+            for (surface in buttonSurfaces(mode.scheme)) {
+                val ratio = contrast(mode.scheme.error, surface)
+                assertTrue("${mode.name} error ink on $surface = $ratio", ratio >= 4.5f)
+            }
+        }
+    }
+
+    @Test
+    fun `choice row ink meets 4_5 to 1 chosen on the primary container and idle on every surface`() {
+        for (mode in modes) {
+            val chosen = contrast(mode.scheme.onPrimaryContainer, mode.scheme.primaryContainer)
+            assertTrue("${mode.name} chosen row = $chosen", chosen >= 4.5f)
+            for (surface in buttonSurfaces(mode.scheme)) {
+                val title = contrast(mode.scheme.onSurface, surface)
+                assertTrue("${mode.name} idle row title on $surface = $title", title >= 4.5f)
+            }
+        }
+    }
+
+    @Test
+    fun `choice row radio mark meets 3 to 1 chosen on the primary container and idle on every surface`() {
+        for (mode in modes) {
+            val dot = contrast(mode.primaryText, mode.scheme.primaryContainer)
+            assertTrue("${mode.name} chosen dot = $dot", dot >= 3f)
+            for (surface in buttonSurfaces(mode.scheme)) {
+                val ring = contrast(mode.scheme.outline, surface)
+                assertTrue("${mode.name} idle ring on $surface = $ring", ring >= 3f)
+            }
+            val muted = contrast(mode.scheme.outline, mode.scheme.surfaceContainerHighest)
+            assertTrue("${mode.name} muted chosen ring = $muted", muted >= 3f)
+        }
+    }
+
     private fun contrast(foreground: Color, background: Color): Float {
         val top = foreground.luminance() + 0.05f
         val bottom = background.luminance() + 0.05f

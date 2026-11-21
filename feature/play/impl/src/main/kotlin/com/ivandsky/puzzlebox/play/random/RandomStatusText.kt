@@ -17,6 +17,12 @@ internal fun RandomMessage.text(): String = when (this) {
     RandomMessage.Refused -> "Couldn't load community puzzles. Try again."
 }
 
+/** A pick that went wrong (it could not load or open), not one that found nothing to pick: the radio rows' error ring. */
+internal fun RandomMessage.isFailure(): Boolean = when (this) {
+    RandomMessage.NothingLeftPast, RandomMessage.NothingLeftCommunity -> false
+    RandomMessage.Offline, RandomMessage.Throttled, RandomMessage.NoneOpened, RandomMessage.Refused -> true
+}
+
 /** The status line under the Pick button: [message] in plain words. */
 @Composable
 internal fun RandomStatusText(message: RandomMessage, modifier: Modifier = Modifier) {

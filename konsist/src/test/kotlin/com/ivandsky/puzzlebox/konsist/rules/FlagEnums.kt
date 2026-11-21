@@ -6,7 +6,7 @@ import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 /**
  * What P13 and P15 call a flag enum (ADR-0022): the central `ReleaseFlag` in `com.ivandsky.puzzlebox.common.flags`,
  * and every enum, top-level or nested, whose supertypes include `ReleaseFlagKey` or `ReleaseFlag` (plain or qualified),
- * such as an owner's `PlayFlag`. An enum named `ReleaseFlag` in another package is not one. Matched by name only.
+ * such as an owner's `InsightsFlag`. An enum named `ReleaseFlag` in another package is not one. Matched by name only.
  */
 internal object FlagEnums {
     private const val CENTRAL_PACKAGE = "com.ivandsky.puzzlebox.common.flags"

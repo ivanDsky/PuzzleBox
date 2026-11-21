@@ -2,14 +2,11 @@ package com.ivandsky.puzzlebox.history.ranks
 
 import com.ivandsky.puzzlebox.domain.ranks.BoardLoad
 import com.ivandsky.puzzlebox.domain.ranks.CountedBoards
-import com.ivandsky.puzzlebox.history.domain.ranks.GameWindowStandings
 import com.ivandsky.puzzlebox.domain.ranks.OverallStandings
 import com.ivandsky.puzzlebox.domain.ranks.RankWindowBoards
 import com.ivandsky.puzzlebox.domain.ranks.RankedBoard
-import com.ivandsky.puzzlebox.history.domain.ranks.gameWindowStandings
 import com.ivandsky.puzzlebox.domain.ranks.connectionUid
 import com.ivandsky.puzzlebox.domain.ranks.rankBoard
-import com.ivandsky.puzzlebox.domain.ranks.withConnectionsAsFriends
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.history.ranks.RanksSelection.Window
 import com.ivandsky.puzzlebox.model.GameId
@@ -18,15 +15,12 @@ import com.ivandsky.puzzlebox.resultui.board.DailyBoardLine
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.resultui.board.DailyBoardState
 import com.ivandsky.puzzlebox.resultui.board.LinkedInYou
-import kotlin.math.roundToInt
 
 /**
  * One game's board out of the hub's shared window boards (null = no answer for this window yet),
  * so a swipe to a game reads nothing of its own. A day ranks that day's entries by [order]; a week
- * or month ranks each player by the average over the days they played, or with [points]
- * (WeekMonthPoints) by the standings it gives for the game's loaded days. Either way a friend's
- * connection is the friend ([withConnectionsAsFriends]), so a friend is one row. Rows are keyed by
- * player uid, so the same list re-ranks when the board changes.
+ * or month (backlog #1698) ranks by [points], the standings it gives for the game's loaded days, which every week
+ * or month needs. Rows are keyed by player uid, so the same list re-ranks when the board changes.
  */
 internal fun RankWindowBoards?.toGameBoardState(
     game: GameId,
@@ -51,8 +45,8 @@ internal fun RankWindowBoards?.toGameBoardState(
     fun ranked(of: List<BoardLoad.Loaded>) = of.map { rankBoard(it.board, it.page.entries, it.order, it.page.count) }
     val rows = when {
         kind == Window.Day -> ranked(loaded).flatMap(RankedBoard::rows).map { it.toRow(selfUid) }
-        points != null -> points(loaded).pointRows(selfUid) { BoardRowValue.DayPoints(it.total, it.games, atLeast = it.truncated) }
-        else -> gameWindowStandings(ranked(loaded.withConnectionsAsFriends(selfUid)), order).rows.map { it.toRow(selfUid) }
+        else -> requireNotNull(points) { "a Week or Month board ranks by points" }(loaded)
+            .pointRows(selfUid) { BoardRowValue.DayPoints(it.total, it.games, atLeast = it.truncated) }
     }
     return DailyBoardState.Ranked(rows)
 }
@@ -144,14 +138,4 @@ private fun RankedBoard.Row.toRow(selfUid: String?) = DailyBoardRowModel(
     hints = entry.hints,
     isSelf = entry.uid == selfUid,
     playerId = entry.uid,
-)
-
-private fun GameWindowStandings.Row.toRow(selfUid: String?) = DailyBoardRowModel(
-    rank = place,
-    name = displayName,
-    timeMs = avgTimeMs,
-    hints = avgHints.roundToInt(),
-    isSelf = uid == selfUid,
-    playerId = uid,
-    value = BoardRowValue.Average(avgTimeMs, avgHints),
 )

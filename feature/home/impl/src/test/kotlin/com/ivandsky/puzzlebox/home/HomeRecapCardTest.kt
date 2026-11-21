@@ -2,7 +2,8 @@ package com.ivandsky.puzzlebox.home
 
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasClickAction
-import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -21,7 +22,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** The recap card on Home's Today list (A2, A3): present only with a slot, opens on a tap, dismisses on its close button. */
+/** The recap tile on Home's Today list (A2, A3): present only with a slot, new or watched, opens on a tap, dismisses on its ×. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class HomeRecapCardTest {
@@ -53,21 +54,47 @@ class HomeRecapCardTest {
 
         composeRule.onNodeWithTag("summary.recap").assertDoesNotExist()
         composeRule.onNodeWithTag("summary.recap.dismiss").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Loading your recap").assertDoesNotExist()
     }
 
     @Test
-    fun `a slot shows the card with the period's label`() {
-        show(RecapSlot("October 2026", onOpen = {}, onDismiss = {}))
+    fun `a slot shows the tile, read as one button with its period and count`() {
+        show(previewRecap())
 
         composeRule.onNodeWithTag("summary.recap").performScrollTo().assertHasClickAction()
-        composeRule.onNodeWithTag("summary.recap").assert(hasText("October 2026", substring = true))
+            .assert(hasContentDescription("Open your October 2026 recap. 96 puzzles solved."))
+        composeRule.onNodeWithText("Your October 2026 recap", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithText("See how the month went", useUnmergedTree = true).assertExists()
     }
 
     @Test
-    fun `tapping the card opens the recap and not the dismissal`() {
+    fun `an unopened recap says New and a watched one says Watched, never both`() {
+        show(previewRecap(opened = false))
+        composeRule.onNodeWithText("NEW", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithText("WATCHED", useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun `a watched recap drops New`() {
+        show(previewRecap(opened = true))
+        composeRule.onNodeWithText("WATCHED", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithText("Watch it again", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithText("NEW", useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun `a year says how the year went`() {
+        show(previewRecap(label = "2026", periodId = "2026", yearly = true))
+
+        composeRule.onNodeWithText("See how the year went", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithText("1,240", useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun `tapping the tile opens the recap and not the dismissal`() {
         var opened = 0
         var dismissed = 0
-        show(RecapSlot("October 2026", onOpen = { opened++ }, onDismiss = { dismissed++ }))
+        show(previewRecap(onOpen = { opened++ }, onDismiss = { dismissed++ }))
 
         composeRule.onNodeWithTag("summary.recap").performScrollTo().performClick()
 
@@ -78,10 +105,20 @@ class HomeRecapCardTest {
     fun `the close button is named for its period and dismisses without opening`() {
         var opened = 0
         var dismissed = 0
-        show(RecapSlot("October 2026", onOpen = { opened++ }, onDismiss = { dismissed++ }))
+        show(previewRecap(onOpen = { opened++ }, onDismiss = { dismissed++ }))
 
         composeRule.onNodeWithContentDescription("Dismiss October 2026 recap").performScrollTo().performClick()
 
         assertEquals(0 to 1, opened to dismissed)
+    }
+
+    @Test
+    fun `while a due recap loads the skeleton is read as loading and is no tile`() {
+        composeRule.mainClock.autoAdvance = false
+        show(RecapSlot.Loading)
+        composeRule.mainClock.advanceTimeBy(1_000L)
+
+        composeRule.onNodeWithContentDescription("Loading your recap").assertExists()
+        composeRule.onNodeWithTag("summary.recap").assertDoesNotExist()
     }
 }

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Play Up next: white play triangle on the neutral ink disc. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="@color/shortcut_ink"
+        android:pathData="M0,12a12,12 0 1,0 24,0a12,12 0 1,0 -24,0Z" />
+    <path
+        android:fillColor="@color/shortcut_glyph"
+        android:pathData="M9.5 7.5V16.5L16.5 12Z"
+        android:strokeColor="@color/shortcut_glyph"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

@@ -6,7 +6,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 
 /**
  * The shell's own top-bar action, the avatar, drawn into a [RowScope]. The app provides it
- * to Today's entry on the phone, and with MainTabsLargeBar to every main tab's root; no feature module knows it exists, and only the
+ * to Today's entry on the phone and to every main tab's root; no feature module knows it exists, and only the
  * designsystem top bars draw it. [LargeTopBar] and [CompactTopBar] draw it after the
  * screen's own `actions`, in the same trailing row, so a screen that passes no `actions`
  * still gets the shell's. The default is empty.

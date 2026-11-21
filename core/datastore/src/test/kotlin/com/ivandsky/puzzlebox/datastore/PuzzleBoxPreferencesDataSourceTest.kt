@@ -305,4 +305,16 @@ class PuzzleBoxPreferencesDataSourceTest {
 
         assertEquals(setOf("2026-10", "2026-11"), newDataSource(file).recapsDismissed.first())
     }
+
+    @Test
+    fun `no recap is opened until one is, and an opened mark is its own key beside dismissals`() = runTest {
+        val dataSource = newDataSource(tempFile())
+        assertEquals(emptySet<String>(), dataSource.recapsOpened.first())
+
+        dataSource.markRecapOpened("2026-10")
+        dataSource.markRecapOpened("2026-10")
+
+        assertEquals(setOf("2026-10"), dataSource.recapsOpened.first())
+        assertEquals(emptySet<String>(), dataSource.recapsDismissed.first())
+    }
 }

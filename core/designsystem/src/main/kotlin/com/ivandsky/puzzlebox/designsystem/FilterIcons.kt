@@ -18,3 +18,7 @@ val PuzzleIcons.Calendar: ImageVector
 /** New freshness: Material Symbols `auto_awesome`, a sparkle. */
 val PuzzleIcons.Sparkle: ImageVector
     @Composable get() = ImageVector.vectorResource(R.drawable.ic_auto_awesome)
+
+/** A quiet month in the year recap: Material Symbols `dark_mode`, a crescent moon. */
+val PuzzleIcons.Moon: ImageVector
+    @Composable get() = ImageVector.vectorResource(R.drawable.ic_dark_mode)

@@ -26,7 +26,9 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import com.ivandsky.puzzlebox.designsystem.LocalNavLiftVisibility
+import com.ivandsky.puzzlebox.designsystem.navLiftReveal
 import com.ivandsky.puzzlebox.designsystem.navLiftTarget
+import com.ivandsky.puzzlebox.insights.api.InsightsRecapKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 
 /**
@@ -41,9 +43,9 @@ internal val LocalNavMotion = compositionLocalOf<State<NavMotion>> { mutableStat
 
 /**
  * Every nav scene's canvas. An immersive scene ([isImmersive]: a board or a result, a duel's
- * leg board or result, or a duel's reveal) is full-window and opaque, insetting only its
- * content; a board is also the target its card
- * lifts into. Any other scene paints opaque inside [LocalChromePadding] only. While this scene
+ * leg board or result, a duel's reveal, or a recap story) is full-window and opaque, insetting only its
+ * content; a board is also the target its card lifts into, and a recap story the screen its
+ * tile reveals. Any other scene paints opaque inside [LocalChromePadding] only. While this scene
  * is the upper page of a scrimmed move it dims what lies beneath: the window strip to its
  * start during a slide, the whole window during a lift.
  */
@@ -78,10 +80,10 @@ internal fun SceneCanvas(entryKey: Any?, content: @Composable () -> Unit) {
     ) {
         CompositionLocalProvider(LocalNavLiftVisibility provides scope) {
             if (immersive) {
-                val lifted = if (entryKey is GameKey) {
-                    Modifier.navLiftTarget(entryKey, MaterialTheme.shapes.large)
-                } else {
-                    Modifier
+                val lifted = when (entryKey) {
+                    is GameKey -> Modifier.navLiftTarget(entryKey, MaterialTheme.shapes.large)
+                    is InsightsRecapKey -> Modifier.navLiftReveal(entryKey, MaterialTheme.shapes.extraLarge)
+                    else -> Modifier
                 }
                 Box(
                     Modifier

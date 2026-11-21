@@ -30,8 +30,4 @@ object HiddenBoardTokens {
     val PillMinHeight: Dp = 40.dp
     val PillIcon: Dp = 20.dp
     val PillGap: Dp = 8.dp
-
-    /** The loading bars dim to [PulseFloor] and back once every [PulseMillis]. */
-    const val PulseMillis: Int = 1_200
-    const val PulseFloor: Float = 0.55f
 }

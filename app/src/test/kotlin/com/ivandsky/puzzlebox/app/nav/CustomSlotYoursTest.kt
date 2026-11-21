@@ -138,7 +138,7 @@ class CustomSlotYoursTest {
                     viewModel {
                         CreateViewModel(
                             games,
-                            GameEditorRegistry(listOf(QueensEditorUi)),
+                            GameEditorRegistry(listOf(QueensEditorUi())),
                             GamePlayRegistry(emptyList()),
                             drafts,
                             published,

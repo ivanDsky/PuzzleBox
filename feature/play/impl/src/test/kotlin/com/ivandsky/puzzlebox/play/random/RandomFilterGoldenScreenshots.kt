@@ -57,6 +57,9 @@ abstract class RandomFilterGoldenScreenshots(private val device: String, private
     @Test fun `busy light`() = capture("busy", NEW_TODAY.copy(phase = RandomPhase.Picking), dark = false)
     @Test fun `busy dark`() = capture("busy", NEW_TODAY.copy(phase = RandomPhase.Picking), dark = true)
 
+    @Test fun `failed light`() = capture("failed", NEW_TODAY.copy(phase = RandomPhase.Said(RandomMessage.Offline)), dark = false)
+    @Test fun `failed dark`() = capture("failed", NEW_TODAY.copy(phase = RandomPhase.Said(RandomMessage.Offline)), dark = true)
+
     @Test fun `large text light`() = capture("large-text", NEW_TODAY, dark = false, fontScale = 1.3f)
     @Test fun `large text dark`() = capture("large-text", NEW_TODAY, dark = true, fontScale = 1.3f)
 
