@@ -15,7 +15,7 @@ internal object RecapFixtures {
     val queens = GameId("queens")
     val sudoku = GameId("sudoku")
 
-    private val names = mapOf(zip to "Zip", queens to "Queens", sudoku to "Sudoku")
+    private val names = mapOf(zip to "Zip", queens to "Queens", sudoku to "Sudoku", GameId("tango") to "Tango")
 
     val gameName: (GameId) -> String = { names.getValue(it) }
 
