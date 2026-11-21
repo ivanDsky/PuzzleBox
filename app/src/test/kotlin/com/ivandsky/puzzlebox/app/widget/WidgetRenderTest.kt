@@ -1,65 +1,26 @@
 package com.ivandsky.puzzlebox.app.widget
 
 import android.app.Application
-import android.content.Context
-import android.view.View
-import android.view.ViewGroup
-import android.widget.FrameLayout
-import android.widget.TextView
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.glance.appwidget.ExperimentalGlanceRemoteViewsApi
-import androidx.glance.appwidget.GlanceRemoteViews
 import androidx.test.core.app.ApplicationProvider
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.app.shortcut.ShortcutIntents
 import com.ivandsky.puzzlebox.app.shortcut.ShortcutTarget
 import com.ivandsky.puzzlebox.model.GameId
-import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
-// Composes the widget's content to RemoteViews and inflates them, so a composition the host would reject fails here, not on a launcher.
+// The chip layouts composed to RemoteViews and inflated ([DrawnWidget]); the list layouts are WidgetListRenderTest.
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = DrainTestApplication::class)
-@OptIn(ExperimentalGlanceRemoteViewsApi::class)
 class WidgetRenderTest {
     private val application: Application = ApplicationProvider.getApplicationContext()
-    private val context: Context = application
 
-    private inner class Drawn(root: View) {
-        private val all = mutableListOf<View>().also { collect(root, it) }
-        val descriptions = all.mapNotNull { it.contentDescription?.toString() }
-        val texts = all.filterIsInstance<TextView>().map { it.text.toString() }.filter { it.isNotEmpty() }
-        val clickable = all.count { it.hasOnClickListeners() }
-
-        fun tapDescribed(description: String): ShortcutTarget? = tap(all.first { it.contentDescription?.toString() == description })
-
-        fun tapText(text: String): ShortcutTarget? = tap(all.first { it is TextView && it.text.toString() == text })
-
-        // A touch goes to the deepest view with a click handler, so walk up from the one aimed at.
-        private fun tap(aimed: View): ShortcutTarget? {
-            var view: View? = aimed
-            while (view != null && !view.hasOnClickListeners()) view = view.parent as? View
-            checkNotNull(view) { "no click handler above the view tapped" }.performClick()
-            return ShortcutIntents.targetOf(shadowOf(application).nextStartedActivity)
-        }
-
-        private fun collect(view: View, into: MutableList<View>) {
-            into += view
-            if (view is ViewGroup) for (i in 0 until view.childCount) collect(view.getChildAt(i), into)
-        }
-    }
-
-    private fun draw(state: WidgetState?, size: DpSize = CHIPS2): Drawn {
-        val views = runBlocking { GlanceRemoteViews().compose(context, size) { WidgetContent(state) }.remoteViews }
-        return Drawn(views.apply(context, FrameLayout(context)))
-    }
+    private fun draw(state: WidgetState?, size: DpSize = CHIPS2) = DrawnWidget.draw(application, state, size)
 
     private val mixedChips = listOf(
         "Zip, solved, 1:12, rank 3 of 41",
@@ -159,20 +120,11 @@ class WidgetRenderTest {
     }
 
     @Test
-    fun `a tall widget draws the chips2 block until the lists exist`() {
-        listOf(NARROW_LIST, WIDE_LIST, DpSize(900.dp, 900.dp)).forEach {
-            val chips2 = draw(WidgetSamples.mixed, DpSize(it.width, 220.dp))
-            val drawn = draw(WidgetSamples.mixed, it)
-
-            assertEquals(chips2.texts, drawn.texts)
-            assertEquals(chips2.descriptions, drawn.descriptions)
-        }
-    }
-
-    @Test
     fun `every size the provider allows composes and inflates`() {
         listOf(DpSize(250.dp, 90.dp), CHIPS1, CHIPS2, NARROW_LIST, WIDE_LIST, DpSize(640.dp, 480.dp), DpSize(900.dp, 600.dp)).forEach { size ->
-            assertEquals(if (size.height < 160.dp) 6 else 7, draw(WidgetSamples.mixed, size).descriptions.size)
+            // The snowflake and the five games speak, and the pill, but chips1 has no pill and the wide header's snowflake is silent.
+            val expected = if (WidgetStep.of(size) in setOf(WidgetStep.Chips1, WidgetStep.ListWide)) 6 else 7
+            assertEquals(expected, draw(WidgetSamples.mixed, size).descriptions.size)
             draw(WidgetSamples.empty, size)
         }
     }

@@ -35,6 +35,14 @@
     <!-- A chip's spoken label with its time, and with its rank too: "Zip, solved, 1:12, rank 3 of 41". -->
     <string name="widget_ring_description_time">%1$s, %2$s, %3$s</string>
     <string name="widget_ring_description_rank">%1$s, %2$s, %3$s, rank %4$d of %5$d</string>
+    <!-- The list rows and the wide header: a row's status line, its rank, the best time or streak, the new-best mark. -->
+    <string name="widget_in_progress">In progress %1$s</string>
+    <string name="widget_not_started">Not started</string>
+    <string name="widget_rank">#%1$d of %2$d</string>
+    <string name="widget_rank_none">–</string>
+    <string name="widget_best">Best %1$s</string>
+    <string name="widget_new_best">New best</string>
+    <string name="widget_whole_set">That’s the whole set</string>
     <!-- Picker preview only (widget_preview.xml): a mixed day at 4 by 2, so the picker shows the widget with something in it. -->
     <string name="widget_preview_streak">3 days</string>
     <string name="widget_preview_freezes">2</string>

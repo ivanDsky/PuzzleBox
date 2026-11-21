@@ -28,14 +28,14 @@ import com.ivandsky.puzzlebox.app.shortcut.ShortcutTarget
  * a Today tile does. A null [rings] (the read failed) is five bare tracks: no glyph, no text, no tap.
  */
 @Composable
-internal fun WidgetChips(rings: List<WidgetRing>?, look: WidgetLayout.ChipLook, colors: WidgetColors) {
+internal fun WidgetChips(rings: List<WidgetRing>?, look: WidgetLayout.Look, colors: WidgetColors) {
     Row(modifier = GlanceModifier.fillMaxWidth()) {
         if (rings == null) repeat(SLOTS) { Chip(null, look, colors) } else rings.forEach { Chip(it, look, colors) }
     }
 }
 
 @Composable
-private fun RowScope.Chip(ring: WidgetRing?, look: WidgetLayout.ChipLook, colors: WidgetColors) {
+private fun RowScope.Chip(ring: WidgetRing?, look: WidgetLayout.Look, colors: WidgetColors) {
     val context = LocalContext.current
     val text = ring?.let { chipText(it, context.resources) } ?: ChipText("", "")
     val tap = ring?.let { actionStartActivity(ShortcutIntents.intent(context, ShortcutTarget.Game(it.game))) }

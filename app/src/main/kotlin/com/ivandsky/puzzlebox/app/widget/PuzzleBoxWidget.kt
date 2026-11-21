@@ -28,10 +28,10 @@ import com.ivandsky.puzzlebox.app.shortcut.ShortcutIntents
 import com.ivandsky.puzzlebox.app.shortcut.ShortcutTarget
 
 /**
- * The home-screen widget, and the only class that draws it: the streak line, Today's chips and the action pill, drawn once
- * per render from one [reader] read, in the layout the size the launcher gives it asks for ([WidgetStep]). Nothing in it
- * changes on its own; a redraw is [WidgetRefresher]. A chip opens its game and the pill opens what it says; a tap anywhere
- * else opens Today.
+ * The home-screen widget, and the only class that draws it: the streak line, Today's games and the action pill, drawn once
+ * per render from one [reader] read, in the layout the size the launcher gives it asks for ([WidgetStep]): chips for a short
+ * widget, rows for a tall one. Nothing in it changes on its own; a redraw is [WidgetRefresher]. A chip or row opens its game
+ * and the pill opens what it says; a tap anywhere else opens Today.
  */
 class PuzzleBoxWidget(private val reader: WidgetStateReader) : GlanceAppWidget() {
 
@@ -62,8 +62,7 @@ internal fun WidgetContent(state: WidgetState?) {
         Column(modifier = GlanceModifier.width(layout.contentWidth).height(layout.contentHeight)) {
             when (layout.step) {
                 WidgetStep.Chips1, WidgetStep.Chips2 -> WidgetChipsStep(state, layout.look, colors)
-                // The list layouts are not drawn yet: until they are, a tall widget shows the chips2 block, centred.
-                WidgetStep.ListNarrow, WidgetStep.ListWide -> WidgetChipsStep(state, layout.look, colors)
+                WidgetStep.ListNarrow, WidgetStep.ListWide -> WidgetListStep(state, layout, colors)
             }
         }
     }

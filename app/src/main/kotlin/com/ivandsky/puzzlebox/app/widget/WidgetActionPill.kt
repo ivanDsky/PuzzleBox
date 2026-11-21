@@ -23,21 +23,22 @@ import com.ivandsky.puzzlebox.app.R
 import com.ivandsky.puzzlebox.app.shortcut.ShortcutIntents
 
 /**
- * The full-width, 48dp action pill: one line of [button]'s words, cut with an ellipsis, in the green fill, or in the quiet
- * track fill when [UpNextButton.tonal]. Its tap is its own, so it wins over the widget's open-Today tap behind it.
+ * The 48dp action pill: one line of [button]'s words, cut with an ellipsis, in the green fill, or in the quiet track fill when
+ * [UpNextButton.tonal]. It spans the width, or with [fullWidth] false hugs its words, as in the wide list's footer. Its tap is
+ * its own, so it wins over the widget's open-Today tap behind it.
  */
 @Composable
-internal fun WidgetActionPill(button: UpNextButton, colors: WidgetColors) {
+internal fun WidgetActionPill(button: UpNextButton, colors: WidgetColors, fullWidth: Boolean = true) {
     val context = LocalContext.current
     val fill = if (button.tonal) R.color.widget_track else R.color.widget_primary
     val text = if (button.tonal) R.color.widget_text else R.color.widget_on_primary
     Row(
         modifier = GlanceModifier
-            .fillMaxWidth()
+            .let { if (fullWidth) it.fillMaxWidth() else it }
             .height(WidgetLayout.PILL_HEIGHT)
             .background(colors.of(fill))
             .cornerRadius(WidgetLayout.PILL_HEIGHT / 2)
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = if (fullWidth) 16.dp else 20.dp)
             .semantics { contentDescription = button.label }
             .clickable(actionStartActivity(ShortcutIntents.intent(context, button.target))),
         horizontalAlignment = Alignment.CenterHorizontally,
