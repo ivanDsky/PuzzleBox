@@ -89,8 +89,8 @@ private fun HubEmpty(title: String, message: String, tag: String) {
         verticalArrangement = Arrangement.Center,
     ) {
         RecapArtPlate(
-            art = RecapTileArt.Mosaic(emptyList(), empty = MaterialTheme.colorScheme.outlineVariant),
-            plate = MaterialTheme.colorScheme.surfaceContainerHigh,
+            art = RecapTileArt.Mosaic(emptyList(), empty = MaterialTheme.colorScheme.outline.copy(alpha = EmptyCellAlpha)),
+            plate = MaterialTheme.colorScheme.surfaceVariant,
             stamp = false,
             size = EmptyMosaicSize,
         )
@@ -118,6 +118,9 @@ private fun HubLoading() {
 
 private val EmptyMosaicSize = 96.dp
 private val EmptyWidth = 360.dp
+
+/** The empty cells are the outline tone thinned out, so they read on the plate in light and in dark (`outlineVariant` sank into it in dark). */
+private const val EmptyCellAlpha = 0.4f
 
 /** The reference sits the words 16dp closer to the mosaic and the pair 8dp above center. */
 private val EmptyLift = 16.dp
