@@ -2,6 +2,15 @@
 # A release adds its entry at the top in the same commit as its version bump.
 # "## <version> <date>" starts a release; "- " starts a note; "#" lines are comments.
 
+## 0.40.1 2026-11-21
+- Games, Community and Ranks share Today's large top bar, with your picture at the end on every tab.
+- Past you in duels shows your own photo.
+- Week and Month boards for a game add up daily points, so several good days beat one lucky one.
+- The archive calendar swipes between months, and the arrows slide the same way.
+- A game's How to play ends with a "Make your own" link instead of a wide button.
+- The Zip editor puts numbers and walls in one mode: tap a cell to number it, tap an edge for a wall.
+- In Zip, sliding back over a wrong part of your line cuts it there.
+
 ## 0.40.0 2026-11-21
 - Monthly recaps: in the first days of a month, Today and Profile open your month as a story of cards, with your solves, fastest game, streak, the moments you earned and a card to share.
 - Yearly recaps: from Dec 20, Profile opens your year as a story that ends with all twelve months on one page. Past years stay in Profile.
