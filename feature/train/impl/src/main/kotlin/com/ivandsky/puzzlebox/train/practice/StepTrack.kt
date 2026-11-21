@@ -36,26 +36,32 @@ private val StepHeight = 48.dp
 private val DotSize = 24.dp
 private const val FadeMillis = 150
 
-/** The demo's step that every frame from here on belongs to: all the squares land for one reason, so the landings are one step. */
-private const val LandingStep = 2
+/**
+ * The frame the intro opens a demo on: the evidence. Frame 0, the plain position, is skipped (user-check round 5: the
+ * board already shows it), though it stays the position board 1 opens at.
+ */
+internal const val EvidenceFrame = 1
 
-/** The step [frame] of a demo belongs to: the opening, the evidence, then every landing frame as one. */
-internal fun stepOf(frame: Int): Int = minOf(frame, LandingStep)
+/** The first landing frame: every frame from here on is one step, since all the squares land for one reason. */
+private const val LandingFrame = 2
+
+/** The step [frame] of a demo belongs to: 0 for the evidence, 1 for every landing frame as one. */
+internal fun stepOf(frame: Int): Int = if (frame < LandingFrame) 0 else 1
 
 /** The caption of [frame]'s step out of a demo's [captions]: through the landings, the first landing's, which gives the reason. */
-internal fun stepCaption(captions: List<String>, frame: Int): String = captions[stepOf(frame)]
+internal fun stepCaption(captions: List<String>, frame: Int): String = captions[frame.coerceIn(EvidenceFrame, LandingFrame)]
 
 /**
- * The step track of a demo with [captions] (one per frame): three steps (the opening, the evidence, the squares landing)
- * with the one [frame] belongs to lifted and the ones before it outlined. Tapping a step shows its frame ([onSeek]); the
- * landing step shows its end, every square landed. [compact] (the phone) is a row of numbered cells with the caption
- * for a screen reader; otherwise each step is a row with its number and its caption.
+ * The step track of a demo with [captions] (one per frame): two steps (the evidence, the squares landing) with the one
+ * [frame] belongs to lifted and the one before it outlined. Tapping a step shows its frame ([onSeek]); the landing step
+ * shows its end, every square landed. [compact] (the phone) is a row of numbered cells with the caption for a screen
+ * reader; otherwise each step is a row with its number and its caption.
  */
 @Composable
 internal fun StepTrack(captions: List<String>, frame: Int, compact: Boolean, onSeek: (Int) -> Unit, modifier: Modifier = Modifier) {
-    val steps = captions.take(LandingStep + 1)
+    val steps = captions.subList(EvidenceFrame, minOf(LandingFrame + 1, captions.size))
     val current = stepOf(frame)
-    val seek = { step: Int -> onSeek(if (step == LandingStep) captions.lastIndex else step) }
+    val seek = { step: Int -> onSeek(if (step == 0) EvidenceFrame else captions.lastIndex) }
     if (compact) {
         Row(modifier.fillMaxWidth().testTag("train.watch.steps"), horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             steps.indices.forEach { index -> Step(index, steps[index], current, compact = true, seek, Modifier.weight(1f)) }

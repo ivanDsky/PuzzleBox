@@ -13,28 +13,27 @@ internal const val LandingStaggerMillis = 150L
 
 /**
  * The intro's walk through [entries]: which variant is up ([variant]) and which of its frames ([frame]). Nothing plays
- * by itself: a variant opens on its first frame and the player moves on with [next], one step at a time (the opening,
- * the evidence, then the squares landing [LandingStaggerMillis] apart, or all at once under [reduced] motion); past a
- * variant's last frame [next] opens the next variant. [select] opens the one tapped, [seek] shows one frame, [replay]
- * goes back to the variant's first frame.
+ * by itself: a variant opens on its evidence ([EvidenceFrame]) and [next] shows the landing (the squares landing
+ * [LandingStaggerMillis] apart, or all at once under [reduced] motion); past a variant's last frame [next] opens the
+ * next variant. [select] opens the one tapped, [seek] shows one frame, [replay] goes back to the variant's evidence.
  */
 internal class IntroPlayer(private val entries: List<IntroEntry>, private val reduced: Boolean, private val scope: CoroutineScope) {
 
     private val mutableVariant = MutableStateFlow(0)
-    private val mutableFrame = MutableStateFlow(0)
+    private val mutableFrame = MutableStateFlow(EvidenceFrame)
     private var job: Job? = null
 
     /** The index in the entries of the variant shown. */
     val variant: StateFlow<Int> = mutableVariant.asStateFlow()
 
-    /** The frame of that variant shown, from 0. */
+    /** The frame of that variant shown, from [EvidenceFrame]. */
     val frame: StateFlow<Int> = mutableFrame.asStateFlow()
 
-    /** Opens variant [index] on its first frame. */
+    /** Opens variant [index] on its evidence. */
     fun select(index: Int) {
         job?.cancel()
         mutableVariant.value = index
-        mutableFrame.value = 0
+        mutableFrame.value = EvidenceFrame
     }
 
     /** Shows [frame] of the variant. */
@@ -43,16 +42,14 @@ internal class IntroPlayer(private val entries: List<IntroEntry>, private val re
         mutableFrame.value = frame
     }
 
-    /** Goes back to the first frame of the variant shown. */
+    /** Goes back to the evidence of the variant shown. */
     fun replay() = select(mutableVariant.value)
 
-    /** Shows the next step: the evidence, then the landing (its squares one after another), then the next variant's opening. */
+    /** Shows the next step: the landing (its squares one after another), then the next variant's evidence. */
     fun next() {
         val last = entries[mutableVariant.value].frames - 1
         val frame = mutableFrame.value
         when {
-            // Before the landing step a step is one frame; the landing step is every frame left.
-            stepOf(frame + 1) < stepOf(last) -> seek(frame + 1)
             stepOf(frame) < stepOf(last) -> land(from = frame + 1, last = last)
             mutableVariant.value < entries.lastIndex -> select(mutableVariant.value + 1)
         }
