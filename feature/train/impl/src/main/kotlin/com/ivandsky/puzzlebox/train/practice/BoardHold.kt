@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /** How long a finished board stays on screen, with its Done band, before the next board (or the chapter's result) opens. */
-internal const val BoardEndHoldMillis = 1_000L
+internal const val BoardEndHoldMillis = 2_000L
 
 /** How often the hold's remaining time is republished; also how coarsely time spent in the background is lost. */
 private const val HoldTickMillis = 100L

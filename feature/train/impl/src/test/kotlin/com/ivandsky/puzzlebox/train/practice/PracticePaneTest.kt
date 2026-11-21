@@ -212,7 +212,7 @@ class PracticePaneTest {
 
         say(PracticeStatus.Done(standInSpotlight()))
 
-        composeRule.onNodeWithTag("train.status").assertTextContains("Board 2 of 5 done").assertTextContains("Next board in 1", substring = true)
+        composeRule.onNodeWithTag("train.status").assertTextContains("Board 2 of 5 done").assertTextContains("Next board in 2", substring = true)
         composeRule.onNodeWithTag("train.showMe").assertIsNotEnabled()
     }
 
@@ -240,7 +240,7 @@ class PracticePaneTest {
         showBoard(chapter = standInChapter(board = 5, boards = 5))
         say(PracticeStatus.Done(null))
 
-        composeRule.onNodeWithTag("train.status").assertTextContains("Board 5 of 5 done").assertTextContains("Chapter result in 1", substring = true)
+        composeRule.onNodeWithTag("train.status").assertTextContains("Board 5 of 5 done").assertTextContains("Chapter result in 2", substring = true)
         composeRule.onNodeWithTag("train.nextBoard").assertTextContains("See result")
     }
 

@@ -27,8 +27,8 @@ private val RowHeight = 48.dp
 
 /**
  * The watch column of the intro: the variants to pick from (only with two or more), the step track of the one shown
- * ("Watch it done"), its written rule with how to spot it and what to do, and Replay with the button that leaves the
- * intro ([primary], "Start practice", or "Back to board 1" in a replay). [compact] is the phone's layout, with the two
+ * ("Watch it done"), its written rule with how to spot it and what to do, and Start over (back to the first step) with
+ * the button that leaves the intro ([primary], "Start practice", or "Back to board 1" in a replay). [compact] is the phone's layout, with the two
  * buttons side by side; otherwise they are stacked full width (the prototype's action stack), so neither label wraps.
  */
 @Composable
@@ -52,12 +52,12 @@ internal fun WatchColumn(
         Rule(entry.variant.rule, entry.variant.spotIt, entry.variant.doIt)
         if (compact) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                SecondaryButton("Replay", onReplay, Modifier.weight(1f).testTag("train.watch.replay"))
+                SecondaryButton("Start over", onReplay, Modifier.weight(1f).testTag("train.watch.replay"))
                 PrimaryButton(primary, onPrimary, Modifier.weight(1f).testTag("train.watch.start"))
             }
         } else {
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                SecondaryButton("Replay", onReplay, Modifier.fillMaxWidth().testTag("train.watch.replay"))
+                SecondaryButton("Start over", onReplay, Modifier.fillMaxWidth().testTag("train.watch.replay"))
                 PrimaryButton(primary, onPrimary, Modifier.fillMaxWidth().testTag("train.watch.start"))
             }
         }

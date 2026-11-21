@@ -52,7 +52,7 @@ class PracticeIntroPaneTest {
     )
 
     private fun show(state: PracticeState, controls: IntroControls) {
-        // Reduced motion: nothing plays by itself and every demo rests on its last frame, so the frames are the test's to pick.
+        // Reduced motion: the landing step shows every square at once, so no frame is left to a running stagger.
         val resolver = RuntimeEnvironment.getApplication().contentResolver
         Settings.Global.putFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
         composeRule.setContent {
@@ -122,16 +122,21 @@ class PracticeIntroPaneTest {
         composeRule.onNodeWithTag("train.watch.caption", useUnmergedTree = true).assertTextEquals(captions[1])
     }
 
-    /** Bug caught: a step (and a caption) per landing square, so the track reads "Cross out this one too." over and over. */
+    /** Bug caught: an intro that moves on by itself, a step (and a caption) per landing square, or a Next step with nothing after it. */
     @Test
-    fun `the landing squares are one step under the reason's caption`() {
+    fun `next step walks the three steps, the landing squares as one under the reason's caption`() {
         val intro = intro(1)
-        // Reduced motion rests on the last frame: every square landed.
         show(PracticeState.Intro(intro), controls(intro))
+        composeRule.onNodeWithTag("train.watch.caption", useUnmergedTree = true).assertTextEquals(captions[0])
+
+        composeRule.onNodeWithTag("train.watch.next", useUnmergedTree = true).performClick()
+        composeRule.onNodeWithTag("train.watch.caption", useUnmergedTree = true).assertTextEquals(captions[1])
+        composeRule.onNodeWithTag("train.watch.next", useUnmergedTree = true).performClick()
+        composeRule.onNodeWithTag("train.watch.caption", useUnmergedTree = true).assertTextEquals(captions[2])
 
         composeRule.onNodeWithTag("train.watch.step.2").assertExists()
         composeRule.onNodeWithTag("train.watch.step.3").assertDoesNotExist()
-        composeRule.onNodeWithTag("train.watch.caption", useUnmergedTree = true).assertTextEquals(captions[2])
+        composeRule.onNodeWithTag("train.watch.next", useUnmergedTree = true).assertDoesNotExist()
     }
 
     /** Bug caught: Skip intro and Start practice not handing the board over, the one way out of the opening intro. */

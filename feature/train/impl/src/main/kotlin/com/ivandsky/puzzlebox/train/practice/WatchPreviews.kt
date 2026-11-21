@@ -65,6 +65,7 @@ internal fun WatchPreviewFrame(count: Int = 1, frame: Int = 1, replay: Boolean =
             onSelect = {},
             onSeek = {},
             onReplay = {},
+            onNext = {},
             onLeave = {},
             onPrimary = {},
             modifier = Modifier.padding(horizontal = Spacing.lg),
