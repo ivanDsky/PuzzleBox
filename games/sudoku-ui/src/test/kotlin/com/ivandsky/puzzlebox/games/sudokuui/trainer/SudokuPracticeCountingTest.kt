@@ -18,11 +18,11 @@ class SudokuPracticeCountingTest {
 
     /** A rig played on, by Show me, to a board where the easiest rung is no longer the trained technique; null if it never is. */
     private fun SudokuPracticeRig.pastTechnique(): SudokuPracticeRig? {
-        while (SudokuPractice.showMe(puzzle, board)?.let { it.rung == technique } == true) {
+        while (status !is PracticeStatus.Done && SudokuPractice.showMe(puzzle, board)?.let { it.rung == technique } == true) {
             practice.showMe()
             practice.gotIt()
         }
-        return takeIf { SudokuPractice.showMe(puzzle, board) != null }?.also { verdicts.clear() }
+        return takeIf { status !is PracticeStatus.Done && SudokuPractice.showMe(puzzle, board) != null }?.also { verdicts.clear() }
     }
 
     private fun SudokuStep.Elimination.squares(size: Int): List<SudokuTrainerMove.RemoveNote> =
@@ -62,10 +62,9 @@ class SudokuPracticeCountingTest {
                     assertEquals("${rig.label} square $turn", PracticeStatus.KeepGoing(squares.size - turn - 1, trained = true), rig.status)
                     assertEquals("${rig.label} after square $turn", emptyList<TrainerVerdict>(), rig.verdicts)
                 } else {
-                    val status = rig.status as PracticeStatus.Right
-                    assertTrue(rig.label, status.trained)
-                    assertEquals(rig.label, expected.roles, status.spotlight.roles)
-                    assertEquals(rig.label, expected.callout, status.spotlight.callout)
+                    val flash = checkNotNull(rig.flash)
+                    assertEquals(rig.label, expected.roles, flash.roles)
+                    assertEquals(rig.label, expected.callout, flash.callout)
                     assertEquals("${rig.label} after the last square", listOf(TrainerVerdict.Right), rig.verdicts)
                 }
             }
@@ -113,7 +112,7 @@ class SudokuPracticeCountingTest {
             past.play(move)
 
             assertEquals(past.label, emptyList<TrainerVerdict>(), past.verdicts)
-            assertFalse(past.label, past.status.trained())
+            if (past.status is PracticeStatus.Right || past.status is PracticeStatus.KeepGoing) assertFalse(past.label, past.status.trained())
             played++
         }
         assertTrue(played > 0)
@@ -153,19 +152,5 @@ class SudokuPracticeCountingTest {
             played++
         }
         assertTrue(played > 0)
-    }
-
-    @Test
-    fun `Show me to the end solves the board`() {
-        for (rig in SudokuPracticeRig.all()) {
-            var turns = 0
-            while (rig.status != PracticeStatus.Solved) {
-                rig.practice.showMe()
-                rig.practice.gotIt()
-                check(++turns < 500) { "${rig.label} did not finish" }
-            }
-            assertTrue(rig.label, rig.state.session.isComplete)
-            assertEquals(rig.label, rig.puzzle.solution, rig.board.cells.map { it.digit })
-        }
     }
 }

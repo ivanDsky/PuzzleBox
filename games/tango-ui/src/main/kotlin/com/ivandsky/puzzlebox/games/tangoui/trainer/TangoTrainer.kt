@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.game.trainer.TrainerVerdict
 import com.ivandsky.puzzlebox.gameui.trainer.DrillSource
@@ -40,19 +41,20 @@ internal class TangoTrainer(private val compute: CoroutineDispatcher) : TrainerG
 
     /**
      * Null for another game's puzzle, one that does not decode, one without a unique solution (the judge reads it), and
-     * a technique that is never the easiest rung on the puzzle. The puzzle is solved once here.
+     * a technique that is never the easiest rung on the puzzle (neither kind opens). The puzzle is solved once here.
      */
     override fun practice(
         puzzle: Puzzle,
         technique: TechniqueId,
+        kind: BoardKind,
         scope: CoroutineScope,
         onTrainedTurn: (TrainerVerdict) -> Unit,
     ): PracticeBoard? {
         if (puzzle.gameId != gameId) return null
         val decoded = (TangoCodec.decode(puzzle.payload) as? DecodeResult.Ok)?.value ?: return null
         val solution = TangoUniqueness.solve(decoded) ?: return null
-        val start = TangoPractice.start(decoded, solution, technique) ?: return null
-        return TangoPracticeBoard(decoded, solution, technique, start, scope, compute, onTrainedTurn)
+        val start = TangoPractice.start(decoded, solution, technique, kind) ?: return null
+        return TangoPracticeBoard(decoded, solution, technique, start, kind, scope, compute, onTrainedTurn)
     }
 
     @Composable

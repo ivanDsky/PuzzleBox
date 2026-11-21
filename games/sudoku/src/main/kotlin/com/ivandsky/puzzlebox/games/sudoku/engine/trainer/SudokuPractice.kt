@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.sudoku.engine.trainer
 
+import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.games.sudoku.SudokuBoard
 import com.ivandsky.puzzlebox.games.sudoku.SudokuCell
@@ -56,16 +57,51 @@ object SudokuPractice {
     }
 
     /**
-     * The board a practice for [technique] starts on: the first point of [walk] where [technique] is the easiest rung.
+     * The board a practice of [kind] for [technique] starts on ([BoardKind]), from the points of [walk]. A focus board
+     * opens at the start of the longest run of consecutive points where [technique] is the easiest rung (a tie: the
+     * earliest). A review board treats [technique] and every rung before it in [SudokuTechniqueIds.all] as learned,
+     * takes the run of consecutive learned points with the most [technique] points (a tie: the earliest), and opens at
+     * that run's first such point. A point no rung applies to (the walk's stalled end) is no learned technique, so it
+     * ends a run of either kind.
      * Givens stay givens; what the walk placed is an entry, and every open cell carries the candidates the walk left it
      * as notes. A rung with several deductions is walked by its cheapest.
      *
      * Null when [technique] is no Sudoku technique, when the puzzle's stored solution is not its unique solution
-     * (the judge reads it), and when the walk is solved or stuck before [technique] is ever the easiest rung.
+     * (the judge reads it), and when the walk is solved or stuck before [technique] is ever the easiest rung, for
+     * either kind: so a technique has a board of each kind exactly where [SudokuTechniqueWalker] counts it.
      */
-    fun start(puzzle: SudokuPuzzle, technique: TechniqueId): SudokuBoard? {
-        if (technique !in SudokuTechniqueIds.all || !hasUniqueSolution(puzzle)) return null
-        return walk(puzzle).firstOrNull { it.rung == technique }?.boardBefore
+    fun start(puzzle: SudokuPuzzle, technique: TechniqueId, kind: BoardKind): SudokuBoard? {
+        val trained = SudokuTechniqueIds.all.indexOf(technique)
+        if (trained < 0 || !hasUniqueSolution(puzzle)) return null
+        val learned = if (kind == BoardKind.Review) SudokuTechniqueIds.all.take(trained + 1).toSet() else setOf(technique)
+        val inRun = { point: WalkPoint -> point.rung in learned }
+        val runs = ArrayList<List<WalkPoint>>()
+        var run = ArrayList<WalkPoint>()
+        for (point in walk(puzzle)) {
+            if (inRun(point)) {
+                run += point
+            } else if (run.isNotEmpty()) {
+                runs += run
+                run = ArrayList()
+            }
+        }
+        if (run.isNotEmpty()) runs += run
+        return runs.map { points -> points.filter { it.rung == technique } }.maxByOrNull { it.size }?.firstOrNull()?.boardBefore
+    }
+
+    /**
+     * Whether a practice of [kind] for [technique] has nothing more to ask on [board] ([BoardKind]): the puzzle is
+     * solved, no rung applies to it (stalled: the next move would be a reveal or a guess, which no technique finds), or
+     * the easiest rung is another technique (focus) or a technique later than [technique] in [SudokuTechniqueIds.all]
+     * (review).
+     */
+    fun isDone(puzzle: SudokuPuzzle, board: SudokuBoard, technique: TechniqueId, kind: BoardKind): Boolean {
+        if (board.isFull) return true
+        val rung = SudokuLadder.easiest(puzzle, board)?.id ?: return true
+        return when (kind) {
+            BoardKind.Focus -> rung != technique
+            BoardKind.Review -> SudokuTechniqueIds.all.indexOf(rung) > SudokuTechniqueIds.all.indexOf(technique)
+        }
     }
 
     /**

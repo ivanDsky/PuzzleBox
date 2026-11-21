@@ -35,6 +35,11 @@ sealed interface PracticeStatus {
     /** Show me made the easiest step; [spotlight] shows it. The board waits for [PracticeBoard.gotIt]. */
     data class Shown(val spotlight: Spotlight) : PracticeStatus
 
-    /** The board is solved. */
-    data object Solved : PracticeStatus
+    /**
+     * The board's part is over and it takes no more moves ([com.ivandsky.puzzlebox.game.trainer.BoardKind]): a
+     * focus board's trained run ended, a review board needs a technique not yet learned, or the puzzle is solved.
+     * [last] is the step whose move ended it, which the board flashes; null when Got it ended it (after Show me
+     * made the last step) or the board opened with nothing to ask.
+     */
+    data class Done(val last: Spotlight?) : PracticeStatus
 }

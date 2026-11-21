@@ -29,27 +29,36 @@ private const val PIPS = 5
 private val PipSize = 20.dp
 
 /**
- * The compact title row above the board: the back arrow if [showBack], the technique's [name] over how many trained moves
- * are right in a row, and the pips that count them. "Mastered" replaces the count for a technique that is, and fills
- * every pip.
+ * The compact title row above the board: the back arrow if [showBack], the [chapter]'s technique name over how many
+ * trained moves are right in a row and which board of the chapter is up ("Board 2 of 5"), and the pips that count the
+ * moves. "Mastered" replaces the count for a technique that is, and fills every pip.
  */
 @Composable
-internal fun PracticeHeader(name: String, progress: TechniqueProgress, showBack: Boolean, onClose: () -> Unit) {
+internal fun PracticeHeader(chapter: PracticeChapter, progress: TechniqueProgress, showBack: Boolean, onClose: () -> Unit) {
     val mastered = progress.mark == TechniqueProgress.Mark.Mastered
+    val quiet = MaterialTheme.colorScheme.onSurfaceVariant
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (showBack) BackButton(onClose)
         Column(Modifier.weight(1f)) {
             Text(
-                name,
+                chapter.technique.name,
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            Text(
-                if (mastered) "Mastered" else "${minOf(progress.inRow, PIPS)} of $PIPS in a row",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.testTag("train.count"),
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                Text(
+                    if (mastered) "Mastered" else "${minOf(progress.inRow, PIPS)} of $PIPS in a row",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = quiet,
+                    modifier = Modifier.testTag("train.count"),
+                )
+                Text(
+                    "Board ${chapter.board} of ${chapter.boards}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = quiet,
+                    modifier = Modifier.testTag("train.board"),
+                )
+            }
         }
         Pips(if (mastered) PIPS else minOf(progress.inRow, PIPS))
     }

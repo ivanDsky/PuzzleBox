@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.queens.engine.trainer
 
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
@@ -62,7 +63,9 @@ class QueensTechniqueWalkerTest {
             val counts = QueensTechniqueWalker.techniqueCounts(canonical(puzzle))
             assertTrue(name, counts.isNotEmpty())
             for (technique in techniques) {
-                assertEquals("$name ${technique.value}", technique in counts, QueensPractice.start(puzzle, technique) != null)
+                for (kind in listOf(BoardKind.Focus, BoardKind.Review)) {
+                    assertEquals("$name ${technique.value} $kind", technique in counts, QueensPractice.start(puzzle, technique, kind) != null)
+                }
             }
         }
     }

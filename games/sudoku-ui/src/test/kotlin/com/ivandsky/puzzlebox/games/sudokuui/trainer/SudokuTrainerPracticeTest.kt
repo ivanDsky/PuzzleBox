@@ -1,12 +1,14 @@
 package com.ivandsky.puzzlebox.games.sudokuui.trainer
 
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
 import com.ivandsky.puzzlebox.games.sudoku.SudokuSamples
 import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuCodec
 import com.ivandsky.puzzlebox.games.sudoku.engine.trainer.SudokuTechniqueIds
+import com.ivandsky.puzzlebox.gameui.trainer.PracticeStatus
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -21,7 +23,8 @@ class SudokuTrainerPracticeTest {
     private val trainer = SudokuTrainerFixtures.trainer
     private val mini = SudokuTrainerFixtures.canonical(SudokuTrainerFixtures.dailies.getValue("li:1"))
 
-    private fun practice(puzzle: Puzzle, technique: TechniqueId) = trainer.practice(puzzle, technique, CoroutineScope(Job())) {}
+    private fun practice(puzzle: Puzzle, technique: TechniqueId, kind: BoardKind = BoardKind.Focus) =
+        trainer.practice(puzzle, technique, kind, CoroutineScope(Job())) {}
 
     @Test
     fun `the trainer is Mini Sudoku's and offers the index and the generated drill sources`() {
@@ -39,6 +42,18 @@ class SudokuTrainerPracticeTest {
         }.toSet()
 
         assertEquals(trainer.catalog().map { it.id }.toSet(), reached)
+    }
+
+    @Test
+    fun `a technique has a board of each kind exactly where it has one of the other, and each opens waiting for a move`() {
+        for ((name, puzzle) in SudokuTrainerFixtures.all) {
+            val canonical = SudokuTrainerFixtures.canonical(puzzle)
+            for (id in SudokuTechniqueIds.all) {
+                val boards = BoardKind.entries.map { practice(canonical, id, it) }
+                assertEquals("$name ${id.value}", boards[0] == null, boards[1] == null)
+                boards.filterNotNull().forEach { assertEquals("$name ${id.value}", PracticeStatus.FindNextMove, it.status.value) }
+            }
+        }
     }
 
     @Test

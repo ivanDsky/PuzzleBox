@@ -25,10 +25,11 @@ import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightRole
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.gameui.trainer.PracticeBoard
 import com.ivandsky.puzzlebox.gameui.trainer.PracticeStatus
+import com.ivandsky.puzzlebox.gameui.trainer.TrainerTechnique
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-// The practice pane: each status of the band, the solved page and the empty messages. The board is a stand-in: this module
+// The practice pane: each status of the band, the finished page and the empty messages. The board is a stand-in: this module
 // sees no game's board, so a plain 6x6 grid with a few discs is drawn from the board colors.
 
 /** The grid side of the stand-in board. */
@@ -89,21 +90,24 @@ internal class StandInPracticeBoard(status: PracticeStatus) : PracticeBoard {
     override fun gotIt() = Unit
 }
 
+/** The chapter a stand-in game is on: Line lock's board [board] of [boards] (5, a technique that is not the catalog's first). */
+internal fun standInChapter(board: Int = 2, boards: Int = 5) =
+    PracticeChapter(TrainerTechnique(TechniqueId("line-lock"), "Line lock", StandInLine), board, boards)
+
 @Composable
 private fun PracticePreviewFrame(
     state: PracticeState,
     progress: TechniqueProgress = TechniqueProgress(TechniqueProgress.Mark.Practicing, inRow = 2, answeredAtMs = 1L),
+    chapter: PracticeChapter = standInChapter(),
 ) = PuzzleBoxTheme {
     Surface(color = MaterialTheme.colorScheme.background) {
         PracticePane(
-            name = "Line lock",
-            line = StandInLine,
+            chapter = chapter,
             state = state,
             progress = progress,
             showBack = true,
             onClose = {},
             board = { _, modifier -> StandInGrid(modifier) },
-            onNextBoard = {},
             onTryAgain = {},
             onTryAnother = {},
             modifier = Modifier.padding(horizontal = Spacing.lg),
@@ -140,7 +144,15 @@ private fun PracticeShownPreview() = PracticePreviewFrame(practicing(PracticeSta
 
 @PuzzleBoxPreviews
 @Composable
-private fun PracticeSolvedPreview() = PracticePreviewFrame(practicing(PracticeStatus.Solved))
+private fun PracticeDonePreview() = PracticePreviewFrame(practicing(PracticeStatus.Done(standInSpotlight())), chapter = standInChapter(board = 2))
+
+@PuzzleBoxPreviews
+@Composable
+private fun PracticeReviewBoardPreview() = PracticePreviewFrame(practicing(PracticeStatus.FindNextMove), chapter = standInChapter(board = 5))
+
+@PuzzleBoxPreviews
+@Composable
+private fun PracticeFinishedPreview() = PracticePreviewFrame(PracticeState.Finished, chapter = standInChapter(board = 5))
 
 @PuzzleBoxPreviews
 @Composable

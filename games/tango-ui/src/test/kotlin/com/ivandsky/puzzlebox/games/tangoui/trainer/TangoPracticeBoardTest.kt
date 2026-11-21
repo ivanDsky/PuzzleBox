@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.tangoui.trainer
 
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.game.trainer.TrainerVerdict
 import com.ivandsky.puzzlebox.gameui.trainer.PracticeStatus
@@ -29,32 +30,36 @@ class TangoPracticeBoardTest {
     private val canonical = TangoTrainerFixtures.canonical
 
     @Test
-    fun `a board opens on the start board with a move of its technique to make`() = runTest {
-        val boards = TangoPracticePlay.all(this)
-        assertTrue(boards.isNotEmpty())
-        for (play in boards) {
-            val label = play.technique.value
-            assertEquals(label, TangoPractice.start(play.decoded, play.solution, play.technique), play.grid)
-            assertEquals(label, PracticeStatus.FindNextMove, play.status)
-            assertTrue(label, play.moves().any { it.isTrainedRight })
-            assertEquals(label, emptyList<TrainerVerdict>(), play.turns)
-            assertFalse(label, play.session.history.canUndo)
-            assertEquals(label, 0, play.session.mistakeCount)
-            assertNull(label, play.session.ref)
-            assertFalse(label, play.session.isComplete)
+    fun `a board opens where its kind opens, with a move of its technique to make`() = runTest {
+        for (kind in BoardKind.entries) {
+            val boards = TangoPracticePlay.all(this, kind)
+            assertTrue(boards.isNotEmpty())
+            for (play in boards) {
+                val label = "${play.technique.value} $kind"
+                assertEquals(label, TangoPractice.start(play.decoded, play.solution, play.technique, kind), play.grid)
+                assertEquals(label, PracticeStatus.FindNextMove, play.status)
+                assertTrue(label, play.moves().any { it.isTrainedRight })
+                assertEquals(label, emptyList<TrainerVerdict>(), play.turns)
+                assertFalse(label, play.session.history.canUndo)
+                assertEquals(label, 0, play.session.mistakeCount)
+                assertNull(label, play.session.ref)
+                assertFalse(label, play.session.isComplete)
+            }
         }
     }
 
     @Test
     fun `no board for a technique that is never the easiest, another game, a broken or ambiguous puzzle, or an unknown id`() = runTest {
-        fun board(puzzle: Puzzle, technique: TechniqueId) =
-            TangoTrainerFixtures.trainer.practice(puzzle, technique, this, onTrainedTurn = {})
+        BoardKind.entries.forEach { kind ->
+            fun board(puzzle: Puzzle, technique: TechniqueId) =
+                TangoTrainerFixtures.trainer.practice(puzzle, technique, kind, this, onTrainedTurn = {})
 
-        assertNull(board(canonical, TechniqueId("split-pair")))
-        assertNull(board(canonical, TechniqueId("no-such-technique")))
-        assertNull(board(Puzzle(GameId("other-game"), canonical.variant, canonical.formatVersion, canonical.payload), sign))
-        assertNull(board(Puzzle(canonical.gameId, canonical.variant, canonical.formatVersion, byteArrayOf(1, 2, 3)), sign))
-        assertNull(board(TangoPlayFixture.envelope(TangoPlayFixture.ambiguous), sign))
+            assertNull(board(canonical, TechniqueId("split-pair")))
+            assertNull(board(canonical, TechniqueId("no-such-technique")))
+            assertNull(board(Puzzle(GameId("other-game"), canonical.variant, canonical.formatVersion, canonical.payload), sign))
+            assertNull(board(Puzzle(canonical.gameId, canonical.variant, canonical.formatVersion, byteArrayOf(1, 2, 3)), sign))
+            assertNull(board(TangoPlayFixture.envelope(TangoPlayFixture.ambiguous), sign))
+        }
     }
 
     @Test
@@ -64,12 +69,12 @@ class TangoPracticeBoardTest {
             val rights = start.moves().filter { it.isTrainedRight }
             if (rights.map { (it.verdict as TangoPracticeVerdict.Right).step }.distinct().size > 1) severalInstances++
             for (move in rights) {
-                val play = checkNotNull(TangoPracticePlay.open(this, start.puzzle, start.technique))
+                val play = checkNotNull(TangoPracticePlay.open(this, start.puzzle, start.technique, start.kind))
                 val label = "${start.technique.value} ${move.idx}=${move.value}"
                 play.play(move)
                 assertEquals(label, move.value, play.grid[move.idx])
                 if (move.stepSquares == 1) {
-                    assertTrue(label, (play.status as? PracticeStatus.Right)?.trained == true)
+                    assertTrue(label, play.status.isTrainedRightOrDone())
                     assertEquals(label, listOf(TrainerVerdict.Right), play.turns)
                 } else {
                     assertEquals(label, PracticeStatus.KeepGoing(move.stepSquares - 1, trained = true), play.status)
@@ -97,7 +102,7 @@ class TangoPracticeBoardTest {
             if (left > 0) {
                 assertEquals(PracticeStatus.KeepGoing(left, trained = true), play.status)
             } else {
-                assertTrue((play.status as? PracticeStatus.Right)?.trained == true)
+                assertTrue(play.status.isTrainedRightOrDone())
             }
         }
         assertEquals(listOf(TrainerVerdict.Right), play.turns)
@@ -186,7 +191,7 @@ class TangoPracticeBoardTest {
 
     @Test
     fun `a wrong move on another rung is undone and reports nothing`() = runTest {
-        val (play, wrong) = TangoPracticePlay.all(this).firstWithAfterShowing("a wrong move on another rung") { board, move ->
+        val (play, wrong) = TangoPracticePlay.all(this, BoardKind.Review).firstWithAfterShowing("a wrong move on another rung") { board, move ->
             move.verdict is TangoPracticeVerdict.Wrong && move.rung != null && move.rung?.trainerId != board.technique
         }
         val before = play.session
@@ -200,7 +205,7 @@ class TangoPracticeBoardTest {
 
     @Test
     fun `an easier move on another rung is undone, names that rung, and reports nothing`() = runTest {
-        val (play, easier) = TangoPracticePlay.all(this).firstWithAfterShowing("an easier move on another rung") { board, move ->
+        val (play, easier) = TangoPracticePlay.all(this, BoardKind.Review).firstWithAfterShowing("an easier move on another rung") { board, move ->
             move.verdict is TangoPracticeVerdict.Easier && move.rung?.trainerId != board.technique
         }
         val before = play.session
@@ -214,7 +219,7 @@ class TangoPracticeBoardTest {
 
     @Test
     fun `a Right move on another rung is kept, is not trained, and reports nothing`() = runTest {
-        val (play, right) = TangoPracticePlay.all(this).firstWithAfterShowing("a Right move on another rung") { _, move ->
+        val (play, right) = TangoPracticePlay.all(this, BoardKind.Review).firstWithAfterShowing("a Right move on another rung") { _, move ->
             val verdict = move.verdict
             verdict is TangoPracticeVerdict.Right && !verdict.trained && verdict.step.rung != null
         }
@@ -222,8 +227,11 @@ class TangoPracticeBoardTest {
         play.play(right)
 
         assertEquals(right.value, play.grid[right.idx])
-        val trained = if (right.stepSquares == 1) (play.status as PracticeStatus.Right).trained else (play.status as PracticeStatus.KeepGoing).trained
-        assertEquals(false, trained)
+        val status = play.status
+        if (status !is PracticeStatus.Done) {
+            val trained = if (right.stepSquares == 1) (status as PracticeStatus.Right).trained else (status as PracticeStatus.KeepGoing).trained
+            assertEquals(false, trained)
+        }
         assertEquals(emptyList<TrainerVerdict>(), play.turns)
     }
 }

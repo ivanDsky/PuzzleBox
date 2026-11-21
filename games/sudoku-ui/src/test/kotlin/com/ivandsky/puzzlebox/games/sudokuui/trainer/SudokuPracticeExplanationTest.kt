@@ -14,9 +14,6 @@ import org.junit.Test
  */
 class SudokuPracticeExplanationTest {
 
-    private fun SudokuPracticeRig.rightMove(): SudokuTrainerMove? =
-        moves().firstOrNull { judge(it) is SudokuPracticeJudgement.Right }
-
     @Test
     fun `keypad input is refused while Show me's explanation stands, and Show me does nothing`() {
         for (rig in SudokuPracticeRig.all()) {
@@ -60,17 +57,17 @@ class SudokuPracticeExplanationTest {
     fun `Got it ends Show me's explanation, the status is FindNextMove, and the board takes moves again`() {
         for (rig in SudokuPracticeRig.all()) {
             rig.practice.showMe()
-            assertTrue(rig.label, rig.status is PracticeStatus.Shown || rig.status == PracticeStatus.Solved)
-            if (rig.status == PracticeStatus.Solved) continue
+            assertTrue(rig.label, rig.status is PracticeStatus.Shown)
 
             rig.practice.gotIt()
+            if (rig.status is PracticeStatus.Done) continue
             assertEquals(rig.label, PracticeStatus.FindNextMove, rig.status)
 
             val move = rig.rightMove() ?: continue
             val before = rig.board
             rig.play(move)
             assertTrue(rig.label, rig.board != before)
-            assertTrue(rig.label, rig.status is PracticeStatus.Right || rig.status is PracticeStatus.KeepGoing || rig.status == PracticeStatus.Solved)
+            assertTrue(rig.label, rig.status is PracticeStatus.Right || rig.status is PracticeStatus.KeepGoing || rig.status is PracticeStatus.Done)
         }
     }
 

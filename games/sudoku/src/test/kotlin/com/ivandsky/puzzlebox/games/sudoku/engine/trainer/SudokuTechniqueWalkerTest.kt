@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.sudoku.engine.trainer
 
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
@@ -16,13 +17,15 @@ import org.junit.Test
 class SudokuTechniqueWalkerTest {
 
     @Test
-    fun `a technique is counted exactly where a practice for it can start`() {
+    fun `a technique is counted exactly where a practice of either kind can start`() {
         val disagree = SudokuTrainerFixtures.corpus.flatMap { (name, puzzle) ->
             val counts = SudokuTechniqueWalker.techniqueCounts(canonical(puzzle))
-            SudokuTechniqueIds.all.mapNotNull { technique ->
+            SudokuTechniqueIds.all.flatMap { technique ->
                 val counted = (counts[technique] ?: 0) > 0
-                val opens = SudokuPractice.start(puzzle, technique) != null
-                "$name ${technique.value}: counted=$counted opens=$opens".takeIf { counted != opens }
+                BoardKind.entries.mapNotNull { kind ->
+                    val opens = SudokuPractice.start(puzzle, technique, kind) != null
+                    "$name ${technique.value} $kind: counted=$counted opens=$opens".takeIf { counted != opens }
+                }
             }
         }
         assertEquals(emptyList<String>(), disagree)
@@ -33,7 +36,7 @@ class SudokuTechniqueWalkerTest {
         // li:111 is a real daily where naked single is the lowest rung at some point of the walk.
         val counts = SudokuTechniqueWalker.techniqueCounts(canonical(SudokuTrainerFixtures.dailies.getValue("li:111")))
         assertEquals(EXPECTED_LI_111, counts.mapKeys { it.key.value })
-        assertNotNull(SudokuPractice.start(SudokuTrainerFixtures.dailies.getValue("li:111"), TechniqueId("naked-single")))
+        assertNotNull(SudokuPractice.start(SudokuTrainerFixtures.dailies.getValue("li:111"), TechniqueId("naked-single"), BoardKind.Focus))
     }
 
     @Test

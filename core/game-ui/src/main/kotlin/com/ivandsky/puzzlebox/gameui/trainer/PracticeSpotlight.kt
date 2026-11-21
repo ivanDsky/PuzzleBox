@@ -40,9 +40,10 @@ import kotlinx.coroutines.flow.StateFlow
 fun BoxScope.PracticeSpotlight(board: PracticeBoard, status: PracticeStatus) {
     when (status) {
         is PracticeStatus.Right -> StepFlash(status.spotlight)
+        is PracticeStatus.Done -> status.last?.let { StepFlash(it) }
         is PracticeStatus.Easier -> Explanation(board) { SpotlightOverlay(status.spotlight) }
         is PracticeStatus.Shown -> Explanation(board) { SpotlightOverlay(status.spotlight) }
-        PracticeStatus.FindNextMove, is PracticeStatus.KeepGoing, is PracticeStatus.Wrong, PracticeStatus.Solved -> Unit
+        PracticeStatus.FindNextMove, is PracticeStatus.KeepGoing, is PracticeStatus.Wrong -> Unit
     }
 }
 

@@ -71,13 +71,13 @@ class PracticeWritesNothingTest {
     }
 
     /**
-     * Catches a practice that leaves a trace of the player's play: a solved board writing a completion, record or
+     * Catches a practice that leaves a trace of the player's play: a finished board writing a completion, record or
      * replay (so a streak day or a best), a move saving a play slot, or the board touching the daily's cache. A board
-     * played through every turn, solved and left for the next one, leaves the completion, saved-play and daily stores as
+     * played through every turn, finished and left for the next one, leaves the completion, saved-play and daily stores as
      * they began; the only write is the trainer's own progress.
      */
     @Test
-    fun `a played and solved board leaves no completion, saved play or daily behind`() = runTest {
+    fun `a played and finished board leaves no completion, saved play or daily behind`() = runTest {
         val vm = practiceFromTheGraph()
         vm.start(1)
         val board = game.boards.single()
@@ -85,8 +85,10 @@ class PracticeWritesNothingTest {
         board.turn(TrainerVerdict.Right)
         board.turn(TrainerVerdict.Wrong)
         board.turn(TrainerVerdict.ShowMe)
-        board.say(PracticeStatus.Solved)
-        vm.nextBoard()
+        board.say(PracticeStatus.Done(null))
+        main.testDispatcher.scheduler.advanceTimeBy(BOARD_DONE_PAUSE_MS)
+        main.testDispatcher.scheduler.runCurrent()
+        assertEquals("the next board opened on its own", 2, game.boards.size)
 
         assertTrue(completions.observeRecords().first().isEmpty())
         assertTrue(completions.observeImports().first().isEmpty())

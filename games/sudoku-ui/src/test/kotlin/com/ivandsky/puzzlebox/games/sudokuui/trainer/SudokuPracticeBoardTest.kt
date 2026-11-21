@@ -30,7 +30,7 @@ class SudokuPracticeBoardTest {
         val rigs = SudokuPracticeRig.all()
         assertTrue(rigs.isNotEmpty())
         for (rig in rigs) {
-            assertEquals(rig.label, SudokuPractice.start(rig.puzzle, rig.technique), rig.board)
+            assertEquals(rig.label, SudokuPractice.start(rig.puzzle, rig.technique, rig.kind), rig.board)
             assertEquals(rig.label, PracticeStatus.FindNextMove, rig.status)
             assertFalse(rig.label, rig.state.canUndo)
             rig.board.cells.forEachIndexed { idx, cell ->
@@ -49,9 +49,9 @@ class SudokuPracticeBoardTest {
             rig.play(move)
 
             assertEquals(rig.label, move.digit, rig.board.digitAt(move.idx))
-            val status = rig.status as PracticeStatus.Right
-            assertEquals(rig.label, judged.rung == rig.technique, status.trained)
-            assertSameHint(rig.label, rig.hint(judged.step, before), status.spotlight)
+            val status = rig.status
+            if (status is PracticeStatus.Right) assertEquals(rig.label, judged.rung == rig.technique, status.trained)
+            assertSameHint(rig.label, rig.hint(judged.step, before), checkNotNull(rig.flash))
             played++
         }
         assertTrue(played > 0)
@@ -64,7 +64,7 @@ class SudokuPracticeBoardTest {
             val moves = rig.moves().filterIsInstance<SudokuTrainerMove.RemoveNote>().filter { rig.judge(it) is SudokuPracticeJudgement.Right }
             if (moves.isEmpty()) continue
             for (move in moves) {
-                val fresh = SudokuPracticeRig(rig.name, rig.puzzle, rig.technique)
+                val fresh = rig.fresh()
                 val judged = fresh.judge(move) as SudokuPracticeJudgement.Right
                 val before = fresh.board
                 fresh.play(move)
@@ -72,6 +72,7 @@ class SudokuPracticeBoardTest {
                 assertFalse(fresh.label, fresh.noteOn(move.idx, move.digit))
                 when (val status = fresh.status) {
                     is PracticeStatus.Right -> assertSameHint(fresh.label, fresh.hint(judged.step, before), status.spotlight)
+                    is PracticeStatus.Done -> assertSameHint(fresh.label, fresh.hint(judged.step, before), checkNotNull(status.last))
                     is PracticeStatus.KeepGoing -> assertTrue(fresh.label, status.left >= 1)
                     else -> error("${fresh.label}: $status")
                 }
@@ -87,7 +88,7 @@ class SudokuPracticeBoardTest {
         var notes = 0
         for (rig in SudokuPracticeRig.all()) {
             for (move in listOfNotNull(rig.find<SudokuPracticeJudgement.Easier, SudokuTrainerMove.Place>(), rig.find<SudokuPracticeJudgement.Easier, SudokuTrainerMove.RemoveNote>())) {
-                val fresh = SudokuPracticeRig(rig.name, rig.puzzle, rig.technique)
+                val fresh = rig.fresh()
                 val judged = fresh.judge(move) as SudokuPracticeJudgement.Easier
                 val boardBefore = fresh.board
                 val before = fresh.play(move)
@@ -109,7 +110,7 @@ class SudokuPracticeBoardTest {
     fun `a wrong digit and the solution's note taken off are undone with a line why, leaving the exact board`() {
         for (rig in SudokuPracticeRig.all()) {
             for (move in listOf(rig.wrongDigit(), rig.solutionNote())) {
-                val fresh = SudokuPracticeRig(rig.name, rig.puzzle, rig.technique)
+                val fresh = rig.fresh()
                 val before = fresh.play(move)
 
                 assertEquals("${fresh.label} $move", before, fresh.state.session)
@@ -134,23 +135,9 @@ class SudokuPracticeBoardTest {
             rig.play(right)
 
             assertEquals(rig.label, 1, rig.state.session.history.done.size)
-            assertTrue(rig.label, rig.status is PracticeStatus.Right || rig.status is PracticeStatus.KeepGoing)
+            assertTrue(rig.label, rig.status is PracticeStatus.Right || rig.status is PracticeStatus.KeepGoing || rig.status is PracticeStatus.Done)
             played++
         }
         assertTrue(played > 0)
-    }
-
-    @Test
-    fun `playing Right moves to the end solves the board`() {
-        for (rig in SudokuPracticeRig.all()) {
-            var moves = 0
-            while (rig.status != PracticeStatus.Solved) {
-                val move = checkNotNull(rig.moves().firstOrNull { rig.judge(it) is SudokuPracticeJudgement.Right }) { "${rig.label}: no Right move after $moves" }
-                rig.play(move)
-                check(++moves < 500) { "${rig.label} did not finish" }
-            }
-            assertTrue(rig.label, rig.state.session.isComplete)
-            assertEquals(rig.label, rig.puzzle.solution, rig.board.cells.map { it.digit })
-        }
     }
 }

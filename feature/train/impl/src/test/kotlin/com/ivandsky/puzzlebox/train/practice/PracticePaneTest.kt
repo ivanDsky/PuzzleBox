@@ -12,6 +12,7 @@ import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.data.trainer.TechniqueProgress
 import com.ivandsky.puzzlebox.data.trainer.TechniqueProgress.Mark
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.gameui.trainer.PracticeStatus
 import com.ivandsky.puzzlebox.train.FakePracticeBoard
 import com.ivandsky.puzzlebox.train.practice.PracticeRig.Companion.LINE_LOCK
@@ -34,27 +35,28 @@ class PracticePaneTest {
     val composeRule = createComposeRule()
 
     private val scope = CoroutineScope(Job())
-    private val board = FakePracticeBoard(LINE_LOCK, puzzle(1), scope, onTrainedTurn = {})
+    private val board = FakePracticeBoard(LINE_LOCK, BoardKind.Focus, puzzle(1), scope, onTrainedTurn = {})
     private var closed = 0
-    private var nextBoard = 0
     private var tryAgain = 0
     private var tryAnother = 0
 
     @After
     fun tearDown() = scope.coroutineContext[Job]!!.cancel()
 
-    private fun show(state: PracticeState, progress: TechniqueProgress = TechniqueProgress(Mark.Practicing, inRow = 2, answeredAtMs = 1L)) {
+    private fun show(
+        state: PracticeState,
+        progress: TechniqueProgress = TechniqueProgress(Mark.Practicing, inRow = 2, answeredAtMs = 1L),
+        chapter: PracticeChapter = standInChapter(),
+    ) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 PracticePane(
-                    name = "Line lock",
-                    line = StandInLine,
+                    chapter = chapter,
                     state = state,
                     progress = progress,
                     showBack = true,
                     onClose = { closed++ },
                     board = { _, modifier -> StandInGrid(modifier) },
-                    onNextBoard = { nextBoard++ },
                     onTryAgain = { tryAgain++ },
                     onTryAnother = { tryAnother++ },
                 )
@@ -62,8 +64,10 @@ class PracticePaneTest {
         }
     }
 
-    private fun showBoard(progress: TechniqueProgress = TechniqueProgress(Mark.Practicing, inRow = 2, answeredAtMs = 1L)) =
-        show(PracticeState.Practicing(board), progress)
+    private fun showBoard(
+        progress: TechniqueProgress = TechniqueProgress(Mark.Practicing, inRow = 2, answeredAtMs = 1L),
+        chapter: PracticeChapter = standInChapter(),
+    ) = show(PracticeState.Practicing(board), progress, chapter)
 
     private fun say(status: PracticeStatus) {
         board.say(status)
@@ -160,23 +164,39 @@ class PracticePaneTest {
         composeRule.onNodeWithTag("train.count").assertTextEquals("Mastered")
     }
 
-    /** Catches a solved board that stays on the play page, or a solved page with no way on or back, or one wired to the other's action. */
+    /** Catches a title row that does not say which board of the chapter is up, or a first-technique chapter that claims a review board. */
     @Test
-    fun `a solved board is replaced by the solved page with Next board and Back to techniques`() {
-        showBoard(TechniqueProgress(Mark.Practicing, inRow = 3, answeredAtMs = 1L))
-        composeRule.onNodeWithTag("train.status").assertIsDisplayed()
+    fun `the title row says which board of the chapter is up`() {
+        showBoard(chapter = standInChapter(board = 2, boards = 5))
+        composeRule.onNodeWithTag("train.board").assertTextEquals("Board 2 of 5")
+    }
 
-        say(PracticeStatus.Solved)
+    @Test
+    fun `the first technique's chapter has four boards`() {
+        showBoard(chapter = standInChapter(board = 4, boards = 4))
+        composeRule.onNodeWithTag("train.board").assertTextEquals("Board 4 of 4")
+    }
 
-        composeRule.onNodeWithTag("train.solved").assertIsDisplayed()
-        composeRule.onNodeWithTag("train.summary").assertTextEquals("3 trained moves right in a row")
-        composeRule.onNodeWithTag("train.status").assertDoesNotExist()
-        composeRule.onNodeWithText("Next board").performClick()
-        assertEquals(1, nextBoard)
-        assertEquals(0, closed)
+    /** Catches a finished board that keeps asking for the next move, or a Done band that does not say which board finished. */
+    @Test
+    fun `a finished board says Done with its number and takes no Show me`() {
+        showBoard(chapter = standInChapter(board = 2, boards = 5))
+
+        say(PracticeStatus.Done(standInSpotlight()))
+
+        assertBand("Done", "Board 2 of 5 finished.")
+        composeRule.onNodeWithTag("train.showMe").assertIsNotEnabled()
+    }
+
+    /** Catches a finished page with no way back to the list, one wired to another action, or one that still offers a next board. */
+    @Test
+    fun `the finished page offers Back to techniques only`() {
+        show(PracticeState.Finished)
+
+        composeRule.onNodeWithTag("train.finished").assertIsDisplayed()
+        composeRule.onNodeWithText("Next board").assertDoesNotExist()
         composeRule.onNodeWithText("Back to techniques").performClick()
-        assertEquals(1, closed)
-        assertEquals(1, nextBoard)
+        assertEquals(listOf(0, 0, 1), listOf(tryAgain, tryAnother, closed))
     }
 
     /** Catches the load pages wired to each other's action: a fetch that opens a puzzle, an open that fetches, a close that does neither. */

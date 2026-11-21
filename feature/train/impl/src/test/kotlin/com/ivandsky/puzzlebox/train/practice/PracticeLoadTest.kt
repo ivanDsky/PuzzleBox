@@ -81,16 +81,16 @@ class PracticeLoadTest {
         assertEquals(8, rig.board.tag)
     }
 
-    /** Bug caught: Next board that replays a bundled puzzle while another is unplayed, or that has nowhere to go after the last. */
+    /** Bug caught: a next board that replays a bundled puzzle while another is unplayed, or that has nowhere to go after the last. */
     @Test
-    fun `Next board goes through the bundled puzzles and comes round again`() {
+    fun `the next board goes through the bundled puzzles and comes round again`() {
         val bundled = listOf(DrillCandidate.Bundled("b1", puzzle(7), targetSteps = 6), DrillCandidate.Bundled("b2", puzzle(8), targetSteps = 2))
         val rig = PracticeRig(bundled)
 
         assertEquals(7, rig.board.tag)
-        rig.vm.nextBoard()
+        rig.finishBoard(main)
         assertEquals(8, rig.board.tag)
-        rig.vm.nextBoard()
+        rig.finishBoard(main)
         assertEquals(7, rig.board.tag)
     }
 
@@ -169,7 +169,6 @@ class PracticeLoadTest {
 
         val connect = PracticeRig(named)
         connect.vm.tryAnother()
-        connect.vm.nextBoard()
         assertEquals(PracticeState.NeedsConnection, connect.state)
         assertEquals(emptyList<Int>(), playing.archive.loads + connect.archive.loads)
     }

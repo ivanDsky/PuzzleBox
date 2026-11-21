@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.tango.engine.trainer
 
+import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoEdgeSide
@@ -31,7 +32,9 @@ class TangoPracticeTest {
     /** Every (technique, start board) the dailies give. */
     private fun starts(): List<Triple<String, TechniqueId, List<TangoCell?>>> = dailies.flatMap { (name, puzzle) ->
         val solution = TangoUniqueness.solve(puzzle)!!
-        techniques.mapNotNull { technique -> TangoPractice.start(puzzle, solution, technique)?.let { Triple(name, technique, it) } }
+        techniques.mapNotNull { technique ->
+            TangoPractice.start(puzzle, solution, technique, BoardKind.Focus)?.let { Triple(name, technique, it) }
+        }
     }
 
     @Test
@@ -50,15 +53,16 @@ class TangoPracticeTest {
     }
 
     @Test
-    fun `the easiest rung at the givens starts on the givens, and a harder one starts after easier steps were taken`() {
+    fun `a harder technique opens after easier steps were taken`() {
         for ((name, puzzle) in dailies) {
             val solution = TangoUniqueness.solve(puzzle)!!
             val open = openGrid(puzzle)
             val first = checkNotNull(lowestRung(puzzle, open)) { "$name opens with a deduction" }
-            assertEquals(name, open, TangoPractice.start(puzzle, solution, first.trainerId))
             techniques.filter { it != first.trainerId }.forEach { technique ->
-                val grid = TangoPractice.start(puzzle, solution, technique) ?: return@forEach
-                assertTrue("$name ${technique.value}: easier steps filled squares first", grid.count { it != null } > open.count { it != null })
+                BoardKind.entries.forEach { kind ->
+                    val grid = TangoPractice.start(puzzle, solution, technique, kind) ?: return@forEach
+                    assertTrue("$name ${technique.value} $kind: easier steps filled squares first", grid.count { it != null } > open.count { it != null })
+                }
             }
         }
     }
@@ -67,7 +71,7 @@ class TangoPracticeTest {
     fun `a technique the walk never reaches as the easiest rung starts no drill`() {
         val never = dailies.flatMap { (name, puzzle) ->
             val solution = TangoUniqueness.solve(puzzle)!!
-            techniques.filter { TangoPractice.start(puzzle, solution, it) == null }.map { name to it }
+            techniques.filter { TangoPractice.start(puzzle, solution, it, BoardKind.Focus) == null }.map { name to it }
         }
         assertTrue("some technique is never the easiest rung on a daily", never.isNotEmpty())
         assertTrue("the split pair is one of them on byid-1", "byid-1" to TechniqueId("split-pair") in never)
@@ -78,13 +82,15 @@ class TangoPracticeTest {
         val puzzle = dailies.getValue("byid-1")
         val solution = TangoUniqueness.solve(puzzle)!!
         val sign = TechniqueId("sign")
-        assertNotNull(TangoPractice.start(puzzle, solution, sign))
+        BoardKind.entries.forEach { kind ->
+            assertNotNull(TangoPractice.start(puzzle, solution, sign, kind))
 
-        assertNull(TangoPractice.start(puzzle, solution, TechniqueId("no-such-technique")))
-        val open = (0 until puzzle.cellCount).first { !puzzle.isGiven(it) }
-        assertNull("breaks a rule", TangoPractice.start(puzzle, solution.toMutableList().also { it[open] = it[open].other }, sign))
-        assertNull("drops the givens", TangoPractice.start(puzzle, solution.map { it.other }, sign))
-        assertNull("wrong size", TangoPractice.start(puzzle, solution.drop(1), sign))
+            assertNull(TangoPractice.start(puzzle, solution, TechniqueId("no-such-technique"), kind))
+            val open = (0 until puzzle.cellCount).first { !puzzle.isGiven(it) }
+            assertNull("breaks a rule", TangoPractice.start(puzzle, solution.toMutableList().also { it[open] = it[open].other }, sign, kind))
+            assertNull("drops the givens", TangoPractice.start(puzzle, solution.map { it.other }, sign, kind))
+            assertNull("wrong size", TangoPractice.start(puzzle, solution.drop(1), sign, kind))
+        }
     }
 
     @Test
@@ -111,7 +117,18 @@ class TangoPracticeTest {
         val wrong = TangoPractice.judge(puzzle, solution, before, TechniqueId("sign"), square.idx, square.value.other)
         assertEquals(TangoPracticeVerdict.Wrong(rung = null), wrong)
         techniques.forEach { technique ->
-            TangoPractice.start(puzzle, solution, technique)?.let { start -> assertNotNull(lowestRung(puzzle, start)) }
+            TangoPractice.start(puzzle, solution, technique, BoardKind.Focus)?.let { start -> assertNotNull(lowestRung(puzzle, start)) }
+        }
+    }
+
+    @Test
+    fun `a grid where no rung fires is done for either kind, whatever the technique`() {
+        val puzzle = revealPuzzle
+        val solution = TangoUniqueness.solve(puzzle)!!
+        val stalled = TangoPractice.walk(puzzle, solution).filter { it.technique == null }.toList()
+        assertTrue("the puzzle reaches a point no rung explains", stalled.isNotEmpty())
+        for (point in stalled) for (technique in techniques) for (kind in BoardKind.entries) {
+            assertTrue("${technique.value} $kind", TangoPractice.isDone(puzzle, point.board, technique, kind))
         }
     }
 
@@ -191,7 +208,7 @@ class TangoPracticeTest {
     fun `a move on a filled square or a given is refused`() {
         val puzzle = dailies.getValue("byid-1")
         val solution = TangoUniqueness.solve(puzzle)!!
-        val grid = TangoPractice.start(puzzle, solution, TechniqueId("sign"))!!
+        val grid = TangoPractice.start(puzzle, solution, TechniqueId("pair"), BoardKind.Focus)!!
         val given = puzzle.givens.keys.first()
         val filled = grid.indices.first { grid[it] != null && !puzzle.isGiven(it) }
 

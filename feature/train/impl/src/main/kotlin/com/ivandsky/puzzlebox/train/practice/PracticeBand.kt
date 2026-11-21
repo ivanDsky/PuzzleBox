@@ -42,11 +42,12 @@ private class Band(val icon: ImageVector, val title: String, val why: String, va
  * The one status band attached to the board's top edge (spec §2.2): the standing instruction, or the outcome of the
  * last move with its one-line reason. Right is the primary container, an undone Wrong move the error container, an
  * easier move the tertiary one, and the rest the quiet well. A polite live region, so a screen reader reads each
- * outcome as it lands. [name] is the trained technique, which the instruction and the Right line name.
+ * outcome as it lands. [chapter] names the trained technique, which the instruction and the Right line name, and the
+ * board the Done line says finished.
  */
 @Composable
-internal fun StatusBand(status: PracticeStatus, name: String, onGotIt: () -> Unit, modifier: Modifier = Modifier) {
-    val band = band(status, name)
+internal fun StatusBand(status: PracticeStatus, chapter: PracticeChapter, onGotIt: () -> Unit, modifier: Modifier = Modifier) {
+    val band = band(status, chapter)
     val shape = MaterialTheme.shapes.medium.copy(bottomStart = ZeroCornerSize, bottomEnd = ZeroCornerSize)
     Row(
         modifier
@@ -72,7 +73,8 @@ internal fun StatusBand(status: PracticeStatus, name: String, onGotIt: () -> Uni
 }
 
 @Composable
-private fun band(status: PracticeStatus, name: String): Band {
+private fun band(status: PracticeStatus, chapter: PracticeChapter): Band {
+    val name = chapter.technique.name
     val scheme = MaterialTheme.colorScheme
     val quiet = scheme.surfaceContainerHigh to scheme.onSurface
     return when (status) {
@@ -105,7 +107,8 @@ private fun band(status: PracticeStatus, name: String): Band {
         )
         is PracticeStatus.Wrong -> Band(PuzzleIcons.Undo, "Not there, undone", status.why, scheme.errorContainer, scheme.onErrorContainer)
         is PracticeStatus.Shown -> Band(PuzzleIcons.Info, "Here is the next move", "Look at the board, then tap Got it.", quiet.first, quiet.second)
-        PracticeStatus.Solved -> Band(PuzzleIcons.Check, "Solved", "Every square is placed.", quiet.first, quiet.second)
+        is PracticeStatus.Done ->
+            Band(PuzzleIcons.Check, "Done", "Board ${chapter.board} of ${chapter.boards} finished.", scheme.primaryContainer, scheme.onPrimaryContainer)
     }
 }
 

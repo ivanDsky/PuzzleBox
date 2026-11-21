@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.sudoku.engine.trainer
 
+import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.games.sudoku.SudokuCell
 import com.ivandsky.puzzlebox.games.sudoku.engine.hints.SudokuCandidates
@@ -59,21 +60,25 @@ class SudokuPracticeStartTest {
 
     @Test
     fun `the same puzzle starts on the same board`() {
-        for (start in starts) assertEquals(start.board, SudokuPractice.start(start.puzzle, start.technique))
+        for (start in starts) assertEquals(start.board, SudokuPractice.start(start.puzzle, start.technique, start.kind))
     }
 
     @Test
     fun `a technique the puzzle never makes the easiest rung has no start`() {
         val daily = SudokuTrainerFixtures.dailies.getValue("li:1")
-        assertNull(SudokuPractice.start(daily, TechniqueId("hidden-pair")))
-        assertNull(SudokuPractice.start(daily, TechniqueId("no-such-technique")))
+        for (kind in BoardKind.entries) {
+            assertNull(SudokuPractice.start(daily, TechniqueId("hidden-pair"), kind))
+            assertNull(SudokuPractice.start(daily, TechniqueId("no-such-technique"), kind))
+        }
     }
 
     @Test
     fun `a stored solution that is not the puzzle's unique solution has no start`() {
         val puzzle = SudokuTrainerFixtures.dailies.getValue("li:1")
         val other = puzzle.copy(solution = puzzle.solution.map { it % puzzle.geometry.size + 1 })
-        assertTrue(SudokuPractice.start(puzzle, SudokuTechniqueIds.lastCell) != null)
-        assertNull(SudokuPractice.start(other, SudokuTechniqueIds.lastCell))
+        for (kind in BoardKind.entries) {
+            assertTrue(SudokuPractice.start(puzzle, SudokuTechniqueIds.lastCell, kind) != null)
+            assertNull(SudokuPractice.start(other, SudokuTechniqueIds.lastCell, kind))
+        }
     }
 }
