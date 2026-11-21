@@ -2,46 +2,58 @@ package com.ivandsky.puzzlebox.insights.recap
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.TextUnit
-import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteEntry
-import com.ivandsky.puzzlebox.designsystem.RollingDigits
-import com.ivandsky.puzzlebox.designsystem.field
-import com.ivandsky.puzzlebox.designsystem.ink
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
+import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteEntry
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.field
+import com.ivandsky.puzzlebox.designsystem.ink
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.model.GameId
 
 /**
- * The Puzzles solved page: the period's total rolling up as an odometer over a sheet of bands, one per game in its own
- * colour and as tall as its share, with the hint-free stripe tilted between them when the period has a hint-free solve.
- * A wide pane puts the number on the left and the bands on the right, at no more than [SheetMaxWidth].
+ * The Puzzles solved page: a tide fills a sheet of bands, one per game in its own accent and as tall as its share, while
+ * the total counts the solves under the level; the hint-free stripe comes in after it when the period has a hint-free
+ * solve. The page is flat: the sheet meets the card's bottom edge. A wide pane puts the total, sized to its column, on
+ * the left above the stripe and the bands on the right, at no more than [SheetMaxWidth].
  */
 @Composable
 internal fun SolvedCardPage(
@@ -53,6 +65,7 @@ internal fun SolvedCardPage(
     val fade = rememberReducedFade()
     val ink = PaletteEntry.Solved.ink
     val striped = card.hintFree > 0
+    val tide = rememberSolvedTide(card)
     BoxWithConstraints(
         modifier
             .fillMaxSize()
@@ -64,21 +77,24 @@ internal fun SolvedCardPage(
         val paneWidth = maxWidth
         CompositionLocalProvider(LocalContentColor provides ink) {
             val bands: @Composable (Modifier) -> Unit = {
-                SolvedBands(card.perGame, gameName, if (striped) BandMinWithStripe else BandMin, it)
+                SolvedBands(card.perGame, gameName, if (striped) BandMinWithStripe else BandMin, tide, it)
             }
-            val stripe: @Composable () -> Unit = { SolvedStripe(card, stripeStartMs(card.perGame.size)) }
+            val stripe: @Composable () -> Unit = { SolvedStripe(card, stripeStartMs()) }
             if (paneWidth >= WideWidth) {
                 Row(Modifier.fillMaxSize()) {
-                    Column(Modifier.weight(1f).fillMaxHeight().padding(top = Spacing.lg), verticalArrangement = Arrangement.SpaceBetween) {
-                        Column(Modifier.padding(horizontal = Spacing.xl)) { Total(card, periodLabel, striped, wide = true) }
-                        if (striped) Box(Modifier.padding(bottom = Spacing.xl)) { stripe() }
+                    Column(Modifier.weight(1f).fillMaxHeight()) {
+                        val hero = Modifier.weight(1f).fillMaxWidth().padding(start = Spacing.xl, top = Spacing.xl, bottom = Spacing.xl)
+                        SolvedHero(card, periodLabel, striped, wide = true, tide, hero)
+                        // The stripe's slot ends 48dp before the sheet, so its bleed stops 24dp clear of the bands.
+                        if (striped) Box(Modifier.padding(end = Spacing.xl, bottom = Spacing.xl)) { stripe() }
                     }
-                    bands(Modifier.fillMaxHeight().width(minOf(paneWidth * SheetShare, SheetMaxWidth)).padding(top = Spacing.lg))
+                    bands(Modifier.padding(start = Spacing.xl, top = Spacing.xl, end = Spacing.xl).fillMaxHeight().width(minOf(paneWidth * SheetShare, SheetMaxWidth)))
                 }
             } else {
-                Column(Modifier.fillMaxSize().padding(top = Spacing.lg)) {
-                    Column(Modifier.padding(horizontal = Spacing.xl)) { Total(card, periodLabel, striped) }
-                    if (striped) Box(Modifier.padding(top = Spacing.lg, bottom = Spacing.sm)) { stripe() }
+                Column(Modifier.fillMaxSize()) {
+                    SolvedHero(card, periodLabel, striped, wide = false, tide, Modifier.fillMaxWidth().padding(start = Spacing.xl, top = Spacing.xl, end = Spacing.xl))
+                    // The gap under the stripe keeps its tilted corner off the sheet's rounded top.
+                    if (striped) Box(Modifier.padding(top = Spacing.lg, bottom = Spacing.md)) { stripe() }
                     bands(Modifier.weight(1f).fillMaxWidth())
                 }
             }
@@ -86,38 +102,80 @@ internal fun SolvedCardPage(
     }
 }
 
-/** The period, the odometer total and its label, with the imported-days line of an imports-only year. */
+/**
+ * The period, the total the [tide] counts and its label, with the imported-days line of an imports-only year. The group
+ * sits centred in the [modifier]'s box, start-aligned; the total is as wide as the box allows (see [heroFontSize]).
+ */
 @Composable
-private fun Total(card: RecapCard.Solved, periodLabel: String, striped: Boolean, wide: Boolean = false) {
-    Text(text = periodLabel, style = MaterialTheme.typography.titleMedium)
-    RollingDigits(
-        value = card.total.toLong(),
-        modifier = Modifier.testTag("recap.solved.total"),
-        style = MaterialTheme.typography.displayLarge.tabular().copy(
-            fontSize = totalFontSize(card.total, striped, wide),
-            fontWeight = FontWeight.Bold,
-            letterSpacing = (-1).sp,
-        ),
-        contentDescription = "${card.total} ${card.total.puzzles()} solved",
-    )
-    Text(
-        text = "${card.total.puzzles()} solved",
-        modifier = Modifier.clearAndSetSemantics { },
-        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-    )
-    card.importedDays?.let { days -> ImportedDaysLine(days) }
+private fun SolvedHero(card: RecapCard.Solved, periodLabel: String, striped: Boolean, wide: Boolean, tide: SolvedTide, modifier: Modifier) {
+    val typography = MaterialTheme.typography
+    // The font's own line, centred in a 0.8em box by TideTotal: a lineHeight still laid out the font's 1.6em line.
+    val base = typography.displayLarge.tabular().copy(fontWeight = FontWeight.Bold, letterSpacing = (-1).sp, lineHeight = TextUnit.Unspecified)
+    val labelStyle = typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+    val label = "${card.total.puzzles()} solved"
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val probe = remember(card.total, base, measurer) {
+        measurer.measure(card.total.toString(), base.copy(fontSize = HeroProbeSp.sp), softWrap = false, maxLines = 1).size.width.toFloat()
+    }
+    BoxWithConstraints(modifier, contentAlignment = Alignment.CenterStart) {
+        val roomSp = if (!wide) Float.POSITIVE_INFINITY else with(density) {
+            // The lines around the total, measured at the column's width (the period may wrap).
+            val width = Constraints(maxWidth = constraints.maxWidth)
+            val others = measurer.measure(periodLabel, typography.titleMedium, constraints = width).size.height +
+                measurer.measure(label, labelStyle, constraints = width).size.height +
+                (card.importedDays?.let { measurer.measure(importedDaysLine(it), typography.bodyLarge, constraints = width).size.height + Spacing.sm.roundToPx() } ?: 0)
+            (constraints.maxHeight - others).toSp().value
+        }
+        val column = with(density) { constraints.maxWidth - HeroSlack.toPx() }
+        val style = base.copy(fontSize = heroFontSize(card.total, striped, wide, column, probe, roomSp))
+        Column {
+            Text(text = periodLabel, modifier = Modifier.solvedEnter(0), style = typography.titleMedium)
+            TideTotal(card.total, tide, style)
+            Text(text = label, modifier = Modifier.solvedEnter(MotionTokens.EnterStagger).clearAndSetSemantics { }, style = labelStyle)
+            card.importedDays?.let { days -> ImportedDaysLine(days) }
+        }
+    }
 }
 
-/** The odometer's size: the fewer the digits, the larger; smaller again with the stripe under it, and largest in a [wide] pane. */
-internal fun totalFontSize(total: Int, striped: Boolean, wide: Boolean): TextUnit = when {
-    wide -> when {
-        total < 100 -> 300.sp
-        total < 1000 -> 240.sp
-        else -> 190.sp
-    }
-    total < 100 -> if (striped) 144.sp else 168.sp
-    total < 1000 -> if (striped) 116.sp else 132.sp
-    else -> if (striped) 92.sp else 104.sp
+/**
+ * The total as the [tide] counts it: the solves under the level, then [total] once it is in. Only this text recomposes,
+ * once per new number; a screen reader gets the settled total. Its box is [HeroLineEm] tall with the font's line
+ * centred in it, as CSS lays out a line-height: the box hugs the digits, so the label sits just under them.
+ */
+@Composable
+private fun TideTotal(total: Int, tide: SolvedTide, style: TextStyle) {
+    val shown by remember(tide) { derivedStateOf { tide.shownTotal() } }
+    val line = with(LocalDensity.current) { (style.fontSize * HeroLineEm).toDp() }
+    Text(
+        text = shown.toString(),
+        modifier = Modifier
+            .semantics { contentDescription = "$total ${total.puzzles()} solved" }
+            .testTag("recap.solved.total")
+            .height(line)
+            .wrapContentHeight(Alignment.CenterVertically, unbounded = true),
+        style = style,
+        softWrap = false,
+        maxLines = 1,
+    )
+}
+
+/**
+ * The total's size: no wider than the column, [colW] px, given [measured], its width in px at [HeroProbeSp]. A [wide]
+ * pane takes that up to [HeroMaxSp] and no taller than [roomSp] holds; a phone keeps the stepped size by digit count,
+ * smaller with the stripe under it.
+ */
+internal fun heroFontSize(total: Int, striped: Boolean, wide: Boolean, colW: Float, measured: Float, roomSp: Float = Float.POSITIVE_INFINITY): TextUnit {
+    val fit = HeroProbeSp * colW / measured
+    val cap = if (wide) minOf(HeroMaxSp, roomSp / HeroLineEm) else steppedSp(total, striped)
+    return minOf(fit, cap).coerceAtLeast(HeroMinSp).sp
+}
+
+/** A phone's total: the fewer the digits, the larger; smaller again with the stripe under it. */
+private fun steppedSp(total: Int, striped: Boolean): Float = when {
+    total < 100 -> if (striped) 144f else 168f
+    total < 1000 -> if (striped) 116f else 132f
+    else -> if (striped) 92f else 104f
 }
 
 /** What a year built from imported results alone covers (A22), a quiet line under the total. */
@@ -207,6 +265,15 @@ internal fun Int.puzzles(): String = if (this == 1) "puzzle" else "puzzles"
 
 private val WideWidth = 600.dp
 private const val SheetShare = 0.38f
+private const val HeroProbeSp = 100f
+private const val HeroMaxSp = 300f
+private const val HeroMinSp = 40f
+
+/** The total's line is 0.8em tall, as prototype 16's `#heroN`: Baloo 2's digits fill it from 0.05em under its top to 0.11em over its bottom. */
+private const val HeroLineEm = 0.8f
+
+/** Kept free at the column's end, so rounding never pushes the total's last digit past it. */
+private val HeroSlack = 4.dp
 
 /** The sheet stops growing at the reference tablet's width (0.38 of its 852dp pane), so a wider pane gives the extra to the number's side. */
 private val SheetMaxWidth = 324.dp

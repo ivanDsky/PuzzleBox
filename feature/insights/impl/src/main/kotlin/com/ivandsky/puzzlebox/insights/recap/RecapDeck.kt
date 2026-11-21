@@ -26,12 +26,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import com.ivandsky.puzzlebox.designsystem.EdgePull
@@ -57,7 +59,7 @@ import kotlinx.coroutines.launch
  * tilt and rubber-bands past the first or last page; a hold slides the top card down to show the next. Reduced motion
  * swaps cards with a fade and does not follow the finger.
  *
- * [yearFlick] tells which positions throw like a month of a year (longer, steeper, and the next card springs up); [face] draws a card inside its frame and [palette] colours it, both by [RecapDeckState.position] (the cover is 0). A face sits on its palette's plate inside a rim of its field, or fills the card edge to edge on a flat palette's field. A face starts afresh when it comes up from below and when
+ * [yearFlick] tells which positions throw like a month of a year (longer, steeper, and the next card springs up); [face] draws a card inside its frame and [palette] colours it, both by [RecapDeckState.position] (the cover is 0). A face sits on its palette's plate inside a rim of its field, or fills the card edge to edge on a flat palette's field. A palette [RecapPagePalette.toFloor] lays its card out [floor] px taller, so it runs on past the deck's bottom; the deck keeps its size. A face starts afresh when it comes up from below and when
  * [RecapDeckState.entrance] bumps, so its entrance plays then, and never restarts while it is thrown away. Only the top
  * face is live ([LocalCardLive]): one being thrown off or faded out takes no tap.
  */
@@ -67,6 +69,7 @@ internal fun RecapDeck(
     palette: @Composable (position: Int) -> RecapPagePalette,
     modifier: Modifier = Modifier,
     yearFlick: (position: Int) -> Boolean = { false },
+    floor: Density.() -> Int = { 0 },
     face: @Composable (position: Int) -> Unit,
 ) {
     val reduced = rememberReducedMotion()
@@ -153,6 +156,7 @@ internal fun RecapDeck(
             Box(
                 Modifier
                     .fillMaxSize()
+                    .then(if (entry.toFloor) Modifier.pastBottom(floor) else Modifier)
                     .graphicsLayer {
                         val behind = (index - stack.value).coerceAtLeast(0f)
                         val flown = (thrown.value - index).coerceIn(0f, 1f)
@@ -204,6 +208,13 @@ internal fun RecapDeck(
 }
 
 private fun throwTravel(yearFlick: Boolean): Float = if (yearFlick) RecapMotion.YearThrowTravel else RecapMotion.ThrowTravel
+
+/** Lays a card out [by] px taller than its slot, running on past the slot's bottom, while the slot keeps its own size. */
+private fun Modifier.pastBottom(by: Density.() -> Int): Modifier = layout { measurable, constraints ->
+    val height = constraints.maxHeight + by()
+    val card = measurable.measure(constraints.copy(minHeight = height, maxHeight = height))
+    layout(constraints.maxWidth, constraints.maxHeight) { card.place(0, 0) }
+}
 
 /** Whether the face drawn here is the deck's top card; a face being thrown off or faded out keeps its buttons from taking a tap. */
 internal val LocalCardLive = compositionLocalOf { true }

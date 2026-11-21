@@ -37,6 +37,15 @@ internal object SolvedFixtures {
     /** A year: 1067 solves over the five games; Strands' 6 against Queens' 334 is the narrowest tile the share hand draws. */
     val year = RecapCard.Solved(1067, games(334, 297, 288, 142, 6), hintFree = 902, longestHintFreeRun = 41)
 
+    /** The user's 2025 in the prototype's order (Zip first): 1068 solves, 1061 without a hint, a run of 584; Strands' 6 is the thinnest band. */
+    val year2025 = RecapCard.Solved(1068, inOrder(288, 297, 335, 142, 6), hintFree = 1061, longestHintFreeRun = 584)
+
+    /** Five digits: 12345 solves over three and a half years, shown under the longest period line, [hugePeriod]. */
+    val huge = RecapCard.Solved(12345, inOrder(3402, 2987, 4120, 1825, 11), hintFree = 11980, longestHintFreeRun = 2140)
+    const val hugePeriod = "From 14 March 2023 to 21 November 2026"
+
+    private fun inOrder(vararg solves: Int) = listOf(zip, tango, queens, sudoku, strands).zip(solves.toList()).map { (game, n) -> RecapCard.Solved.PerGame(game, n) }
+
     /** Two games: Queens and Zip. */
     val twoGames = RecapCard.Solved(58, listOf(RecapCard.Solved.PerGame(queens, 40), RecapCard.Solved.PerGame(zip, 18)), hintFree = 49, longestHintFreeRun = 9)
 
