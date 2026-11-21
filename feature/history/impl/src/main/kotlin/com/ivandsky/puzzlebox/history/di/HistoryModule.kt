@@ -36,24 +36,17 @@ val historyModule = module {
     factory { GetPlayerActions(visibility = get(), completions = get()) }
 
     // The LinkedIn flag and where the hub opens arrive as parameters, so a graph without LinkedIn bindings builds the hub with it off (ghosts read nothing).
-    // On, the hub's Friends boards are domainModule's, the ones Friends Overall gets; off, the same boards count no connection.
-    // With HistoryFlag.FriendsPastGlobalPage on they are built here instead, to read the friends a full global page leaves out.
+    // The hub's Friends boards are built here, not domainModule's, to read the friends a full global page leaves out.
     viewModel { params ->
         val opening = (params.getOrNull<RanksSelection>() ?: RanksSelection()).landing(rankBoards(get<GameRegistry>()), get<GameCalendar>()::today)
         val withLinkedIn = params.getOrNull<Boolean>() == true
-        val releaseFlags = get<ReleaseFlags>()
-        val friendsPast = if (releaseFlags.isEnabled(HistoryFlag.FriendsPastGlobalPage)) LoadFriendsPastPage(get<LeaderboardRepository>()) else null
         RanksViewModel(
             get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
-            friendBoards = when {
-                friendsPast != null -> ObserveFriendBoards(
-                    observeFriendUids = get(), identity = get(), completions = get(), linkedIn = if (withLinkedIn) get() else null, friendsPast = friendsPast,
-                )
-                withLinkedIn -> get()
-                else -> ObserveFriendBoards(observeFriendUids = get(), identity = get(), completions = get(), linkedIn = null)
-            },
+            friendBoards = ObserveFriendBoards(
+                observeFriendUids = get(), identity = get(), completions = get(), linkedIn = if (withLinkedIn) get() else null, friendsPast = LoadFriendsPastPage(get<LeaderboardRepository>()),
+            ),
             linkedIn = if (withLinkedIn) get() else null,
-            releaseFlags = releaseFlags,
+            releaseFlags = get<ReleaseFlags>(),
             savedState = get(),
             opening = opening,
         )

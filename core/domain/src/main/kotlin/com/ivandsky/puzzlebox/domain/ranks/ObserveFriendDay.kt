@@ -22,8 +22,8 @@ import kotlinx.coroutines.flow.map
  * The scope a rank shown outside the hub answers (F20): the player's Friends/Global setting, the one the hub lands
  * on. Null is Global, and in Friends it is the [FriendDay] to rank one game day among: the friends (listened
  * to only then), that day's connections [linkedInDay], which are read from the phone only, and the viewer's own
- * [completions] of the day, which place them on a board they are past the page of. With [friendsPast] (backlog #1779,
- * `FriendsPastGlobalPage`) the friends who placed past the page count too, as on the hub's boards.
+ * [completions] of the day, which place them on a board they are past the page of. With [friendsPast] (backlog #1779)
+ * the friends who placed past the page count too, as on the hub's boards.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ObserveFriendDay(

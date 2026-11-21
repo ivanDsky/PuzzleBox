@@ -201,7 +201,7 @@ val playModule = module {
             puzzleDay = get(),
             nextRollover = get(),
             communityPuzzles = get(),
-            friendsPast = get<LoadFriendsPastPage.Binding>().loader,
+            friendsPast = get<LoadFriendsPastPage>(),
         )
     }
     // The flag-as-parameter rule again: with it off the result never touches LinkedIn. The Post button's flag is
