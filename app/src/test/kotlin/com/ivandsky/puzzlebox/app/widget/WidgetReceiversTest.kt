@@ -10,6 +10,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import java.time.Clock
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.util.concurrent.TimeUnit
@@ -17,7 +18,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.flow
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -54,7 +54,7 @@ class WidgetReceiversTest {
             modules(
                 module {
                     single { refresher }
-                    single { PuzzleBoxWidget(WidgetStateReader({ flow { error("no data") } }, { flow { error("no data") } }, testScoreboard(), BuildWidgetState())) }
+                    single { PuzzleBoxWidget(CachedWidgetReader({ null }, MemoryWidgetSnapshotStore(), { LocalDate.EPOCH })) }
                     single<WidgetRolloverAlarm> { alarm }
                     single {
                         ArmWidgetRollover({ listOf(ZoneId.of("America/Los_Angeles")) }, { true }, alarm, Clock.fixed(NOW, ZoneOffset.UTC))

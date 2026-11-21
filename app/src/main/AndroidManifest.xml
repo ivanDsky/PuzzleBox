@@ -77,9 +77,9 @@
         </receiver>
 
         <!--
-            The home-screen widget. Exported because the launcher binds to it, and disabled so the picker does not list it until the
-            home-widget flag turns the component on. The system sends the update broadcast; boot and package-replaced redraw after a
-            restart or an update.
+            The home-screen widget. Exported because the launcher binds to it. Disabled here and turned on by WidgetAppHooks at every
+            app start, so the picker lists it only once the app has run. The system sends the update broadcast; boot and
+            package-replaced redraw after a restart or an update.
         -->
         <receiver
             android:name=".widget.PuzzleBoxWidgetReceiver"

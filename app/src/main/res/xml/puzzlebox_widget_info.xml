@@ -4,11 +4,13 @@
      row (90dp made 4x2 the least). There is no upper limit, no maxResize*: the widget fills any size, its rows and chips
      growing with it, and the launcher's own grid is the cap. A larger widget is drawn as the largest size it fits, see
      WidgetSizes, so what the widget looks like past 4x3 is the layout, not this file.
-     updatePeriodMillis stays 0: the widget is redrawn by the app and its own alarm, never by a timer. -->
+     updatePeriodMillis stays 0: the widget is redrawn by the app and its own alarm, never by a timer.
+     initialLayout is the empty state, drawn until the first session draws, so a session that is late or never runs shows
+     the widget, not a spinner. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:description="@string/widget_description"
-    android:initialLayout="@layout/glance_default_loading_layout"
+    android:initialLayout="@layout/widget_initial"
     android:minHeight="110dp"
     android:minResizeHeight="40dp"
     android:minResizeWidth="180dp"

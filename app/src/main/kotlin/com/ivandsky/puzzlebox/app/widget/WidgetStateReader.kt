@@ -14,9 +14,8 @@ import kotlinx.coroutines.withTimeoutOrNull
  * The one read the widget draws from: the first value of Today's set and of the all-games stats plus the
  * [scoreboard] (bests, ranks, rollover), through [build], so the widget and Today cannot disagree. The two first reads
  * start together; the whole read gets [readLimitMs], which keeps it inside the receiver's roughly 10 seconds, and the
- * scoreboard's own limits keep a slow rank from costing the rest. No store holds a last good picture, so a failed or
- * hung read is [read] = null and the widget draws its empty state; it never throws, except that cancelling the caller
- * propagates.
+ * scoreboard's own limits keep a slow rank from costing the rest. A failed or hung read is [read] = null, and the widget
+ * keeps its last good picture ([CachedWidgetReader]); it never throws, except that cancelling the caller propagates.
  */
 class WidgetStateReader(
     private val todaySet: () -> Flow<List<TodayEntry>>,
