@@ -228,8 +228,8 @@ class SettingsScreenTest {
     }
 
     @Test
-    fun `with radio rows each row says its line, marks the stored mode and a tap reports its mode`() {
-        setContent(state = SettingsUiState(themeMode = ThemeMode.LIGHT, versionName = "1.4.0", choiceRows = true))
+    fun `each Appearance row says its line, marks the stored mode and a tap reports its mode`() {
+        setContent(state = SettingsUiState(themeMode = ThemeMode.LIGHT, versionName = "1.4.0"))
 
         composeRule.onNodeWithText("Appearance").assertExists()
         composeRule.onNodeWithText("Follows your phone's setting").assertExists()
@@ -244,14 +244,6 @@ class SettingsScreenTest {
         composeRule.onNodeWithTag("profile.appearance.dark").performClick()
 
         assertEquals(listOf(ThemeMode.SYSTEM, ThemeMode.LIGHT, ThemeMode.DARK), themes)
-    }
-
-    @Test
-    fun `without radio rows Appearance keeps the segmented control and no row lines`() {
-        setContent()
-
-        composeRule.onNodeWithText("Always dark").assertDoesNotExist()
-        composeRule.onNodeWithTag("profile.appearance.dark").assertExists()
     }
 
     @Test

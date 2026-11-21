@@ -172,10 +172,9 @@ val playModule = module {
     single { MainTabsLargeBar(enabled = get<ReleaseFlags>().isEnabled(TopBarFlag.MainTabsLargeBar)) }
     // The memory forgets the last pick with the process.
     single { RandomPickMemory() }
-    // The preset game is the one parameter: the page whose Random opened the sheet. The ChoiceRows flag is read here,
-    // once per view model, and puts the source on radio rows.
+    // The preset game is the one parameter: the page whose Random opened the sheet.
     viewModel { params ->
-        RandomPuzzleViewModel(params.get<GameId>(), get(), get(), get(), choiceRows = get<ReleaseFlags>().isEnabled(TopBarFlag.ChoiceRows))
+        RandomPuzzleViewModel(params.get<GameId>(), get(), get(), get())
     }
     // How to play opens the rules sheet over the live play for a game with rules copy.
     single { HowToPlayRules() }

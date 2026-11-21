@@ -12,7 +12,6 @@ import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.ChoiceRows
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.designsystem.SegmentedToggle
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.model.ThemeMode
 
@@ -32,15 +31,14 @@ private fun tag(mode: ThemeMode): String = "profile.appearance.${mode.name.lower
 
 /**
  * Appearance (N4, moved here from the Home gear): System / Light / Dark, one tap each
- * (tag `profile.appearance.<mode>`, lowercase). [onSelect] persists the choice. With [choiceRows] the
- * choice is [ChoiceRows] with a line under each mode, else the segmented control.
+ * (tag `profile.appearance.<mode>`, lowercase). [onSelect] persists the choice. The choice is [ChoiceRows]
+ * with a line under each mode.
  */
 @Composable
 internal fun AppearanceRow(
     current: ThemeMode,
     onSelect: (ThemeMode) -> Unit,
     modifier: Modifier = Modifier,
-    choiceRows: Boolean = false,
 ) {
     Column(
         modifier = modifier.fillMaxWidth().testTag("profile.appearance"),
@@ -51,33 +49,22 @@ internal fun AppearanceRow(
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
         )
-        if (choiceRows) {
-            ChoiceRows(
-                options = ThemeMode.entries,
-                selected = current,
-                onSelect = onSelect,
-                label = ::label,
-                description = ::description,
-                tag = ::tag,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        } else {
-            SegmentedToggle(
-                options = ThemeMode.entries,
-                selected = current,
-                onSelect = onSelect,
-                label = ::label,
-                tag = ::tag,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
+        ChoiceRows(
+            options = ThemeMode.entries,
+            selected = current,
+            onSelect = onSelect,
+            label = ::label,
+            description = ::description,
+            tag = ::tag,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
 @PuzzleBoxPreviews
 @Composable
-internal fun AppearanceRowChoiceRowsPreview() {
+internal fun AppearanceRowPreview() {
     PuzzleBoxTheme {
-        AppearanceRow(current = ThemeMode.SYSTEM, onSelect = {}, choiceRows = true, modifier = Modifier.padding(Spacing.xl))
+        AppearanceRow(current = ThemeMode.SYSTEM, onSelect = {}, modifier = Modifier.padding(Spacing.xl))
     }
 }

@@ -255,6 +255,7 @@ class RandomNewTodaySheetTest {
     }
 
     @Test
+    @Config(qualifiers = "w900dp-h900dp")
     fun `on a tablet the toggle is above the chips on the left and Pick is on the right`() {
         val state = RandomPuzzleState(RandomSource.Community, game = null, unsolvedOnly = true, difficulty = null, phase = RandomPhase.Idle)
         composeRule.setContent {

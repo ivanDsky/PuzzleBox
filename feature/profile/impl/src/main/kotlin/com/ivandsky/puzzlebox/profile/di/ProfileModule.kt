@@ -5,9 +5,6 @@ import android.webkit.CookieManager
 import android.webkit.WebSettings
 import com.ivandsky.puzzlebox.app.screens.ProfileViewModel
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.TopBarFlag
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
 import com.ivandsky.puzzlebox.data.cloud.OversizedDrafts
 import com.ivandsky.puzzlebox.data.cloud.SavedBoardsCloud
@@ -50,8 +47,7 @@ val profileModule: Module = module {
             savedBoardsCloud = get(),
         )
     }
-    // The parameter is the app's VisibilitySlot; without it Settings has no Visibility section. The ChoiceRows flag is
-    // read here, once per view model, and puts Appearance on radio rows.
+    // The parameter is the app's VisibilitySlot; without it Settings has no Visibility section.
     viewModel { params ->
         SettingsViewModel(
             preferences = get(),
@@ -60,7 +56,6 @@ val profileModule: Module = module {
             identityService = get(),
             idTokenProvider = get(),
             visibility = params.getOrNull(),
-            choiceRows = get<ReleaseFlags>().isEnabled(TopBarFlag.ChoiceRows),
         )
     }
     viewModel {

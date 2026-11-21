@@ -23,8 +23,8 @@ private val Games = listOf(
 
 private val Actions = RandomPuzzleActions(onSource = {}, onGame = {}, onUnsolved = {}, onDifficulty = {}, onPick = {})
 
-private fun state(phase: RandomPhase, source: RandomSource, difficulty: DifficultyChoice?, game: GameId? = null, choiceRows: Boolean = false) =
-    RandomPuzzleState(source, game = game, unsolvedOnly = true, difficulty = difficulty, phase = phase, choiceRows = choiceRows)
+private fun state(phase: RandomPhase, source: RandomSource, difficulty: DifficultyChoice?, game: GameId? = null) =
+    RandomPuzzleState(source, game = game, unsolvedOnly = true, difficulty = difficulty, phase = phase)
 
 @Composable
 private fun Body(
@@ -34,12 +34,11 @@ private fun Body(
     source: RandomSource = RandomSource.Past,
     difficulty: DifficultyChoice? = null,
     game: GameId? = null,
-    choiceRows: Boolean = false,
 ) {
     PuzzleBoxTheme {
         Surface {
             RandomPuzzleContent(
-                state(phase, source, difficulty, game, choiceRows),
+                state(phase, source, difficulty, game),
                 if (source == RandomSource.Past) Games else Games.take(3),
                 layout,
                 Actions,
@@ -109,13 +108,3 @@ internal fun RandomGamePagePreview() = Page(RandomFilterPage.Game, game = GameId
 @PuzzleBoxPreviews
 @Composable
 internal fun RandomDifficultyPagePreview() = Page(RandomFilterPage.Difficulty)
-
-/** The source as radio rows (ChoiceRows on): Past puzzles chosen, a line under each. */
-@PuzzleBoxPreviews
-@Composable
-internal fun RandomPuzzleRowsPreview() = Body(RandomPhase.Idle, choiceRows = true)
-
-/** The radio rows with a pick running: both off, the chosen row reads "Picking a puzzle…". */
-@PuzzleBoxPreviews
-@Composable
-internal fun RandomPuzzleRowsPickingPreview() = Body(RandomPhase.Picking, source = RandomSource.Community, choiceRows = true)

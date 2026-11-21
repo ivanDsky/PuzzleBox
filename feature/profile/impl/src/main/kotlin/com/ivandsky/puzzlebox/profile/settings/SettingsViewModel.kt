@@ -30,8 +30,7 @@ private data class SignInProgress(val running: Boolean = false, val message: Str
 /**
  * Settings state: the stored theme mode, the Games switches (live from [games]) and [AppBuild.versionName]; a pick is
  * saved through [preferences] and a switch through [games]. [visibility] (null: no Visibility section, repository untouched)
- * supplies and saves the player's own tier. [choiceRows] (the ChoiceRows flag, read by
- * DI) shows Appearance as radio rows.
+ * supplies and saves the player's own tier.
  */
 internal class SettingsViewModel(
     private val preferences: UserPreferencesRepository,
@@ -40,7 +39,6 @@ internal class SettingsViewModel(
     private val identityService: IdentityService,
     private val idTokenProvider: GoogleIdTokenProvider,
     private val visibility: VisibilitySlot? = null,
-    private val choiceRows: Boolean = false,
 ) : ViewModel() {
 
     private val gamesSection: Flow<GamesSectionState> =
@@ -64,7 +62,6 @@ internal class SettingsViewModel(
                 ranksFriendsDefault = ranksFriends,
                 vibration = vibration,
                 showSelfDuelTimeLeft = timeLeft,
-                choiceRows = choiceRows,
             )
         }.combine(signIn) { state, progress ->
             state.copy(signingIn = progress.running, signInMessage = progress.message)
@@ -73,7 +70,7 @@ internal class SettingsViewModel(
         }.combine(identityService.current) { state, identity -> state.copy(signedIn = identity != null) }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = SettingsUiState(themeMode = ThemeMode.SYSTEM, versionName = appBuild.versionName, choiceRows = choiceRows),
+            initialValue = SettingsUiState(themeMode = ThemeMode.SYSTEM, versionName = appBuild.versionName),
         )
 
     /** Appearance: persisted; the app root re-themes from the stored mode. */
