@@ -26,18 +26,16 @@ internal data class ArchivePageState(
 
 /**
  * [game]'s page for [shown] (null = today's month) and the past [day] picked for the day card, null while its today is not known.
- * With [beside] it also loads the months before and after (empty outside the archive).
+ * It also loads the months before and after, for the calendar's pager (empty outside the archive).
  */
 internal fun ObserveArchiveMonth.page(
     game: GameId,
     shown: YearMonth?,
     day: LocalDate?,
     calendar: GameCalendar,
-    beside: Boolean = false,
 ): Flow<ArchivePageState?> {
     val target = shown ?: calendar.today(game)?.let(YearMonth::from) ?: return flowOf(null)
     val page = pageOf(game, target, day)
-    if (!beside) return page
     val before = target.minusMonths(1)
     val after = target.plusMonths(1)
     return combine(page, this(game, before), this(game, after)) { state, earlier, later ->

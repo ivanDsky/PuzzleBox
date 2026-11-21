@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -79,7 +78,6 @@ internal fun LibraryRoute(
     val lesson by viewModel.lesson.collectAsStateWithLifecycle()
     val page by viewModel.page.collectAsStateWithLifecycle()
     val month by viewModel.shownMonth.collectAsStateWithLifecycle()
-    val monthSwipe by viewModel.monthSwipe.collectAsStateWithLifecycle()
     // The card collects the view itself, so the route never starts a LinkedIn read.
     val linkedInCard = rememberLinkedInCard(viewModel, onReconnectLinkedIn)
     val friends by viewModel.friends.collectAsStateWithLifecycle()
@@ -102,38 +100,36 @@ internal fun LibraryRoute(
         onStopOrDispose { }
     }
     Box(modifier.fillMaxSize().testTag("route.library")) {
-        CompositionLocalProvider(LocalArchiveMonthSwipe provides monthSwipe) {
-            LibraryScreen(
-                state = state,
-                page = page,
-                month = month,
-                layout = layout,
-                hasLesson = { registry[it]?.tutorial?.isNotEmpty() == true },
-                onSelect = viewModel::select,
-                onPlay = onPlay,
-                onRetry = viewModel::syncToday,
-                onOpenLesson = viewModel::openLesson,
-                calendar = CalendarActions(
-                    onShowMonth = viewModel::showMonth,
-                    onPick = viewModel::pick,
-                    onBackToToday = viewModel::backToToday,
-                ),
-                onEnterCode = { enteringCode = true },
-                onRandom = { game -> randomGame = game.value },
-                friends = friends,
-                onOpenFriend = onOpenCode,
-                onRemoveFriend = viewModel::removeFriend,
-                duels = duels,
-                train = train,
-                request = request,
-                onRequestTaken = onRequestTaken,
-                linkedIn = linkedInCard,
-                onOpenRanks = onOpenRanks,
-                onMakeOne = onMakeOne,
-                onOpenStats = onOpenStats,
-                largeBar = rememberMainTabsLargeBar(),
-            )
-        }
+        LibraryScreen(
+            state = state,
+            page = page,
+            month = month,
+            layout = layout,
+            hasLesson = { registry[it]?.tutorial?.isNotEmpty() == true },
+            onSelect = viewModel::select,
+            onPlay = onPlay,
+            onRetry = viewModel::syncToday,
+            onOpenLesson = viewModel::openLesson,
+            calendar = CalendarActions(
+                onShowMonth = viewModel::showMonth,
+                onPick = viewModel::pick,
+                onBackToToday = viewModel::backToToday,
+            ),
+            onEnterCode = { enteringCode = true },
+            onRandom = { game -> randomGame = game.value },
+            friends = friends,
+            onOpenFriend = onOpenCode,
+            onRemoveFriend = viewModel::removeFriend,
+            duels = duels,
+            train = train,
+            request = request,
+            onRequestTaken = onRequestTaken,
+            linkedIn = linkedInCard,
+            onOpenRanks = onOpenRanks,
+            onMakeOne = onMakeOne,
+            onOpenStats = onOpenStats,
+            largeBar = rememberMainTabsLargeBar(),
+        )
         FriendRemovedSnackbar(removedFriend, onUndo = viewModel::undoRemoveFriend, modifier = Modifier.align(Alignment.BottomCenter))
         if (enteringCode) {
             EnterCodeSheet(

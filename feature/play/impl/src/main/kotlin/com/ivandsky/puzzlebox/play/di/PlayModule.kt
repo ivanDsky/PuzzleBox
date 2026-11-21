@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.play.di
 
-import com.ivandsky.puzzlebox.common.di.flagSet
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.TopBarFlag
@@ -50,7 +49,6 @@ import com.ivandsky.puzzlebox.play.domain.nextthing.ObserveResultNextThing
 import com.ivandsky.puzzlebox.play.domain.random.LoadRandomDay
 import com.ivandsky.puzzlebox.play.domain.random.LoadRandomPuzzle
 import com.ivandsky.puzzlebox.play.domain.random.LoadRandomShared
-import com.ivandsky.puzzlebox.play.flags.PlayFlag
 import com.ivandsky.puzzlebox.play.random.RandomPickMemory
 import com.ivandsky.puzzlebox.play.random.RandomPuzzleViewModel
 import java.time.Instant
@@ -75,8 +73,7 @@ import org.koin.dsl.module
  * [FinishLeg] and [ObserveLegTarget], Report's [ReportPuzzle], the result's LinkedIn post
  * ([ObserveLinkedInPost], [SubmitLinkedInResult]), a past day's [LoadPastDay], the community
  * list ([ListCommunityPuzzles]), and the random pick ([LoadRandomDay], [LoadRandomShared],
- * [LoadRandomPuzzle]), which shuffles with [Random.Default]. The feature's release flags
- * ([PlayFlag]) are declared here.
+ * [LoadRandomPuzzle]), which shuffles with [Random.Default].
  *
  * [PlaySessionStore] is a single so live plays outlive their entries' compositions. Its
  * slot opening and every slot's writer share ONE [WriteLane], so a released slot's final
@@ -85,7 +82,6 @@ import org.koin.dsl.module
  */
 val playModule = module {
     includes(friendModule)
-    flagSet("play", PlayFlag.entries)
     single {
         val lane = WriteLane()
         val saved = get<SavedPlayRepository>()
@@ -148,7 +144,6 @@ val playModule = module {
             get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
             linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
             identity = get(),
-            releaseFlags = get(),
         )
     }
     viewModel { (key: GameKey) -> GameViewModel(key, get(), get(), get(), get()) }

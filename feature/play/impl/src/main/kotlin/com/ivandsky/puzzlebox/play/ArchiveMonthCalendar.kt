@@ -61,8 +61,8 @@ internal fun archiveDiscFor(compact: Boolean): Dp = if (compact) 42.dp else 46.d
  * A non-null [onRandom] puts a Random chip in [accent]'s container at the jump row's right edge.
  * [compact] is the phone's smaller disc and row. [month] and [days] are always one loaded month: while a month the
  * user asked for ([requested], the one ‹ › and the jumps step from) is still loading, they stay the last loaded one, and
- * when it lands the title, numbers and grid change together (the crossfade of [ArchiveMonthGrid]).
- * With [swipe] (backlog #1668) the grid is a pager ([ArchiveMonthPager]) over [around], the months loaded beside [month]:
+ * when it lands the title, numbers and grid change together.
+ * The grid is a pager ([ArchiveMonthPager]) over [around], the months loaded beside [month] (backlog #1668):
  * a swipe asks for the month it lands on through [onMonth], ‹ › and the jumps slide to theirs, and the title and numbers
  * always belong to the month the pager is showing.
  */
@@ -82,12 +82,11 @@ internal fun ArchiveMonthCalendar(
     onRandom: (() -> Unit)? = null,
     requested: YearMonth = month,
     around: Map<YearMonth, List<ArchiveDay>> = emptyMap(),
-    swipe: Boolean = LocalArchiveMonthSwipe.current,
 ) {
     val nav = remember(range) { ArchiveMonthNav(range) }
     val reduced = rememberReducedMotion()
     val style = ArchiveMonthStyle(nav, picked, range.endInclusive, offline, accent, compact, reduced)
-    val pager = if (swipe) rememberArchiveMonthPager(nav, ArchiveMonthSource(month, days, around), requested, reduced, onMonth) else null
+    val pager = rememberArchiveMonthPager(nav, ArchiveMonthSource(month, days, around), requested, reduced, onMonth)
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -96,7 +95,7 @@ internal fun ArchiveMonthCalendar(
             .padding(horizontal = 20.dp, vertical = Spacing.lg)
             .testTag("library.calendar"),
     ) {
-        Header(nav, pager?.month ?: month, requested, pager?.days ?: days, onMonth)
+        Header(nav, pager.month, requested, pager.days, onMonth)
         ArchiveMonthJumps(nav, requested, accent, reduced, onMonth, onToday, onRandom)
         Row(Modifier.fillMaxWidth().height(20.dp), verticalAlignment = Alignment.CenterVertically) {
             Weekdays.forEach { letter ->
@@ -109,7 +108,7 @@ internal fun ArchiveMonthCalendar(
                 )
             }
         }
-        if (pager != null) ArchiveMonthPager(style, pager, onPick) else ArchiveMonthGrid(style, month, days, onPick)
+        ArchiveMonthPager(style, pager, onPick)
         Spacer(Modifier.weight(1f, fill = false).height(10.dp))
         Legend(accent.accent, offline)
     }

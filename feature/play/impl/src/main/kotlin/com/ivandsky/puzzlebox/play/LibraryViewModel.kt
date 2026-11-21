@@ -2,8 +2,6 @@ package com.ivandsky.puzzlebox.play
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
@@ -31,7 +29,6 @@ import com.ivandsky.puzzlebox.play.domain.FriendPuzzleRow
 import com.ivandsky.puzzlebox.play.domain.ObserveArchiveMonth
 import com.ivandsky.puzzlebox.play.domain.ObserveArchiveProgress
 import com.ivandsky.puzzlebox.play.domain.ObserveFriendPuzzles
-import com.ivandsky.puzzlebox.play.flags.PlayFlag
 import com.ivandsky.puzzlebox.play.linkedin.libraryView
 import com.ivandsky.puzzlebox.resultui.GameCardModel
 import java.time.LocalDate
@@ -44,7 +41,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -106,7 +102,6 @@ class LibraryViewModel(
     appScope: CoroutineScope,
     internal val linkedIn: ObserveLinkedInDayView?,
     private val identity: IdentityService,
-    releaseFlags: ReleaseFlags,
 ) : ViewModel() {
 
     // Held rows reset when this changes: a sign-in as someone else never shows the first account's.
@@ -191,22 +186,11 @@ class LibraryViewModel(
             LibraryUiState(seed, selected.value, offline = false),
         )
 
-    // Live, so the debug flag's switch applies without a restart.
-    private val swipe: Flow<Boolean> = releaseFlags.enabled.map(::swipeOf).distinctUntilChanged()
-
     @OptIn(ExperimentalCoroutinesApi::class)
     internal val page: StateFlow<ArchivePageState?> =
-        combine(selected, month, picked, swipe) { game, shown, day, beside -> archiveMonth.page(game, shown, day, calendar, beside) }
+        combine(selected, month, picked) { game, shown, day -> archiveMonth.page(game, shown, day, calendar) }
             .flatMapLatest { it }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
-
-    /**
-     * Whether the calendar's months swipe (backlog #1668, [PlayFlag.ArchiveMonthSwipe]): the grid follows the finger and
-     * ‹ › slide it the same way, and [page] carries the months either side so a swipe shows the next one at once. Off, a
-     * month change is #1551's crossfade.
-     */
-    internal val monthSwipe: StateFlow<Boolean> =
-        swipe.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), swipeOf(releaseFlags.enabled.value))
 
     /** The day card's LinkedIn view; no stop grace, so a sync still in its debounce dies with the card. */
     internal val linkedInView: StateFlow<LinkedInDayView?> = linkedIn
@@ -278,7 +262,5 @@ class LibraryViewModel(
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
-
-        fun swipeOf(on: Set<ReleaseFlagKey>) = PlayFlag.ArchiveMonthSwipe in on
     }
 }
