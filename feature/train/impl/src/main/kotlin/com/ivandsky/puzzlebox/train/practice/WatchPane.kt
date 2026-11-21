@@ -44,10 +44,10 @@ private val ColumnGap = Spacing.xl
 private val TwoPane = MinBoardColumn + ColumnGap + WatchColumnWidth
 
 /**
- * The technique intro (spec §2.7) over [intro], playing: the demo starts at once (and under reduced motion rests on its
- * last frame, with Replay stepping through it), the next variant follows by itself. Skip and Start practice call
+ * The technique intro (spec §2.7) over [intro], walked through by the player: each variant opens on its first step and
+ * Next step shows the following one (user-check round 4: autoplay ran too fast to read). Skip and Start practice call
  * [IntroControls.onStart]; in a [replay] over a live board Close and Back to board 1 call [IntroControls.onClose]. The
- * playback is this composition's: leaving the intro and coming back plays it again from the first variant.
+ * walk is this composition's: leaving the intro and coming back starts it again from the first variant.
  */
 @Composable
 internal fun IntroWatch(
@@ -79,6 +79,7 @@ internal fun IntroWatch(
         onSelect = player::select,
         onSeek = player::seek,
         onReplay = player::replay,
+        onNext = player::next,
         onLeave = leave,
         onPrimary = leave,
         modifier = modifier,
@@ -88,8 +89,9 @@ internal fun IntroWatch(
 /**
  * The intro's screen, stateless: a top bar ("Technique intro" and Skip intro, or Close in a [replay]), the title row
  * ("Watch first", no pips), then the demo of [entries]`[variant]` at [frame], drawn by [demo] under the watching band
- * (the caption of the frame's step), and the [WatchColumn] beside it on a wide pane or below it on a narrow one. [onLeave] is the
- * top bar's button, [onPrimary] the column's Start practice (Back to board 1 in a replay).
+ * (the caption of the frame's step, with Next step ([onNext]) while there is a step or variant after it), and the
+ * [WatchColumn] beside it on a wide pane or below it on a narrow one. [onLeave] is the top bar's button, [onPrimary]
+ * the column's Start practice (Back to board 1 in a replay).
  */
 @Composable
 internal fun WatchPane(
@@ -105,6 +107,7 @@ internal fun WatchPane(
     onSelect: (Int) -> Unit,
     onSeek: (Int) -> Unit,
     onReplay: () -> Unit,
+    onNext: () -> Unit,
     onLeave: () -> Unit,
     onPrimary: () -> Unit,
     modifier: Modifier = Modifier,
@@ -118,8 +121,9 @@ internal fun WatchPane(
             PracticeHeader(chapter, progress, showBack = false, onClose = onClose, watching = true)
             Spacer(Modifier.height(Spacing.sm))
             val board = @Composable {
+                val next = hasNextStep(variant, frame, entry.frames, entries.size)
                 BandOverBoard(
-                    band = { WatchBand(entry.variant.title, stepCaption(entry.demo.captions, frame)) },
+                    band = { WatchBand(entry.variant.title, stepCaption(entry.demo.captions, frame), onNext.takeIf { next }) },
                     board = { demo(entry.demo, frame, Modifier) },
                 )
             }
@@ -159,9 +163,12 @@ private fun TopBar(replay: Boolean, showBack: Boolean, onClose: () -> Unit, onLe
     }
 }
 
-/** The watching band: the variant's [title], and under it the [caption] of the frame shown, which rises in each time it changes. */
+/**
+ * The watching band: the variant's [title], and under it the [caption] of the frame shown, which rises in each time it
+ * changes; with [onNext], a Next step button at its end.
+ */
 @Composable
-internal fun WatchBand(title: String, caption: String, modifier: Modifier = Modifier) {
+internal fun WatchBand(title: String, caption: String, onNext: (() -> Unit)?, modifier: Modifier = Modifier) {
     val scheme = MaterialTheme.colorScheme
     BandFrame(scheme.surfaceVariant, "train.watch.band", modifier) {
         Icon(PuzzleIcons.Visibility, contentDescription = null, tint = scheme.onSurface)
@@ -177,6 +184,9 @@ internal fun WatchBand(title: String, caption: String, modifier: Modifier = Modi
                     modifier = Modifier.rise().testTag("train.watch.caption"),
                 )
             }
+        }
+        if (onNext != null) {
+            TextButton(onClick = onNext, Modifier.testTag("train.watch.next")) { Text("Next step", color = scheme.onSurface) }
         }
     }
 }

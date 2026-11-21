@@ -33,15 +33,15 @@ class PracticeHoldTest {
 
     /** Bug caught: a countdown that does not start at the full hold, or does not follow the clock, so the band's seconds are wrong. */
     @Test
-    fun `the hold starts at one second and counts down with the clock`() {
+    fun `the hold starts at two seconds and counts down with the clock`() {
         val rig = rig()
         assertNull(rig.vm.hold.value)
 
         rig.end()
         assertEquals(BoardHold(BoardEndHoldMillis, waitsForTap = false), rig.vm.hold.value)
 
-        advance(400)
-        assertEquals(BoardHold(600, waitsForTap = false), rig.vm.hold.value)
+        advance(1_000)
+        assertEquals(BoardHold(1_000, waitsForTap = false), rig.vm.hold.value)
         assertEquals(1, rig.vm.chapter.value.board)
     }
 
@@ -50,15 +50,15 @@ class PracticeHoldTest {
     fun `the hold stands still in the background and goes on in the foreground`() {
         val rig = rig()
         rig.end()
-        advance(400)
+        advance(1_000)
 
         rig.vm.setForeground(false)
         advance(60_000)
         assertEquals(1, rig.vm.chapter.value.board)
-        assertEquals(600L, rig.vm.hold.value?.remainingMs)
+        assertEquals(1_000L, rig.vm.hold.value?.remainingMs)
 
         rig.vm.setForeground(true)
-        advance(500)
+        advance(900)
         assertEquals(1, rig.vm.chapter.value.board)
         advance(100)
         assertEquals(2, rig.vm.chapter.value.board)

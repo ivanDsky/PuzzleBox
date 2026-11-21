@@ -8,38 +8,20 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-/** How long a demo takes to move on to a frame, from the intro handoff (prototype 02): the evidence lights, the first square lands, the rest follow quickly. */
-internal object IntroTiming {
-    const val EvidenceMillis = 1_300L
-    const val LandingMillis = 1_800L
-    const val StaggerMillis = 150L
-
-    /** A reduced-motion replay shows one frame for this long, then the next at once. */
-    const val ReducedStepMillis = 1_700L
-
-    /** The pause after one variant is done before the next one starts by itself. */
-    const val ChainRestMillis = 1_500L
-
-    /** The wait before [frame] (from 1) shows. */
-    fun before(frame: Int): Long = when (frame) {
-        1 -> EvidenceMillis
-        2 -> LandingMillis
-        else -> StaggerMillis
-    }
-}
+/** The time between two squares landing in the demo's landing step (prototype 02): one reason, so they follow quickly. */
+internal const val LandingStaggerMillis = 150L
 
 /**
- * The intro's playback over [entries]: which variant is up ([variant]), which of its frames ([frame]) and whether it is
- * still playing ([playing]). A variant is played once from frame 0 at the handoff's timing and rests on its last frame;
- * the first starts at once and the next follows by itself. [select] plays the one tapped (and none after it), [seek]
- * shows one frame and stops, [replay] plays the variant again. Under [reduced] motion nothing plays by itself: a
- * variant rests on its last frame, and [replay] steps through the frames, [IntroTiming.ReducedStepMillis] each.
+ * The intro's walk through [entries]: which variant is up ([variant]) and which of its frames ([frame]). Nothing plays
+ * by itself: a variant opens on its first frame and the player moves on with [next], one step at a time (the opening,
+ * the evidence, then the squares landing [LandingStaggerMillis] apart, or all at once under [reduced] motion); past a
+ * variant's last frame [next] opens the next variant. [select] opens the one tapped, [seek] shows one frame, [replay]
+ * goes back to the variant's first frame.
  */
 internal class IntroPlayer(private val entries: List<IntroEntry>, private val reduced: Boolean, private val scope: CoroutineScope) {
 
     private val mutableVariant = MutableStateFlow(0)
     private val mutableFrame = MutableStateFlow(0)
-    private val mutablePlaying = MutableStateFlow(false)
     private var job: Job? = null
 
     /** The index in the entries of the variant shown. */
@@ -48,53 +30,50 @@ internal class IntroPlayer(private val entries: List<IntroEntry>, private val re
     /** The frame of that variant shown, from 0. */
     val frame: StateFlow<Int> = mutableFrame.asStateFlow()
 
-    val playing: StateFlow<Boolean> = mutablePlaying.asStateFlow()
-
-    init {
-        if (reduced) rest(0) else play(0, chain = true, step = IntroTiming::before)
+    /** Opens variant [index] on its first frame. */
+    fun select(index: Int) {
+        job?.cancel()
+        mutableVariant.value = index
+        mutableFrame.value = 0
     }
 
-    /** Plays variant [index] (rests on its last frame under reduced motion). */
-    fun select(index: Int) = if (reduced) rest(index) else play(index, chain = false, step = IntroTiming::before)
-
-    /** Shows [frame] of the variant and stops. */
+    /** Shows [frame] of the variant. */
     fun seek(frame: Int) {
         job?.cancel()
-        mutablePlaying.value = false
         mutableFrame.value = frame
     }
 
-    /** Plays the variant shown again from its first frame. */
-    fun replay() {
-        val reducedStep: (Int) -> Long = { IntroTiming.ReducedStepMillis }
-        val step: (Int) -> Long = if (reduced) reducedStep else IntroTiming::before
-        play(mutableVariant.value, chain = false, step = step)
+    /** Goes back to the first frame of the variant shown. */
+    fun replay() = select(mutableVariant.value)
+
+    /** Shows the next step: the evidence, then the landing (its squares one after another), then the next variant's opening. */
+    fun next() {
+        val last = entries[mutableVariant.value].frames - 1
+        val frame = mutableFrame.value
+        when {
+            // Before the landing step a step is one frame; the landing step is every frame left.
+            stepOf(frame + 1) < stepOf(last) -> seek(frame + 1)
+            stepOf(frame) < stepOf(last) -> land(from = frame + 1, last = last)
+            mutableVariant.value < entries.lastIndex -> select(mutableVariant.value + 1)
+        }
     }
 
-    private fun rest(index: Int) {
+    private fun land(from: Int, last: Int) {
         job?.cancel()
-        mutableVariant.value = index
-        mutableFrame.value = entries[index].frames - 1
-        mutablePlaying.value = false
-    }
-
-    private fun play(from: Int, chain: Boolean, step: (Int) -> Long) {
-        job?.cancel()
+        if (reduced) {
+            mutableFrame.value = last
+            return
+        }
         job = scope.launch {
-            var index = from
-            while (true) {
-                mutableVariant.value = index
-                mutableFrame.value = 0
-                mutablePlaying.value = true
-                for (frame in 1 until entries[index].frames) {
-                    delay(step(frame))
-                    mutableFrame.value = frame
-                }
-                mutablePlaying.value = false
-                if (!chain || index == entries.lastIndex) return@launch
-                delay(IntroTiming.ChainRestMillis)
-                index++
+            mutableFrame.value = from
+            for (frame in from + 1..last) {
+                delay(LandingStaggerMillis)
+                mutableFrame.value = frame
             }
         }
     }
 }
+
+/** Whether [IntroPlayer.next] has a step to show from [frame] of variant [variant] (with [frames] frames) out of [count] variants. */
+internal fun hasNextStep(variant: Int, frame: Int, frames: Int, count: Int): Boolean =
+    stepOf(frame) < stepOf(frames - 1) || variant < count - 1

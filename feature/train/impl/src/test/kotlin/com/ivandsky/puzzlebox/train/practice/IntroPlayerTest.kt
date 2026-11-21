@@ -11,12 +11,13 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** The intro's playback in virtual time: the handoff's timing, resting on the last frame, seeking, and reduced motion. */
+/** The intro's walk in virtual time: nothing plays by itself, Next step, the landing stagger, the next variant, and reduced motion. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class IntroPlayerTest {
 
+    /** Each demo: the opening, the evidence, then three squares landing (frames 2 to 4). */
     private fun entries(count: Int = 2) = List(count) {
-        IntroEntry(IntroVariant("V$it", "Rule.", "Spot.", "Do."), StandInIntroDemo(it, listOf("a", "b", "c", "d")))
+        IntroEntry(IntroVariant("V$it", "Rule.", "Spot.", "Do."), StandInIntroDemo(it, listOf("a", "b", "c", "d", "e")))
     }
 
     private fun TestScope.advance(millis: Long) {
@@ -24,100 +25,87 @@ class IntroPlayerTest {
         runCurrent()
     }
 
-    /** Bug caught: the demo not starting by itself, or its frames out of the handoff's timing (evidence 1.3 s, first square 1.8 s later, the rest 150 ms apart). */
+    /** Bug caught: the demo moving on by itself, which ran too fast to read (user-check round 4). */
     @Test
-    fun `frames advance at the handoff timing and the variant rests on its last frame`() = runTest {
+    fun `the intro opens on the first frame and stays there`() = runTest {
+        val player = IntroPlayer(entries(2), reduced = false, scope = backgroundScope)
+        advance(60_000)
+
+        assertEquals(0, player.variant.value)
+        assertEquals(0, player.frame.value)
+    }
+
+    /** Bug caught: Next step skipping the evidence, or the landing squares asking for a tap each instead of landing as one step. */
+    @Test
+    fun `next step shows the evidence, then the squares land one after another`() = runTest {
         val player = IntroPlayer(entries(1), reduced = false, scope = backgroundScope)
-        runCurrent()
-        assertEquals(0, player.frame.value)
-        assertTrue(player.playing.value)
 
-        advance(1_299)
-        assertEquals(0, player.frame.value)
-        advance(1)
-        assertEquals(1, player.frame.value)
-        advance(1_799)
-        assertEquals(1, player.frame.value)
-        advance(1)
-        assertEquals(2, player.frame.value)
-        advance(150)
-        assertEquals(3, player.frame.value)
-        assertFalse(player.playing.value)
-
+        player.next()
         advance(60_000)
-        assertEquals(3, player.frame.value)
-    }
+        assertEquals(1, player.frame.value)
 
-    /** Bug caught: the second variant never playing after the first, or starting with no rest on the first's last frame. */
-    @Test
-    fun `the next variant follows by itself after a rest`() = runTest {
-        val player = IntroPlayer(entries(2), reduced = false, scope = backgroundScope)
+        player.next()
         runCurrent()
-        advance(3_250)
-        assertEquals(0, player.variant.value)
-        assertEquals(3, player.frame.value)
-
-        advance(1_499)
-        assertEquals(0, player.variant.value)
-        advance(1)
-        assertEquals(1, player.variant.value)
-        assertEquals(0, player.frame.value)
-    }
-
-    /** Bug caught: a tapped variant chaining on to the next one, which would take the demo away from a player who is reading it. */
-    @Test
-    fun `a tapped variant plays alone`() = runTest {
-        val player = IntroPlayer(entries(3), reduced = false, scope = backgroundScope)
-        runCurrent()
-
-        player.select(1)
-        runCurrent()
-        assertEquals(1, player.variant.value)
-        assertEquals(0, player.frame.value)
-        advance(3_250 + 60_000)
-
-        assertEquals(1, player.variant.value)
-        assertEquals(3, player.frame.value)
-    }
-
-    /** Bug caught: a seek that autoplay then plays over, so the frame the player picked is replaced a moment later. */
-    @Test
-    fun `seeking shows that frame and stops autoplay`() = runTest {
-        val player = IntroPlayer(entries(2), reduced = false, scope = backgroundScope)
-        runCurrent()
-        advance(1_300)
-
-        player.seek(2)
-        advance(60_000)
-
-        assertEquals(0, player.variant.value)
         assertEquals(2, player.frame.value)
-        assertFalse(player.playing.value)
+        advance(LandingStaggerMillis)
+        assertEquals(3, player.frame.value)
+        advance(LandingStaggerMillis)
+        assertEquals(4, player.frame.value)
+        advance(60_000)
+        assertEquals(4, player.frame.value)
     }
 
-    /** Bug caught: Replay under reduced motion tweening or playing at the animated timing, or autoplay under reduced motion at all. */
+    /** Bug caught: a variant's end that is a dead end, or a last variant that wraps around to the first. */
     @Test
-    fun `reduced motion rests on the last frame and replay steps at 1,7 seconds`() = runTest {
+    fun `past a variant's last step next step opens the next variant, and the last has none`() = runTest {
         val player = IntroPlayer(entries(2), reduced = true, scope = backgroundScope)
-        runCurrent()
-        assertEquals(0, player.variant.value)
-        assertEquals(3, player.frame.value)
-        advance(60_000)
-        assertEquals(0, player.variant.value)
-        assertEquals(3, player.frame.value)
+        player.next()
+        player.next()
+        assertEquals(4, player.frame.value)
+        assertTrue(hasNextStep(0, 4, frames = 5, count = 2))
 
-        player.replay()
+        player.next()
+        assertEquals(1, player.variant.value)
+        assertEquals(0, player.frame.value)
+
+        player.next()
+        player.next()
+        assertFalse(hasNextStep(1, 4, frames = 5, count = 2))
+        player.next()
+        assertEquals(1, player.variant.value)
+        assertEquals(4, player.frame.value)
+    }
+
+    /** Bug caught: reduced motion still staggering the landing squares. */
+    @Test
+    fun `under reduced motion the landing step shows every square at once`() = runTest {
+        val player = IntroPlayer(entries(1), reduced = true, scope = backgroundScope)
+        player.next()
+        player.next()
         runCurrent()
-        assertEquals(0, player.frame.value)
-        advance(1_699)
-        assertEquals(0, player.frame.value)
-        advance(1)
-        assertEquals(1, player.frame.value)
-        advance(1_700)
-        assertEquals(2, player.frame.value)
-        advance(1_700)
-        assertEquals(3, player.frame.value)
+
+        assertEquals(4, player.frame.value)
+    }
+
+    /** Bug caught: a seek or a tapped variant that a running landing then plays over, or Start over that keeps the frame. */
+    @Test
+    fun `seek, select and start over stop the landing and show their frame`() = runTest {
+        val player = IntroPlayer(entries(3), reduced = false, scope = backgroundScope)
+        player.next()
+        player.next()
+        runCurrent()
+
+        player.seek(1)
         advance(60_000)
-        assertEquals(0, player.variant.value)
+        assertEquals(1, player.frame.value)
+
+        player.select(2)
+        assertEquals(2, player.variant.value)
+        assertEquals(0, player.frame.value)
+
+        player.next()
+        player.replay()
+        assertEquals(2, player.variant.value)
+        assertEquals(0, player.frame.value)
     }
 }

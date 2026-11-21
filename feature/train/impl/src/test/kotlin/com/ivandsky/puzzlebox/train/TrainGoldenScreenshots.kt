@@ -115,7 +115,7 @@ abstract class TrainGoldenScreenshots(private val device: String) {
         val Right = PracticeState.Practicing(StandInPracticeBoard(PracticeStatus.Right(standInSpotlight(), trained = true)))
         val Wrong = PracticeState.Practicing(StandInPracticeBoard(PracticeStatus.Wrong("Two queens would touch.")))
         val Done = PracticeState.Practicing(StandInPracticeBoard(PracticeStatus.Done(standInSpotlight())))
-        val MidHold = BoardHold(remainingMs = 600, waitsForTap = false)
+        val MidHold = BoardHold(remainingMs = 1_200, waitsForTap = false)
         val Result = PracticeState.Result(
             ChapterResult(
                 technique = TrainerTechnique(TechniqueId("line-lock"), "Line lock", "A region sits inside one line."),
@@ -152,7 +152,7 @@ abstract class TrainGoldenScreenshots(private val device: String) {
             modifier = Modifier.fillMaxSize(),
         )
 
-        /** The intro's watching screen, [count] variants, variant 0 on frame 2. */
+        /** The intro's watching screen, [count] variants, variant 0 on frame 1 (the evidence, with Next step). */
         @Composable
         fun Watch(count: Int, showBack: Boolean, replay: Boolean = false) = WatchPane(
             chapter = standInChapter(board = 1, boards = 5),
@@ -166,12 +166,13 @@ abstract class TrainGoldenScreenshots(private val device: String) {
                 )
             },
             variant = 0,
-            frame = 2,
+            frame = 1,
             replay = replay,
             demo = { _, _, modifier -> StandInGrid(modifier) },
             onSelect = {},
             onSeek = {},
             onReplay = {},
+            onNext = {},
             onLeave = {},
             onPrimary = {},
         )

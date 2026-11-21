@@ -73,13 +73,13 @@ private fun BoardFinishedWaitsForTapPreview() =
 @PuzzleBoxPreviews
 @Composable
 private fun SinglesBoardFinishedPreview() =
-    PracticePreviewFrame(done(), chapter = standInChapter(board = 4, boards = 4), hold = BoardHold(remainingMs = 600, waitsForTap = false))
+    PracticePreviewFrame(done(), chapter = standInChapter(board = 4, boards = 4), hold = BoardHold(remainingMs = 1_200, waitsForTap = false))
 
 @PuzzleBoxPreviews
 @Composable
 private fun BoardFinishedTabletPreview() = PuzzleBoxTheme {
     Box(Modifier.width(840.dp).height(700.dp)) {
-        PracticePreviewFrame(done(), chapter = standInChapter(board = 2), hold = BoardHold(remainingMs = 600, waitsForTap = false), showBack = false)
+        PracticePreviewFrame(done(), chapter = standInChapter(board = 2), hold = BoardHold(remainingMs = 1_200, waitsForTap = false), showBack = false)
     }
 }
 
