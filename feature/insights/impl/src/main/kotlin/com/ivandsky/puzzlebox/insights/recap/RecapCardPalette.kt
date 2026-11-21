@@ -7,20 +7,21 @@ import com.ivandsky.puzzlebox.designsystem.LocalAccentPalette
 import com.ivandsky.puzzlebox.designsystem.LocalDarkTheme
 import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteEntry
 import com.ivandsky.puzzlebox.designsystem.RecapCardColors
+import com.ivandsky.puzzlebox.designsystem.monthPalette
 import com.ivandsky.puzzlebox.designsystem.recapCardColors
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.model.GameId
 
-/** The palette entry a recap card paints with. */
-internal fun RecapCard.palette(): PaletteEntry = when (this) {
-    is RecapCard.Solved -> PaletteEntry.Solved
-    is RecapCard.Fastest -> PaletteEntry.Fastest
-    is RecapCard.Streak -> PaletteEntry.Streak
-    is RecapCard.Moments -> PaletteEntry.Moments
-    is RecapCard.Friends -> PaletteEntry.Friends
-    is RecapCard.TotalTime -> PaletteEntry.TotalTime
-    is RecapCard.Month -> PaletteEntry.YearMonth
-    is RecapCard.YearFinale -> PaletteEntry.YearFinale
+/** The colors a recap card paints with in the [dark] or light theme: a month card its own month's, every other card its palette entry's. */
+internal fun RecapCard.colors(dark: Boolean): RecapCardColors = when (this) {
+    is RecapCard.Solved -> recapCardColors(PaletteEntry.Solved, dark)
+    is RecapCard.Fastest -> recapCardColors(PaletteEntry.Fastest, dark)
+    is RecapCard.Streak -> recapCardColors(PaletteEntry.Streak, dark)
+    is RecapCard.Moments -> recapCardColors(PaletteEntry.Moments, dark)
+    is RecapCard.Friends -> recapCardColors(PaletteEntry.Friends, dark)
+    is RecapCard.TotalTime -> recapCardColors(PaletteEntry.TotalTime, dark)
+    is RecapCard.Month -> monthPalette(month.month, dark)
+    is RecapCard.YearFinale -> recapCardColors(PaletteEntry.YearFinale, dark)
 }
 
 /**
@@ -34,7 +35,7 @@ internal data class RecapPagePalette(val colors: RecapCardColors, val flat: Bool
 }
 
 /**
- * The palette of [page] in [cards] (null is the cover) in the [dark] or light theme: its card's entry, the Share page's
+ * The palette of [page] in [cards] (null is the cover) in the [dark] or light theme: its card's colors, the Share page's
  * past the last card, and a Fastest game its own [accent] edge to edge, the accent's on-color as ink.
  */
 internal fun pagePalette(cards: List<RecapCard>, page: RecapPage?, dark: Boolean, accent: (GameId) -> GameAccent): RecapPagePalette {
@@ -44,7 +45,7 @@ internal fun pagePalette(cards: List<RecapCard>, page: RecapPage?, dark: Boolean
         val game = accent(card.rows[page.sub].game)
         return RecapPagePalette(RecapCardColors(field = game.accent, ink = game.onAccent, plate = game.accent), flat = true)
     }
-    return RecapPagePalette(recapCardColors(card.palette(), dark))
+    return RecapPagePalette(card.colors(dark))
 }
 
 /** [page]'s palette in the resolved theme, a Fastest game in its brand's accent. */

@@ -4,32 +4,27 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ivandsky.puzzlebox.designsystem.MotionTokens
-import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteEntry
+import com.ivandsky.puzzlebox.designsystem.LocalDarkTheme
+import com.ivandsky.puzzlebox.designsystem.RecapCardColors
 import com.ivandsky.puzzlebox.designsystem.RollingDigits
-import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.designsystem.field
-import com.ivandsky.puzzlebox.designsystem.formatDuration
-import com.ivandsky.puzzlebox.designsystem.ink
-import com.ivandsky.puzzlebox.designsystem.plate
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.model.GameId
@@ -37,10 +32,11 @@ import java.time.format.TextStyle
 import java.util.Locale
 
 /**
- * A month of a yearly recap: its name over its solved count, rolling up on arrival, then the month's best against your
- * average (the game, its time and how far under), twelve squares marking the month in the year, and, with a [place], "Month 3 of 12" and what is
- * next. One of these follows the totals for each month of the year with a counted solve (A3). A wide pane puts the
- * name and count on the left and the rows on the right.
+ * A month of a yearly recap in the month's own colors: its name and solved count, rolling up on arrival, the month's
+ * highlight with what else it did, its Moments stamped onto a board, its quickest solve and its best against your
+ * average, twelve squares marking the month in the year, and, with a [place], "Month 3 of 12". One of these follows the
+ * totals for each month of the year with a counted solve (A3). A short phone tightens the measures; a pane of 700dp or
+ * wider puts the name, count and highlight on the left and the board and rows on the right.
  */
 @Composable
 internal fun MonthCardPage(
@@ -51,34 +47,42 @@ internal fun MonthCardPage(
     place: MonthPlace? = null,
 ) {
     val fade = rememberReducedFade()
-    val palette = PaletteEntry.YearMonth
+    val colors = card.colors(LocalDarkTheme.current)
     BoxWithConstraints(
         modifier
             .fillMaxSize()
             .graphicsLayer { alpha = fade }
-            .background(palette.field)
+            .background(colors.field)
             .testTag("recap.month.${card.month}"),
     ) {
-        val wide = maxWidth >= WideWidth
-        OnInk(palette.ink) {
-            Column(Modifier.fillMaxSize().padding(horizontal = Spacing.xl).padding(top = Spacing.xl, bottom = Spacing.lg)) {
+        val width = maxWidth
+        val roomy = width >= RoomyWidth
+        val scale = MonthCardScale(roomy = roomy, compact = maxHeight < if (roomy) RoomyCompactHeight else CompactHeight)
+        OnInk(colors.ink) {
+            Column(
+                Modifier.fillMaxSize().padding(if (roomy) RoomyPadding else PhonePadding),
+                verticalArrangement = Arrangement.spacedBy(if (roomy) 16.dp else 12.dp),
+            ) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Eyebrow(periodLabel)
                     if (place != null) Eyebrow("Month ${place.index} of ${place.count}", Modifier.testTag("recap.month.index"))
                 }
-                Spacer(Modifier.weight(1f))
-                val rows: @Composable (Modifier) -> Unit = { MonthFactRows(card, gameName, it, container = palette.plate) }
-                if (wide) {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) { Count(card, wide = true) }
-                        rows(Modifier.weight(1f).padding(start = Spacing.xl))
+                if (roomy) {
+                    Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(RoomyGap)) {
+                        BoxWithConstraints(Modifier.weight(1f).fillMaxHeight()) {
+                            MonthLead(card, colors, gameName, scale, maxWidth, Modifier.fillMaxSize(), Arrangement.SpaceBetween)
+                        }
+                        Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            MonthStampBoard(card.moments, colors, gameName, scale.boardFloor, Modifier.weight(1f))
+                            MonthPlateRows(card, colors, gameName, scale, rise = { riseIn(PlateRise + it) })
+                        }
                     }
                 } else {
-                    Count(card, wide = false)
+                    MonthLead(card, colors, gameName, scale, width, Modifier.fillMaxWidth(), Arrangement.spacedBy(10.dp))
+                    MonthStampBoard(card.moments, colors, gameName, scale.boardFloor, Modifier.weight(1f))
+                    MonthPlateRows(card, colors, gameName, scale, rise = { riseIn(PlateRise + it) })
                 }
-                Spacer(Modifier.weight(1f))
-                if (!wide) rows(Modifier.padding(bottom = Spacing.sm))
-                MonthSquares(card.month.monthValue, if (wide) WideSquare else Square)
+                MonthSquares(card.month.monthValue)
             }
         }
     }
@@ -90,73 +94,59 @@ internal fun Eyebrow(text: String, modifier: Modifier = Modifier) {
     Text(text.uppercase(), modifier, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp))
 }
 
-/** The month's name in kinetic letters over its rolling count and the "puzzles solved" line. */
+/**
+ * The month's name in kinetic letters, its rolling count over "puzzles solved", then its highlight and what else it did.
+ * A roomy card sizes the name and count by its column's [width] and spreads them down the column ([arrangement]).
+ */
 @Composable
-private fun Count(card: RecapCard.Month, wide: Boolean) {
-    RecapKineticTitle(card.monthName(), MonthNameSize, Modifier.testTag("recap.month.name"))
-    RollingDigits(
-        value = card.solved.toLong(),
-        modifier = Modifier.testTag("recap.month.solved"),
-        style = MaterialTheme.typography.displayLarge.tabular().copy(fontSize = HeroFontSize, fontWeight = FontWeight.Bold, letterSpacing = (-1).sp),
-        delayMs = 0,
-        durationMs = MotionTokens.ScoreCountUpDuration,
-        contentDescription = "${card.solved} ${card.solved.puzzles()} solved",
-    )
-    Text(
-        text = "${card.solved.puzzles()} solved",
-        modifier = Modifier.clearAndSetSemantics { },
-        style = MaterialTheme.typography.headlineSmall.copy(fontSize = if (wide) 32.sp else 28.sp, fontWeight = FontWeight.Bold),
-    )
-}
-
-/** The month's best against the player's own average: the game and its time, and how far under the average it was. Shared by the story and the tablet list. */
-@Composable
-internal fun MonthFactRows(
+private fun MonthLead(
     card: RecapCard.Month,
+    colors: RecapCardColors,
     gameName: (GameId) -> String,
-    modifier: Modifier = Modifier,
-    container: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
-    tablet: Boolean = false,
+    scale: MonthCardScale,
+    width: Dp,
+    modifier: Modifier,
+    arrangement: Arrangement.Vertical,
 ) {
-    val brand = LocalGameBrands.current(card.bestGame)
-    val time = formatDuration(card.bestTimeMs)
-    RecapFactRows(
-        rows = listOf(
-            if (tablet) {
-                RecapFactRow("recap.month.best", "Best vs average", "$time · ${gameName(card.bestGame)}", game = brand)
-            } else {
-                RecapFactRow("recap.month.best", "Best against your average", "${gameName(card.bestGame)} $time", game = brand)
-            },
-            RecapFactRow("recap.month.under", underAverageLine(card.underAveragePercent), ""),
-        ),
-        tag = "recap.month.facts",
-        modifier = modifier,
-        container = container,
-    )
-}
-
-/** "31% under your average"; a month that only matched it says so. */
-internal fun underAverageLine(percent: Int): String = if (percent > 0) "$percent% under your average" else "Matched your average"
-
-/** The month fact in the tablet list: its name with the solved count, then the quickest solve and its game. */
-@Composable
-internal fun MonthCardFact(card: RecapCard.Month, gameName: (GameId) -> String, modifier: Modifier = Modifier) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Row(Modifier.fillMaxWidth().heightIn(min = RowMinHeight), verticalAlignment = Alignment.CenterVertically) {
-            FactMarker()
-            Text(
-                text = card.monthName(),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f),
+    val long = card.solved.toString().length > LongCount
+    val nameSize = when {
+        scale.roomy -> (width.value * 0.17f).coerceIn(56f, 96f).sp
+        scale.compact -> 40.sp
+        else -> 52.sp
+    }
+    val heroSize: TextUnit = when {
+        scale.roomy && long -> (width.value * 0.24f).coerceIn(72f, 124f).sp
+        scale.roomy -> (width.value * 0.30f).coerceIn(88f, 150f).sp
+        else -> (if (scale.compact) 64f else 88f).let { if (long) it * LongHero else it }.sp
+    }
+    Column(modifier, verticalArrangement = arrangement) {
+        RecapKineticTitle(card.monthName(), nameSize, Modifier.testTag("recap.month.name"))
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            RollingDigits(
+                value = card.solved.toLong(),
+                modifier = Modifier.testTag("recap.month.solved"),
+                style = MaterialTheme.typography.displayLarge.tabular().copy(
+                    fontSize = heroSize,
+                    lineHeight = heroSize,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.5).sp,
+                ),
+                contentDescription = "${card.solved} ${card.solved.puzzles()} solved",
             )
             Text(
-                text = card.solved.toString(),
-                style = MaterialTheme.typography.headlineSmall.tabular(),
-                color = MaterialTheme.colorScheme.primary,
+                text = "${card.solved.puzzles()} solved",
+                modifier = Modifier.clearAndSetSemantics { }.then(riseIn(3)),
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontSize = if (scale.roomy) 34.sp else 28.sp,
+                    lineHeight = if (scale.roomy) 40.sp else 34.sp,
+                    fontWeight = FontWeight.Bold,
+                ),
             )
         }
-        MonthFactRows(card, gameName, tablet = true)
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            MonthHighlightRow(card.lead, colors, gameName, scale, riseIn(4))
+            card.also?.let { MonthAlsoLine(it, gameName, scale, riseIn(5)) }
+        }
     }
 }
 
@@ -164,9 +154,19 @@ internal fun MonthCardFact(card: RecapCard.Month, gameName: (GameId) -> String, 
 internal fun RecapCard.Month.monthName(locale: Locale = Locale.getDefault()): String =
     month.month.getDisplayName(TextStyle.FULL_STANDALONE, locale)
 
-private val HeroFontSize = 104.sp
-private val MonthNameSize = 56.sp
-private val RowMinHeight = 48.dp
-private val WideWidth = 600.dp
-private val Square = 24.dp
-private val WideSquare = 56.dp
+/** A pane this wide or wider lays the card out in two columns. */
+private val RoomyWidth = 700.dp
+private val RoomyGap = 40.dp
+
+/** Under this height the card tightens its measures; a roomy card's threshold is a little lower. */
+private val CompactHeight = 660.dp
+private val RoomyCompactHeight = 640.dp
+private val PhonePadding = PaddingValues(start = 22.dp, top = 22.dp, end = 22.dp, bottom = 20.dp)
+private val RoomyPadding = PaddingValues(horizontal = 48.dp, vertical = 32.dp)
+
+/** A count longer than this many digits shows at [LongHero] of the hero size. */
+private const val LongCount = 3
+private const val LongHero = 0.82f
+
+/** The plate rows rise after the headline (3), the highlight (4) and the also line (5). */
+private const val PlateRise = 6

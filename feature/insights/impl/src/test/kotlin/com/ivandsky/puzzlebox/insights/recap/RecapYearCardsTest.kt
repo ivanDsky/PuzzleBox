@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
@@ -52,20 +53,62 @@ class RecapYearCardsTest {
     private val finale = YearFixtures.finale(months = 10, total = 355)
 
     @Test
-    fun `a month card names the month, its count, its best game and how far under your average it was`() {
+    fun `a month card names the month, its count, its quickest solve and its best against your average`() {
         show(march)
 
         rule.onNodeWithTag("recap.month.2026-03").assertIsDisplayed()
         rule.onNodeWithTag("recap.month.name").assertTextEquals("March")
-        rule.onNodeWithTag("recap.month.best").assertTextContains("Best against your average").assertTextContains("Zip 0:58")
-        rule.onNodeWithTag("recap.month.under").assertTextContains("31% under your average")
+        rule.onNodeWithTag("recap.month.solved").assertContentDescriptionEquals("42 puzzles solved")
+        rule.onNodeWithTag("recap.month.fastest").assertTextContains("Fastest solve").assertTextContains("Zip").assertTextContains("0:58")
+        rule.onNodeWithTag("recap.month.best").assertTextContains("Best vs average")
+            .assertTextContains("Zip · 31% under your average").assertTextContains("0:58")
     }
 
     @Test
     fun `a month that only matched its average says so instead of 0 percent`() {
         show(YearFixtures.oneMonth)
 
-        rule.onNodeWithTag("recap.month.under").assertTextContains("Matched your average")
+        rule.onNodeWithTag("recap.month.best").assertTextContains("Zip · Matched your average")
+    }
+
+    @Test
+    fun `a month card leads with its highlight and the day it happened, then what else it did`() {
+        show(MonthFixtures.january)
+
+        rule.onNodeWithTag("recap.month.highlight")
+            .assertTextContains("Personal best in Queens").assertTextContains("1:14 · fastest all year")
+        rule.onNodeWithTag("recap.month.highlight.day", useUnmergedTree = true).assertTextEquals("Jan 14")
+        rule.onNodeWithTag("recap.month.also").assertTextContains("Also:").assertTextContains("7-day streak")
+    }
+
+    @Test
+    fun `a month's stamps are on its board, each named with its day`() {
+        show(MonthFixtures.january)
+
+        rule.onNodeWithTag("recap.month.stamps").assertContentDescriptionEquals("4 stamps earned")
+        rule.onNodeWithTag("recap.month.stamp.0").assertContentDescriptionEquals("7-day streak, Jan 7")
+        rule.onNodeWithTag("recap.month.stamp.3").assertIsDisplayed()
+        rule.onNodeWithTag("recap.month.stamps.more").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a month with more than six stamps shows five and how many more`() {
+        val stamps = MonthFixtures.january.moments
+        show(MonthFixtures.january.copy(moments = stamps + stamps))
+
+        rule.onNodeWithTag("recap.month.stamps").assertContentDescriptionEquals("8 stamps earned")
+        rule.onNodeWithTag("recap.month.stamp.4").assertIsDisplayed()
+        rule.onNodeWithTag("recap.month.stamp.5").assertDoesNotExist()
+        rule.onNodeWithTag("recap.month.stamps.more").assertTextEquals("+3 more")
+    }
+
+    @Test
+    fun `a month with no stamps shows an empty slot and says so`() {
+        show(MonthFixtures.quiet)
+
+        rule.onNodeWithTag("recap.month.stamps").assertContentDescriptionEquals("No stamps this month")
+        rule.onNodeWithTag("recap.month.stamps.empty", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithTag("recap.month.highlight").assertTextContains("A quiet month")
     }
 
     @Test

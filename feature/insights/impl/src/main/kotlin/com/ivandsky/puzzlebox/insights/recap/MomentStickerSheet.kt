@@ -1,14 +1,9 @@
 package com.ivandsky.puzzlebox.insights.recap
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -16,7 +11,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -25,7 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -33,8 +26,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp as lerpColor
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
@@ -47,22 +38,19 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
+import com.ivandsky.puzzlebox.designsystem.LocalDarkTheme
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteEntry
 import com.ivandsky.puzzlebox.designsystem.RecapMotion
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.entranceSettled
-import com.ivandsky.puzzlebox.designsystem.field
 import com.ivandsky.puzzlebox.designsystem.ink
 import com.ivandsky.puzzlebox.designsystem.plate
+import com.ivandsky.puzzlebox.designsystem.recapCardColors
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
-import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.insights.domain.recap.EarnedMoment
 import com.ivandsky.puzzlebox.model.GameId
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 /**
  * The sticker sheet: a dashed slot for every earned Moment, oldest day first, and a sticker stamped onto each slot once
@@ -160,23 +148,7 @@ private fun Sticker(
                         if (curl > 0f) drawCurl(curl, curlColor)
                     },
             ) {
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .shadow(StickerShadow, shape)
-                        .clip(shape)
-                        .background(ink)
-                        .border(StickerRim, PaletteEntry.Moments.plate, shape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = moment.face(),
-                        modifier = Modifier.clearAndSetSemantics { },
-                        style = MaterialTheme.typography.titleLarge.tabular().copy(fontSize = (size.value * FaceScale).sp, fontWeight = FontWeight.ExtraBold),
-                        color = PaletteEntry.Moments.field,
-                        maxLines = 1,
-                    )
-                }
+                StickerFace(moment, size, recapCardColors(PaletteEntry.Moments, LocalDarkTheme.current))
             }
         }
         Text(
@@ -187,49 +159,6 @@ private fun Sticker(
             maxLines = 1,
         )
     }
-}
-
-/** How far a sticker's stamp has come: [value] runs 0 to 1 on the Stamp spring (and past it, settling); [ring] runs the ring that spreads after it. */
-private class Stamp(private val spring: Animatable<Float, AnimationVector1D>, val ring: () -> Float) {
-    val value: Float get() = spring.value
-}
-
-/** Stamps once [placed] turns true; with [settled] (reduced motion, a preview) the sticker is down at once. */
-@Composable
-private fun rememberStamp(placed: Boolean, settled: Boolean): Stamp {
-    val spring = remember { Animatable(if (placed && settled) 1f else 0f) }
-    val ring = remember { Animatable(1f) }
-    LaunchedEffect(placed, settled) {
-        when {
-            !placed -> spring.snapTo(0f)
-            settled -> spring.snapTo(1f)
-            else -> {
-                launch {
-                    delay(RecapMotion.RingStagger.toLong())
-                    ring.snapTo(0f)
-                    ring.animateTo(1f, tween(RecapMotion.RingDuration, easing = MotionTokens.Trace.EasingOut))
-                }
-                spring.animateTo(1f, spring(MotionTokens.StampSpringDamping, MotionTokens.StampSpringStiffness))
-            }
-        }
-    }
-    return remember(spring, ring) { Stamp(spring) { ring.value } }
-}
-
-/** The ring that spreads from a stamped sticker and fades: [progress] 0 to 1. */
-@Composable
-private fun Ring(progress: () -> Float, shape: Shape, color: Color, modifier: Modifier) {
-    Box(
-        modifier
-            .graphicsLayer {
-                val p = progress()
-                val grow = lerp(1f, RecapMotion.RingScale, p)
-                scaleX = grow
-                scaleY = grow
-                alpha = RecapMotion.RingAlphaFrom * (1f - p)
-            }
-            .border(BorderStroke(RingStroke, color), shape),
-    )
 }
 
 /** Each kind has its own shape, so a kind is told apart by more than colour: a squircle, a circle, a rounded square and a drop. */
@@ -265,10 +194,6 @@ private val LabelHeight = 28.dp
 private val MinSize = 48.dp
 private val AloneSize = 120.dp
 private val MultiSize = 68.dp
-private val StickerShadow = 3.dp
-private val StickerRim = 2.dp
-private val RingStroke = 3.dp
 private const val CurlTint = 0.55f
-private const val FaceScale = 0.3f
 private const val RestStride = 37
 private const val RestSpread = 9

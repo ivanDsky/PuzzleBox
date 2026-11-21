@@ -15,10 +15,11 @@ import androidx.compose.ui.unit.dp
 
 // What a sticker draws around itself: the dashed slot it is stamped on and the paper corner turned up when it is peeled.
 
-internal fun DrawScope.slotOutline(shape: Shape, color: Color) {
+/** The dashed slot in [shape], in [color] at [alpha]: under a Moments sticker, or alone on a month board with no stamps. */
+internal fun DrawScope.slotOutline(shape: Shape, color: Color, alpha: Float = SlotAlpha) {
     val corner = if (shape == CircleShape) size.minDimension / 2 else size.minDimension * SlotCorner
     drawRoundRect(
-        color = color.copy(alpha = SlotAlpha),
+        color = color.copy(alpha = alpha),
         cornerRadius = CornerRadius(corner),
         style = Stroke(SlotStroke.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(SlotDash.toPx(), SlotDash.toPx()))),
         size = Size(size.width, size.height),

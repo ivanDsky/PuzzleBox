@@ -5,6 +5,7 @@ import androidx.compose.ui.graphics.Color
 import com.ivandsky.puzzlebox.designsystem.GameAccent
 import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteEntry
 import com.ivandsky.puzzlebox.designsystem.RecapCardColors
+import com.ivandsky.puzzlebox.designsystem.monthPalette
 import com.ivandsky.puzzlebox.designsystem.recapCardColors
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.model.GameId
@@ -217,6 +218,18 @@ class RecapDeckStateTest {
         assertEquals(entry(PaletteEntry.TotalTime), palette())
         deck.forward()
         assertEquals(entry(PaletteEntry.Share), palette())
+    }
+
+    // Catches a month card painting the old shared month entry: each month must shift the story to its own color.
+    @Test
+    fun `each month card paints with the colors of its own month in either theme`() {
+        val months = listOf(RecapFixtures.march, RecapFixtures.april)
+        for (dark in listOf(false, true)) {
+            months.forEachIndexed { index, card ->
+                val palette = pagePalette(months, RecapPage(index), dark = dark, accent = ::accentOf)
+                assertEquals(RecapPagePalette(monthPalette(card.month.month, dark)), palette)
+            }
+        }
     }
 
     /** A distinct accent per game, so each game page is told apart by its color. */
