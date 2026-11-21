@@ -209,7 +209,7 @@ internal fun ShareStyleDeck(
                     // The numbers count, the hero lands and the games fan out on a copy laid over the final poster, so a capture
                     // taken mid-arrival still holds the final image and a screen reader still reads the final values.
                     if (playing) {
-                        ScaledToFitImage(content.counted(counts[i].value), entry, false, layer, holoShift, { stamp.value }, { hands[i].value })
+                        ScaledToFitImage(content, entry, false, layer, holoShift, { stamp.value }, { hands[i].value }, { counts[i].value })
                     }
                 }
             }
@@ -226,6 +226,7 @@ private fun ScaledToFitImage(
     holoShift: () -> Float,
     heroScale: (() -> Float)? = null,
     handMs: (() -> Float)? = null,
+    count: (() -> Float)? = null,
 ) = ScaledToFit {
     RecapShareImage(
         content,
@@ -241,6 +242,7 @@ private fun ScaledToFitImage(
         holoShift,
         heroScale,
         handMs,
+        count,
     )
 }
 

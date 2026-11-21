@@ -27,7 +27,12 @@ internal data class RecapShareContent(
      * One headline number: its [value] and the [label] that names it; a tile also names the recap [card] whose colours it wears.
      * While a count-up changes [value], [fit] stays the final text, so the number is sized once, to what it will end as.
      */
-    data class Stat(val value: String, val label: String, val card: PaletteCard? = null, val fit: String = value)
+    data class Stat(val value: String, val label: String, val card: PaletteCard? = null, val fit: String = value) {
+
+        /** [value] as it reads [progress] of the way through its count-up: each run of digits scaled, whole at 1. */
+        fun valueAt(progress: Float): String =
+            if (progress >= 1f) value else DIGITS.replace(value) { ((it.value.toLong()) * progress.coerceAtLeast(0f)).toLong().toString() }
+    }
 
     /** What a screen reader says for the image, with final values: "Share image: October 2026, Ivan. 96 puzzles solved. Longest streak 23 days. … Games: Queens 28, …". */
     fun description(): String = buildString {
@@ -37,13 +42,6 @@ internal data class RecapShareContent(
         hero?.let { append(' ').append(it.value).append(' ').append(it.label).append('.') }
         tiles.forEach { append(' ').append(it.label).append(' ').append(it.value).append('.') }
         if (games.isNotEmpty()) append(" Games: ").append(games.joinToString { "${it.name} ${it.solved}" }).append('.')
-    }
-
-    /** The numbers as they read [progress] of the way through their count-up: each run of digits scaled, whole at 1. */
-    fun counted(progress: Float): RecapShareContent {
-        if (progress >= 1f) return this
-        fun Stat.counted() = copy(value = DIGITS.replace(value) { ((it.value.toLong()) * progress.coerceAtLeast(0f)).toLong().toString() })
-        return copy(hero = hero?.counted(), tiles = tiles.map { it.counted() })
     }
 
     companion object {

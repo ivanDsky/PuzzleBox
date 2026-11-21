@@ -54,7 +54,8 @@ internal const val ShareImageHeightPx = 1920
  * screen's density and the player's font size cannot change what is shared. It carries no interaction and no motion: it
  * is drawn once and captured, Night's holographic layer included. A [heroScale] makes it the deck's arrival overlay
  * instead: the counted numbers painted over the final image, the hero landing at that scale, the hand fanning out on
- * [handMs] (ms since it started), with no semantics of its own.
+ * [handMs] (ms since it started), with no semantics of its own. [count] is how far the numbers have counted up, 0 to 1;
+ * it is read only by the number texts, so a tick of the count redraws them and nothing else of the poster.
  */
 @Composable
 internal fun RecapShareImage(
@@ -64,6 +65,7 @@ internal fun RecapShareImage(
     holoShift: () -> Float = { 0f },
     heroScale: (() -> Float)? = null,
     handMs: (() -> Float)? = null,
+    count: (() -> Float)? = null,
 ) {
     val palette = sharePalette(style, LocalDarkTheme.current)
     CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 1f)) {
@@ -96,25 +98,25 @@ internal fun RecapShareImage(
                 )
             }
             Spacer(Modifier.weight(1f))
-            content.hero?.let { Hero(it, palette, heroScale) }
+            content.hero?.let { Hero(it, palette, heroScale, count) }
             Spacer(Modifier.weight(1f))
             ShareGamesHand(content.games, palette, clock = handMs)
             if (content.tiles.isNotEmpty()) {
                 Spacer(Modifier.height(if (content.games.isEmpty()) Gap else ShareStripe.Below.dp))
-                Tiles(content.tiles, palette)
+                Tiles(content.tiles, palette, count)
             }
         }
     }
 }
 
 @Composable
-private fun Hero(stat: RecapShareContent.Stat, palette: SharePalette, scale: (() -> Float)?) {
+private fun Hero(stat: RecapShareContent.Stat, palette: SharePalette, scale: (() -> Float)?, count: (() -> Float)?) {
     Column(
         Modifier.fillMaxWidth().graphicsLayer { scale?.invoke()?.let { scaleX = it; scaleY = it } },
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         FitText(
-            text = stat.value,
+            text = stat.valueWhile(count),
             fit = stat.fit,
             style = MaterialTheme.typography.displayLarge.tabular().copy(fontSize = 380.sp, lineHeight = 380.sp, textAlign = TextAlign.Center),
             color = palette.hero,
@@ -135,11 +137,11 @@ private fun Hero(stat: RecapShareContent.Stat, palette: SharePalette, scale: (()
 
 /** The tiles two to a row; an odd last tile keeps its half-width. */
 @Composable
-private fun Tiles(tiles: List<RecapShareContent.Stat>, palette: SharePalette) {
+private fun Tiles(tiles: List<RecapShareContent.Stat>, palette: SharePalette, count: (() -> Float)?) {
     Column(Modifier.fillMaxWidth().wrapContentHeight(), verticalArrangement = Arrangement.spacedBy(Gap)) {
         tiles.chunked(2).forEach { pair ->
             Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(Gap)) {
-                pair.forEach { Tile(it, palette, Modifier.weight(1f).fillMaxHeight()) }
+                pair.forEach { Tile(it, palette, count, Modifier.weight(1f).fillMaxHeight()) }
                 if (pair.size == 1) Spacer(Modifier.weight(1f))
             }
         }
@@ -148,7 +150,7 @@ private fun Tiles(tiles: List<RecapShareContent.Stat>, palette: SharePalette) {
 
 /** A tile wears its own card's Field and ink. */
 @Composable
-private fun Tile(stat: RecapShareContent.Stat, palette: SharePalette, modifier: Modifier = Modifier) {
+private fun Tile(stat: RecapShareContent.Stat, palette: SharePalette, count: (() -> Float)?, modifier: Modifier = Modifier) {
     val colors = palette.tile(checkNotNull(stat.card))
     Column(
         modifier
@@ -158,7 +160,7 @@ private fun Tile(stat: RecapShareContent.Stat, palette: SharePalette, modifier: 
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         FitText(
-            text = stat.value,
+            text = stat.valueWhile(count),
             fit = stat.fit,
             style = MaterialTheme.typography.headlineLarge.tabular().copy(fontSize = 76.sp, lineHeight = 84.sp),
             color = colors.ink,
@@ -171,12 +173,10 @@ private fun Tile(stat: RecapShareContent.Stat, palette: SharePalette, modifier: 
     }
 }
 
-/**
- * Text that shrinks until it fits its width in [maxLines] lines, instead of clipping or leaving the image. It is drawn
- * once it fits, so the first, too-large layout is never seen or captured. The size is decided for [fit], the text the
- * line will end as, and held while [text] counts up to it: a number is never hidden or resized mid-count. When [text]
- * is not [fit], an invisible copy of [fit] is what gets laid out and shrunk.
- */
+/** What [stat]'s number reads right now; the count is read when the text is composed, not before, so only that text follows it. */
+private fun RecapShareContent.Stat.valueWhile(count: (() -> Float)?): () -> String = if (count == null) ({ value }) else ({ valueAt(count()) })
+
+/** [FitText] of a text that does not change. */
 @Composable
 internal fun FitText(
     text: String,
@@ -186,14 +186,33 @@ internal fun FitText(
     softWrap: Boolean,
     modifier: Modifier = Modifier,
     fit: String = text,
+) = FitText({ text }, fit, style, color, maxLines, softWrap, modifier)
+
+/**
+ * Text that shrinks until it fits its width in [maxLines] lines, instead of clipping or leaving the image. It is drawn
+ * once it fits, so the first, too-large layout is never seen or captured. The size is decided for [fit], the text the
+ * line will end as, and held while [text] counts up to it: a number is never hidden or resized mid-count. When [text]
+ * is not [fit], an invisible copy of [fit] is what gets laid out and shrunk. [text] is read here, in this one
+ * composable, so a count-up recomposes this text and not the image around it.
+ */
+@Composable
+internal fun FitText(
+    text: () -> String,
+    fit: String,
+    style: TextStyle,
+    color: Color,
+    maxLines: Int,
+    softWrap: Boolean,
+    modifier: Modifier = Modifier,
 ) {
     var scale by remember(fit, style) { mutableStateOf(1f) }
     var fitted by remember(fit, style) { mutableStateOf(false) }
     val shown = style.copy(fontSize = style.fontSize * scale, lineHeight = style.lineHeight * scale)
     val fitting = { layout: TextLayoutResult -> if (layout.didOverflowWidth || layout.didOverflowHeight) scale *= FitStep else fitted = true }
     val box = Modifier.let { if (maxLines == 1) it.oneLine(shown) else it }
+    val current = text()
     Box(modifier, propagateMinConstraints = true) {
-        if (text != fit) {
+        if (current != fit) {
             Text(
                 text = fit,
                 modifier = box.alpha(0f).clearAndSetSemantics {},
@@ -204,13 +223,13 @@ internal fun FitText(
             )
         }
         Text(
-            text = text,
+            text = current,
             modifier = box.alpha(if (fitted) 1f else 0f),
             color = color,
             style = shown,
             maxLines = maxLines,
             softWrap = softWrap,
-            onTextLayout = if (text == fit) fitting else { _ -> },
+            onTextLayout = if (current == fit) fitting else { _ -> },
         )
     }
 }
