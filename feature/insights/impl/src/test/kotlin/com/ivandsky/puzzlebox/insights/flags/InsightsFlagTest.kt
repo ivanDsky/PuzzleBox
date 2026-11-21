@@ -6,9 +6,9 @@ import org.junit.Test
 class InsightsFlagTest {
 
     @Test
-    fun `the epic ships dark, one flag per part`() {
+    fun `the epic ships on, one flag per part`() {
         assertEquals(
-            mapOf("MonthlyRecap" to false, "YearRecap" to false, "StatsPage" to false),
+            mapOf("MonthlyRecap" to true, "YearRecap" to true, "StatsPage" to true),
             InsightsFlag.entries.associate { it.key to it.releaseDefault },
         )
     }

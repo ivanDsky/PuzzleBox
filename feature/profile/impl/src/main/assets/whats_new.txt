@@ -2,6 +2,11 @@
 # A release adds its entry at the top in the same commit as its version bump.
 # "## <version> <date>" starts a release; "- " starts a note; "#" lines are comments.
 
+## 0.40.0 2026-11-21
+- Monthly recaps: in the first days of a month, Today and Profile open your month as a story of cards, with your solves, fastest game, streak, the moments you earned and a card to share.
+- Yearly recaps: from Dec 20, Profile opens your year as a story that ends with all twelve months on one page. Past years stay in Profile.
+- A stats page: the stats on a game's page and in Profile open your trends, records and how you compare with friends.
+
 ## 0.39.0 2026-11-21
 - A home-screen widget shows today's five puzzles with your rank and time, your streak and an Up next button. It fits sizes from one row up to a full page.
 - Long-press the app icon for shortcuts to Up next and to each game.

@@ -16,19 +16,19 @@ enum class InsightsFlag(override val label: String, override val releaseDefault:
      * The monthly recap (epic insights): a Today card on the first days of a month and a Profile entry that open the
      * month's story. Read only in a ViewModel, a DI module or the app (ADR-0022 §3).
      */
-    MonthlyRecap(label = "Monthly recap", releaseDefault = false),
+    MonthlyRecap(label = "Monthly recap", releaseDefault = true),
 
     /**
      * The yearly recap (epic insights): a Profile entry from Dec 20 and a Today card in early January, and past years
      * from Profile. Read only in a ViewModel, a DI module or the app (ADR-0022 §3).
      */
-    YearRecap(label = "Yearly recap", releaseDefault = false),
+    YearRecap(label = "Yearly recap", releaseDefault = true),
 
     /**
      * The stats page (epic insights): the game page's stats block and Profile open a game's or all games' trends,
      * records and friends comparison. Read only in a ViewModel, a DI module or the app (ADR-0022 §3).
      */
-    StatsPage(label = "Stats page", releaseDefault = false),
+    StatsPage(label = "Stats page", releaseDefault = true),
     ;
 
     /** The entry's own name: the stored override's key in `release_flags`. Never change it. */
