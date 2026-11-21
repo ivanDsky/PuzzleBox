@@ -89,8 +89,6 @@ fun ZipEditorBoard(
             CellTags(board)
             when (step) {
                 ZipEditorStep.Path -> Box(Modifier.matchParentSize().strokeGestures(controller, board.n))
-                ZipEditorStep.Numbers -> Box(Modifier.matchParentSize().tapGestures(controller, board.n))
-                ZipEditorStep.Walls -> Box(Modifier.matchParentSize().edgeGestures(controller, board.n))
                 ZipEditorStep.NumbersAndWalls -> Box(Modifier.matchParentSize().numbersAndWallsGestures(controller, board.n))
             }
         }
@@ -157,31 +155,15 @@ private fun shakeOffset(controller: ZipEditorController): Animatable<Float, *> {
 
 private const val SHAKE_DP = 5f
 
-/** A tap numbers the cell it lands on. */
-private fun Modifier.tapGestures(controller: ZipEditorController, n: Int): Modifier =
-    pointerInput(controller, n) {
-        val geometry = GridGeometry(n, n, size.width.toFloat(), size.height.toFloat())
-        detectTapGestures { controller.tapNumber(cellOf(geometry, it, n)) }
-    }
-
-/** A tap near the line between two cells toggles the wall there. */
-private fun Modifier.edgeGestures(controller: ZipEditorController, n: Int): Modifier =
-    pointerInput(controller, n) {
-        val geometry = GridGeometry(n, n, size.width.toFloat(), size.height.toFloat())
-        detectTapGestures {
-            geometry.edgeAt(it, ZipEditorDefaults.EDGE_BAND, ZipEditorDefaults.EDGE_INSET)?.let(controller::tapEdge)
-        }
-    }
-
 /**
- * A tap near the line between two cells toggles the wall there, as in Walls; any other tap numbers the cell it lands on, as in
- * Numbers. On the board's outer border there is no wall, so the tap numbers the cell.
+ * A tap near the line between two cells toggles the wall there; any other tap numbers the cell it lands on. On the
+ * board's outer border there is no wall, so the tap numbers the cell.
  */
 private fun Modifier.numbersAndWallsGestures(controller: ZipEditorController, n: Int): Modifier =
     pointerInput(controller, n) {
         val geometry = GridGeometry(n, n, size.width.toFloat(), size.height.toFloat())
         detectTapGestures {
-            val edge = geometry.edgeAt(it, ZipEditorDefaults.COMBINED_EDGE_BAND, ZipEditorDefaults.EDGE_INSET)
+            val edge = geometry.edgeAt(it, ZipEditorDefaults.EDGE_BAND, ZipEditorDefaults.EDGE_INSET)
             if (edge != null) controller.tapEdge(edge) else controller.tapNumber(cellOf(geometry, it, n))
         }
     }
@@ -247,13 +229,13 @@ private fun ZipEditorBoardEmptyPreview() {
 @Preview(name = "Zip editor, Numbers & walls", widthDp = 360, heightDp = 420, showBackground = true)
 @Composable
 private fun ZipEditorBoardNumbersAndWallsPreview() {
-    val controller = previewController(path = listOf(0, 1, 2, 7, 12, 11, 10), combined = true)
+    val controller = previewController(path = listOf(0, 1, 2, 7, 12, 11, 10))
     controller.select(ZipEditorStep.NumbersAndWalls)
     PuzzleBoxTheme { ZipEditorBoard(controller, Modifier.fillMaxSize()) }
 }
 
-private fun previewController(path: List<Int>, combined: Boolean = false): ZipEditorController {
+private fun previewController(path: List<Int>): ZipEditorController {
     val blank = EditorDraft.fresh(ZipEditor, ZipEditor.variants.first())
     val drawn = blank.state.draft.copy(path = path, waypoints = listOfNotNull(path.firstOrNull(), path.lastOrNull()))
-    return ZipEditorController(EditorDraft(ZipEditor, blank.state.copy(draft = drawn)), combined) {}
+    return ZipEditorController(EditorDraft(ZipEditor, blank.state.copy(draft = drawn))) {}
 }

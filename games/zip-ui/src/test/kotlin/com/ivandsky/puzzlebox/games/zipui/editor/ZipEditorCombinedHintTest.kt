@@ -8,7 +8,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-/** The tabs and the "Next: ..." line follow the two-step flow when Numbers & walls is on, and today's three when it is off. */
+/** The tabs and the "Next: ..." line follow the two-step flow: Path, then Numbers & walls. */
 class ZipEditorCombinedHintTest {
 
     private val full = SNAKE
@@ -16,15 +16,11 @@ class ZipEditorCombinedHintTest {
     private fun draft(path: List<Int>, marks: List<Int> = listOf(0, 24), walls: Set<Wall> = emptySet()) =
         ZipDraft(5, emptySet(), path, marks).copy(walls = walls)
 
-    private fun next(board: ZipDraft, step: ZipEditorStep) = ZipEditorHintState.of(board, step, combined = true).next
+    private fun next(board: ZipDraft, step: ZipEditorStep) = ZipEditorHintState.of(board, step).next
 
     @Test
-    fun `the tabs are Path and Numbers and walls when on, Path Numbers Walls when off`() {
-        assertEquals(listOf(ZipEditorStep.Path, ZipEditorStep.NumbersAndWalls), ZipEditorStep.tabs(combined = true))
-        assertEquals(
-            listOf(ZipEditorStep.Path, ZipEditorStep.Numbers, ZipEditorStep.Walls),
-            ZipEditorStep.tabs(combined = false),
-        )
+    fun `the tabs are Path and Numbers and walls`() {
+        assertEquals(listOf(ZipEditorStep.Path, ZipEditorStep.NumbersAndWalls), ZipEditorStep.entries)
         assertEquals("Numbers & walls", ZipEditorStep.NumbersAndWalls.label)
     }
 
@@ -55,14 +51,6 @@ class ZipEditorCombinedHintTest {
         val board = draft(full, marks = listOf(0, full[12], 24), walls = setOf(Wall(Cell(0), WallDirection.DOWN)))
 
         assertNull(next(board, ZipEditorStep.Path))
-    }
-
-    @Test
-    fun `off, the three-step hint is the one it always was`() {
-        val board = draft(full)
-
-        assertEquals(ZipEditorStep.Numbers, ZipEditorHintState.of(board, ZipEditorStep.Path).next)
-        assertEquals(ZipEditorStep.Walls, ZipEditorHintState.of(draft(full, marks = listOf(0, full[12], 24)), ZipEditorStep.Path).next)
     }
 
     private companion object {

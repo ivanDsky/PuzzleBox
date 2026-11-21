@@ -23,12 +23,10 @@ import com.ivandsky.puzzlebox.model.GameId
 private val FixRowMinHeight = 48.dp
 
 /**
- * Zip's editor UI: the play board drawn over a [ZipEditorController], the author's path drawn by dragging. [combined] says,
- * each time an editor opens, whether Numbers and Walls are the one Numbers & walls mode.
+ * Zip's editor UI: the play board drawn over a [ZipEditorController], the author's path drawn by dragging, then
+ * Numbers & walls as one mode.
  */
-class ZipEditorUi(
-    private val combined: () -> Boolean = { false },
-) : GameEditorUi {
+class ZipEditorUi : GameEditorUi {
 
     override val gameId: GameId = ZipDefinition.id
 
@@ -42,7 +40,7 @@ class ZipEditorUi(
     override fun createController(
         initial: EditorDraft<*>,
         onEdit: (EditorDraft<*>) -> Unit,
-    ): GameEditorController = ZipEditorController(initial, combined(), onEdit)
+    ): GameEditorController = ZipEditorController(initial, onEdit)
 
     @Composable
     override fun Board(controller: GameEditorController, verdict: Verdict, layout: PlayLayout, modifier: Modifier) {

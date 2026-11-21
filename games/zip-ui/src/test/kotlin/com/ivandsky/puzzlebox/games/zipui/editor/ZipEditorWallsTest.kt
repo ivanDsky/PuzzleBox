@@ -30,8 +30,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The Walls step through its tags: tap near the line between two cells to toggle a wall, a wall
- * that would cut the path is refused with a shake, Clear walls is one step, each tap is one undo
+ * The wall half of the Numbers & walls step through its tags: tap near the line between two cells to toggle a
+ * wall, a wall that would cut the path is refused with a shake, Clear walls is one step, each tap is one undo
  * step.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -44,8 +44,8 @@ class ZipEditorWallsTest {
 
     private val edits = ArrayList<EditorDraft<*>>()
 
-    /** The path 0, 1, 2, 3, 4 along the top row, shown in the Walls step. */
-    private fun show(walls: Set<Wall> = emptySet(), step: String = "walls"): ZipEditorController {
+    /** The path 0, 1, 2, 3, 4 along the top row, shown in the Numbers & walls step. */
+    private fun show(walls: Set<Wall> = emptySet(), step: String = "numbersandwalls"): ZipEditorController {
         val blank = EditorDraft.fresh(ZipEditor, ZipEditor.variants.first())
         val board = (blank.state.draft as ZipDraft).copy(
             path = listOf(0, 1, 2, 3, 4),
@@ -119,13 +119,13 @@ class ZipEditorWallsTest {
     }
 
     @Test
-    fun `the band reaches 0 point 35 of a cell from the line but not 0 point 42`() {
+    fun `the band reaches 0 point 2 of a cell from the line but not 0 point 3`() {
         val controller = show()
-        tapRight(7, off = 0.42f)
+        tapRight(7, off = 0.3f)
         assertTrue(controller.shown.value.walls.isEmpty())
         assertTrue(edits.isEmpty())
 
-        tapRight(7, off = 0.35f)
+        tapRight(7, off = 0.2f)
         assertEquals(setOf(right(7)), controller.shown.value.walls)
     }
 

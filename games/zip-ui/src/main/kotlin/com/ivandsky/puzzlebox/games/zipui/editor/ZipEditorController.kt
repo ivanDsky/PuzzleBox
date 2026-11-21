@@ -31,13 +31,12 @@ import kotlinx.coroutines.flow.asStateFlow
  * on an end, which cannot lose its number, sets [shaken]. [tapEdge] toggles a wall as one
  * `ToggleWall` step and [clearWalls] removes them all as one step; a wall across the path sets
  * [shaken] instead. The verdict card's witness choice arrives through [adoptOverlay] and the
- * board draws it from [overlay]. The VM hands replacement drafts back through [adopt]. With
- * [combined] the editor offers Path and Numbers & walls ([steps]) instead of Path, Numbers
- * and Walls; the edits are the same ones.
+ * board draws it from [overlay]. The VM hands replacement drafts back through [adopt]. The editor
+ * offers two steps ([ZipEditorStep]): Path, and Numbers & walls, where a tap numbers a cell or
+ * draws a wall.
  */
 class ZipEditorController(
     initial: EditorDraft<*>,
-    val combined: Boolean = false,
     private val onEdit: (EditorDraft<*>) -> Unit,
 ) : GameEditorController {
 
@@ -56,9 +55,6 @@ class ZipEditorController(
 
     /** The step whose tools the row shows; the stroke draws in [ZipEditorStep.Path] only. */
     val step: StateFlow<ZipEditorStep> = selected.asStateFlow()
-
-    /** The tabs, in order. */
-    val steps: List<ZipEditorStep> = ZipEditorStep.tabs(combined)
 
     /**
      * The cell the last refused [tapNumber] or [tapEdge] landed on; each refusal is a new

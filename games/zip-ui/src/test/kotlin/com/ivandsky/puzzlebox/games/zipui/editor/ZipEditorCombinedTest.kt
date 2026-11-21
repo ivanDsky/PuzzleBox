@@ -30,10 +30,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The combined Numbers & walls step through its tags: a tap in the middle of a cell numbers it as
- * the Numbers step does, a tap near an inside edge draws its wall as the Walls step does, with no
- * mode change between them; each tap is one undo step. Taps are in cell units from the board's
- * top-left, on a 5×5 board with the path along the top row.
+ * The Numbers & walls step through its tags: a tap in the middle of a cell numbers it, a tap near an
+ * inside edge draws its wall, with no mode change between them; each tap is one undo step. Taps are
+ * in cell units from the board's top-left, on a 5×5 board with the path along the top row.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -52,7 +51,7 @@ class ZipEditorCombinedTest {
             waypoints = listOf(0, 4),
             walls = walls,
         )
-        val controller = ZipEditorController(EditorDraft(ZipEditor, blank.state.copy(draft = board)), combined = true) { edits += it }
+        val controller = ZipEditorController(EditorDraft(ZipEditor, blank.state.copy(draft = board))) { edits += it }
         rule.setContent {
             PuzzleBoxTheme { ZipEditorBoard(controller, Modifier.fillMaxSize()) }
         }
@@ -84,14 +83,12 @@ class ZipEditorCombinedTest {
     private fun bottom(cell: Int) = Wall(Cell(cell), WallDirection.DOWN)
 
     @Test
-    fun `the tabs are Path and Numbers and walls, not three`() {
+    fun `the tabs are Path and Numbers and walls`() {
         show()
 
         assertTrue(exists("zip.editor.step.path"))
         assertTrue(exists(COMBINED_TAB))
         rule.onNodeWithTag(COMBINED_TAB).assertTextEquals("Numbers & walls")
-        assertTrue(!exists("zip.editor.step.numbers"))
-        assertTrue(!exists("zip.editor.step.walls"))
     }
 
     @Test
@@ -224,7 +221,7 @@ class ZipEditorCombinedTest {
     fun `the Next line reads Numbers and walls on a covered board and goes once the author is there`() {
         val blank = EditorDraft.fresh(ZipEditor, ZipEditor.variants.first())
         val covered = (blank.state.draft as ZipDraft).copy(path = (0 until SIZE * SIZE).toList(), waypoints = listOf(0, 24))
-        val controller = ZipEditorController(EditorDraft(ZipEditor, blank.state.copy(draft = covered)), combined = true) {}
+        val controller = ZipEditorController(EditorDraft(ZipEditor, blank.state.copy(draft = covered))) {}
         rule.setContent { PuzzleBoxTheme { ZipEditorHint(controller) } }
 
         rule.onNodeWithTag("zip.editor.hint.next").assertTextEquals("Next: Numbers & walls")
