@@ -16,19 +16,19 @@ enum class GameUiFlag(override val label: String, override val releaseDefault: B
      * Technique trainer for Queens (epic trainer): Queens' UI module binds its trainer adapter only while this is on, and
      * the Train tab in Games shows once any adapter is bound. Read only in a game UI module's DI (ADR-0022 §3).
      */
-    TrainQueens(label = "Queens in the Train tab", releaseDefault = false),
+    TrainQueens(label = "Queens in the Train tab", releaseDefault = true),
 
     /**
      * Technique trainer for Tango (epic trainer): Tango's UI module binds its trainer adapter only while this is on.
      * Read only in a game UI module's DI (ADR-0022 §3).
      */
-    TrainTango(label = "Tango in the Train tab", releaseDefault = false),
+    TrainTango(label = "Tango in the Train tab", releaseDefault = true),
 
     /**
      * Technique trainer for Mini Sudoku (epic trainer): Mini Sudoku's UI module binds its trainer adapter only while this
      * is on. Read only in a game UI module's DI (ADR-0022 §3).
      */
-    TrainSudoku(label = "Mini Sudoku in the Train tab", releaseDefault = false),
+    TrainSudoku(label = "Mini Sudoku in the Train tab", releaseDefault = true),
     ;
 
     /** The entry's own name: the stored override's key in `release_flags`. Never change it. */

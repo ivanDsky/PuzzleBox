@@ -432,9 +432,12 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<GameViewModel> { parametersOf(GameKey("zip", "2000-01-01")) }.play)
             assertNotNull(koin.get<ResultViewModel> { parametersOf(ResultKey("zip", "2026-11-04", 12_340L, 0)) })
 
-            // Trainer mode: the registry resolves off the games' Trainer bindings. Every Train flag is off in a fresh
-            // graph (TrainerRegistryGatingTest turns TrainQueens on), so no adapter is held and the Train tab stays hidden.
-            assertTrue(koin.get<TrainerRegistry>().isEmpty)
+            // Trainer mode: the registry resolves off the games' Trainer bindings. Every Train flag ships on, so the
+            // registry holds the Queens, Tango and Mini Sudoku adapters (TrainerRegistryGatingTest covers each flag off).
+            assertEquals(
+                setOf(GameId("queens"), GameId("tango"), GameId("minisudoku")),
+                koin.get<TrainerRegistry>().all.map { it.gameId }.toSet(),
+            )
 
             // Editor mode (ADR-0019): Queens registers its editor UI, and the Create routes'
             // ViewModels resolve (an unknown draft id loads as Missing, never a crash).
