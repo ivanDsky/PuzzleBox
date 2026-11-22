@@ -69,6 +69,7 @@ class CommunityTabsTest {
     private var state by mutableStateOf(LOADED)
     private var friends by mutableStateOf(FRIENDS)
     private var sharePending by mutableStateOf(false)
+    private var onNewPuzzle by mutableStateOf<(() -> Unit)?>(null)
 
     /** The app's slot with a Yours list like create's, plus a row that scrolls sideways (see the report: chips). */
     private val slot = CustomSlot(
@@ -88,7 +89,7 @@ class CommunityTabsTest {
     private val content: @androidx.compose.runtime.Composable () -> Unit = {
         PuzzleBoxTheme {
             CompositionLocalProvider(LocalTabReselect provides reselect) {
-                CommunityTabs(state, ACTIONS, friends, slot, onOpen = {}, onRemove = {}, onEnterCode = {}, Modifier.fillMaxSize(), sharePending = sharePending)
+                CommunityTabs(state, ACTIONS, friends, slot, onOpen = {}, onRemove = {}, onEnterCode = {}, Modifier.fillMaxSize(), sharePending = sharePending, onNewPuzzle = onNewPuzzle)
             }
         }
     }
@@ -249,6 +250,53 @@ class CommunityTabsTest {
         rule.onNodeWithTag(TAB_YOURS).assertIsSelected()
         assertTrue(isShown("yours.row.0"))
         rule.onNodeWithTag(FILTER).assertDoesNotExist()
+    }
+
+    @Test
+    fun `with the create FAB on, Make a puzzle on an empty New today opens the sheet and stays on the tab`() {
+        state = LOADED.copy(phase = CommunityPhase.Loaded(emptyList()))
+        var opened = 0
+        onNewPuzzle = { opened++ }
+        show()
+
+        rule.onNodeWithText("Make a puzzle").performClick()
+        rule.waitForIdle()
+
+        assertEquals(1, opened)
+        rule.onNodeWithTag(TAB_NEW).assertIsSelected()
+    }
+
+    @Test
+    fun `with the create FAB on, New today and Friends keep its clearance free at the end of the list`() {
+        onNewPuzzle = {}
+        show()
+
+        rule.onNodeWithTag(PAGE_NEW).performScrollToIndex(NEW_ROWS)
+        rule.waitForIdle()
+        assertClearOfFab(PAGE_NEW, newRow(NEW_ROWS - 1))
+
+        tap(TAB_FRIENDS)
+        rule.onNodeWithTag(PAGE_FRIENDS).performScrollToIndex(FRIENDS.size - 1)
+        rule.waitForIdle()
+        assertClearOfFab(PAGE_FRIENDS, friendRow(FRIENDS.size - 1))
+    }
+
+    @Test
+    fun `without the create FAB the lists end where they always did`() {
+        show()
+
+        rule.onNodeWithTag(PAGE_NEW).performScrollToIndex(NEW_ROWS)
+        rule.waitForIdle()
+
+        val page = rule.onNodeWithTag(PAGE_NEW).getUnclippedBoundsInRoot()
+        val last = rule.onNodeWithTag(newRow(NEW_ROWS - 1)).getUnclippedBoundsInRoot()
+        assertTrue(page.bottom - last.bottom < CreateFabClearance)
+    }
+
+    private fun assertClearOfFab(pageTag: String, lastRowTag: String) {
+        val page = rule.onNodeWithTag(pageTag).getUnclippedBoundsInRoot()
+        val last = rule.onNodeWithTag(lastRowTag).getUnclippedBoundsInRoot()
+        assertTrue("the last row ends ${page.bottom - last.bottom} above the page end", page.bottom - last.bottom >= CreateFabClearance)
     }
 
     @Test

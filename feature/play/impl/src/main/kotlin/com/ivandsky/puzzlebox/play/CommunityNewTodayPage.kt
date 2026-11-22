@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Dp
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.play.community.CommunityActions
 import com.ivandsky.puzzlebox.play.community.CommunityState
@@ -26,11 +27,12 @@ internal fun CommunityNewTodayPage(
     listState: LazyListState,
     onMake: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    bottomPadding: Dp = Spacing.xl,
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize().testTag("community.page.new"),
         state = listState,
-        contentPadding = PaddingValues(top = Spacing.md, bottom = Spacing.xl),
+        contentPadding = PaddingValues(top = Spacing.md, bottom = bottomPadding),
     ) {
         communityFilterHead(state, actions)
         communityBody(state, actions, onMake)

@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.play
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -11,6 +12,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.compete.api.DuelKey
@@ -71,48 +73,62 @@ internal fun CommunityRoute(
     if (!enteringCode && codePrefill.isNotEmpty()) LaunchedEffect(Unit) { codePrefill = "" }
     val onEnterCode = { enteringCode = true }
     val flags by koinInject<ReleaseFlags>().enabled.collectAsStateWithLifecycle()
-    Box(modifier.fillMaxSize().testTag("route.community")) {
-        if (PlayFlag.CommunityShelves in flags) {
-            CommunityShelvesScreen(onEnterCode, phone = layout == PlayLayout.SinglePane, Modifier.fillMaxSize())
-        } else if (layout == PlayLayout.SinglePane) {
-            CommunityBound(community, communityState, onOpen) { actions ->
-                CommunityTabs(
-                    communityState, actions, friends, custom, onOpen, viewModel::removeFriend, onEnterCode, Modifier.fillMaxSize(),
-                    sharePending = sharePending != null,
-                )
+    WithNewPuzzle(custom, enabled = PlayFlag.CreateFab in flags) { onNewPuzzle ->
+        val clearance = if (onNewPuzzle != null) CreateFabClearance else 0.dp
+        Box(modifier.fillMaxSize().testTag("route.community")) {
+            if (PlayFlag.CommunityShelves in flags) {
+                CommunityShelvesScreen(onEnterCode, phone = layout == PlayLayout.SinglePane, Modifier.fillMaxSize())
+            } else if (layout == PlayLayout.SinglePane) {
+                CommunityBound(community, communityState, onOpen) { actions ->
+                    CommunityTabs(
+                        communityState, actions, friends, custom, onOpen, viewModel::removeFriend, onEnterCode, Modifier.fillMaxSize(),
+                        sharePending = sharePending != null,
+                        onNewPuzzle = onNewPuzzle,
+                    )
+                }
+            } else {
+                val yours = custom.yoursSummary()
+                CommunityBound(community, communityState, onOpen) { actions ->
+                    CommunityPanes(
+                        default = { tab -> defaultCommunityPick(tab, communityState.phase, friends, yours) },
+                        list = { size, picks ->
+                            CommunityTabs(
+                                communityState, actions, friends, custom, onOpen, viewModel::removeFriend, onEnterCode, size, picks,
+                                sharePending = sharePending != null,
+                                onNewPuzzle = onNewPuzzle,
+                            )
+                        },
+                        empty = { tab -> CommunityEmptyPane(tab, communityState.phase) },
+                        detail = { pick, clear -> CommunityPage(pick, clear, custom, onPlay) },
+                        listOverlay = onNewPuzzle?.let { open -> { CommunityCreateFab(open, Modifier.align(Alignment.BottomEnd)) } },
+                    )
+                }
             }
-        } else {
-            val yours = custom.yoursSummary()
-            CommunityBound(community, communityState, onOpen) { actions ->
-                CommunityPanes(
-                    default = { tab -> defaultCommunityPick(tab, communityState.phase, friends, yours) },
-                    list = { size, picks ->
-                        CommunityTabs(
-                            communityState, actions, friends, custom, onOpen, viewModel::removeFriend, onEnterCode, size, picks,
-                            sharePending = sharePending != null,
-                        )
-                    },
-                    empty = { tab -> CommunityEmptyPane(tab, communityState.phase) },
-                    detail = { pick, clear -> CommunityPage(pick, clear, custom, onPlay) },
-                )
+            // The FAB floats over the whole screen where the list pane is not its own: the phone, and the shelves home.
+            if (onNewPuzzle != null && (layout == PlayLayout.SinglePane || PlayFlag.CommunityShelves in flags)) {
+                CommunityCreateFab(onNewPuzzle, Modifier.align(Alignment.BottomEnd))
             }
-        }
-        FriendRemovedSnackbar(removedFriend, onUndo = viewModel::undoRemoveFriend, modifier = Modifier.align(Alignment.BottomCenter))
-        if (enteringCode) {
-            EnterCodeSheet(
-                onOpen = { code ->
-                    enteringCode = false
-                    onOpen(code)
-                },
-                onDismiss = { enteringCode = false },
-                initialText = codePrefill,
-                onOpenDuel = onOpenDuel?.let { openDuel ->
-                    { key ->
-                        enteringCode = false
-                        openDuel(key)
-                    }
-                },
+            FriendRemovedSnackbar(
+                removedFriend,
+                onUndo = viewModel::undoRemoveFriend,
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = clearance),
             )
+            if (enteringCode) {
+                EnterCodeSheet(
+                    onOpen = { code ->
+                        enteringCode = false
+                        onOpen(code)
+                    },
+                    onDismiss = { enteringCode = false },
+                    initialText = codePrefill,
+                    onOpenDuel = onOpenDuel?.let { openDuel ->
+                        { key ->
+                            enteringCode = false
+                            openDuel(key)
+                        }
+                    },
+                )
+            }
         }
     }
 }

@@ -8,11 +8,16 @@ import org.junit.Test
 import org.koin.core.qualifier.named
 import org.koin.dsl.koinApplication
 
-/** Community shelves ships dark (ADR-0022 §4) and its enum reaches the app's [FlagSet]s through [playModule]. */
+/** Community shelves and the create FAB ship dark (ADR-0022 §4) and its enum reaches the app's [FlagSet]s through [playModule]. */
 class PlayFlagTest {
     @Test
     fun `community shelves is off in release`() {
         assertFalse(PlayFlag.CommunityShelves.releaseDefault)
+    }
+
+    @Test
+    fun `create fab is off in release`() {
+        assertFalse(PlayFlag.CreateFab.releaseDefault)
     }
 
     @Test
