@@ -32,7 +32,8 @@ import kotlin.coroutines.coroutineContext
  * [StatsSectionProvider] then answers with its own flow of [StatsSection]. The page combines them, so a section that is
  * still loading or has failed shows its own state while the others are ready. A section is asked again only when its
  * [StatsSectionProvider.readKey] changes, so the vs friends read is not repeated by a solve that leaves its window as it was.
- * A provider that throws is logged and its
+ * With [allTimeRecords] the Records section reads the scope's all-time facts (a second fold, only when the range is not
+ * All and there is a solve), so a range cuts every other section but not the records. A provider that throws is logged and its
  * section is left out; one that needs the network maps its own failure to [SectionState.Unavailable] instead. The page
  * with no section is empty: the range has nothing to show.
  */
@@ -48,7 +49,7 @@ internal class ObserveStatsPage(
 ) {
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    operator fun invoke(scope: GameId?, range: StatsRange): Flow<StatsPage> {
+    operator fun invoke(scope: GameId?, range: StatsRange, allTimeRecords: Boolean = false): Flow<StatsPage> {
         val clockGame = scope ?: registry.all.firstOrNull()?.definition?.id ?: return flowOf(StatsPage(scope, range, emptyList()))
         val games = registry.all.map { it.definition.id }
         if (providers.isEmpty()) return flowOf(StatsPage(scope, range, emptyList()))
@@ -56,7 +57,12 @@ internal class ObserveStatsPage(
             coroutineScope {
                 val inputs = combine(observeGameHistory(), calendar.observeToday(clockGame)) { history, today ->
                     val firstSolve = history.filter { it.isSolvedDaily() && (scope == null || it.gameId == scope) }.minOfOrNull { it.day }
-                    StatsInput(range, computePeriodFacts(history, range.span(today, firstSolve), scope), games, today)
+                    val facts = computePeriodFacts(history, range.span(today, firstSolve), scope)
+                    val recordFacts = when {
+                        !allTimeRecords || range == StatsRange.All || firstSolve == null -> facts
+                        else -> computePeriodFacts(history, DayRange(firstSolve, today), scope)
+                    }
+                    StatsInput(range, facts, games, today, recordFacts)
                 }.shareIn(this, SharingStarted.Eagerly, replay = 1)
                 emitAll(combine(providers.map { section(it, inputs) }) { sections -> StatsPage(scope, range, sections.filterNotNull()) })
                 coroutineContext.cancelChildren()

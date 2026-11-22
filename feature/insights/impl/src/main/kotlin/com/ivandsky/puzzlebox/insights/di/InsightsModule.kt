@@ -103,6 +103,7 @@ val insightsModule: Module = module {
             registry = get(),
             cloudSync = get(),
             savedState = get(),
+            releaseFlags = get(),
         )
     }
 }

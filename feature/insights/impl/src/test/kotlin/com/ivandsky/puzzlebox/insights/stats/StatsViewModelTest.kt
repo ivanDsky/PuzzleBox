@@ -3,14 +3,17 @@ package com.ivandsky.puzzlebox.insights.stats
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.ivandsky.puzzlebox.common.log.FailureLog
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.cloud.CloudSyncState
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapHistoryFixture
 import com.ivandsky.puzzlebox.insights.domain.stats.ObserveStatsPage
+import com.ivandsky.puzzlebox.insights.flags.InsightsFlag
 import com.ivandsky.puzzlebox.insights.domain.stats.SectionState
 import com.ivandsky.puzzlebox.insights.domain.stats.StatsRange
 import com.ivandsky.puzzlebox.insights.domain.stats.StatsSection
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
 import java.time.LocalDate
@@ -36,7 +39,11 @@ class StatsViewModelTest {
 
     private fun day(dayOfMonth: Int, month: Int = 11) = LocalDate.of(2026, month, dayOfMonth)
 
-    private fun viewModel(initialGame: GameId? = null, savedState: SavedStateHandle = SavedStateHandle()) = StatsViewModel(
+    private fun viewModel(
+        initialGame: GameId? = null,
+        savedState: SavedStateHandle = SavedStateHandle(),
+        releaseFlags: ReleaseFlags = FakeReleaseFlags(),
+    ) = StatsViewModel(
         initialGame = initialGame,
         observeStatsPage = ObserveStatsPage(
             fixture.observeHistory,
@@ -50,6 +57,7 @@ class StatsViewModelTest {
         registry = fixture.registry,
         cloudSync = cloudSync,
         savedState = savedState,
+        releaseFlags = releaseFlags,
     )
 
     /** The next state that is no longer [StatsBody.Loading]. */
@@ -199,6 +207,21 @@ class StatsViewModelTest {
         viewModel().uiState.test {
             awaitItem()
             assertTrue(awaitBody().body is StatsBody.Ready)
+        }
+    }
+
+    @Test
+    fun `with the stats filters flag on the records read all time, off they stay in the range`() = runTest {
+        fixture.store(fixture.solve(alpha, day(1, month = 8)), fixture.solve(beta, day(18)))
+        val saved = { SavedStateHandle(mapOf("stats.range" to "Week")) }
+
+        viewModel(savedState = saved(), releaseFlags = FakeReleaseFlags(InsightsFlag.StatsFilters)).uiState.test {
+            awaitItem()
+            assertEquals(listOf(alpha, beta), awaitBody().recordGames())
+        }
+        viewModel(savedState = saved()).uiState.test {
+            awaitItem()
+            assertEquals(listOf(beta), awaitBody().recordGames())
         }
     }
 }

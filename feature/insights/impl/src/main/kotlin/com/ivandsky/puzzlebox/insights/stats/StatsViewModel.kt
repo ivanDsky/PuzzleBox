@@ -3,12 +3,15 @@ package com.ivandsky.puzzlebox.insights.stats
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
 import com.ivandsky.puzzlebox.data.cloud.restoring
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.insights.domain.stats.ObserveStatsPage
 import com.ivandsky.puzzlebox.insights.domain.stats.StatsPage
 import com.ivandsky.puzzlebox.insights.domain.stats.StatsRange
+import com.ivandsky.puzzlebox.insights.flags.InsightsFlag
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
@@ -33,6 +36,7 @@ internal class StatsViewModel(
     private val registry: GameRegistry,
     private val cloudSync: CloudSync,
     private val savedState: SavedStateHandle,
+    private val releaseFlags: ReleaseFlags,
 ) : ViewModel() {
 
     private val range: StateFlow<String> = savedState.getStateFlow(RANGE_KEY, StatsRange.Month.name)
@@ -40,7 +44,7 @@ internal class StatsViewModel(
 
     val uiState: StateFlow<StatsUiState> = combine(range, game) { range, game -> Selection(readRange(range), readGame(game)) }
         .flatMapLatest { selection ->
-            combine(observeStatsPage(selection.game, selection.range), cloudSync.restoring) { page, restoring ->
+            combine(observeStatsPage(selection.game, selection.range, releaseFlags.isEnabled(InsightsFlag.StatsFilters)), cloudSync.restoring) { page, restoring ->
                 StatsUiState(selection.range, selection.game, body(page, restoring))
             }
         }
