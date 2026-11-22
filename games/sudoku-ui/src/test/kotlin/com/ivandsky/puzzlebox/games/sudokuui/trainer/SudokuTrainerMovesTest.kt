@@ -69,4 +69,10 @@ class SudokuTrainerMovesTest {
         assertNull(trainer.trainedMoves(broken, SudokuTechniqueIds.all.first()))
         assertNull(trainer.trainedMoves(mini, TechniqueId("no-such-technique")))
     }
+
+    /** Bug caught: Mini Sudoku not saying it reports counts, so the view model never looks for a longer board. */
+    @Test
+    fun `the trainer says it reports counts`() {
+        assertTrue(trainer.reportsTrainedMoves)
+    }
 }

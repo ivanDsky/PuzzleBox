@@ -79,6 +79,8 @@ internal class FakeTrainerGame(
     var demoFor: (Puzzle, TechniqueId, Int) -> IntroDemo? = { _, _, _ -> null }
 
     /** The trained-move count a puzzle reports for a technique; unknown (null) by default, as a game that does not say. */
+    var reports = false
+    override val reportsTrainedMoves: Boolean get() = reports
     var trainedMovesOf: (Puzzle, TechniqueId) -> Int? = { _, _ -> null }
 
     override fun catalog(): List<TrainerTechnique> = techniques

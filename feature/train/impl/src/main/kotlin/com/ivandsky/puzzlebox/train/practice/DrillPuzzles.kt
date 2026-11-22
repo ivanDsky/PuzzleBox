@@ -41,7 +41,7 @@ private const val MIN_FOCUS_MOVES = 2
 /**
  * Tries [open] on the puzzles on the device that are not in [played], the [source]'s (newest first) then the bundled ones
  * for [technique], and stops at the first that opens (true). With [preferLong] it first goes through only the puzzles the game
- * says train [MIN_FOCUS_MOVES] or more moves ([TrainerGame.trainedMoves], unknown counting as fewer), and only if none opens
+ * says train [MIN_FOCUS_MOVES] or more moves ([TrainerGame.trainedMoves], unknown counting as fewer, and never when the game does not [TrainerGame.reportsTrainedMoves]), and only if none opens
  * goes through all of them in that same order. False when none opens.
  */
 internal suspend fun TrainerGame.openDevicePuzzle(
@@ -50,12 +50,13 @@ internal suspend fun TrainerGame.openDevicePuzzle(
     played: Set<Puzzle>,
     dispatchers: DispatcherProvider,
     preferLong: Boolean,
+    counts: TrainedMovesCache,
     open: suspend (Puzzle) -> Boolean,
 ): Boolean {
     suspend fun wanted(puzzle: Puzzle, longOnly: Boolean): Boolean = puzzle !in played &&
-        (!longOnly || (withContext(dispatchers.default) { trainedMoves(puzzle, technique) } ?: 0) >= MIN_FOCUS_MOVES)
+        (!longOnly || (withContext(dispatchers.default) { counts.of(this@openDevicePuzzle, puzzle, technique) } ?: 0) >= MIN_FOCUS_MOVES)
     suspend fun pass(longOnly: Boolean): Boolean =
         source.puzzles(gameId).firstOrNull { wanted(it, longOnly) && open(it) } != null ||
             withContext(dispatchers.default) { bundledPuzzles(technique) }.any { wanted(it, longOnly) && open(it) }
-    return (preferLong && pass(longOnly = true)) || pass(longOnly = false)
+    return (preferLong && reportsTrainedMoves && pass(longOnly = true)) || pass(longOnly = false)
 }

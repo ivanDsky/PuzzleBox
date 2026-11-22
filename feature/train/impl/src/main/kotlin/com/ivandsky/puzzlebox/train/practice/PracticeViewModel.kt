@@ -93,6 +93,7 @@ internal class PracticeViewModel(
 
     /** The puzzles a board was opened on in this chapter, so the next board is another one; only touched on the main thread. */
     private val played = mutableSetOf<Puzzle>()
+    private val trainedMoves = TrainedMovesCache()
 
     val state: StateFlow<PracticeState> = mutableState.asStateFlow()
 
@@ -262,7 +263,7 @@ internal class PracticeViewModel(
 
     /** Opens a board on a puzzle on the device not played yet ([openDevicePuzzle]): a focus board prefers one that trains several moves. False when none opens. */
     private suspend fun openFromDevice(): Boolean =
-        game.openDevicePuzzle(source, current, played, dispatchers, preferLong = chapterKinds(techniqueIndex)[boardIndex] == BoardKind.Focus) { open(it) }
+        game.openDevicePuzzle(source, current, played, dispatchers, preferLong = chapterKinds(techniqueIndex)[boardIndex] == BoardKind.Focus, counts = trainedMoves) { open(it) }
 
     /** Cuts a board of the current kind from [puzzle] off the main thread (the walk is CPU work) and shows it; false when [puzzle] never has the technique as its easiest move. */
     private suspend fun open(puzzle: Puzzle): Boolean {

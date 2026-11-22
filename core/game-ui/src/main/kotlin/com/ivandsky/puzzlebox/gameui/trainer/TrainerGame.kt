@@ -39,6 +39,9 @@ interface TrainerGame {
         onTrainedTurn: (TrainerVerdict) -> Unit,
     ): PracticeBoard?
 
+    /** Whether [trainedMoves] ever answers; false (the default) lets the Train feature skip looking for a longer board. */
+    val reportsTrainedMoves: Boolean get() = false
+
     /**
      * How many moves a [BoardKind.Focus] board of [technique] cut from [puzzle] trains before it ends, or null when this
      * game does not say (the default: the Train feature then keeps its usual order of puzzles). A board of one move is

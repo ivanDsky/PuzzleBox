@@ -60,6 +60,8 @@ internal class SudokuTrainer : TrainerGame {
         return SudokuPracticeBoard(decoded, start, technique, kind, onTrainedTurn)
     }
 
+    override val reportsTrainedMoves: Boolean = true
+
     /** The moves the focus board trains ([SudokuFocusMoves]); null where [practice] gives no board. */
     override fun trainedMoves(puzzle: Puzzle, technique: TechniqueId): Int? = SudokuFocusMoves.of(puzzle, technique)
 

@@ -26,6 +26,7 @@ class PracticeFocusPickTest {
         attempt: Int? = 1,
     ): PracticeRig {
         val rig = PracticeRig(candidates, device = device, attempt = null)
+        rig.game.reports = true
         rig.game.trainedMovesOf = { puzzle, _ -> moves[puzzle.tag] }
         attempt?.let(rig.vm::start)
         return rig
@@ -130,5 +131,30 @@ class PracticeFocusPickTest {
         rig.vm.startPractice()
 
         assertEquals(3, rig.board.tag)
+    }
+
+    /** Bug caught: a game that reports no counts (Queens, Tango) reading its whole archive before the first board opens, as a scan for a long puzzle that cannot be found. */
+    @Test
+    fun `a game that reports nothing opens the first puzzle after reading one`() {
+        val device = listOf(puzzle(1), puzzle(2), puzzle(3))
+        val rig = PracticeRig(named, device = device)
+
+        assertEquals(1, rig.board.tag)
+        // The intro's own search for a demo reads the whole device once; the board then reads one puzzle.
+        assertEquals(device.size + 1, rig.puzzlesRead)
+    }
+
+    /** Bug caught: every focus board of a chapter counting the same one-move puzzles again, so each board waits on the whole archive. */
+    @Test
+    fun `a puzzle's count is asked once, however many boards follow`() {
+        val asked = mutableListOf<Int>()
+        val rig = rig(moves = mapOf(1 to 1, 2 to 1, 3 to 3), attempt = null)
+        val counts = rig.game.trainedMovesOf
+        rig.game.trainedMovesOf = { puzzle, technique -> asked += puzzle.tag; counts(puzzle, technique) }
+        rig.vm.start(1)
+        rig.finishBoard(main)
+        rig.finishBoard(main)
+
+        assertEquals(listOf(1, 2, 3), asked.sorted())
     }
 }
