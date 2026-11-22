@@ -26,6 +26,11 @@ internal object ShelfFixture {
         puzzle(i, game = order[i % order.size], solves = if (counter) i else null)
     }
 
+    /** Like [puzzles] with a counter, but every third puzzle (0, 3, 6, ...) was never solved. */
+    fun puzzlesWithUnsolved(n: Int): List<ShelfPuzzle> = List(n) { i ->
+        puzzle(i, game = order[i % order.size], solves = if (i % 3 == 0) 0 else i)
+    }
+
     fun puzzle(
         i: Int,
         game: GameId = queens,

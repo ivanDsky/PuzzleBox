@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.play.domain.shelves.ShelfFixture.ids
 import com.ivandsky.puzzlebox.play.domain.shelves.ShelfFixture.order
 import com.ivandsky.puzzlebox.play.domain.shelves.ShelfFixture.puzzle
 import com.ivandsky.puzzlebox.play.domain.shelves.ShelfFixture.puzzles
+import com.ivandsky.puzzlebox.play.domain.shelves.ShelfFixture.puzzlesWithUnsolved
 import com.ivandsky.puzzlebox.play.domain.shelves.ShelfFixture.shownCodes
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -131,8 +132,9 @@ class BuildShelfPlanTest {
         val plan = plan(9, counter = true)
 
         assertNull(plan.section<ShelfPlan.Section.Newest>())
-        assertEquals(8, plan.section<ShelfPlan.Section.MostPlayed>()!!.cards.size)
-        assertEquals(ids(7, 6, 5, 4, 3, 2, 1, 0), plan.section<ShelfPlan.Section.MostPlayed>()!!.cards.map { it.code })
+        // Puzzle 0 was never solved, so it stays out of Most played and sits on its game shelf.
+        assertEquals(ids(7, 6, 5, 4, 3, 2, 1), plan.section<ShelfPlan.Section.MostPlayed>()!!.cards.map { it.code })
+        assertEquals(ids(0), plan.shelfCodes())
     }
 
     @Test
@@ -252,5 +254,92 @@ class BuildShelfPlanTest {
 
         assertEquals(ids(5), listOf(plan.section<ShelfPlan.Section.Spotlight>()!!.card.code))
         assertEquals(loaded.map { it.code }.toSet(), plan.shownCodes().toSet())
+    }
+
+    private val tableSizes = listOf(0, 1, 2, 3, 8, 13, 14, 30, 31)
+
+    @Test
+    fun `S2 puzzles with unsolved ones appear exactly once and no Most played or Newest shelf holds fewer than 3`() {
+        val inputs = tableSizes.map { it to puzzlesWithUnsolved(it) } + tableSizes.map { n ->
+            n to List(n) { puzzle(it, game = order[it % order.size], solves = 0) }
+        }
+        for ((n, loaded) in inputs) {
+            val plan = buildShelfPlan(loaded, order, NOW)
+            val shown = plan.shownCodes()
+            assertEquals("n=$n once each", loaded.map { it.code }.toSet(), shown.toSet())
+            assertEquals("n=$n no repeats", shown.size, shown.toSet().size)
+            plan.section<ShelfPlan.Section.MostPlayed>()?.let { assertTrue("n=$n most played", it.cards.size >= 3) }
+            plan.section<ShelfPlan.Section.Newest>()?.let { assertTrue("n=$n newest", it.cards.size >= 3) }
+        }
+    }
+
+    @Test
+    fun `A3 Spotlight and Most played hold only puzzles solved at least once`() {
+        for (n in tableSizes) {
+            val plan = buildShelfPlan(puzzlesWithUnsolved(n), order, NOW)
+            val ranked = listOfNotNull(plan.section<ShelfPlan.Section.Spotlight>()?.card) +
+                plan.section<ShelfPlan.Section.MostPlayed>()?.cards.orEmpty()
+            assertTrue("n=$n", ranked.all { (it.solves ?: 0) >= 1 })
+        }
+    }
+
+    @Test
+    fun `A3 a counter where no puzzle was solved gives no Spotlight and no Most played`() {
+        val loaded = List(8) { puzzle(it, game = order[it % order.size], solves = 0) }
+
+        val plan = buildShelfPlan(loaded, order, NOW)
+
+        assertNull(plan.section<ShelfPlan.Section.Spotlight>())
+        assertNull(plan.section<ShelfPlan.Section.MostPlayed>())
+        assertEquals(ids(0, 1, 2, 3, 4, 5), plan.section<ShelfPlan.Section.Newest>()!!.cards.map { it.code })
+        assertEquals(ids(6, 7).toSet(), plan.shelfCodes().toSet())
+    }
+
+    @Test
+    fun `A3 one solved puzzle is the Spotlight, Most played hides and the unsolved ones fill Newest`() {
+        val loaded = List(8) { puzzle(it, game = order[it % order.size], solves = if (it == 5) 3 else 0) }
+
+        val plan = buildShelfPlan(loaded, order, NOW)
+
+        assertEquals(ids(5), listOf(plan.section<ShelfPlan.Section.Spotlight>()!!.card.code))
+        assertNull(plan.section<ShelfPlan.Section.MostPlayed>())
+        assertEquals(ids(0, 1, 2, 3, 4, 6), plan.section<ShelfPlan.Section.Newest>()!!.cards.map { it.code })
+        assertEquals(ids(7), plan.shelfCodes())
+    }
+
+    @Test
+    fun `R3 fewer than 3 solved puzzles after the Spotlight hide Most played and release them`() {
+        // Two solved puzzles (7, 8): 7 is the Spotlight and 8 alone cannot fill Most played, so it goes on to the game shelves.
+        val loaded = List(9) { puzzle(it, game = order[it % order.size], solves = if (it >= 7) 7 - (it - 7) else 0) }
+
+        val plan = buildShelfPlan(loaded, order, NOW)
+
+        assertEquals(ids(7), listOf(plan.section<ShelfPlan.Section.Spotlight>()!!.card.code))
+        assertNull(plan.section<ShelfPlan.Section.MostPlayed>())
+        assertEquals(ids(0, 1, 2, 3, 4, 5), plan.section<ShelfPlan.Section.Newest>()!!.cards.map { it.code })
+        assertEquals(ids(6, 8).toSet(), plan.shelfCodes().toSet())
+    }
+
+    @Test
+    fun `A3 Most played shows with 3 solved puzzles and leaves the unsolved to Newest`() {
+        val loaded = List(10) { puzzle(it, game = order[it % order.size], solves = if (it >= 6) 10 - it else 0) }
+
+        val plan = buildShelfPlan(loaded, order, NOW)
+
+        assertEquals(ids(6), listOf(plan.section<ShelfPlan.Section.Spotlight>()!!.card.code))
+        assertEquals(ids(7, 8, 9), plan.section<ShelfPlan.Section.MostPlayed>()!!.cards.map { it.code })
+        assertEquals(ids(0, 1, 2, 3, 4, 5), plan.section<ShelfPlan.Section.Newest>()!!.cards.map { it.code })
+        assertTrue(plan.sections.last() is ShelfPlan.Section.MakeOne)
+    }
+
+    @Test
+    fun `R4 leftovers appended to Most played are only the solved ones`() {
+        // Spotlight 14 solves; Most played 6; Newest takes 0..5; leftovers are 6 (never solved) and 7 (solved).
+        val loaded = List(15) { puzzle(it, game = order[it % order.size], solves = if (it == 6) 0 else it) }
+
+        val plan = buildShelfPlan(loaded, order, NOW)
+
+        assertEquals(ids(13, 12, 11, 10, 9, 8, 7), plan.section<ShelfPlan.Section.MostPlayed>()!!.cards.map { it.code })
+        assertEquals(ids(6), plan.shelfCodes())
     }
 }

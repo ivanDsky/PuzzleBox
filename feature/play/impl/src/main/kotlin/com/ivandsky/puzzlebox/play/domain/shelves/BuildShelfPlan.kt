@@ -18,17 +18,18 @@ private const val NEW_WINDOW_MS = 7 * 24 * 60 * 60 * 1000L
  * - R4 leftovers after Newest: 3 or more go to the game shelves; 1 or 2 join Most played when it shows (else the game
  *   shelves); none, or only those appended, give one [ShelfPlan.Section.MakeOne] row instead of game shelves.
  * - R5 each game shelf holds only the leftovers of its game, most played first (newest first without a counter).
- * - A3 when no puzzle has a solve count there is no Spotlight and no Most played; a counter on some puzzles counts the
- *   others as 0 solves.
+ * - A3 Spotlight and Most played take only puzzles solved at least once (no fake "most played"): without a counter,
+ *   or with every count 0, neither shows. A puzzle with no count, or 0, waits for Newest and the game shelves, and
+ *   R4 appends only solved leftovers to Most played.
  */
 fun buildShelfPlan(puzzles: List<ShelfPuzzle>, gameOrder: List<GameId>, nowMs: Long): ShelfPlan {
     val loaded = puzzles.distinctBy { it.code }
-    val hasCounter = loaded.any { it.solves != null }
     val mostPlayedFirst = loaded.sortedWith(
         compareByDescending<ShelfPuzzle> { it.solves ?: 0 }
             .thenByDescending { it.createdAtMs }
             .thenBy { it.code.value },
     )
+    fun ShelfPuzzle.isSolved() = (solves ?: 0) >= 1
     fun ShelfPuzzle.card() = ShelfPlan.Card(
         code = code,
         game = game,
@@ -45,21 +46,21 @@ fun buildShelfPlan(puzzles: List<ShelfPuzzle>, gameOrder: List<GameId>, nowMs: L
     var pool = mostPlayedFirst
     val sections = mutableListOf<ShelfPlan.Section>()
 
-    if (hasCounter && pool.size >= SPOTLIGHT_SIZE) {
-        sections += ShelfPlan.Section.Spotlight(pool.first().card())
-        pool = pool.drop(SPOTLIGHT_SIZE)
+    // Only a puzzle solved at least once is "most played"; the rest wait in the pool for Newest and the game shelves.
+    val spotlight = pool.firstOrNull()?.takeIf { it.isSolved() }
+    if (spotlight != null) {
+        sections += ShelfPlan.Section.Spotlight(spotlight.card())
+        pool = pool - spotlight
     }
 
     var mostPlayedAt = -1
     var mostPlayed = emptyList<ShelfPuzzle>()
-    if (hasCounter) {
-        val taken = pool.take(MOST_PLAYED_MAX)
-        if (taken.size >= SHELF_MIN) {
-            mostPlayedAt = sections.size
-            mostPlayed = taken
-            sections += ShelfPlan.Section.MostPlayed(emptyList())
-            pool = pool.drop(taken.size)
-        }
+    val taken = pool.filter { it.isSolved() }.take(MOST_PLAYED_MAX)
+    if (taken.size >= SHELF_MIN) {
+        mostPlayedAt = sections.size
+        mostPlayed = taken
+        sections += ShelfPlan.Section.MostPlayed(emptyList())
+        pool = pool - taken.toSet()
     }
 
     val newest = pool.sortedWith(compareByDescending<ShelfPuzzle> { it.createdAtMs }.thenBy { it.code.value }).take(NEWEST_MAX)
@@ -69,8 +70,9 @@ fun buildShelfPlan(puzzles: List<ShelfPuzzle>, gameOrder: List<GameId>, nowMs: L
     }
 
     if (mostPlayedAt >= 0 && pool.size < SHELF_MIN) {
-        mostPlayed = mostPlayed + pool
-        pool = emptyList()
+        val solved = pool.filter { it.isSolved() }
+        mostPlayed = mostPlayed + solved
+        pool = pool - solved.toSet()
     }
     if (mostPlayedAt >= 0) sections[mostPlayedAt] = ShelfPlan.Section.MostPlayed(mostPlayed.map { it.card() })
 
