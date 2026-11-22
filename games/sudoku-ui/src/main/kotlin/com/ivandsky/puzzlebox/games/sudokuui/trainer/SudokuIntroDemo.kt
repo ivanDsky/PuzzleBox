@@ -39,7 +39,7 @@ internal class SudokuIntroDemo private constructor(
                 add(Frame(recording.before, evidence))
                 recording.landings.forEachIndexed { i, board -> add(Frame(board, lighting(evidence, recording.squares.take(i + 1)))) }
             }
-            return SudokuIntroDemo(recording.variant, SudokuIntroCaptions.of(step, puzzle), puzzle, frames)
+            return SudokuIntroDemo(recording.variant, SudokuIntroCaptions.of(step, puzzle, recording.before), puzzle, frames)
         }
 
         /**

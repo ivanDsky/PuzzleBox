@@ -77,17 +77,24 @@ class SudokuStepCopyTest {
     fun `a last cell reads as a last cell, not as the hidden single it carries`() {
         val step = SudokuStep.Single(place(2, 6, SudokuTechnique.HIDDEN_SINGLE_LINE, row0), row0, emptySet())
 
-        assertEquals("Row 1 has one cell left, and it needs 6", text(step))
+        assertEquals("Row 1 has one open square left, and it needs 6", text(step))
+    }
+
+    @Test
+    fun `a last cell in a box says this box, never a box number`() {
+        val step = SudokuStep.Single(place(2, 6, SudokuTechnique.HIDDEN_SINGLE_BOX, box0), box0, emptySet())
+
+        assertEquals("This box has one open square left, and it needs 6", text(step))
     }
 
     @Test
     fun `hidden singles name the box or the line`() {
         assertEquals(
-            "In this box only this cell can take 4 (hidden single)",
+            "In this box only this square can take 4 (hidden single)",
             text(SudokuStep.Single(place(2, 4, SudokuTechnique.HIDDEN_SINGLE_BOX, box0), null, emptySet())),
         )
         assertEquals(
-            "In col 4 only this cell can take 2 (hidden single)",
+            "In column 4 only this square can take 2 (hidden single)",
             text(SudokuStep.Single(place(2, 2, SudokuTechnique.HIDDEN_SINGLE_LINE, col3), null, emptySet())),
         )
     }
@@ -133,7 +140,7 @@ class SudokuStepCopyTest {
                 text(row),
             )
             assertEquals(
-                "This box puts its $digit in col 6, so the rest of col 6 can't take $digit (pointing)",
+                "This box puts its $digit in column 6, so the rest of column 6 can't take $digit (pointing)",
                 text(col),
             )
         }
@@ -143,7 +150,7 @@ class SudokuStepCopyTest {
     fun `pointing along a column names the column both times when one cell is struck`() {
         val step = SudokuStep.Elimination(SudokuTechnique.POINTING, SudokuUnit(UnitKind.BOX, 1), bit(3), mapOf(32 to bit(3)), setOf(5, 14))
 
-        assertEquals("This box puts its 3 in col 6, so the rest of col 6 can't take 3 (pointing)", text(step))
+        assertEquals("This box puts its 3 in column 6, so the rest of column 6 can't take 3 (pointing)", text(step))
     }
 
     @Test
@@ -158,7 +165,7 @@ class SudokuStepCopyTest {
         for (digit in 1..9) {
             val step = SudokuStep.Elimination(SudokuTechnique.CLAIMING, SudokuUnit(UnitKind.COLUMN, 4), bit(digit), mapOf(0 to bit(digit)), setOf(4))
 
-            assertEquals("Col 5 puts its $digit in this box, so the rest of the box can't take $digit (claiming)", text(step))
+            assertEquals("Column 5 puts its $digit in this box, so the rest of the box can't take $digit (claiming)", text(step))
         }
     }
 
@@ -174,14 +181,14 @@ class SudokuStepCopyTest {
         // The empty board leaves every digit open; the group is what the engine proved, after earlier strikes.
         val step = SudokuStep.Elimination(SudokuTechnique.NAKED_PAIR, row0, bit(2) or bit(5), mapOf(6 to bit(2)), setOf(0, 1))
 
-        assertEquals("These two cells only take 2 and 5, so the rest of row 1 loses both (naked pair)", text(step, mini, miniBoard()))
+        assertEquals("Two squares only take 2 and 5, so the rest of row 1 loses both (naked pair)", text(step, mini, miniBoard()))
     }
 
     @Test
     fun `a hidden pair names its group digits, not the board's candidates`() {
         val step = SudokuStep.Elimination(SudokuTechnique.HIDDEN_PAIR, row0, bit(1) or bit(6), mapOf(0 to bit(4), 1 to bit(4)), setOf(0, 1))
 
-        assertEquals("1 and 6 only fit these two cells, so they take nothing else (hidden pair)", text(step, mini, miniBoard()))
+        assertEquals("1 and 6 fit only these two squares, so they keep no other note (hidden pair)", text(step, mini, miniBoard()))
     }
 
     @Test
@@ -201,7 +208,7 @@ class SudokuStepCopyTest {
             text(SudokuStep.Mistake(8, 1, 0)),
         )
         assertEquals(
-            "This 1 repeats the 1 in its col 3 — and isn't in the solution",
+            "This 1 repeats the 1 in its column 3 — and isn't in the solution",
             text(SudokuStep.Mistake(74, 1, 2)),
         )
     }
@@ -239,33 +246,26 @@ class SudokuStepCopyTest {
     }
 
     @Test
-    fun `a technique's generic line is its sentence with no digit, unit or cell named`() {
+    fun `a technique's list line has no this, no digit, cell or line, and no technique name in brackets`() {
         val byName = SudokuTechniqueIds.all.associate { it.value to SudokuStepCopy.technique(it) }
 
         assertEquals(
             mapOf(
-                "last-cell" to "This line has one cell left, and it needs a certain digit",
-                "hidden-single-box" to "In this box only this cell can take a certain digit (hidden single)",
-                "hidden-single-line" to "In this line only this cell can take a certain digit (hidden single)",
-                "naked-single" to "It sees every other digit, so it is the one left (naked single)",
-                "pointing" to "This box puts its digit in a line, so the rest of that line can't take it (pointing)",
-                "claiming" to "This line puts its digit in this box, so the rest of the box can't take it (claiming)",
-                "naked-pair" to "These two cells only take two digits, so the rest of this line loses both (naked pair)",
-                "hidden-pair" to "Two digits only fit these two cells, so they take nothing else (hidden pair)",
+                "last-cell" to "A row, column or box has one open square: put in the number it is missing.",
+                "hidden-single-box" to "A box where one number fits in only one square.",
+                "hidden-single-line" to "A row or column where one number fits in only one square.",
+                "naked-single" to "A square with only one number it can still take: that number goes there.",
+                "pointing" to "In a box, a number fits only along one row or column, so take it off the rest of that row or column.",
+                "claiming" to "In a column, a number fits only inside one box, so take it off the rest of that box.",
+                "naked-pair" to "Two squares in one row, column or box can only take the same two numbers, " +
+                    "so the rest of that row, column or box loses both.",
+                "hidden-pair" to "Two numbers fit only in the same two squares, so those squares lose every other note.",
             ),
             byName,
         )
-    }
-
-    @Test
-    fun `a generic line is the hint's sentence for a sample step with its facts left out`() {
-        val steps = everyStep()
-        val box = text(steps.getValue("HIDDEN_SINGLE_BOX"))
-
-        assertEquals(SudokuStepCopy.technique(SudokuTechniqueIds.byTechnique.getValue(SudokuTechnique.HIDDEN_SINGLE_BOX)), box.replace("4", "a certain digit"))
-        for ((name, technique) in listOf("POINTING" to SudokuTechnique.POINTING, "CLAIMING" to SudokuTechnique.CLAIMING, "NAKED_PAIR" to SudokuTechnique.NAKED_PAIR, "HIDDEN_PAIR" to SudokuTechnique.HIDDEN_PAIR, "NAKED_SINGLE" to SudokuTechnique.NAKED_SINGLE)) {
-            val tag = text(steps.getValue(name)).substringAfterLast(" (")
-            assertTrue("$name keeps its tag in the generic line", SudokuStepCopy.technique(SudokuTechniqueIds.byTechnique.getValue(technique)).endsWith(" ($tag"))
+        for ((id, line) in byName) {
+            assertFalse("$id: $line", Regex("\\b(this|digits?|cells?|lines?)\\b", RegexOption.IGNORE_CASE).containsMatchIn(line))
+            assertFalse("$id keeps no bracket: $line", '(' in line)
         }
     }
 
@@ -274,7 +274,7 @@ class SudokuStepCopyTest {
         for (id in SudokuTechniqueIds.all) {
             val line = SudokuStepCopy.technique(id)
             assertFalse("${id.value} is one line", '\n' in line)
-            assertTrue("${id.value} is ${line.length} chars: $line", line.length <= 90)
+            assertTrue("${id.value} is ${line.length} chars: $line", line.length <= 130)
         }
     }
 }

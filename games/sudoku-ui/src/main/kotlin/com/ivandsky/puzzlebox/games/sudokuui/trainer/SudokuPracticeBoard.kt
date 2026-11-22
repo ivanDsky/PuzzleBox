@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.game.trainer.TrainerVerdict
 import com.ivandsky.puzzlebox.games.sudoku.SudokuBoard
+import com.ivandsky.puzzlebox.games.sudoku.SudokuCell
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
 import com.ivandsky.puzzlebox.games.sudoku.SudokuSession
 import com.ivandsky.puzzlebox.games.sudoku.engine.hints.SudokuHint
@@ -38,6 +39,10 @@ import kotlinx.coroutines.flow.asStateFlow
  * appear in the meantime; the last is [PracticeStatus.Right], and [onTrainedTurn] hears `Right` once, then. An undone
  * move or Show me reports only when the easiest rung is the trained [technique].
  *
+ * A valid single that the easiest rung does not make (a naked single on a Hidden single board, any single on a review
+ * board) stands without a word: it is not undone, shows no band and is not reported. A review board ends a few moves
+ * after its last trained step ([SudokuPractice.isDone]).
+ *
  * An Easier move or Show me stands as an explanation until [gotIt]: the board takes no move meanwhile, whatever
  * the keypad sends it. The status Spotlight is drawn over the grid by [SudokuTrainer.Board] from [status].
  *
@@ -66,6 +71,9 @@ internal class SudokuPracticeBoard(
     private var step: Step? = null
     private var spotlights = 0
 
+    /** The moves made since the last trained step, which a review board ends on ([SudokuPractice.isDone]). */
+    private var sinceTrained = 0
+
     /** Whether the step Show me made, whose explanation stands, ended the board: [gotIt] then reads Done. */
     private var shownEnds = false
 
@@ -87,6 +95,7 @@ internal class SudokuPracticeBoard(
         state.adopt(next)
         step = null
         if (show.rung == technique) onTrainedTurn(TrainerVerdict.ShowMe)
+        sinceTrained = if (show.rung == technique) 0 else sinceTrained + 1
         shownEnds = over(next)
         current.value = PracticeStatus.Shown(spotlight)
     }
@@ -108,11 +117,12 @@ internal class SudokuPracticeBoard(
         step?.takeIf { square(move) in it.remaining }?.let { return continuing(it, move, next) }
         return when (val judged = SudokuPractice.judge(puzzle, before.board, move)) {
             is SudokuPracticeJudgement.Right -> right(judged, before, move, next)
+            is SudokuPracticeJudgement.Fits -> fits(next)
             is SudokuPracticeJudgement.Easier -> {
                 val spotlight = spotlight(judged.step, before.board)
                 undone(judged.rung, PracticeStatus.Easier(SudokuTrainerCatalog.name(judged.rung), spotlight), before)
             }
-            is SudokuPracticeJudgement.Wrong -> undone(judged.rung, PracticeStatus.Wrong(why(judged.reason, move, next.board)), before)
+            is SudokuPracticeJudgement.Wrong -> undone(judged.rung, PracticeStatus.Wrong(why(judged.reason, move, before.board, next.board)), before)
         }
     }
 
@@ -131,6 +141,16 @@ internal class SudokuPracticeBoard(
         return next
     }
 
+    /**
+     * A valid single the easiest rung did not make: it stands, with no band and nothing reported to the count, and
+     * a step the player has started goes on. It counts as a move since the last trained step.
+     */
+    private fun fits(next: SudokuSession): SudokuSession {
+        sinceTrained++
+        if (step == null) current.value = if (over(next)) PracticeStatus.Done(null) else PracticeStatus.FindNextMove
+        return next
+    }
+
     /** A later square of a started step: KeepGoing while squares remain, Right on the last. */
     private fun continuing(started: Step, move: SudokuTrainerMove, next: SudokuSession): SudokuSession {
         started.remaining -= square(move)!!
@@ -146,12 +166,13 @@ internal class SudokuPracticeBoard(
     /** A step is done: a trained one is reported once, and the band reads Right, or Done when the step ended the board. */
     private fun finished(trained: Boolean, spotlight: Spotlight, next: SudokuSession) {
         if (trained) onTrainedTurn(TrainerVerdict.Right)
+        sinceTrained = if (trained) 0 else sinceTrained + 1
         current.value = if (over(next)) PracticeStatus.Done(spotlight) else PracticeStatus.Right(spotlight, trained)
     }
 
     /** Whether [session] leaves this board nothing to ask: solved, or the easiest rung is out of this [kind]'s part. */
     private fun over(session: SudokuSession): Boolean =
-        session.isComplete || SudokuPractice.isDone(puzzle, session.board, technique, kind)
+        session.isComplete || SudokuPractice.isDone(puzzle, session.board, technique, kind, sinceTrained)
 
     /** [status] for a move that is not Right: the move is dropped, and the trained technique's turn it was is a Wrong. */
     private fun undone(rung: TechniqueId?, status: PracticeStatus, before: SudokuSession): SudokuSession {
@@ -170,17 +191,33 @@ internal class SudokuPracticeBoard(
     private fun squares(step: SudokuStep.Elimination): Set<Pair<Int, Int>> =
         step.struck.flatMap { (cell, mask) -> (1..puzzle.geometry.size).filter { mask and (1 shl (it - 1)) != 0 }.map { cell to it } }.toSet()
 
-    /** One plain line for a move that broke the solution or was no move. [after] is the board with the move made. */
-    private fun why(reason: Reason, move: SudokuTrainerMove, after: SudokuBoard): String = when (reason) {
+    /**
+     * One plain line for a move that broke the solution or was no move. [after] is the board with the move made. A
+     * note's line gives a reason and never names the square or its answer.
+     */
+    private fun why(reason: Reason, move: SudokuTrainerMove, before: SudokuBoard, after: SudokuBoard): String = when (reason) {
         Reason.WrongDigit -> {
             val idx = (move as SudokuTrainerMove.Place).idx
-            SudokuHintCaptions.violation(after) ?: SudokuHintCaptions.hint(SudokuHint.Wrong(listOf(idx)), after) ?: "That digit doesn't fit here."
+            SudokuHintCaptions.violation(after) ?: SudokuHintCaptions.hint(SudokuHint.Wrong(listOf(idx)), after) ?: "That number doesn't fit here."
         }
-        Reason.SolutionNote -> {
-            val remove = move as SudokuTrainerMove.RemoveNote
-            val geometry = puzzle.geometry
-            "That ${remove.digit} can still go in row ${geometry.rowOf(remove.idx) + 1}, column ${geometry.colOf(remove.idx) + 1}, so its note stays."
+        Reason.SolutionNote -> "Nothing rules ${(move as SudokuTrainerMove.RemoveNote).digit} out of this square yet, so its note stays."
+        Reason.NotAMove -> when (move) {
+            is SudokuTrainerMove.AddNote -> "Notes can only come off here. Turn Notes on and tap a number to take that one note off."
+            else -> otherWhy(before, after)
         }
-        Reason.NotAMove -> "Place a digit or take a note off a square."
+    }
+
+    private fun notes(board: SudokuBoard, idx: Int): Int = (board.cells[idx] as? SudokuCell.Notes)?.mask ?: 0
+
+    /** The line for a move that is none of place, take a note off or put one on: it names what the player actually did. */
+    private fun otherWhy(before: SudokuBoard, after: SudokuBoard): String {
+        val cells = before.cells.indices
+        val overDigit = cells.any { before.digitAt(it) != 0 && after.digitAt(it) != 0 && before.digitAt(it) != after.digitAt(it) }
+        val clearedNotes = cells.count { notes(before, it) != 0 && notes(after, it) == 0 && before.digitAt(it) == 0 && after.digitAt(it) == 0 }
+        return when {
+            overDigit -> "That square already has a number. Put numbers on empty squares only."
+            clearedNotes > 0 -> "Erase clears every note. Take off one note at a time."
+            else -> "That is not a step here. Take notes off one at a time, or put a number on an empty square."
+        }
     }
 }

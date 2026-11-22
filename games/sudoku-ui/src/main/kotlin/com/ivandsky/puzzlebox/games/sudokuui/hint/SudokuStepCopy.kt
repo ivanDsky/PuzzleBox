@@ -19,17 +19,16 @@ import com.ivandsky.puzzlebox.games.sudoku.engine.trainer.SudokuTechniqueIds
  * Every line explains the step in a sentence and keeps the technique only as a trailing parenthetical
  * (`... (hidden single)`); none opens with a technique name.
  *
- * One template per technique serves two readers: the hint fills it with a step's own facts ([text]) and the
- * Trainer's technique list fills it with generic words ([technique]), so a copy edit shows in both (A1: no third
- * copy set).
+ * The hint fills one template per technique with a step's own facts ([text]). The Trainer's technique list has a
+ * line of its own per technique ([technique]): the hint's sentences point at the lit squares of one step, which a
+ * list has none of.
  */
 internal object SudokuStepCopy {
 
     /**
-     * The words a template names. A step supplies its own and the technique list generic ones; each is read only by
-     * the templates that name it, so a step that lacks one (a naked single has no unit) never computes it. The
-     * second mention of a digit or a line ([again], [lineAgain]) is a field of its own because a generic sentence
-     * says "it" and "that line" where a step's sentence repeats the digit and the line.
+     * The words a template names, supplied by a step. Each is read only by the templates that name it, so a step
+     * that lacks one (a naked single has no unit) never computes it. The second mention of a digit or a line
+     * ([again], [lineAgain]) is a field of its own so a template can word the repeat on its own.
      */
     private class Facts(
         /** The unit the step names: `row 1`. */
@@ -54,13 +53,13 @@ internal object SudokuStepCopy {
 
     private val templates: Map<TechniqueId, (Facts) -> String> = mapOf(
         SudokuTechniqueIds.lastCell to { facts ->
-            "${facts.unit().sentence()} has one cell left, and it needs ${facts.digit()}"
+            "${facts.unit().sentence()} has one open square left, and it needs ${facts.digit()}"
         },
         idOf(SudokuTechnique.HIDDEN_SINGLE_BOX) to { facts ->
-            "In this box only this cell can take ${facts.digit()} (hidden single)"
+            "In this box only this square can take ${facts.digit()} (hidden single)"
         },
         idOf(SudokuTechnique.HIDDEN_SINGLE_LINE) to { facts ->
-            "In ${facts.unit()} only this cell can take ${facts.digit()} (hidden single)"
+            "In ${facts.unit()} only this square can take ${facts.digit()} (hidden single)"
         },
         idOf(SudokuTechnique.NAKED_SINGLE) to { facts ->
             "${facts.reason().sentence()}, so it is ${facts.answer()} (naked single)"
@@ -72,10 +71,10 @@ internal object SudokuStepCopy {
             "${facts.unit().sentence()} puts its ${facts.own()} in this box, so the rest of the box can't take ${facts.again()} (claiming)"
         },
         idOf(SudokuTechnique.NAKED_PAIR) to { facts ->
-            "These two cells only take ${facts.digits()}, so the rest of ${facts.unit()} loses both (naked pair)"
+            "Two squares only take ${facts.digits()}, so the rest of ${facts.unit()} loses both (naked pair)"
         },
         idOf(SudokuTechnique.HIDDEN_PAIR) to { facts ->
-            "${facts.digits().sentence()} only fit these two cells, so they take nothing else (hidden pair)"
+            "${facts.digits().sentence()} fit only these two squares, so they keep no other note (hidden pair)"
         },
     )
 
@@ -89,21 +88,22 @@ internal object SudokuStepCopy {
     }
 
     /**
-     * The sentence of [id] for a technique with no step in hand (the Trainer's technique list): the same template the
-     * hint fills, with generic words: a line for a row or column, "a certain digit" for the one a step names.
+     * The Trainer's technique list line for [id]: a sentence of its own in generic words, with no "this" (nothing is
+     * pointed at on a list), no digit or cell, and no technique name in brackets. The hint's sentences above cannot
+     * serve: they point at the lit squares of one step.
      */
-    fun technique(id: TechniqueId): String = templates.getValue(id)(generic)
+    fun technique(id: TechniqueId): String = lines.getValue(id)
 
-    private val generic = Facts(
-        unit = { "this line" },
-        digit = { "a certain digit" },
-        answer = { "the one left" },
-        reason = { "it sees every other digit" },
-        own = { "digit" },
-        again = { "it" },
-        line = { "a line" },
-        lineAgain = { "that line" },
-        digits = { "two digits" },
+    private val lines: Map<TechniqueId, String> = mapOf(
+        SudokuTechniqueIds.lastCell to "A row, column or box has one open square: put in the number it is missing.",
+        idOf(SudokuTechnique.HIDDEN_SINGLE_BOX) to "A box where one number fits in only one square.",
+        idOf(SudokuTechnique.HIDDEN_SINGLE_LINE) to "A row or column where one number fits in only one square.",
+        idOf(SudokuTechnique.NAKED_SINGLE) to "A square with only one number it can still take: that number goes there.",
+        idOf(SudokuTechnique.POINTING) to "In a box, a number fits only along one row or column, so take it off the rest of that row or column.",
+        idOf(SudokuTechnique.CLAIMING) to "In a column, a number fits only inside one box, so take it off the rest of that box.",
+        idOf(SudokuTechnique.NAKED_PAIR) to "Two squares in one row, column or box can only take the same two numbers, " +
+            "so the rest of that row, column or box loses both.",
+        idOf(SudokuTechnique.HIDDEN_PAIR) to "Two numbers fit only in the same two squares, so those squares lose every other note.",
     )
 
     private fun idOf(technique: SudokuTechnique): TechniqueId = SudokuTechniqueIds.byTechnique.getValue(technique)
@@ -151,11 +151,11 @@ internal object SudokuStepCopy {
         return "This ${step.digit} repeats the ${step.digit} in its ${sharedUnitName(step.cell, partner, geometry)} — and isn't in the solution"
     }
 
-    /** `box`, `row N` or `col N`: the unit [a] and [b] share, the box first. */
+    /** `box`, `row N` or `column N`: the unit [a] and [b] share, the box first. */
     private fun sharedUnitName(a: Int, b: Int, geometry: SudokuGeometry): String = when {
         geometry.boxOf(a) == geometry.boxOf(b) -> "box"
         geometry.rowOf(a) == geometry.rowOf(b) -> "row ${geometry.rowOf(a) + 1}"
-        else -> "col ${geometry.colOf(a) + 1}"
+        else -> "column ${geometry.colOf(a) + 1}"
     }
 
     private fun cellName(cell: Int, geometry: SudokuGeometry): String =
@@ -163,8 +163,8 @@ internal object SudokuStepCopy {
 
     private fun unitName(unit: SudokuUnit): String = when (unit.kind) {
         UnitKind.ROW -> "row ${unit.index + 1}"
-        UnitKind.COLUMN -> "col ${unit.index + 1}"
-        UnitKind.BOX -> "box ${unit.index + 1}"
+        UnitKind.COLUMN -> "column ${unit.index + 1}"
+        UnitKind.BOX -> "this box"
     }
 
     /** The row or column holding every holder of a pointing step's digit in the box: its [SudokuStep.Elimination.evidence]. */
@@ -173,7 +173,7 @@ internal object SudokuStepCopy {
         return if (step.evidence.all { geometry.rowOf(it) == geometry.rowOf(first) }) {
             "row ${geometry.rowOf(first) + 1}"
         } else {
-            "col ${geometry.colOf(first) + 1}"
+            "column ${geometry.colOf(first) + 1}"
         }
     }
 
