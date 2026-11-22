@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.community.MakePuzzleCard
 import com.ivandsky.puzzlebox.designsystem.community.ShelfCardDefaults
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.play.community.shelves.seeall.SeeAllScope
 import com.ivandsky.puzzlebox.play.domain.shelves.ShelfPlan.Section
 
 /** The sub line of a game shelf, from what it holds. */
@@ -28,14 +29,27 @@ internal fun LazyListScope.shelvesSections(content: ShelvesUiState.Content, acti
                 PlanSpotlight(section.card, content, actions.onOpen, Modifier.padding(horizontal = Spacing.lg))
             }
             is Section.MostPlayed -> item(key = "most", contentType = "shelf") {
-                ShelfRow("Most played", "all time") { items(section.cards, key = { it.code.value }) { PlanCard(it, content, actions.onOpen) } }
+                ShelfRow("Most played", "all time", onSeeAll = { actions.onSeeAll(SeeAllScope.MostPlayed) }, seeAllTag = "shelves.seeall.most") { items(section.cards, key = { it.code.value }) { PlanCard(it, content, actions.onOpen) } }
             }
             is Section.Newest -> item(key = "newest", contentType = "shelf") {
-                ShelfRow("Newest", "latest first", Modifier.testTag("shelves.shelf.newest")) { items(section.cards, key = { it.code.value }) { PlanCard(it, content, actions.onOpen) } }
+                ShelfRow(
+                    "Newest",
+                    "latest first",
+                    Modifier.testTag("shelves.shelf.newest"),
+                    onSeeAll = { actions.onSeeAll(SeeAllScope.Newest) },
+                    seeAllTag = "shelves.seeall.newest",
+                ) { items(section.cards, key = { it.code.value }) { PlanCard(it, content, actions.onOpen) } }
             }
             is Section.GameShelf -> item(key = "game:${section.game.value}", contentType = "shelf") {
                 val game = content.games[section.game] ?: return@item
-                ShelfRow(game.name, section.sub(), Modifier.testTag("shelves.shelf.${game.id.value}"), disc = game.brand) {
+                ShelfRow(
+                    game.name,
+                    section.sub(),
+                    Modifier.testTag("shelves.shelf.${game.id.value}"),
+                    disc = game.brand,
+                    onSeeAll = { actions.onSeeAll(SeeAllScope.Game(game.id)) },
+                    seeAllTag = "shelves.seeall.${game.id.value}",
+                ) {
                     items(section.cards, key = { it.code.value }) { PlanCard(it, content, actions.onOpen) }
                     item(key = "make", contentType = "make") { MakeCard(game.id, game.name, section.cards.isEmpty(), actions) }
                 }
