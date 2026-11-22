@@ -60,6 +60,9 @@ internal class SudokuTrainer : TrainerGame {
         return SudokuPracticeBoard(decoded, start, technique, kind, onTrainedTurn)
     }
 
+    /** The moves the focus board trains ([SudokuFocusMoves]); null where [practice] gives no board. */
+    override fun trainedMoves(puzzle: Puzzle, technique: TechniqueId): Int? = SudokuFocusMoves.of(puzzle, technique)
+
     /**
      * The real play board's grid and keypad. The grid draws [PracticeSpotlight] over its cells, with the Spotlight's digits
      * measured in the grid's own style; the keypad sits outside it, so [SudokuPracticeBoard] refuses the moves the keypad
