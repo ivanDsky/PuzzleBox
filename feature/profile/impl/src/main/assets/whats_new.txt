@@ -2,6 +2,11 @@
 # A release adds its entry at the top in the same commit as its version bump.
 # "## <version> <date>" starts a release; "- " starts a note; "#" lines are comments.
 
+## 0.41.0 2026-11-22
+- A new Train tab teaches the tricks behind Queens, Tango and Mini Sudoku. Pick a technique and it shows you the idea on a small board first.
+- Then you practise: find the next move on a board played to the end, step by step, with a short explanation after each move.
+- Each chapter ends with a result page, and a finished board gets a short celebration before the next one.
+
 ## 0.40.2 2026-11-21
 - The home-screen widget keeps showing your last picture while it refreshes, instead of a spinner or empty rings.
 
