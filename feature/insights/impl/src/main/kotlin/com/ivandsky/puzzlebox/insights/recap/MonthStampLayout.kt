@@ -30,7 +30,7 @@ internal data class StampCaption(val left: Float, val top: Float, val right: Flo
 }
 
 /** A board's sticker unit in dp: 30% of its width or 36% of its height, whichever is less, kept to 72–150dp. */
-internal fun boardUnit(widthDp: Float, heightDp: Float): Float = minOf(0.30f * widthDp, 0.36f * heightDp).coerceIn(MinUnit, MaxUnit)
+internal fun boardUnit(widthDp: Float, heightDp: Float): Float = minOf(WidthShare * widthDp, 0.36f * heightDp).coerceIn(MinUnit, MaxUnit)
 
 /**
  * Where [count] (0 to [MaxPlaced]) stickers sit on a board [widthDp] by [heightDp]: the prototype's preset for the count,
@@ -46,8 +46,8 @@ internal fun stampPlacement(count: Int, widthDp: Float, heightDp: Float): List<P
     val scattered = preset.fitted(unit, widthDp, heightDp)
     val plainRow = preset.inOneRow().fitted(unit, widthDp, heightDp)
     if (scattered.minOf { it.size } >= RowPreference * plainRow.minOf { it.size }) return scattered
-    val zigzag = preset.zigzagRow(minOf(0.30f * widthDp, MaxUnit), widthDp, heightDp)
-    return if (zigzag.minOf { it.size } > plainRow.minOf { it.size }) zigzag else plainRow
+    val zigzag = preset.zigzagRow(minOf(WidthShare * widthDp, MaxUnit), widthDp, heightDp)
+    return if (zigzag != null && zigzag.minOf { it.size } > plainRow.minOf { it.size }) zigzag else plainRow
 }
 
 /** These stickers placed at [unit], shrunk by the largest factor up to 1 that [fits] the board. */
@@ -67,9 +67,9 @@ private fun List<Preset>.fitted(unit: Float, width: Float, height: Float): List<
 /**
  * These stickers spread across one row from edge to edge, every other one pinned to the top edge and the rest to the
  * bottom edge (their dates inside it), at [unit] times their scale shrunk by the largest factor up to 1 that [fits] the
- * board.
+ * board with [ZigzagGap] between neighbours; null when no size does.
  */
-private fun List<Preset>.zigzagRow(unit: Float, width: Float, height: Float): List<PlacedStamp> {
+private fun List<Preset>.zigzagRow(unit: Float, width: Float, height: Float): List<PlacedStamp>? {
     val at = { k: Float ->
         val first = PlacedStamp(0f, 0f, unit * first().scale * k, 0f).reach
         val last = PlacedStamp(0f, 0f, unit * last().scale * k, 0f).reach
@@ -86,13 +86,8 @@ private fun List<Preset>.zigzagRow(unit: Float, width: Float, height: Float): Li
     }
     // Pinned to the edges, a smaller sticker does not always fit where a larger one does, so step down from full size
     // rather than bisect.
-    return (ZigzagSteps downTo 1).map { at(it / ZigzagSteps.toFloat()) }.firstOrNull { it.fits(width, height) } ?: at(1f / ZigzagSteps)
+    return (ZigzagSteps downTo 1).map { at(it / ZigzagSteps.toFloat()) }.firstOrNull { it.fits(width, height, ZigzagGap) }
 }
-
-private const val ZigzagSteps = 100
-
-/** Room kept between a zigzag sticker's reach, or its date, and the board's edge. */
-private const val ZigzagMargin = 0.5f
 
 /** The same stickers, tilts and scales spread evenly across one row, every other one a little lower. */
 private fun List<Preset>.inOneRow(): List<Preset> = mapIndexed { i, p ->
@@ -104,15 +99,15 @@ private const val RowY = 42f
 private const val RowStagger = 5f
 private const val RowPreference = 0.85f
 
-/** True when every sticker and date is inside the board and clear of every other one. */
-private fun List<PlacedStamp>.fits(width: Float, height: Float): Boolean = withIndex().all { (i, a) ->
+/** True when every sticker and date is inside the board and clear of every other one by at least [gap]. */
+private fun List<PlacedStamp>.fits(width: Float, height: Float, gap: Float = 0f): Boolean = withIndex().all { (i, a) ->
     val c = a.caption
     a.cx - a.reach >= 0f && a.cx + a.reach <= width && a.cy - a.reach >= 0f && a.cy + a.reach <= height &&
         c.left >= 0f && c.right <= width && c.bottom <= height &&
         withIndex().all { (j, b) ->
             j == i || (
-                c.distanceTo(b.cx, b.cy) >= b.reach &&
-                    (j < i || (hypot(a.cx - b.cx, a.cy - b.cy) >= a.reach + b.reach && !c.overlaps(b.caption)))
+                c.distanceTo(b.cx, b.cy) >= b.reach + gap &&
+                    (j < i || (hypot(a.cx - b.cx, a.cy - b.cy) >= a.reach + b.reach + gap && !c.overlaps(b.caption)))
                 )
         }
 }
@@ -135,11 +130,25 @@ private val Presets = listOf(
     ),
 )
 
+/** The share of a board's width a sticker unit takes. */
+private const val WidthShare = 0.30f
 private const val MinUnit = 72f
 private const val MaxUnit = 150f
 private const val ReachScale = 1.05f
 private const val ReachPad = 3f
 private const val FitSteps = 20
+
+/** The zigzag row's sizes tried, from full in 1% steps; it is stepped, not bisected, as pinned stickers fit non-monotonically. */
+private const val ZigzagSteps = 100
+
+/** The room a zigzag sticker keeps from the board's edge, so it is never tangent to it. */
+private const val ZigzagMargin = 0.5f
+
+/**
+ * The room the zigzag row keeps between a sticker's reach and its neighbours', dp. The reach is a circle; a tilted
+ * rounded square's corners poke out past it, so neighbours are kept this far apart to leave a visible gap.
+ */
+private const val ZigzagGap = 10f
 
 /** A sticker's date box: [CaptionWidth] by [CaptionHeight] dp, [CaptionGap] under the sticker. */
 internal const val CaptionWidth = 44f

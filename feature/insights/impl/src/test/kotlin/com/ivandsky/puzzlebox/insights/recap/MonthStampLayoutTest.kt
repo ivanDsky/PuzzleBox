@@ -68,13 +68,14 @@ class MonthStampLayoutTest {
     }
 
     // Catches a phone month card whose board is short (about 170dp under the highlight) drawing the stamps at the 72dp
-    // floor, when the prototype draws them near 90dp: the longest month's four stamps must come out about that size.
-    // A card 343dp across, the width a 411dp phone gives it, takes them to 86dp; the golden's 318dp board to 80.
+    // floor, when the prototype draws them near 90dp. With a visible gap kept between neighbours the golden's 318dp
+    // board takes them to about 77dp, a 343dp card to 80 and a 367dp one to 85; 90 needs a taller board.
     @Test
-    fun `a short phone board draws four stamps near the prototype's 90dp`() {
+    fun `a short phone board draws four stamps larger than the 72dp floor, towards the prototype's 90dp`() {
         for (h in listOf(168f, 175f, 190f)) {
-            stampPlacement(4, 343f, h).forEach { assertTrue("343x$h size ${it.size}", it.size >= PrototypeSize - 4f) }
-            stampPlacement(4, 318f, h).forEach { assertTrue("318x$h size ${it.size}", it.size >= PrototypeSize - 10f) }
+            stampPlacement(4, 318f, h).forEach { assertTrue("318x$h size ${it.size}", it.size >= 76f) }
+            stampPlacement(4, 343f, h).forEach { assertTrue("343x$h size ${it.size}", it.size >= 80f) }
+            stampPlacement(4, 367f, h).forEach { assertTrue("367x$h size ${it.size}", it.size >= PrototypeSize - 6f) }
         }
     }
 
@@ -96,6 +97,29 @@ class MonthStampLayoutTest {
         }
     }
 
+    // Catches the phone row drawing neighbours tangent: a tilted rounded square reaches past the circle the layout
+    // models, so its corners would touch the next sticker or sit on its date. Four stamps keep a visible gap.
+    @Test
+    fun `four phone stamps keep a gap between neighbours and their dates`() {
+        for (w in listOf(318f, 343f, 367f)) for (h in listOf(150f, 168f, 175f, 190f, 220f)) {
+            val placed = stampPlacement(4, w, h)
+            placed.forEachIndexed { i, a ->
+                placed.forEachIndexed { j, b ->
+                    if (j <= i) return@forEachIndexed
+                    val where = "${w}x$h stamps $i,$j"
+                    val apart = hypot(a.cx - b.cx, a.cy - b.cy)
+                    assertTrue("$where centres $apart < ${a.reach + b.reach + Gap}", apart >= a.reach + b.reach + Gap)
+                    assertTrue("$where dates overlap", !a.caption.overlaps(b.caption))
+                }
+                placed.forEachIndexed { j, b ->
+                    if (j == i) return@forEachIndexed
+                    val toCircle = a.caption.distanceTo(b.cx, b.cy)
+                    assertTrue("${w}x$h date $i to stamp $j $toCircle", toCircle >= b.reach + Gap)
+                }
+            }
+        }
+    }
+
     // Catches an empty board asking for a placement it cannot draw.
     @Test
     fun `no stamps place nothing`() {
@@ -106,5 +130,6 @@ class MonthStampLayoutTest {
         const val Slack = 0.01f
         const val MinReadable = 40f
         const val PrototypeSize = 90f
+        const val Gap = 8f
     }
 }
