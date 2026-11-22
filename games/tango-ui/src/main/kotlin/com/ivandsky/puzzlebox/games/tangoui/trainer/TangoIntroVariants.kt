@@ -19,10 +19,10 @@ internal object TangoIntroVariants {
             "Put the same kind in the empty square for =, and the other kind for ×.",
         ),
         TechniqueId("pair") to Triple(
-            "No line may hold three suns or three moons in a row. When two of the same kind sit side by side, " +
-                "the squares at both ends of them must be the other kind.",
-            "Two suns or two moons side by side, with an empty square next to them.",
-            "Put the other kind in the empty square.",
+            "No row or column (a line) may hold three suns or three moons in a row. When two of the same kind sit " +
+                "side by side, the squares at both ends of them must be the other kind.",
+            "Two suns or two moons side by side, with an empty square at an end, in the same row or column.",
+            "Put the other kind in each empty end.",
         ),
         TechniqueId("sandwich") to Triple(
             "No line may hold three suns or three moons in a row. When two of the same kind have one empty square " +
@@ -31,42 +31,43 @@ internal object TangoIntroVariants {
             "Put the other kind in the gap.",
         ),
         TechniqueId("full-line") to Triple(
-            "Every row and column holds the same number of suns and moons. Once a line has all its suns, " +
+            "On this 6×6 board every row and column holds 3 suns and 3 moons. Once a line has 3 suns, " +
                 "every empty square left in it is a moon, and the other way round.",
             "A row or column that already has all its suns or all its moons.",
             "Fill the empty squares of that line with the other kind.",
         ),
         TechniqueId("equal-pair") to Triple(
-            "Two empty squares joined by = hold the same kind. When a filled square sits right beside the pair, " +
-                "matching it would make three in a row, so both squares take the other kind.",
-            "An = sign between two empty squares, with a filled square right beside them.",
+            "Two empty squares joined by = hold the same kind. When a filled square sits right at one end of the pair, " +
+                "in the same row or column, matching it would make three in a row, so both squares take the other kind.",
+            "An = sign between two empty squares, with a filled square right at one end of the pair, in the same row or column.",
             "Put the other kind in both squares.",
         ),
         TechniqueId("sign-count") to Triple(
-            "A × sign holds one sun and one moon, so it counts as one of each in its line. Count the signs and the " +
-                "filled squares together: once one kind is used up, every other empty square takes the other kind.",
-            "A line with signs where counting leaves only one kind to place.",
-            "Fill the empty squares that are left with the kind that remains.",
+            "Count each × that joins two empty squares in the line as one sun and one moon, then add the filled squares: " +
+                "once one kind is used up, every other empty square takes the other kind. An = sign between two empty " +
+                "squares needs two of the same kind, so if only one of a kind is left in the line, both take the other kind.",
+            "A line with an empty × pair or = pair, where counting leaves one kind short.",
+            "Fill the empty squares that are left with the kind that remains. For an = pair, put the other kind in both.",
         ),
         TechniqueId("split-pair") to Triple(
             "Two empty squares with a sun on one side and a moon on the other hold one of each, because two of the " +
                 "same kind would make three in a row next to one end. Count that pair as one sun and one moon: once " +
                 "a kind is used up, the other empty squares take the other kind.",
-            "A sun, two empty squares, then a moon, in one line.",
+            "A sun and a moon in one line with exactly two empty squares between them, either way round.",
             "Fill the other empty squares of that line with the kind that remains.",
         ),
         TechniqueId("count-squeeze") to Triple(
-            "Try a kind in one empty square and see what the line then needs. If that kind would break the line, with " +
-                "three in a row or a broken sign, or would use up the count and force the rest into a kind that cannot fit, " +
+            "Try one kind in an empty square. If that gives the line all 3 of that kind, every other empty square " +
+                "must be the other kind. If that would make three in a row or break a sign, the guess was wrong: " +
                 "the square holds the other kind.",
-            "A line with few empty squares where one guess would break it.",
-            "Put the other kind in that square.",
+            "A line one short of all 3 suns (or moons), with a few empty squares.",
+            "Put the kind you did not try in that square.",
         ),
         TechniqueId("line-options") to Triple(
-            "List every way the line can still be filled without breaking a rule. A square that holds the same kind " +
-                "in every way is settled.",
+            "List every way to fill the line that keeps its own rules: 3 of each, no three in a row, and the signs " +
+                "inside it. A square that holds the same kind in every way is settled.",
             "A line with few empty squares and only a couple of ways to fill it.",
-            "Put the kind every way agrees on in that square.",
+            "Put the kind every way agrees on in each such square.",
         ),
     )
 
