@@ -22,7 +22,7 @@ private fun Card.badges() = listOfNotNull(
 
 /**
  * The plan's [card] drawn as a shelf card with its title, author and level read from [content]. A card whose puzzle or
- * game is not in [content] draws nothing. There is no solve counter yet, so it reads 0 solves; the open puzzle of the
+ * game is not in [content] draws nothing. With no solve counter yet it draws no solves chip; the open puzzle of the
  * tablet's detail pane ([LocalSelectedRowCode]) is ringed.
  */
 @Composable
@@ -32,7 +32,7 @@ internal fun PlanCard(card: Card, content: ShelvesUiState.Content, onOpen: (Shar
     ShelfCard(
         title = puzzle.title,
         author = puzzle.author,
-        solves = card.solves ?: 0,
+        solves = card.solves,
         accent = brand.accent,
         glyph = brand.glyph,
         onClick = { onOpen(card.code) },

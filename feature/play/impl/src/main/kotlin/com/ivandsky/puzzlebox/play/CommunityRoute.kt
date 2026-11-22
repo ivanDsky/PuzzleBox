@@ -103,8 +103,8 @@ internal fun CommunityRoute(
                     )
                 }
             }
-            // The FAB floats over the whole screen where the list pane is not its own: the phone, and the shelves home.
-            if (onNewPuzzle != null && (layout == PlayLayout.SinglePane || PlayFlag.CommunityShelves in flags)) {
+            // The FAB floats over the whole screen on the phone; on the tablet the list pane draws it over itself.
+            if (onNewPuzzle != null && layout == PlayLayout.SinglePane) {
                 CommunityCreateFab(onNewPuzzle, Modifier.align(Alignment.BottomEnd))
             }
             FriendRemovedSnackbar(

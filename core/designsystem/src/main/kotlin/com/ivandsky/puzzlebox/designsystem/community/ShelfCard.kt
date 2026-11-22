@@ -31,7 +31,7 @@ import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 
 /**
  * A puzzle on a community shelf: 156dp wide, the game's art on top (its [glyph] disc in [accent], the
- * solves chip bottom-left, any [badges] top-right, NEW first), then the [title] over two lines and the
+ * solves chip bottom-left (none when [solves] is null: no count yet), any [badges] top-right, NEW first), then the [title] over two lines and the
  * "[author] · [difficulty]" line. A tap [onClick]s; a long press [onLongClick]s (report, remove a
  * friend) with [onLongClickLabel] announced for it. [selected] rings the card that is open in the tablet's
  * detail pane. A press scales it to .97 and, under reduced motion, washes it instead.
@@ -40,7 +40,7 @@ import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 fun ShelfCard(
     title: String,
     author: String,
-    solves: Int,
+    solves: Int?,
     accent: AccentSlot,
     glyph: ImageVector,
     onClick: () -> Unit,
@@ -78,7 +78,7 @@ fun ShelfCard(
                 .clip(shape)
                 .cardPressWash(interaction, reduced, shape),
         ) {
-            SolvesChip(solves, Modifier.align(Alignment.BottomStart).padding(Spacing.sm))
+            if (solves != null) SolvesChip(solves, Modifier.align(Alignment.BottomStart).padding(Spacing.sm))
             if (badges.isNotEmpty()) {
                 Row(
                     modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.sm),

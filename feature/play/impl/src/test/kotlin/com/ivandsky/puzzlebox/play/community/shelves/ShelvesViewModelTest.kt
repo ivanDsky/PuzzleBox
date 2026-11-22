@@ -50,7 +50,7 @@ class ShelvesViewModelTest {
         fixture.gated.gate = CompletableDeferred()
 
         val viewModel = fixture.viewModel()
-        assertEquals(ShelvesUiState.Loading, viewModel.state.value)
+        assertEquals(ShelvesUiState.Loading(), viewModel.state.value)
 
         fixture.gated.gate?.complete(Unit)
         assertTrue(viewModel.state.value is ShelvesUiState.Content)
@@ -136,7 +136,22 @@ class ShelvesViewModelTest {
 
         viewModel.retry()
 
-        assertEquals(ShelvesUiState.Loading, viewModel.state.value)
+        assertEquals(ShelvesUiState.Loading(), viewModel.state.value)
+    }
+
+    @Test
+    fun `Loading already carries the saved entries so the tiles do not jump on load or Retry`() = runTest {
+        fixture.receive(1, author = "Bo")
+        fixture.myPuzzle(2)
+        fixture.draft("d1")
+        fixture.gated.gate = CompletableDeferred()
+
+        val viewModel = fixture.viewModel()
+
+        assertEquals(
+            ShelvesUiState.Loading(ShelvesEntries(friendPuzzles = 1, friendInitials = listOf('B'), published = 1, drafts = 1)),
+            viewModel.state.value,
+        )
     }
 
     @Test

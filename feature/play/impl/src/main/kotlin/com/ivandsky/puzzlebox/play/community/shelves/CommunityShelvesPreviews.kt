@@ -54,7 +54,7 @@ internal fun ShelvesEmptyPreview() = ShelvesPreviewFrame(ShelvesUiState.Empty(Sa
 
 @ShelvesPreviews
 @Composable
-internal fun ShelvesLoadingPreview() = ShelvesPreviewFrame(ShelvesUiState.Loading)
+internal fun ShelvesLoadingPreview() = ShelvesPreviewFrame(ShelvesUiState.Loading(SampleEntries))
 
 @ShelvesPreviews
 @Composable

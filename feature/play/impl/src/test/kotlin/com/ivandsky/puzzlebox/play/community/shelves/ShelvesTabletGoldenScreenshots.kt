@@ -35,7 +35,7 @@ class ShelvesTabletGoldenScreenshots {
     @Test fun `empty light`() = capture("empty", ShelvesUiState.Empty(SampleEntries), dark = false)
     @Test fun `empty dark`() = capture("empty", ShelvesUiState.Empty(SampleEntries), dark = true)
 
-    @Test fun `loading light`() = capture("loading", ShelvesUiState.Loading, dark = false)
+    @Test fun `loading light`() = capture("loading", ShelvesUiState.Loading(SampleEntries), dark = false)
 
     @Test fun `offline dark`() = capture("offline", ShelvesUiState.Offline(SampleEntries), dark = true)
 

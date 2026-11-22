@@ -56,12 +56,12 @@ internal class ShelvesViewModel(
     private val friends = friendPuzzles()
     private val own = published.observeAll()
     private val sketches = drafts.observeAll()
-    private val loaded = MutableStateFlow<ShelvesUiState>(ShelvesUiState.Loading)
+    private val loaded = MutableStateFlow<ShelvesUiState>(ShelvesUiState.Loading())
     private var loading: Job? = null
 
     val state: StateFlow<ShelvesUiState> =
         combine(loaded, friends, own, sketches) { shown, friendRows, mine, kept -> shown.withEntries(entriesOf(friendRows, mine, kept)) }
-            .stateIn(viewModelScope, SharingStarted.Eagerly, ShelvesUiState.Loading)
+            .stateIn(viewModelScope, SharingStarted.Eagerly, ShelvesUiState.Loading())
 
     init {
         load()
@@ -72,7 +72,7 @@ internal class ShelvesViewModel(
 
     private fun load() {
         loading?.cancel()
-        loaded.value = ShelvesUiState.Loading
+        loaded.value = ShelvesUiState.Loading()
         loading = viewModelScope.launch { loaded.value = read() }
     }
 

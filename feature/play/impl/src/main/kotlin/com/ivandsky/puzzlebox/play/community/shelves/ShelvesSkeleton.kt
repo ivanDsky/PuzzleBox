@@ -26,18 +26,19 @@ private const val CARDS = 3
 private val CardHeight = ShelfCardDefaults.ArtHeight + 44.dp
 
 /**
- * The shelves home while it loads: a spotlight block and two shelves of cards in the places the real ones take, each
- * a [skeleton] that shimmers (still under reduced motion).
+ * The shelves home while it loads, below the entry tiles: two shelves of cards in the places the real ones take, each
+ * a [skeleton] that shimmers (still under reduced motion), and above them a spotlight block only when the plan will
+ * open with a [spotlight].
  */
 @Composable
-internal fun ShelvesSkeleton(modifier: Modifier = Modifier) {
+internal fun ShelvesSkeleton(spotlight: Boolean, modifier: Modifier = Modifier) {
     val fill = MaterialTheme.colorScheme.surfaceContainerHigh
     Column(
         modifier.testTag("shelves.skeleton").clearAndSetSemantics {},
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
-        Spacer(
-            Modifier.padding(horizontal = Spacing.lg).fillMaxWidth().height(SpotlightHeight)
+        if (spotlight) Spacer(
+            Modifier.testTag("shelves.skeleton.spotlight").padding(horizontal = Spacing.lg).fillMaxWidth().height(SpotlightHeight)
                 .skeleton(fill, RoundedCornerShape(ShelfCardDefaults.SpotlightCorner)),
         )
         repeat(SHELVES) {

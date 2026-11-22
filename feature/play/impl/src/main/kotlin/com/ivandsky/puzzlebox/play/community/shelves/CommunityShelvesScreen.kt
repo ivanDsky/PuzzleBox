@@ -57,15 +57,15 @@ internal fun CommunityShelvesScreen(
             if (state is ShelvesUiState.Refused) item(key = "refused", contentType = "state") {
                 Notice("community.refused", "Couldn't load puzzles", "Something went wrong. Try again.", actions)
             }
-            entries(state)?.let { item(key = "entries", contentType = "entries") { ShelvesEntryTiles(it, actions, Modifier.padding(horizontal = Spacing.lg)) } }
+            item(key = "entries", contentType = "entries") { ShelvesEntryTiles(entries(state), actions, Modifier.padding(horizontal = Spacing.lg)) }
             body(state, actions)
         }
     }
 }
 
-/** The entries [state] carries; loading has none. */
-private fun entries(state: ShelvesUiState): ShelvesEntries? = when (state) {
-    ShelvesUiState.Loading -> null
+/** The entries [state] carries. */
+private fun entries(state: ShelvesUiState): ShelvesEntries = when (state) {
+    is ShelvesUiState.Loading -> state.entries
     is ShelvesUiState.Content -> state.entries
     is ShelvesUiState.Empty -> state.entries
     is ShelvesUiState.Offline -> state.entries
@@ -74,7 +74,7 @@ private fun entries(state: ShelvesUiState): ShelvesEntries? = when (state) {
 
 private fun LazyListScope.body(state: ShelvesUiState, actions: ShelvesActions) {
     when (state) {
-        ShelvesUiState.Loading -> item(key = "skeleton", contentType = "skeleton") { ShelvesSkeleton() }
+        is ShelvesUiState.Loading -> item(key = "skeleton", contentType = "skeleton") { ShelvesSkeleton(state.spotlight) }
         is ShelvesUiState.Content -> shelvesSections(state, actions)
         is ShelvesUiState.Empty -> item(key = "empty", contentType = "state") {
             ShelvesEmptyHero({ actions.onMake(null) }, Modifier.padding(horizontal = Spacing.lg))

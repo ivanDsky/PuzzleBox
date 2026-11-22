@@ -242,6 +242,18 @@ class CommunityRouteFlagTest {
     }
 
     @Test
+    @Config(sdk = [34], qualifiers = "w1280dp-h800dp")
+    fun `on the tablet the create FAB floats over the shelves list pane, not the detail pane`() {
+        show(NewPuzzleStandIn().slot, PlayLayout.TwoPane, PlayFlag.CreateFab, PlayFlag.CommunityShelves)
+        awaitTag("community.fab")
+        composeRule.onAllNodesWithTag("community.fab").assertCountEquals(1)
+        val fab = composeRule.onNodeWithTag("community.fab").getUnclippedBoundsInRoot()
+        assertTrue("inside the 600dp list pane: ${fab.right}", fab.right <= ShelvesListPaneWidth + 24.dp + 1.dp)
+        composeRule.onNodeWithTag("community.fab").performClick()
+        composeRule.onNodeWithTag("new.sheet").assertIsDisplayed()
+    }
+
+    @Test
     fun `the create FAB keeps clear of the list end by the clearance the host is told`() {
         val host = NewPuzzleStandIn()
         show(host.slot, PlayLayout.SinglePane, PlayFlag.CreateFab)

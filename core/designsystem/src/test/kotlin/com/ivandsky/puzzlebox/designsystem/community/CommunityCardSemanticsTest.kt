@@ -11,6 +11,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsSelected
@@ -72,7 +73,7 @@ class CommunityCardSemanticsTest {
         onLongClick: (() -> Unit)? = null,
         title: String = "Spiral staircase",
         author: String = "Mia",
-        solves: Int = 132,
+        solves: Int? = 132,
     ) = @Composable {
         ShelfCard(
             title = title,
@@ -127,6 +128,19 @@ class CommunityCardSemanticsTest {
         node.assert(hasText("NEW", substring = true))
         node.assert(hasText("Friend", substring = true))
         node.assert(hasContentDescription("132 solves", substring = true))
+    }
+
+    @Test
+    fun `a shelf card with no solve count draws no solves chip`() {
+        show { shelf(it, solves = null)() }
+        composeRule.onNodeWithTag(CARD).assert(hasText("Spiral staircase", substring = true))
+        composeRule.onAllNodes(hasContentDescription("solves", substring = true), useUnmergedTree = true).assertCountEquals(0)
+    }
+
+    @Test
+    fun `a shelf card with a solve count draws the chip`() {
+        show { shelf(it, solves = 0)() }
+        composeRule.onNodeWithTag(CARD).assert(hasContentDescription("0 solves", substring = true))
     }
 
     @Test

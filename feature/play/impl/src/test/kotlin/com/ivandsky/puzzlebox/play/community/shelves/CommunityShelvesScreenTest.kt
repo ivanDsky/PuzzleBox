@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyAncestor
@@ -55,7 +56,7 @@ class CommunityShelvesScreenTest {
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
-    private var state by mutableStateOf<ShelvesUiState>(ShelvesUiState.Loading)
+    private var state by mutableStateOf<ShelvesUiState>(ShelvesUiState.Loading())
     private var selected: String? = null
     private val calls = mutableListOf<String>()
 
@@ -77,12 +78,12 @@ class CommunityShelvesScreenTest {
         Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, scale)
     }
 
-    private fun show(initial: ShelvesUiState, phone: Boolean = true) {
+    private fun show(initial: ShelvesUiState, phone: Boolean = true, width: Int = 412) {
         state = initial
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 // Tall, so the lazy list composes every shelf and the test reads them without scrolling.
-                Box(Modifier.requiredSize(412.dp, 4000.dp)) {
+                Box(Modifier.requiredSize(width.dp, 4000.dp)) {
                     CompositionLocalProvider(LocalSelectedRowCode provides selected) {
                         CommunityShelvesScreen(state, actions, phone)
                     }
@@ -112,7 +113,7 @@ class CommunityShelvesScreenTest {
 
     @Test
     fun `the Community header is drawn once in every state`() {
-        show(ShelvesUiState.Loading)
+        show(ShelvesUiState.Loading())
         for (next in listOf(content(newest), ShelvesUiState.Empty(), ShelvesUiState.Offline(), ShelvesUiState.Refused())) {
             composeRule.onAllNodesWithText("Community").assertCountEquals(1)
             composeRule.onNodeWithTag("community.enterCode").assertExists()
@@ -214,15 +215,47 @@ class CommunityShelvesScreenTest {
 
     @Test
     fun `loading shows the skeleton with its sheen running`() {
-        show(ShelvesUiState.Loading)
+        show(ShelvesUiState.Loading())
         composeRule.onNodeWithTag("shelves.skeleton").assertExists()
         assertTrue("no sheen", composeRule.onAllNodesWithTag(SHIMMER_TAG, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty())
     }
 
     @Test
+    fun `loading already shows both entry tiles from what is saved, so Retry does not move them`() {
+        show(ShelvesUiState.Loading(ShelvesEntries(friendPuzzles = 3, published = 2, drafts = 1)))
+        composeRule.onNodeWithTag("shelves.entry.friends").assertExists()
+        composeRule.onNodeWithTag("shelves.entry.yours").assertExists()
+        composeRule.onNodeWithText("3 puzzles").assertExists()
+        val loading = composeRule.onNodeWithTag("shelves.skeleton").getUnclippedBoundsInRoot()
+        state = content(newest)
+        composeRule.waitForIdle()
+        val tiles = composeRule.onNodeWithTag("shelves.entry.friends").getUnclippedBoundsInRoot()
+        assertTrue("tiles stay above the body: ${tiles.bottom} vs ${loading.top}", tiles.bottom <= loading.top)
+    }
+
+    @Test
+    fun `the loading skeleton has no spotlight block unless the plan will have one`() {
+        show(ShelvesUiState.Loading())
+        composeRule.onAllNodesWithTag("shelves.skeleton.spotlight", useUnmergedTree = true).assertCountEquals(0)
+        state = ShelvesUiState.Loading(spotlight = true)
+        composeRule.waitForIdle()
+        composeRule.onAllNodesWithTag("shelves.skeleton.spotlight", useUnmergedTree = true).assertCountEquals(1)
+    }
+
+    @Test
+    fun `the loading skeleton starts exactly where the first shelf of the content starts`() {
+        show(ShelvesUiState.Loading(ShelvesEntries(friendPuzzles = 3)))
+        val skeleton = composeRule.onNodeWithTag("shelves.skeleton").getUnclippedBoundsInRoot().top
+        state = content(newest)
+        composeRule.waitForIdle()
+        val shelf = composeRule.onNodeWithTag("shelves.shelf.newest").getUnclippedBoundsInRoot().top
+        assertEquals(skeleton.value, shelf.value, 1f)
+    }
+
+    @Test
     fun `under reduced motion the skeleton is still`() {
         animatorScale(0f)
-        show(ShelvesUiState.Loading)
+        show(ShelvesUiState.Loading())
         composeRule.onNodeWithTag("shelves.skeleton").assertExists()
         composeRule.onAllNodesWithTag(SHIMMER_TAG, useUnmergedTree = true).assertCountEquals(0)
     }

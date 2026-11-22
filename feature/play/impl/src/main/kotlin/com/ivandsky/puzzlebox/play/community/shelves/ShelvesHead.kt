@@ -28,6 +28,9 @@ import com.ivandsky.puzzlebox.designsystem.community.EntryTile
 private val SearchHeight = 48.dp
 private val YoursDisc = 28.dp
 
+/** Two avatars, not three: with three the title "From friends" has too little room at 411dp and wraps. */
+private const val AVATARS = 2
+
 /**
  * The search field's stand-in under the header: it looks like the field and a tap on it ([onSearch]) opens the Search
  * page, which has the real field.
@@ -68,7 +71,7 @@ internal fun ShelvesEntryTiles(entries: ShelvesEntries, actions: ShelvesActions,
             subtitle = count(entries.friendPuzzles, "puzzle"),
             onClick = actions.onFriends,
             modifier = Modifier.weight(1f).testTag("shelves.entry.friends"),
-            leading = { AuthorAvatars(entries.friendInitials) },
+            leading = { AuthorAvatars(entries.friendInitials.take(AVATARS)) },
         )
         EntryTile(
             title = "Your puzzles",

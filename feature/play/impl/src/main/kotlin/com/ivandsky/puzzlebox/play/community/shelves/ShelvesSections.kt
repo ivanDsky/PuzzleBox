@@ -31,7 +31,7 @@ internal fun LazyListScope.shelvesSections(content: ShelvesUiState.Content, acti
                 ShelfRow("Most played", "all time") { items(section.cards, key = { it.code.value }) { PlanCard(it, content, actions.onOpen) } }
             }
             is Section.Newest -> item(key = "newest", contentType = "shelf") {
-                ShelfRow("Newest", "latest first") { items(section.cards, key = { it.code.value }) { PlanCard(it, content, actions.onOpen) } }
+                ShelfRow("Newest", "latest first", Modifier.testTag("shelves.shelf.newest")) { items(section.cards, key = { it.code.value }) { PlanCard(it, content, actions.onOpen) } }
             }
             is Section.GameShelf -> item(key = "game:${section.game.value}", contentType = "shelf") {
                 val game = content.games[section.game] ?: return@item

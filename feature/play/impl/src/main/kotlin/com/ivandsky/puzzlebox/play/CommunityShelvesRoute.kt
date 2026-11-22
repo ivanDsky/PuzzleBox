@@ -78,6 +78,7 @@ internal fun CommunityShelvesRoute(
             },
             detail = { pick, clear -> ShelvesDetail(pick) { CommunityPage(pick, clear, custom, onPlay) } },
             modifier = modifier,
+            listOverlay = onNewPuzzle?.let { open -> { CommunityCreateFab(open, Modifier.align(Alignment.BottomEnd)) } },
             listPaneWidth = ShelvesListPaneWidth,
         )
     }
