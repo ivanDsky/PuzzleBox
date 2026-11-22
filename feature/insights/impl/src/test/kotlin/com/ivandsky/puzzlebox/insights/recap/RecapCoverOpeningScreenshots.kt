@@ -16,10 +16,7 @@ import com.ivandsky.puzzlebox.insights.GOLDEN_PHONE
 import com.ivandsky.puzzlebox.insights.GOLDEN_TABLET
 import com.ivandsky.puzzlebox.insights.GOLDEN_TABLET_WIDE
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapPeriod
-import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.fastest
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.gameName
-import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.solved
-import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.streak
 import java.io.File
 import java.time.YearMonth
 import org.junit.Rule
@@ -88,7 +85,7 @@ class RecapCoverOpeningScreenshots {
 private val Opening = RecapUiState.Ready(
     period = RecapPeriod.Month(YearMonth.of(2026, 10)),
     title = "October 2026",
-    cards = listOf(solved, fastest, streak),
+    cards = listOf(RecapFixtures.solved, RecapFixtures.fastest, RecapFixtures.streak),
     initialPage = 0,
 )
 

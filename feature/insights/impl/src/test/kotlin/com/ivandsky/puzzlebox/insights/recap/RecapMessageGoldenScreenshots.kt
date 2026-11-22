@@ -4,7 +4,6 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import com.ivandsky.puzzlebox.insights.GOLDEN_PHONE
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.gameName
-import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.ready
 import com.ivandsky.puzzlebox.insights.settleAndCapture
 import com.ivandsky.puzzlebox.insights.showGolden
 import org.junit.Rule
@@ -34,7 +33,7 @@ class RecapMessageGoldenScreenshots {
         device: String,
         dark: Boolean,
         initialPage: Int = 0,
-        state: RecapUiState = ready.copy(initialPage = initialPage),
+        state: RecapUiState = RecapFixtures.ready.copy(initialPage = initialPage),
     ) {
         rule.showGolden(dark = dark) {
             RecapScreen(state, "November 2026", gameName, onPage = {}, onWatchReplay = {}, onClose = {})

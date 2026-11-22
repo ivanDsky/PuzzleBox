@@ -8,7 +8,6 @@ import com.ivandsky.puzzlebox.insights.GOLDEN_TABLET
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.gameName
-import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.ready
 import com.ivandsky.puzzlebox.insights.settleAndCapture
 import com.ivandsky.puzzlebox.insights.showGolden
 import org.junit.Rule
@@ -169,7 +168,7 @@ class SolvedCardGoldenScreenshots {
         device: String,
         dark: Boolean,
         initialPage: Int = 0,
-        state: RecapUiState = ready.copy(initialPage = initialPage),
+        state: RecapUiState = RecapFixtures.ready.copy(initialPage = initialPage),
         periodLabel: String = "November 2026",
         names: (GameId) -> String = gameName,
     ) {

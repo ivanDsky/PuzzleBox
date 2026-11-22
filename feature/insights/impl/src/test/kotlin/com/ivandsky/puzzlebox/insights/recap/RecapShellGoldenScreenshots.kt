@@ -10,13 +10,7 @@ import com.ivandsky.puzzlebox.insights.GOLDEN_TABLET
 import com.ivandsky.puzzlebox.insights.GOLDEN_TABLET_WIDE
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapPeriod
-import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.fastest
-import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.friendsLoaded
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.gameName
-import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.moments
-import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.solved
-import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.streak
-import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.totalTime
 import com.ivandsky.puzzlebox.insights.settleAndCapture
 import com.ivandsky.puzzlebox.insights.share.RecapShareState
 import com.ivandsky.puzzlebox.insights.showGolden
@@ -189,7 +183,7 @@ class RecapShellGoldenScreenshots {
 private val October = RecapUiState.Ready(
     period = RecapPeriod.Month(YearMonth.of(2026, 10)),
     title = "October 2026",
-    cards = listOf(solved, fastest, streak, moments, friendsLoaded, totalTime),
+    cards = listOf(RecapFixtures.solved, RecapFixtures.fastest, RecapFixtures.streak, RecapFixtures.moments, RecapFixtures.friendsLoaded, RecapFixtures.totalTime),
     initialPage = 0,
 ).onCard(2)
 
@@ -217,10 +211,10 @@ private val FiveGames = solvedOf(
     96, RecapFixtures.queens to 28, Tango to 24, RecapFixtures.zip to 22, RecapFixtures.sudoku to 14, Strands to 8,
 )
 
-private val CoverStory = October.copy(cards = listOf(FiveGames, fastest, streak, moments, friendsLoaded, totalTime), initialPage = 0)
+private val CoverStory = October.copy(cards = listOf(FiveGames, RecapFixtures.fastest, RecapFixtures.streak, RecapFixtures.moments, RecapFixtures.friendsLoaded, RecapFixtures.totalTime), initialPage = 0)
 
 /** The month has exactly one solve: a four-card story, so five segments with the Share page. */
-private val EmptyStory = October.copy(cards = listOf(solvedOf(1, RecapFixtures.queens to 1), fastest, streak, totalTime), initialPage = 0)
+private val EmptyStory = October.copy(cards = listOf(solvedOf(1, RecapFixtures.queens to 1), RecapFixtures.fastest, RecapFixtures.streak, RecapFixtures.totalTime), initialPage = 0)
 
 private val LongestStory = CoverStory.copy(
     cards = listOf(

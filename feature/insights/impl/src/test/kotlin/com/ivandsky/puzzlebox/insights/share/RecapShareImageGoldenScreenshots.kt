@@ -6,6 +6,10 @@ import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.insights.recap.LocalGameBrands
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures
+import com.ivandsky.puzzlebox.insights.recap.moments
+import com.ivandsky.puzzlebox.insights.recap.solved
+import com.ivandsky.puzzlebox.insights.recap.streak
+import com.ivandsky.puzzlebox.insights.recap.totalTime
 import com.ivandsky.puzzlebox.insights.recap.SolvedFixtures
 import com.ivandsky.puzzlebox.insights.settleAndCapture
 import com.ivandsky.puzzlebox.insights.showGolden
