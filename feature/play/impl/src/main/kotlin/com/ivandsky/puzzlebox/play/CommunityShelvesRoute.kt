@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -65,14 +66,18 @@ internal fun CommunityShelvesRoute(
     val state by viewModel.state.collectAsStateWithLifecycle()
     // The page over the home: a See all page or Your puzzles, behind the entry tiles, Search and a shelf's See all.
     var page by rememberSaveable(stateSaver = ShelvesPageSaver) { mutableStateOf<ShelvesPage?>(null) }
+    // Counts the opens: a page opened from the home starts clean even when it is the same one as before, while a rotation or a
+    // return from a row (no open) keeps its filters. Counted on open, not close, so a page sliding out is not reset under the eye.
+    var visit by rememberSaveable { mutableIntStateOf(0) }
+    val openPage = { next: ShelvesPage -> page = next; visit++ }
     fun actionsFor(open: (ShareCode) -> Unit) = ShelvesActions(
         onEnterCode = onEnterCode,
         onOpen = open,
         onRetry = viewModel::retry,
-        onSearch = { page = ShelvesPage.SeeAll(SeeAllScope.Search) },
-        onFriends = { page = ShelvesPage.SeeAll(SeeAllScope.Friends) },
-        onYours = { page = ShelvesPage.Yours },
-        onSeeAll = { page = ShelvesPage.SeeAll(it) },
+        onSearch = { openPage(ShelvesPage.SeeAll(SeeAllScope.Search)) },
+        onFriends = { openPage(ShelvesPage.SeeAll(SeeAllScope.Friends)) },
+        onYours = { openPage(ShelvesPage.Yours) },
+        onSeeAll = { openPage(ShelvesPage.SeeAll(it)) },
         onMake = { onNewPuzzle?.invoke() },
     )
     if (layout == PlayLayout.SinglePane) {
@@ -81,7 +86,7 @@ internal fun CommunityShelvesRoute(
             onBack = { page = null },
             modifier = modifier.fillMaxSize(),
             home = { CommunityShelvesScreen(state, actionsFor(onOpen), phone = true, Modifier.fillMaxSize(), bottomPadding = clearance) },
-            content = { ShelvesPageContent(it, custom, onBack = { page = null }, onOpen = onOpen) },
+            content = { ShelvesPageContent(it, custom, onBack = { page = null }, onOpen = onOpen, visit = visit, bottomPadding = clearance) },
         )
     } else {
         CommunityPanes(
@@ -95,7 +100,7 @@ internal fun CommunityShelvesRoute(
                         onBack = { page = null },
                         modifier = size,
                         home = { CommunityShelvesScreen(state, actionsFor(open), phone = false, Modifier.fillMaxSize(), bottomPadding = clearance) },
-                        content = { ShelvesPageContent(it, custom, onBack = { page = null }, onOpen = open) },
+                        content = { ShelvesPageContent(it, custom, onBack = { page = null }, onOpen = open, visit = visit, bottomPadding = clearance) },
                     )
                 }
             },

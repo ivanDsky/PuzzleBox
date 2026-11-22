@@ -12,6 +12,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.unit.dp
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -52,5 +57,17 @@ class YourPuzzlesPageTest {
         rule.setContent { PuzzleBoxTheme { YourPuzzlesPage(yours = null, onBack = {}) } }
         rule.onNodeWithText("No puzzles of yours here").assertExists()
         rule.onNodeWithText("Puzzles you make and publish show up here.").assertExists()
+    }
+
+    @Test
+    fun `the slot's list stops above the bottom padding`() {
+        rule.setContent {
+            PuzzleBoxTheme {
+                YourPuzzlesPage(yours = { Box(Modifier.fillMaxSize().testTag("slot")) }, onBack = {}, bottomPadding = 80.dp)
+            }
+        }
+        val page = rule.onNodeWithTag("yours.page").getUnclippedBoundsInRoot().bottom
+        val slot = rule.onNodeWithTag("slot").getUnclippedBoundsInRoot().bottom
+        assertTrue("slot ends at $slot, page at $page", slot <= page - 80.dp)
     }
 }

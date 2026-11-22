@@ -14,13 +14,19 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.performScrollToNode
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.play.community.ALPHA
 import com.ivandsky.puzzlebox.play.community.BETA
 import com.ivandsky.puzzlebox.play.community.DifficultyChoice
 import com.ivandsky.puzzlebox.play.community.shelves.codeOf
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -50,11 +56,11 @@ class SeeAllScreenTest {
         onRetry = { calls += "retry" },
     )
 
-    private fun show(initial: SeeAllUiState) {
+    private fun show(initial: SeeAllUiState, bottomPadding: Dp = 0.dp) {
         state = initial
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                Box(Modifier.requiredSize(412.dp, 900.dp)) { SeeAllScreen(state, actions) }
+                Box(Modifier.requiredSize(412.dp, 900.dp)) { SeeAllScreen(state, actions, bottomPadding = bottomPadding) }
             }
         }
     }
@@ -170,5 +176,22 @@ class SeeAllScreenTest {
         show(SeeAllUiState(scope = SeeAllScope.Friends, phase = SeeAllPhase.Ready(emptyList())))
         composeRule.onNodeWithTag("seeall.empty").assertExists()
         composeRule.onNodeWithText("No puzzles from friends yet").assertExists()
+    }
+
+    @Test
+    fun `the last row clears the bottom padding the route leaves for the create button`() {
+        show(SeeAllSampleStates.ready(count = 12), bottomPadding = 80.dp)
+        val last = "community.row.${codeOf(12).value}"
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasTestTag(last))
+        val page = composeRule.onNodeWithTag("seeall.page").getUnclippedBoundsInRoot().bottom
+        val row = composeRule.onNodeWithTag(last).getUnclippedBoundsInRoot().bottom
+        assertTrue("row ends at $row, page at $page", row <= page - 80.dp)
+    }
+
+    @Test
+    fun `From friends has no sort menu`() {
+        show(SeeAllSampleStates.ready(SeeAllScope.Friends).copy(sortOptions = emptyList()))
+        composeRule.onNodeWithTag("seeall.sort").assertDoesNotExist()
+        composeRule.onNodeWithTag("seeall.filter.difficulty").assertExists()
     }
 }

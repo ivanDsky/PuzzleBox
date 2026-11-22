@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.play.community.shelves.seeall
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,16 +14,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
 /**
  * A See all page: back and the scope's title, the search field (focused on the Search page), the filter bar, then the
- * count and the puzzles. Stateless over [state]; [actions] says what a tap or a keystroke asks for.
+ * count and the puzzles, with [bottomPadding] left clear under the last one. Stateless over [state]; [actions] says what a tap or a keystroke asks for.
  */
 @Composable
-internal fun SeeAllScreen(state: SeeAllUiState, actions: SeeAllActions, modifier: Modifier = Modifier) {
+internal fun SeeAllScreen(state: SeeAllUiState, actions: SeeAllActions, modifier: Modifier = Modifier, bottomPadding: Dp = 0.dp) {
     Column(modifier.fillMaxSize().testTag("seeall.page")) {
         CompactTopBar(
             title = { PageTitle(state.scope.title(state.games)) },
@@ -39,7 +42,7 @@ internal fun SeeAllScreen(state: SeeAllUiState, actions: SeeAllActions, modifier
             modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg),
         )
         SeeAllFilterBar(state, actions, Modifier.padding(top = Spacing.xs))
-        LazyColumn(Modifier.fillMaxSize()) { seeAllBody(state, actions) }
+        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = bottomPadding)) { seeAllBody(state, actions) }
     }
 }
 
