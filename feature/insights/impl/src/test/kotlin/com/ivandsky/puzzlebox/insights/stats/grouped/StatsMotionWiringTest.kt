@@ -82,6 +82,15 @@ class StatsMotionWiringTest {
         return n
     }
 
+    /** The height in px of each of the 7 bars of the chart tagged [tag], measured down the middle of its column. */
+    private fun barHeights(tag: String): List<Int> {
+        val map = rule.onNodeWithTag(tag).captureToImage().toPixelMap()
+        return (0 until 7).map { i ->
+            val x = ((i + 0.5f) * map.width / 7).toInt()
+            (0 until map.height).count { y -> near(map[x, y], primary) }
+        }
+    }
+
     private fun redAtCenter(tag: String): Float = rule.onNodeWithTag(tag).captureToImage().toPixelMap().let { it[it.width / 2, it.height / 2].red }
 
     private fun change(block: () -> Unit) {
@@ -160,9 +169,15 @@ class StatsMotionWiringTest {
         rule.mainClock.advanceTimeBy(1_500)
         val lineBefore = primaryPixels("line")
         val barsBefore = primaryPixels("bars")
+        val heightsBefore = barHeights("bars")
         change { longer = true }
         listOf(0L, 8L, 8L, 16L).forEach { step ->
             rule.mainClock.advanceTimeBy(step)
+            // The old bars are drawn at their old heights at first: the new run's start scale applies to the new bars only.
+            val heights = barHeights("bars")
+            heights.zip(heightsBefore).forEachIndexed { i, (now, before) ->
+                assertTrue("bar $i is $now px at ${rule.mainClock.currentTime} ms, was $before", abs(now - before) <= 1)
+            }
             assertTrue("the line is on screen: ${primaryPixels("line")} of $lineBefore", primaryPixels("line") > lineBefore * 0.5)
             assertTrue("the bars are on screen: ${primaryPixels("bars")} of $barsBefore", primaryPixels("bars") > barsBefore * 0.5)
         }

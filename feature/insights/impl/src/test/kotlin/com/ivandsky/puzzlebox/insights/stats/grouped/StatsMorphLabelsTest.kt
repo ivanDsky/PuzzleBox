@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.insights.stats.grouped
 
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.chart.BarChartBar
 import com.ivandsky.puzzlebox.designsystem.chart.LineChartPoint
 import org.junit.Assert.assertEquals
@@ -31,8 +32,10 @@ class StatsMorphLabelsTest {
     }
 
     @Test
-    fun `the dots stay hidden through a line morph and come back at its end`() {
-        listOf(0f, 8f, 16f, half, CHART_MORPH_MS - 1f).forEach { assertEquals("dots at $it", 0f, line.dotsAt(it), 0f) }
+    fun `the dots stay hidden through a line morph and fade in over its last label fade`() {
+        val fadeStart = (CHART_MORPH_MS - MotionTokens.ChartLabelFade).toFloat()
+        listOf(0f, 8f, 16f, 100f, fadeStart).forEach { assertEquals("dots at $it", 0f, line.dotsAt(it), 0f) }
+        assertEquals(0.5f, line.dotsAt(fadeStart + MotionTokens.ChartLabelFade / 2f), 0.001f)
         assertEquals(1f, line.dotsAt(CHART_MORPH_MS.toFloat()), 0f)
     }
 

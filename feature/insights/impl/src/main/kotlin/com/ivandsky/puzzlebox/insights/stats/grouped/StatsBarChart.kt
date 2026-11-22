@@ -51,18 +51,27 @@ internal fun StatsBarChartAt(
     valueLabel: (Double) -> String,
     modifier: Modifier = Modifier,
 ) {
-    val composed = run()
+    val composed = run().bars
     val currentRun by rememberUpdatedState(run)
     val currentElapsed by rememberUpdatedState(elapsedMs)
+    val composedBars by rememberUpdatedState(composed)
+    // A new run lands before the chart is recomposed with its bars: until then the bars on screen are the old run's, so
+    // the heights, the values and their fade must be too (the new run's start scale applies to the new bars only).
+    fun onScreen(r: BarRun) = r.bars === composedBars
     // The value texts change once per morph (at its midpoint), so they only recompose then, not every frame.
-    val values by remember { derivedStateOf { currentRun().let { r -> r.bars.indices.map { r.valueAt(it, currentElapsed()) } } } }
+    val values by remember {
+        derivedStateOf {
+            val r = currentRun()
+            if (onScreen(r)) r.bars.indices.map { r.valueAt(it, currentElapsed()) } else composedBars.map { it.value }
+        }
+    }
     BarChart(
-        bars = composed.bars,
+        bars = composed,
         what = what,
         valueLabel = valueLabel,
         modifier = modifier,
-        barScale = { index -> run().scaleAt(index, elapsedMs()) },
-        valueAlpha = { run().valuesAt(elapsedMs()) },
+        barScale = { index -> run().takeIf(::onScreen)?.scaleAt(index, elapsedMs()) ?: 1f },
+        valueAlpha = { run().takeIf(::onScreen)?.valuesAt(elapsedMs()) ?: 1f },
         valueText = { index -> values.getOrNull(index)?.let(valueLabel).orEmpty() },
     )
 }

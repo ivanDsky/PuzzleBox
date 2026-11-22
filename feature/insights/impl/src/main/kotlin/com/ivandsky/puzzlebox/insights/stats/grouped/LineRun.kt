@@ -41,7 +41,7 @@ internal sealed interface LineRun {
     /**
      * M05: the line on screen ([from], on [fromScale]) morphs into [points]. The labels are the old line's until the
      * midpoint (fading out over [MotionTokens.ChartLabelFade]) and the new one's after it (fading in over the last of
-     * the run); the dots are hidden until the morph has ended, since they would sit on the resampled grid.
+     * the run); the dots are hidden until the last [MotionTokens.ChartLabelFade] of the run and fade in over it, since before that they would sit on the resampled grid.
      */
     class Morph(
         private val from: List<LineChartPoint>,
@@ -53,7 +53,7 @@ internal sealed interface LineRun {
         override val movesPoints = true
         override fun pointsAt(elapsedMs: Float) = morphLine(from, fromScale, points, scale, morphProgress(elapsedMs))
         override fun labelsAt(elapsedMs: Float) = labelSwapAlpha(elapsedMs, totalMs.toFloat())
-        override fun dotsAt(elapsedMs: Float) = if (elapsedMs >= totalMs) 1f else 0f
+        override fun dotsAt(elapsedMs: Float) = ((elapsedMs - (totalMs - MotionTokens.ChartLabelFade)) / MotionTokens.ChartLabelFade).coerceIn(0f, 1f)
         override fun labelPointsAt(elapsedMs: Float) = if (labelsAreOld(elapsedMs, totalMs.toFloat())) from else points
         override fun labelScaleAt(elapsedMs: Float) = if (labelsAreOld(elapsedMs, totalMs.toFloat())) fromScale else scale
     }
