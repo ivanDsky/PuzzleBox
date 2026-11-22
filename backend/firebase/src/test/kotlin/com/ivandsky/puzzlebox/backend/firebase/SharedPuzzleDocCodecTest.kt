@@ -134,6 +134,51 @@ class SharedPuzzleDocCodecTest {
         assertFalse(SharedPuzzleDocCodec.sameContent(SharedPuzzleDocCodec.encode(none), stored(hard)))
     }
 
+    @Test
+    fun `a doc without a solves field decodes with no count`() {
+        val decoded = decoded(stored(doc()))
+
+        assertNull(decoded.solves)
+        assertEquals(doc(), decoded)
+    }
+
+    @Test
+    fun `a stored solves count decodes as an int`() {
+        for (value in listOf<Any>(0L, 1L, 42L, 7)) {
+            val fields = stored(doc()) + (SharedPuzzleDocCodec.FIELD_SOLVES to value)
+
+            assertEquals("solves $value", (value as Number).toInt(), decoded(fields).solves)
+        }
+    }
+
+    @Test
+    fun `a mistyped or negative solves decodes as no count and the doc still opens`() {
+        for (value in listOf("3", true, -1L, null)) {
+            val fields = stored(doc()) + (SharedPuzzleDocCodec.FIELD_SOLVES to value)
+
+            assertEquals("solves $value", doc(), decoded(fields))
+        }
+    }
+
+    @Test
+    fun `encode never writes solves, so a new puzzle starts without the field`() {
+        assertEquals(OLD_KEYS, SharedPuzzleDocCodec.encode(doc().copy(solves = 5)).keys)
+    }
+
+    @Test
+    fun `a stored count does not change what a publish retry compares`() {
+        val counted = stored(doc()) + (SharedPuzzleDocCodec.FIELD_SOLVES to 9L)
+
+        assertTrue(SharedPuzzleDocCodec.sameContent(SharedPuzzleDocCodec.encode(doc()), counted))
+    }
+
+    @Test
+    fun `docs that differ only in solves are not equal`() {
+        assertFalse(doc() == doc().copy(solves = 1))
+        assertFalse(doc().copy(solves = 1) == doc().copy(solves = 2))
+        assertEquals(doc().copy(solves = 3).hashCode(), doc().copy(solves = 3).hashCode())
+    }
+
     /** [doc] as the server holds it: the encoded fields with `createdAt` resolved. */
     private fun stored(doc: SharedPuzzleDoc): Map<String, Any?> =
         SharedPuzzleDocCodec.encode(doc) + (SharedPuzzleDocCodec.FIELD_CREATED_AT to Timestamp(Date(doc.createdAtMs)))

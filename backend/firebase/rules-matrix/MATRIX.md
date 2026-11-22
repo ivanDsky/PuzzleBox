@@ -163,6 +163,27 @@ than about 240 cases, so the script sends them in batches of 200 and prints one 
 | deny | create | `puzzles/K7Q2MX/entries/bob` | bob | entry on a missing puzzle |
 | deny | delete | `puzzles/K7Q2MX/entries/bob` | bob | owner deletes an entry |
 
+## puzzle solves
+
+The `solves` bump (#2032), judged as the puzzle update alone with the writer's entry mocked: `exists` is the
+state before the write and `existsAfter` the state after it. The entry's own create rule (above) also runs in the
+real batch, so the author's, a repeat's and an unpublished puzzle's bump fail there too; the emulator test
+`FirestoreSolveCounterEmulatorTest` runs the whole batch.
+
+| Expect | Method | Path | Auth | Case |
+|---|---|---|---|---|
+| allow | update | `puzzles/K7Q2MX` | bob | first entry bumps an absent count to 1 |
+| allow | update | `puzzles/K7Q2MX` | bob | first entry bumps the count 4 -> 5 |
+| deny | update | `puzzles/K7Q2MX` | bob | first entry bumps an absent count to 2 |
+| deny | update | `puzzles/K7Q2MX` | bob | first entry bumps the count 4 -> 6 |
+| deny | update | `puzzles/K7Q2MX` | bob | first entry moves the count 4 -> 3 |
+| deny | update | `puzzles/K7Q2MX` | bob | first entry writes the count as a string |
+| deny | update | `puzzles/K7Q2MX` | bob | bump with no entry in the same write |
+| deny | update | `puzzles/K7Q2MX` | bob | bump beside an entry that already existed |
+| deny | update | `puzzles/K7Q2MX` | bob | bump that also edits the title |
+| deny | update | `puzzles/K7Q2MX` | bob | bump on an unpublished puzzle |
+| deny | update | `puzzles/K7Q2MX` | — | signed-out bump |
+
 ## puzzle reports
 
 | Expect | Method | Path | Auth | Case |

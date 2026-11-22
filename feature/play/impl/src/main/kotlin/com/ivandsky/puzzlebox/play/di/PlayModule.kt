@@ -2,7 +2,10 @@ package com.ivandsky.puzzlebox.play.di
 
 import com.ivandsky.puzzlebox.common.di.flagSet
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
+import com.ivandsky.puzzlebox.data.repository.SolveCounterSwitch
 import com.ivandsky.puzzlebox.domain.ranks.LoadFriendsPastPage
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.model.GameId
@@ -81,6 +84,11 @@ import org.koin.dsl.module
 val playModule = module {
     includes(friendModule)
     flagSet("play", PlayFlag.entries)
+    // The backend's board submit asks at each write, so a flag flipped in debug Settings applies to the next solve.
+    single<SolveCounterSwitch> {
+        val flags = get<ReleaseFlags>()
+        SolveCounterSwitch { flags.isEnabled(PlayFlag.SolveCounter) }
+    }
     single {
         val lane = WriteLane()
         val saved = get<SavedPlayRepository>()

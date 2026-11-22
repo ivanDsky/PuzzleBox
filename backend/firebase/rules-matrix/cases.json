@@ -2965,6 +2965,298 @@
       }
     },
     {
+      "group": "puzzle solves",
+      "name": "first entry bumps an absent count to 1",
+      "expect": "allow",
+      "method": "update",
+      "path": "puzzles/K7Q2MX",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "puzzle"
+      },
+      "data": {
+        "$fixture": "puzzle",
+        "solves": 1
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "puzzles/K7Q2MX/entries/bob",
+          "value": false
+        },
+        {
+          "fn": "existsAfter",
+          "path": "puzzles/K7Q2MX/entries/bob",
+          "value": true
+        }
+      ]
+    },
+    {
+      "group": "puzzle solves",
+      "name": "first entry bumps the count 4 -> 5",
+      "expect": "allow",
+      "method": "update",
+      "path": "puzzles/K7Q2MX",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "puzzle",
+        "solves": 4
+      },
+      "data": {
+        "$fixture": "puzzle",
+        "solves": 5
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "puzzles/K7Q2MX/entries/bob",
+          "value": false
+        },
+        {
+          "fn": "existsAfter",
+          "path": "puzzles/K7Q2MX/entries/bob",
+          "value": true
+        }
+      ]
+    },
+    {
+      "group": "puzzle solves",
+      "name": "first entry bumps an absent count to 2",
+      "expect": "deny",
+      "method": "update",
+      "path": "puzzles/K7Q2MX",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "puzzle"
+      },
+      "data": {
+        "$fixture": "puzzle",
+        "solves": 2
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "puzzles/K7Q2MX/entries/bob",
+          "value": false
+        },
+        {
+          "fn": "existsAfter",
+          "path": "puzzles/K7Q2MX/entries/bob",
+          "value": true
+        }
+      ]
+    },
+    {
+      "group": "puzzle solves",
+      "name": "first entry bumps the count 4 -> 6",
+      "expect": "deny",
+      "method": "update",
+      "path": "puzzles/K7Q2MX",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "puzzle",
+        "solves": 4
+      },
+      "data": {
+        "$fixture": "puzzle",
+        "solves": 6
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "puzzles/K7Q2MX/entries/bob",
+          "value": false
+        },
+        {
+          "fn": "existsAfter",
+          "path": "puzzles/K7Q2MX/entries/bob",
+          "value": true
+        }
+      ]
+    },
+    {
+      "group": "puzzle solves",
+      "name": "first entry moves the count 4 -> 3",
+      "expect": "deny",
+      "method": "update",
+      "path": "puzzles/K7Q2MX",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "puzzle",
+        "solves": 4
+      },
+      "data": {
+        "$fixture": "puzzle",
+        "solves": 3
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "puzzles/K7Q2MX/entries/bob",
+          "value": false
+        },
+        {
+          "fn": "existsAfter",
+          "path": "puzzles/K7Q2MX/entries/bob",
+          "value": true
+        }
+      ]
+    },
+    {
+      "group": "puzzle solves",
+      "name": "first entry writes the count as a string",
+      "expect": "deny",
+      "method": "update",
+      "path": "puzzles/K7Q2MX",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "puzzle"
+      },
+      "data": {
+        "$fixture": "puzzle",
+        "solves": "1"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "puzzles/K7Q2MX/entries/bob",
+          "value": false
+        },
+        {
+          "fn": "existsAfter",
+          "path": "puzzles/K7Q2MX/entries/bob",
+          "value": true
+        }
+      ]
+    },
+    {
+      "group": "puzzle solves",
+      "name": "bump with no entry in the same write",
+      "expect": "deny",
+      "method": "update",
+      "path": "puzzles/K7Q2MX",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "puzzle"
+      },
+      "data": {
+        "$fixture": "puzzle",
+        "solves": 1
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "puzzles/K7Q2MX/entries/bob",
+          "value": false
+        },
+        {
+          "fn": "existsAfter",
+          "path": "puzzles/K7Q2MX/entries/bob",
+          "value": false
+        }
+      ]
+    },
+    {
+      "group": "puzzle solves",
+      "name": "bump beside an entry that already existed",
+      "expect": "deny",
+      "method": "update",
+      "path": "puzzles/K7Q2MX",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "puzzle",
+        "solves": 4
+      },
+      "data": {
+        "$fixture": "puzzle",
+        "solves": 5
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "puzzles/K7Q2MX/entries/bob",
+          "value": true
+        },
+        {
+          "fn": "existsAfter",
+          "path": "puzzles/K7Q2MX/entries/bob",
+          "value": true
+        }
+      ]
+    },
+    {
+      "group": "puzzle solves",
+      "name": "bump that also edits the title",
+      "expect": "deny",
+      "method": "update",
+      "path": "puzzles/K7Q2MX",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "puzzle"
+      },
+      "data": {
+        "$fixture": "puzzle",
+        "solves": 1,
+        "title": "Mine now"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "puzzles/K7Q2MX/entries/bob",
+          "value": false
+        },
+        {
+          "fn": "existsAfter",
+          "path": "puzzles/K7Q2MX/entries/bob",
+          "value": true
+        }
+      ]
+    },
+    {
+      "group": "puzzle solves",
+      "name": "bump on an unpublished puzzle",
+      "expect": "deny",
+      "method": "update",
+      "path": "puzzles/K7Q2MX",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "puzzle",
+        "unpublished": true
+      },
+      "data": {
+        "$fixture": "puzzle",
+        "unpublished": true,
+        "solves": 1
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "puzzles/K7Q2MX/entries/bob",
+          "value": false
+        },
+        {
+          "fn": "existsAfter",
+          "path": "puzzles/K7Q2MX/entries/bob",
+          "value": true
+        }
+      ]
+    },
+    {
+      "group": "puzzle solves",
+      "name": "signed-out bump",
+      "expect": "deny",
+      "method": "update",
+      "path": "puzzles/K7Q2MX",
+      "resource": {
+        "$fixture": "puzzle"
+      },
+      "data": {
+        "$fixture": "puzzle",
+        "solves": 1
+      },
+      "mocks": []
+    },
+    {
       "group": "puzzle reports",
       "name": "signed-in player reports a puzzle",
       "expect": "allow",

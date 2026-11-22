@@ -28,7 +28,8 @@ import org.junit.Test
  *
  * The puzzles pin moved with the ADR-0020 amendment (the community list rule and the two optional fields), and
  * the puzzle reports block is pinned beside it. The puzzle's key and word lists are also checked against its
- * codec.
+ * codec. It moved again with the solve counter (#2032): `solves` may rise by one only beside the
+ * writer's own first entry.
  */
 class FirestoreRulesCloudSpaceTest {
 
@@ -40,7 +41,7 @@ class FirestoreRulesCloudSpaceTest {
             "match /{document=**} {" to "2fa7810103dc8eb3f4050c94653a46e8c3ed08cf3536292a3963424eadffd1e9",
             "match /leaderboards/{boardId}/entries/{uid} {" to
                 "7a11c5d570ecd206ef9e3314e6f5692c6dabb361d25527fda5f18a5b1b0784a0",
-            PUZZLES_MATCH to "9dfd86eb8809213fc5373864ae2a1739d9540ed33c05026f41fdd307763e5dfb",
+            PUZZLES_MATCH to "6c121d943cf0f4e7d13116924393cfe01f93a087f9e62d649728d5b040b84298",
             "match /puzzles/{code}/entries/{uid} {" to
                 "09382f2ceb2f5fcaccd2b22f12d2e501898ec1715275abe390fbfd81ee7f60cb",
             "match /puzzles/{code}/reports/{uid} {" to

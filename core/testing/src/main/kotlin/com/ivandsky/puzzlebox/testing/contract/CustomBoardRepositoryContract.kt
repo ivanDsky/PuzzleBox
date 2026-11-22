@@ -30,6 +30,12 @@ abstract class CustomBoardRepositoryContract {
     /** Cuts the backend off for the calls that follow. */
     protected abstract fun goOffline()
 
+    /** Turns the solve counter (#2032, PlayFlag.SolveCounter) on or off for the submits that follow; it starts off. */
+    protected abstract fun countSolves(on: Boolean)
+
+    /** The puzzle doc's `solves` field as the server holds it; null while the field is absent. */
+    protected abstract fun solvesField(code: ShareCode): Int?
+
     protected fun code(value: String = CODE): ShareCode = checkNotNull(ShareCode.parse(value))
 
     /** Submits each entry as its own signed-in uid, then signs in as [VIEWER]. */
@@ -84,6 +90,39 @@ abstract class CustomBoardRepositoryContract {
 
         assertEquals(emptyList<LeaderboardEntry>(), repository.observe(GAME, code(OTHER_CODE), RankOrder.TimeThenHints, 10).first())
         assertEquals(0, repository.solvesCount(code(OTHER_CODE)))
+    }
+
+    @Test
+    fun withTheCounterOffASubmitLeavesTheSolvesFieldAbsent() = runTest {
+        submitAll(FAST_MANY_HINTS, MIDDLE)
+
+        assertNull(solvesField(code()))
+    }
+
+    @Test
+    fun withTheCounterOnEachFirstSubmitBumpsSolvesByOneAndARepeatDoesNot() = runTest {
+        countSolves(true)
+        submitAll(FAST_MANY_HINTS)
+        assertEquals(1, solvesField(code()))
+
+        submitAll(MIDDLE)
+        signInAs(MIDDLE.uid)
+        assertEquals(SubmitResult.Deduped(MIDDLE), repository.submit(code(), MIDDLE.copy(timeMs = 10_000L)))
+
+        assertEquals(2, solvesField(code()))
+        assertNull(solvesField(code(OTHER_CODE)))
+    }
+
+    @Test
+    fun aFailedSubmitBumpsNothing() = runTest {
+        countSolves(true)
+        signOut()
+        repository.submit(code(), MIDDLE)
+        signInAs(MIDDLE.uid)
+        goOffline()
+        repository.submit(code(), MIDDLE)
+
+        assertNull(solvesField(code()))
     }
 
     @Test

@@ -10,6 +10,8 @@ import com.ivandsky.puzzlebox.model.ShareCode
  * [visibility] says whether the community list shows it; a doc stored before the field existed is
  * link only. [difficulty] is the label the author's device computed, null when the puzzle needs
  * guessing or the game has no ladder. Both are fixed at publish.
+ * [solves] is the server's first-solve counter (#2032), null while the doc has no such field (a puzzle no
+ * counting client has solved yet, or one never backfilled); a reader treats null as unknown, not as zero.
  * Equality compares [payload] by content, so a doc read back from the store equals the one written.
  */
 data class SharedPuzzleDoc(
@@ -29,6 +31,7 @@ data class SharedPuzzleDoc(
     val unpublished: Boolean,
     val visibility: Visibility = Visibility.LinkOnly,
     val difficulty: Difficulty.Level? = null,
+    val solves: Int? = null,
 ) {
     /** Who can find a shared puzzle: [Public] ones are listed in the community, [LinkOnly] ones open by code or link only. */
     enum class Visibility { Public, LinkOnly }
@@ -50,7 +53,8 @@ data class SharedPuzzleDoc(
             createdAtMs == other.createdAtMs &&
             unpublished == other.unpublished &&
             visibility == other.visibility &&
-            difficulty == other.difficulty
+            difficulty == other.difficulty &&
+            solves == other.solves
 
     override fun hashCode(): Int {
         var h = code.hashCode()
@@ -69,6 +73,7 @@ data class SharedPuzzleDoc(
         h = 31 * h + unpublished.hashCode()
         h = 31 * h + visibility.hashCode()
         h = 31 * h + difficulty.hashCode()
+        h = 31 * h + solves.hashCode()
         return h
     }
 
