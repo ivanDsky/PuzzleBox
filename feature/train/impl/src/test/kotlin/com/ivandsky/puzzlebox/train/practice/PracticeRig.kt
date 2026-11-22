@@ -39,13 +39,17 @@ internal class PracticeRig(
     val game = FakeTrainerGame(QUEENS, techniques(*catalog.toTypedArray()), drillSources = listOf(DrillSource { candidates }))
     val archive = FakeTrainerArchive()
     val onDevice = device.toMutableList()
+
+    /** How many puzzles the device source has handed out so far, over every read of it. */
+    var puzzlesRead = 0
+        private set
     val vm: PracticeViewModel
     val screenReader = FakeScreenReaderCheck(screenReaderOn)
     val hint = IntroHint()
 
     init {
         archive.onLoaded = { onDevice += it }
-        val source = TrainerPuzzleSource { flow { onDevice.toList().forEach { emit(it) } } }
+        val source = TrainerPuzzleSource { flow { onDevice.toList().forEach { puzzlesRead++; emit(it) } } }
         vm = PracticeViewModel(game, opens, source, archive, progress, RecordAnswer(progress), InlineDispatcherProvider, screenReader, hint)
         attempt?.let(vm::start)
     }

@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.data.trainer.TrainerArchive
 import com.ivandsky.puzzlebox.data.trainer.TrainerProgressRepository
 import com.ivandsky.puzzlebox.data.trainer.TrainerPuzzleSource
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.game.trainer.TrainerVerdict
 import com.ivandsky.puzzlebox.gameui.trainer.PracticeBoard
@@ -39,7 +40,7 @@ import kotlinx.coroutines.withContext
 /**
  * A game's practice, a technique's chapter at a time (spec §2.2): four focus boards then one review board (the catalog's
  * first technique has the focus boards only), each a [PracticeBoard] cut from a puzzle on the device (the [source]'s,
- * newest first, then the technique's bundled ones) and played until it says [PracticeStatus.Done]. A technique never
+ * newest first, then the technique's bundled ones; a focus board prefers one with two or more trained moves) and played until it says [PracticeStatus.Done]. A technique never
  * answered opens with its intro when it has one ([intros]; the board's chip replays it any time): demos to watch, then
  * [startPractice] opens board 1 on another puzzle than the demo's (the demo's own only when it is the one there is). A done board is held ([hold], [skip]), then the next opens on its own; after the last
  * the state is [PracticeState.Result]. The next chapter ([nextChapter]) and a fresh run ([practiceAgain]) open only from
@@ -92,6 +93,7 @@ internal class PracticeViewModel(
 
     /** The puzzles a board was opened on in this chapter, so the next board is another one; only touched on the main thread. */
     private val played = mutableSetOf<Puzzle>()
+    private val trainedMoves = TrainedMovesCache()
 
     val state: StateFlow<PracticeState> = mutableState.asStateFlow()
 
@@ -259,12 +261,9 @@ internal class PracticeViewModel(
         mutableState.value = if (alternative == null) PracticeState.NeedsConnection else PracticeState.CantLoad(alternative)
     }
 
-    /** Opens a board on the first puzzle on the device not played yet that has one: the source's, newest first, then the technique's bundled ones. False when none. */
+    /** Opens a board on a puzzle on the device not played yet ([openDevicePuzzle]): a focus board prefers one that trains several moves. False when none opens. */
     private suspend fun openFromDevice(): Boolean =
-        source.puzzles(game.gameId).firstOrNull { openUnplayed(it) } != null ||
-            withContext(dispatchers.default) { game.bundledPuzzles(current) }.any { openUnplayed(it) }
-
-    private suspend fun openUnplayed(puzzle: Puzzle): Boolean = puzzle !in played && open(puzzle)
+        game.openDevicePuzzle(source, current, played, dispatchers, preferLong = chapterKinds(techniqueIndex)[boardIndex] == BoardKind.Focus, counts = trainedMoves) { open(it) }
 
     /** Cuts a board of the current kind from [puzzle] off the main thread (the walk is CPU work) and shows it; false when [puzzle] never has the technique as its easiest move. */
     private suspend fun open(puzzle: Puzzle): Boolean {
