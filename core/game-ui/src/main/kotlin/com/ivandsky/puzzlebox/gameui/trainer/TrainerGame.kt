@@ -40,6 +40,14 @@ interface TrainerGame {
     ): PracticeBoard?
 
     /**
+     * How many moves a [BoardKind.Focus] board of [technique] cut from [puzzle] trains before it ends, or null when this
+     * game does not say (the default: the Train feature then keeps its usual order of puzzles). A board of one move is
+     * "place what you just watched" and over, so the feature prefers puzzles that report two or more. May do CPU work:
+     * call it off the main thread.
+     */
+    fun trainedMoves(puzzle: Puzzle, technique: TechniqueId): Int? = null
+
+    /**
      * The live board of [board], a board this adapter made: the game's normal play gestures (a line of
      * crosses, auto-cross on in Queens, every candidate note shown in Mini Sudoku), each move judged as it
      * settles. It draws [PracticeBoard.status]'s Spotlight itself, over its grid only (a board with a keypad
