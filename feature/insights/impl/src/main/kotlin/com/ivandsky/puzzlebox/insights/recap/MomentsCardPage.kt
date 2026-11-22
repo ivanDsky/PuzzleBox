@@ -33,11 +33,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.FirstBaseline
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
@@ -54,6 +57,7 @@ import com.ivandsky.puzzlebox.insights.domain.recap.EarnedMoment
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.delay
+import kotlin.math.roundToInt
 
 /**
  * The Moments earned page, a sticker sheet: the count ticks up once for each sticker stamped onto the sheet, oldest day
@@ -135,6 +139,7 @@ private fun Hero(total: Int, shown: Int, ink: Color, modifier: Modifier = Modifi
             // The count ticks, so a screen reader reads the settled count, not each step.
             modifier = Modifier
                 .alignByBaseline()
+                .trimToDigits(HeroFontSize)
                 .graphicsLayer {
                     scaleX = pulse.value
                     scaleY = pulse.value
@@ -152,6 +157,18 @@ private fun Hero(total: Int, shown: Int, ink: Color, modifier: Modifier = Modifi
             color = ink,
         )
     }
+}
+
+/**
+ * Cuts the count's box to its digits: from the top of a digit down to the baseline, which stays the first baseline. The
+ * font's own ascent and descent make a line about 1.6 times its size, a wide empty band over and under the digits; the
+ * digits are drawn whole, the board under them just takes that room.
+ */
+private fun Modifier.trimToDigits(fontSize: TextUnit): Modifier = layout { measurable, constraints ->
+    val text = measurable.measure(constraints)
+    val baseline = text[FirstBaseline]
+    val height = (fontSize.toPx() * DigitHeightShare).roundToInt().coerceAtMost(baseline)
+    layout(text.width, height, mapOf(FirstBaseline to height)) { text.place(0, height - baseline) }
 }
 
 /**
@@ -241,6 +258,9 @@ private fun RecapCard.Moments.kindRows(): List<KindRow> = listOfNotNull(
 
 private val HeroFontSize = 84.sp
 private val HeroLineHeight = 76.sp
+
+/** How tall Baloo 2's digits stand, as a share of the font size. */
+private const val DigitHeightShare = 0.7f
 private val RowMinHeight = 48.dp
 private val MarkerSize = 28.dp
 private val MarkerGlyphSize = 16.dp
