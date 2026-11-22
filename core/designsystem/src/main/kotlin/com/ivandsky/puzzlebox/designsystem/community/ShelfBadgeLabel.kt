@@ -22,7 +22,7 @@ internal fun ShelfBadgeLabel(badge: ShelfBadge, modifier: Modifier = Modifier) {
     }
     Text(
         text = badge.label,
-        modifier = modifier.background(fill, MaterialTheme.shapes.extraSmall).padding(horizontal = Spacing.sm, vertical = 2.dp),
+        modifier = modifier.background(fill, ShelfCardDefaults.BadgeShape).padding(horizontal = Spacing.sm, vertical = 2.dp),
         color = ink,
         style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, lineHeight = 14.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.33.sp),
     )

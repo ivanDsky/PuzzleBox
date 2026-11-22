@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -110,11 +111,12 @@ fun SpotlightCard(
             )
             val count = ShelfCardDefaults.solvesText(solves)
             Row(
-                modifier = Modifier.semantics { contentDescription = "$count solves" },
+                // The play triangle starts inside its box; pull the row left by that inset so the glyph, not the box, is flush with the text above.
+                modifier = Modifier.offset(x = -ShelfCardDefaults.PlayGlyphInset).semantics { contentDescription = "$count solves" },
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(PuzzleIcons.Play, contentDescription = null, modifier = Modifier.size(16.dp), tint = LocalPrimaryText.current)
+                Icon(PuzzleIcons.Play, contentDescription = null, modifier = Modifier.size(ShelfCardDefaults.PlayGlyphSize), tint = LocalPrimaryText.current)
                 Text(
                     text = "$count solves",
                     color = LocalPrimaryText.current,

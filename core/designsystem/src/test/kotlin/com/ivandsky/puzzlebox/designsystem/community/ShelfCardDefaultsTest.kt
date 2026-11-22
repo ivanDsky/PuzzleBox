@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.designsystem.community
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 import java.util.Locale
 import org.junit.Assert.assertEquals
@@ -21,6 +22,11 @@ class ShelfCardDefaultsTest {
         assertEquals(112.dp, ShelfCardDefaults.SpotlightArtSize)
         assertEquals(64.dp, ShelfCardDefaults.SpotlightDiscSize)
         assertEquals(56.dp, ShelfCardDefaults.DiscSize)
+    }
+
+    @Test
+    fun `badges and the solves chip are full pills`() {
+        assertEquals(RoundedCornerShape(50), ShelfCardDefaults.BadgeShape)
     }
 
     @Test

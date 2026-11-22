@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.designsystem.community
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -15,10 +16,12 @@ import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.longClick
@@ -180,6 +183,44 @@ class CommunityCardSemanticsTest {
             .assert(hasText("Your puzzles", substring = true))
             .performClick()
         assertEquals(1, clicks)
+    }
+
+    @Test
+    fun `an entry tile subtitle stays on one line in a 159dp tile`() {
+        show(widthDp = 159) {
+            EntryTile(
+                title = "Your puzzles",
+                subtitle = "4 published \u00b7 2 drafts",
+                onClick = {},
+                modifier = it,
+                leading = { Box(Modifier.size(40.dp)) },
+            )
+        }
+        // One line measures about 20dp here (16sp line height); a wrapped subtitle is about 40dp.
+        val height = composeRule.onNodeWithText("4 published", substring = true, useUnmergedTree = true).getUnclippedBoundsInRoot().height
+        assertTrue("one line is about 20dp, got $height", height < 30.dp)
+    }
+
+    @Test
+    fun `the spotlight play glyph sits flush with the text column`() {
+        show {
+            SpotlightCard(
+                title = "Spiral staircase",
+                gameName = "Zip",
+                author = "Mia",
+                solves = 4120,
+                accent = AccentSlot.Blue,
+                glyph = GameGlyphs.Zip,
+                onClick = {},
+                modifier = it,
+                difficulty = "Hard",
+            )
+        }
+        val column = composeRule.onNodeWithText("Spiral staircase", useUnmergedTree = true).getBoundsInRoot().left
+        val row = composeRule.onNode(hasContentDescription("4,120 solves"), useUnmergedTree = true).getBoundsInRoot().left
+        // The Rounded play triangle starts 8 of 24 units into its 16dp box, so the box sits 5.33dp left of the column.
+        val glyphLeft = row + ShelfCardDefaults.PlayGlyphInset
+        assertEquals("glyph left ${glyphLeft.value} vs column ${column.value}", column.value, glyphLeft.value, 0.5f)
     }
 
     @Test
