@@ -71,6 +71,51 @@ class SudokuTrainerIntroTest {
     }
 
     @Test
+    fun `variant and demo copy uses number, square and row or column, never digit, cell or line`() {
+        val words = Regex("""\b(digits?|cells?|lines?|cols?|box \d)\b""", RegexOption.IGNORE_CASE)
+        for (technique in order) for (variant in trainer.variants(technique)) {
+            listOf(variant.rule, variant.spotIt, variant.doIt).forEach {
+                assertEquals("${technique.value}: $it", null, words.find(it)?.value)
+            }
+        }
+        for (shown in demos) shown.demo.captions.forEach { assertEquals(it, null, words.find(it)?.value) }
+    }
+
+    @Test
+    fun `a demo's landing frames all tell the whole landing and the step track's two captions differ`() {
+        for (shown in demos) {
+            val label = "${shown.name} ${shown.technique.value} ${shown.variant}"
+            val captions = shown.demo.captions
+            assertEquals(label, 1, captions.drop(2).toSet().size)
+            assertTrue(label, captions[1] != captions[2])
+            assertTrue(label, captions[1].startsWith("Every open square shows, in small numbers"))
+        }
+    }
+
+    @Test
+    fun `the rule of the first chapters that mention notes says what notes are, and every note-off do-it says how`() {
+        assertTrue(variants("hidden-single-box").single().rule.contains("shows its notes: small numbers"))
+        for (id in listOf("pointing", "claiming", "naked-pair", "hidden-pair")) {
+            val doIt = variants(id).single().doIt
+            assertTrue("$id: $doIt", doIt.contains("turn Notes on, select the square, then tap the number"))
+        }
+    }
+
+    @Test
+    fun `claiming speaks of a column and pointing's spot it asks for a note left outside the box`() {
+        val claiming = variants("claiming").single()
+        assertTrue(claiming.rule, claiming.rule.contains("one box of a column"))
+        assertTrue(claiming.spotIt, claiming.spotIt.startsWith("A column"))
+        assertTrue(variants("pointing").single().spotIt.contains("still shows the note outside the box"))
+    }
+
+    @Test
+    fun `the pair intros tell naked from hidden`() {
+        assertTrue(variants("naked-pair").single().rule.contains("Naked means the pair's notes are plain to see."))
+        assertTrue(variants("hidden-pair").single().rule.contains("Hidden means other notes hide the pair."))
+    }
+
+    @Test
     fun `a demo is handed out on a fixture for every variant of every technique`() {
         val seen = demos.map { it.technique to it.variant }.toSet()
         val missing = order.flatMap { technique -> trainer.variants(technique).indices.map { technique to it } } - seen
