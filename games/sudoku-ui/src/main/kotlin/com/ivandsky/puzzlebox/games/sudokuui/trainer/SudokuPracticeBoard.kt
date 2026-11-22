@@ -37,7 +37,9 @@ import kotlinx.coroutines.flow.asStateFlow
  * Counting (spec §2.2): a deduction that changes several notes is made square by square. Each square but the last is
  * [PracticeStatus.KeepGoing] with the squares left, held in [step], even when the first strike has made an easier step
  * appear in the meantime; the last is [PracticeStatus.Right], and [onTrainedTurn] hears `Right` once, then. An undone
- * move or Show me reports only when the easiest rung is the trained [technique].
+ * move or Show me reports only when the easiest rung is the trained [technique]. What is left is counted in notes, a
+ * Right of another rung names it, each undone move is its own Wrong (`attempt`), and a Done board with squares left
+ * says its next move needs another technique.
  *
  * A valid single that the easiest rung does not make (a naked single on a Hidden single board, any single on a review
  * board) stands without a word: it is not undone, shows no band and is not reported. A review board ends a few moves
@@ -60,16 +62,19 @@ internal class SudokuPracticeBoard(
     private val now: () -> Instant = Instant::now,
 ) : PracticeBoard {
 
-    /** A step the player has started: the notes it still strikes, whether its rung is the trained one, and its Spotlight. */
-    private class Step(val remaining: MutableSet<Pair<Int, Int>>, val trained: Boolean, val spotlight: Spotlight)
+    /** A step the player has started: the notes it still strikes, whether its rung is the trained one (if not, [other] is that rung's list name), and its Spotlight. */
+    private class Step(val remaining: MutableSet<Pair<Int, Int>>, val trained: Boolean, val other: String?, val spotlight: Spotlight)
 
     private val current = MutableStateFlow<PracticeStatus>(
-        if (SudokuPractice.isDone(puzzle, start, technique, kind)) PracticeStatus.Done(null) else PracticeStatus.FindNextMove,
+        if (SudokuPractice.isDone(puzzle, start, technique, kind)) done(null, false) else PracticeStatus.FindNextMove,
     )
     override val status: StateFlow<PracticeStatus> = current.asStateFlow()
 
     private var step: Step? = null
     private var spotlights = 0
+
+    /** The moves undone so far, which makes each Wrong status its own value (the StateFlow drops an equal one). */
+    private var wrongs = 0
 
     /** The moves made since the last trained step, which a review board ends on ([SudokuPractice.isDone]). */
     private var sinceTrained = 0
@@ -102,7 +107,7 @@ internal class SudokuPracticeBoard(
 
     override fun gotIt() {
         if (!explaining) return
-        current.value = if (shownEnds) PracticeStatus.Done(null) else PracticeStatus.FindNextMove
+        current.value = if (shownEnds) done(null, state.session.isComplete) else PracticeStatus.FindNextMove
         shownEnds = false
     }
 
@@ -122,21 +127,22 @@ internal class SudokuPracticeBoard(
                 val spotlight = spotlight(judged.step, before.board)
                 undone(judged.rung, PracticeStatus.Easier(SudokuTrainerCatalog.name(judged.rung), spotlight), before)
             }
-            is SudokuPracticeJudgement.Wrong -> undone(judged.rung, PracticeStatus.Wrong(why(judged.reason, move, before.board, next.board)), before)
+            is SudokuPracticeJudgement.Wrong -> undone(judged.rung, PracticeStatus.Wrong(why(judged.reason, move, before.board, next.board), attempt = ++wrongs), before)
         }
     }
 
     /** The first square of its step (or a single's only one): Right when it finishes the step, KeepGoing when squares remain. */
     private fun right(judged: SudokuPracticeJudgement.Right, before: SudokuSession, move: SudokuTrainerMove, next: SudokuSession): SudokuSession {
         val trained = judged.rung == technique
+        val other = if (trained) null else judged.rung?.let(SudokuTrainerCatalog::name)
         val spotlight = spotlight(judged.step, before.board)
         val rest = (judged.step as? SudokuStep.Elimination)?.let { squares(it) }.orEmpty() - listOfNotNull(square(move)).toSet()
         step = null
         if (rest.isEmpty()) {
-            finished(trained, spotlight, next)
+            finished(trained, other, spotlight, next)
         } else {
-            step = Step(rest.toMutableSet(), trained, spotlight)
-            current.value = PracticeStatus.KeepGoing(rest.size, trained)
+            step = Step(rest.toMutableSet(), trained, other, spotlight)
+            current.value = PracticeStatus.KeepGoing(rest.size, trained, unit = "note")
         }
         return next
     }
@@ -147,7 +153,7 @@ internal class SudokuPracticeBoard(
      */
     private fun fits(next: SudokuSession): SudokuSession {
         sinceTrained++
-        if (step == null) current.value = if (over(next)) PracticeStatus.Done(null) else PracticeStatus.FindNextMove
+        if (step == null) current.value = if (over(next)) done(null, next.isComplete) else PracticeStatus.FindNextMove
         return next
     }
 
@@ -156,19 +162,22 @@ internal class SudokuPracticeBoard(
         started.remaining -= square(move)!!
         if (started.remaining.isEmpty()) {
             step = null
-            finished(started.trained, started.spotlight, next)
+            finished(started.trained, started.other, started.spotlight, next)
         } else {
-            current.value = PracticeStatus.KeepGoing(started.remaining.size, started.trained)
+            current.value = PracticeStatus.KeepGoing(started.remaining.size, started.trained, unit = "note")
         }
         return next
     }
 
     /** A step is done: a trained one is reported once, and the band reads Right, or Done when the step ended the board. */
-    private fun finished(trained: Boolean, spotlight: Spotlight, next: SudokuSession) {
+    private fun finished(trained: Boolean, other: String?, spotlight: Spotlight, next: SudokuSession) {
         if (trained) onTrainedTurn(TrainerVerdict.Right)
         sinceTrained = if (trained) 0 else sinceTrained + 1
-        current.value = if (over(next)) PracticeStatus.Done(spotlight) else PracticeStatus.Right(spotlight, trained)
+        current.value = if (over(next)) done(spotlight, next.isComplete) else PracticeStatus.Right(spotlight, trained, other)
     }
+
+    /** The board ends: solved, or stopped with squares left because its next move needs a technique the player has not learned. */
+    private fun done(last: Spotlight?, solved: Boolean) = PracticeStatus.Done(last, needsOtherTechnique = !solved)
 
     /** Whether [session] leaves this board nothing to ask: solved, or the easiest rung is out of this [kind]'s part. */
     private fun over(session: SudokuSession): Boolean =

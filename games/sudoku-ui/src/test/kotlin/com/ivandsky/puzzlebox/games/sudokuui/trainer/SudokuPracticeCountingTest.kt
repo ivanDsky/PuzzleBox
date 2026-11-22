@@ -59,7 +59,7 @@ class SudokuPracticeCountingTest {
                 rig.play(square)
                 assertFalse("${rig.label} square $turn stays off", rig.noteOn(square.idx, square.digit))
                 if (turn < squares.lastIndex) {
-                    assertEquals("${rig.label} square $turn", PracticeStatus.KeepGoing(squares.size - turn - 1, trained = true), rig.status)
+                    assertEquals("${rig.label} square $turn", PracticeStatus.KeepGoing(squares.size - turn - 1, trained = true, unit = "note"), rig.status)
                     assertEquals("${rig.label} after square $turn", emptyList<TrainerVerdict>(), rig.verdicts)
                 } else {
                     val flash = checkNotNull(rig.flash)
