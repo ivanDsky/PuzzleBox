@@ -181,7 +181,10 @@ class TangoPracticeBoardTest {
                 assertEquals(label, before, play.session)
                 assertFalse(label, play.board.controller.canUndo || play.board.controller.canRedo)
                 assertNull(label, play.board.controller.lastRejection)
-                assertTrue(label, (play.status as? PracticeStatus.Wrong)?.why?.isNotBlank() == true)
+                val why = (play.status as? PracticeStatus.Wrong)?.why
+                assertTrue(label, why?.isNotBlank() == true)
+                // The move is undone, so the line says what it would have done, never "These two" or "Row 2 has 4".
+                assertTrue("$label: $why", why!!.startsWith("That "))
             }
             assertEquals(play.technique.value, List(wrong.size) { TrainerVerdict.Wrong }, play.turns)
             wrongMoves += wrong.size
