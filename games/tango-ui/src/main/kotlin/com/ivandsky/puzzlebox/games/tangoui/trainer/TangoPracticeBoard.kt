@@ -61,7 +61,9 @@ import kotlinx.coroutines.launch
  * board is done once the easiest rung is another technique, a review board once it is a later one, either once the
  * puzzle is solved. A Right move that ends the board reports [PracticeStatus.Done] with that step's Spotlight (no Right
  * first). Show me that makes the ending step reports [PracticeStatus.Shown], and [gotIt] turns it into
- * `Done(null)`. A board that opens done reports `Done(null)`. While Done, every move and Show me is ignored.
+ * `Done(null)`. A board that opens done reports `Done(null)`. Every Done says [PracticeStatus.Done.needsOtherTechnique]
+ * when squares are left (the board ended because the trained technique is no longer the easiest move), and not when
+ * the puzzle is solved. While Done, every move and Show me is ignored.
  *
  * Every report goes to [onTrainedTurn] only for a turn whose easiest rung was the trained technique: Right once per
  * finished step, [TrainerVerdict.Wrong] for a move that was undone. An undone move on another rung reports nothing.
@@ -91,7 +93,7 @@ internal class TangoPracticeBoard(
     }
 
     private val state = MutableStateFlow<PracticeStatus>(
-        if (TangoPractice.isDone(puzzle, startGrid, technique, kind)) PracticeStatus.Done(null) else PracticeStatus.FindNextMove,
+        if (TangoPractice.isDone(puzzle, startGrid, technique, kind)) done(null, startGrid) else PracticeStatus.FindNextMove,
     )
 
     override val status: StateFlow<PracticeStatus> = state.asStateFlow()
@@ -176,11 +178,14 @@ internal class TangoPracticeBoard(
     override fun gotIt() {
         val now = state.value
         if (now is PracticeStatus.Shown && controller.session?.let { TangoPractice.isDone(puzzle, it.grid(), technique, kind) } == true) {
-            state.value = PracticeStatus.Done(null)
+            state.value = done(null, checkNotNull(controller.session).grid())
         } else if (now is PracticeStatus.Easier || now is PracticeStatus.Shown) {
             state.value = PracticeStatus.FindNextMove
         }
     }
+
+    /** A finished board: it needs another technique when it ended with squares left, and is solved when it did not. */
+    private fun done(last: Spotlight?, grid: List<TangoCell?>) = PracticeStatus.Done(last, needsOtherTechnique = grid.any { it == null })
 
     private fun place(idx: Int, value: TangoCell) {
         controller.onPlacement(TangoPlacement(idx, value))
@@ -241,7 +246,7 @@ internal class TangoPracticeBoard(
         if (progress.trained) onTrainedTurn(TrainerVerdict.Right)
         val grid = checkNotNull(controller.session).grid()
         state.value = if (TangoPractice.isDone(puzzle, grid, technique, kind)) {
-            PracticeStatus.Done(progress.spotlight)
+            done(progress.spotlight, grid)
         } else {
             PracticeStatus.Right(progress.spotlight, progress.trained)
         }
