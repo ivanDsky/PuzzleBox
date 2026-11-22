@@ -6,13 +6,15 @@ import java.time.LocalDate
 
 /**
  * What every stats section provider reads: the [facts] of the range and scope the page is on, the [range] itself and
- * the app's [games] in the order a section lists them, and the puzzle day [today] the range was cut on. The facts are the one fold's ([PeriodFacts]), never a second.
+ * the app's [games] in the order a section lists them, and the puzzle day [today] the range was cut on. The facts are the one fold's ([PeriodFacts]); [recordFacts]
+ * are the scope's all-time facts when the page reads its records over all time (the second fold, only then), the range's [facts] otherwise.
  */
 internal data class StatsInput(
     val range: StatsRange,
     val facts: PeriodFacts,
     val games: List<GameId>,
     val today: LocalDate,
+    val recordFacts: PeriodFacts = facts,
 ) {
 
     /** [byGame]'s entries in the app's game order; a game the app no longer lists follows by id. */

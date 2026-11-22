@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.insights.domain.stats
 
 import app.cash.turbine.test
 import com.ivandsky.puzzlebox.common.log.FailureLog
+import com.ivandsky.puzzlebox.insights.domain.recap.PeriodFacts
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapHistoryFixture
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
@@ -87,6 +88,64 @@ class ObserveStatsPageTest {
         }
         observe()(scope = null, range = StatsRange.All).test {
             assertEquals(10_000L, awaitItem().records().fastest.single().solve.timeMs)
+        }
+    }
+
+    @Test
+    fun `all-time records keep a fastest solve from months before a week range`() = runTest {
+        fixture.store(
+            fixture.solve(alpha, day(1, month = 8), time = 10_000),
+            fixture.solve(alpha, day(18), time = 20_000),
+        )
+
+        observe()(scope = null, range = StatsRange.Week, allTimeRecords = true).test {
+            assertEquals(10_000L, awaitItem().records().fastest.single().solve.timeMs)
+        }
+    }
+
+    @Test
+    fun `all-time records are there when the range holds no solve, and absent only with no solve ever`() = runTest {
+        observe()(scope = null, range = StatsRange.Week, allTimeRecords = true).test {
+            assertEquals(emptyList<StatsSection>(), awaitItem().sections)
+        }
+        fixture.store(fixture.solve(alpha, day(1, month = 8), time = 10_000))
+
+        observe()(scope = null, range = StatsRange.Week, allTimeRecords = true).test {
+            assertEquals(10_000L, awaitItem().records().fastest.single().solve.timeMs)
+        }
+    }
+
+    @Test
+    fun `all-time records read the scope alone, and the other sections keep the range's facts`() = runTest {
+        fixture.store(
+            fixture.solve(alpha, day(1, month = 8), time = 10_000),
+            fixture.solve(beta, day(1, month = 8), time = 5_000),
+            fixture.solve(alpha, day(18), time = 20_000),
+        )
+        var seen: PeriodFacts? = null
+        val probe = StatsSectionProvider { input -> flow { seen = input.facts; emit(null) } }
+
+        observe(listOf(RecordsStatsSectionProvider, probe))(scope = alpha, range = StatsRange.Week, allTimeRecords = true).test {
+            val page = awaitItem()
+
+            assertEquals(listOf(alpha), page.records().fastest.map { it.game })
+            assertEquals(10_000L, page.records().fastest.single().solve.timeMs)
+            assertEquals(20_000L, seen?.fastestByGame?.getValue(alpha)?.timeMs)
+        }
+    }
+
+    @Test
+    fun `records without the flag stay cut to the range`() = runTest {
+        fixture.store(
+            fixture.solve(alpha, day(1, month = 8), time = 10_000),
+            fixture.solve(alpha, day(18), time = 20_000),
+        )
+
+        observe()(scope = null, range = StatsRange.Week).test {
+            assertEquals(20_000L, awaitItem().records().fastest.single().solve.timeMs)
+        }
+        observe()(scope = null, range = StatsRange.Week, allTimeRecords = false).test {
+            assertEquals(20_000L, awaitItem().records().fastest.single().solve.timeMs)
         }
     }
 
