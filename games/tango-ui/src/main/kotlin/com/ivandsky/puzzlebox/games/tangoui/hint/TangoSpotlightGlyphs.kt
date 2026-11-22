@@ -1,9 +1,7 @@
 package com.ivandsky.puzzlebox.games.tangoui.hint
 
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.scale
 import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightGlyphs
@@ -11,7 +9,6 @@ import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightRole
 import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightTokens
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tangoui.MoonPaths
-import com.ivandsky.puzzlebox.games.tangoui.TangoBoardSpec
 import com.ivandsky.puzzlebox.games.tangoui.drawMoon
 import com.ivandsky.puzzlebox.games.tangoui.drawSun
 
@@ -19,8 +16,6 @@ import com.ivandsky.puzzlebox.games.tangoui.drawSun
  * The shapes a Spotlight draws over the Tango board. [values] maps a cell to the sun or moon the step puts there: the
  * target value for a deduction or reveal, the wrong entry for a mistake. The overlay owns colour, alpha, sequence and
  * the minus badge; this only draws shapes, the board's own sun and moon through the shared shape functions.
- *
- * An [SpotlightRole.EXCLUDED] cell is a count-squeeze what-if cell, which holds no value, so its × needs none.
  */
 internal data class TangoSpotlightGlyphs(val n: Int, val values: Map<Int, TangoCell>) : SpotlightGlyphs {
 
@@ -37,8 +32,8 @@ internal data class TangoSpotlightGlyphs(val n: Int, val values: Map<Int, TangoC
                 scale(CULPRIT_SCALE) { drawValue(cell, color) }
                 drawValue(cell, color, rim = SpotlightTokens.HairlineWidth.toPx())
             }
-            SpotlightRole.EXCLUDED -> drawCross(color)
-            SpotlightRole.EVIDENCE -> Unit
+            // No Tango step draws an excluded square: a x means "different" here, so a what-if square never wears one.
+            SpotlightRole.EXCLUDED, SpotlightRole.EVIDENCE -> Unit
         }
     }
 
@@ -50,21 +45,7 @@ internal data class TangoSpotlightGlyphs(val n: Int, val values: Map<Int, TangoC
         }
     }
 
-    /** Two crossing strokes centred in the scope, inside the glyph box the board's sun and moon fill. */
-    private fun DrawScope.drawCross(color: Color) {
-        val glyph = size.minDimension * TangoBoardSpec.glyphSizeFraction(n)
-        val center = Offset(size.width / 2f, size.height / 2f)
-        val arm = glyph * CROSS_ARM
-        val stroke = glyph * CROSS_STROKE
-        drawLine(color, center + Offset(-arm, -arm), center + Offset(arm, arm), strokeWidth = stroke, cap = StrokeCap.Round)
-        drawLine(color, center + Offset(-arm, arm), center + Offset(arm, -arm), strokeWidth = stroke, cap = StrokeCap.Round)
-    }
-
     private companion object {
-        /** Half the × extent and its stroke width, fractions of the glyph box. */
-        const val CROSS_ARM = 0.32f
-        const val CROSS_STROKE = 0.12f
-
         /** The culprit's size over the board glyph's, as Sudoku's and Queens' culprits. */
         const val CULPRIT_SCALE = 1.1f
     }

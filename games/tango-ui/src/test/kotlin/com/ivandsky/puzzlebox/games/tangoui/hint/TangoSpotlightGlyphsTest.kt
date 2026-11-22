@@ -61,13 +61,8 @@ class TangoSpotlightGlyphsTest {
     }
 
     @Test
-    fun `an excluded cell paints a cross that is neither the sun nor the moon, and needs no value`() {
-        val cross = paint(5, SpotlightRole.EXCLUDED)
-
-        assertTrue(cross.painted() > 0)
-        assertNotEquals(paint(0, SpotlightRole.TARGET), cross)
-        assertNotEquals(paint(1, SpotlightRole.TARGET), cross)
-        assertEquals("the cross is the same in every cell", cross, paint(0, SpotlightRole.EXCLUDED))
+    fun `an excluded square paints nothing, since a cross means different in Tango`() {
+        assertEquals(0, paint(5, SpotlightRole.EXCLUDED).painted())
     }
 
     @Test

@@ -18,9 +18,9 @@ import com.ivandsky.puzzlebox.games.tango.engine.trainer.TangoPractice
 import com.ivandsky.puzzlebox.games.tango.engine.trainer.TangoPracticeStep
 import com.ivandsky.puzzlebox.games.tango.engine.trainer.TangoPracticeVerdict
 import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
+import com.ivandsky.puzzlebox.games.tango.render.TangoViolations
 import com.ivandsky.puzzlebox.games.tangoui.TangoPlacement
 import com.ivandsky.puzzlebox.games.tangoui.TangoPlayController
-import com.ivandsky.puzzlebox.games.tangoui.TangoSemantics
 import com.ivandsky.puzzlebox.games.tangoui.hint.TangoSpotlightMapper
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -245,10 +245,11 @@ internal class TangoPracticeBoard(
         }
     }
 
-    /** The game's own violation line for the move when it breaks a rule outright, else a plain one. */
+    /** What the move would have broken, when it breaks a rule outright ([TangoWrongMoveCopy]: it is undone), else a plain line. */
     private fun whyWrong(before: List<TangoCell?>, idx: Int, value: TangoCell): String {
         val after = before.toMutableList().also { it[idx] = value }
-        return TangoSemantics.firstViolationPhrase(TangoRendererModel.of(TangoState(puzzle, after))) ?: DOES_NOT_MATCH
+        val violations = TangoViolations.of(TangoRendererModel.of(TangoState(puzzle, after)))
+        return TangoWrongMoveCopy.why(violations, idx) ?: DOES_NOT_MATCH
     }
 
     private fun spotlightOf(step: TangoStep, grid: List<TangoCell?>): Spotlight =

@@ -47,12 +47,12 @@ class TangoStepCopyTest {
     fun `each rung's text is pinned for both values`() {
         val expected = mapOf(
             TangoStepRung.PAIR to listOf(
-                "Two moons touch, so the cells at both ends are suns",
-                "Two suns touch, so the cells at both ends are moons",
+                "Two moons touch, so an empty end next to them is a sun",
+                "Two suns touch, so an empty end next to them is a moon",
             ),
             TangoStepRung.SANDWICH to listOf(
-                "This cell sits between two moons, so it is a sun",
-                "This cell sits between two suns, so it is a moon",
+                "This square sits between two moons, so it is a sun",
+                "This square sits between two suns, so it is a moon",
             ),
             TangoStepRung.FULL_LINE to listOf(
                 "Row 2 has all its moons, so the rest are suns",
@@ -71,12 +71,12 @@ class TangoStepCopyTest {
                 "The gap holds one of each, so the rest are moons",
             ),
             TangoStepRung.COUNT_SQUEEZE to listOf(
-                "The other kind here would break the line, so this is a sun",
-                "The other kind here would break the line, so this is a moon",
+                "A moon here uses up the moons and breaks the line, so this is a sun",
+                "A sun here uses up the suns and breaks the line, so this is a moon",
             ),
             TangoStepRung.LINE_OPTIONS to listOf(
-                "All 2 ways to fill this line put a sun here",
-                "All 2 ways to fill this line put a moon here",
+                "Both ways to fill this line put a sun here",
+                "Both ways to fill this line put a moon here",
             ),
         )
         assertEquals("a rung has no pinned text", TangoStepRung.entries.toSet() - TangoStepRung.SIGN, expected.keys)
@@ -96,16 +96,16 @@ class TangoStepCopyTest {
 
     @Test
     fun `reveal and mistake variants are pinned`() {
-        assertEquals("This cell is a moon, though no simple step finds it", text(TangoStep.Reveal(1, TangoCell.MOON)))
-        assertEquals("This cell isn't in the solution", text(TangoStep.Mistake(1, null)))
-        assertEquals("This cell makes three in a row", text(TangoStep.Mistake(1, TangoVerdict.Reason.ThreeInARow)))
-        assertEquals("This cell breaks a sign", text(TangoStep.Mistake(1, TangoVerdict.Reason.MarkerConflict)))
-        assertEquals("This cell has too many of one kind", text(TangoStep.Mistake(1, TangoVerdict.Reason.CountExceeded)))
+        assertEquals("This square is a moon, though no simple step finds it", text(TangoStep.Reveal(1, TangoCell.MOON)))
+        assertEquals("This square isn't in the solution", text(TangoStep.Mistake(1, null)))
+        assertEquals("This square makes three in a row", text(TangoStep.Mistake(1, TangoVerdict.Reason.ThreeInARow)))
+        assertEquals("This square breaks a sign", text(TangoStep.Mistake(1, TangoVerdict.Reason.MarkerConflict)))
+        assertEquals("This square has too many of one kind", text(TangoStep.Mistake(1, TangoVerdict.Reason.CountExceeded)))
     }
 
     @Test
     fun `no text starts with a deduction name, and each is one short line`() {
-        val names = listOf("Pair", "Sandwich", "Full line", "Equal pair", "Sign count", "Sign", "Split pair", "Count squeeze", "Line options", "Reveal", "Wrong cell")
+        val names = listOf("Pair", "Sandwich", "Full line", "Equal pair", "Sign count", "Sign", "Split pair", "Count squeeze", "Line options", "Reveal", "Wrong square")
         for ((step, p) in everyStep()) {
             val line = text(step, p)
             assertFalse(line, '\n' in line)
@@ -143,5 +143,36 @@ class TangoStepCopyTest {
             "The sign beside it makes this a moon",
             text(deduction(TangoStepRung.SIGN, TangoCell.MOON, idx = 1, evidence = setOf(0, 1)), plain),
         )
+    }
+
+    @Test
+    fun `a line options text counts its ways, in plain words for one, two and many`() {
+        fun ways(options: Int) = text(deduction(TangoStepRung.LINE_OPTIONS, row = 1, options = options))
+        assertEquals("Only one way to fill this line works, and it puts a sun here", ways(1))
+        assertEquals("Both ways to fill this line put a sun here", ways(2))
+        assertEquals("All 3 ways to fill this line put a sun here", ways(3))
+        assertEquals("All 12 ways to fill this line put a sun here", ways(12))
+    }
+
+    @Test
+    fun `a sign count step through an = pair names the pair, one through a x pair counts the signs`() {
+        // An = pair is its own evidence: the target is among the evidence cells.
+        assertEquals(
+            "Only one moon is left but the = pair needs two, so both are suns",
+            text(deduction(TangoStepRung.SIGN_COUNT, TangoCell.SUN, idx = 1, evidence = setOf(0, 1))),
+        )
+        assertEquals(
+            "Only one sun is left but the = pair needs two, so both are moons",
+            text(deduction(TangoStepRung.SIGN_COUNT, TangoCell.MOON, idx = 1, evidence = setOf(0, 1))),
+        )
+        assertEquals(
+            "Counting the signs, no moon fits here, so this is a sun",
+            text(deduction(TangoStepRung.SIGN_COUNT, TangoCell.SUN, idx = 5, evidence = setOf(0, 1))),
+        )
+    }
+
+    @Test
+    fun `no hint text says cell`() {
+        for ((step, p) in everyStep()) assertFalse(text(step, p), "cell" in text(step, p).lowercase())
     }
 }

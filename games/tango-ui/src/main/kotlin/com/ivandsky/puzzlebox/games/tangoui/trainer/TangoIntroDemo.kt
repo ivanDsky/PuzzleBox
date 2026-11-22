@@ -11,8 +11,9 @@ import com.ivandsky.puzzlebox.gameui.trainer.IntroDemo
 /**
  * The Tango technique-intro demo (spec §2.7): one real step on a drill [puzzle], cut into [frames], each a whole board
  * ([Frame.grid]: givens and placed squares) with the [Frame.spotlight] it wears. Frame 0 is the board practice opens
- * on and wears no Spotlight; frame 1 is the same board with the step's evidence lit; then one frame per square of the
- * step, the evidence still lit, each square landed on the grid; the last grid is the board after the whole step.
+ * on and wears no Spotlight; frame 1 is the same board with the whole evidence of the step lit; then one frame per
+ * square of the step, the evidence still lit (less the squares that land), each square landed on the grid; the last
+ * grid is the board after the whole step.
  * [captions] has one line per frame.
  */
 internal class TangoIntroDemo private constructor(
@@ -31,14 +32,19 @@ internal class TangoIntroDemo private constructor(
         fun of(puzzle: TangoPuzzle, opening: TangoPracticeOpening, variant: Int): TangoIntroDemo {
             val squares = opening.step.squares
             val first = squares.first().shown as TangoStep.Deduction
+            val look = TangoSpotlightMapper.look(first, puzzle, playId = 1)
             val lit = TangoSpotlightMapper.evidence(first, squares.mapTo(HashSet()) { it.idx }, puzzle, playId = 1)
-            val frames = mutableListOf(Frame(opening.board, null), Frame(opening.board, lit))
-            val captions = mutableListOf(TangoDemoCaptions.OPENING, TangoDemoCaptions.evidence(first))
+            val frames = mutableListOf(Frame(opening.board, null), Frame(opening.board, look))
+            val captions = mutableListOf(TangoDemoCaptions.opening(squares.size), TangoDemoCaptions.evidence(first))
             val grid = opening.board.toMutableList()
             squares.forEachIndexed { at, square ->
                 grid[square.idx] = square.value
                 frames += Frame(grid.toList(), lit)
-                captions += if (at == 0) TangoDemoCaptions.reason(square.shown, puzzle) else TangoDemoCaptions.again(square.value)
+                captions += if (at == 0) {
+                    TangoDemoCaptions.reason(square.shown, squares.size, puzzle)
+                } else {
+                    TangoDemoCaptions.again(square.value, previous = squares[at - 1].value)
+                }
             }
             return TangoIntroDemo(variant, captions, puzzle, frames)
         }
