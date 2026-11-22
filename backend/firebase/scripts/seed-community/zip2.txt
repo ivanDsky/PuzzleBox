@@ -1,0 +1,13 @@
+puzzlebox zip v1
+. . . . . .
+. 7 6 2 3 .
+5 . . 1 . .
+. . 4 . . .
+. . . . . .
+. . . . . .
+wall 2,2 right
+wall 2,4 right
+wall 3,1 right
+wall 4,5 down
+wall 5,3 right
+wall 5,3 down

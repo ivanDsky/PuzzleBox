@@ -47,7 +47,7 @@ object PuzzleCli {
     const val BUDGET_MS: Long = 30_000
 
     private const val USAGE_MESSAGE =
-        "usage: puzzle-cli validate <file> | puzzle-cli solve <file> | ${IndexCommand.USAGE} | ${GenerateDrillsCommand.USAGE}"
+        "usage: puzzle-cli validate <file> | puzzle-cli solve <file> | puzzle-cli share <file> | ${IndexCommand.USAGE} | ${GenerateDrillsCommand.USAGE}"
 
     private val json = Json
 
@@ -111,6 +111,10 @@ object PuzzleCli {
     fun runGenerateDrills(args: List<String>, io: IndexIo, out: (String) -> Unit, err: (String) -> Unit): Int =
         GenerateDrillsCommand(DrillGames.of(registry), io, out, err).run(args)
 
+    /** `share` (see [ShareCommand]); returns a CliExit code. [args] are the arguments after `share`. */
+    fun runShare(args: List<String>, read: (path: String) -> String, out: (String) -> Unit, err: (String) -> Unit): Int =
+        ShareCommand(read, out, err).run(args)
+
     /** 0 ⇔ unique with no board-level publish block (§9.2); malformed text is 2. */
     private fun exitCode(verdict: CliVerdict): Int =
         when {
@@ -134,6 +138,9 @@ fun main(args: Array<String>) {
     if (args.firstOrNull() == "generate-drills") {
         // Offline: no transport, no network (A7); the walkers and generators run on this machine.
         exitProcess(PuzzleCli.runGenerateDrills(args.drop(1), IndexIo.files(), ::println, System.err::println))
+    }
+    if (args.firstOrNull() == "share") {
+        exitProcess(PuzzleCli.runShare(args.drop(1), { path -> File(path).readText() }, ::println, System.err::println))
     }
     exitProcess(PuzzleCli.run(args.toList(), { path -> File(path).readText() }, ::println, System.err::println))
 }
