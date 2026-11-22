@@ -15,6 +15,7 @@ import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.core.app.ApplicationProvider
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.chart.BarChartBar
 import com.ivandsky.puzzlebox.designsystem.chart.LineChartPoint
@@ -109,6 +110,46 @@ class StatsChartMotionTest {
         rule.onNodeWithText("0:00").assertExists()
         rule.mainClock.advanceTimeBy(1_000)
         rule.onNodeWithText("1:35").assertExists()
+    }
+
+    @Test
+    fun `a headline counts from its old value to the new one on a change`() {
+        animations(1f)
+        var text by mutableStateOf("1:35")
+        rule.setContent {
+            PuzzleBoxTheme {
+                CompositionLocalProvider(LocalStatsMotion provides StatsMotion()) {
+                    StatsCountUpText(text, key = "headline")
+                }
+            }
+        }
+        rule.mainClock.advanceTimeBy(1_000)
+        rule.onNodeWithText("1:35").assertExists()
+        rule.runOnIdle { text = "0:35"; Snapshot.sendApplyNotifications() }
+        rule.mainClock.advanceTimeBy(16)
+        rule.onNodeWithText("0:35").assertDoesNotExist()
+        rule.mainClock.advanceTimeBy(MotionTokens.CountUpDuration / 2L)
+        rule.onNodeWithText("1:35").assertDoesNotExist()
+        rule.onNodeWithText("0:35").assertDoesNotExist()
+        rule.mainClock.advanceTimeBy(1_000)
+        rule.onNodeWithText("0:35").assertExists()
+    }
+
+    @Test
+    fun `a headline swaps at once on a change under reduced motion`() {
+        animations(0f)
+        var text by mutableStateOf("1:35")
+        rule.setContent {
+            PuzzleBoxTheme {
+                CompositionLocalProvider(LocalStatsMotion provides StatsMotion()) {
+                    StatsCountUpText(text, key = "headline")
+                }
+            }
+        }
+        rule.mainClock.advanceTimeBy(100)
+        rule.runOnIdle { text = "0:35"; Snapshot.sendApplyNotifications() }
+        rule.mainClock.advanceTimeBy(32)
+        rule.onNodeWithText("0:35").assertExists()
     }
 
     @Test

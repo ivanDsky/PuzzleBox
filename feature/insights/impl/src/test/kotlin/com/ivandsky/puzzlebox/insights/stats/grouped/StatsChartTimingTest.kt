@@ -10,12 +10,12 @@ import org.junit.Test
 class StatsChartTimingTest {
 
     @Test
-    fun `the line draws in over 400ms and the morph takes the chart morph duration`() {
+    fun `the line draws in over the expressive duration and the morph takes the chart morph duration`() {
         assertEquals(0f, lineDrawProgress(0f), 0f)
         assertEquals(1f, lineDrawProgress(MotionTokens.DurationExpressive.toFloat()), 0f)
-        assertEquals(1f, lineDrawProgress(900f), 0f)
-        assertEquals(400, LINE_DRAW_MS)
-        assertEquals(300, CHART_MORPH_MS)
+        assertEquals(1f, lineDrawProgress(MotionTokens.DurationExpressive * 2f), 0f)
+        assertEquals(MotionTokens.DurationExpressive, LINE_DRAW_MS)
+        assertEquals(MotionTokens.ChartMorphDuration, CHART_MORPH_MS)
         assertEquals(0f, morphProgress(0f), 0f)
         assertEquals(1f, morphProgress(CHART_MORPH_MS.toFloat()), 0f)
     }
@@ -24,7 +24,7 @@ class StatsChartTimingTest {
     fun `progress only moves forward`() {
         val samples = (0..40).map { lineDrawProgress(it * 10f) }
         assertEquals(samples.sorted(), samples)
-        assertTrue(lineDrawProgress(100f) in 0.01f..0.99f)
+        assertTrue(lineDrawProgress(MotionTokens.DurationExpressive / 4f) in 0.01f..0.99f)
     }
 
     @Test
@@ -38,13 +38,44 @@ class StatsChartTimingTest {
     }
 
     @Test
-    fun `bars grow one after another 30ms apart over the long duration`() {
-        assertEquals(30, BAR_STAGGER_MS)
-        assertEquals(0f, barGrowth(index = 2, elapsedMs = 60f), 0f)
-        assertEquals(1f, barGrowth(index = 2, elapsedMs = 60f + MotionTokens.DurationLong), 0f)
-        assertTrue(barGrowth(index = 0, elapsedMs = 100f) > barGrowth(index = 1, elapsedMs = 100f))
-        assertEquals(300 + 30 * 6, barGrowthTotalMs(bars = 7))
-        assertEquals(300, barGrowthTotalMs(bars = 1))
+    fun `a morph swaps the labels, fading the old out over the first label fade and the new in over the last`() {
+        val total = MotionTokens.ChartMorphDuration.toFloat()
+        val fade = MotionTokens.ChartLabelFade.toFloat()
+        assertEquals(1f, labelSwapAlpha(0f, total), 0f)
+        assertEquals(0.5f, labelSwapAlpha(fade / 2, total), 1e-6f)
+        assertEquals(0f, labelSwapAlpha(total / 2 + 0f, total), 0.07f)
+        assertEquals(0.5f, labelSwapAlpha(total - fade / 2, total), 1e-6f)
+        assertEquals(1f, labelSwapAlpha(total, total), 0f)
+        // Never a jump: the alpha moves a little between frames all the way through.
+        val samples = (0..300 step 4).map { labelSwapAlpha(it.toFloat(), total) }
+        assertTrue(samples.zipWithNext().all { (a, b) -> kotlin.math.abs(a - b) < 0.1f })
+    }
+
+    @Test
+    fun `the line and the bars ease on the standard curve`() {
+        assertEquals(
+            MotionTokens.EasingStandard.transform(0.25f),
+            lineDrawProgress(MotionTokens.DurationExpressive / 4f),
+            1e-6f,
+        )
+        assertEquals(MotionTokens.EasingStandard.transform(0.5f), barGrowth(index = 0, elapsedMs = MotionTokens.DurationLong / 2f), 1e-6f)
+    }
+
+    @Test
+    fun `later arrivals do not wait for a stagger`() {
+        assertEquals(2, arrivalStagger(index = 2, firstPass = true))
+        assertEquals(0, arrivalStagger(index = 2, firstPass = false))
+    }
+
+    @Test
+    fun `bars grow one after another, a stagger apart, each over the long duration`() {
+        val start = 2f * BAR_STAGGER_MS
+        assertEquals(0f, barGrowth(index = 2, elapsedMs = start), 0f)
+        assertEquals(1f, barGrowth(index = 2, elapsedMs = start + MotionTokens.DurationLong), 0f)
+        val soon = BAR_STAGGER_MS + 1f
+        assertTrue(barGrowth(index = 0, elapsedMs = soon) > barGrowth(index = 1, elapsedMs = soon))
+        assertEquals(MotionTokens.DurationLong + BAR_STAGGER_MS * 6, barGrowthTotalMs(bars = 7))
+        assertEquals(MotionTokens.DurationLong, barGrowthTotalMs(bars = 1))
     }
 
     @Test

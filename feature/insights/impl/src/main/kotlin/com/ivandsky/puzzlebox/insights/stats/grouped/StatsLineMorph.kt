@@ -19,8 +19,10 @@ internal fun lineScale(points: List<LineChartPoint>, valueRange: ClosedFloatingP
  *
  * At 1 the result is [to] itself, so the morph ends on the exact new data. The grid is normalised, so the returned
  * x values are 0..1 (only the order and spacing matter to the chart), the first and last point carry [to]'s labels and
- * the ones between are unlabelled. Limitation: the dots a short line draws on its vertices belong to the grid, so they
- * appear at the first frame of a morph and settle to the new line's dots at the last.
+ * the ones between are unlabelled. The dots a short line draws on its vertices belong to the grid, so they are the
+ * grid's while it morphs: the caller fades the dots and labels out over the first half of the morph and the new
+ * line's back in over the last (see [labelSwapAlpha]), so no dot pops. Limitation: a [toScale] of one value (a flat
+ * line) has no span to blend into, so the morph draws that line flat at once.
  */
 internal fun morphLine(
     from: List<LineChartPoint>,

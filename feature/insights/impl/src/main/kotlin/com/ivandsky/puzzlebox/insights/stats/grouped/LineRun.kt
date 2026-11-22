@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.insights.stats.grouped
 
-import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.chart.LineChartPoint
 
 /**
@@ -18,9 +17,8 @@ internal sealed interface LineRun {
     fun pointsAt(elapsedMs: Float): List<LineChartPoint> = points
     fun drawAt(elapsedMs: Float): Float = 1f
     fun labelsAt(elapsedMs: Float): Float = 1f
-    fun alphaAt(elapsedMs: Float): Float = 1f
 
-    /** Nothing moves. */
+    /** Nothing moves: the first sight of a chart whose arrival is skipped, and every change under reduced motion (an instant swap). */
     class Rest(override val points: List<LineChartPoint>, override val scale: ClosedFloatingPointRange<Double>) : LineRun {
         override val totalMs = 0
     }
@@ -32,7 +30,7 @@ internal sealed interface LineRun {
         override fun labelsAt(elapsedMs: Float) = labelAlpha(elapsedMs, totalMs.toFloat())
     }
 
-    /** M05: the line on screen ([from], on [fromScale]) morphs into [points], and the labels fade in at the end. */
+    /** M05: the line on screen ([from], on [fromScale]) morphs into [points]; the labels swap at the midpoint. */
     class Morph(
         private val from: List<LineChartPoint>,
         private val fromScale: ClosedFloatingPointRange<Double>,
@@ -42,12 +40,6 @@ internal sealed interface LineRun {
         override val totalMs = CHART_MORPH_MS
         override val movesPoints = true
         override fun pointsAt(elapsedMs: Float) = morphLine(from, fromScale, points, scale, morphProgress(elapsedMs))
-        override fun labelsAt(elapsedMs: Float) = labelAlpha(elapsedMs, totalMs.toFloat())
-    }
-
-    /** M08: reduced motion shows the new line at once under one plain fade. */
-    class Fade(override val points: List<LineChartPoint>, override val scale: ClosedFloatingPointRange<Double>) : LineRun {
-        override val totalMs = MotionTokens.ReducedFadeDuration
-        override fun alphaAt(elapsedMs: Float) = (elapsedMs / totalMs).coerceIn(0f, 1f)
+        override fun labelsAt(elapsedMs: Float) = labelSwapAlpha(elapsedMs, totalMs.toFloat())
     }
 }

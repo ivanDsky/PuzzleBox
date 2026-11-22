@@ -60,14 +60,14 @@ private fun Stage(content: @Composable () -> Unit) {
 @Composable
 private fun StatsLineDrawInPreview() = Stage {
     val run = LineRun.Arrival(line(Week), lineScale(line(Week), null))
-    Played(run.totalMs) { elapsed -> StatsLineChartAt(run, elapsed, "Average solve time", ::seconds) }
+    Played(run.totalMs) { elapsed -> StatsLineChartAt({ run }, elapsed, "Average solve time", ::seconds) }
 }
 
 @PuzzleBoxPreviews
 @Composable
 private fun StatsBarsGrowPreview() = Stage {
     val run = BarRun.Arrival(bars(Week))
-    Played(run.totalMs) { elapsed -> StatsBarChartAt(run, elapsed, "Average solve time by weekday", ::seconds) }
+    Played(run.totalMs) { elapsed -> StatsBarChartAt({ run }, elapsed, "Average solve time by weekday", ::seconds) }
 }
 
 @PuzzleBoxPreviews
@@ -76,7 +76,7 @@ private fun StatsLineMorphPreview() = Stage {
     val from = line(Week)
     val to = line(Month)
     val run = LineRun.Morph(from, lineScale(from, null), to, lineScale(to, null))
-    Played(run.totalMs) { elapsed -> StatsLineChartAt(run, elapsed, "Average solve time", ::seconds) }
+    Played(run.totalMs) { elapsed -> StatsLineChartAt({ run }, elapsed, "Average solve time", ::seconds) }
 }
 
 @PuzzleBoxPreviews
@@ -84,7 +84,7 @@ private fun StatsLineMorphPreview() = Stage {
 private fun StatsBarsMorphPreview() = Stage {
     val before = bars(Week)
     val run = BarRun.Morph(barFractions(before), bars(Month.take(Days.size)))
-    Played(run.totalMs) { elapsed -> StatsBarChartAt(run, elapsed, "Average solve time by weekday", ::seconds) }
+    Played(run.totalMs) { elapsed -> StatsBarChartAt({ run }, elapsed, "Average solve time by weekday", ::seconds) }
 }
 
 @PuzzleBoxPreviews
@@ -107,14 +107,19 @@ private fun StatsHeadlineMorphPreview() = Stage {
     }
 }
 
-/** M08: with reduced motion the new line and bars only fade, nothing draws in, grows, moves or scales. */
+/** M08: with reduced motion a change swaps the chart at once, at the midpoint of the preview: nothing draws in, grows, moves, scales or fades. */
 @PuzzleBoxPreviews
 @Composable
-private fun StatsReducedMotionFadePreview() = Stage {
-    val lineRun = LineRun.Fade(line(Month), lineScale(line(Month), null))
-    val barRun = BarRun.Fade(bars(Week))
-    Played(lineRun.totalMs) { elapsed ->
-        StatsLineChartAt(lineRun, elapsed, "Average solve time", ::seconds)
-        StatsBarChartAt(barRun, elapsed, "Average solve time by weekday", ::seconds)
+private fun StatsReducedMotionSwapPreview() = Stage {
+    val before = line(Week)
+    val after = line(Month)
+    val lineBefore = LineRun.Rest(before, lineScale(before, null))
+    val lineAfter = LineRun.Rest(after, lineScale(after, null))
+    val barsBefore = BarRun.Rest(bars(Week))
+    val barsAfter = BarRun.Rest(bars(Month.take(Days.size)))
+    Played(1_000) { elapsed ->
+        val swapped = elapsed() >= 500f
+        StatsLineChartAt({ if (swapped) lineAfter else lineBefore }, elapsed, "Average solve time", ::seconds)
+        StatsBarChartAt({ if (swapped) barsAfter else barsBefore }, elapsed, "Average solve time by weekday", ::seconds)
     }
 }

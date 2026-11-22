@@ -42,7 +42,9 @@ import com.ivandsky.puzzlebox.designsystem.tabular
  *
  * Two optional lambdas let a caller animate the chart without the chart owning a clock; both are read at draw time and
  * default to the finished chart. [drawProgress] (0..1) draws only that share of the line's length from its start, and
- * [labelAlpha] (0..1) is the opacity of the axis values, the end labels and the dots.
+ * [labelAlpha] (0..1) is the opacity of the axis values, the end labels and the dots. [summaryPoints] are what the screen
+ * reader's summary describes where that is not the drawn [points] (a line morphing between two datasets is drawn on a
+ * resampled grid, but the summary must stay the data it will end on).
  */
 @Composable
 fun LineChart(
@@ -53,11 +55,12 @@ fun LineChart(
     valueRange: ClosedFloatingPointRange<Double>? = null,
     drawProgress: () -> Float = { 1f },
     labelAlpha: () -> Float = { 1f },
+    summaryPoints: List<LineChartPoint> = points,
 ) {
     if (points.size < 2) return
     val ordered = remember(points) { points.sortedBy { it.x } }
     val scale = remember(ordered, valueRange) { valueRange ?: (ordered.minOf { it.y }..ordered.maxOf { it.y }) }
-    val summary = remember(ordered, what) { lineChartSummary(what, ordered, valueLabel) }
+    val summary = remember(summaryPoints, what) { lineChartSummary(what, summaryPoints.sortedBy { it.x }, valueLabel) }
     val labelStyle = MaterialTheme.typography.labelSmall.tabular()
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
     val labelFade = Modifier.graphicsLayer { alpha = labelAlpha() }

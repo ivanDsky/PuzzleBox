@@ -30,6 +30,17 @@ class StatsChartRunTest {
     }
 
     @Test
+    fun `a morph holds the old line at the first instant and swaps the labels`() {
+        val old = listOf(LineChartPoint(0.0, 10.0, "Nov 1"), LineChartPoint(1.0, 20.0, "Nov 2"), LineChartPoint(2.0, 15.0, "Nov 3"))
+        val new = listOf(LineChartPoint(0.0, 12.0, "Oct 1"), LineChartPoint(1.0, 18.0, "Oct 2"), LineChartPoint(2.0, 11.0, "Oct 3"))
+        val run = LineRun.Morph(old, 10.0..20.0, new, 10.0..20.0)
+        assertEquals(old.map { it.x / 2 to it.y }, run.pointsAt(0f).map { it.x to it.y })
+        assertEquals(1f, run.labelsAt(0f), 0f)
+        assertEquals(0f, run.labelsAt(CHART_MORPH_MS / 2f), 0.07f)
+        assertEquals(1f, run.labelsAt(CHART_MORPH_MS.toFloat()), 0f)
+    }
+
+    @Test
     fun `a line morph starts on the old shape and ends on the new line itself`() {
         val run = LineRun.Morph(a, scaleA, b, scaleB)
         assertEquals(CHART_MORPH_MS, run.totalMs)
@@ -40,20 +51,7 @@ class StatsChartRunTest {
         assertEquals(140.0, start[1].y, 1e-9) // the old peak, on the new scale
         assertSame(b, run.pointsAt(run.totalMs.toFloat()))
         assertEquals(1f, run.drawAt(0f), 0f)
-        assertEquals(0f, run.labelsAt(0f), 0f)
         assertEquals(1f, run.labelsAt(run.totalMs.toFloat()), 0f)
-    }
-
-    @Test
-    fun `reduced motion is one plain fade with the data in place from the first frame`() {
-        val run = LineRun.Fade(b, scaleB)
-        assertEquals(MotionTokens.ReducedFadeDuration, run.totalMs)
-        assertEquals(0f, run.alphaAt(0f), 0f)
-        assertEquals(0.5f, run.alphaAt(MotionTokens.ReducedFadeDuration / 2f), 1e-6f)
-        assertEquals(1f, run.alphaAt(MotionTokens.ReducedFadeDuration.toFloat()), 0f)
-        assertSame(b, run.pointsAt(0f))
-        assertEquals(1f, run.drawAt(0f), 0f)
-        assertEquals(1f, run.labelsAt(0f), 0f)
     }
 
     private val week = listOf(BarChartBar("Mon", 100.0), BarChartBar("Tue", 50.0), BarChartBar("Wed", 75.0))
@@ -84,10 +82,14 @@ class StatsChartRunTest {
     }
 
     @Test
-    fun `reduced bars fade in place`() {
-        val run = BarRun.Fade(week)
-        assertEquals(0f, run.alphaAt(0f), 0f)
-        assertEquals(1f, run.scaleAt(0, 0f), 0f)
-        assertEquals(1f, run.valuesAt(0f), 0f)
+    fun `a bar morph holds the old bars at the first instant and swaps the values`() {
+        val next = listOf(BarChartBar("Mon", 40.0), BarChartBar("Tue", 80.0), BarChartBar("Wed", 75.0))
+        val morph = BarRun.Morph(barFractions(week), next)
+        val before = barFractions(week)
+        val fractions = barFractions(next)
+        (0..2).forEach { assertEquals(before.getValue(next[it].label), fractions.getValue(next[it].label) * morph.scaleAt(it, 0f), 1e-6f) }
+        assertEquals(1f, morph.valuesAt(0f), 0f)
+        assertEquals(0f, morph.valuesAt(CHART_MORPH_MS / 2f), 0.07f)
+        assertEquals(1f, morph.valuesAt(morph.totalMs.toFloat()), 0f)
     }
 }

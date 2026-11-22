@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.insights.stats.grouped
 
-import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.chart.BarChartBar
 
 /**
@@ -13,9 +12,8 @@ internal sealed interface BarRun {
 
     fun scaleAt(index: Int, elapsedMs: Float): Float = 1f
     fun valuesAt(elapsedMs: Float): Float = 1f
-    fun alphaAt(elapsedMs: Float): Float = 1f
 
-    /** Nothing moves. */
+    /** Nothing moves: the first sight of a chart whose arrival is skipped, and every change under reduced motion (an instant swap). */
     class Rest(override val bars: List<BarChartBar>) : BarRun {
         override val totalMs = 0
     }
@@ -29,19 +27,13 @@ internal sealed interface BarRun {
 
     /**
      * M05: the bars on screen, as fractions of the tallest ([before], by label), rescale into [bars]; a bar without an
-     * old partner grows in. The values fade in at the end.
+     * old partner grows in. The values swap at the midpoint.
      */
     class Morph(before: Map<String, Float>, override val bars: List<BarChartBar>) : BarRun {
         override val totalMs = CHART_MORPH_MS
         private val starts = barMorphStarts(before, bars)
         override fun scaleAt(index: Int, elapsedMs: Float) = barMorphScale(starts.getOrElse(index) { 1f }, elapsedMs)
-        override fun valuesAt(elapsedMs: Float) = labelAlpha(elapsedMs, totalMs.toFloat())
-    }
-
-    /** M08: reduced motion shows the new bars at once under one plain fade. */
-    class Fade(override val bars: List<BarChartBar>) : BarRun {
-        override val totalMs = MotionTokens.ReducedFadeDuration
-        override fun alphaAt(elapsedMs: Float) = (elapsedMs / totalMs).coerceIn(0f, 1f)
+        override fun valuesAt(elapsedMs: Float) = labelSwapAlpha(elapsedMs, totalMs.toFloat())
     }
 
     /** The bars as drawn at [elapsedMs], as fractions of the tallest of [bars], by label: where a next morph starts from. */

@@ -13,6 +13,15 @@ import androidx.compose.runtime.compositionLocalOf
 internal class StatsMotion {
     private val arrived = mutableSetOf<Any>()
 
+    /**
+     * False while the page's first blocks are composing, true once they are on screen: only blocks that arrive together
+     * wait on each other (the arrival stagger), a block composed later, on a scroll, starts at once.
+     */
+    var firstPassDone = false
+
+    /** Whether [key] has arrived already. */
+    fun hasArrived(key: Any): Boolean = key in arrived
+
     /** True once for [key]: the first block to ask arrives, every later one (the same block again) is already there. */
     fun claimArrival(key: Any): Boolean = arrived.add(key)
 }

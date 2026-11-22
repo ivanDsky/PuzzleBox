@@ -8,7 +8,7 @@ import com.ivandsky.puzzlebox.designsystem.chart.LineChartPoint
 /**
  * The motion state of one line chart: the [run] on screen and the [clock] it is read at. A chart that starts with
  * [animateArrival] draws in; after that, new data morphs from what is drawn at that moment (so a change that lands
- * mid-morph carries on from the line as it then looks) or, under reduced motion, fades.
+ * mid-morph carries on from the line as it then looks) or, under reduced motion, swaps at once (M08: no movement).
  */
 internal class LineChartMotion(
     points: List<LineChartPoint>,
@@ -31,7 +31,7 @@ internal class LineChartMotion(
         if (points != run.points || scale != run.scale) {
             val shown = run.pointsAt(clock.ms)
             run = when {
-                reduced -> LineRun.Fade(points, scale)
+                reduced -> LineRun.Rest(points, scale)
                 shown.size < 2 -> LineRun.Arrival(points, scale)
                 else -> LineRun.Morph(shown, run.scale, points, scale)
             }
