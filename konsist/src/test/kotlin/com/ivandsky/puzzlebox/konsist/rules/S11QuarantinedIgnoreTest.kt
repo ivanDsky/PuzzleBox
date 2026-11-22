@@ -2,7 +2,9 @@ package com.ivandsky.puzzlebox.konsist.rules
 
 import com.ivandsky.puzzlebox.konsist.core.RuleCheck
 import com.ivandsky.puzzlebox.konsist.core.Violation
+import org.junit.Assert.assertEquals
 import org.junit.Test
+import java.io.File
 
 /**
  * S11: every `@Ignore` in test sources carries the reason `quarantine #<issue> until <YYYY-MM-DD>`.
@@ -40,5 +42,16 @@ class S11QuarantinedIgnoreTest {
     @Test
     fun `S11 add-a-game is clean`() {
         RuleCheck.assertAddAGameClean(S11QuarantinedIgnore)
+    }
+
+    /** `main_health.py watch` scans every test .kt, fixtures included, and warns on a past date (#2079). */
+    @Test
+    fun `S11 fixtures that quarantine validly use a date that never expires`() {
+        val dir = File("src/test/resources/fixtures/S11").takeIf { it.isDirectory } ?: File("konsist/src/test/resources/fixtures/S11")
+        val dated = Regex("""quarantine #\d+ until (\d{4}-\d{2}-\d{2})""")
+        val soon = dir.walkTopDown().filter { it.extension == "kt" }
+            .flatMap { f -> dated.findAll(f.readText()).map { f.name to it.groupValues[1] } }
+            .filter { it.second < "2099-01-01" }.toList()
+        assertEquals(emptyList<Pair<String, String>>(), soon)
     }
 }

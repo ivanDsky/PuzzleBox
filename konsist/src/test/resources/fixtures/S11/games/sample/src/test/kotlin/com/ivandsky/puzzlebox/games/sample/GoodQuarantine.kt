@@ -5,11 +5,11 @@ import org.junit.Test
 
 // @Ignore in a comment is not an annotation
 class GoodQuarantine {
-    @Ignore("quarantine #1495 until 2026-11-20")
+    @Ignore("quarantine #1495 until 2099-12-31")
     @Test
     fun positional() = Unit
 
-    @org.junit.Ignore(value = "quarantine #12 until 2026-12-01")
+    @org.junit.Ignore(value = "quarantine #12 until 2099-12-31")
     @Test
     fun namedAndQualified() = Unit
 
