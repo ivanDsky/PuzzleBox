@@ -25,6 +25,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.create.importtext.ImportSheet
 import com.ivandsky.puzzlebox.create.importtext.ImportSheetActions
@@ -44,7 +46,8 @@ import com.ivandsky.puzzlebox.model.ShareCode
  * The Custom list of Games (spec N9, N10): the author's drafts and published puzzles, as one list on [listState] that fills
  * the space it is given. Top to bottom:
  *
- * 1. **New puzzle** opens the New puzzle sheet; the draft it starts is reported to [onOpenDraft].
+ * 1. **New puzzle** opens the New puzzle sheet; the draft it starts is reported to [onOpenDraft]. Inside a
+ *    [NewPuzzleHost] the row is left out: the host's button opens the sheet, and the list ends clear of that button.
  * 2. **Continue**: the drafts. A tap reports the draft's id to [onOpenDraft]; ⋮ or a long press offers Continue,
  *    Duplicate and Delete, and a delete can be undone from the snackbar at the bottom.
  * 3. **Published by you**: a tap reports the puzzle's share code to [onOpenPublished].
@@ -68,14 +71,16 @@ fun CustomBody(
     val viewModel = rememberCreateViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val importSheet by viewModel.importText.ui.collectAsStateWithLifecycle()
-    CreateEffects(viewModel, onOpen = onOpenDraft)
+    val hostClearance = LocalNewPuzzleClearance.current
+    CreateEffects(viewModel, onOpen = if (hostClearance == null) onOpenDraft else null)
     LaunchedEffect(viewModel) { viewModel.syncSolveCounts() }
     var sheetOpen by rememberSaveable { mutableStateOf(false) }
     var actionsId by rememberSaveable { mutableStateOf<String?>(null) }
     CustomBodyContent(
         state = state,
         listState = listState,
-        onNewPuzzle = { sheetOpen = true },
+        onNewPuzzle = if (hostClearance == null) ({ sheetOpen = true }) else null,
+        fabClearance = hostClearance ?: 0.dp,
         onStart = viewModel::newPuzzle,
         onImport = viewModel.importText::open,
         onOpenDraft = onOpenDraft,
@@ -83,8 +88,10 @@ fun CustomBody(
         onOpenPublished = onOpenPublished,
         onUndoDelete = viewModel::undoDelete,
     )
-    ImportSheet(ui = importSheet, actions = remember(viewModel) { ImportSheetActions.of(viewModel.importText) })
-    if (sheetOpen) {
+    if (hostClearance == null) {
+        ImportSheet(ui = importSheet, actions = remember(viewModel) { ImportSheetActions.of(viewModel.importText) })
+    }
+    if (sheetOpen && hostClearance == null) {
         NewPuzzleSheet(
             games = state.games,
             onPick = { gameId, variant ->
@@ -111,20 +118,22 @@ fun CustomBody(
 
 /**
  * [CustomBody]'s layout over a given [state], with no view model and no sheets: the list (or, with nothing at all
- * to list, the first-time screen) under the delete-Undo snackbar. [onNewPuzzle] is the New puzzle button;
+ * to list, the first-time screen) under the delete-Undo snackbar. [onNewPuzzle] is the New puzzle button, left out
+ * when null; [fabClearance] is the room a button over the bottom end takes, which the list and the snackbar keep free.
  * [onStart] and [onImport] are the first-time screen's game rows and its "Import from text".
  */
 @Composable
 internal fun CustomBodyContent(
     state: CreateUiState,
     listState: LazyListState,
-    onNewPuzzle: () -> Unit,
+    onNewPuzzle: (() -> Unit)?,
     onStart: (GameId, VariantId) -> Unit,
     onImport: () -> Unit,
     onOpenDraft: (String) -> Unit,
     onDraftActions: (String) -> Unit,
     onOpenPublished: (String) -> Unit,
     onUndoDelete: () -> Unit,
+    fabClearance: Dp = 0.dp,
 ) {
     val reducedMotion = rememberReducedMotion()
     Box(Modifier.fillMaxSize()) {
@@ -141,14 +150,16 @@ internal fun CustomBodyContent(
                 else -> LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize().testTag("custom.list"),
-                    contentPadding = PaddingValues(top = Spacing.sm, bottom = Spacing.xl),
+                    contentPadding = PaddingValues(top = Spacing.sm, bottom = maxOf(Spacing.xl, fabClearance)),
                 ) {
-                    item(key = "custom.new") {
-                        PrimaryButton(
-                            text = "New puzzle",
-                            onClick = onNewPuzzle,
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg).testTag("custom.new"),
-                        )
+                    if (onNewPuzzle != null) {
+                        item(key = "custom.new") {
+                            PrimaryButton(
+                                text = "New puzzle",
+                                onClick = onNewPuzzle,
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg).testTag("custom.new"),
+                            )
+                        }
                     }
                     if (state.drafts.isNotEmpty()) {
                         item(key = "custom.continue") {
@@ -165,7 +176,10 @@ internal fun CustomBodyContent(
                 }
             }
         }
-        DeleteUndoSnackbar(rememberDeleteUndo(state.deleted, onUndoDelete), Modifier.align(Alignment.BottomCenter))
+        DeleteUndoSnackbar(
+            rememberDeleteUndo(state.deleted, onUndoDelete),
+            Modifier.align(Alignment.BottomCenter).padding(bottom = fabClearance),
+        )
     }
 }
 

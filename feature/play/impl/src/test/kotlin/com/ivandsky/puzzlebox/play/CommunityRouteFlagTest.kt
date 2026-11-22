@@ -1,7 +1,15 @@
 package com.ivandsky.puzzlebox.play
 
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -89,7 +97,9 @@ class CommunityRouteFlagTest {
         koin?.close()
     }
 
-    private fun show(vararg flags: ReleaseFlagKey) {
+    private fun show(vararg flags: ReleaseFlagKey) = show(previewYoursSlot(count = 0), PlayLayout.SinglePane, *flags)
+
+    private fun show(custom: CustomSlot, layout: PlayLayout, vararg flags: ReleaseFlagKey) {
         stopKoin() // tests share the JVM-global Koin context
         val zip = GameId("zip")
         val fakes = FakeGames(listOf(zip))
@@ -130,7 +140,7 @@ class CommunityRouteFlagTest {
         }
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                CommunityRoute(layout = PlayLayout.SinglePane, custom = previewYoursSlot(count = 0), onOpen = {}, onPlay = {})
+                CommunityRoute(layout = layout, custom = custom, onOpen = {}, onPlay = {})
             }
         }
     }
@@ -164,5 +174,71 @@ class CommunityRouteFlagTest {
         awaitTag("community.enterCode")
         composeRule.onNodeWithTag("community.enterCode").performClick()
         awaitTag("friend.code.sheet")
+    }
+
+    @Test
+    fun `flag off draws no create FAB even when the host has the action`() {
+        show(NewPuzzleStandIn().slot, PlayLayout.SinglePane)
+        awaitTag("route.community")
+        composeRule.onNodeWithTag("community.fab").assertDoesNotExist()
+    }
+
+    @Test
+    fun `flag on without a host action draws no create FAB`() {
+        show(previewYoursSlot(count = 0), PlayLayout.SinglePane, PlayFlag.CreateFab)
+        awaitTag("route.community")
+        composeRule.onNodeWithTag("community.fab").assertDoesNotExist()
+    }
+
+    @Test
+    fun `flag on shows the create FAB on every tab and a tap opens the sheet`() {
+        val host = NewPuzzleStandIn()
+        show(host.slot, PlayLayout.SinglePane, PlayFlag.CreateFab)
+        awaitTag("community.fab")
+        for (tab in listOf("community.tab.new", "community.tab.friends", "community.tab.yours")) {
+            composeRule.onNodeWithTag(tab).performClick()
+            composeRule.waitForIdle()
+            composeRule.onNodeWithTag("community.fab").assertIsDisplayed().assertHasClickAction()
+            composeRule.onNodeWithTag("community.fab").performClick()
+            composeRule.onNodeWithTag("new.sheet").assertIsDisplayed()
+            composeRule.onNodeWithContentDescription("New puzzle").assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun `the create FAB is at least 48dp and floats at the bottom end`() {
+        show(NewPuzzleStandIn().slot, PlayLayout.SinglePane, PlayFlag.CreateFab)
+        awaitTag("community.fab")
+        val fab = composeRule.onNodeWithTag("community.fab").getUnclippedBoundsInRoot()
+        val root = composeRule.onNodeWithTag("route.community").getUnclippedBoundsInRoot()
+        assertTrue(fab.width >= 48.dp && fab.height >= 48.dp)
+        assertTrue("bottom end", fab.right <= root.right && fab.bottom <= root.bottom && fab.left > root.width / 2)
+    }
+
+    @Test
+    fun `the create FAB shows over the shelves home too`() {
+        show(NewPuzzleStandIn().slot, PlayLayout.SinglePane, PlayFlag.CreateFab, PlayFlag.CommunityShelves)
+        awaitTag("community.shelves")
+        composeRule.onNodeWithTag("community.fab").assertIsDisplayed()
+    }
+
+    @Test
+    @Config(sdk = [34], qualifiers = "w1280dp-h800dp")
+    fun `on the tablet the create FAB floats over the list pane, not the detail pane`() {
+        show(NewPuzzleStandIn().slot, PlayLayout.TwoPane, PlayFlag.CreateFab)
+        awaitTag("community.fab")
+        val fab = composeRule.onNodeWithTag("community.fab").getUnclippedBoundsInRoot()
+        assertTrue("inside the list pane: ${fab.right}", fab.right <= ListPaneWidth + 24.dp + 1.dp)
+        composeRule.onNodeWithTag("community.fab").performClick()
+        composeRule.onNodeWithTag("new.sheet").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the create FAB keeps clear of the list end by the clearance the host is told`() {
+        val host = NewPuzzleStandIn()
+        show(host.slot, PlayLayout.SinglePane, PlayFlag.CreateFab)
+        awaitTag("community.fab")
+        assertEquals(CreateFabClearance, host.clearance)
+        assertTrue(CreateFabClearance >= 56.dp + 16.dp)
     }
 }

@@ -49,6 +49,9 @@ import kotlinx.coroutines.launch
  * A [sharePending] text (another app shared it) opens Yours, where Custom's list takes it: on the first composition
  * without a move, later by the pager's. It acts when it turns true, so a taken text leaves the user's own tab choice.
  *
+ * With [onNewPuzzle] (the create FAB is on) the empty New today's "Make a puzzle" opens the New puzzle sheet through it
+ * instead of going to Yours, and New today and Friends keep the FAB's [CreateFabClearance] free at their end.
+ *
  * The head is Today's large top bar ([CommunityLargeHeader]) and the tabs start at its bottom edge.
  */
 @Composable
@@ -63,6 +66,7 @@ internal fun CommunityTabs(
     modifier: Modifier = Modifier,
     picks: CommunityTabPicks? = null,
     sharePending: Boolean = false,
+    onNewPuzzle: (() -> Unit)? = null,
 ) {
     val yours = custom.yours
     val pages = remember(yours != null) { CommunityTab.entries.filter { it != CommunityTab.Yours || yours != null } }
@@ -103,6 +107,7 @@ internal fun CommunityTabs(
     LaunchedEffect(current) { picks?.select(current) }
     val link = LocalTabFadeLink.current ?: remember { TabFadeLink(page) }
     val offline = state.phase == CommunityPhase.Offline
+    val listBottom = if (onNewPuzzle != null) maxOf(Spacing.xl, CreateFabClearance) else Spacing.xl
     val tabs = listOf(
         UnderlineTab("New today", "community.tab.new", count = (state.phase as? CommunityPhase.Loaded)?.rows?.size),
         UnderlineTab("Friends", "community.tab.friends", count = friends.size),
@@ -132,7 +137,10 @@ internal fun CommunityTabs(
                         state = state,
                         actions = actions.opening(open),
                         listState = newTodayList,
-                        onMake = if (yours != null) {
+                        bottomPadding = listBottom,
+                        onMake = if (onNewPuzzle != null) {
+                            onNewPuzzle
+                        } else if (yours != null) {
                             {
                                 asked = null
                                 asking = pages.indexOf(CommunityTab.Yours)
@@ -141,7 +149,7 @@ internal fun CommunityTabs(
                             null
                         },
                     )
-                    CommunityTab.Friends -> CommunityFriendsPage(friends, offline, friendsList, open, onRemove)
+                    CommunityTab.Friends -> CommunityFriendsPage(friends, offline, friendsList, open, onRemove, bottomPadding = listBottom)
                     CommunityTab.Yours -> if (yours != null) YoursPage(yours, offline, yoursList)
                 }
             }

@@ -16,6 +16,12 @@ enum class PlayFlag(override val label: String, override val releaseDefault: Boo
      * Read by the Community route, which gates the tab's whole body (ADR-0022 §5: gate the entry).
      */
     CommunityShelves(label = "Community shelves", releaseDefault = false),
+
+    /**
+     * Community create FAB (#2013): a New puzzle button floats over every Community tab and Yours' New puzzle row is
+     * gone. Read by the Community route, which hands the FAB and the sheet host to the screen (ADR-0022 §5).
+     */
+    CreateFab(label = "Community create FAB", releaseDefault = false),
     ;
 
     /** The entry's own name: the stored override's key in `release_flags`. Never change it. */

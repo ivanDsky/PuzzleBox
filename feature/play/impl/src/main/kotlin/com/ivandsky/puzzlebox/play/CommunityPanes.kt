@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -33,7 +34,8 @@ internal val ListPaneWidth = 400.dp
  * tab's pick. The picks are saved, so a rotation and process death keep them. A tab with no pick of its own shows its
  * [default] (a list that fills in later supplies one when it has one). [detail] is told how to `clear` the pick (a
  * reported puzzle leaves its page), which returns that tab to its default. With no pick at all the pane shows [empty]
- * for the current tab, never a blank. The list pane reaches the window's top, under Today's large top bar.
+ * for the current tab, never a blank. A [listOverlay] floats over the list pane's own box (the create FAB, at its bottom
+ * end), never over the right pane. The list pane reaches the window's top, under Today's large top bar.
  */
 @Composable
 internal fun CommunityPanes(
@@ -42,6 +44,7 @@ internal fun CommunityPanes(
     empty: @Composable (CommunityTab) -> Unit,
     detail: @Composable (pick: CommunityPick, clear: () -> Unit) -> Unit,
     modifier: Modifier = Modifier,
+    listOverlay: (@Composable BoxScope.() -> Unit)? = null,
 ) {
     val picks = rememberCommunityTabPicks(default)
     val home = picks.tab.ordinal
@@ -50,7 +53,15 @@ internal fun CommunityPanes(
     // Under the large top bar the list starts at the window's top, as Today's does; the page keeps its own inset.
     Row(modifier.fillMaxSize().padding(start = Spacing.xl, end = Spacing.xxl, bottom = Spacing.xl)) {
         CompositionLocalProvider(LocalTabFadeLink provides link) {
-            list(Modifier.width(ListPaneWidth).fillMaxHeight(), picks)
+            if (listOverlay == null) {
+                list(Modifier.width(ListPaneWidth).fillMaxHeight(), picks)
+            } else {
+                // The overlay (the create FAB) floats over the list pane only, never the detail pane.
+                Box(Modifier.width(ListPaneWidth).fillMaxHeight()) {
+                    list(Modifier.fillMaxSize(), picks)
+                    listOverlay()
+                }
+            }
         }
         Spacer(Modifier.width(Spacing.xl))
         // The right pane fades with the tabs on the list's own progress, and shows each tab's pick as it fades in.
