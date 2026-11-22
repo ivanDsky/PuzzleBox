@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.designsystem.community
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -100,15 +101,17 @@ internal fun SortMenuButtonPreview() {
 @Composable
 internal fun SortMenuButtonOpenPreview() {
     PreviewColumn {
-        SortMenuButton(
-            options = SortOptions,
-            selected = SortOptions.last(),
-            optionLabel = { it },
-            expanded = true,
-            onExpandedChange = {},
-            onSelect = {},
-            modifier = Modifier.height(Spacing.xxl * 4),
-        )
+        // The menu draws in its own window below the button, so the preview reserves the room it drops into.
+        Box(Modifier.height(Spacing.xxl * 4)) {
+            SortMenuButton(
+                options = SortOptions,
+                selected = SortOptions.last(),
+                optionLabel = { it },
+                expanded = true,
+                onExpandedChange = {},
+                onSelect = {},
+            )
+        }
     }
 }
 

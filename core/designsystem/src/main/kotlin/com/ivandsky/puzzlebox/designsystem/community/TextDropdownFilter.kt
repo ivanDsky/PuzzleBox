@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
@@ -46,7 +47,7 @@ private const val OPEN_ARROW_DEGREES = 180f
 
 /**
  * A filter as plain text, never a pill: [label] ("Any game") with a down arrow while nothing is picked, the picked
- * [value] in `onSurface` over a 2dp `secondary` underline once something is. It only reports the tap through [onClick];
+ * [value] (blank counts as none) in `onSurface` over a 2dp `secondary` underline once something is. It only reports the tap through [onClick];
  * the caller opens whatever it wants (a bottom sheet, a menu) and says so with [open], which turns the arrow. The tap
  * target is 48dp tall, a screen reader hears a dropdown list that is expanded or collapsed. Reduced motion keeps the
  * colour change and drops the arrow's turn and the press scale. [colors] and [textStyle] default to that look;
@@ -64,7 +65,9 @@ fun TextDropdownFilter(
     textStyle: TextStyle = TextDropdownFilterDefaults.textStyle(),
 ) {
     val reduced = rememberReducedMotion()
-    val set = value != null
+    // A blank value is no value: nothing is picked, so the label shows and there is no underline.
+    val shown = value?.takeIf { it.isNotBlank() }
+    val set = shown != null
     val interactionSource = remember { MutableInteractionSource() }
     val colorSpec = tween<Color>(MotionTokens.DurationShort)
     val ink by animateColorAsState(colors.contentColor(set), colorSpec, label = "text-dropdown-ink")
@@ -79,7 +82,11 @@ fun TextDropdownFilter(
             .pressScale(interactionSource, reduced)
             .alpha(if (enabled) 1f else DISABLED_ALPHA)
             .heightIn(min = TextDropdownFilterDefaults.MinHeight)
-            .semantics { stateDescription = if (open) "Expanded" else "Collapsed" }
+            .semantics {
+                // The picked value replaces the label on screen, so a screen reader is told both.
+                if (shown != null) contentDescription = "$label: $shown"
+                stateDescription = if (open) "Expanded" else "Collapsed"
+            }
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -93,7 +100,7 @@ fun TextDropdownFilter(
     ) {
         Column(Modifier.width(IntrinsicSize.Max)) {
             Text(
-                text = value ?: label,
+                text = shown ?: label,
                 color = ink,
                 style = textStyle,
                 maxLines = 1,

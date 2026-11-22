@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.addPathNodes
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
@@ -44,7 +45,7 @@ import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 internal const val SORT_MENU_TICK_TAG = "sort.menu.tick"
 
 /** The menu's items fade in over this long once it opens; the window's own exit stays the platform's. */
-internal const val SORT_MENU_FADE_MS = 140
+private const val SORT_MENU_FADE_MS = 140
 
 private const val OPEN_ARROW_DEGREES = 180f
 private val TargetHeight = 48.dp
@@ -70,7 +71,7 @@ private val SortGlyph: ImageVector = ImageVector.Builder(
  * tick on the current one. Generic over the option so nothing here knows what is being sorted; [optionLabel] names each
  * one. The caller owns [expanded] (the arrow turns with it), [onExpandedChange] asks to open or close, and a pick calls
  * [onSelect] then closes. The tap target is 48dp tall, a screen reader hears a dropdown list that is expanded or
- * collapsed, and the menu's items fade in over [SORT_MENU_FADE_MS].
+ * collapsed, and the menu's items fade in over 140ms (at once under reduced motion).
  */
 @Composable
 fun <T> SortMenuButton(
@@ -121,8 +122,12 @@ fun <T> SortMenuButton(
             )
         }
         AppDropdownMenu(expanded = expanded, onDismissRequest = { onExpandedChange(false) }) {
-            val fade = remember { Animatable(0f) }
-            LaunchedEffect(Unit) { fade.animateTo(1f, tween(SORT_MENU_FADE_MS, easing = MotionTokens.EasingStandard)) }
+            // Reduced motion and Studio previews show the items at once; otherwise they fade in.
+            val still = reduced || LocalInspectionMode.current
+            val fade = remember { Animatable(if (still) 1f else 0f) }
+            LaunchedEffect(Unit) {
+                if (!still) fade.animateTo(1f, tween(SORT_MENU_FADE_MS, easing = MotionTokens.EasingStandard))
+            }
             Column(Modifier.graphicsLayer { alpha = fade.value }) {
                 options.forEach { option ->
                     val current = option == selected

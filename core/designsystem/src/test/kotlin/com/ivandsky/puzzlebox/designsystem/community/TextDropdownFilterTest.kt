@@ -106,6 +106,33 @@ class TextDropdownFilterTest {
     }
 
     @Test
+    fun `a screen reader hears the label with the picked value`() {
+        value.value = "Zip"
+        show()
+        composeRule.waitForIdle()
+
+        filter().assert(SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf("Any game: Zip")))
+    }
+
+    @Test
+    fun `unset leaves the label to speak for itself`() {
+        show()
+
+        filter().assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.ContentDescription))
+    }
+
+    @Test
+    fun `a blank value is unset`() {
+        value.value = ""
+        show()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Any game", useUnmergedTree = true).assertIsDisplayed()
+        assertTrue("no underline under blank text", !hasUnderline())
+        filter().assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.ContentDescription))
+    }
+
+    @Test
     fun `the touch target is 48dp`() {
         show()
 
