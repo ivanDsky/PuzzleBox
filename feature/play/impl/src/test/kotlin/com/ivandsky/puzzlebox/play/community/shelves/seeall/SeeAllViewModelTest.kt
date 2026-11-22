@@ -374,4 +374,28 @@ class SeeAllViewModelTest {
         assertTrue(viewModel.state.value.signInPrompt)
         assertEquals(listOf(code(1)), viewModel.codes())
     }
+
+    @Test
+    fun `a puzzle reported on the home leaves a page that already read the list`() = runTest {
+        fixture.publish(1)
+        fixture.publish(2)
+        val viewModel = fixture.viewModel().opened(SeeAllScope.Newest)
+
+        fixture.hidden.add(codeOf(1))
+
+        assertEquals(listOf(code(2)), viewModel.codes())
+    }
+
+    @Test
+    fun `a friend being removed leaves From friends at once, and Undo brings it back`() = runTest {
+        fixture.receive(8, author = "Bo")
+        fixture.receive(9, author = "Cy")
+        val viewModel = fixture.viewModel().opened(SeeAllScope.Friends)
+
+        viewModel.friendsRemoved(setOf(codeOf(9)))
+        assertEquals(listOf(code(8)), viewModel.codes())
+
+        viewModel.friendsRemoved(emptySet())
+        assertEquals(setOf(code(8), code(9)), viewModel.codes().toSet())
+    }
 }

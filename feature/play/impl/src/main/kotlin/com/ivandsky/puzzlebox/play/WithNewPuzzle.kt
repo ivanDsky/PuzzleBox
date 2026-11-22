@@ -1,14 +1,15 @@
 package com.ivandsky.puzzlebox.play
 
 import androidx.compose.runtime.Composable
+import com.ivandsky.puzzlebox.model.GameId
 
 /**
  * Runs the Community screen's [content] with the create action: [CustomSlot.newPuzzle]'s host around it when [enabled]
- * (the create FAB flag) and the host gave one, [content] given the host's "open the New puzzle sheet" call. Otherwise
+ * (the create FAB flag) and the host gave one, [content] given the host's create call (null: the New puzzle sheet; a game: a new draft of it). Otherwise
  * [content] runs as it always did with null, and the screen draws no FAB.
  */
 @Composable
-internal fun WithNewPuzzle(custom: CustomSlot, enabled: Boolean, content: @Composable (onNewPuzzle: (() -> Unit)?) -> Unit) {
+internal fun WithNewPuzzle(custom: CustomSlot, enabled: Boolean, content: @Composable (onNewPuzzle: ((GameId?) -> Unit)?) -> Unit) {
     val host = custom.newPuzzle
     if (enabled && host != null) host(CreateFabClearance) { open -> content(open) } else content(null)
 }

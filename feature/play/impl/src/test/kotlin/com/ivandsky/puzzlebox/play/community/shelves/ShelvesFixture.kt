@@ -25,6 +25,8 @@ import com.ivandsky.puzzlebox.play.community.NO_EDITOR
 import com.ivandsky.puzzlebox.play.community.editorGame
 import com.ivandsky.puzzlebox.play.domain.ListCommunityPuzzles
 import com.ivandsky.puzzlebox.play.domain.ObserveFriendPuzzles
+import com.ivandsky.puzzlebox.play.domain.ReportPuzzle
+import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
@@ -133,6 +135,10 @@ internal class ShelvesFixture {
         completions = completions,
         games = registry,
         plays = plays,
+        reportPuzzle = ReportPuzzle(shared, hidden),
+        hidden = hidden,
+        identity = identity,
+        idTokens = dismissedGoogleSignIn,
         clock = { NOW },
     )
 }

@@ -39,7 +39,8 @@ internal val LocalNewPuzzleClearance = staticCompositionLocalOf<Dp?> { null }
 
 /**
  * A surface with its own way to start a puzzle (Community's create button). [content] gets `open`, which shows the
- * New puzzle sheet, and the Import from text sheet that sheet leads to, both over the activity-scoped
+ * New puzzle sheet, or, given a game, starts a draft of it at once at its default size (no sheet), and the Import
+ * from text sheet that sheet leads to, both over the activity-scoped
  * [CreateViewModel]. Each draft the view model stores, a new one or an imported one, is reported once to
  * [onOpenDraft], whether or not a Custom list shows.
  *
@@ -50,7 +51,7 @@ internal val LocalNewPuzzleClearance = staticCompositionLocalOf<Dp?> { null }
 fun NewPuzzleHost(
     clearance: Dp,
     onOpenDraft: (draftId: String) -> Unit,
-    content: @Composable (open: () -> Unit) -> Unit,
+    content: @Composable (open: (GameId?) -> Unit) -> Unit,
 ) {
     val viewModel = rememberCreateViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -70,7 +71,8 @@ fun NewPuzzleHost(
 
 /**
  * [NewPuzzleHost] over given state, with no view model: the New puzzle sheet over [games] (a pick goes to [onStart]; its
- * Import from text row to [onImport]) and the Import sheet over [importUi] and [importActions].
+ * Import from text row to [onImport]) and the Import sheet over [importUi] and [importActions]. `open` of a game in
+ * [games] goes straight to [onStart] at its default size; of none (or a game not listed) it shows the sheet.
  */
 @Composable
 internal fun NewPuzzleHost(
@@ -80,11 +82,14 @@ internal fun NewPuzzleHost(
     importActions: ImportSheetActions,
     onStart: (GameId, VariantId) -> Unit,
     onImport: () -> Unit,
-    content: @Composable (open: () -> Unit) -> Unit,
+    content: @Composable (open: (GameId?) -> Unit) -> Unit,
 ) {
     var sheetOpen by rememberSaveable { mutableStateOf(false) }
     CompositionLocalProvider(LocalNewPuzzleClearance provides clearance) {
-        content { sheetOpen = true }
+        content { game ->
+            val start = games.firstOrNull { it.id == game }
+            if (start != null) onStart(start.id, start.defaultSize.variant) else sheetOpen = true
+        }
     }
     ImportSheet(ui = importUi, actions = importActions)
     if (sheetOpen) {
@@ -118,7 +123,7 @@ private fun NewPuzzleHostPreview() {
                 onImport = {},
             ) { open ->
                 Box(Modifier.fillMaxSize().padding(Spacing.lg), contentAlignment = Alignment.BottomEnd) {
-                    Button(onClick = open) { Text("New puzzle") }
+                    Button(onClick = { open(null) }) { Text("New puzzle") }
                 }
             }
         }
