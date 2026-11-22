@@ -34,7 +34,9 @@ class ShelvesViewModelTest {
 
     private fun ShelvesViewModel.content() = state.value as ShelvesUiState.Content
 
-    private fun ShelfPlan.codes() = sections.flatMap { section ->
+    private fun ShelfPlan.codes() = cards().map { it.code.value }
+
+    private fun ShelfPlan.cards() = sections.flatMap { section ->
         when (section) {
             is ShelfPlan.Section.Spotlight -> listOf(section.card)
             is ShelfPlan.Section.MostPlayed -> section.cards
@@ -42,7 +44,7 @@ class ShelvesViewModelTest {
             is ShelfPlan.Section.GameShelf -> section.cards
             is ShelfPlan.Section.MakeOne -> emptyList()
         }
-    }.map { it.code.value }
+    }
 
     @Test
     fun `it is Loading until the list answers`() = runTest {
@@ -254,5 +256,32 @@ class ShelvesViewModelTest {
         assertFalse(codeOf(2).value in viewModel.content().plan.codes())
         assertEquals(2, viewModel.content().plan.codes().size)
         assertEquals("Reported. It's hidden on this device.", viewModel.reportState.value.notice?.message)
+    }
+
+    @Test
+    fun `a puzzle hidden by a report elsewhere leaves the shelves`() = runTest {
+        fixture.publishMany(3)
+        val viewModel = fixture.viewModel()
+
+        fixture.hidden.add(codeOf(2))
+
+        assertFalse(codeOf(2).value in viewModel.content().plan.codes())
+    }
+
+    @Test
+    fun `a friend being removed leaves the entry tile and the card's badge, and Undo brings both back`() = runTest {
+        fixture.publishMany(3)
+        fixture.receive(1)
+        val viewModel = fixture.viewModel()
+        assertEquals(1, viewModel.content().entries.friendPuzzles)
+        assertTrue(viewModel.content().plan.cards().single { it.code == codeOf(1) }.origin == ShelfPlan.Card.Origin.Friend)
+
+        viewModel.friendsRemoved(setOf(codeOf(1)))
+        assertEquals(0, viewModel.content().entries.friendPuzzles)
+        assertTrue(viewModel.content().plan.cards().single { it.code == codeOf(1) }.origin == ShelfPlan.Card.Origin.Community)
+
+        viewModel.friendsRemoved(emptySet())
+        assertEquals(1, viewModel.content().entries.friendPuzzles)
+        assertTrue(viewModel.content().plan.cards().single { it.code == codeOf(1) }.origin == ShelfPlan.Card.Origin.Friend)
     }
 }

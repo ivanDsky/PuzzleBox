@@ -56,6 +56,7 @@ internal fun CommunityRoute(
     val viewModel: LibraryViewModel = koinViewModel(parameters = { parametersOf(false) })
     val friends by viewModel.friends.collectAsStateWithLifecycle()
     val removedFriend by viewModel.removedFriend.collectAsStateWithLifecycle()
+    val removedFriends by viewModel.removedFriends.collectAsStateWithLifecycle()
     val community: CommunityViewModel = koinViewModel()
     val communityState by community.state.collectAsStateWithLifecycle()
     val sharePending by koinInject<SharedTextStore>().pending.collectAsStateWithLifecycle()
@@ -82,6 +83,7 @@ internal fun CommunityRoute(
                     layout, custom, onOpen, onPlay, onEnterCode, create, clearance,
                     onRemoveFriend = viewModel::removeFriend,
                     sharePending = sharePending != null,
+                    removedFriends = removedFriends,
                 )
             } else if (layout == PlayLayout.SinglePane) {
                 CommunityBound(community, communityState, onOpen) { actions ->

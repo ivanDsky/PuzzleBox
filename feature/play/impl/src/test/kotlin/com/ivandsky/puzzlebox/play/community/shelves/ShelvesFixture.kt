@@ -136,6 +136,7 @@ internal class ShelvesFixture {
         games = registry,
         plays = plays,
         reportPuzzle = ReportPuzzle(shared, hidden),
+        hidden = hidden,
         identity = identity,
         idTokens = dismissedGoogleSignIn,
         clock = { NOW },

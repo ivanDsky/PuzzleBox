@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.data.repository.CommunityListResult
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.data.repository.PublishedPuzzleRepository
+import com.ivandsky.puzzlebox.data.visibility.HiddenPuzzles
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
@@ -34,7 +35,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 private const val INITIALS_SHOWN = 3
@@ -61,6 +61,7 @@ internal class ShelvesViewModel(
     private val games: GameRegistry,
     plays: GamePlayRegistry,
     reportPuzzle: ReportPuzzle,
+    hidden: HiddenPuzzles,
     identity: IdentityService,
     idTokens: GoogleIdTokenProvider,
     private val clock: () -> Long,
@@ -81,16 +82,17 @@ internal class ShelvesViewModel(
         val id = it.definition.id
         GameChoice(id, games.displayName(id), plays.brandOf(id))
     }.associateBy { it.id }
-    private val friends = friendPuzzles()
     private val own = published.observeAll()
     private val sketches = drafts.observeAll()
     private val loaded = MutableStateFlow<Read>(Read.Reading)
-    private val dropped = MutableStateFlow(emptySet<ShareCode>())
+    private val removed = MutableStateFlow(emptySet<ShareCode>())
+    private val friends = combine(friendPuzzles(), removed) { rows, leaving -> rows.filter { it.code !in leaving } }
     private var loading: Job? = null
-    private val reporter = SeeAllReporter(viewModelScope, reportPuzzle, identity, idTokens) { code -> dropped.update { it + code } }
+    // A Report hides the puzzle in the persisted set; reading that set means a Report made on any page applies here.
+    private val reporter = SeeAllReporter(viewModelScope, reportPuzzle, identity, idTokens) {}
 
     val state: StateFlow<ShelvesUiState> =
-        combine(loaded, friends, own, sketches, dropped) { read, friendRows, mine, kept, gone ->
+        combine(loaded, friends, own, sketches, hidden.observe()) { read, friendRows, mine, kept, gone ->
             val shown = when (read) {
                 Read.Reading -> ShelvesUiState.Loading()
                 is Read.Done -> read.ui
@@ -101,6 +103,14 @@ internal class ShelvesViewModel(
 
     /** What a card's Report leaves on the home: the notice and the sign-in prompt. */
     val reportState: StateFlow<SeeAllReportState> = reporter.state
+
+    /**
+     * The friends' puzzles in their Undo window ([codes], from the host's Remove friend): they stop counting as friends'
+     * at once, on the badge and the From friends tile, and count again when Undo empties it.
+     */
+    fun friendsRemoved(codes: Set<ShareCode>) {
+        removed.value = codes
+    }
 
     /** Hides [code]'s puzzle on this device and says so; signed out it asks to sign in. */
     fun report(code: ShareCode) = reporter.report(code)

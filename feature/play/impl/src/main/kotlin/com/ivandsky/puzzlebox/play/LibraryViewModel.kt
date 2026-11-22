@@ -156,6 +156,9 @@ class LibraryViewModel(
             .map { FriendCardModel(it, games.displayName(it.gameId), registry.brandOf(it.gameId)) }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), emptyList())
 
+    /** The friends' puzzles hidden while their Undo is offered (and until the delete is done), for lists that read the received rows themselves. */
+    internal val removedFriends: StateFlow<Set<ShareCode>> = removal.hidden
+
     /** The friend's puzzle just removed while its Undo is offered, else null. */
     internal val removedFriend: StateFlow<ShareCode?> = removal.removed
 

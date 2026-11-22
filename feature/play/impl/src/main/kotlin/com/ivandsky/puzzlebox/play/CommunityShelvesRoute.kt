@@ -54,7 +54,7 @@ private val DETAIL_RISE = 14.dp
  * [onEnterCode]; the entry tiles, Search and a shelf's See all open a page over the home (in the list pane on the tablet) that back
  * closes, and a row picked on it opens like one on the home.
  *
- * What the old tabs did stays: a card's long press reports it (a friend's card can also be removed, [onRemoveFriend]),
+ * What the old tabs did stays: a card's long press reports it (a friend's card can also be removed, [onRemoveFriend]; [removedFriends] are the ones in their Undo window, which the home and From friends leave out),
  * a share waiting in the store ([sharePending]) opens Your puzzles where the import takes it, the home and each page keep
  * their scroll, and reselecting the tab closes an open page first and then scrolls the home to the top.
  *
@@ -74,6 +74,7 @@ internal fun CommunityShelvesRoute(
     modifier: Modifier = Modifier,
     onRemoveFriend: (ShareCode) -> Unit = {},
     sharePending: Boolean = false,
+    removedFriends: Set<ShareCode> = emptySet(),
 ) {
     val viewModel: ShelvesViewModel = koinViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -85,8 +86,19 @@ internal fun CommunityShelvesRoute(
     var visit by rememberSaveable { mutableIntStateOf(0) }
     val openPage = { next: ShelvesPage -> page = next; visit++ }
     val homeList = rememberLazyListState()
-    // A shared text waits for the import on Your puzzles, on the first look and when one arrives.
-    LaunchedEffect(sharePending) { if (sharePending) openPage(ShelvesPage.Yours) }
+    // A shared text waits for the import on Your puzzles, on the first look and when one arrives. It opens the page once: a
+    // rotation, or a return to the home while the share still waits, does not open it again; the next share does.
+    var shareOpened by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(sharePending) {
+        if (!sharePending) {
+            shareOpened = false
+        } else if (!shareOpened) {
+            shareOpened = true
+            openPage(ShelvesPage.Yours)
+        }
+    }
+    // The friends in their Undo window stop being friends' puzzles on the home and on From friends, until Undo.
+    LaunchedEffect(removedFriends) { viewModel.friendsRemoved(removedFriends) }
     // The page takes the reselect first: it closes; the next one scrolls the home to the top.
     OnTabReselect { if (page != null) page = null else homeList.animateScrollToItem(0) }
     fun actionsFor(open: (ShareCode) -> Unit) = ShelvesActions(
@@ -108,7 +120,7 @@ internal fun CommunityShelvesRoute(
                 onBack = { page = null },
                 modifier = Modifier.fillMaxSize(),
                 home = { CommunityShelvesScreen(state, actionsFor(open), phone, Modifier.fillMaxSize(), clearance, homeList) },
-                content = { ShelvesPageContent(it, custom, onBack = { page = null }, onOpen = open, visit = visit, bottomPadding = clearance) },
+                content = { ShelvesPageContent(it, custom, onBack = { page = null }, onOpen = open, visit = visit, bottomPadding = clearance, removedFriends = removedFriends) },
             )
             ShelvesReportHost(report, viewModel::noticeShown, viewModel::signIn, viewModel::dismissSignIn, Modifier.fillMaxSize(), clearance)
         }

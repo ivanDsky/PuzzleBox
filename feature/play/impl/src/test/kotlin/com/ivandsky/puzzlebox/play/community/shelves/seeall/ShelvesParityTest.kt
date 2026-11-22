@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.StateRestorationTester
@@ -65,10 +66,11 @@ internal abstract class ShelvesParityTest(private val layout: PlayLayout) {
     val rule = createAndroidComposeRule<ComponentActivity>()
 
     private val shelves = ShelvesFixture()
-    private val seeAll = SeeAllFixture()
+    private val seeAll = SeeAllFixture(hidden = shelves.hidden)
     private val reselect = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     private val restoration by lazy { StateRestorationTester(rule) }
     private val removed = mutableListOf<ShareCode>()
+    private var removing by mutableStateOf(emptySet<ShareCode>())
     private val made = mutableListOf<GameId?>()
     private var sharePending by mutableStateOf(false)
 
@@ -79,6 +81,7 @@ internal abstract class ShelvesParityTest(private val layout: PlayLayout) {
             shelves.publishMany(30, ALPHA)
             shelves.publishMany(2, BETA, from = 31)
             shelves.receive(1)
+            seeAll.receive(1)
             repeat(30) { seeAll.publish(it + 1, title = "Row ${it + 1}") }
         }
         startKoin {
@@ -105,6 +108,7 @@ internal abstract class ShelvesParityTest(private val layout: PlayLayout) {
                         modifier = Modifier.fillMaxSize(),
                         onRemoveFriend = { removed += it },
                         sharePending = sharePending,
+                        removedFriends = removing,
                     )
                 }
             }
@@ -172,6 +176,63 @@ internal abstract class ShelvesParityTest(private val layout: PlayLayout) {
         rule.waitForIdle()
 
         rule.onNodeWithTag("yours.page").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a puzzle reported on a See all page is gone from the home after Back`() {
+        show()
+        rule.onNodeWithTag(card(2)).assertIsDisplayed()
+        click("shelves.seeall.newest")
+        click("community.row.${codeOf(2).value}.more")
+        click("community.row.${codeOf(2).value}.report")
+        click("seeall.back")
+
+        rule.onNodeWithTag("shelves.search").assertIsDisplayed()
+        rule.onNodeWithTag(card(2)).assertDoesNotExist()
+    }
+
+    @Test
+    fun `a friend being removed leaves the Friends page at once, and Undo brings it back`() {
+        show()
+        click("shelves.entry.friends")
+        rule.onNodeWithTag("community.row.${codeOf(1).value}").assertIsDisplayed()
+
+        removing = setOf(codeOf(1))
+        rule.waitForIdle()
+        rule.onNodeWithTag("community.row.${codeOf(1).value}").assertDoesNotExist()
+
+        removing = emptySet()
+        rule.waitForIdle()
+        rule.onNodeWithTag("community.row.${codeOf(1).value}").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a friend being removed leaves the home's From friends tile at once, and Undo brings it back`() {
+        show()
+        rule.onNodeWithTag("shelves.entry.friends").assertTextContains("1 puzzle", substring = true)
+
+        removing = setOf(codeOf(1))
+        rule.waitForIdle()
+        rule.onNodeWithTag("shelves.entry.friends").assertTextContains("0 puzzle", substring = true)
+
+        removing = emptySet()
+        rule.waitForIdle()
+        rule.onNodeWithTag("shelves.entry.friends").assertTextContains("1 puzzle", substring = true)
+    }
+
+    @Test
+    fun `a share taken once does not open Your puzzles again after the player left it and rotated`() {
+        show()
+        sharePending = true
+        rule.waitForIdle()
+        rule.onNodeWithTag("yours.page").assertIsDisplayed()
+        click("yours.back")
+        rule.onNodeWithTag("yours.page").assertDoesNotExist()
+
+        restoration.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("yours.page").assertDoesNotExist()
     }
 
     @Test

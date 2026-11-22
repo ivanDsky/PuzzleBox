@@ -32,11 +32,13 @@ internal fun SeeAllPage(
     modifier: Modifier = Modifier,
     visit: Int = 0,
     bottomPadding: Dp = 0.dp,
+    removedFriends: Set<ShareCode> = emptySet(),
     viewModel: SeeAllViewModel = koinViewModel(),
 ) {
     val context = LocalContext.current
     val listState = rememberSaveable(scope, visit, saver = LazyListState.Saver) { LazyListState() }
     LaunchedEffect(scope, visit) { viewModel.open(scope, visit) }
+    LaunchedEffect(removedFriends) { viewModel.friendsRemoved(removedFriends) }
     val held by viewModel.state.collectAsState()
     // The view model outlives a page: until it has opened this scope it still holds the last one's, so show a fresh load.
     val state = if (held.scope == scope) held else SeeAllUiState(scope = scope, games = held.games, showGameFilter = scope !is SeeAllScope.Game)

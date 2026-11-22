@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.repository.CommunityFilter
 import com.ivandsky.puzzlebox.data.repository.CommunityListResult
+import com.ivandsky.puzzlebox.data.visibility.HiddenPuzzles
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
@@ -47,6 +48,7 @@ internal class SeeAllViewModel(
     private val list: ListCommunityPuzzles,
     friendPuzzles: ObserveFriendPuzzles,
     reportPuzzle: ReportPuzzle,
+    hidden: HiddenPuzzles,
     private val games: GameRegistry,
     private val plays: GamePlayRegistry,
     identity: IdentityService,
@@ -62,14 +64,16 @@ internal class SeeAllViewModel(
     private val scope = MutableStateFlow<SeeAllScope?>(null)
     private val filters = MutableStateFlow(SeeAllFilters())
     private val loaded = MutableStateFlow<Loaded>(Loaded.Reading)
-    private val dropped = MutableStateFlow(emptySet<ShareCode>())
+    private val removed = MutableStateFlow(emptySet<ShareCode>())
     private var loading: Job? = null
     private var opened = 0
-    private val reporter = SeeAllReporter(viewModelScope, reportPuzzle, identity, idTokens) { code -> dropped.update { it + code } }
+    // A Report hides the puzzle in the persisted set; reading that set means a Report made on any page applies here.
+    private val reporter = SeeAllReporter(viewModelScope, reportPuzzle, identity, idTokens) {}
+    private val friends = combine(friendPuzzles(), removed) { rows, leaving -> rows.filter { it.code !in leaving } }
 
     val state: StateFlow<SeeAllUiState> = combine(
-        combine(scope, filters, loaded, dropped) { page, picked, read, gone -> Page(page, picked, read, gone) },
-        friendPuzzles(),
+        combine(scope, filters, loaded, hidden.observe()) { page, picked, read, gone -> Page(page, picked, read, gone) },
+        friends,
         reporter.state,
     ) { page, friends, report -> stateOf(page, friends, report) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, SeeAllUiState(games = choices))
@@ -99,6 +103,14 @@ internal class SeeAllViewModel(
 
     /** Reads the community list again; Retry after an offline or refused list. */
     fun retry() = load()
+
+    /**
+     * The friends' puzzles in their Undo window ([codes], from the host's Remove friend): From friends drops them at once
+     * and lists them again when Undo empties it.
+     */
+    fun friendsRemoved(codes: Set<ShareCode>) {
+        removed.value = codes
+    }
 
     fun report(code: ShareCode) = reporter.report(code)
 

@@ -32,12 +32,11 @@ import java.time.Instant
  * [SeeAllViewModel] over the real use cases and the fakes: alpha and beta have editors, gamma does not; "me" is signed
  * in, "other" writes the community puzzles, and the clock stands at [NOW].
  */
-internal class SeeAllFixture(signedIn: Boolean = true) {
+internal class SeeAllFixture(signedIn: Boolean = true, val hidden: FakeHiddenPuzzles = FakeHiddenPuzzles()) {
     val shared = FakeSharedPuzzleRepository().apply {
         clock = { NOW }
         signedInUid = CommunityFixture.ME.takeIf { signedIn }
     }
-    val hidden = FakeHiddenPuzzles()
     val received = FakeReceivedPuzzleRepository()
     private val identity = FakeIdentityService(Identity(uid = CommunityFixture.ME, displayName = "Me", photoUrl = null).takeIf { signedIn })
     private val registry = GameRegistry(listOf(editorGame(ALPHA), editorGame(BETA), TestGames.plugin(NO_EDITOR)))
@@ -83,6 +82,7 @@ internal class SeeAllFixture(signedIn: Boolean = true) {
         list = ListCommunityPuzzles(shared, hidden, identity, clock = { NOW }),
         friendPuzzles = ObserveFriendPuzzles(received, FakeSavedPlayRepository(), FakeCompletionRepository(), registry, hidden),
         reportPuzzle = ReportPuzzle(shared, hidden),
+        hidden = hidden,
         games = registry,
         plays = plays,
         identity = identity,
