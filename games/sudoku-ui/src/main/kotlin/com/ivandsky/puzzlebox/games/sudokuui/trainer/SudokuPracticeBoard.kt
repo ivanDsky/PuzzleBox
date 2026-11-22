@@ -170,17 +170,19 @@ internal class SudokuPracticeBoard(
     private fun squares(step: SudokuStep.Elimination): Set<Pair<Int, Int>> =
         step.struck.flatMap { (cell, mask) -> (1..puzzle.geometry.size).filter { mask and (1 shl (it - 1)) != 0 }.map { cell to it } }.toSet()
 
-    /** One plain line for a move that broke the solution or was no move. [after] is the board with the move made. */
+    /**
+     * One plain line for a move that broke the solution or was no move. [after] is the board with the move made. A
+     * note's line gives a reason and never names the square or its answer.
+     */
     private fun why(reason: Reason, move: SudokuTrainerMove, after: SudokuBoard): String = when (reason) {
         Reason.WrongDigit -> {
             val idx = (move as SudokuTrainerMove.Place).idx
-            SudokuHintCaptions.violation(after) ?: SudokuHintCaptions.hint(SudokuHint.Wrong(listOf(idx)), after) ?: "That digit doesn't fit here."
+            SudokuHintCaptions.violation(after) ?: SudokuHintCaptions.hint(SudokuHint.Wrong(listOf(idx)), after) ?: "That number doesn't fit here."
         }
-        Reason.SolutionNote -> {
-            val remove = move as SudokuTrainerMove.RemoveNote
-            val geometry = puzzle.geometry
-            "That ${remove.digit} can still go in row ${geometry.rowOf(remove.idx) + 1}, column ${geometry.colOf(remove.idx) + 1}, so its note stays."
+        Reason.SolutionNote -> "Nothing rules ${(move as SudokuTrainerMove.RemoveNote).digit} out of this square yet, so its note stays."
+        Reason.NotAMove -> when (move) {
+            is SudokuTrainerMove.AddNote -> "Notes can only come off here. Turn Notes on and tap a number to take that one note off."
+            else -> "Erase clears every note. Take off one note at a time."
         }
-        Reason.NotAMove -> "Place a digit or take a note off a square."
     }
 }
