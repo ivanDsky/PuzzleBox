@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
@@ -14,10 +16,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -32,7 +36,8 @@ private val GlyphSize = 16.dp
 
 /**
  * One shelf: a head of [title] and its [sub] line, with the game's [disc] before them when it is a game shelf, over a
- * row of cards that [content] lists. The row scrolls sideways and starts level with the page's edge.
+ * row of cards that [content] lists. The row scrolls sideways and starts level with the page's edge. With [onSeeAll]
+ * the head ends in a See all link (tagged [seeAllTag]) that opens the shelf's own page.
  */
 @Composable
 internal fun ShelfRow(
@@ -40,11 +45,13 @@ internal fun ShelfRow(
     sub: String,
     modifier: Modifier = Modifier,
     disc: GameBrand? = null,
+    onSeeAll: (() -> Unit)? = null,
+    seeAllTag: String = "shelves.seeall",
     content: LazyListScope.() -> Unit,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Row(
-            Modifier.padding(horizontal = Spacing.lg),
+            Modifier.fillMaxWidth().padding(start = Spacing.lg, end = if (onSeeAll != null) Spacing.xs else Spacing.lg),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -63,7 +70,11 @@ internal fun ShelfRow(
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
             )
+            if (onSeeAll != null) {
+                TextButton(onClick = onSeeAll, modifier = Modifier.heightIn(min = 48.dp).testTag(seeAllTag)) { Text("See all") }
+            }
         }
         LazyRow(
             contentPadding = PaddingValues(horizontal = Spacing.lg),

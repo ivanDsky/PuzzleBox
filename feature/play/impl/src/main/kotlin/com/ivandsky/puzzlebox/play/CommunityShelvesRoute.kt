@@ -9,7 +9,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -25,7 +29,12 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.community.shelves.CommunityShelvesScreen
 import com.ivandsky.puzzlebox.play.community.shelves.ShelvesActions
+import com.ivandsky.puzzlebox.play.community.shelves.ShelvesPage
+import com.ivandsky.puzzlebox.play.community.shelves.ShelvesPageContent
+import com.ivandsky.puzzlebox.play.community.shelves.ShelvesPageHost
+import com.ivandsky.puzzlebox.play.community.shelves.ShelvesPageSaver
 import com.ivandsky.puzzlebox.play.community.shelves.ShelvesViewModel
+import com.ivandsky.puzzlebox.play.community.shelves.seeall.SeeAllScope
 import org.koin.androidx.compose.koinViewModel
 
 /** The shelves home's list pane on the tablet: the shelf rows need more than Games' 400dp list. */
@@ -38,7 +47,8 @@ private val DETAIL_RISE = 14.dp
  * The Community tab's shelves home (epic community-browse), behind the CommunityShelves flag. On the phone it is the
  * screen; a card opens its page through [onOpen]. On [PlayLayout.TwoPane] it is a [ShelvesListPaneWidth] list pane with
  * the card's page beside it (Play opens the board through [onPlay]), which rises and fades in. Enter code runs
- * [onEnterCode]; [onNewPuzzle] (null: the create button is off) is what a Make card runs. [clearance] is what the list
+ * [onEnterCode]; the entry tiles, Search and a shelf's See all open a page over the home (in the list pane on the tablet) that back
+ * closes, and a row picked on it opens like one on the home. [onNewPuzzle] (null: the create button is off) is what a Make card runs. [clearance] is what the list
  * leaves free for the create button that floats over it.
  */
 @Composable
@@ -54,9 +64,30 @@ internal fun CommunityShelvesRoute(
 ) {
     val viewModel: ShelvesViewModel = koinViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // The page over the home: a See all page or Your puzzles, behind the entry tiles, Search and a shelf's See all.
+    var page by rememberSaveable(stateSaver = ShelvesPageSaver) { mutableStateOf<ShelvesPage?>(null) }
+    // Counts the opens: a page opened from the home starts clean even when it is the same one as before, while a rotation or a
+    // return from a row (no open) keeps its filters. Counted on open, not close, so a page sliding out is not reset under the eye.
+    var visit by rememberSaveable { mutableIntStateOf(0) }
+    val openPage = { next: ShelvesPage -> page = next; visit++ }
+    fun actionsFor(open: (ShareCode) -> Unit) = ShelvesActions(
+        onEnterCode = onEnterCode,
+        onOpen = open,
+        onRetry = viewModel::retry,
+        onSearch = { openPage(ShelvesPage.SeeAll(SeeAllScope.Search)) },
+        onFriends = { openPage(ShelvesPage.SeeAll(SeeAllScope.Friends)) },
+        onYours = { openPage(ShelvesPage.Yours) },
+        onSeeAll = { openPage(ShelvesPage.SeeAll(it)) },
+        onMake = { onNewPuzzle?.invoke() },
+    )
     if (layout == PlayLayout.SinglePane) {
-        val actions = ShelvesActions(onEnterCode, onOpen, viewModel::retry, onMake = { onNewPuzzle?.invoke() })
-        CommunityShelvesScreen(state, actions, phone = true, modifier.fillMaxSize(), bottomPadding = clearance)
+        ShelvesPageHost(
+            page = page,
+            onBack = { page = null },
+            modifier = modifier.fillMaxSize(),
+            home = { CommunityShelvesScreen(state, actionsFor(onOpen), phone = true, Modifier.fillMaxSize(), bottomPadding = clearance) },
+            content = { ShelvesPageContent(it, custom, onBack = { page = null }, onOpen = onOpen, visit = visit, bottomPadding = clearance) },
+        )
     } else {
         CommunityPanes(
             default = { null },
@@ -64,8 +95,13 @@ internal fun CommunityShelvesRoute(
                 picks.ProvideFor(CommunityTab.NewToday) {
                     val picker = LocalCommunityPicker.current
                     val open = { code: ShareCode -> picker?.puzzle(code.value) ?: onOpen(code) }
-                    val actions = ShelvesActions(onEnterCode, open, viewModel::retry, onMake = { onNewPuzzle?.invoke() })
-                    CommunityShelvesScreen(state, actions, phone = false, size, bottomPadding = clearance)
+                    ShelvesPageHost(
+                        page = page,
+                        onBack = { page = null },
+                        modifier = size,
+                        home = { CommunityShelvesScreen(state, actionsFor(open), phone = false, Modifier.fillMaxSize(), bottomPadding = clearance) },
+                        content = { ShelvesPageContent(it, custom, onBack = { page = null }, onOpen = open, visit = visit, bottomPadding = clearance) },
+                    )
                 }
             },
             empty = {
