@@ -45,6 +45,7 @@ import java.time.DayOfWeek
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
 import kotlin.math.PI
+import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
@@ -153,9 +154,7 @@ internal fun StreakDial(card: RecapCard.Streak, modifier: Modifier = Modifier, o
 private fun DrawScope.drawRing(ring: DialRing, sweep: Float, totalMs: Int, comet: Boolean, ink: Color, ice: Color) {
     val n = ring.ticks.size
     if (n == 0) return
-    // A tall dial is the circle pulled apart by a straight run down each side; the ring's proportions follow its width.
     val r = size.minDimension / 2f
-    val straight = (size.height - size.width).coerceAtLeast(0f)
     val outer = r * (if (ring.weekly) WeekOuter else DayOuter)
     val length = r * (if (ring.weekly) WeekLength else DayLength)
     val width = r * (if (ring.weekly) WeekWidth else DayWidth)
@@ -165,18 +164,14 @@ private fun DrawScope.drawRing(ring: DialRing, sweep: Float, totalMs: Int, comet
     val igniteTicks = max(MIN_TICKS, TICK_IGNITE_MS * perMs)
     val crackTicks = max(MIN_TICKS, TICK_CRACK_MS * perMs)
     val head = sweep * (ring.count + igniteTicks + crackTicks)
-    val track = DialTrack(radius = outer, straight = straight)
-    // [by] in from a point on the ring. The plain circle keeps its first arithmetic so its pixels stay where they were.
-    fun inward(point: Offset, u: Offset, by: Float) =
-        if (straight == 0f) center + u * (outer - by) else point - u * by
-    // The tick's outer end, with the unit vector pointing out from the ring there.
-    fun place(index: Float): Pair<Offset, Offset> {
-        val at = track.at(index.toDouble() / n)
-        return Pair(center + Offset(at.x, at.y), Offset(at.nx, at.ny))
+    fun unit(index: Float): Offset {
+        val angle = (-PI / 2 + 2 * PI * index / n).toFloat()
+        return Offset(cos(angle), sin(angle))
     }
     ring.ticks.forEachIndexed { i, tick ->
-        val (to, u) = place(i.toFloat())
-        val from = inward(to, u, length)
+        val u = unit(i.toFloat())
+        val from = center + u * (outer - length)
+        val to = center + u * outer
         val ignite = if (tick.fill > 0f) ((head - (i - ring.first)) / igniteTicks).coerceIn(0f, 1f) else 0f
         val burning = ignite > 0f
         if (!(tick.frozen && burning)) {
@@ -203,8 +198,8 @@ private fun DrawScope.drawRing(ring: DialRing, sweep: Float, totalMs: Int, comet
     if (comet && cometAlpha > 0f) {
         repeat(TRAIL) { k ->
             val fade = cometAlpha * (1f - k.toFloat() / TRAIL)
-            val (tip, u) = place(cometIndex - k * TRAIL_STEP)
-            drawCircle(ink.copy(alpha = fade), width * (1.2f - 0.25f * k), inward(tip, u, length / 2f))
+            val u = unit(cometIndex - k * TRAIL_STEP)
+            drawCircle(ink.copy(alpha = fade), width * (1.2f - 0.25f * k), center + u * (outer - length / 2f))
         }
     }
 }
