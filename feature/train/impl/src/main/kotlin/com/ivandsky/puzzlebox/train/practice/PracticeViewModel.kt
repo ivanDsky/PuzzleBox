@@ -40,7 +40,7 @@ import kotlinx.coroutines.withContext
 /**
  * A game's practice, a technique's chapter at a time (spec §2.2): four focus boards then one review board (the catalog's
  * first technique has the focus boards only), each a [PracticeBoard] cut from a puzzle on the device (the [source]'s,
- * newest first, then the technique's bundled ones; a focus board prefers one the game says trains two or more moves, [TrainerGame.trainedMoves]) and played until it says [PracticeStatus.Done]. A technique never
+ * newest first, then the technique's bundled ones; a focus board prefers one with two or more trained moves) and played until it says [PracticeStatus.Done]. A technique never
  * answered opens with its intro when it has one ([intros]; the board's chip replays it any time): demos to watch, then
  * [startPractice] opens board 1 on another puzzle than the demo's (the demo's own only when it is the one there is). A done board is held ([hold], [skip]), then the next opens on its own; after the last
  * the state is [PracticeState.Result]. The next chapter ([nextChapter]) and a fresh run ([practiceAgain]) open only from
@@ -260,29 +260,9 @@ internal class PracticeViewModel(
         mutableState.value = if (alternative == null) PracticeState.NeedsConnection else PracticeState.CantLoad(alternative)
     }
 
-    /**
-     * Opens a board on a puzzle on the device not played yet, the source's (newest first) then the technique's bundled ones.
-     * A focus board takes the first of them the game says trains [MIN_FOCUS_MOVES] or more moves ([TrainerGame.trainedMoves]),
-     * so it is more than the one move just watched; with none, and for a review board, it takes the first that has a board.
-     * False when none opens.
-     */
-    private suspend fun openFromDevice(): Boolean {
-        if (chapterKinds(techniqueIndex)[boardIndex] == BoardKind.Focus && openFromDevice(longOnly = true)) return true
-        return openFromDevice(longOnly = false)
-    }
-
-    private suspend fun openFromDevice(longOnly: Boolean): Boolean =
-        source.puzzles(game.gameId).firstOrNull { openUnplayed(it, longOnly) } != null ||
-            withContext(dispatchers.default) { game.bundledPuzzles(current) }.any { openUnplayed(it, longOnly) }
-
-    private suspend fun openUnplayed(puzzle: Puzzle, longOnly: Boolean): Boolean =
-        puzzle !in played && (!longOnly || trainsLong(puzzle)) && open(puzzle)
-
-    /** Whether the game says a focus board cut from [puzzle] trains [MIN_FOCUS_MOVES] moves or more; a game that does not say is no. */
-    private suspend fun trainsLong(puzzle: Puzzle): Boolean {
-        val technique = current
-        return (withContext(dispatchers.default) { game.trainedMoves(puzzle, technique) } ?: 0) >= MIN_FOCUS_MOVES
-    }
+    /** Opens a board on a puzzle on the device not played yet ([openDevicePuzzle]): a focus board prefers one that trains several moves. False when none opens. */
+    private suspend fun openFromDevice(): Boolean =
+        game.openDevicePuzzle(source, current, played, dispatchers, preferLong = chapterKinds(techniqueIndex)[boardIndex] == BoardKind.Focus) { open(it) }
 
     /** Cuts a board of the current kind from [puzzle] off the main thread (the walk is CPU work) and shows it; false when [puzzle] never has the technique as its easiest move. */
     private suspend fun open(puzzle: Puzzle): Boolean {
@@ -316,6 +296,3 @@ internal class PracticeViewModel(
 
     private suspend fun nextToFetch(numbers: List<Int>): Int? = game.nextToFetch(archive, current, numbers, skipped)
 }
-
-/** The trained moves a focus board should have, when any puzzle on the device does: fewer is "place the digit you just watched" and done. */
-private const val MIN_FOCUS_MOVES = 2
