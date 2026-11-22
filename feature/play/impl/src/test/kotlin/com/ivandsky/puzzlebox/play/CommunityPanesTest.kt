@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -9,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.getBoundsInRoot
@@ -271,6 +273,22 @@ class CommunityPanesTest {
         assertEquals(null, defaultCommunityPick(CommunityTab.Yours, phase, friends, YoursSummary(count = 2, firstPublishedCode = null)))
         assertEquals(null, defaultCommunityPick(CommunityTab.NewToday, CommunityPhase.Loaded(emptyList()), friends, yours))
         assertEquals(null, defaultCommunityPick(CommunityTab.Friends, phase, emptyList(), yours))
+    }
+
+    @Test
+    fun `the list pane is as wide as it is told, Games' list width when it is not`() {
+        rule.setContent {
+            PuzzleBoxTheme {
+                CommunityPanes(
+                    default = { null },
+                    list = { sized, _ -> Box(sized.testTag("list")) },
+                    empty = { Text("none") },
+                    detail = { _, _ -> },
+                    listPaneWidth = ShelvesListPaneWidth,
+                )
+            }
+        }
+        rule.onNodeWithTag("list").assertWidthIsEqualTo(ShelvesListPaneWidth)
     }
 }
 

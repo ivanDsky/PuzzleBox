@@ -14,6 +14,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.EmptyState
 import com.ivandsky.puzzlebox.designsystem.HoldCrossfade
@@ -35,7 +36,8 @@ internal val ListPaneWidth = 400.dp
  * [default] (a list that fills in later supplies one when it has one). [detail] is told how to `clear` the pick (a
  * reported puzzle leaves its page), which returns that tab to its default. With no pick at all the pane shows [empty]
  * for the current tab, never a blank. A [listOverlay] floats over the list pane's own box (the create FAB, at its bottom
- * end), never over the right pane. The list pane reaches the window's top, under Today's large top bar.
+ * end), never over the right pane. The list pane is [listPaneWidth] wide (the shelves home takes more than Games' list)
+ * and reaches the window's top, under Today's large top bar.
  */
 @Composable
 internal fun CommunityPanes(
@@ -45,6 +47,7 @@ internal fun CommunityPanes(
     detail: @Composable (pick: CommunityPick, clear: () -> Unit) -> Unit,
     modifier: Modifier = Modifier,
     listOverlay: (@Composable BoxScope.() -> Unit)? = null,
+    listPaneWidth: Dp = ListPaneWidth,
 ) {
     val picks = rememberCommunityTabPicks(default)
     val home = picks.tab.ordinal
@@ -54,10 +57,10 @@ internal fun CommunityPanes(
     Row(modifier.fillMaxSize().padding(start = Spacing.xl, end = Spacing.xxl, bottom = Spacing.xl)) {
         CompositionLocalProvider(LocalTabFadeLink provides link) {
             if (listOverlay == null) {
-                list(Modifier.width(ListPaneWidth).fillMaxHeight(), picks)
+                list(Modifier.width(listPaneWidth).fillMaxHeight(), picks)
             } else {
                 // The overlay (the create FAB) floats over the list pane only, never the detail pane.
-                Box(Modifier.width(ListPaneWidth).fillMaxHeight()) {
+                Box(Modifier.width(listPaneWidth).fillMaxHeight()) {
                     list(Modifier.fillMaxSize(), picks)
                     listOverlay()
                 }
