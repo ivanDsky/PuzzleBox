@@ -9,7 +9,7 @@ import com.ivandsky.puzzlebox.play.CustomSlot
 import com.ivandsky.puzzlebox.play.community.shelves.seeall.SeeAllPage
 import com.ivandsky.puzzlebox.play.community.shelves.yours.YourPuzzlesPage
 
-/** The screen of [page]: a See all page of its scope, or Your puzzles over [custom]'s list. A row opens through [onOpen]. [visit] counts the closes of the page (a new one starts it clean); [bottomPadding] is the room kept under the list. */
+/** The screen of [page]: a See all page of its scope, or Your puzzles over [custom]'s list. A row opens through [onOpen]. [visit] counts the opens of the page (a new one starts it clean); [bottomPadding] is the room kept under the list. */
 @Composable
 internal fun ShelvesPageContent(
     page: ShelvesPage,
