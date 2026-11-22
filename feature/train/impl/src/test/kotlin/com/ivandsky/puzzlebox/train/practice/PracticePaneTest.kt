@@ -173,7 +173,7 @@ class PracticePaneTest {
         showBoard()
 
         say(PracticeStatus.Easier("Naked single", standInSpotlight()))
-        assertBand("An easier move exists", "Look for Naked single first. Tap Got it or the board to go on.")
+        assertBand("An easier move exists", "Look for Naked single first.")
 
         say(PracticeStatus.Wrong("Two queens would touch."))
         assertBand("Undone", "Two queens would touch.")
@@ -185,7 +185,7 @@ class PracticePaneTest {
         showBoard()
 
         say(PracticeStatus.Easier("Line lock", standInSpotlight()))
-        assertBand("Not yet", "Right square, but Line lock can't show it yet. Find a Line lock move first. Tap Got it or the board to go on.")
+        assertBand("Not yet", "Right square, but Line lock can't show it yet. Find a Line lock move first.")
     }
 
     /** Catches a Show me that is not the board's: the board applies the deduction, the host only asks. */

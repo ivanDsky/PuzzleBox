@@ -34,9 +34,6 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.trainer.PracticeStatus
 
-/** The end of every explanation: Got it, or any tap on the board, which the Spotlight layer takes as Got it. */
-private const val GoOn = "Tap Got it or the board to go on."
-
 /** The status band's height: fixed, so the board below it never moves whatever the status says. */
 internal val BandHeight = 96.dp
 
@@ -120,7 +117,7 @@ private fun band(status: PracticeStatus, chapter: PracticeChapter): Band {
                 Band(
                     PuzzleIcons.Hint,
                     "Not yet",
-                    "Right square, but $name can't show it yet. Find a $name move first. $GoOn",
+                    "Right square, but $name can't show it yet. Find a $name move first.",
                     scheme.tertiaryContainer,
                     scheme.onTertiaryContainer,
                 )
@@ -128,7 +125,7 @@ private fun band(status: PracticeStatus, chapter: PracticeChapter): Band {
                 Band(
                     PuzzleIcons.Hint,
                     "An easier move exists",
-                    "That fits the puzzle, but it is undone. Look for ${status.technique} first. $GoOn",
+                    "That fits the puzzle, but it is undone. Look for ${status.technique} first.",
                     scheme.tertiaryContainer,
                     scheme.onTertiaryContainer,
                 )
