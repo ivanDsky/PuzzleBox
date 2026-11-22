@@ -17,16 +17,20 @@ import com.ivandsky.puzzlebox.games.tango.engine.step.TangoStepRung
  * line reads its marker from the puzzle and the target's own value, so it cannot name the wrong side. The board size
  * is never stated.
  *
- * One template per rung serves two readers: the hint fills it with a step's own facts ([text]) and the Trainer's
- * technique list fills it with generic words ([technique]), so a copy edit shows in both (A1: no third copy set).
+ * The hint templates are written for a board with one square lit, so they point ("this", "here"). The Trainer's technique
+ * list and "The idea" line have no board to point at, so each rung has a technique-level line of its own ([technique]).
  */
 internal object TangoStepCopy {
 
-    /** What a rung's template names: the target [value], the [line] it counts in, the number of [ways] to fill it, and the sign beside the target. */
+    /**
+     * What a rung's template names: the target [value], the [line] it counts in, the number of [ways] to fill it, whether
+     * the step reads an `=` pair that holds its own targets ([inPair]), and the sign beside the target.
+     */
     private class Facts(
         val value: TangoCell,
         val line: String,
-        val ways: String,
+        val ways: Int?,
+        val inPair: Boolean,
         /** Read only by the sign template, so a step whose rung needs none never scans the puzzle's markers. */
         val sign: () -> TangoMarkerKind?,
     ) {
@@ -35,8 +39,8 @@ internal object TangoStepCopy {
 
     private val deductions: Map<TangoStepRung, (Facts) -> String> = mapOf(
         TangoStepRung.SIGN to { facts -> sign(facts) },
-        TangoStepRung.PAIR to { facts -> "Two ${plural(facts.other)} touch, so the cells at both ends are ${plural(facts.value)}" },
-        TangoStepRung.SANDWICH to { facts -> "This cell sits between two ${plural(facts.other)}, so it is a ${word(facts.value)}" },
+        TangoStepRung.PAIR to { facts -> "Two ${plural(facts.other)} touch, so the empty end is a ${word(facts.value)}" },
+        TangoStepRung.SANDWICH to { facts -> "This square sits between two ${plural(facts.other)}, so it is a ${word(facts.value)}" },
         TangoStepRung.FULL_LINE to { facts ->
             "${facts.line.replaceFirstChar(Char::uppercase)} has all its ${plural(facts.other)}, so the rest are ${plural(facts.value)}"
         },
@@ -44,38 +48,53 @@ internal object TangoStepCopy {
             "Joined by =, these would make three ${plural(facts.other)} in a row, so both are ${plural(facts.value)}"
         },
         TangoStepRung.SIGN_COUNT to { facts ->
-            "Counting the signs, no ${word(facts.other)} fits here, so this is a ${word(facts.value)}"
+            if (facts.inPair) {
+                "Only one ${word(facts.other)} is left but the = pair needs two, so both are ${plural(facts.value)}"
+            } else {
+                "Counting the signs, no ${word(facts.other)} fits here, so this is a ${word(facts.value)}"
+            }
         },
         TangoStepRung.SPLIT_PAIR to { facts -> "The gap holds one of each, so the rest are ${plural(facts.value)}" },
         TangoStepRung.COUNT_SQUEEZE to { facts ->
-            "The other kind here would break the line, so this is a ${word(facts.value)}"
+            "A ${word(facts.other)} here uses up the ${plural(facts.other)} and breaks the line, so this is a ${word(facts.value)}"
         },
         TangoStepRung.LINE_OPTIONS to { facts ->
-            "All ${facts.ways} ways to fill this line put a ${word(facts.value)} here"
+            when (val ways = facts.ways) {
+                1 -> "Only one way to fill this line works, and it puts a ${word(facts.value)} here"
+                2 -> "Both ways to fill this line put a ${word(facts.value)} here"
+                else -> "All $ways ways to fill this line put a ${word(facts.value)} here"
+            }
         },
     )
 
     /** The line for [step]. */
     fun text(step: TangoStep, puzzle: TangoPuzzle): String = when (step) {
         is TangoStep.Deduction -> {
-            val facts = Facts(step.value, lineName(step), step.options.toString()) { signBeside(step, puzzle) }
+            val facts = Facts(step.value, lineName(step), step.options, step.idx in step.evidence) { signBeside(step, puzzle) }
             deductions.getValue(step.rung)(facts)
         }
-        is TangoStep.Reveal -> "This cell is a ${word(step.value)}, though no simple step finds it"
-        is TangoStep.Mistake -> "This cell ${mistakeWhy(step.reason)}"
+        is TangoStep.Reveal -> "This square is a ${word(step.value)}, though no simple step finds it"
+        is TangoStep.Mistake -> "This square ${mistakeWhy(step.reason)}"
         TangoStep.Solved, TangoStep.Unavailable -> error("$step has no callout")
     }
 
     /**
-     * The sentence of [rung] for a technique with no step in hand (the Trainer's technique list): the same template the
-     * hint fills, with generic words: a sun as the target, "this line", "the" ways, and no sign to name, so the sign
-     * line is the hint's own fallback.
+     * The technique-level line of [rung]: what the technique does, in words that need no board (no "this", "here" or
+     * "the gap") and that name both kinds. The Trainer's technique list and the "The idea" line under a practice board.
      */
-    fun technique(rung: TangoStepRung): String =
-        deductions.getValue(rung)(Facts(TangoCell.SUN, ANY_LINE, ANY_WAYS) { null })
+    fun technique(rung: TangoStepRung): String = techniques.getValue(rung)
 
-    private const val ANY_LINE = "this line"
-    private const val ANY_WAYS = "the"
+    private val techniques: Map<TangoStepRung, String> = mapOf(
+        TangoStepRung.SIGN to "= copies a filled neighbor; × gives it the other kind",
+        TangoStepRung.PAIR to "Two of a kind side by side: both ends get the other kind",
+        TangoStepRung.SANDWICH to "A square between two of a kind gets the other kind",
+        TangoStepRung.FULL_LINE to "A line with all 3 of one kind: fill the rest with the other",
+        TangoStepRung.EQUAL_PAIR to "An = pair next to a filled square takes the other kind",
+        TangoStepRung.SIGN_COUNT to "Count each empty × pair as one of each, then fill what's left",
+        TangoStepRung.SPLIT_PAIR to "Two empty squares between a sun and a moon hold one of each",
+        TangoStepRung.COUNT_SQUEEZE to "If one kind would use up the count and force three in a row, the square is the other kind",
+        TangoStepRung.LINE_OPTIONS to "Try every fill of a line; squares that never change are settled",
+    )
 
     private fun sign(facts: Facts): String {
         val value = word(facts.value)

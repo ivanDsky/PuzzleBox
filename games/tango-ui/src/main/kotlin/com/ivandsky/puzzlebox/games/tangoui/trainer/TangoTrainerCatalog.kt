@@ -7,8 +7,8 @@ import com.ivandsky.puzzlebox.gameui.trainer.TrainerTechnique
 
 /**
  * The Tango technique list: one row per [TangoStepRung], in the stepper's own order (easiest first; the ids test pins
- * the declaration order to it). The name is the list's own; the line is the sentence the hint shows for that rung
- * ([TangoStepCopy.technique]), so a copy edit there shows in both (A1: no third copy set). Rows are keyed by
+ * the declaration order to it). The name is the list's own; the line is the rung's technique-level sentence
+ * ([TangoStepCopy.technique]), written with no board to point at. Rows are keyed by
  * [TechniqueId], the stored key.
  */
 internal object TangoTrainerCatalog {
