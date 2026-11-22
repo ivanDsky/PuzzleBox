@@ -13,8 +13,7 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
 enum class PlayFlag(override val label: String, override val releaseDefault: Boolean) : ReleaseFlagKey {
     /**
      * Community shelves (epic community-browse): the Community tab shows the shelves home instead of its three tabs.
-     * Read only in a ViewModel, a DI module or the app (ADR-0022 §3), and for now by the Community route, which gates
-     * the tab's whole body.
+     * Read by the Community route, which gates the tab's whole body (ADR-0022 §5: gate the entry).
      */
     CommunityShelves(label = "Community shelves", releaseDefault = false),
     ;

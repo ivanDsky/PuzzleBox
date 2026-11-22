@@ -4,7 +4,6 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -156,7 +155,7 @@ class CommunityRouteFlagTest {
         show(PlayFlag.CommunityShelves)
         awaitTag("community.shelves")
         composeRule.onNodeWithTag("community.shelves").assertIsDisplayed()
-        composeRule.onAllNodesWithText("New today").fetchSemanticsNodes().let { assert(it.isEmpty()) { "tabs still drawn" } }
+        composeRule.onNodeWithText("New today").assertDoesNotExist()
     }
 
     @Test
