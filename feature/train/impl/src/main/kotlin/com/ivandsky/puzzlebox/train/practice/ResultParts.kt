@@ -71,8 +71,13 @@ internal fun ResultHero(result: ChapterResult, modifier: Modifier = Modifier) {
         )
         Badge(badge, result.mastered, Modifier.pop(BadgePopMillis, enabled = newly).testTag("train.result.badge"))
         Text(sentence, style = MaterialTheme.typography.bodyLarge, color = scheme.onSurface)
+        freshRunNote(result)?.let { Text(it, style = MaterialTheme.typography.bodyLarge, color = scheme.onSurface, modifier = Modifier.testTag("train.result.fresh")) }
     }
 }
+
+/** What a missed run adds under the sentence: a miss left too few moves, so another run is the way to master it. Null when nothing was missed or it is mastered. */
+internal fun freshRunNote(result: ChapterResult): String? =
+    if (result.missedRun && !result.mastered) "A miss left too few moves for $MasteryRun right in a row. Practice again for a fresh run." else null
 
 /** A mastered chapter's star, or the not-mastered "best/5" in a ring that is plainly not a prize. */
 @Composable

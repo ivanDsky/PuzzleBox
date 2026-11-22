@@ -330,6 +330,27 @@ class PracticePaneTest {
         assertEquals(listOf(0, 0, 1), listOf(tryAgain, tryAnother, closed))
     }
 
+    /** Catches a run that a miss put out of reach with no word on what to do next, and a hint shown to players who did not miss. */
+    @Test
+    fun `a not mastered result after a miss says practicing again gives a fresh run`() {
+        show(PracticeState.Result(sampleResult().copy(outcome = ChapterOutcome.NotMastered, best = 3, missedRun = true)))
+
+        composeRule.onNodeWithTag("train.result.fresh").assertIsDisplayed()
+        composeRule.onNodeWithTag("train.result.fresh").assertTextContains("Practice again for a fresh run.", substring = true)
+    }
+
+    @Test
+    fun `the fresh run line is absent when nothing was missed or the technique is mastered`() {
+        show(PracticeState.Result(sampleResult().copy(outcome = ChapterOutcome.NotMastered, best = 3, missedRun = false)))
+        composeRule.onNodeWithTag("train.result.fresh").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a mastered result never offers a fresh run`() {
+        show(PracticeState.Result(sampleResult().copy(missedRun = true)))
+        composeRule.onNodeWithTag("train.result.fresh").assertDoesNotExist()
+    }
+
     /** Catches result buttons wired to one another. */
     @Test
     fun `each result button is its own action`() {

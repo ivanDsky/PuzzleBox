@@ -19,6 +19,8 @@ internal data class BoardRow(val board: Int, val kind: BoardRowKind, val moves: 
  * is this run through the chapter only, kept in memory; [best] is the longest streak of right moves in it, uncapped.
  * [slips] counts moves made out of order (a correct move the easiest technique could not make yet) and [undone] moves
  * undone as wrong.
+ * [missedRun] is true when a wrong move or a Show me on a trained move broke the streak and the run never reached the
+ * mastery count: after the last miss the chapter had too few moves left, so only a new run can master it.
  * [next] is the technique after it in the game's catalog, null for the last. [allMastered] is true when every one of
  * the catalog's [techniques] is mastered, which only the last technique's note says.
  */
@@ -33,6 +35,7 @@ internal data class ChapterResult(
     val slips: Int,
     val undone: Int,
     val best: Int,
+    val missedRun: Boolean = false,
     val rows: List<BoardRow>,
     val allMastered: Boolean,
     val techniques: Int,
