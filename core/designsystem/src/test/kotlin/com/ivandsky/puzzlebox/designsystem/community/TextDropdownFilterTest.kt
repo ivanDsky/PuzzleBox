@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -21,7 +22,12 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.AppTypography
 import com.ivandsky.puzzlebox.designsystem.LightColorScheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import org.junit.Assert.assertEquals
@@ -49,6 +55,8 @@ class TextDropdownFilterTest {
     private val open = mutableStateOf(false)
     private var clicks = 0
 
+    private var quiet = false
+
     private fun show(enabled: Boolean = true) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
@@ -60,6 +68,8 @@ class TextDropdownFilterTest {
                         onClick = { clicks++ },
                         modifier = Modifier.testTag(FILTER),
                         enabled = enabled,
+                        colors = if (quiet) TextDropdownFilterDefaults.quietColors() else TextDropdownFilterDefaults.colors(),
+                        textStyle = if (quiet) TextDropdownFilterDefaults.quietTextStyle() else TextDropdownFilterDefaults.textStyle(),
                     )
                 }
             }
@@ -132,6 +142,44 @@ class TextDropdownFilterTest {
 
         assertEquals(0, clicks)
     }
+
+    /** The text's resolved style, read from its layout. */
+    private fun textStyleOf(text: String): TextStyle {
+        val results = mutableListOf<TextLayoutResult>()
+        composeRule.onNodeWithText(text, useUnmergedTree = true)
+            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
+        return results.single().layoutInput.style
+    }
+
+    @Test
+    fun `the standard look is onSurfaceVariant unset and onSurface set, in the label style`() {
+        show()
+        composeRule.waitForIdle()
+        assertSame(LightColorScheme.onSurfaceVariant, textStyleOf("Any game").color, "unset text")
+        assertEquals(AppTypography.labelLarge.fontWeight, textStyleOf("Any game").fontWeight)
+
+        composeRule.runOnUiThread { value.value = "Zip" }
+        composeRule.waitForIdle()
+
+        assertSame(LightColorScheme.onSurface, textStyleOf("Zip").color, "set text")
+        assertEquals(AppTypography.labelLarge.fontWeight, textStyleOf("Zip").fontWeight)
+    }
+
+    @Test
+    fun `the quiet look is medium onSurfaceVariant with no underline even when set`() {
+        quiet = true
+        value.value = "Last 7 days"
+        show()
+        composeRule.waitForIdle()
+
+        val style = textStyleOf("Last 7 days")
+        assertSame(LightColorScheme.onSurfaceVariant, style.color, "quiet set text")
+        assertEquals(FontWeight.Medium, style.fontWeight)
+        assertTrue("no underline when set", !hasUnderline())
+        filter().assertTouchHeightIsEqualTo(48.dp)
+    }
+
+    private fun assertSame(expected: Color, actual: Color, message: String) = assertTrue("$message: expected $expected, was $actual", close(expected, actual))
 
     private fun close(expected: Color, actual: Color) =
         listOf(expected.red - actual.red, expected.green - actual.green, expected.blue - actual.blue).all { kotlin.math.abs(it) < 0.02f }

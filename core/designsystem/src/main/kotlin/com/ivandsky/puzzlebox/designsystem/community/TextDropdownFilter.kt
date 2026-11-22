@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -32,8 +31,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -44,16 +43,14 @@ internal const val TEXT_DROPDOWN_UNDERLINE_TAG = "text.dropdown.underline"
 
 private const val DISABLED_ALPHA = 0.38f
 private const val OPEN_ARROW_DEGREES = 180f
-private val TargetHeight = 48.dp
-private val UnderlineHeight = 2.dp
-private val ArrowSize = 18.dp
 
 /**
  * A filter as plain text, never a pill: [label] ("Any game") with a down arrow while nothing is picked, the picked
  * [value] in `onSurface` over a 2dp `secondary` underline once something is. It only reports the tap through [onClick];
  * the caller opens whatever it wants (a bottom sheet, a menu) and says so with [open], which turns the arrow. The tap
  * target is 48dp tall, a screen reader hears a dropdown list that is expanded or collapsed. Reduced motion keeps the
- * colour change and drops the arrow's turn and the press scale.
+ * colour change and drops the arrow's turn and the press scale. [colors] and [textStyle] default to that look;
+ * [TextDropdownFilterDefaults.quietColors] and [TextDropdownFilterDefaults.quietTextStyle] give the quiet one.
  */
 @Composable
 fun TextDropdownFilter(
@@ -63,13 +60,14 @@ fun TextDropdownFilter(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    colors: TextDropdownFilterColors = TextDropdownFilterDefaults.colors(),
+    textStyle: TextStyle = TextDropdownFilterDefaults.textStyle(),
 ) {
     val reduced = rememberReducedMotion()
-    val scheme = MaterialTheme.colorScheme
     val set = value != null
     val interactionSource = remember { MutableInteractionSource() }
     val colorSpec = tween<Color>(MotionTokens.DurationShort)
-    val ink by animateColorAsState(if (set) scheme.onSurface else scheme.onSurfaceVariant, colorSpec, label = "text-dropdown-ink")
+    val ink by animateColorAsState(colors.contentColor(set), colorSpec, label = "text-dropdown-ink")
     val turn by animateFloatAsState(
         targetValue = if (open && !reduced) OPEN_ARROW_DEGREES else 0f,
         animationSpec = tween(MotionTokens.DurationShort, easing = MotionTokens.EasingStandard),
@@ -80,7 +78,7 @@ fun TextDropdownFilter(
         modifier = modifier
             .pressScale(interactionSource, reduced)
             .alpha(if (enabled) 1f else DISABLED_ALPHA)
-            .heightIn(min = TargetHeight)
+            .heightIn(min = TextDropdownFilterDefaults.MinHeight)
             .semantics { stateDescription = if (open) "Expanded" else "Collapsed" }
             .clickable(
                 interactionSource = interactionSource,
@@ -97,22 +95,23 @@ fun TextDropdownFilter(
             Text(
                 text = value ?: label,
                 color = ink,
-                style = MaterialTheme.typography.labelLarge,
+                style = textStyle,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             // The unset state keeps the same 2dp, so picking a value never moves the text.
-            if (set) {
-                Spacer(Modifier.fillMaxWidth().height(UnderlineHeight).background(scheme.secondary).testTag(TEXT_DROPDOWN_UNDERLINE_TAG))
+            val underline = colors.underlineColor(set)
+            if (underline != null) {
+                Spacer(Modifier.fillMaxWidth().height(TextDropdownFilterDefaults.UnderlineHeight).background(underline).testTag(TEXT_DROPDOWN_UNDERLINE_TAG))
             } else {
-                Spacer(Modifier.height(UnderlineHeight))
+                Spacer(Modifier.height(TextDropdownFilterDefaults.UnderlineHeight))
             }
         }
         Icon(
             PuzzleIcons.ExpandMore,
             contentDescription = null,
             tint = ink,
-            modifier = Modifier.size(ArrowSize).graphicsLayer { rotationZ = turn },
+            modifier = Modifier.size(TextDropdownFilterDefaults.ArrowSize).graphicsLayer { rotationZ = turn },
         )
     }
 }

@@ -46,6 +46,30 @@ internal fun TextDropdownFilterOpenPreview() {
     }
 }
 
+@ShowkaseComposable(name = "TextDropdownFilter (quiet)", group = "Filters")
+@PuzzleBoxPreviews
+@Composable
+internal fun TextDropdownFilterQuietPreview() {
+    PreviewColumn {
+        TextDropdownFilter(
+            label = "Since",
+            value = null,
+            open = false,
+            onClick = {},
+            colors = TextDropdownFilterDefaults.quietColors(),
+            textStyle = TextDropdownFilterDefaults.quietTextStyle(),
+        )
+        TextDropdownFilter(
+            label = "Since",
+            value = "Since Nov 14",
+            open = false,
+            onClick = {},
+            colors = TextDropdownFilterDefaults.quietColors(),
+            textStyle = TextDropdownFilterDefaults.quietTextStyle(),
+        )
+    }
+}
+
 @ShowkaseComposable(name = "TextDropdownFilter (disabled)", group = "Filters")
 @PuzzleBoxPreviews
 @Composable
