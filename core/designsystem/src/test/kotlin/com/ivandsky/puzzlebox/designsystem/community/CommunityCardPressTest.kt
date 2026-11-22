@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.down
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -18,6 +19,7 @@ import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -147,6 +149,20 @@ class CommunityCardPressTest {
         composeRule.mainClock.advanceTimeByFrame()
         composeRule.mainClock.advanceTimeByFrame()
         assertEquals(1f, scale(rest), TOLERANCE)
+    }
+
+    private fun pixels() = composeRule.onNodeWithTag(CARD).captureToImage().let { image ->
+        IntArray(image.width * image.height).also { image.readPixels(it) }
+    }
+
+    @Test
+    fun `reduced motion washes a pressed shelf card instead of scaling it`() {
+        show(reducedMotion = true, card = shelf)
+        val rest = pixels()
+        press()
+        composeRule.mainClock.advanceTimeByFrame()
+        composeRule.mainClock.advanceTimeByFrame()
+        assertFalse("the press shows as a wash", rest.contentEquals(pixels()))
     }
 
     private companion object {

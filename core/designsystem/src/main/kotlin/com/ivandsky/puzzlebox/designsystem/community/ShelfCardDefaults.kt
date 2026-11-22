@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.designsystem.community
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -48,7 +49,7 @@ object ShelfCardDefaults {
     val Scrim: Color = Color(0xCC0B0D10)
 
     /** Press scale: .97 for cards, .985 for the large spotlight card; 120ms in and out. */
-    const val PressScale = 0.97f
+    const val PressScale = MotionTokens.PressScale
     const val SpotlightPressScale = 0.985f
     const val PressMillis = 120
 
@@ -56,23 +57,23 @@ object ShelfCardDefaults {
     const val SpotlightKicker = "#1 MOST PLAYED"
 
     /** The scale a card settles at: pressed shrinks to [scale], rest and reduced motion stay at full size. */
-    fun pressTarget(pressed: Boolean, reduced: Boolean, scale: Float): Float = if (pressed && !reduced) scale else 1f
+    internal fun pressTarget(pressed: Boolean, reduced: Boolean, scale: Float): Float = if (pressed && !reduced) scale else 1f
 
     /** Reduced motion collapses the press to no tween at all. */
-    fun pressMillis(reduced: Boolean): Int = if (reduced) 0 else PressMillis
+    internal fun pressMillis(reduced: Boolean): Int = if (reduced) 0 else PressMillis
 
     /** A solve count with its thousands grouped for [locale]. */
-    fun solvesText(count: Int, locale: Locale = Locale.getDefault()): String = NumberFormat.getIntegerInstance(locale).format(count)
+    internal fun solvesText(count: Int, locale: Locale = Locale.getDefault()): String = NumberFormat.getIntegerInstance(locale).format(count)
 
     /** The line under a shelf card's title: "Author · Difficulty", or the author alone. */
-    fun byline(author: String, difficulty: String?): String = listOfNotNull(author, difficulty).joinToString(SEPARATOR)
+    internal fun byline(author: String, difficulty: String?): String = listOfNotNull(author, difficulty).joinToString(SEPARATOR)
 
     /** The spotlight's line: "Game · Difficulty · by Author", the difficulty only when there is one. */
-    fun spotlightLine(gameName: String, difficulty: String?, author: String): String =
+    internal fun spotlightLine(gameName: String, difficulty: String?, author: String): String =
         listOfNotNull(gameName, difficulty, "by $author").joinToString(SEPARATOR)
 
     /** The make card's words. */
-    fun makeLabel(gameName: String): String = "Make a $gameName puzzle"
+    internal fun makeLabel(gameName: String): String = "Make a $gameName puzzle"
 
     private const val SEPARATOR = " · "
 }

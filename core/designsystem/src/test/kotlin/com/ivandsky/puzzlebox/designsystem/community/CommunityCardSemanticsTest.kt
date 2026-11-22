@@ -63,7 +63,7 @@ class CommunityCardSemanticsTest {
 
     private fun shelf(
         modifier: Modifier,
-        badge: ShelfBadge? = null,
+        badges: List<ShelfBadge> = emptyList(),
         selected: Boolean = false,
         onClick: () -> Unit = {},
         onLongClick: (() -> Unit)? = null,
@@ -80,7 +80,7 @@ class CommunityCardSemanticsTest {
             onClick = onClick,
             modifier = modifier,
             difficulty = "Hard",
-            badge = badge,
+            badges = badges,
             selected = selected,
             onLongClick = onLongClick,
             onLongClickLabel = "Report",
@@ -116,11 +116,12 @@ class CommunityCardSemanticsTest {
     }
 
     @Test
-    fun `a shelf card reads its title, byline, solves and badge as one node`() {
-        show { shelf(it, badge = ShelfBadge.Friend)() }
+    fun `a shelf card reads its title, byline, solves and both badges as one node`() {
+        show { shelf(it, badges = listOf(ShelfBadge.New, ShelfBadge.Friend))() }
         val node = composeRule.onNodeWithTag(CARD)
         node.assert(hasText("Spiral staircase", substring = true))
         node.assert(hasText("Mia · Hard", substring = true))
+        node.assert(hasText("NEW", substring = true))
         node.assert(hasText("Friend", substring = true))
         node.assert(hasContentDescription("132 solves", substring = true))
     }
@@ -193,7 +194,7 @@ class CommunityCardSemanticsTest {
 
     @Test
     fun `a make card takes the wide width for an empty shelf`() {
-        show { MakePuzzleCard(gameName = "Mini Sudoku", onClick = {}, modifier = it, width = ShelfCardDefaults.MakeRowCardWidth) }
+        show { MakePuzzleCard(gameName = "Mini Sudoku", onClick = {}, modifier = it.width(ShelfCardDefaults.MakeRowCardWidth)) }
         composeRule.onNodeWithTag(CARD).assertWidthIsEqualTo(200.dp)
     }
 

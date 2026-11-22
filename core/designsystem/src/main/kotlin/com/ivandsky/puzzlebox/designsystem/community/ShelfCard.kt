@@ -3,8 +3,10 @@ package com.ivandsky.puzzlebox.designsystem.community
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -29,7 +31,7 @@ import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 
 /**
  * A puzzle on a community shelf: 156dp wide, the game's art on top (its [glyph] disc in [accent], the
- * solves chip bottom-left, an optional [badge] top-right), then the [title] over two lines and the
+ * solves chip bottom-left, any [badges] top-right, NEW first), then the [title] over two lines and the
  * "[author] · [difficulty]" line. A tap [onClick]s; a long press [onLongClick]s (report, remove a
  * friend) with [onLongClickLabel] announced for it. [selected] rings the card that is open in the tablet's
  * detail pane. A press scales it to .97 and, under reduced motion, washes it instead.
@@ -44,7 +46,7 @@ fun ShelfCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     difficulty: String? = null,
-    badge: ShelfBadge? = null,
+    badges: List<ShelfBadge> = emptyList(),
     selected: Boolean = false,
     onLongClick: (() -> Unit)? = null,
     onLongClickLabel: String? = null,
@@ -77,7 +79,12 @@ fun ShelfCard(
                 .cardPressWash(interaction, reduced, shape),
         ) {
             SolvesChip(solves, Modifier.align(Alignment.BottomStart).padding(Spacing.sm))
-            if (badge != null) ShelfBadgeLabel(badge, Modifier.align(Alignment.TopEnd).padding(Spacing.sm))
+            if (badges.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.sm),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                ) { badges.forEach { ShelfBadgeLabel(it) } }
+            }
             if (selected) Box(Modifier.matchParentSize().border(ShelfCardDefaults.SelectionRing, MaterialTheme.colorScheme.secondary, shape))
         }
         Text(

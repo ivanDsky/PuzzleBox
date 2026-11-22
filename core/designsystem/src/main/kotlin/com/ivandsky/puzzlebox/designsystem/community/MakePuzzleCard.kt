@@ -27,7 +27,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
@@ -36,15 +35,14 @@ import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 
 /**
  * The dashed "Make a [gameName] puzzle" card that ends a game's shelf: a 36dp icon tile over the words,
- * 120dp tall. [width] is [ShelfCardDefaults.MakeCardWidth] beside puzzles, and
- * [ShelfCardDefaults.MakeRowCardWidth] in the make row or on an empty shelf.
+ * 120dp tall. It is [ShelfCardDefaults.MakeCardWidth] beside puzzles; pass
+ * `Modifier.width(ShelfCardDefaults.MakeRowCardWidth)` in the make row or on an empty shelf.
  */
 @Composable
 fun MakePuzzleCard(
     gameName: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    width: Dp = ShelfCardDefaults.MakeCardWidth,
 ) {
     val reduced = rememberReducedMotion()
     val interaction = remember { MutableInteractionSource() }
@@ -54,7 +52,7 @@ fun MakePuzzleCard(
     Column(
         modifier = modifier
             .cardPressScale(interaction, ShelfCardDefaults.PressScale, reduced)
-            .width(width)
+            .width(ShelfCardDefaults.MakeCardWidth)
             .heightIn(min = ShelfCardDefaults.ArtHeight)
             .clip(shape)
             .cardPressWash(interaction, reduced, shape)

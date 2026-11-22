@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -43,11 +44,15 @@ private fun CardPreviewFrame(content: @Composable () -> Unit) {
 @Composable
 internal fun ShelfCardBadgesPreview() = CardPreviewFrame {
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        ShelfCard("Spiral staircase", "Mia", 132, AccentSlot.Blue, GameGlyphs.Zip, onClick = {}, difficulty = "Hard", badge = ShelfBadge.New)
-        ShelfCard("Garden path", "Tomas", 48, AccentSlot.Violet, GameGlyphs.Queens, onClick = {}, difficulty = "Easy", badge = ShelfBadge.Friend)
+        ShelfCard("Spiral staircase", "Mia", 132, AccentSlot.Blue, GameGlyphs.Zip, onClick = {}, difficulty = "Hard", badges = listOf(ShelfBadge.New, ShelfBadge.Friend))
+        ShelfCard("Sun and moon", "You", 7, AccentSlot.Orange, GameGlyphs.Tango, onClick = {}, badges = listOf(ShelfBadge.New, ShelfBadge.You))
     }
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        ShelfCard("Sun and moon", "You", 7, AccentSlot.Orange, GameGlyphs.Tango, onClick = {}, badge = ShelfBadge.You)
+        ShelfCard("Fresh grid", "Ana", 3, AccentSlot.Teal, GameGlyphs.Sudoku, onClick = {}, difficulty = "Easy", badges = listOf(ShelfBadge.New))
+        ShelfCard("Garden path", "Tomas", 48, AccentSlot.Violet, GameGlyphs.Queens, onClick = {}, difficulty = "Easy", badges = listOf(ShelfBadge.Friend))
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        ShelfCard("Quiet corner", "You", 540, AccentSlot.Orange, GameGlyphs.Tango, onClick = {}, badges = listOf(ShelfBadge.You))
         ShelfCard("Word thread", "Ana", 1203, AccentSlot.Pink, GameGlyphs.Strands, onClick = {}, difficulty = "Medium", selected = true)
     }
 }
@@ -56,7 +61,7 @@ internal fun ShelfCardBadgesPreview() = CardPreviewFrame {
 @Composable
 internal fun ShelfCardLongestPreview() = CardPreviewFrame {
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        ShelfCard(LONG_TITLE, LONG_AUTHOR, 9876, AccentSlot.Teal, GameGlyphs.Sudoku, onClick = {}, difficulty = "Medium", badge = ShelfBadge.Friend)
+        ShelfCard(LONG_TITLE, LONG_AUTHOR, 9876, AccentSlot.Teal, GameGlyphs.Sudoku, onClick = {}, difficulty = "Medium", badges = listOf(ShelfBadge.New, ShelfBadge.Friend))
         MakePuzzleCard("Mini Sudoku", onClick = {})
     }
 }
@@ -107,7 +112,7 @@ internal fun MakePuzzleCardsPreview() = CardPreviewFrame {
         MakePuzzleCard("Zip", onClick = {})
         MakePuzzleCard("Queens", onClick = {})
     }
-    MakePuzzleCard("Mini Sudoku", onClick = {}, width = ShelfCardDefaults.MakeRowCardWidth)
+    MakePuzzleCard("Mini Sudoku", onClick = {}, modifier = Modifier.width(ShelfCardDefaults.MakeRowCardWidth))
 }
 
 @PuzzleBoxPreviews
