@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.play.di
 
+import com.ivandsky.puzzlebox.common.di.flagSet
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.domain.ranks.LoadFriendsPastPage
@@ -45,6 +46,7 @@ import com.ivandsky.puzzlebox.play.domain.nextthing.ObserveResultNextThing
 import com.ivandsky.puzzlebox.play.domain.random.LoadRandomDay
 import com.ivandsky.puzzlebox.play.domain.random.LoadRandomPuzzle
 import com.ivandsky.puzzlebox.play.domain.random.LoadRandomShared
+import com.ivandsky.puzzlebox.play.flags.PlayFlag
 import com.ivandsky.puzzlebox.play.random.RandomPickMemory
 import com.ivandsky.puzzlebox.play.random.RandomPuzzleViewModel
 import java.time.Instant
@@ -78,6 +80,7 @@ import org.koin.dsl.module
  */
 val playModule = module {
     includes(friendModule)
+    flagSet("play", PlayFlag.entries)
     single {
         val lane = WriteLane()
         val saved = get<SavedPlayRepository>()
