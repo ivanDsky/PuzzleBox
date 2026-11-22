@@ -2,7 +2,10 @@ package com.ivandsky.puzzlebox.insights.stats.grouped
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.designsystem.chart.BarChart
 import com.ivandsky.puzzlebox.designsystem.chart.BarChartBar
@@ -49,6 +52,10 @@ internal fun StatsBarChartAt(
     modifier: Modifier = Modifier,
 ) {
     val composed = run()
+    val currentRun by rememberUpdatedState(run)
+    val currentElapsed by rememberUpdatedState(elapsedMs)
+    // The value texts change once per morph (at its midpoint), so they only recompose then, not every frame.
+    val values by remember { derivedStateOf { currentRun().let { r -> r.bars.indices.map { r.valueAt(it, currentElapsed()) } } } }
     BarChart(
         bars = composed.bars,
         what = what,
@@ -56,5 +63,6 @@ internal fun StatsBarChartAt(
         modifier = modifier,
         barScale = { index -> run().scaleAt(index, elapsedMs()) },
         valueAlpha = { run().valuesAt(elapsedMs()) },
+        valueText = { index -> values.getOrNull(index)?.let(valueLabel).orEmpty() },
     )
 }

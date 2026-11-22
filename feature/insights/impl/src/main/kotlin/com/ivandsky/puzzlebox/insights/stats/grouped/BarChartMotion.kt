@@ -19,7 +19,7 @@ internal class BarChartMotion(bars: List<BarChartBar>, animateArrival: Boolean) 
     suspend fun show(bars: List<BarChartBar>, reduced: Boolean) {
         if (bars != run.bars) {
             val before = run.shownFractions(clock.ms)
-            run = if (reduced) BarRun.Rest(bars) else BarRun.Morph(before, bars)
+            run = if (reduced) BarRun.Rest(bars) else BarRun.Morph(before, bars, run.bars)
             clock.restart()
         }
         clock.playTo(run.totalMs)

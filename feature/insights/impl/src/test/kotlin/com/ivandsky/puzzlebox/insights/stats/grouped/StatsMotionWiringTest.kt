@@ -19,8 +19,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
@@ -160,6 +165,100 @@ class StatsMotionWiringTest {
             rule.mainClock.advanceTimeBy(step)
             assertTrue("the line is on screen: ${primaryPixels("line")} of $lineBefore", primaryPixels("line") > lineBefore * 0.5)
             assertTrue("the bars are on screen: ${primaryPixels("bars")} of $barsBefore", primaryPixels("bars") > barsBefore * 0.5)
+        }
+    }
+
+    private fun writes(tag: String, text: String) =
+        rule.onAllNodes(hasText(text) and hasAnyAncestor(hasTestTag(tag)), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+
+    @Test
+    fun `a change writes the old labels until the midpoint and the new ones after it`() {
+        animations()
+        var longer by mutableStateOf(false)
+        rule.setContent {
+            PuzzleBoxTheme(darkTheme = true) {
+                primary = MaterialTheme.colorScheme.primary
+                CompositionLocalProvider(LocalStatsMotion provides remember { StatsMotion() }) {
+                    Column {
+                        Box(Modifier.size(360.dp, 120.dp).background(stage).testTag("line")) {
+                            StatsLineChart(line(if (longer) month else week), "Time", { "${it.toInt()}s" }, key = "line")
+                        }
+                        Box(Modifier.size(360.dp, 160.dp).background(stage).testTag("bars")) {
+                            StatsBarChart(bars(if (longer) month else week), "Time by weekday", { "${it.toInt()}s" }, key = "bars")
+                        }
+                    }
+                }
+            }
+        }
+        rule.mainClock.advanceTimeBy(1_500)
+        assertTrue(writes("line", "d6") && writes("line", "102s") && writes("line", "64s") && writes("bars", "95s"))
+        change { longer = true }
+        listOf(8L, 8L, 16L, 60L).forEach { step ->
+            rule.mainClock.advanceTimeBy(step)
+            val at = rule.mainClock.currentTime
+            assertTrue("old end label at $at", writes("line", "d6") && !writes("line", "d8"))
+            assertTrue("old axis values at $at", writes("line", "102s") && writes("line", "64s") && !writes("line", "110s") && !writes("line", "75s"))
+            assertTrue("old bar value at $at", writes("bars", "95s") && !writes("bars", "110s"))
+        }
+        rule.mainClock.advanceTimeBy(150)
+        assertTrue("new end label past the midpoint", writes("line", "d8") && !writes("line", "d6"))
+        assertTrue("new axis values past the midpoint", writes("line", "110s") && writes("line", "75s") && !writes("line", "102s"))
+        assertTrue("new bar value past the midpoint", writes("bars", "110s") && !writes("bars", "95s"))
+        rule.mainClock.advanceTimeBy(500)
+        assertTrue("new labels at the end", writes("line", "d8") && writes("line", "110s") && writes("bars", "110s"))
+    }
+
+    @Test
+    fun `the dots stay off a morphing line and are back when it ends`() {
+        animations()
+        var longer by mutableStateOf(false)
+        rule.setContent {
+            PuzzleBoxTheme(darkTheme = true) {
+                primary = MaterialTheme.colorScheme.primary
+                CompositionLocalProvider(LocalStatsMotion provides remember { StatsMotion() }) {
+                    Box(Modifier.size(360.dp, 120.dp).background(stage).testTag("line")) {
+                        StatsLineChart(line(if (longer) month else week), "Time", { "${it.toInt()}s" }, key = "line")
+                    }
+                }
+            }
+        }
+        rule.mainClock.advanceTimeBy(1_500)
+        val withDots = primaryPixels("line")
+        change { longer = true }
+        rule.mainClock.advanceTimeBy(16)
+        val morphing = primaryPixels("line")
+        rule.mainClock.advanceTimeBy(500)
+        val ended = primaryPixels("line")
+        assertTrue("no dots while it morphs: $morphing of $withDots", morphing < withDots * 0.9)
+        assertTrue("the dots are back at its end: $ended of $withDots", ended > morphing + 300)
+    }
+
+    @Test
+    fun `a bar's value rides the top of its morphing bar`() {
+        animations()
+        var longer by mutableStateOf(false)
+        rule.setContent {
+            PuzzleBoxTheme(darkTheme = true) {
+                primary = MaterialTheme.colorScheme.primary
+                CompositionLocalProvider(LocalStatsMotion provides remember { StatsMotion() }) {
+                    Box(Modifier.size(360.dp, 160.dp).background(stage).testTag("bars")) {
+                        StatsBarChart(bars(if (longer) month else week), "Time by weekday", { "${it.toInt()}s" }, key = "bars")
+                    }
+                }
+            }
+        }
+        rule.mainClock.advanceTimeBy(1_500)
+        change { longer = true }
+        val start = rule.mainClock.currentTime
+        listOf(16L, 40L, 60L, 60L, 60L).forEach { step ->
+            rule.mainClock.advanceTimeBy(step)
+            val image = rule.onNodeWithTag("bars").captureToImage().toPixelMap()
+            // Bar 0 carries its old text until the midpoint and its new text after it, both on the bar's animated top.
+            val text = if (rule.mainClock.currentTime - start < CHART_MORPH_MS / 2) "95s" else "110s"
+            val label = rule.onAllNodes(hasText(text) and hasAnyAncestor(hasTestTag("bars")), useUnmergedTree = true).onFirst().fetchSemanticsNode().layoutInfo.coordinates.boundsInRoot()
+            val x = ((label.left + label.right) / 2).toInt()
+            val top = (0 until image.height).first { y -> near(image[x, y], primary) }
+            assertTrue("at ${rule.mainClock.currentTime} the value ends at the bar top: label bottom ${label.bottom}, bar top $top", abs(label.bottom - top) <= 3f)
         }
     }
 

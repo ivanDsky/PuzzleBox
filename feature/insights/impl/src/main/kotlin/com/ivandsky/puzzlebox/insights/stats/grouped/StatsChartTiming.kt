@@ -36,8 +36,11 @@ internal fun labelAlpha(elapsedMs: Float, totalMs: Float): Float =
  */
 internal fun labelSwapAlpha(elapsedMs: Float, totalMs: Float): Float {
     val fade = MotionTokens.ChartLabelFade
-    return if (elapsedMs < totalMs / 2) (1f - elapsedMs / fade).coerceIn(0f, 1f) else labelAlpha(elapsedMs, totalMs)
+    return if (labelsAreOld(elapsedMs, totalMs)) (1f - elapsedMs / fade).coerceIn(0f, 1f) else labelAlpha(elapsedMs, totalMs)
 }
+
+/** True while a morph's labels are still the old data's: up to the midpoint of a [totalMs] run, where the swap happens. */
+internal fun labelsAreOld(elapsedMs: Float, totalMs: Float): Boolean = elapsedMs < totalMs / 2
 
 /** The stagger index of an arriving block: only blocks that arrive together (the first pass) wait on each other. */
 internal fun arrivalStagger(index: Int, firstPass: Boolean): Int = if (firstPass) index else 0

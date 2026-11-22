@@ -2,7 +2,10 @@ package com.ivandsky.puzzlebox.insights.stats.grouped
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.designsystem.chart.LineChart
 import com.ivandsky.puzzlebox.designsystem.chart.LineChartPoint
@@ -50,6 +53,11 @@ internal fun StatsLineChartAt(
     modifier: Modifier = Modifier,
 ) {
     val composed = run()
+    val currentRun by rememberUpdatedState(run)
+    val currentElapsed by rememberUpdatedState(elapsedMs)
+    // Which dataset the labels are written from changes once per morph, so these only recompose then, not every frame.
+    val labelPoints by remember { derivedStateOf { currentRun().labelPointsAt(currentElapsed()) } }
+    val labelScale by remember { derivedStateOf { currentRun().labelScaleAt(currentElapsed()) } }
     LineChart(
         points = composed.pointsAt(if (composed.movesPoints) elapsedMs() else 0f),
         what = what,
@@ -58,6 +66,9 @@ internal fun StatsLineChartAt(
         valueRange = composed.scale,
         drawProgress = { run().drawAt(elapsedMs()) },
         labelAlpha = { run().labelsAt(elapsedMs()) },
+        dotAlpha = { run().dotsAt(elapsedMs()) },
+        labelPoints = labelPoints,
+        labelRange = labelScale,
         summaryPoints = composed.points,
     )
 }

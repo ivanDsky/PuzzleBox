@@ -36,7 +36,9 @@ import com.ivandsky.puzzlebox.designsystem.tabular
  *
  * Two optional lambdas let a caller animate the chart without the chart owning a clock; both are read at draw time and
  * default to the finished chart. [barScale] gives the height scale of bar `index` (1 is its own height, 0 flat; it
- * grows from the baseline), and [valueAlpha] (0..1) is the opacity of the values written above the bars.
+ * grows from the baseline), and [valueAlpha] (0..1) is the opacity of the values written above the bars. Each value
+ * rides the top of its bar as [barScale] moves it. [valueText] is the text of bar `index`'s value where a caller shows
+ * another dataset's while it morphs (the bar's own [valueLabel] by default; an empty text writes nothing).
  */
 @Composable
 fun BarChart(
@@ -46,6 +48,7 @@ fun BarChart(
     modifier: Modifier = Modifier,
     barScale: (Int) -> Float = { 1f },
     valueAlpha: () -> Float = { 1f },
+    valueText: (Int) -> String = { valueLabel(bars[it].value) },
 ) {
     if (bars.isEmpty()) return
     val summary = remember(bars, what) { barChartSummary(what, bars, valueLabel) }
@@ -56,7 +59,7 @@ fun BarChart(
         Row(Modifier.fillMaxWidth().height(PlotHeight), horizontalArrangement = Arrangement.spacedBy(BarGap)) {
             bars.forEachIndexed { index, bar ->
                 val fraction = if (tallest <= 0.0) 0f else (bar.value.coerceAtLeast(0.0) / tallest).toFloat()
-                Bar(valueLabel(bar.value), fraction, { barScale(index) }, valueAlpha, Modifier.weight(1f))
+                Bar(valueText(index), fraction, { barScale(index) }, valueAlpha, Modifier.weight(1f))
             }
         }
         Box(Modifier.fillMaxWidth().height(RuleWidth).background(MaterialTheme.colorScheme.outlineVariant))
@@ -87,7 +90,11 @@ private fun Bar(value: String, fraction: Float, scale: () -> Float, valueAlpha: 
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             textAlign = TextAlign.Center,
-            modifier = Modifier.graphicsLayer { alpha = valueAlpha() },
+            modifier = Modifier.graphicsLayer {
+                alpha = valueAlpha()
+                // The bar is the share [fraction] of what the text leaves of the plot and stands at [scale] of it: the text follows its top.
+                translationY = (PlotHeight.toPx() - size.height) * fraction * (1f - scale())
+            },
         )
         if (fraction > 0f) {
             val top = MaterialTheme.shapes.extraSmall.copy(bottomStart = ZeroCornerSize, bottomEnd = ZeroCornerSize)

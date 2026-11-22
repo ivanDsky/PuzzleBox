@@ -121,7 +121,9 @@ class StatsMotionCaptures {
         rule.runOnIdle { longer = true; Snapshot.sendApplyNotifications() }
         rule.mainClock.advanceTimeBy(16)
         frame("reduced-2-after-16ms")
-        rule.mainClock.advanceTimeBy(300)
+        rule.mainClock.advanceTimeBy(16)
+        frame("reduced-2b-after-32ms")
+        rule.mainClock.advanceTimeBy(284)
         frame("reduced-3-after-316ms")
     }
 
