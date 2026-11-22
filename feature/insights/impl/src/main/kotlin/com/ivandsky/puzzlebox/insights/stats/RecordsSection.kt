@@ -29,6 +29,8 @@ import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.insights.domain.recap.SolveRef
 import com.ivandsky.puzzlebox.insights.domain.stats.SectionState
 import com.ivandsky.puzzlebox.insights.domain.stats.StatsRecords
+import com.ivandsky.puzzlebox.insights.stats.grouped.StatsCountUpText
+import com.ivandsky.puzzlebox.insights.stats.grouped.StatsMorphText
 import com.ivandsky.puzzlebox.model.GameId
 
 /**
@@ -120,9 +122,9 @@ private fun RecordRow(line: RecordLine, onOpenSolve: (SolveRef) -> Unit) {
     ) {
         Column(Modifier.weight(1f).padding(vertical = Spacing.sm)) {
             Text(text = line.label, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
-            Text(text = line.detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            StatsMorphText(line.detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Text(text = line.value, style = MaterialTheme.typography.titleMedium.tabular(), color = MaterialTheme.colorScheme.onSurface)
+        StatsCountUpText(line.value, key = line.tag, style = MaterialTheme.typography.titleMedium.tabular(), color = MaterialTheme.colorScheme.onSurface)
         // A fixed slot, so the values of rows that open something and rows that do not line up.
         Row(Modifier.size(IconSlot), verticalAlignment = Alignment.CenterVertically) {
             if (solve != null) {

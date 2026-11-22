@@ -16,6 +16,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextAlign
@@ -31,6 +33,12 @@ import com.ivandsky.puzzlebox.designsystem.tabular
  * compare directly. [what] says what the bars measure, for the screen reader's summary ([barChartSummary]); [valueLabel]
  * writes a value. One bar is a chart too, and no bars draw nothing. The bars run the way the layout reads, so they
  * mirror in a right-to-left layout.
+ *
+ * Two optional lambdas let a caller animate the chart without the chart owning a clock; both are read at draw time and
+ * default to the finished chart. [barScale] gives the height scale of bar `index` (1 is its own height, 0 flat; it
+ * grows from the baseline), and [valueAlpha] (0..1) is the opacity of the values written above the bars. Each value
+ * rides the top of its bar as [barScale] moves it. [valueText] is the text of bar `index`'s value where a caller shows
+ * another dataset's while it morphs (the bar's own [valueLabel] by default; an empty text writes nothing).
  */
 @Composable
 fun BarChart(
@@ -38,6 +46,9 @@ fun BarChart(
     what: String,
     valueLabel: (Double) -> String,
     modifier: Modifier = Modifier,
+    barScale: (Int) -> Float = { 1f },
+    valueAlpha: () -> Float = { 1f },
+    valueText: (Int) -> String = { valueLabel(bars[it].value) },
 ) {
     if (bars.isEmpty()) return
     val summary = remember(bars, what) { barChartSummary(what, bars, valueLabel) }
@@ -46,9 +57,9 @@ fun BarChart(
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
     Column(modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = summary }) {
         Row(Modifier.fillMaxWidth().height(PlotHeight), horizontalArrangement = Arrangement.spacedBy(BarGap)) {
-            bars.forEach { bar ->
+            bars.forEachIndexed { index, bar ->
                 val fraction = if (tallest <= 0.0) 0f else (bar.value.coerceAtLeast(0.0) / tallest).toFloat()
-                Bar(valueLabel(bar.value), fraction, Modifier.weight(1f))
+                Bar(valueText(index), fraction, { barScale(index) }, valueAlpha, Modifier.weight(1f))
             }
         }
         Box(Modifier.fillMaxWidth().height(RuleWidth).background(MaterialTheme.colorScheme.outlineVariant))
@@ -70,7 +81,7 @@ fun BarChart(
 
 /** One bar with its [value] text on top: the text keeps its own height and the rest of the plot is shared by the gap above the bar and the bar, in the [fraction] of the tallest. */
 @Composable
-private fun Bar(value: String, fraction: Float, modifier: Modifier) {
+private fun Bar(value: String, fraction: Float, scale: () -> Float, valueAlpha: () -> Float, modifier: Modifier) {
     Column(modifier.height(PlotHeight), horizontalAlignment = Alignment.CenterHorizontally) {
         if (fraction < 1f) Spacer(Modifier.weight(1f - fraction))
         Text(
@@ -79,6 +90,11 @@ private fun Bar(value: String, fraction: Float, modifier: Modifier) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             textAlign = TextAlign.Center,
+            modifier = Modifier.graphicsLayer {
+                alpha = valueAlpha()
+                // The bar is the share [fraction] of what the text leaves of the plot and stands at [scale] of it: the text follows its top.
+                translationY = (PlotHeight.toPx() - size.height) * fraction * (1f - scale())
+            },
         )
         if (fraction > 0f) {
             val top = MaterialTheme.shapes.extraSmall.copy(bottomStart = ZeroCornerSize, bottomEnd = ZeroCornerSize)
@@ -86,6 +102,10 @@ private fun Bar(value: String, fraction: Float, modifier: Modifier) {
                 Modifier
                     .fillMaxWidth(BarWidth)
                     .weight(fraction)
+                    .graphicsLayer {
+                        scaleY = scale()
+                        transformOrigin = TransformOrigin(0.5f, 1f)
+                    }
                     .background(MaterialTheme.colorScheme.primary, top),
             )
         }
