@@ -47,7 +47,8 @@ internal fun LazyListScope.shelvesSections(content: ShelvesUiState.Content, acti
                     section.sub(),
                     Modifier.testTag("shelves.shelf.${game.id.value}"),
                     disc = game.brand,
-                    onSeeAll = { actions.onSeeAll(SeeAllScope.Game(game.id)) },
+                    // A shelf with nothing on it has nothing to see all of.
+                    onSeeAll = if (section.summary == Section.GameShelf.Summary.None) null else ({ actions.onSeeAll(SeeAllScope.Game(game.id)) }),
                     seeAllTag = "shelves.seeall.${game.id.value}",
                 ) {
                     items(section.cards, key = { it.code.value }) { PlanCard(it, content, actions.onOpen) }
