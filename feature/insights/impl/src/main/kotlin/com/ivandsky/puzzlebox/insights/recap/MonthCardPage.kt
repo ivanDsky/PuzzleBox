@@ -95,8 +95,9 @@ internal fun Eyebrow(text: String, modifier: Modifier = Modifier) {
 }
 
 /**
- * The month's name in kinetic letters, its rolling count over "puzzles solved", then its highlight and what else it did.
- * A roomy card sizes the name and count by its column's [width] and spreads them down the column ([arrangement]).
+ * The month's name in kinetic letters and its rolling count over "puzzles solved", kept together as one group, then its
+ * highlight and what else it did. A roomy card sizes the name and count by its column's [width]; the [arrangement]
+ * places the group and the highlight down the column (a roomy card pins the highlight to the bottom).
  */
 @Composable
 private fun MonthLead(
@@ -120,33 +121,41 @@ private fun MonthLead(
         else -> (if (scale.compact) 64f else 88f).let { if (long) it * LongHero else it }.sp
     }
     Column(modifier, verticalArrangement = arrangement) {
-        RecapKineticTitle(card.monthName(), nameSize, Modifier.testTag("recap.month.name"))
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            RollingDigits(
-                value = card.solved.toLong(),
-                modifier = Modifier.testTag("recap.month.solved"),
-                style = MaterialTheme.typography.displayLarge.tabular().copy(
-                    fontSize = heroSize,
-                    lineHeight = heroSize,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = (-0.5).sp,
-                ),
-                contentDescription = "${card.solved} ${card.solved.puzzles()} solved",
-            )
-            Text(
-                text = "${card.solved.puzzles()} solved",
-                modifier = Modifier.clearAndSetSemantics { }.then(riseIn(3)),
-                style = MaterialTheme.typography.headlineSmall.copy(
-                    fontSize = if (scale.roomy) 34.sp else 28.sp,
-                    lineHeight = if (scale.roomy) 40.sp else 34.sp,
-                    fontWeight = FontWeight.Bold,
-                ),
-            )
+        Column(verticalArrangement = Arrangement.spacedBy(if (scale.roomy) RoomyNameGap else PhoneNameGap)) {
+            RecapKineticTitle(card.monthName(), nameSize, Modifier.testTag("recap.month.name"))
+            MonthCount(card, scale, heroSize)
         }
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             MonthHighlightRow(card.lead, colors, gameName, scale, riseIn(4))
             card.also?.let { MonthAlsoLine(it, gameName, scale, riseIn(5)) }
         }
+    }
+}
+
+/** The rolling count over "puzzles solved". */
+@Composable
+private fun MonthCount(card: RecapCard.Month, scale: MonthCardScale, heroSize: TextUnit) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        RollingDigits(
+            value = card.solved.toLong(),
+            modifier = Modifier.testTag("recap.month.solved"),
+            style = MaterialTheme.typography.displayLarge.tabular().copy(
+                fontSize = heroSize,
+                lineHeight = heroSize,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.5).sp,
+            ),
+            contentDescription = "${card.solved} ${card.solved.puzzles()} solved",
+        )
+        Text(
+            text = "${card.solved.puzzles()} solved",
+            modifier = Modifier.clearAndSetSemantics { }.then(riseIn(3)),
+            style = MaterialTheme.typography.headlineSmall.copy(
+                fontSize = if (scale.roomy) 34.sp else 28.sp,
+                lineHeight = if (scale.roomy) 40.sp else 34.sp,
+                fontWeight = FontWeight.Bold,
+            ),
+        )
     }
 }
 
@@ -157,6 +166,10 @@ internal fun RecapCard.Month.monthName(locale: Locale = Locale.getDefault()): St
 /** A pane this wide or wider lays the card out in two columns. */
 private val RoomyWidth = 700.dp
 private val RoomyGap = 40.dp
+
+/** The space between the month's name and its count, so the two read as one group. */
+private val PhoneNameGap = 10.dp
+private val RoomyNameGap = 12.dp
 
 /** Under this height the card tightens its measures; a roomy card's threshold is a little lower. */
 private val CompactHeight = 660.dp
