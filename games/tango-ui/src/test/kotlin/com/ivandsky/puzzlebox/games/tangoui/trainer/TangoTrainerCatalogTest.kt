@@ -38,13 +38,13 @@ class TangoTrainerCatalogTest {
         assertEquals(
             listOf(
                 "= copies a filled neighbor; × gives it the other kind",
-                "Two of a kind side by side: both ends get the other kind",
+                "Two of a kind next to each other: the empty ends get the other kind",
                 "A square between two of a kind gets the other kind",
                 "A line with all 3 of one kind: fill the rest with the other",
-                "An = pair next to a filled square takes the other kind",
+                "An = pair with a filled square at one end takes the other kind",
                 "Count each empty × pair as one of each, then fill what's left",
                 "Two empty squares between a sun and a moon hold one of each",
-                "If one kind would use up the count and force three in a row, the square is the other kind",
+                "If one kind would use up the count and the rest then breaks a rule, the square is the other kind",
                 "Try every fill of a line; squares that never change are settled",
             ),
             catalog.map { it.line },

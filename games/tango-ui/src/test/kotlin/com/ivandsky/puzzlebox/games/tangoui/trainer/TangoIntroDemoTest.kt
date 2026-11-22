@@ -108,7 +108,7 @@ class TangoIntroDemoTest {
                 assertEquals(id.value, evidence - landing, checkNotNull(frame.spotlight).roles.keys)
             }
             for (frame in demo.frames.drop(1)) {
-                assertEquals(id.value, setOf(SpotlightRole.EVIDENCE), checkNotNull(frame.spotlight).roles.values.toSet() - emptySet())
+                assertTrue(id.value, checkNotNull(frame.spotlight).roles.values.all { it == SpotlightRole.EVIDENCE })
             }
         }
     }
@@ -119,6 +119,30 @@ class TangoIntroDemoTest {
             val landing = TangoPractice.opening(case.decoded, case.solution, id, BoardKind.Focus)!!.step.squares.size
             assertEquals(id.value, landing == 1, demo.captions.first().contains("One more"))
         }
+    }
+
+    @Test
+    fun `the first landing caption is told how many squares land, for a pair and a full line`() {
+        var oneSquare = 0
+        var manySquares = 0
+        for ((case, id, demo) in demos()) {
+            val landing = TangoPractice.opening(case.decoded, case.solution, id, BoardKind.Focus)!!.step.squares.size
+            val caption = demo.captions[2]
+            when (id.value) {
+                TangoStepRung.PAIR.trainerId.value -> {
+                    assertEquals(caption, landing > 1, caption.contains("both ends"))
+                    assertEquals(caption, landing == 1, caption.contains("the empty end"))
+                }
+                TangoStepRung.FULL_LINE.trainerId.value -> {
+                    assertEquals(caption, landing == 1, caption.contains("the last empty square"))
+                    assertEquals(caption, landing > 1, caption.contains("the rest are"))
+                }
+                else -> continue
+            }
+            if (landing == 1) oneSquare++ else manySquares++
+        }
+        assertTrue("one-square landings seen", oneSquare > 0)
+        assertTrue("multi-square landings seen", manySquares > 0)
     }
 
     @Test

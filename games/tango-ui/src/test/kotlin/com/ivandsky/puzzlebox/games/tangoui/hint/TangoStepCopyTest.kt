@@ -47,8 +47,8 @@ class TangoStepCopyTest {
     fun `each rung's text is pinned for both values`() {
         val expected = mapOf(
             TangoStepRung.PAIR to listOf(
-                "Two moons touch, so the empty end is a sun",
-                "Two suns touch, so the empty end is a moon",
+                "Two moons touch, so an empty end next to them is a sun",
+                "Two suns touch, so an empty end next to them is a moon",
             ),
             TangoStepRung.SANDWICH to listOf(
                 "This square sits between two moons, so it is a sun",

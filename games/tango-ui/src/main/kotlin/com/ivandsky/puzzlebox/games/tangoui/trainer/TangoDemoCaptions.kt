@@ -9,8 +9,9 @@ import com.ivandsky.puzzlebox.games.tangoui.hint.TangoStepCopy
 /**
  * The captions of a technique intro demo, one per frame (spec §2.7): what to look at, then why each square lands. Plain
  * words, no technique names (A1). The landing reason is the hint's own sentence ([TangoStepCopy.text]) unless the demo
- * knows more than a lit board does: how many squares land. A hint points at one square, so a demo that lands two ends of
- * a pair, or one last square of a full line, says so here. Keyed by rung, so no `when` over rungs exists to hide an entry.
+ * knows more than a lit board does: how many squares land. A hint points at one square, so a demo that lands one or
+ * two ends of a pair, or one last square of a full line, says so here. Keyed by rung, so no `when` over rungs exists to
+ * hide an entry.
  */
 internal object TangoDemoCaptions {
 
@@ -56,7 +57,7 @@ internal object TangoDemoCaptions {
         val other = word(step.value.other)
         return when (step.rung) {
             TangoStepRung.PAIR ->
-                if (landing > 1) "Two ${other}s touch, so both ends are ${value}s" else null
+                if (landing > 1) "Two ${other}s touch, so both ends are ${value}s" else "Two ${other}s touch, so the empty end is a $value"
             TangoStepRung.FULL_LINE ->
                 if (landing == 1) "${lineName(step).replaceFirstChar(Char::uppercase)} has all its ${other}s, so the last empty square is a $value" else null
             TangoStepRung.COUNT_SQUEEZE ->

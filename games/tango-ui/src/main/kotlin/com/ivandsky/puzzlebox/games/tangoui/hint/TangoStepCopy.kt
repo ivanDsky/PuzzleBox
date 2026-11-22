@@ -39,7 +39,7 @@ internal object TangoStepCopy {
 
     private val deductions: Map<TangoStepRung, (Facts) -> String> = mapOf(
         TangoStepRung.SIGN to { facts -> sign(facts) },
-        TangoStepRung.PAIR to { facts -> "Two ${plural(facts.other)} touch, so the empty end is a ${word(facts.value)}" },
+        TangoStepRung.PAIR to { facts -> "Two ${plural(facts.other)} touch, so an empty end next to them is a ${word(facts.value)}" },
         TangoStepRung.SANDWICH to { facts -> "This square sits between two ${plural(facts.other)}, so it is a ${word(facts.value)}" },
         TangoStepRung.FULL_LINE to { facts ->
             "${facts.line.replaceFirstChar(Char::uppercase)} has all its ${plural(facts.other)}, so the rest are ${plural(facts.value)}"
@@ -86,13 +86,13 @@ internal object TangoStepCopy {
 
     private val techniques: Map<TangoStepRung, String> = mapOf(
         TangoStepRung.SIGN to "= copies a filled neighbor; × gives it the other kind",
-        TangoStepRung.PAIR to "Two of a kind side by side: both ends get the other kind",
+        TangoStepRung.PAIR to "Two of a kind next to each other: the empty ends get the other kind",
         TangoStepRung.SANDWICH to "A square between two of a kind gets the other kind",
         TangoStepRung.FULL_LINE to "A line with all 3 of one kind: fill the rest with the other",
-        TangoStepRung.EQUAL_PAIR to "An = pair next to a filled square takes the other kind",
+        TangoStepRung.EQUAL_PAIR to "An = pair with a filled square at one end takes the other kind",
         TangoStepRung.SIGN_COUNT to "Count each empty × pair as one of each, then fill what's left",
         TangoStepRung.SPLIT_PAIR to "Two empty squares between a sun and a moon hold one of each",
-        TangoStepRung.COUNT_SQUEEZE to "If one kind would use up the count and force three in a row, the square is the other kind",
+        TangoStepRung.COUNT_SQUEEZE to "If one kind would use up the count and the rest then breaks a rule, the square is the other kind",
         TangoStepRung.LINE_OPTIONS to "Try every fill of a line; squares that never change are settled",
     )
 
