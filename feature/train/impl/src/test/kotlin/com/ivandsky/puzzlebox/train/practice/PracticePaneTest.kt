@@ -157,11 +157,15 @@ class PracticePaneTest {
     fun `a Keep going band counts the squares left in the step`() {
         showBoard()
 
-        say(PracticeStatus.KeepGoing(left = 2, trained = true))
+        say(PracticeStatus.KeepGoing(left = 2, trained = true, unit = "square"))
         assertBand("Keep going", "This move has 2 more squares. Find them.")
 
-        say(PracticeStatus.KeepGoing(left = 1, trained = true))
+        say(PracticeStatus.KeepGoing(left = 1, trained = true, unit = "square"))
         assertBand("Keep going", "This move has 1 more square. Find it.")
+
+        // A game that names no unit keeps the neutral line.
+        say(PracticeStatus.KeepGoing(left = 3, trained = true))
+        assertBand("Keep going", "3 more in this step.")
 
         say(PracticeStatus.KeepGoing(left = 4, trained = true, unit = "note"))
         assertBand("Keep going", "This move has 4 more notes. Find them.")

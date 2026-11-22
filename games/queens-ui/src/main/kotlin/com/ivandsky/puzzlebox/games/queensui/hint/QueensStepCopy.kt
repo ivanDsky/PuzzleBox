@@ -17,55 +17,57 @@ internal object QueensStepCopy {
      * list when that must read with no board in sight ("any of these squares" has nothing to point at there). A rung
      * with no [list] shows its hint with the unit left generic.
      */
-    private class Copy(val hint: (unit: String) -> String, val list: String? = null)
+    private class Copy(val hint: (unit: String, one: Boolean) -> String, val list: String? = null)
 
     private val deductions: Map<String, Copy> = mapOf(
-        "queens.hint.rung.attack" to Copy({ _ -> "Queens block their lines: cross out what they attack." }),
+        "queens.hint.rung.attack" to Copy({ _, _ -> "Queens block their lines: cross out what they attack." }),
         "queens.hint.rung.singles" to Copy(
-            { unit -> "This $unit has one open square left, so the queen goes there." },
+            { unit, _ -> "This $unit has one open square left, so the queen goes there." },
             list = "When a row, column or color has one open square left, its queen goes there.",
         ),
         "queens.hint.rung.line-lock" to Copy(
-            { unit -> "A color fits one $unit only, so the rest of that $unit is out." },
+            { unit, _ -> "A color fits one $unit only, so the rest of that $unit is out." },
             list = "When a color's open squares all sit in one row or column, or a row's open squares are all one color, " +
                 "cross out the rest of that row, column or color.",
         ),
         "queens.hint.rung.shared-neighbours" to Copy(
-            { unit -> "A queen on any of these squares would touch every open square of a $unit." },
+            { unit, one -> "A queen on ${these(one)} would touch every open square of a $unit." },
             list = "A square that touches every open square of a row, column or color can't hold a queen.",
         ),
         "queens.hint.rung.pigeonhole" to Copy(
-            { _ -> "These colors and these rows or columns use each other up, so the rest are out." },
+            { _, _ -> "These colors and these rows or columns use each other up, so the rest are out." },
             list = "Some colors fit in exactly as many rows or columns (or the other way round), " +
                 "so the rest of those lines or colors is out.",
         ),
         "queens.hint.rung.line-group-pigeonhole" to Copy(
-            { _ -> "These rows and these columns use each other up, so the rest are out." },
+            { _, _ -> "These rows and these columns use each other up, so the rest are out." },
             list = "Some rows fit in exactly as many columns (or columns in rows), so the rest of those lines is out.",
         ),
         "queens.hint.rung.leftover-queen" to Copy(
-            { _ -> "A square that would rule out every square left for the last queen is out." },
+            { _, _ -> "A square that would rule out every square left for the last queen is out." },
+            list = "When some rows hold one more queen than the colors inside them (or colors than the rows inside them), " +
+                "the last queen is left for the other squares of those rows, so a square that would rule out all of those is out.",
         ),
         "queens.hint.rung.squeeze" to Copy(
-            { unit -> "A queen on any of these squares would rule out every open square of a $unit." },
+            { unit, one -> "A queen on ${these(one)} would rule out every open square of a $unit." },
             list = "A square that rules out every open square of a row, column or color, by touching them or " +
                 "sharing a row, column or color with them, can't hold a queen.",
         ),
         "queens.hint.rung.count-squeeze" to Copy(
-            { _ -> "A queen on any of these squares would leave rows, columns or colors short of room." },
+            { _, one -> "A queen on ${these(one)} would leave rows, columns or colors short of room." },
             list = "A queen here would leave two or more rows, columns or colors needing more queens than the lines they still reach.",
         ),
         "queens.hint.rung.short-look-ahead" to Copy(
-            { unit -> "A queen here forces moves that leave a $unit or a group of lines no room." },
+            { unit, _ -> "A queen here forces moves that leave a $unit or a group of lines no room." },
             list = "A square whose queen forces moves that leave a row, column or color, or a group of them, " +
                 "no room can't hold a queen.",
         ),
-        "queens.hint.rung.long-look-ahead" to Copy({ unit -> "A queen here leads on to a $unit with no room." }),
+        "queens.hint.rung.long-look-ahead" to Copy({ unit, _ -> "A queen here leads on to a $unit with no room." }),
     )
 
     /** The callout of a step that has one; [QueensStep.Solved] and [QueensStep.Unavailable] show nothing and throw. */
     fun text(step: QueensStep): String = when (step) {
-        is QueensStep.Deduction -> deductions.getValue(step.unit.rung.captionKey).hint(unitWord(step.unit.kind))
+        is QueensStep.Deduction -> deductions.getValue(step.unit.rung.captionKey).hint(unitWord(step.unit.kind), crossesOne(step.result))
         is QueensStep.Mistake -> when (step.kind) {
             QueensStep.Mistake.Kind.OFF_SOLUTION -> "This queen is not in the solution."
             QueensStep.Mistake.Kind.RULE_BREAK -> "These two queens clash."
@@ -81,7 +83,15 @@ internal object QueensStepCopy {
      */
     fun technique(captionKey: String): String {
         val copy = deductions.getValue(captionKey)
-        return copy.list ?: copy.hint(ANY_UNIT)
+        return copy.list ?: copy.hint(ANY_UNIT, false)
+    }
+
+    private fun these(one: Boolean) = if (one) "this square" else "any of these squares"
+
+    /** A last cell, or a cross of one square, is one square to point at. */
+    private fun crossesOne(result: QueensStep.Deduction.Result): Boolean = when (result) {
+        is QueensStep.Deduction.Result.LastCell -> true
+        is QueensStep.Deduction.Result.Cross -> result.cells.size == 1
     }
 
     private const val ANY_UNIT = "row, column or color"

@@ -92,9 +92,9 @@ class QueensPracticeBoardTest {
         val board = practice()
 
         board.state.onDragStart(9)
-        assertEquals(PracticeStatus.KeepGoing(left = 2, trained = true), board.status.value)
+        assertEquals(PracticeStatus.KeepGoing(left = 2, trained = true, unit = "square"), board.status.value)
         board.state.onDragCell(10)
-        assertEquals(PracticeStatus.KeepGoing(left = 1, trained = true), board.status.value)
+        assertEquals(PracticeStatus.KeepGoing(left = 1, trained = true, unit = "square"), board.status.value)
         assertEquals(emptyList<TrainerVerdict>(), verdicts)
         board.state.onDragCell(11)
         board.state.onDragEnd()

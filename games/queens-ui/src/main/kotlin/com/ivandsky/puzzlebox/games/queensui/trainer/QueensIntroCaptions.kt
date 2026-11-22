@@ -16,7 +16,7 @@ internal object QueensIntroCaptions {
 
     private val singles = TechniqueId("singles")
 
-    /** The two look-aheads, whose lit squares are the queens that would follow and the line left with no room. */
+    /** The two look-aheads, whose lit squares are the moves that would follow and the line left with no room. */
     private val lookAheads = setOf(TechniqueId("short-look-ahead"), TechniqueId("long-look-ahead"))
 
     /** The techniques whose lit squares are all of one row, column or color's open squares. */
@@ -49,7 +49,7 @@ internal object QueensIntroCaptions {
             }
             technique in lookAheads -> {
                 look = "Try a queen on the marked square. The lit squares show what follows."
-                first = "If a queen stood here, these queens would follow, and ${unitName(step.unit)} would have no room."
+                first = "If a queen stood here, the moves it forces would follow, and ${unitName(step.unit)} would have no room."
                 last = "Those squares are crossed out."
             }
             else -> {

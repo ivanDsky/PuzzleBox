@@ -56,7 +56,7 @@ internal object QueensIntroCopy {
                 title = name,
                 rule = "Two colors whose open squares all sit in the same two rows (or three colors in three rows) take those rows' " +
                     "queens, so the rows' other open squares are out. Also: two rows whose open squares are only two colors use up those colors.",
-                spotIt = "Two or three colors whose open squares all sit in as many rows or columns, or the same with rows or columns " +
+                spotIt = "Some colors whose open squares all sit in as many rows or columns, or the same with rows or columns " +
                     "and colors swapped.",
                 doIt = "Cross out the other open squares of those rows or columns, or, the other way round, of those colors.",
             )
@@ -102,7 +102,7 @@ internal object QueensIntroCopy {
             IntroVariant(
                 title = name,
                 rule = "Try a queen on a square, then make the moves it forces right away (every row, column or color left with one " +
-                    "open square gets its queen). If that leaves some row, column or color, or a group of them, without room, " +
+                    "open square gets its queen, or else the first easy cross-out applies). If that leaves some row, column or color, or a group of them, without room, " +
                     "the first square is out.",
                 spotIt = "A square whose queen, with the moves it forces, leaves a row, column or color, or a group of them, no room.",
                 doIt = "Cross out every square like that.",

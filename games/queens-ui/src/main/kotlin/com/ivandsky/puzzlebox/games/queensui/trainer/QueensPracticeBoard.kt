@@ -171,7 +171,7 @@ internal class QueensPracticeBoard(
     private fun progressed(spotlight: Spotlight, trained: Boolean, other: String?, left: Set<Cell>, after: QueensSession) {
         if (left.isNotEmpty()) {
             running = Running(spotlight, trained, other, left)
-            mutableStatus.value = PracticeStatus.KeepGoing(left.size, trained)
+            mutableStatus.value = PracticeStatus.KeepGoing(left.size, trained, unit = "square")
             return
         }
         running = null

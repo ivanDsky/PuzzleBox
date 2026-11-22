@@ -81,6 +81,13 @@ internal fun BandFrame(container: Color, tag: String, modifier: Modifier = Modif
     )
 }
 
+/** "This move has 2 more squares. Find them." for a game that names its unit, else the neutral "2 more in this step.". */
+private fun keepGoingLine(status: PracticeStatus.KeepGoing): String = when {
+    status.unit == null -> "${status.left} more in this step."
+    status.left == 1 -> "This move has 1 more ${status.unit}. Find it."
+    else -> "This move has ${status.left} more ${status.unit}s. Find them."
+}
+
 @Composable
 private fun band(status: PracticeStatus, chapter: PracticeChapter): Band {
     val name = chapter.technique.name
@@ -101,7 +108,7 @@ private fun band(status: PracticeStatus, chapter: PracticeChapter): Band {
         is PracticeStatus.KeepGoing -> Band(
             PuzzleIcons.Info,
             "Keep going",
-            if (status.left == 1) "This move has 1 more ${status.unit}. Find it." else "This move has ${status.left} more ${status.unit}s. Find them.",
+            keepGoingLine(status),
             scheme.primaryContainer,
             scheme.onPrimaryContainer,
         )

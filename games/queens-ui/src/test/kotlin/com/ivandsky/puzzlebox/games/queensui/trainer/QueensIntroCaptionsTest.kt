@@ -79,9 +79,9 @@ class QueensIntroCaptionsTest {
     fun `a look-ahead says the queens that follow and the line left with no room`() {
         val shortLook = captions("short-look-ahead", HintReason.Kind.REGION, 0, evidence = 4, landing = 2)
 
-        assertEquals("If a queen stood here, these queens would follow, and red would have no room.", shortLook[2])
+        assertEquals("If a queen stood here, the moves it forces would follow, and red would have no room.", shortLook[2])
         assertEquals("Try a queen on the marked square. The lit squares show what follows.", shortLook[1])
         val longLook = captions("long-look-ahead", HintReason.Kind.ROW, 4, evidence = 5, landing = 1)
-        assertEquals("If a queen stood here, these queens would follow, and row 5 would have no room.", longLook[2])
+        assertEquals("If a queen stood here, the moves it forces would follow, and row 5 would have no room.", longLook[2])
     }
 }
