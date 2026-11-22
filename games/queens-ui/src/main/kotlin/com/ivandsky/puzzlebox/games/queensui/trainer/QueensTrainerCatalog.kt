@@ -7,8 +7,7 @@ import com.ivandsky.puzzlebox.games.queensui.hint.QueensStepCopy
 
 /**
  * The Queens technique list: one row per [QueensLadder.Stepwise] rung with a Trainer id, in the stepper's own order
- * (easiest first). The name is the list's own; the line is the sentence the hint shows for that rung
- * ([QueensStepCopy.technique]), so a copy edit there shows in both (A1: no third copy set). Rows are keyed by
+ * (easiest first). The name is the list's own; the line is that rung's sentence in [QueensStepCopy.technique]: one copy set, with the hint. Rows are keyed by
  * [TechniqueId], the stored key, never by a rung's class name.
  */
 internal object QueensTrainerCatalog {
@@ -17,7 +16,7 @@ internal object QueensTrainerCatalog {
         TechniqueId("singles") to "Singles",
         TechniqueId("line-lock") to "Line lock",
         TechniqueId("shared-squares") to "Shared squares",
-        TechniqueId("pigeonhole-regions") to "Pigeonhole (regions)",
+        TechniqueId("pigeonhole-regions") to "Pigeonhole (colors)",
         TechniqueId("pigeonhole-lines") to "Pigeonhole (rows and columns)",
         TechniqueId("leftover-queen") to "Leftover queen",
         TechniqueId("squeeze") to "Squeeze",

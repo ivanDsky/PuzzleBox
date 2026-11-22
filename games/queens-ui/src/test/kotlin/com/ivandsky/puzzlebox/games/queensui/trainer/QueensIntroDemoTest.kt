@@ -1,8 +1,10 @@
 package com.ivandsky.puzzlebox.games.queensui.trainer
 
+import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightRole
 import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
+import com.ivandsky.puzzlebox.games.queens.engine.hints.step.QueensStep
 import com.ivandsky.puzzlebox.games.queens.engine.trainer.QueensIntro
 import com.ivandsky.puzzlebox.games.queens.engine.trainer.QueensPractice
 import com.ivandsky.puzzlebox.games.queensui.trainer.QueensTrainerFixtures.canonical
@@ -25,7 +27,7 @@ class QueensIntroDemoTest {
         for (technique in QueensTrainerCatalog.techniques) {
             val variants = trainer.variants(technique.id)
             if (technique.id == lineLock) {
-                assertEquals(listOf("Fill the line", "Fill the region"), variants.map { it.title })
+                assertEquals(listOf("Color inside one line", "Line inside one color"), variants.map { it.title })
             } else {
                 assertEquals(technique.id.value, listOf(technique.name), variants.map { it.title })
             }
@@ -60,6 +62,30 @@ class QueensIntroDemoTest {
             }
         }
         assertTrue(demos > 0)
+    }
+
+    @Test
+    fun `the evidence frame marks the squares about to be crossed, and every landing frame keeps the evidence lit`() {
+        var checked = 0
+        for (puzzle in puzzles) {
+            for (technique in ids) {
+                val opening = QueensIntro.opening(puzzle, technique) ?: continue
+                val demo = trainer.variants(technique).indices
+                    .mapNotNull { trainer.demo(canonical(puzzle), technique, it) as QueensIntroDemo? }.single()
+                val evidence = opening.step.evidence.map { it.idx }
+                val crossing = (opening.step.result as? QueensStep.Deduction.Result.Cross)?.cells.orEmpty().map { it.idx }
+                val lit = demo.frames[1].spotlight!!.roles
+                assertTrue(technique.value, evidence.all { lit[it] == SpotlightRole.EVIDENCE })
+                assertTrue(technique.value, crossing.all { lit[it] == SpotlightRole.EXCLUDED })
+                for (frame in demo.frames.drop(2)) {
+                    val kept = frame.spotlight!!.roles
+                    assertTrue(technique.value, evidence.all { kept[it] == SpotlightRole.EVIDENCE })
+                    assertNull(technique.value, frame.spotlight!!.callout)
+                }
+                checked++
+            }
+        }
+        assertTrue(checked > 0)
     }
 
     @Test

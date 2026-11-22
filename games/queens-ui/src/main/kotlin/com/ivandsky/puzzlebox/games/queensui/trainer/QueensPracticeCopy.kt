@@ -7,9 +7,9 @@ import com.ivandsky.puzzlebox.games.queens.engine.trainer.QueensPracticeVerdict
 internal object QueensPracticeCopy {
 
     fun why(why: QueensPracticeVerdict.Wrong.Why): String = when (why) {
-        QueensPracticeVerdict.Wrong.Why.ATTACKED -> "Queens can't touch or share a row, column, or color."
-        QueensPracticeVerdict.Wrong.Why.OFF_SOLUTION -> "A queen there can't be part of the answer."
-        QueensPracticeVerdict.Wrong.Why.ON_SOLUTION -> "That square has to hold a queen."
+        QueensPracticeVerdict.Wrong.Why.ATTACKED -> "Queens can't touch or share a row, column or color."
+        QueensPracticeVerdict.Wrong.Why.OFF_SOLUTION -> "That queen would leave the puzzle with no answer."
+        QueensPracticeVerdict.Wrong.Why.ON_SOLUTION -> "That square can still hold a queen, so it can't be crossed out yet."
     }
 
     /** The catalog's name for [rung], for the move that was undone because that technique applied. */

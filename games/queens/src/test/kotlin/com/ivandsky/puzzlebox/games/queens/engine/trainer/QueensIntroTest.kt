@@ -81,8 +81,8 @@ class QueensIntroTest {
                 assertTrue(name, !inOneLine(evidence + crossed))
             }
         }
-        assertTrue("a Fill the line opening in the sample", fillsLine > 0)
-        assertTrue("a Fill the region opening in the sample", fillsRegion > 0)
+        assertTrue("a color-inside-one-line opening in the sample", fillsLine > 0)
+        assertTrue("a line-inside-one-color opening in the sample", fillsRegion > 0)
     }
 
     @Test

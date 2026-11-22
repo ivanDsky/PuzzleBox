@@ -158,6 +158,31 @@ class QueensPracticeBoardTest {
     }
 
     @Test
+    fun `each undone move is a new Wrong, so a repeated mistake still shows`() = runTest {
+        val board = practice()
+
+        board.queenOn(14)
+        val first = board.status.value as PracticeStatus.Wrong
+        board.queenOn(14)
+        val second = board.status.value as PracticeStatus.Wrong
+
+        assertEquals(first.why, second.why)
+        assertTrue(first != second)
+        assertTrue(second.attempt > first.attempt)
+    }
+
+    @Test
+    fun `a wrong cross says the square can still hold a queen, and gives no solution square away`() = runTest {
+        val board = practice()
+
+        board.state.onTap(8)
+        settle()
+
+        val wrong = board.status.value as PracticeStatus.Wrong
+        assertEquals("That square can still hold a queen, so it can't be crossed out yet.", wrong.why)
+    }
+
+    @Test
     fun `a move that fits but is not part of the easiest rung is undone as easier, naming it`() = runTest {
         val board = practice()
         val before = board.state.session
@@ -355,6 +380,7 @@ class QueensPracticeBoardTest {
         assertEquals(listOf(TrainerVerdict.Right), verdicts)
         assertEquals(line.map(::Cell).toSet(), board.board.manual)
         assertTrue(!board.state.session.isComplete)
+        assertTrue("an unsolved board says why it ended", done.needsOtherTechnique)
     }
 
     @Test
@@ -384,7 +410,7 @@ class QueensPracticeBoardTest {
 
         assertTrue(board.status.value is PracticeStatus.Shown)
         board.gotIt()
-        assertEquals(PracticeStatus.Done(null), board.status.value)
+        assertEquals(PracticeStatus.Done(null, needsOtherTechnique = true), board.status.value)
         assertEquals(listOf(TrainerVerdict.ShowMe), verdicts)
         assertTrue(Cell(8) !in board.state.session.queens)
     }
@@ -400,6 +426,7 @@ class QueensPracticeBoardTest {
 
         assertTrue(board.state.session.isComplete)
         assertTrue((board.status.value as PracticeStatus.Done).last != null)
+        assertTrue("a solved board has no other technique to wait for", !(board.status.value as PracticeStatus.Done).needsOtherTechnique)
         assertEquals(List(6) { TrainerVerdict.Right }, verdicts)
     }
 
@@ -413,6 +440,7 @@ class QueensPracticeBoardTest {
 
         val right = board.status.value as PracticeStatus.Right
         assertTrue(!right.trained)
+        assertEquals(QueensTrainerCatalog.name(TechniqueId("singles")), right.technique)
         assertTrue(Cell(8) in board.state.session.queens)
     }
 
@@ -425,7 +453,7 @@ class QueensPracticeBoardTest {
         )
         val before = board.state.session
 
-        assertEquals(PracticeStatus.Done(null), board.status.value)
+        assertEquals(PracticeStatus.Done(null, needsOtherTechnique = true), board.status.value)
         board.drag(*line.toIntArray())
         board.showMe()
 
