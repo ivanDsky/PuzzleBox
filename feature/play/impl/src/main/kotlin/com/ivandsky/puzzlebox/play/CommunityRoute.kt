@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.data.repository.SharedTextStore
 import com.ivandsky.puzzlebox.gameui.PlayLayout
@@ -20,6 +21,8 @@ import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
 import com.ivandsky.puzzlebox.play.community.CommunityBound
 import com.ivandsky.puzzlebox.play.community.CommunityViewModel
+import com.ivandsky.puzzlebox.play.community.shelves.CommunityShelvesScreen
+import com.ivandsky.puzzlebox.play.flags.PlayFlag
 import com.ivandsky.puzzlebox.play.friend.EnterCodeSheet
 import com.ivandsky.puzzlebox.play.friend.FriendPuzzleRoute
 import org.koin.androidx.compose.koinViewModel
@@ -67,8 +70,11 @@ internal fun CommunityRoute(
     // A closed sheet forgets the draft: the next Enter code opens empty.
     if (!enteringCode && codePrefill.isNotEmpty()) LaunchedEffect(Unit) { codePrefill = "" }
     val onEnterCode = { enteringCode = true }
+    val flags by koinInject<ReleaseFlags>().enabled.collectAsStateWithLifecycle()
     Box(modifier.fillMaxSize().testTag("route.community")) {
-        if (layout == PlayLayout.SinglePane) {
+        if (PlayFlag.CommunityShelves in flags) {
+            CommunityShelvesScreen(onEnterCode, phone = layout == PlayLayout.SinglePane, Modifier.fillMaxSize())
+        } else if (layout == PlayLayout.SinglePane) {
             CommunityBound(community, communityState, onOpen) { actions ->
                 CommunityTabs(
                     communityState, actions, friends, custom, onOpen, viewModel::removeFriend, onEnterCode, Modifier.fillMaxSize(),
