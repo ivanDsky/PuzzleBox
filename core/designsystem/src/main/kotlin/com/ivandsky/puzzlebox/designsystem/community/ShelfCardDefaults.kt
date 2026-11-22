@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.designsystem.community
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -35,6 +36,13 @@ object ShelfCardDefaults {
     val MakeRowCardWidth: Dp = 200.dp
     val MakeIconTile: Dp = 36.dp
     val MakeDashWidth: Dp = 1.5.dp
+
+    /** The NEW / Friend / You badges and the solves chip are full pills, as in the approved prototype. */
+    val BadgeShape = RoundedCornerShape(50)
+
+    /** The 16dp play glyph of the spotlight's solves row, and how far its triangle starts inside that box (8 of 24 units). */
+    val PlayGlyphSize: Dp = 16.dp
+    val PlayGlyphInset: Dp = PlayGlyphSize * (8f / 24f)
 
     /** The ring on the card open in the tablet's detail pane. */
     val SelectionRing: Dp = 3.dp

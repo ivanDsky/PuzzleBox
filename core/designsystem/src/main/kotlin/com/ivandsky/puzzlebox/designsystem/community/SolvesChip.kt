@@ -26,7 +26,7 @@ internal fun SolvesChip(solves: Int, modifier: Modifier = Modifier) {
     val count = ShelfCardDefaults.solvesText(solves)
     Row(
         modifier = modifier
-            .background(ShelfCardDefaults.Scrim, MaterialTheme.shapes.extraSmall)
+            .background(ShelfCardDefaults.Scrim, ShelfCardDefaults.BadgeShape)
             .padding(horizontal = Spacing.sm, vertical = 2.dp)
             .semantics { contentDescription = "$count solves" },
         horizontalArrangement = Arrangement.spacedBy(2.dp),

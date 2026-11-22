@@ -68,7 +68,7 @@ fun EntryTile(
             Text(
                 text = subtitle,
                 color = scheme.onSurfaceVariant,
-                maxLines = 2,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp, lineHeight = 16.sp),
             )
