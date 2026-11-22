@@ -1,11 +1,14 @@
 package com.ivandsky.puzzlebox.insights.stats
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.insights.domain.recap.SolveRef
+import com.ivandsky.puzzlebox.insights.recap.LocalGameBrands
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.api.ReplayKey
 import java.time.LocalDate
@@ -26,18 +29,21 @@ internal fun StatsRoute(
     onBack: () -> Unit,
 ) {
     val registry = koinInject<GameRegistry>()
+    val playRegistry = koinInject<GamePlayRegistry>()
     val viewModel = koinViewModel<StatsViewModel>(parameters = { parametersOf(gameId) })
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val games = remember(registry) { registry.all.map { it.definition.id } }
-    StatsScreen(
-        state = state,
-        games = games,
-        gameName = { registry.displayName(it) },
-        onSelectRange = viewModel::selectRange,
-        onSelectGame = viewModel::selectGame,
-        onOpenSolve = { solve -> openSolve(solve, onOpenReplay, onOpenDay) },
-        onBack = onBack,
-    )
+    CompositionLocalProvider(LocalGameBrands provides playRegistry::brandOf) {
+        StatsScreen(
+            state = state,
+            games = games,
+            gameName = { registry.displayName(it) },
+            onSelectRange = viewModel::selectRange,
+            onSelectGame = viewModel::selectGame,
+            onOpenSolve = { solve -> openSolve(solve, onOpenReplay, onOpenDay) },
+            onBack = onBack,
+        )
+    }
 }
 
 /** Opens [solve]: its replay when it has one, else the day it was played on. */

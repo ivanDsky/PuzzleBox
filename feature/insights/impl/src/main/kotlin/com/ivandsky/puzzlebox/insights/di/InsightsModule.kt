@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.insights.domain.recap.ObserveRecapAvailability
 import com.ivandsky.puzzlebox.insights.domain.recap.ResolveFriendsStanding
 import com.ivandsky.puzzlebox.insights.domain.recap.ReplaySolveFacts
 import com.ivandsky.puzzlebox.insights.domain.stats.ObserveStatsPage
+import com.ivandsky.puzzlebox.insights.domain.stats.ObserveStatsSince
 import com.ivandsky.puzzlebox.insights.domain.stats.RankHistoryStatsSectionProvider
 import com.ivandsky.puzzlebox.insights.domain.stats.VsFriendsStatsSectionProvider
 import com.ivandsky.puzzlebox.insights.flags.InsightsFlag
@@ -43,6 +44,7 @@ val insightsModule: Module = module {
     factory { ReplaySolveFacts(computeStreak = get(), puzzleDay = get(), registry = get()) }
     factory { ComputePeriodFacts(computeStreak = get(), replaySolveFacts = get(), registry = get()) }
     factory { ObserveRankHistory(identity = get(), store = get()) }
+    factory { ObserveStatsSince(observeGameHistory = get(), calendar = get(), registry = get()) }
     factory {
         val friendsOverall = get<ObserveFriendsOverall>()
         val rankHistory = get<ObserveRankHistory>()
@@ -104,6 +106,7 @@ val insightsModule: Module = module {
             cloudSync = get(),
             savedState = get(),
             releaseFlags = get(),
+            observeSince = get(),
         )
     }
 }

@@ -18,7 +18,8 @@ import com.ivandsky.puzzlebox.model.GameId
 
 /**
  * The stats page's whole screen for [state]: a bar named for the game (or "All games"), the range chips and the
- * sections. [onSelectRange] reports a chip, [onOpenSolve] the solve a record opens, [onBack] leaves the page. A window
+ * sections. With the StatsFilters flag on the phone's bar says "Stats" over a filter bar instead of the chips, and a wide window
+ * names the scope "Overall" or the game with a quiet Since atop the pane. [onSelectRange] reports a chip, [onOpenSolve] the solve a record opens, [onBack] leaves the page. A window
  * wide enough for two columns ([TwoColumnMinWidth]) adds the list of [games] on the left and [onSelectGame] switches it.
  */
 @Composable
@@ -32,21 +33,32 @@ internal fun StatsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier.fillMaxSize().testTag("stats")) {
-        CompactTopBar(
-            title = "${state.game?.let(gameName) ?: "All games"} stats",
-            navigationIcon = {
-                IconButton(onClick = onBack, modifier = Modifier.testTag("stats.back")) {
-                    Icon(PuzzleIcons.Back, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            },
-        )
-        BoxWithConstraints(Modifier.fillMaxSize()) {
-            if (maxWidth >= TwoColumnMinWidth) {
+    BoxWithConstraints(modifier.fillMaxSize().testTag("stats")) {
+        val wide = maxWidth >= TwoColumnMinWidth
+        Column(Modifier.fillMaxSize()) {
+            CompactTopBar(
+                title = title(state, wide, gameName),
+                navigationIcon = {
+                    IconButton(onClick = onBack, modifier = Modifier.testTag("stats.back")) {
+                        Icon(PuzzleIcons.Back, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                },
+            )
+            if (wide) {
                 StatsTwoPane(state, games, gameName, onSelectGame, onSelectRange, onOpenSolve)
+            } else if (state.filters) {
+                StatsContent(state, gameName, onSelectRange, onOpenSolve) {
+                    StatsFilterBar(state, games, gameName, onSelectGame, onSelectRange)
+                }
             } else {
                 StatsContent(state, gameName, onSelectRange, onOpenSolve)
             }
         }
     }
+}
+
+/** The bar's title: "Stats" over the phone's filter bar, which names the game itself; else the scope, "Overall" or the game, and "stats". */
+private fun title(state: StatsUiState, wide: Boolean, gameName: (GameId) -> String): String = when {
+    state.filters && !wide -> "Stats"
+    else -> "${state.game?.let(gameName) ?: if (state.filters) "Overall" else "All games"} stats"
 }
