@@ -128,9 +128,10 @@ class SudokuPracticeDoneTest {
                 check(++turns < 500) { "${rig.label} did not finish" }
             }
 
-            assertEquals(rig.label, PracticeStatus.Done(null), rig.status)
+            val done = PracticeStatus.Done(null, needsOtherTechnique = !rig.state.session.isComplete)
+            assertEquals(rig.label, done, rig.status)
             rig.practice.showMe()
-            assertEquals(rig.label, PracticeStatus.Done(null), rig.status)
+            assertEquals(rig.label, done, rig.status)
         }
     }
 
