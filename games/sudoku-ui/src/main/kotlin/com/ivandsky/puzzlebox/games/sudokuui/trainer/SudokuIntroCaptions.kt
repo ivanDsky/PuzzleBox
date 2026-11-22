@@ -41,13 +41,10 @@ internal object SudokuIntroCaptions {
                 "${unitName(lastCell).replaceFirstChar(Char::uppercase)} has just one open square.",
                 "It is missing $digit, so $digit goes here. $digit is placed. Look for a row, column or box with one open square.",
             )
-            step.place.technique == SudokuTechnique.NAKED_SINGLE -> {
-                val seen = digitList(step.blockers.map { before.digitAt(it) }.distinct().sorted())
-                Parts(
-                    "This square shares a row, column or box with $seen, so only $digit is left in its notes.",
-                    "Only $digit is left in its notes, so $digit goes here. $digit is placed. Look for a square with one note left.",
-                )
-            }
+            step.place.technique == SudokuTechnique.NAKED_SINGLE -> Parts(
+                nakedReason(step, before)?.let { "$it, so only $digit is left in its notes." } ?: "Only $digit is left in this square's notes.",
+                "Only $digit is left in its notes, so $digit goes here. $digit is placed. Look for a square with one note left.",
+            )
             else -> {
                 val next = if (step.place.technique == SudokuTechnique.HIDDEN_SINGLE_BOX) "a box" else "a row or column"
                 Parts(
@@ -104,10 +101,31 @@ internal object SudokuIntroCaptions {
         }
     }
 
+    /**
+     * Why a naked single's square has one note left, true after eliminations too: the numbers it shares a row, column
+     * or box with ([SudokuStep.Single.blockers]), and the numbers an earlier strike took off its notes
+     * ([SudokuStep.Single.struck]) that no peer holds. Either part may be missing; null when both are.
+     */
+    private fun nakedReason(step: SudokuStep.Single, before: SudokuBoard): String? {
+        val seen = step.blockers.map { before.digitAt(it) }.filter { it != 0 }.distinct().sorted()
+        val off = digitsOf(step.struck[step.place.cell] ?: 0)
+        val shares = if (seen.isEmpty()) null else "shares a row, column or box with ${digitList(seen)}"
+        val ruled = if (off.isEmpty()) null else "${digitList(off)} ${if (off.size == 1) "is" else "are"} already off its notes"
+        return when {
+            shares != null && ruled != null -> "This square $shares, and $ruled"
+            shares != null -> "This square $shares"
+            ruled != null -> "This square has ${digitList(off)} already off its notes"
+            else -> null
+        }
+    }
+
     /** The digits of [mask] ascending, bit `d-1` being digit `d`. */
     private fun digitsOf(mask: Int): List<Int> = (1..Integer.SIZE).filter { mask and (1 shl (it - 1)) != 0 }
 
     /** `2`, `2 and 5`, `1, 2 and 5`. */
-    private fun digitList(digits: List<Int>): String =
-        if (digits.size == 1) digits.single().toString() else "${digits.dropLast(1).joinToString(", ")} and ${digits.last()}"
+    private fun digitList(digits: List<Int>): String = when (digits.size) {
+        0 -> ""
+        1 -> digits.single().toString()
+        else -> "${digits.dropLast(1).joinToString(", ")} and ${digits.last()}"
+    }
 }

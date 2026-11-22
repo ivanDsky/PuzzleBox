@@ -177,4 +177,39 @@ class SudokuIntroCaptionsTest {
             result[2],
         )
     }
+
+    /** A naked single on cell 0 of the Mini corner whose notes are [struck] off and whose peers hold [blockers]. */
+    private fun naked(blockers: Set<Int>, struck: Int) = SudokuStep.Single(
+        place = com.ivandsky.puzzlebox.games.sudoku.engine.hints.SudokuHint.Place(0, 3, SudokuTechnique.NAKED_SINGLE, null, null, emptyList()),
+        lastCell = null,
+        blockers = blockers,
+        struck = if (struck == 0) emptyMap() else mapOf(0 to struck),
+    )
+
+    private fun evidence(step: SudokuStep, board: SudokuBoard) = SudokuIntroCaptions.of(step, puzzle, board)[1].removePrefix("$notes ")
+
+    @Test
+    fun `a naked single after an elimination says which numbers were taken off its notes, not only the ones it shares`() {
+        // Cells 1, 2, 6 hold digits for the blockers; digit 4 is off the notes by a strike and held by no peer.
+        var board = before
+        val held = mapOf(1 to 1, 2 to 2, 6 to 5)
+        held.forEach { (cell, digit) -> board = board.with(cell, com.ivandsky.puzzlebox.games.sudoku.SudokuCell.Entry(digit)) }
+        val blockers = held.keys
+
+        assertEquals(
+            "This square shares a row, column or box with 1, 2 and 5, and 4 is already off its notes, so only 3 is left in its notes.",
+            evidence(naked(blockers, digits(4)), board),
+        )
+        assertEquals(
+            "This square shares a row, column or box with 1, 2 and 5, and 4 and 6 are already off its notes, so only 3 is left in its notes.",
+            evidence(naked(blockers, digits(4, 6)), board),
+        )
+    }
+
+    @Test
+    fun `a naked single with every other number struck, or none shared, still has a true caption`() {
+        val none = evidence(naked(emptySet(), digits(1, 2, 4, 5, 6)), before)
+        assertEquals("This square has 1, 2, 4, 5 and 6 already off its notes, so only 3 is left in its notes.", none)
+        assertEquals("Only 3 is left in this square's notes.", evidence(naked(emptySet(), 0), before))
+    }
 }

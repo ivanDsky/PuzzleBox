@@ -73,4 +73,39 @@ class SudokuPracticeMessagesTest {
         assertTrue("a note put back", added > 0)
         assertTrue("an erase", erased > 0)
     }
+
+    @Test
+    fun `a number put over a number is told squares take a number only when empty, never that erase clears notes`() {
+        var over = 0
+        for (rig in SudokuPracticeRig.all()) {
+            val placed = rig.find<SudokuPracticeJudgement.Right, SudokuTrainerMove.Place>() ?: continue
+            rig.play(placed)
+            if (rig.status is PracticeStatus.Done || rig.status is PracticeStatus.Shown) continue
+            if (rig.board.digitAt(placed.idx) != placed.digit) continue
+            if (rig.state.session.notesMode) rig.state.toggleNotesMode()
+            rig.state.select(placed.idx)
+            rig.state.input(placed.digit % rig.puzzle.geometry.size + 1)
+            val status = rig.status as? PracticeStatus.Wrong ?: continue
+            assertEquals(rig.label, "That square already has a number. Put numbers on empty squares only.", status.why)
+            over++
+        }
+        assertTrue("a number over a number", over > 0)
+    }
+
+    @Test
+    fun `an undo is told it is not a step, and never that erase clears notes`() {
+        var undone = 0
+        for (rig in SudokuPracticeRig.all()) {
+            val placed = rig.find<SudokuPracticeJudgement.Right, SudokuTrainerMove.Place>() ?: continue
+            rig.play(placed)
+            if (rig.status is PracticeStatus.Done || rig.status is PracticeStatus.Shown) continue
+            if (rig.board.digitAt(placed.idx) != placed.digit) continue
+            rig.state.undo()
+            val status = rig.status as? PracticeStatus.Wrong ?: continue
+            assertFalse(rig.label, status.why.startsWith("Erase"))
+            assertEquals(rig.label, "That is not a step here. Take notes off one at a time, or put a number on an empty square.", status.why)
+            undone++
+        }
+        assertTrue("an undo", undone > 0)
+    }
 }

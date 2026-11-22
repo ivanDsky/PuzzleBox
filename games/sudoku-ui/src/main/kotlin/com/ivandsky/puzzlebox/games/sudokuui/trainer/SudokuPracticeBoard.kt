@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.game.trainer.BoardKind
 import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.game.trainer.TrainerVerdict
 import com.ivandsky.puzzlebox.games.sudoku.SudokuBoard
+import com.ivandsky.puzzlebox.games.sudoku.SudokuCell
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
 import com.ivandsky.puzzlebox.games.sudoku.SudokuSession
 import com.ivandsky.puzzlebox.games.sudoku.engine.hints.SudokuHint
@@ -121,7 +122,7 @@ internal class SudokuPracticeBoard(
                 val spotlight = spotlight(judged.step, before.board)
                 undone(judged.rung, PracticeStatus.Easier(SudokuTrainerCatalog.name(judged.rung), spotlight), before)
             }
-            is SudokuPracticeJudgement.Wrong -> undone(judged.rung, PracticeStatus.Wrong(why(judged.reason, move, next.board)), before)
+            is SudokuPracticeJudgement.Wrong -> undone(judged.rung, PracticeStatus.Wrong(why(judged.reason, move, before.board, next.board)), before)
         }
     }
 
@@ -194,7 +195,7 @@ internal class SudokuPracticeBoard(
      * One plain line for a move that broke the solution or was no move. [after] is the board with the move made. A
      * note's line gives a reason and never names the square or its answer.
      */
-    private fun why(reason: Reason, move: SudokuTrainerMove, after: SudokuBoard): String = when (reason) {
+    private fun why(reason: Reason, move: SudokuTrainerMove, before: SudokuBoard, after: SudokuBoard): String = when (reason) {
         Reason.WrongDigit -> {
             val idx = (move as SudokuTrainerMove.Place).idx
             SudokuHintCaptions.violation(after) ?: SudokuHintCaptions.hint(SudokuHint.Wrong(listOf(idx)), after) ?: "That number doesn't fit here."
@@ -202,7 +203,21 @@ internal class SudokuPracticeBoard(
         Reason.SolutionNote -> "Nothing rules ${(move as SudokuTrainerMove.RemoveNote).digit} out of this square yet, so its note stays."
         Reason.NotAMove -> when (move) {
             is SudokuTrainerMove.AddNote -> "Notes can only come off here. Turn Notes on and tap a number to take that one note off."
-            else -> "Erase clears every note. Take off one note at a time."
+            else -> otherWhy(before, after)
+        }
+    }
+
+    private fun notes(board: SudokuBoard, idx: Int): Int = (board.cells[idx] as? SudokuCell.Notes)?.mask ?: 0
+
+    /** The line for a move that is none of place, take a note off or put one on: it names what the player actually did. */
+    private fun otherWhy(before: SudokuBoard, after: SudokuBoard): String {
+        val cells = before.cells.indices
+        val overDigit = cells.any { before.digitAt(it) != 0 && after.digitAt(it) != 0 && before.digitAt(it) != after.digitAt(it) }
+        val clearedNotes = cells.count { notes(before, it) != 0 && notes(after, it) == 0 && before.digitAt(it) == 0 && after.digitAt(it) == 0 }
+        return when {
+            overDigit -> "That square already has a number. Put numbers on empty squares only."
+            clearedNotes > 0 -> "Erase clears every note. Take off one note at a time."
+            else -> "That is not a step here. Take notes off one at a time, or put a number on an empty square."
         }
     }
 }

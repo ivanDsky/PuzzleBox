@@ -115,6 +115,6 @@ internal object SudokuSpotlightMapper {
         return roles
     }
 
-    /** The unit a hidden or last-cell single names ("this box", "col 4"); a naked single names none. */
+    /** The unit a hidden or last-cell single names ("this box", "column 4"); a naked single names none. */
     private fun litUnit(step: SudokuStep.Single): SudokuUnit? = step.lastCell ?: step.place.unit
 }

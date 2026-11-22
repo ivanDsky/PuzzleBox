@@ -10,16 +10,7 @@ class SudokuPracticeSingleTest {
 
     private val starts = SudokuTrainerFixtures.starts
 
-    /** Whether [digit] on open cell [idx] is a single, read from the notes: its cell's only note, or no other cell of one of its units holds it. */
-    private fun SudokuTrainerFixtures.PracticeStart.isSingle(idx: Int, digit: Int): Boolean {
-        val candidates = SudokuLadder.candidates(puzzle, board)
-        val bit = 1 shl (digit - 1)
-        if (candidates[idx] and bit == 0) return false
-        val geometry = puzzle.geometry
-        return candidates[idx] == bit || geometry.units.filter { idx in geometry.cellsOf(it) }.any { unit ->
-            geometry.cellsOf(unit).none { it != idx && candidates[it] and bit != 0 }
-        }
-    }
+    private fun SudokuTrainerFixtures.PracticeStart.isSingle(idx: Int, digit: Int): Boolean = (idx to digit) in singlePlacements()
 
     private fun SudokuTrainerFixtures.PracticeStart.placements() =
         board.cells.indices.filter { board.digitAt(it) == 0 }.map { SudokuTrainerMove.Place(it, puzzle.solution[it]) }
