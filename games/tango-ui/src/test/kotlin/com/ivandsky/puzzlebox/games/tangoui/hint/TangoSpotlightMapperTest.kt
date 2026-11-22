@@ -47,11 +47,11 @@ class TangoSpotlightMapperTest {
     }
 
     @Test
-    fun `the count squeeze draws its what-if cells struck out`() {
+    fun `the count squeeze lights its what-if squares as plain evidence, never struck out`() {
         val spotlight = map(deduction(rung = TangoStepRung.COUNT_SQUEEZE, idx = 24, evidence = setOf(12, 18)))
 
         assertEquals(
-            mapOf(24 to SpotlightRole.TARGET, 12 to SpotlightRole.EXCLUDED, 18 to SpotlightRole.EXCLUDED),
+            mapOf(24 to SpotlightRole.TARGET, 12 to SpotlightRole.EVIDENCE, 18 to SpotlightRole.EVIDENCE),
             spotlight.roles,
         )
     }
@@ -125,5 +125,40 @@ class TangoSpotlightMapperTest {
             TangoSpotlightMapper.keyOf(TangoStep.Mistake(1, null)),
             TangoSpotlightMapper.keyOf(TangoStep.Mistake(1, TangoVerdict.Reason.CountExceeded)),
         )
+    }
+
+    @Test
+    fun `the evidence frames of an intro light the whole evidence, and the landing frames all but the squares that land`() {
+        val equalPair = deduction(rung = TangoStepRung.EQUAL_PAIR, idx = 2, evidence = setOf(1, 2, 3))
+        val targets = setOf(2, 3)
+
+        // Frame 1 keeps the = squares lit with the filled neighbor (they are still empty); no x, no target, no callout.
+        val look = TangoSpotlightMapper.look(equalPair, puzzle, playId = 1)
+        assertEquals(mapOf(1 to SpotlightRole.EVIDENCE, 2 to SpotlightRole.EVIDENCE, 3 to SpotlightRole.EVIDENCE), look.roles)
+        assertNull(look.callout)
+
+        // Once they land, only the neighbor stays lit.
+        val landed = TangoSpotlightMapper.evidence(equalPair, targets, puzzle, playId = 1)
+        assertEquals(mapOf(1 to SpotlightRole.EVIDENCE), landed.roles)
+    }
+
+    @Test
+    fun `a sign count through an = pair has evidence to light on frame 1`() {
+        val step = deduction(rung = TangoStepRung.SIGN_COUNT, idx = 2, evidence = setOf(2, 3))
+
+        assertEquals(emptyMap<Int, SpotlightRole>(), TangoSpotlightMapper.evidence(step, setOf(2, 3), puzzle, playId = 1).roles)
+        assertEquals(
+            mapOf(2 to SpotlightRole.EVIDENCE, 3 to SpotlightRole.EVIDENCE),
+            TangoSpotlightMapper.look(step, puzzle, playId = 1).roles,
+        )
+    }
+
+    @Test
+    fun `no tango spotlight uses the excluded role`() {
+        for (rung in TangoStepRung.entries) {
+            val step = deduction(rung = rung, idx = 24, evidence = setOf(12, 18))
+            assertEquals(rung.name, emptySet<SpotlightRole>(), setOf(SpotlightRole.EXCLUDED) intersect map(step).roles.values.toSet())
+            assertEquals(rung.name, emptySet<SpotlightRole>(), setOf(SpotlightRole.EXCLUDED) intersect TangoSpotlightMapper.look(step, puzzle, 1).roles.values.toSet())
+        }
     }
 }

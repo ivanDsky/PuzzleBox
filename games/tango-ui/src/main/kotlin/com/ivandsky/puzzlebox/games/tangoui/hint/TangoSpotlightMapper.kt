@@ -40,21 +40,28 @@ internal object TangoSpotlightMapper {
     }
 
     /**
-     * The Spotlight of a technique intro's evidence frames: the evidence of [step] lit (its what-if cells struck out for
-     * a count squeeze, as the hint draws them), no target and no callout, as the intro's caption says what to look at.
-     * The targets, which share cells with the evidence in a sign step, are the squares the demo then lands.
+     * The Spotlight of a technique intro's first evidence frame: the whole evidence of [step] lit, no target, no callout,
+     * as the intro's caption says what to look at. The squares are still empty, so a sign step's = pair is lit too.
      */
-    fun evidence(step: TangoStep.Deduction, targets: Set<Int>, puzzle: TangoPuzzle, playId: Int): Spotlight {
-        val role = if (step.rung == TangoStepRung.COUNT_SQUEEZE) SpotlightRole.EXCLUDED else SpotlightRole.EVIDENCE
-        return Spotlight(
-            rows = puzzle.n,
-            cols = puzzle.n,
-            roles = (step.evidence - targets).associateWith { role },
-            callout = null,
-            glyphs = TangoSpotlightGlyphs(puzzle.n, emptyMap()),
-            playId = playId,
-        )
-    }
+    fun look(step: TangoStep.Deduction, puzzle: TangoPuzzle, playId: Int): Spotlight =
+        litEvidence(step.evidence, puzzle, playId)
+
+    /**
+     * The Spotlight of a technique intro's landing frames: the evidence of [step] without the squares in [targets],
+     * which the demo lands one by one (a sign step lists its marker squares as both). Every role is evidence: a count
+     * squeeze's what-if squares are not struck out, since a x means "different" in Tango.
+     */
+    fun evidence(step: TangoStep.Deduction, targets: Set<Int>, puzzle: TangoPuzzle, playId: Int): Spotlight =
+        litEvidence(step.evidence - targets, puzzle, playId)
+
+    private fun litEvidence(cells: Set<Int>, puzzle: TangoPuzzle, playId: Int): Spotlight = Spotlight(
+        rows = puzzle.n,
+        cols = puzzle.n,
+        roles = cells.associateWith { SpotlightRole.EVIDENCE },
+        callout = null,
+        glyphs = TangoSpotlightGlyphs(puzzle.n, emptyMap()),
+        playId = playId,
+    )
 
     private fun spotlight(
         step: TangoStep,
@@ -82,14 +89,13 @@ internal object TangoSpotlightMapper {
         mapOf(idx to role) to setOf(idx)
 
     /**
-     * The target wins a cell it shares with the evidence (a sign step lists both marker cells). The count squeeze draws
-     * its what-if cells struck out, never as proof. The callout sits by the evidence, else by the target.
+     * The target wins a cell it shares with the evidence (a sign step lists both marker cells). The callout sits by the
+     * evidence, else by the target.
      */
     private fun deductionRoles(step: TangoStep.Deduction): Pair<Map<Int, SpotlightRole>, Set<Int>> {
         val evidence = step.evidence - step.idx
-        val role = if (step.rung == TangoStepRung.COUNT_SQUEEZE) SpotlightRole.EXCLUDED else SpotlightRole.EVIDENCE
         val roles = LinkedHashMap<Int, SpotlightRole>()
-        evidence.forEach { roles[it] = role }
+        evidence.forEach { roles[it] = SpotlightRole.EVIDENCE }
         roles[step.idx] = SpotlightRole.TARGET
         return roles to evidence.ifEmpty { setOf(step.idx) }
     }

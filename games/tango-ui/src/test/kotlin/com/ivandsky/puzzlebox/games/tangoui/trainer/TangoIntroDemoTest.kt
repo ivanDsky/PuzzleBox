@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.tangoui.trainer
 
+import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightRole
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.trainer.BoardKind
@@ -8,6 +9,7 @@ import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
 import com.ivandsky.puzzlebox.games.tango.codec.TangoCodec
 import com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness
+import com.ivandsky.puzzlebox.games.tango.engine.step.TangoStep
 import com.ivandsky.puzzlebox.games.tango.engine.step.TangoStepRung
 import com.ivandsky.puzzlebox.games.tango.engine.trainer.TangoPractice
 import com.ivandsky.puzzlebox.model.GameId
@@ -94,14 +96,28 @@ class TangoIntroDemoTest {
     }
 
     @Test
-    fun `the evidence is lit from frame 1 on, never a landing square, and nothing is lit before`() {
+    fun `frame 1 lights the whole evidence, the landing frames all of it but the landing squares, and nothing is struck out`() {
         for ((case, id, demo) in demos()) {
-            val squares = TangoPractice.opening(case.decoded, case.solution, id, BoardKind.Focus)!!.step.squares.map { it.idx }.toSet()
-            for (frame in demo.frames.drop(1)) {
-                val lit = checkNotNull(frame.spotlight) { id.value }.roles
-                assertTrue("${id.value}: the evidence of the step is lit", lit.isNotEmpty())
-                assertTrue(id.value, lit.keys.none { it in squares })
+            val step = TangoPractice.opening(case.decoded, case.solution, id, BoardKind.Focus)!!.step
+            val landing = step.squares.map { it.idx }.toSet()
+            val evidence = (step.squares.first().shown as TangoStep.Deduction).evidence
+            val look = checkNotNull(demo.frames[1].spotlight) { id.value }.roles
+            assertEquals(id.value, evidence, look.keys)
+            assertTrue("${id.value}: the evidence of the step is lit", look.isNotEmpty())
+            for (frame in demo.frames.drop(2)) {
+                assertEquals(id.value, evidence - landing, checkNotNull(frame.spotlight).roles.keys)
             }
+            for (frame in demo.frames.drop(1)) {
+                assertEquals(id.value, setOf(SpotlightRole.EVIDENCE), checkNotNull(frame.spotlight).roles.values.toSet() - emptySet())
+            }
+        }
+    }
+
+    @Test
+    fun `frame 0 says one more only when one square lands`() {
+        for ((case, id, demo) in demos()) {
+            val landing = TangoPractice.opening(case.decoded, case.solution, id, BoardKind.Focus)!!.step.squares.size
+            assertEquals(id.value, landing == 1, demo.captions.first().contains("One more"))
         }
     }
 
