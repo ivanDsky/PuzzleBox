@@ -36,17 +36,17 @@ class SudokuTrainerCatalogTest {
     }
 
     @Test
-    fun `each line is the hint's sentence for that technique, in generic words`() {
+    fun `each line is the technique's generic list line`() {
         assertEquals(
             listOf(
-                "This line has one cell left, and it needs a certain digit",
-                "In this box only this cell can take a certain digit (hidden single)",
-                "In this line only this cell can take a certain digit (hidden single)",
-                "It sees every other digit, so it is the one left (naked single)",
-                "This box puts its digit in a line, so the rest of that line can't take it (pointing)",
-                "This line puts its digit in this box, so the rest of the box can't take it (claiming)",
-                "These two cells only take two digits, so the rest of this line loses both (naked pair)",
-                "Two digits only fit these two cells, so they take nothing else (hidden pair)",
+                "A row, column or box has one open square: put in the number it is missing.",
+                "A box where one number fits in only one square.",
+                "A row or column where one number fits in only one square.",
+                "A square with only one number it can still take: that number goes there.",
+                "In a box, a number fits only along one row or column, so take it off the rest of that row or column.",
+                "In a column, a number fits only inside one box, so take it off the rest of that box.",
+                "Two squares in one row, column or box can only take the same two numbers, so the rest of that row, column or box loses both.",
+                "Two numbers fit only in the same two squares, so those squares lose every other note.",
             ),
             catalog.map { it.line },
         )
@@ -54,7 +54,7 @@ class SudokuTrainerCatalogTest {
     }
 
     @Test
-    fun `each line is one sentence that explains the step before it names the technique`() {
+    fun `each line is one line of plain words that names no technique and no digit`() {
         for (row in catalog) {
             assertFalse("${row.id.value} is one line: ${row.line}", '\n' in row.line)
             assertTrue("${row.id.value} is ${row.line.length} chars: ${row.line}", row.line.length <= LINE_BUDGET)
@@ -69,8 +69,8 @@ class SudokuTrainerCatalogTest {
     }
 
     private companion object {
-        /** The longest line a technique row holds: the pointing, claiming and pair sentences run to 86, past the hints' own 80 for a line with real digits. */
-        const val LINE_BUDGET = 90
+        /** The longest line a technique row holds: the pair sentences run to 125 and wrap on the row, past the hints' own 80 for a line with real digits. */
+        const val LINE_BUDGET = 130
         const val NAME_BUDGET = 30
     }
 }

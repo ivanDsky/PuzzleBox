@@ -8,8 +8,8 @@ import com.ivandsky.puzzlebox.gameui.trainer.TrainerTechnique
 
 /**
  * The Mini Sudoku technique list: one row per id in [SudokuTechniqueIds.all], the stepper's own order (easiest first).
- * The name is the list's own; the line is the sentence the hint shows for that technique ([SudokuStepCopy.technique]),
- * so a copy edit there shows in both (A1: no third copy set). Rows are keyed by [TechniqueId], the stored key, which
+ * The name is the list's own; the line is the generic sentence for that technique ([SudokuStepCopy.technique]): no
+ * "this", digit or cell, since a list points at nothing. Rows are keyed by [TechniqueId], the stored key, which
  * the engine alone spells.
  */
 internal object SudokuTrainerCatalog {

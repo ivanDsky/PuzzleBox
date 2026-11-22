@@ -64,7 +64,7 @@ internal object SudokuHintCaptions {
         val kind = when (unit.kind) {
             UnitKind.ROW -> "row"
             UnitKind.COLUMN -> "column"
-            UnitKind.BOX -> "box"
+            UnitKind.BOX -> return "this box"
         }
         return "$kind ${unit.index + 1}"
     }
