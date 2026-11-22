@@ -2,6 +2,9 @@
 # A release adds its entry at the top in the same commit as its version bump.
 # "## <version> <date>" starts a release; "- " starts a note; "#" lines are comments.
 
+## 0.40.2 2026-11-21
+- The home-screen widget keeps showing your last picture while it refreshes, instead of a spinner or empty rings.
+
 ## 0.40.1 2026-11-21
 - Games, Community and Ranks share Today's large top bar, with your picture at the end on every tab.
 - Past you in duels shows your own photo.
