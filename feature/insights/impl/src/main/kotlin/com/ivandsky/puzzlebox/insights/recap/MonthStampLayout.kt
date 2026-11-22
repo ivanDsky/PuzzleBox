@@ -36,14 +36,18 @@ internal fun boardUnit(widthDp: Float, heightDp: Float): Float = minOf(0.30f * w
  * Where [count] (0 to [MaxPlaced]) stickers sit on a board [widthDp] by [heightDp]: the prototype's preset for the count,
  * each sticker the [boardUnit] times its preset scale, then all shrunk together by the largest factor up to 1 at which
  * no sticker, date or board edge runs into another. A board too short for the preset's two rows (a phone that gives it
- * little height) gets the same stickers in one staggered row instead, when that keeps them about a sixth larger or more.
+ * little height) gets the same stickers in one zigzag row instead, when the plain row would keep them about a sixth
+ * larger or more; that row is sized by the board's width and fitted with the zigzag as tall as the board allows, so a
+ * short phone board still gets stickers close to the prototype's.
  */
 internal fun stampPlacement(count: Int, widthDp: Float, heightDp: Float): List<PlacedStamp> {
     val preset = Presets.getOrNull(count - 1) ?: return emptyList()
     val unit = boardUnit(widthDp, heightDp)
     val scattered = preset.fitted(unit, widthDp, heightDp)
-    val row = preset.inOneRow().fitted(unit, widthDp, heightDp)
-    return if (scattered.minOf { it.size } >= RowPreference * row.minOf { it.size }) scattered else row
+    val plainRow = preset.inOneRow().fitted(unit, widthDp, heightDp)
+    if (scattered.minOf { it.size } >= RowPreference * plainRow.minOf { it.size }) return scattered
+    val zigzag = preset.zigzagRow(minOf(0.30f * widthDp, MaxUnit), widthDp, heightDp)
+    return if (zigzag.minOf { it.size } > plainRow.minOf { it.size }) zigzag else plainRow
 }
 
 /** These stickers placed at [unit], shrunk by the largest factor up to 1 that [fits] the board. */
@@ -59,6 +63,36 @@ private fun List<Preset>.fitted(unit: Float, width: Float, height: Float): List<
     }
     return at(lo)
 }
+
+/**
+ * These stickers spread across one row from edge to edge, every other one pinned to the top edge and the rest to the
+ * bottom edge (their dates inside it), at [unit] times their scale shrunk by the largest factor up to 1 that [fits] the
+ * board.
+ */
+private fun List<Preset>.zigzagRow(unit: Float, width: Float, height: Float): List<PlacedStamp> {
+    val at = { k: Float ->
+        val first = PlacedStamp(0f, 0f, unit * first().scale * k, 0f).reach
+        val last = PlacedStamp(0f, 0f, unit * last().scale * k, 0f).reach
+        mapIndexed { i, p ->
+            val size = unit * p.scale * k
+            val x = if (this.size == 1) width / 2f else first + i * (width - first - last) / (this.size - 1)
+            val cy = if (i % 2 == 0) {
+                size / 2f * ReachScale + ReachPad + ZigzagMargin
+            } else {
+                height - size / 2f - CaptionGap - CaptionHeight - ZigzagMargin
+            }
+            PlacedStamp(x, cy, size, p.tilt)
+        }
+    }
+    // Pinned to the edges, a smaller sticker does not always fit where a larger one does, so step down from full size
+    // rather than bisect.
+    return (ZigzagSteps downTo 1).map { at(it / ZigzagSteps.toFloat()) }.firstOrNull { it.fits(width, height) } ?: at(1f / ZigzagSteps)
+}
+
+private const val ZigzagSteps = 100
+
+/** Room kept between a zigzag sticker's reach, or its date, and the board's edge. */
+private const val ZigzagMargin = 0.5f
 
 /** The same stickers, tilts and scales spread evenly across one row, every other one a little lower. */
 private fun List<Preset>.inOneRow(): List<Preset> = mapIndexed { i, p ->

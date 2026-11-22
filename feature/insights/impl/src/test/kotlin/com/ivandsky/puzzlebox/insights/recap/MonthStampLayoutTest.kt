@@ -67,6 +67,35 @@ class MonthStampLayoutTest {
         assertEquals(max(72f, minOf(0.30f * 368f, 0.36f * 220f)) * 1.3f, one.size, 0.01f)
     }
 
+    // Catches a phone month card whose board is short (about 170dp under the highlight) drawing the stamps at the 72dp
+    // floor, when the prototype draws them near 90dp: the longest month's four stamps must come out about that size.
+    // A card 343dp across, the width a 411dp phone gives it, takes them to 86dp; the golden's 318dp board to 80.
+    @Test
+    fun `a short phone board draws four stamps near the prototype's 90dp`() {
+        for (h in listOf(168f, 175f, 190f)) {
+            stampPlacement(4, 343f, h).forEach { assertTrue("343x$h size ${it.size}", it.size >= PrototypeSize - 4f) }
+            stampPlacement(4, 318f, h).forEach { assertTrue("318x$h size ${it.size}", it.size >= PrototypeSize - 10f) }
+        }
+    }
+
+    // Catches a stamp larger than the board, or any of the longest month's stamps drawn outside it, at the card's
+    // phone board sizes, the compact floor included.
+    @Test
+    fun `the longest month's stamps never leave a phone board`() {
+        val longest = MonthFixtures.longest.moments.size
+        for (w in listOf(318f, 343f, 367f)) for (h in listOf(150f, 168f, 175f, 190f, 220f)) {
+            val placed = stampPlacement(longest, w, h)
+            assertEquals(longest, placed.size)
+            placed.forEachIndexed { i, s ->
+                val where = "${w}x$h stamp $i"
+                assertTrue("$where bigger than the board", s.size <= minOf(w, h))
+                assertTrue("$where circle out", s.cx - s.size / 2f >= 0f && s.cx + s.size / 2f <= w)
+                assertTrue("$where circle out", s.cy - s.size / 2f >= 0f && s.cy + s.size / 2f <= h)
+                assertTrue("$where date out", s.caption.bottom <= h && s.caption.left >= 0f && s.caption.right <= w)
+            }
+        }
+    }
+
     // Catches an empty board asking for a placement it cannot draw.
     @Test
     fun `no stamps place nothing`() {
@@ -76,5 +105,6 @@ class MonthStampLayoutTest {
     private companion object {
         const val Slack = 0.01f
         const val MinReadable = 40f
+        const val PrototypeSize = 90f
     }
 }
