@@ -86,8 +86,7 @@ internal fun StreakCardPage(
             color = PaletteEntry.Streak.ink,
         )
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-            val side = minOf(maxWidth, maxHeight, DialMaxSize) - DialInset * 2
-            StreakDial(card, Modifier.size(side), onSettled = { dialSettled = true })
+            StreakDial(card, Modifier.size(dialSize(maxWidth, maxHeight)), onSettled = { dialSettled = true })
         }
         StreakChips(
             card,
@@ -164,7 +163,5 @@ private fun Int.days(): String = if (this == 1) "1 day" else "$this days"
 
 private val RowMinHeight = 48.dp
 private val IconSize = 24.dp
-private val DialMaxSize = 420.dp
-private val DialInset = 8.dp
 private const val ChipsAfterPulse = 160
 private const val HairlineAlpha = 0.3f
