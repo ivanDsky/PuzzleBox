@@ -176,7 +176,10 @@ class TangoPracticeBoardPlayTest {
         play.board.gotIt()
 
         val ended = TangoPractice.isDone(play.decoded, play.grid, play.technique, play.kind)
-        assertEquals(if (ended) PracticeStatus.Done(null) else PracticeStatus.FindNextMove, play.status)
+        assertEquals(
+            if (ended) PracticeStatus.Done(null, needsOtherTechnique = play.emptySquares.isNotEmpty()) else PracticeStatus.FindNextMove,
+            play.status,
+        )
         assertEquals(after, play.session)
     }
 
@@ -228,7 +231,7 @@ class TangoPracticeBoardPlayTest {
                     play.board.gotIt()
                 }
 
-                assertEquals(label, PracticeStatus.Done(null), play.status)
+                assertEquals(label, PracticeStatus.Done(null, needsOtherTechnique = play.emptySquares.isNotEmpty()), play.status)
                 assertTrue(label, TangoPractice.isDone(play.decoded, play.grid, play.technique, kind))
                 assertNull(label, play.session.ref)
             }

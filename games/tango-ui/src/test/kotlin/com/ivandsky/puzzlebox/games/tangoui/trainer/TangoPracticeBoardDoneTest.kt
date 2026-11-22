@@ -104,8 +104,38 @@ class TangoPracticeBoardDoneTest {
                 assertTrue(label, play.status is PracticeStatus.Shown)
                 play.board.gotIt()
 
-                assertEquals(label, PracticeStatus.Done(null), play.status)
+                assertEquals(label, PracticeStatus.Done(null, needsOtherTechnique = play.emptySquares.isNotEmpty()), play.status)
             }
+        }
+    }
+
+    @Test
+    fun `a board that ends with squares left says it needs another technique, a solved one does not`() = runTest {
+        var unsolved = 0
+        var solved = 0
+        for (kind in BoardKind.entries) {
+            for (play in TangoPracticePlay.all(this, kind)) {
+                val label = "${play.technique.value} $kind"
+                while (play.status !is PracticeStatus.Done) play.playNextStep()
+
+                val done = play.status as PracticeStatus.Done
+                assertEquals(label, play.emptySquares.isNotEmpty(), done.needsOtherTechnique)
+                if (done.needsOtherTechnique) unsolved++ else solved++
+            }
+        }
+        assertTrue("some board ends with squares left", unsolved > 0)
+        assertTrue("some board is solved", solved > 0)
+    }
+
+    @Test
+    fun `a focus board that ends on another technique is not solved and says why`() = runTest {
+        val stopped = TangoPracticePlay.all(this, BoardKind.Focus).filter { play ->
+            while (play.status !is PracticeStatus.Done) play.playNextStep()
+            play.emptySquares.isNotEmpty()
+        }
+        assertTrue(stopped.isNotEmpty())
+        for (play in stopped) {
+            assertTrue(play.technique.value, (play.status as PracticeStatus.Done).needsOtherTechnique)
         }
     }
 }

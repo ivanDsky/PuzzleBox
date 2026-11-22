@@ -10,7 +10,7 @@ import kotlin.math.max
 /**
  * One run through a chapter's [boards], tallied for its result page. Right trained turns and the streak come from the
  * board's verdicts ([verdict]); Show me taps, out-of-order slips, undone moves and finished boards come from the statuses the band
- * shows ([see]). In memory for the run only, and only touched on the main thread. [wasMastered] is the technique's mark
+ * shows ([see]); a wrong or shown trained move also marks the run as missed ([ChapterResult.missedRun]). In memory for the run only, and only touched on the main thread. [wasMastered] is the technique's mark
  * when the run began, set once the first board opens.
  */
 internal class ChapterRun(private val boards: Int) {
@@ -21,6 +21,7 @@ internal class ChapterRun(private val boards: Int) {
     private val done = BooleanArray(boards)
     private var streak = 0
     private var best = 0
+    private var missed = false
 
     var wasMastered: Boolean? = null
 
@@ -28,6 +29,7 @@ internal class ChapterRun(private val boards: Int) {
     fun verdict(board: Int, verdict: TrainerVerdict) {
         if (verdict != TrainerVerdict.Right) {
             streak = 0
+            missed = true
             return
         }
         rights[board] += 1
@@ -49,14 +51,15 @@ internal class ChapterRun(private val boards: Int) {
     /** The tally of the chapter of the technique at [index] in [catalog], against the stored [marks] once its last verdict is recorded. */
     fun result(catalog: List<TrainerTechnique>, index: Int, marks: Map<TechniqueId, TechniqueProgress>): ChapterResult {
         fun mastered(id: TechniqueId) = marks[id]?.mark == TechniqueProgress.Mark.Mastered
+        val outcome = when {
+            !mastered(catalog[index].id) -> ChapterOutcome.NotMastered
+            wasMastered == true -> ChapterOutcome.StillMastered
+            else -> ChapterOutcome.NewlyMastered
+        }
         return ChapterResult(
             technique = catalog[index],
             next = catalog.getOrNull(index + 1),
-            outcome = when {
-                !mastered(catalog[index].id) -> ChapterOutcome.NotMastered
-                wasMastered == true -> ChapterOutcome.StillMastered
-                else -> ChapterOutcome.NewlyMastered
-            },
+            outcome = outcome,
             boards = boards,
             boardsDone = done.count { it },
             rights = rights.sum(),
@@ -64,6 +67,7 @@ internal class ChapterRun(private val boards: Int) {
             slips = slips.sum(),
             undone = undone.sum(),
             best = best,
+            missedRun = missed && outcome == ChapterOutcome.NotMastered && best < MasteryRun,
             rows = List(boards) { board ->
                 val kind = when {
                     shown[board] > 0 -> BoardRowKind.Shown

@@ -202,6 +202,68 @@ class ChapterResultTest {
         assertEquals(2, result.best)
     }
 
+    /** Bug caught: a miss that left too few moves for the run not being remembered, so the page cannot offer a fresh run. */
+    @Test
+    fun `a wrong move or a Show me on a trained move is remembered when the run falls short`() {
+        val wrong = rig()
+        repeat(3) { wrong.turn(right); wrong.end() }
+        wrong.turn(TrainerVerdict.Wrong, right); wrong.end()
+        wrong.turn(right); wrong.end()
+        assertEquals(ChapterOutcome.NotMastered, wrong.result().outcome)
+        assertTrue(wrong.result().missedRun)
+
+        val shown = rig()
+        shown.turn(right, right, TrainerVerdict.ShowMe, right, right)
+        shown.say(PracticeStatus.Shown(standInSpotlight()))
+        repeat(5) { shown.end() }
+        assertTrue(shown.result().missedRun)
+    }
+
+    /** Bug caught: a fresh-run offer on a chapter that gave the run no miss to blame (nothing to say) or that mastered anyway. */
+    @Test
+    fun `a chapter with no miss, or one mastered after a miss, does not offer a fresh run`() {
+        val clean = rig()
+        repeat(4) { clean.turn(right); clean.end() }
+        clean.end()
+        assertEquals(ChapterOutcome.NotMastered, clean.result().outcome)
+        assertFalse(clean.result().missedRun)
+
+        val recovered = rig()
+        recovered.turn(TrainerVerdict.Wrong, right); recovered.end()
+        repeat(4) { recovered.turn(right, right); recovered.end() }
+        assertEquals(ChapterOutcome.NewlyMastered, recovered.result().outcome)
+        assertFalse(recovered.result().missedRun)
+    }
+
+    /** Bug caught: an easier-move slip or an undo on another rung counted as a miss of the run, which only trained turns break. */
+    @Test
+    fun `a slip or an undo that is not a trained miss is not a missed run`() {
+        val rig = rig()
+        rig.say(PracticeStatus.Easier("Naked single", standInSpotlight()))
+        rig.say(PracticeStatus.Wrong("x", attempt = 1))
+        repeat(4) { rig.turn(right); rig.end() }
+        rig.end()
+
+        assertEquals(ChapterOutcome.NotMastered, rig.result().outcome)
+        assertFalse(rig.result().missedRun)
+    }
+
+    /** Bug caught: Practice again carrying the last run's miss into the new run's page. */
+    @Test
+    fun `practice again starts with no missed run`() {
+        val rig = rig()
+        rig.turn(TrainerVerdict.Wrong, right); rig.end()
+        repeat(3) { rig.turn(right); rig.end() }
+        rig.end()
+        assertTrue(rig.result().missedRun)
+
+        rig.vm.practiceAgain()
+        settle()
+        repeat(5) { rig.end() }
+
+        assertFalse(rig.result().missedRun)
+    }
+
     /** Bug caught: a next technique where the catalog has none, or all-mastered claimed while an earlier technique is open. */
     @Test
     fun `the last technique has no next and says all mastered only when every one is`() {
