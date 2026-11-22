@@ -11,7 +11,6 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapPeriod
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.gameName
-import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.ready
 import java.time.YearMonth
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -34,7 +33,7 @@ class RecapCoverTest {
 
     private fun show(name: String?) = rule.setContent {
         PuzzleBoxTheme {
-            RecapScreen(ready, "November 2026", gameName, onPage = {}, onWatchReplay = {}, onClose = {}, displayName = name)
+            RecapScreen(RecapFixtures.ready, "November 2026", gameName, onPage = {}, onWatchReplay = {}, onClose = {}, displayName = name)
         }
     }
 

@@ -20,10 +20,6 @@ import androidx.test.core.app.ApplicationProvider
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.insights.domain.recap.FriendsStanding
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
-import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.friendsLoaded
-import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.friendsReading
-import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.friendsSettling
-import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.friendsUnavailable
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.gameName
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -56,7 +52,7 @@ class RecapFriendsCardTest {
 
     @Test
     fun `a best game names the game and its points among friends`() {
-        show(friendsLoaded)
+        show(RecapFixtures.friendsLoaded)
 
         rule.onNodeWithTag("recap.friends").assertIsDisplayed()
         rule.onNodeWithText("Best game among friends").assertIsDisplayed()
@@ -65,7 +61,7 @@ class RecapFriendsCardTest {
 
     @Test
     fun `a read that is still out holds the page with a quiet line and no number`() {
-        show(friendsReading)
+        show(RecapFixtures.friendsReading)
 
         rule.onNodeWithTag("recap.friends.reading").assertIsDisplayed().assertTextContains("Checking how your friends did\u2026")
         rule.onNodeWithText("Best game among friends").assertIsDisplayed()
@@ -74,7 +70,7 @@ class RecapFriendsCardTest {
 
     @Test
     fun `a settling month says results settle on the 4th and shows no number`() {
-        show(friendsSettling)
+        show(RecapFixtures.friendsSettling)
 
         rule.onNodeWithTag("recap.friends.settling").assertIsDisplayed().assertTextContains("Settles on the 4th")
         rule.onNodeWithTag("recap.friends.game").assertDoesNotExist()
@@ -83,7 +79,7 @@ class RecapFriendsCardTest {
 
     @Test
     fun `an unavailable read says it cannot load right now in the card's place`() {
-        show(friendsUnavailable)
+        show(RecapFixtures.friendsUnavailable)
 
         rule.onNodeWithTag("recap.friends.unavailable").assertIsDisplayed().assertTextContains("Can't load right now")
         rule.onNodeWithTag("recap.friends.game").assertDoesNotExist()
@@ -129,7 +125,7 @@ class RecapFriendsCardTest {
         rule.setContent {
             PuzzleBoxTheme {
                 RecapFactList(
-                    cards = listOf(friendsLoaded, friendsSettling, friendsUnavailable, friendsReading),
+                    cards = listOf(RecapFixtures.friendsLoaded, RecapFixtures.friendsSettling, RecapFixtures.friendsUnavailable, RecapFixtures.friendsReading),
                     current = 0,
                     gameName = gameName,
                     onSelect = {},
@@ -146,7 +142,7 @@ class RecapFriendsCardTest {
 
     @Test
     fun `a friends card that settles in an open story keeps the strip and the page`() {
-        val withReading = RecapFixtures.ready.copy(cards = listOf(RecapFixtures.solved, friendsReading, RecapFixtures.secondSolved))
+        val withReading = RecapFixtures.ready.copy(cards = listOf(RecapFixtures.solved, RecapFixtures.friendsReading, RecapFixtures.secondSolved))
         var state by mutableStateOf<RecapUiState>(withReading)
         rule.setContent {
             PuzzleBoxTheme {
@@ -159,7 +155,7 @@ class RecapFriendsCardTest {
         rule.onNodeWithTag("recap.friends.reading").assertIsDisplayed()
         rule.onNodeWithTag("recap.progress").assertContentDescriptionEquals("Card 2 of 3")
 
-        state = withReading.copy(cards = listOf(RecapFixtures.solved, friendsLoaded, RecapFixtures.secondSolved))
+        state = withReading.copy(cards = listOf(RecapFixtures.solved, RecapFixtures.friendsLoaded, RecapFixtures.secondSolved))
         rule.waitForIdle()
 
         rule.onNodeWithTag("recap.progress").assertContentDescriptionEquals("Card 2 of 3")

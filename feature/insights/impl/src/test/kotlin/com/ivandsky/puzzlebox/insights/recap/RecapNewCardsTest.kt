@@ -21,10 +21,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.insights.domain.recap.EarnedMoment
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
-import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.fastest
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.gameName
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.queens
-import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.streak
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
@@ -57,7 +55,7 @@ class RecapNewCardsTest {
 
     @Test
     fun `fastest opens on the first game with its time, day and puzzle`() {
-        show(fastest)
+        show(RecapFixtures.fastest)
 
         rule.onNodeWithTag("recap.fastest").assertIsDisplayed()
         rule.onNodeWithTag("recap.fastest.card.zip").assertContentDescriptionContains("fastest 0:58", substring = true)
@@ -67,30 +65,30 @@ class RecapNewCardsTest {
 
     @Test
     fun `the replay pill opens that game's replay with its day and number`() {
-        show(fastest)
+        show(RecapFixtures.fastest)
 
         rule.onNodeWithTag("recap.fastest.replay").assertHasClickAction().performClick()
 
-        assertEquals(listOf(fastest.rows[0]), opened)
+        assertEquals(listOf(RecapFixtures.fastest.rows[0]), opened)
         assertEquals(LocalDate.of(2026, 11, 3), opened.single().day)
         assertEquals(212, opened.single().puzzleNumber)
     }
 
     @Test
     fun `each game is its own page and its pill replays that game`() {
-        show(fastest, sub = 1)
+        show(RecapFixtures.fastest, sub = 1)
 
         rule.onNodeWithTag("recap.fastest.card.queens").assertContentDescriptionContains("fastest 2:21", substring = true)
         rule.onNodeWithTag("recap.fastest.meta").assertTextContains("Nov 12 · Puzzle #190")
         rule.onNodeWithTag("recap.fastest.replay").performClick()
 
-        assertEquals(listOf(fastest.rows[1]), opened)
+        assertEquals(listOf(RecapFixtures.fastest.rows[1]), opened)
         assertEquals(queens, opened.single().game)
     }
 
     @Test
     fun `an imported game says so and has no replay to open`() {
-        show(fastest, sub = 2)
+        show(RecapFixtures.fastest, sub = 2)
 
         rule.onNodeWithTag("recap.fastest.card.sudoku").assertContentDescriptionContains("fastest 5:12", substring = true)
         rule.onNodeWithText("Imported from LinkedIn").assertExists()
@@ -101,7 +99,7 @@ class RecapNewCardsTest {
 
     @Test
     fun `a game with one solve says there is no average yet`() {
-        show(fastest, sub = 2)
+        show(RecapFixtures.fastest, sub = 2)
 
         rule.onNodeWithText("First solve — no average yet").assertExists()
     }
@@ -111,7 +109,7 @@ class RecapNewCardsTest {
         rule.setContent {
             PuzzleBoxTheme {
                 CompositionLocalProvider(LocalCardLive provides false) {
-                    RecapCardPage(fastest, "November 2026", gameName, onWatchReplay = { opened += it })
+                    RecapCardPage(RecapFixtures.fastest, "November 2026", gameName, onWatchReplay = { opened += it })
                 }
             }
         }
@@ -123,18 +121,18 @@ class RecapNewCardsTest {
 
     @Test
     fun `the tablet fact lists each game's time and day`() {
-        rule.setContent { PuzzleBoxTheme { FastestCardFact(fastest, gameName, onWatchReplay = { opened += it }) } }
+        rule.setContent { PuzzleBoxTheme { FastestCardFact(RecapFixtures.fastest, gameName, onWatchReplay = { opened += it }) } }
 
         rule.onNodeWithTag("recap.fastest.game.zip").assertTextContains("Zip").assertTextContains("0:58").assertTextContains("Nov 3")
         rule.onNodeWithTag("recap.fastest.game.queens").assertTextContains("2:21").assertTextContains("Nov 12")
         rule.onNodeWithTag("recap.fastest.game.queens").assertHasClickAction().performClick()
-        assertEquals(listOf(fastest.rows[1]), opened)
+        assertEquals(listOf(RecapFixtures.fastest.rows[1]), opened)
         rule.onNodeWithTag("recap.fastest.game.sudoku").assertTextContains("No replay", substring = true).assertHasNoClickAction()
     }
 
     @Test
     fun `streak shows its length, dates and freezes`() {
-        show(streak)
+        show(RecapFixtures.streak)
 
         rule.onNodeWithTag("recap.streak").assertIsDisplayed()
         rule.onNodeWithTag("recap.streak.days").assertTextContains("17")
@@ -144,7 +142,7 @@ class RecapNewCardsTest {
 
     @Test
     fun `a one-day streak shows its day once`() {
-        show(streak.copy(days = 1, from = LocalDate.of(2026, 11, 9), to = LocalDate.of(2026, 11, 9), freezesSpent = 0))
+        show(RecapFixtures.streak.copy(days = 1, from = LocalDate.of(2026, 11, 9), to = LocalDate.of(2026, 11, 9), freezesSpent = 0))
 
         rule.onNodeWithTag("recap.streak.range").assertTextContains("Nov 9")
         rule.onNodeWithTag("recap.streak.freezes").assertDoesNotExist()
@@ -152,7 +150,7 @@ class RecapNewCardsTest {
 
     @Test
     fun `nothing on the streak page is a button`() {
-        show(streak)
+        show(RecapFixtures.streak)
 
         rule.onNode(hasClickAction()).assertDoesNotExist()
     }

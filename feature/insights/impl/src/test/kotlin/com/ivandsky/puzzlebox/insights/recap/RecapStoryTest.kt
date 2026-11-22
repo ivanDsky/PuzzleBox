@@ -22,9 +22,6 @@ import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.RecapMotion
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.gameName
-import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.ready
-import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.secondSolved
-import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.solved
 import com.ivandsky.puzzlebox.insights.share.RecapShareState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -50,7 +47,7 @@ class RecapStoryTest {
     private var retried = 0
 
     /** Opens [state]; a fresh open lands on the cover, which [pastCover] taps past to the first card. */
-    private fun show(state: RecapUiState = ready, pastCover: Boolean = true) {
+    private fun show(state: RecapUiState = RecapFixtures.ready, pastCover: Boolean = true) {
         rule.setContent {
             PuzzleBoxTheme {
                 RecapScreen(state, "November 2026", gameName, onPage = { pages += it }, onWatchReplay = {}, onClose = { closed++ }, onRetry = { retried++ })
@@ -137,7 +134,7 @@ class RecapStoryTest {
 
     @Test
     fun `a press held 280ms hides the chrome until it lets go and is no tap`() {
-        show(readyOf(solved, secondSolved, solved).copy(initialPage = 1))
+        show(readyOf(RecapFixtures.solved, RecapFixtures.secondSolved, RecapFixtures.solved).copy(initialPage = 1))
         rule.mainClock.autoAdvance = false
         val pager = rule.onNodeWithTag("recap.pager")
 
@@ -315,7 +312,7 @@ class RecapStoryTest {
 
     @Test
     fun `a story reopens on its saved page`() {
-        show(ready.copy(initialPage = 1))
+        show(RecapFixtures.ready.copy(initialPage = 1))
 
         assertCard(2)
         rule.onNodeWithContentDescription("7 puzzles solved").assertIsDisplayed()
@@ -339,9 +336,9 @@ class RecapStoryTest {
         rule.setContent {
             PuzzleBoxTheme {
                 RecapStory(
-                    cards = ready.cards,
+                    cards = RecapFixtures.ready.cards,
                     deck = deck,
-                    period = ready.period,
+                    period = RecapFixtures.ready.period,
                     periodLabel = "November 2026",
                     gameName = gameName,
                     onWatchReplay = {},
@@ -375,7 +372,7 @@ class RecapStoryTest {
         val restoration = StateRestorationTester(rule)
         restoration.setContent {
             PuzzleBoxTheme {
-                RecapScreen(readyOf(solved, secondSolved, solved), "November 2026", gameName, onPage = {}, onWatchReplay = {}, onClose = {})
+                RecapScreen(readyOf(RecapFixtures.solved, RecapFixtures.secondSolved, RecapFixtures.solved), "November 2026", gameName, onPage = {}, onWatchReplay = {}, onClose = {})
             }
         }
         repeat(3) {

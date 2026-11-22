@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapHistoryFixture
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapPeriod
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures
+import com.ivandsky.puzzlebox.insights.recap.solved
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import java.io.File

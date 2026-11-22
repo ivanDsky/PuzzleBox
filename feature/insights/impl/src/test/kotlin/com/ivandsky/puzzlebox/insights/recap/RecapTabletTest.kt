@@ -22,10 +22,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteEntry
 import com.ivandsky.puzzlebox.designsystem.recapCardColors
 import com.ivandsky.puzzlebox.insights.GOLDEN_TABLET_WIDE
-import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.fastest
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.gameName
-import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.ready
-import com.ivandsky.puzzlebox.insights.recap.RecapFixtures.solved
 import com.ivandsky.puzzlebox.insights.share.RecapShareState
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -44,7 +41,7 @@ class RecapTabletTest {
     @get:Rule
     val rule = createAndroidComposeRule<ComponentActivity>()
 
-    private fun show(state: RecapUiState = ready, share: RecapShareState? = null, dark: Boolean = false) = rule.setContent {
+    private fun show(state: RecapUiState = RecapFixtures.ready, share: RecapShareState? = null, dark: Boolean = false) = rule.setContent {
         PuzzleBoxTheme(darkTheme = dark) {
             RecapScreen(state, "November 2026", gameName, onPage = {}, onWatchReplay = {}, onClose = {}, share = share)
         }
@@ -81,7 +78,7 @@ class RecapTabletTest {
 
     @Test
     fun `no fact is selected on the Share page, nor after Replay story`() {
-        show(ready.copy(initialPage = 2), share = RecapShareState("November 2026", "Ivan", restoring = false, sharing = false, failed = false))
+        show(RecapFixtures.ready.copy(initialPage = 2), share = RecapShareState("November 2026", "Ivan", restoring = false, sharing = false, failed = false))
         rule.onNodeWithTag("recap.fact.0").assertIsNotSelected()
         rule.onNodeWithTag("recap.fact.1").assertIsNotSelected()
 
@@ -116,11 +113,11 @@ class RecapTabletTest {
 
     @Test
     fun `the selected Fastest fact draws its dates in the card's ink, readable on its field in the dark`() {
-        show(ready.copy(cards = listOf(solved, fastest), initialPage = 1), dark = true)
+        show(RecapFixtures.ready.copy(cards = listOf(RecapFixtures.solved, RecapFixtures.fastest), initialPage = 1), dark = true)
         rule.onNodeWithTag("recap.fact.1").assertIsSelected()
 
         val date = rule.onNode(
-            hasText(fastest.rows.first().day.shortLabel(), substring = true) and hasAnyAncestor(hasTestTag("recap.fact.1")),
+            hasText(RecapFixtures.fastest.rows.first().day.shortLabel(), substring = true) and hasAnyAncestor(hasTestTag("recap.fact.1")),
             useUnmergedTree = true,
         )
         val layout = mutableListOf<TextLayoutResult>()

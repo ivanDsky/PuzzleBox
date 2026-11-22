@@ -3,6 +3,11 @@ package com.ivandsky.puzzlebox.insights.share
 import com.ivandsky.puzzlebox.designsystem.RecapCard as PaletteCard
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapCard
 import com.ivandsky.puzzlebox.insights.recap.RecapFixtures
+import com.ivandsky.puzzlebox.insights.recap.fastest
+import com.ivandsky.puzzlebox.insights.recap.moments
+import com.ivandsky.puzzlebox.insights.recap.solved
+import com.ivandsky.puzzlebox.insights.recap.streak
+import com.ivandsky.puzzlebox.insights.recap.totalTime
 import com.ivandsky.puzzlebox.insights.recap.SolvedFixtures
 import com.ivandsky.puzzlebox.model.GameId
 import org.junit.Assert.assertEquals
