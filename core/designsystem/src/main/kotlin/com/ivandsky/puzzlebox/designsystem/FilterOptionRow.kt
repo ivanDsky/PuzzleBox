@@ -36,7 +36,8 @@ private val CheckSize = 20.dp
 internal const val FILTER_ROW_CHECK_TAG = "filter.row.check"
 
 /**
- * One row of a filter list: the optional 24dp [icon] (given the row's tint), a gap and the wrapping [label]. A [selected] row fills
+ * One row of a filter list: the optional 24dp [icon] (given the row's tint), a gap and the wrapping [label], with the optional wrapping
+ * [supporting] line under it in the muted ink. A [selected] row fills
  * `secondaryContainer` over [MotionTokens.DurationShort]. The hairline above it is left out when it is the [first] row. [modifier]
  * lands on the selectable node, which is a radio, or a checkbox when [multi]: then a 20dp check slot ends the row, always reserved, and
  * the check fades in over [MotionTokens.DurationShort] when selected, so the label never moves.
@@ -50,6 +51,7 @@ internal fun FilterOptionRow(
     icon: (@Composable (tint: Color) -> Unit)? = null,
     first: Boolean = false,
     multi: Boolean = false,
+    supporting: String? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
     val spec = tween<Color>(MotionTokens.DurationShort)
@@ -73,7 +75,10 @@ internal fun FilterOptionRow(
                 Box(Modifier.size(IconSize)) { icon(tint) }
                 Spacer(Modifier.width(Spacing.lg))
             }
-            Text(label, style = MaterialTheme.typography.bodyLarge, color = ink, modifier = if (multi) Modifier.weight(1f) else Modifier)
+            Column(if (multi) Modifier.weight(1f) else Modifier) {
+                Text(label, style = MaterialTheme.typography.bodyLarge, color = ink)
+                if (supporting != null) Text(supporting, style = MaterialTheme.typography.bodyMedium, color = tint)
+            }
             if (multi) {
                 Icon(
                     PuzzleIcons.Check,

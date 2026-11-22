@@ -56,6 +56,15 @@ class FilterSheetGoldenTest {
     fun `single sheet in the dark theme`() = composeRule.render("SingleFilterSheet_dark", dark = true, target = SHEET) { SingleSheetScene() }
 
     @Test
+    fun `single sheet with supporting lines`() = composeRule.render("SingleFilterSheet_supporting", dark = false, target = SHEET) { StatsSheetScene(allLabel = "Any window") }
+
+    @Test
+    fun `single sheet without an all row`() = composeRule.render("SingleFilterSheet_no_all", dark = false, target = SHEET) { StatsSheetScene() }
+
+    @Test
+    fun `single sheet with a footer in the dark theme`() = composeRule.render("SingleFilterSheet_footer_dark", dark = true, target = SHEET) { StatsSheetScene(footer = "Friends comparison keeps its own windows.") }
+
+    @Test
     fun `multi sheet`() = composeRule.render("MultiFilterSheet", dark = false, target = SHEET) { MultiSheetScene() }
 
     @Test
@@ -107,6 +116,19 @@ internal fun LongestChipScene() {
 
 @Composable
 internal fun SingleSheetScene() = SingleFilterSheet("Game", "All games", gameOptions(), selected = "Zip", onSelect = {}, onDismiss = {}, tag = "x.filter", modifier = Modifier.testTag(SHEET))
+
+@Composable
+internal fun StatsSheetScene(allLabel: String? = null, footer: String? = null) = SingleFilterSheet(
+    "Window",
+    allLabel,
+    listOf(FilterOption("w", "Last 7 days", supporting = "Mon to Sun"), FilterOption("m", "Last 30 days", supporting = "Rolling month"), FilterOption("a", "All time")),
+    selected = "w",
+    onSelect = {},
+    onDismiss = {},
+    tag = "x.filter",
+    modifier = Modifier.testTag(SHEET),
+    footer = footer,
+)
 
 @Composable
 internal fun MultiSheetScene() = MultiFilterSheet("Source", "All sources", sourceOptions(), selected = setOf("From friends", Sources.last()), onToggle = {}, onClearGroup = {}, onDismiss = {}, modifier = Modifier.testTag(SHEET))

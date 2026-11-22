@@ -92,20 +92,27 @@ class SingleFilterSheetTest {
         composeRule.mainClock.advanceTimeBy(SETTLE_MS)
     }
 
-    private fun showSheet(rows: List<FilterOption<String>> = options, fontScale: Float = 1f, followCaller: Boolean = false) {
+    private fun showSheet(
+        rows: List<FilterOption<String>> = options,
+        fontScale: Float = 1f,
+        followCaller: Boolean = false,
+        allLabel: String? = "All games",
+        footer: String? = null,
+    ) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 Scaled(fontScale) {
                     windowHeight = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
                     SingleFilterSheet(
                         title = "Game",
-                        allLabel = "All games",
+                        allLabel = allLabel,
                         options = rows,
                         selected = picked.value,
                         onSelect = { selects += it; if (followCaller) picked.value = it },
                         onDismiss = { dismissals++ },
                         tag = "x.filter.game",
                         allTag = "x.filter.game.all",
+                        footer = footer,
                     )
                 }
             }
@@ -221,6 +228,65 @@ class SingleFilterSheetTest {
         assertEquals(listOf<String?>("b"), selects)
         node("opt.b").assertIsSelected()
         assertEquals(1, dismissals)
+    }
+
+    @Test
+    fun `a null all label leaves out the all row and the first option leads the list`() {
+        showSheet(allLabel = null)
+
+        assertEquals(0, count("x.filter.game.all"))
+        composeRule.onNodeWithText("All games").assertDoesNotExist()
+        node("opt.a").assertIsNotSelected()
+        assertTrue(top("opt.a") < top("opt.b") && top("opt.b") < top("opt.c"))
+    }
+
+    @Test
+    fun `without an all row a pick reports its value and a picked row is the only selected one`() {
+        picked.value = "c"
+        showSheet(allLabel = null, followCaller = true)
+
+        node("opt.c").assertIsSelected()
+        node("opt.b").performClick()
+        advance(FRAME_MS)
+
+        assertEquals(listOf<String?>("b"), selects)
+        node("opt.b").assertIsSelected()
+        node("opt.c").assertIsNotSelected()
+    }
+
+    @Test
+    fun `a footer shows under the list in the variant colour and the list still reaches the window bottom without one`() {
+        showSheet(footer = "Friends see only games you both played.")
+
+        val note = composeRule.onNodeWithText("Friends see only games you both played.")
+        note.assertIsDisplayed()
+        assertTrue("the note sits below the last row", note.getUnclippedBoundsInRoot().top >= node("opt.c").getUnclippedBoundsInRoot().bottom)
+        assertEquals(windowHeight.value, (note.getUnclippedBoundsInRoot().bottom + Spacing.xl).value, 1f)
+    }
+
+    @Test
+    fun `no footer draws no note`() {
+        showSheet()
+
+        composeRule.onNodeWithText("Friends see only games you both played.").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a supporting line is a second line under its label and does not change the row's role or the other rows`() {
+        val rows = listOf(
+            FilterOption("a", "Alpha", supporting = "Last 7 days", tag = "opt.a"),
+            FilterOption("b", "Beta", tag = "opt.b"),
+        )
+        showSheet(rows)
+
+        composeRule.onNodeWithText("Last 7 days", useUnmergedTree = true).assertIsDisplayed()
+        val label = composeRule.onNodeWithText("Alpha", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val line = composeRule.onNodeWithText("Last 7 days", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        assertTrue("the supporting line is under the label", line.top >= label.bottom)
+        assertEquals("it starts at the label's left edge", label.left.value, line.left.value, 0.5f)
+        node("opt.a").assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
+        node("opt.a").assertHeightIsAtLeast(52.dp)
+        assertTrue(node("opt.a").getUnclippedBoundsInRoot().height > node("opt.b").getUnclippedBoundsInRoot().height)
     }
 
     @Test

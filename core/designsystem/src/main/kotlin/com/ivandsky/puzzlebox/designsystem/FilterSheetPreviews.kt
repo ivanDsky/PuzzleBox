@@ -31,6 +31,11 @@ private fun levelOptions(): List<FilterOption<String>> {
 @Composable
 private fun sourceOptions() = Sources.map { FilterOption(it, it) }
 
+private val Windows = listOf("Last 7 days" to "Mon to Sun", "Last 30 days" to "Rolling month", "All time" to null)
+
+@Composable
+private fun windowOptions() = Windows.map { (name, line) -> FilterOption(name, name, supporting = line) }
+
 @Composable
 private fun longOptions() = List(12) { FilterOption("row $it", "A source whose name is long enough to wrap onto a second line ${it + 1}") }
 
@@ -58,6 +63,41 @@ internal fun SingleFilterSheetLevelsPreview() {
 internal fun SingleFilterSheetLongPreview() {
     PuzzleBoxTheme {
         SingleFilterSheet("Source", "All sources", longOptions(), selected = "row 3", onSelect = {}, onDismiss = {})
+    }
+}
+
+@ShowkaseComposable(name = "SingleFilterSheet (supporting line)", group = "Filters")
+@PuzzleBoxPreviews
+@Composable
+internal fun SingleFilterSheetSupportingPreview() {
+    PuzzleBoxTheme {
+        SingleFilterSheet("Window", "Any window", windowOptions(), selected = "Last 7 days", onSelect = {}, onDismiss = {})
+    }
+}
+
+@ShowkaseComposable(name = "SingleFilterSheet (no all row)", group = "Filters")
+@PuzzleBoxPreviews
+@Composable
+internal fun SingleFilterSheetNoAllPreview() {
+    PuzzleBoxTheme {
+        SingleFilterSheet("Window", allLabel = null, options = windowOptions(), selected = "Last 30 days", onSelect = {}, onDismiss = {})
+    }
+}
+
+@ShowkaseComposable(name = "SingleFilterSheet (footer)", group = "Filters")
+@PuzzleBoxPreviews
+@Composable
+internal fun SingleFilterSheetFooterPreview() {
+    PuzzleBoxTheme {
+        SingleFilterSheet(
+            "Window",
+            allLabel = null,
+            options = windowOptions(),
+            selected = "Last 7 days",
+            onSelect = {},
+            onDismiss = {},
+            footer = "Friends comparison keeps its own windows.",
+        )
     }
 }
 

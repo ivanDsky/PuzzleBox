@@ -4,14 +4,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
 /**
- * The options of one filter, one of which can be picked. [selected] null is the [allLabel] row. A tap reports [onSelect] at once and
+ * The options of one filter, one of which can be picked. [selected] null is the [allLabel] row, which a null [allLabel] leaves out. A [footer] is a muted note under the list. A tap reports [onSelect] at once and
  * the sheet starts to hide 150 ms later and [onDismiss] follows once it has hidden; taps in between are ignored. Tags: the sheet is [tag] + ".sheet", its close button [tag] + ".sheet.close",
  * the "all" row [allTag], every other row its [FilterOption.tag].
  */
 @Composable
 fun <T> SingleFilterSheet(
     title: String,
-    allLabel: String,
+    allLabel: String?,
     options: List<FilterOption<T>>,
     selected: T?,
     onSelect: (T?) -> Unit,
@@ -19,6 +19,7 @@ fun <T> SingleFilterSheet(
     modifier: Modifier = Modifier,
     tag: String? = null,
     allTag: String? = null,
+    footer: String? = null,
 ) {
     FilterSheetFrame(title, onDismiss, modifier, tag) { hide ->
         val pick = rememberSingleFilterPick(selected, onSelect) {
@@ -33,6 +34,7 @@ fun <T> SingleFilterSheet(
             isSelected = { it == pick.highlighted },
             onOption = pick.onOption,
             allTag = allTag,
+            footer = footer,
         )
     }
 }

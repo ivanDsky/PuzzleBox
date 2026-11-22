@@ -29,6 +29,12 @@ enum class InsightsFlag(override val label: String, override val releaseDefault:
      * records and friends comparison. Read only in a ViewModel, a DI module or the app (ADR-0022 §3).
      */
     StatsPage(label = "Stats page", releaseDefault = true),
+
+    /**
+     * The stats page's filters (epic stats-page): the filter bar and its sheets on a game's and all games' stats. Ships
+     * dark until its flip PR; nothing reads it yet. Read only in a ViewModel, a DI module or the app (ADR-0022 §3).
+     */
+    StatsFilters(label = "Stats filters", releaseDefault = false),
     ;
 
     /** The entry's own name: the stored override's key in `release_flags`. Never change it. */
