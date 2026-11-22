@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.game.editor.Difficulty.Level
 import com.ivandsky.puzzlebox.play.community.ALPHA
 import com.ivandsky.puzzlebox.play.community.BETA
 import com.ivandsky.puzzlebox.play.community.DifficultyChoice
+import com.ivandsky.puzzlebox.play.community.NOW
 import com.ivandsky.puzzlebox.play.community.NO_EDITOR
 import com.ivandsky.puzzlebox.play.community.shelves.codeOf
 import kotlinx.coroutines.Dispatchers
@@ -274,6 +275,56 @@ class SeeAllViewModelTest {
         assertEquals("", viewModel.state.value.query)
         assertNull(viewModel.state.value.difficulty)
         assertEquals(SeeAllScope.Newest, viewModel.state.value.scope)
+    }
+
+    @Test
+    fun `opening the same page keeps its filters`() = runTest {
+        fixture.publish(1, title = "Sunny")
+        val viewModel = fixture.viewModel().opened(SeeAllScope.Search)
+        viewModel.setQuery("sun")
+        viewModel.setDifficulty(DifficultyChoice.Easy)
+        viewModel.setSort(SeeAllSort.Newest)
+
+        viewModel.open(SeeAllScope.Search)
+
+        assertEquals("sun", viewModel.state.value.query)
+        assertEquals(DifficultyChoice.Easy, viewModel.state.value.difficulty)
+    }
+
+    @Test
+    fun `opening a different scope resets what was typed`() = runTest {
+        fixture.publish(1, title = "Sunny")
+        val viewModel = fixture.viewModel().opened(SeeAllScope.Search)
+        viewModel.setQuery("sun")
+
+        viewModel.open(SeeAllScope.Game(ALPHA))
+
+        assertEquals("", viewModel.state.value.query)
+    }
+
+    @Test
+    fun `opening the same scope on a new visit, after the page closed, starts clean`() = runTest {
+        fixture.publish(1, title = "Sunny")
+        val viewModel = fixture.viewModel()
+        viewModel.open(SeeAllScope.Search, visit = 0)
+        viewModel.setQuery("sun")
+
+        viewModel.open(SeeAllScope.Search, visit = 1)
+
+        assertEquals("", viewModel.state.value.query)
+    }
+
+    @Test
+    fun `From friends keeps the friends' own order and offers no sort`() = runTest {
+        // Friend 2 is also in the community list and newest there, yet the friends' order (newest opened first) has 9 first.
+        fixture.publish(2, agoMs = 1_000)
+        fixture.receive(9, title = "Old friend", openedAtMs = NOW)
+        fixture.receive(2, title = "Puzzle 2", openedAtMs = NOW - 60_000)
+
+        val viewModel = fixture.viewModel().opened(SeeAllScope.Friends)
+
+        assertEquals(listOf(code(9), code(2)), viewModel.codes())
+        assertTrue(viewModel.state.value.sortOptions.isEmpty())
     }
 
     @Test

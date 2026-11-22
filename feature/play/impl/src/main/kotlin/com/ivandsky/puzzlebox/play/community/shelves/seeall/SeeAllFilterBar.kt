@@ -38,7 +38,7 @@ internal fun SeeAllFilterBar(state: SeeAllUiState, actions: SeeAllActions, modif
             if (state.showGameFilter) SeeAllGameFilter(state.game, state.games, actions.onGame)
             SeeAllDifficultyFilter(state.difficulty, actions.onDifficulty)
             Spacer(Modifier.weight(1f))
-            SortControl(state, actions)
+            if (state.sortOptions.isNotEmpty()) SortControl(state, actions)
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     }

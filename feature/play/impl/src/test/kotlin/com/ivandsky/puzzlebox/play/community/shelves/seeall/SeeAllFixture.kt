@@ -68,12 +68,12 @@ internal class SeeAllFixture(signedIn: Boolean = true) {
     }
 
     /** Puzzle [n] opened from a friend; [title] and [author] are what the received row says. */
-    suspend fun receive(n: Int, title: String = "Friend $n", author: String = "Bo", game: GameId = ALPHA) {
+    suspend fun receive(n: Int, title: String = "Friend $n", author: String = "Bo", game: GameId = ALPHA, openedAtMs: Long = NOW) {
         received.upsert(
             ReceivedPuzzle(
                 code = codeOf(n), gameId = game, variant = TestGames.variant(game), sharedFormatVersion = 1,
                 puzzleBytes = byteArrayOf(TestGames.MAGIC), title = title, authorName = author, note = "",
-                authorTimeMs = 100_000, authorHints = 0, authorUid = "friend", openedAt = Instant.ofEpochMilli(NOW),
+                authorTimeMs = 100_000, authorHints = 0, authorUid = "friend", openedAt = Instant.ofEpochMilli(openedAtMs),
                 unpublished = false, postState = PostState.Pending, postAttempts = 0, difficulty = null,
             ),
         )

@@ -64,6 +64,7 @@ internal class SeeAllViewModel(
     private val loaded = MutableStateFlow<Loaded>(Loaded.Reading)
     private val dropped = MutableStateFlow(emptySet<ShareCode>())
     private var loading: Job? = null
+    private var opened = 0
     private val reporter = SeeAllReporter(viewModelScope, reportPuzzle, identity, idTokens) { code -> dropped.update { it + code } }
 
     val state: StateFlow<SeeAllUiState> = combine(
@@ -73,9 +74,14 @@ internal class SeeAllViewModel(
     ) { page, friends, report -> stateOf(page, friends, report) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, SeeAllUiState(games = choices))
 
-    /** Opens [page] clean: no query, no filters, its own sort. The community list is read when nothing good is held yet. */
-    fun open(page: SeeAllScope) {
-        filters.value = SeeAllFilters()
+    /**
+     * Opens [page]: clean (no query, no filters, its own sort) when it is another page or another [visit] (the page was
+     * closed in between), and as it was left when the same page opens again, as after a rotation or a return from a
+     * row. The community list is read when nothing good is held yet.
+     */
+    fun open(page: SeeAllScope, visit: Int = 0) {
+        if (scope.value != page || opened != visit) filters.value = SeeAllFilters()
+        opened = visit
         scope.value = page
         if (loaded.value !is Loaded.Listed) load()
     }
@@ -123,9 +129,11 @@ internal class SeeAllViewModel(
     private fun stateOf(page: Page, friends: List<FriendPuzzleRow>, report: SeeAllReportState): SeeAllUiState {
         val community = (page.read as? Loaded.Listed)?.entries.orEmpty().filter { it.row.code !in page.dropped }
         val everything = if (page.scope == SeeAllScope.Friends) friendEntries(friends, community) else community.inScope(page.scope)
-        val options = sortOptionsOf(community)
+        // From friends is the friends' own order (non-solved first, newest opened first), so it has no sort menu.
+        val friendsPage = page.scope == SeeAllScope.Friends
+        val options = if (friendsPage) emptyList() else sortOptionsOf(community)
         val sort = page.filters.sort?.takeIf { it in options } ?: defaultSortOf(page.scope, options)
-        val shown = everything.selected(page.filters, sort)
+        val shown = if (friendsPage) everything.narrowed(page.filters) else everything.selected(page.filters, sort)
         val phase = when {
             page.scope == null || page.scope != SeeAllScope.Friends && page.read == Loaded.Reading -> SeeAllPhase.Loading
             page.scope != SeeAllScope.Friends && page.read == Loaded.Offline -> SeeAllPhase.Offline

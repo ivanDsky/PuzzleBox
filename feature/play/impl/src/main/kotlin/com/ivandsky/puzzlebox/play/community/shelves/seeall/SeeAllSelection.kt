@@ -28,13 +28,17 @@ internal fun List<SeeAllEntry>.inScope(scope: SeeAllScope?): List<SeeAllEntry> =
 
 /** [this] narrowed by [filters] and ordered by [sort]; the sort is Newest or Most played, both newest-first on a tie. Puzzles without a value sort last. The list is the community's newest 30, so there is nothing to page. */
 internal fun List<SeeAllEntry>.selected(filters: SeeAllFilters, sort: SeeAllSort): List<SeeAllEntry> {
-    val query = filters.query.trim()
     val newest = compareByDescending<SeeAllEntry, Long?>(nullsFirst()) { it.createdAtMs }
     val order = if (sort == SeeAllSort.MostPlayed) compareByDescending<SeeAllEntry, Int?>(nullsFirst()) { it.solves }.then(newest) else newest
+    return narrowed(filters).sortedWith(order)
+}
+
+/** [this] narrowed by [filters], in the order it has. */
+internal fun List<SeeAllEntry>.narrowed(filters: SeeAllFilters): List<SeeAllEntry> {
+    val query = filters.query.trim()
     return filter { filters.game == null || it.game == filters.game }
         .filter { filters.difficulty == null || it.row.difficulty in filters.difficulty.levels }
         .filter { query.isEmpty() || it.matches(query) }
-        .sortedWith(order)
 }
 
 private fun SeeAllEntry.matches(query: String) =
