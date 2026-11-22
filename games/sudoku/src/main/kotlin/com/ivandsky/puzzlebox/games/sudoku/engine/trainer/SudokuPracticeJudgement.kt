@@ -14,8 +14,14 @@ sealed interface SudokuPracticeJudgement {
     /** The move is part of [step], a deduction of the easiest rung (the cheapest one that makes it). */
     data class Right(override val rung: TechniqueId?, val step: SudokuStep) : SudokuPracticeJudgement
 
-    /** The move fits the solution but no deduction of the easiest [rung] makes it; [step] is the first one that rung does hold. */
+    /** The move fits the solution and is no single ([Fits]), but no deduction of the easiest [rung] makes it; [step] is the first one that rung does hold. */
     data class Easier(override val rung: TechniqueId, val step: SudokuStep) : SudokuPracticeJudgement
+
+    /**
+     * The move is a valid single (the square's only note, or the one square of a row, column or box that can take its
+     * number) that the easiest [rung] does not make. A practice takes it without counting it, and without a word.
+     */
+    data class Fits(override val rung: TechniqueId) : SudokuPracticeJudgement
 
     /** The move breaks the solution, or is no move a practice takes. */
     data class Wrong(override val rung: TechniqueId?, val reason: Reason) : SudokuPracticeJudgement

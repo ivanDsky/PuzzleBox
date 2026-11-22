@@ -62,7 +62,9 @@ class SudokuPracticeJudgeTest {
                 listOf<SudokuTrainerMove>(SudokuTrainerMove.Place(idx, start.puzzle.solution[idx])) +
                     (1..size).filter { notes and (1 shl (it - 1)) != 0 && it != start.puzzle.solution[idx] }.map { SudokuTrainerMove.RemoveNote(idx, it) }
             }
-            for (move in fitting.filter { it !in covered }) {
+            // A valid single is Fits, not Easier (SudokuPracticeSingleTest).
+            val isSingle = { move: SudokuTrainerMove -> move is SudokuTrainerMove.Place && SudokuLadder.isSingle(start.puzzle, start.board, move.idx, move.digit) }
+            for (move in fitting.filter { it !in covered && !isSingle(it) }) {
                 val judged = start.judge(move)
                 assertEquals("${start.name} ${start.technique.value} $move", SudokuPracticeJudgement.Easier(start.technique, rung.steps.first()), judged)
                 if (move is SudokuTrainerMove.Place) placed++ else struck++

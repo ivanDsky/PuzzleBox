@@ -43,6 +43,21 @@ internal object SudokuLadder {
         }
     }
 
+    /**
+     * Whether [digit] on the open cell [idx] of [board] is a single, read from the notes the board shows: the cell's
+     * only candidate (a naked single), or the one cell of a row, column or box that can take it (a hidden single, a
+     * last cell among them). False when the cell's notes no longer hold [digit].
+     */
+    fun isSingle(puzzle: SudokuPuzzle, board: SudokuBoard, idx: Int, digit: Int): Boolean {
+        val candidates = candidates(puzzle, board)
+        val bit = 1 shl (digit - 1)
+        if (candidates[idx] and bit == 0) return false
+        val geometry = puzzle.geometry
+        return candidates[idx] == bit || geometry.units.filter { idx in geometry.cellsOf(it) }.any { unit ->
+            geometry.cellsOf(unit).none { it != idx && candidates[it] and bit != 0 }
+        }
+    }
+
     private fun rungs(
         geometry: SudokuGeometry,
         scan: SudokuStepper.Scan,

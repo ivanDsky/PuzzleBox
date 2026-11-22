@@ -38,6 +38,10 @@ import kotlinx.coroutines.flow.asStateFlow
  * appear in the meantime; the last is [PracticeStatus.Right], and [onTrainedTurn] hears `Right` once, then. An undone
  * move or Show me reports only when the easiest rung is the trained [technique].
  *
+ * A valid single that the easiest rung does not make (a naked single on a Hidden single board, any single on a review
+ * board) stands without a word: it is not undone, shows no band and is not reported. A review board ends a few moves
+ * after its last trained step ([SudokuPractice.isDone]).
+ *
  * An Easier move or Show me stands as an explanation until [gotIt]: the board takes no move meanwhile, whatever
  * the keypad sends it. The status Spotlight is drawn over the grid by [SudokuTrainer.Board] from [status].
  *
@@ -66,6 +70,9 @@ internal class SudokuPracticeBoard(
     private var step: Step? = null
     private var spotlights = 0
 
+    /** The moves made since the last trained step, which a review board ends on ([SudokuPractice.isDone]). */
+    private var sinceTrained = 0
+
     /** Whether the step Show me made, whose explanation stands, ended the board: [gotIt] then reads Done. */
     private var shownEnds = false
 
@@ -87,6 +94,7 @@ internal class SudokuPracticeBoard(
         state.adopt(next)
         step = null
         if (show.rung == technique) onTrainedTurn(TrainerVerdict.ShowMe)
+        sinceTrained = if (show.rung == technique) 0 else sinceTrained + 1
         shownEnds = over(next)
         current.value = PracticeStatus.Shown(spotlight)
     }
@@ -108,6 +116,7 @@ internal class SudokuPracticeBoard(
         step?.takeIf { square(move) in it.remaining }?.let { return continuing(it, move, next) }
         return when (val judged = SudokuPractice.judge(puzzle, before.board, move)) {
             is SudokuPracticeJudgement.Right -> right(judged, before, move, next)
+            is SudokuPracticeJudgement.Fits -> fits(next)
             is SudokuPracticeJudgement.Easier -> {
                 val spotlight = spotlight(judged.step, before.board)
                 undone(judged.rung, PracticeStatus.Easier(SudokuTrainerCatalog.name(judged.rung), spotlight), before)
@@ -131,6 +140,16 @@ internal class SudokuPracticeBoard(
         return next
     }
 
+    /**
+     * A valid single the easiest rung did not make: it stands, with no band and nothing reported to the count, and
+     * a step the player has started goes on. It counts as a move since the last trained step.
+     */
+    private fun fits(next: SudokuSession): SudokuSession {
+        sinceTrained++
+        if (step == null) current.value = if (over(next)) PracticeStatus.Done(null) else PracticeStatus.FindNextMove
+        return next
+    }
+
     /** A later square of a started step: KeepGoing while squares remain, Right on the last. */
     private fun continuing(started: Step, move: SudokuTrainerMove, next: SudokuSession): SudokuSession {
         started.remaining -= square(move)!!
@@ -146,12 +165,13 @@ internal class SudokuPracticeBoard(
     /** A step is done: a trained one is reported once, and the band reads Right, or Done when the step ended the board. */
     private fun finished(trained: Boolean, spotlight: Spotlight, next: SudokuSession) {
         if (trained) onTrainedTurn(TrainerVerdict.Right)
+        sinceTrained = if (trained) 0 else sinceTrained + 1
         current.value = if (over(next)) PracticeStatus.Done(spotlight) else PracticeStatus.Right(spotlight, trained)
     }
 
     /** Whether [session] leaves this board nothing to ask: solved, or the easiest rung is out of this [kind]'s part. */
     private fun over(session: SudokuSession): Boolean =
-        session.isComplete || SudokuPractice.isDone(puzzle, session.board, technique, kind)
+        session.isComplete || SudokuPractice.isDone(puzzle, session.board, technique, kind, sinceTrained)
 
     /** [status] for a move that is not Right: the move is dropped, and the trained technique's turn it was is a Wrong. */
     private fun undone(rung: TechniqueId?, status: PracticeStatus, before: SudokuSession): SudokuSession {

@@ -34,11 +34,17 @@ object SudokuPractice {
      * [start] and [SudokuTechniqueWalker] both read it, so a technique has a practice exactly where the walk counts it.
      * The puzzle's stored solution is not checked here; the walk reads no solution, only the ladder.
      */
-    internal fun walk(puzzle: SudokuPuzzle): Sequence<WalkPoint> = sequence {
-        val geometry = puzzle.geometry
-        var board = SudokuBoard.of(puzzle)
+    internal fun walk(puzzle: SudokuPuzzle): Sequence<WalkPoint> {
+        val board = SudokuBoard.of(puzzle)
         val candidates = SudokuLadder.candidates(puzzle, board)
-        board.cells.indices.filter { board.cells[it] == SudokuCell.Empty }.forEach { board = board.with(it, SudokuCell.Notes(candidates[it])) }
+        val noted = board.cells.indices.filter { board.cells[it] == SudokuCell.Empty }.fold(board) { acc, idx -> acc.with(idx, SudokuCell.Notes(candidates[idx])) }
+        return walkFrom(puzzle, noted)
+    }
+
+    /** [walk]'s turns from [start], a board as a practice shows it: the points ahead of it, whatever it was played from. */
+    private fun walkFrom(puzzle: SudokuPuzzle, start: SudokuBoard): Sequence<WalkPoint> = sequence {
+        val geometry = puzzle.geometry
+        var board = start
         // Each turn places a digit or takes a note off, and a board holds only cells * (digits + 1) of those.
         repeat(geometry.cellCount * (geometry.size + 1)) {
             if (board.isFull) return@sequence
@@ -93,21 +99,39 @@ object SudokuPractice {
      * Whether a practice of [kind] for [technique] has nothing more to ask on [board] ([BoardKind]): the puzzle is
      * solved, no rung applies to it (stalled: the next move would be a reveal or a guess, which no technique finds), or
      * the easiest rung is another technique (focus) or a technique later than [technique] in [SudokuTechniqueIds.all]
-     * (review).
+     * (review). A review is also done once no [technique] step lies ahead of it ([trainedAhead]) and the player has made
+     * [REVIEW_GRACE] moves since the last one: [movesSinceTrained] counts those, so the board does not run on through
+     * the easier moves that are left. A focus board ignores it.
      */
-    fun isDone(puzzle: SudokuPuzzle, board: SudokuBoard, technique: TechniqueId, kind: BoardKind): Boolean {
+    fun isDone(puzzle: SudokuPuzzle, board: SudokuBoard, technique: TechniqueId, kind: BoardKind, movesSinceTrained: Int = 0): Boolean {
         if (board.isFull) return true
         val rung = SudokuLadder.easiest(puzzle, board)?.id ?: return true
         return when (kind) {
             BoardKind.Focus -> rung != technique
-            BoardKind.Review -> SudokuTechniqueIds.all.indexOf(rung) > SudokuTechniqueIds.all.indexOf(technique)
+            BoardKind.Review ->
+                SudokuTechniqueIds.all.indexOf(rung) > SudokuTechniqueIds.all.indexOf(technique) ||
+                    (movesSinceTrained >= REVIEW_GRACE && !trainedAhead(puzzle, board, technique))
         }
+    }
+
+    /** The moves a review board takes after its last [technique] step before it ends. */
+    const val REVIEW_GRACE = 3
+
+    /**
+     * Whether the walk from [board] still reaches a [technique] step before it leaves what a review of [technique] has
+     * learned (a later rung, or the end). The walk is the easiest-first one, so it is what Show me would play.
+     */
+    fun trainedAhead(puzzle: SudokuPuzzle, board: SudokuBoard, technique: TechniqueId): Boolean {
+        val learned = SudokuTechniqueIds.all.take(SudokuTechniqueIds.all.indexOf(technique) + 1).toSet()
+        return walkFrom(puzzle, board).takeWhile { it.rung in learned }.any { it.rung == technique }
     }
 
     /**
      * [move] on [before], judged. A placement fits when it is the cell's solution digit and a note removal when it is
      * not; a move that does not fit is Wrong. A fitting move that some deduction of the easiest rung makes is Right,
-     * whichever instance the player found; one the easiest rung does not make is Easier. With no rung to judge by,
+     * whichever instance the player found. A placement the easiest rung does not make is Fits when it is a single
+     * ([SudokuLadder.isSingle]), whatever rung of the ladder it belongs to; any other move that fits, and a note removal
+     * the rung does not make, is Easier. With no rung to judge by,
      * a placement that fits is Right (a reveal's own step) and anything else is Wrong.
      */
     fun judge(puzzle: SudokuPuzzle, before: SudokuBoard, move: SudokuTrainerMove): SudokuPracticeJudgement {
@@ -118,12 +142,13 @@ object SudokuPractice {
             is SudokuTrainerMove.Place -> when {
                 move.digit != puzzle.solution[move.idx] -> wrong(SudokuPracticeJudgement.Reason.WrongDigit)
                 rung == null -> SudokuPracticeJudgement.Right(null, SudokuStep.Reveal(move.idx, move.digit))
-                else -> verdict(rung, rung.steps.firstOrNull { it.places(move) })
+                else -> rung.steps.firstOrNull { it.places(move) }?.let { SudokuPracticeJudgement.Right(rung.id, it) }
+                    ?: if (SudokuLadder.isSingle(puzzle, before, move.idx, move.digit)) SudokuPracticeJudgement.Fits(rung.id) else easier(rung)
             }
             is SudokuTrainerMove.RemoveNote -> when {
                 move.digit == puzzle.solution[move.idx] -> wrong(SudokuPracticeJudgement.Reason.SolutionNote)
                 rung == null -> wrong(SudokuPracticeJudgement.Reason.NotAMove)
-                else -> verdict(rung, rung.steps.firstOrNull { it.strikes(move) })
+                else -> rung.steps.firstOrNull { it.strikes(move) }?.let { SudokuPracticeJudgement.Right(rung.id, it) } ?: easier(rung)
             }
             is SudokuTrainerMove.AddNote, SudokuTrainerMove.Other -> wrong(SudokuPracticeJudgement.Reason.NotAMove)
         }
@@ -152,8 +177,7 @@ object SudokuPractice {
         is SudokuStep.Mistake, SudokuStep.Solved -> emptyList()
     }
 
-    private fun verdict(rung: SudokuLadder.Rung, proof: SudokuStep?): SudokuPracticeJudgement =
-        if (proof != null) SudokuPracticeJudgement.Right(rung.id, proof) else SudokuPracticeJudgement.Easier(rung.id, rung.steps.first())
+    private fun easier(rung: SudokuLadder.Rung): SudokuPracticeJudgement = SudokuPracticeJudgement.Easier(rung.id, rung.steps.first())
 
     private fun SudokuStep.places(move: SudokuTrainerMove.Place): Boolean =
         this is SudokuStep.Single && place.cell == move.idx && place.digit == move.digit

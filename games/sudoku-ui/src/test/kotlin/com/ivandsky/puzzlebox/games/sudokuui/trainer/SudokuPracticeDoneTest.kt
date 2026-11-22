@@ -54,7 +54,7 @@ class SudokuPracticeDoneTest {
     }
 
     @Test
-    fun `a review board goes on through learned techniques and is done on a later one, or the end`() {
+    fun `a review board goes on through learned techniques and is done on a later one, the end, or once nothing trained is left`() {
         var later = 0
         var learnedAsked = 0
         val rigs = SudokuPracticeRig.all(BoardKind.Review)
@@ -68,7 +68,10 @@ class SudokuPracticeDoneTest {
             learnedAsked += asked.count { it < trained }
             if (rig.state.session.isComplete) continue
             later++
-            assertTrue("${rig.label}: the next rung is later than the trained one, or none applies", rig.nextRung().let { it == null || it > trained })
+            assertTrue(
+                "${rig.label}: the next rung is later than the trained one, none applies, or no trained step lies ahead",
+                rig.nextRung().let { it == null || it > trained } || !SudokuPractice.trainedAhead(rig.puzzle, rig.board, rig.technique),
+            )
         }
         assertTrue("a review board asks an earlier technique", learnedAsked > 0)
         assertTrue("some review board ends on a later technique", later > 0)
