@@ -8,9 +8,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.graphics.isSpecified
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.insights.domain.stats.SectionState
 
@@ -25,12 +29,24 @@ internal fun <T> StatsSectionFrame(
     tag: String,
     modifier: Modifier = Modifier,
     content: @Composable (T) -> Unit,
+) = StatsSectionFrame(AnnotatedString(title), state, tag, modifier, titleStyle = null, titleColor = Color.Unspecified, content)
+
+/** The frame with a styled [title] (a span of it lighter, say), set in [titleStyle] and [titleColor] when given instead of the section-title look. */
+@Composable
+internal fun <T> StatsSectionFrame(
+    title: AnnotatedString,
+    state: SectionState<T>,
+    tag: String,
+    modifier: Modifier = Modifier,
+    titleStyle: TextStyle?,
+    titleColor: Color,
+    content: @Composable (T) -> Unit,
 ) {
     Column(modifier.fillMaxWidth().testTag(tag), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text(
             text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = titleStyle ?: MaterialTheme.typography.titleMedium,
+            color = titleColor.takeIf { it.isSpecified } ?: MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(vertical = Spacing.xs).semantics { heading() },
         )
         when (state) {
