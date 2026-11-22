@@ -9,7 +9,7 @@ import kotlin.math.max
 
 /**
  * One run through a chapter's [boards], tallied for its result page. Right trained turns and the streak come from the
- * board's verdicts ([verdict]); Show me taps, easier-move slips and finished boards come from the statuses the band
+ * board's verdicts ([verdict]); Show me taps, out-of-order slips, undone moves and finished boards come from the statuses the band
  * shows ([see]). In memory for the run only, and only touched on the main thread. [wasMastered] is the technique's mark
  * when the run began, set once the first board opens.
  */
@@ -17,6 +17,7 @@ internal class ChapterRun(private val boards: Int) {
     private val rights = IntArray(boards)
     private val shown = IntArray(boards)
     private val slips = IntArray(boards)
+    private val undone = IntArray(boards)
     private val done = BooleanArray(boards)
     private var streak = 0
     private var best = 0
@@ -38,6 +39,7 @@ internal class ChapterRun(private val boards: Int) {
     fun see(board: Int, status: PracticeStatus) {
         when (status) {
             is PracticeStatus.Easier -> slips[board] += 1
+            is PracticeStatus.Wrong -> undone[board] += 1
             is PracticeStatus.Shown -> shown[board] += 1
             is PracticeStatus.Done -> done[board] = true
             else -> Unit
@@ -60,14 +62,16 @@ internal class ChapterRun(private val boards: Int) {
             rights = rights.sum(),
             shown = shown.sum(),
             slips = slips.sum(),
+            undone = undone.sum(),
             best = best,
             rows = List(boards) { board ->
                 val kind = when {
                     shown[board] > 0 -> BoardRowKind.Shown
+                    undone[board] > 0 -> BoardRowKind.Undone
                     slips[board] > 0 -> BoardRowKind.Slip
                     else -> BoardRowKind.Clean
                 }
-                BoardRow(board + 1, kind, rights[board])
+                BoardRow(board + 1, kind, rights[board], undone[board])
             },
             allMastered = catalog.all { mastered(it.id) },
             techniques = catalog.size,

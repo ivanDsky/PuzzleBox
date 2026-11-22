@@ -26,6 +26,7 @@ import com.ivandsky.puzzlebox.train.practice.BoardRowKind
 import com.ivandsky.puzzlebox.train.practice.ChapterOutcome
 import com.ivandsky.puzzlebox.train.practice.ChapterResult
 import com.ivandsky.puzzlebox.train.practice.IntroEntry
+import com.ivandsky.puzzlebox.train.practice.PracticeChapter
 import com.ivandsky.puzzlebox.train.practice.PracticePane
 import com.ivandsky.puzzlebox.train.practice.PracticeState
 import com.ivandsky.puzzlebox.train.practice.StandInIntroDemo
@@ -69,6 +70,12 @@ class TrainPhoneGoldenScreenshots : TrainGoldenScreenshots("phone") {
 
     @Test fun `practice done light`() = capture("practice-done", dark = false) { Page { Practice(Done, showBack = true, Three, MidHold) } }
     @Test fun `practice done dark`() = capture("practice-done", dark = true) { Page { Practice(Done, showBack = true, Three, MidHold) } }
+    @Test fun `practice done unsolved light`() = capture("practice-done-unsolved", dark = false) { Page { Practice(DoneUnsolved, showBack = true, Three, MidHold) } }
+    @Test fun `practice keep going light`() = capture("practice-keep-going", dark = false) { Page { Practice(KeepGoing, showBack = true) } }
+    @Test fun `practice easier light`() = capture("practice-easier", dark = false) { Page { Practice(Easier, showBack = true) } }
+    @Test fun `practice not yet light`() = capture("practice-not-yet", dark = false) { Page { Practice(NotYet, showBack = true) } }
+    @Test fun `practice fits light`() = capture("practice-fits", dark = false) { Page { Practice(Fits, showBack = true, Three) } }
+    @Test fun `practice review board light`() = capture("practice-review", dark = false) { Page { Practice(FindNext, showBack = true, chapter = standInChapter(board = 5)) } }
     @Test fun `chapter result light`() = capture("chapter-result", dark = false) { Page { Practice(Result, showBack = true) } }
     @Test fun `chapter result dark`() = capture("chapter-result", dark = true) { Page { Practice(Result, showBack = true) } }
     @Test fun `empty light`() = capture("empty", dark = false) { Page { Practice(PracticeState.Empty, showBack = true) } }
@@ -115,6 +122,11 @@ abstract class TrainGoldenScreenshots(private val device: String) {
         val Right = PracticeState.Practicing(StandInPracticeBoard(PracticeStatus.Right(standInSpotlight(), trained = true)))
         val Wrong = PracticeState.Practicing(StandInPracticeBoard(PracticeStatus.Wrong("Two queens would touch.")))
         val Done = PracticeState.Practicing(StandInPracticeBoard(PracticeStatus.Done(standInSpotlight())))
+        val DoneUnsolved = PracticeState.Practicing(StandInPracticeBoard(PracticeStatus.Done(standInSpotlight(), needsOtherTechnique = true)))
+        val KeepGoing = PracticeState.Practicing(StandInPracticeBoard(PracticeStatus.KeepGoing(left = 2, trained = true)))
+        val Easier = PracticeState.Practicing(StandInPracticeBoard(PracticeStatus.Easier("Naked single", standInSpotlight())))
+        val NotYet = PracticeState.Practicing(StandInPracticeBoard(PracticeStatus.Easier("Line lock", standInSpotlight())))
+        val Fits = PracticeState.Practicing(StandInPracticeBoard(PracticeStatus.Right(standInSpotlight(), trained = false, technique = "Naked single")))
         val MidHold = BoardHold(remainingMs = 900, waitsForTap = false)
         /** The stand-in demo's last frame: the squares landed, so the main button is Start practice. */
         const val LastFrame = 3
@@ -127,11 +139,12 @@ abstract class TrainGoldenScreenshots(private val device: String) {
                 boardsDone = 5,
                 rights = 14,
                 shown = 1,
-                slips = 2,
+                slips = 1,
+                undone = 3,
                 best = 9,
                 rows = listOf(
                     BoardRow(1, BoardRowKind.Clean, 3),
-                    BoardRow(2, BoardRowKind.Slip, 3),
+                    BoardRow(2, BoardRowKind.Undone, 3, undone = 3),
                     BoardRow(3, BoardRowKind.Clean, 2),
                     BoardRow(4, BoardRowKind.Shown, 3),
                     BoardRow(5, BoardRowKind.Slip, 3),
@@ -185,8 +198,9 @@ abstract class TrainGoldenScreenshots(private val device: String) {
             showBack: Boolean,
             progress: TechniqueProgress = Two,
             hold: BoardHold? = null,
+            chapter: PracticeChapter = standInChapter(board = 2, boards = 5),
         ) = PracticePane(
-            chapter = standInChapter(board = 2, boards = 5),
+            chapter = chapter,
             state = state,
             progress = progress,
             showBack = showBack,

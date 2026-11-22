@@ -56,6 +56,7 @@ class PracticePaneTest {
         rights = 9,
         shown = 1,
         slips = 2,
+        undone = 3,
         best = 6,
         rows = List(5) { BoardRow(it + 1, BoardRowKind.Clean, 2) },
         allMastered = false,
@@ -125,19 +126,45 @@ class PracticePaneTest {
         assertBand("Right", "That uses Line lock, so it counts. Find the next move.")
 
         say(PracticeStatus.Right(standInSpotlight(), trained = false))
-        assertBand("Right", "does not count toward Line lock")
+        assertBand("Fits", "That is another technique's move. Only Line lock moves count here.")
+
+        say(PracticeStatus.Right(standInSpotlight(), trained = false, technique = "Naked single"))
+        assertBand("Fits", "That is a Naked single move. Only Line lock moves count here.")
     }
 
-    /** Catches a mid-step square that says Right, or a count that is not the squares left. */
+    /** Catches a review board that tells the player the same thing as a focus board, so a correct move undone for an easier one looks like a bug. */
+    @Test
+    fun `a review board says any technique up to the trained one may be used`() {
+        showBoard(chapter = standInChapter(board = 5, boards = 5))
+        assertBand("Find the next move", "Mixed board: use any technique up to Line lock. Easier moves come first.")
+    }
+
+    /** Catches a focus board of a chapter with a review board that already talks about mixing, or a first technique's last board that does. */
+    @Test
+    fun `a focus board is not a review board`() {
+        showBoard(chapter = standInChapter(board = 4, boards = 5))
+        assertBand("Find the next move", "Moves that use Line lock count")
+    }
+
+    @Test
+    fun `the first technique's last board is not a review board`() {
+        showBoard(chapter = standInChapter(board = 4, boards = 4))
+        assertBand("Find the next move", "Moves that use Line lock count")
+    }
+
+    /** Catches a mid-move square that says Right, a count that is not the squares left, or a count that does not say what is counted. */
     @Test
     fun `a Keep going band counts the squares left in the step`() {
         showBoard()
 
         say(PracticeStatus.KeepGoing(left = 2, trained = true))
-        assertBand("Keep going", "2 more in this step.")
+        assertBand("Keep going", "This move has 2 more squares. Find them.")
 
         say(PracticeStatus.KeepGoing(left = 1, trained = true))
-        assertBand("Keep going", "1 more in this step.")
+        assertBand("Keep going", "This move has 1 more square. Find it.")
+
+        say(PracticeStatus.KeepGoing(left = 4, trained = true, unit = "note"))
+        assertBand("Keep going", "This move has 4 more notes. Find them.")
     }
 
     /** Catches an undone easier move that does not name the technique to look for, and a Wrong that does not say why. */
@@ -146,10 +173,19 @@ class PracticePaneTest {
         showBoard()
 
         say(PracticeStatus.Easier("Naked single", standInSpotlight()))
-        assertBand("An easier move exists", "Look for Naked single first.")
+        assertBand("An easier move exists", "Look for Naked single first. Tap Got it or the board to go on.")
 
         say(PracticeStatus.Wrong("Two queens would touch."))
-        assertBand("Not there, undone", "Two queens would touch.")
+        assertBand("Undone", "Two queens would touch.")
+    }
+
+    /** Catches an "easier move" that names the technique being practiced, which reads as "I was doing that". */
+    @Test
+    fun `an undone move that needs the practiced technique says it cannot show it yet`() {
+        showBoard()
+
+        say(PracticeStatus.Easier("Line lock", standInSpotlight()))
+        assertBand("Not yet", "Right square, but Line lock can't show it yet. Find a Line lock move first. Tap Got it or the board to go on.")
     }
 
     /** Catches a Show me that is not the board's: the board applies the deduction, the host only asks. */
@@ -161,7 +197,7 @@ class PracticePaneTest {
         say(PracticeStatus.Shown(standInSpotlight()))
 
         assertEquals(1, board.showMeCount)
-        assertBand("Here is the next move", "Look at the board, then tap Got it.")
+        assertBand("Here is the next move", "Look at the board, then tap Got it or the board to go on.")
     }
 
     /** Catches an explanation with no way to dismiss it, a Got it that is not the board's, or a Show me that stays live under one. */
@@ -181,9 +217,9 @@ class PracticePaneTest {
 
     /** Catches a count that is not the stored one, or a mastered technique that still shows a row. */
     @Test
-    fun `the title row counts the trained moves in a row, and says Mastered`() {
+    fun `the title row counts the streak of trained moves`() {
         showBoard(TechniqueProgress(Mark.Practicing, inRow = 3, answeredAtMs = 1L))
-        composeRule.onNodeWithTag("train.count").assertTextEquals("3 of 5 in a row")
+        composeRule.onNodeWithTag("train.count").assertTextEquals("Streak 3 of 5")
     }
 
     @Test
@@ -240,8 +276,26 @@ class PracticePaneTest {
         showBoard(chapter = standInChapter(board = 5, boards = 5))
         say(PracticeStatus.Done(null))
 
-        composeRule.onNodeWithTag("train.status").assertTextContains("Board 5 of 5 done").assertTextContains("Chapter result in 2", substring = true)
+        composeRule.onNodeWithTag("train.status").assertTextContains("Board 5 of 5 done").assertTextContains("Result in 2", substring = true)
         composeRule.onNodeWithTag("train.nextBoard").assertTextContains("See result")
+    }
+
+    /** Catches a board that stops half-filled with no reason given. */
+    @Test
+    fun `a board that ended unsolved says the next move needs another technique`() {
+        showBoard(chapter = standInChapter(board = 2, boards = 5))
+        say(PracticeStatus.Done(null, needsOtherTechnique = true))
+
+        composeRule.onNodeWithTag("train.status").assertTextContains("The next move needs another technique.", substring = true)
+        composeRule.onNodeWithTag("train.status").assertTextContains("Next board in 2", substring = true)
+    }
+
+    @Test
+    fun `a solved board does not say it needs another technique`() {
+        showBoard(chapter = standInChapter(board = 2, boards = 5))
+        say(PracticeStatus.Done(null))
+
+        composeRule.onNodeWithText("needs another technique", substring = true).assertDoesNotExist()
     }
 
     /** Catches a screen reader user left with a countdown that moves on by itself. */
@@ -293,7 +347,7 @@ class PracticePaneTest {
     @Test
     fun `the can't-load page opens a puzzle on the device`() {
         show(PracticeState.CantLoad(alternative = 918))
-        composeRule.onNodeWithText("Try another puzzle").performClick()
+        composeRule.onNodeWithText("Use that puzzle").performClick()
         assertEquals(listOf(0, 1, 0), listOf(tryAgain, tryAnother, closed))
     }
 

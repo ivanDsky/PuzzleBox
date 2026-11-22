@@ -52,7 +52,14 @@ private val DrainHeight = 5.dp
  * so "Board N of M done" is read out once and the ticking line is not.
  */
 @Composable
-internal fun DoneBand(chapter: PracticeChapter, hold: BoardHold?, narrow: Boolean, onSkip: () -> Unit, modifier: Modifier = Modifier) {
+internal fun DoneBand(
+    chapter: PracticeChapter,
+    hold: BoardHold?,
+    narrow: Boolean,
+    onSkip: () -> Unit,
+    modifier: Modifier = Modifier,
+    needsOtherTechnique: Boolean = false,
+) {
     val scheme = MaterialTheme.colorScheme
     val last = chapter.board == chapter.boards
     val shown = hold ?: BoardHold(BoardEndHoldMillis, waitsForTap = false)
@@ -67,7 +74,7 @@ internal fun DoneBand(chapter: PracticeChapter, hold: BoardHold?, narrow: Boolea
                     DoneTitle(chapter)
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
-                    DoneNext(shown, last, Modifier.weight(1f))
+                    DoneNext(shown, last, needsOtherTechnique, Modifier.weight(1f))
                     NextBoardButton(last, onSkip)
                 }
             }
@@ -76,7 +83,7 @@ internal fun DoneBand(chapter: PracticeChapter, hold: BoardHold?, narrow: Boolea
                 DoneCheck(LargeCheck)
                 Column(Modifier.weight(1f)) {
                     DoneTitle(chapter)
-                    DoneNext(shown, last)
+                    DoneNext(shown, last, needsOtherTechnique)
                 }
                 NextBoardButton(last, onSkip)
             }
@@ -112,14 +119,15 @@ private fun DoneTitle(chapter: PracticeChapter) {
     )
 }
 
-/** What comes next: the countdown, or with [BoardHold.waitsForTap] the tap that moves on. */
+/** What comes next: the countdown, or with [BoardHold.waitsForTap] the tap that moves on; [needsOtherTechnique] first says why an unsolved board stopped. */
 @Composable
-private fun DoneNext(hold: BoardHold, last: Boolean, modifier: Modifier = Modifier) {
-    val next = if (last) "Chapter result" else "Next board"
+private fun DoneNext(hold: BoardHold, last: Boolean, needsOtherTechnique: Boolean, modifier: Modifier = Modifier) {
+    val next = if (last) "Result" else "Next board"
     // The whole second left, never below 1.
     val seconds = ceil(hold.remainingMs / 1000.0).toInt().coerceAtLeast(1)
+    val whenNext = if (hold.waitsForTap) "Tap ${if (last) "See result" else "Next board"} when you are ready." else "$next in $seconds"
     Text(
-        if (hold.waitsForTap) "Tap ${if (last) "See result" else "Next board"} when you are ready." else "$next in $seconds",
+        if (needsOtherTechnique) "The next move needs another technique. $whenNext" else whenNext,
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onPrimary,
         maxLines = 2,

@@ -22,7 +22,7 @@ private val Pointing = TrainerTechnique(TechniqueId("pointing-pair"), "Pointing 
 
 private val Rows = listOf(
     BoardRow(1, BoardRowKind.Clean, 6),
-    BoardRow(2, BoardRowKind.Clean, 5),
+    BoardRow(2, BoardRowKind.Undone, 5, undone = 3),
     BoardRow(3, BoardRowKind.Slip, 8),
     BoardRow(4, BoardRowKind.Shown, 1),
     BoardRow(5, BoardRowKind.Clean, 7),
@@ -41,7 +41,8 @@ private fun result(
     boardsDone = 5,
     rights = 27,
     shown = 1,
-    slips = 2,
+    slips = 1,
+    undone = 3,
     best = best,
     rows = Rows,
     allMastered = allMastered,

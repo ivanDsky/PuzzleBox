@@ -45,10 +45,10 @@ internal fun NeedsConnectionPage(name: String, onTryAgain: () -> Unit) {
 @Composable
 internal fun CantLoadPage(name: String, onTryAnother: () -> Unit) {
     EmptyState(
-        title = "Can't load this puzzle right now",
-        message = "Another puzzle that uses $name is already on this device.",
+        title = "This puzzle didn't load.",
+        message = "You can practice $name on one already on this device.",
         modifier = Modifier.fillMaxSize().testTag("train.cantLoad"),
-        actionLabel = "Try another puzzle",
+        actionLabel = "Use that puzzle",
         onAction = onTryAnother,
     )
 }

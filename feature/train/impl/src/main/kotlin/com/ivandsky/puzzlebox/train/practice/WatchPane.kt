@@ -52,7 +52,7 @@ private val TwoPane = MinBoardColumn + ColumnGap + WatchColumnWidth
  * The technique intro (spec §2.7) over [intro], walked through by the player: each variant opens on its evidence and
  * Next step shows the squares landing, then the next variant (user-check rounds 4 and 5: autoplay ran too fast to
  * read, and the plain position before the evidence told nothing). On the last step Next step turns into Start
- * practice (round 6); it and Skip intro call [IntroControls.onStart]. In a [replay] over a live board Back to board 1
+ * practice (round 6); it and Skip intro call [IntroControls.onStart]. In a [replay] over a live board Back to the board
  * and Close call [IntroControls.onClose]. The walk is this composition's: leaving the intro and coming back starts it
  * again from the first variant.
  */
@@ -98,7 +98,7 @@ internal fun IntroWatch(
  * ("Watch first", no pips), then the demo of [entries]`[variant]` at [frame], drawn by [demo] under the watching band
  * (the caption of the frame's step) and over the main button, and the [WatchColumn] beside it on a wide pane or below
  * it on a narrow one. The main button is Next step ([onNext]) while there is a step or variant after the one shown,
- * then [onPrimary]'s Start practice (Back to board 1 in a replay). [onLeave] is the top bar's button.
+ * then [onPrimary]'s Start practice (Back to the board in a replay). [onLeave] is the top bar's button.
  */
 @Composable
 internal fun WatchPane(
@@ -120,7 +120,7 @@ internal fun WatchPane(
     modifier: Modifier = Modifier,
 ) {
     val entry = entries[variant]
-    val primary = if (replay) "Back to board 1" else "Start practice"
+    val primary = if (replay) "Back to the board" else "Start practice"
     BoxWithConstraints(modifier.fillMaxSize().testTag("train.watch")) {
         val wide = maxWidth >= TwoPane
         Column(Modifier.fillMaxSize().padding(bottom = Spacing.lg)) {
@@ -176,7 +176,7 @@ private fun TopBar(replay: Boolean, showBack: Boolean, onClose: () -> Unit, onLe
 
 /**
  * The intro's one main button, centered under the board: Next step while [next] (a step or variant follows the one
- * shown), then [primary] (Start practice, or Back to board 1 in a replay) in the same place on the last step.
+ * shown), then [primary] (Start practice, or Back to the board in a replay) in the same place on the last step.
  */
 @Composable
 private fun MainAction(next: Boolean, primary: String, onNext: () -> Unit, onPrimary: () -> Unit) {

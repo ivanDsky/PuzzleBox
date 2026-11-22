@@ -158,14 +158,14 @@ class PracticeIntroPaneTest {
 
     /** Bug caught: the replay offering "Skip intro" (which has no board to hand over) or leaving through the hand-over instead of closing. */
     @Test
-    fun `a replay over a board says Close and Back to board 1 and closes`() {
+    fun `a replay over a board says Close and Back to the board and closes`() {
         val intro = intro(1)
         show(PracticeState.Practicing(StandInPracticeBoard(PracticeStatus.FindNextMove)), controls(intro, replaying = true))
 
         composeRule.onNodeWithText("Skip intro").assertDoesNotExist()
         composeRule.onNodeWithTag("train.watch.close").performClick()
         composeRule.onNodeWithTag("train.watch.next").performScrollTo().performClick()
-        composeRule.onNodeWithTag("train.watch.start").performScrollTo().assertTextEquals("Back to board 1").performClick()
+        composeRule.onNodeWithTag("train.watch.start").performScrollTo().assertTextEquals("Back to the board").performClick()
 
         assertEquals(2, closed)
         assertEquals(0, started)

@@ -96,9 +96,9 @@ private fun MarkLabel(progress: TechniqueProgress) {
     Text(markText(progress), style = MaterialTheme.typography.labelLarge, color = color)
 }
 
-/** The mark's word, and for Practicing the number of right answers in a row so far. */
+/** The mark's word, and for Practicing the streak of right answers so far. */
 internal fun markText(progress: TechniqueProgress): String = when (progress.mark) {
     TechniqueProgress.Mark.New -> "New"
-    TechniqueProgress.Mark.Practicing -> if (progress.inRow > 0) "Practicing \u00B7 ${progress.inRow} in a row" else "Practicing"
+    TechniqueProgress.Mark.Practicing -> if (progress.inRow > 0) "Practicing \u00B7 Streak ${progress.inRow}" else "Practicing"
     TechniqueProgress.Mark.Mastered -> "Mastered"
 }

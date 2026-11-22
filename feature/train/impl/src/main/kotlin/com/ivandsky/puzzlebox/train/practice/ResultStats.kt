@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -30,12 +31,12 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
-/** Right moves in a row that master a technique: the pips of the best-in-a-row row. */
+/** Right moves without a miss that master a technique: the pips of the best-streak row. */
 internal const val MasteryRun = 5
 
 private val PipSize = 16.dp
 
-/** "Best in a row": the longest streak of this run as [MasteryRun] pips (capped there) and the number (not capped), the same whether or not it mastered. */
+/** "Best streak": the longest streak of this run as [MasteryRun] pips (capped there) and the number (not capped), the same whether or not it mastered. */
 @Composable
 internal fun BestRow(best: Int, modifier: Modifier = Modifier) {
     Row(
@@ -43,7 +44,7 @@ internal fun BestRow(best: Int, modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text("Best in a row", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+        Text("Best streak", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             repeat(MasteryRun) { index ->
                 val on = index < best
@@ -56,7 +57,7 @@ internal fun BestRow(best: Int, modifier: Modifier = Modifier) {
     }
 }
 
-/** The four counts of the run in a 2 by 2 grid; none is hidden when it is 0. */
+/** The five counts of the run in a 2-wide grid; none is hidden when it is 0. */
 @Composable
 internal fun StatTiles(result: ChapterResult, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -65,8 +66,12 @@ internal fun StatTiles(result: ChapterResult, modifier: Modifier = Modifier) {
             Tile("${result.rights}", "Right moves", Modifier.weight(1f))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Tile("${result.undone}", "Moves undone", Modifier.weight(1f))
+            Tile("${result.slips}", "Moves out of order", Modifier.weight(1f))
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Tile("${result.shown}", "Shown with Show me", Modifier.weight(1f))
-            Tile("${result.slips}", "Easier moves missed", Modifier.weight(1f))
+            Spacer(Modifier.weight(1f))
         }
     }
 }
@@ -106,11 +111,13 @@ private fun BoardRowLine(row: BoardRow, modifier: Modifier) {
     val (icon, fill, ink) = when (row.kind) {
         BoardRowKind.Clean -> Look(PuzzleIcons.Check, scheme.primaryContainer, scheme.onPrimaryContainer)
         BoardRowKind.Slip -> Look(PuzzleIcons.Hint, scheme.tertiaryContainer, scheme.onTertiaryContainer)
+        BoardRowKind.Undone -> Look(PuzzleIcons.Undo, scheme.errorContainer, scheme.onErrorContainer)
         BoardRowKind.Shown -> Look(PuzzleIcons.Visibility, scheme.surfaceVariant, scheme.onSurfaceVariant)
     }
     val label = when (row.kind) {
         BoardRowKind.Clean -> "All right"
-        BoardRowKind.Slip -> "Easier move missed"
+        BoardRowKind.Slip -> "Move out of order"
+        BoardRowKind.Undone -> if (row.undone == 1) "1 move undone" else "${row.undone} moves undone"
         BoardRowKind.Shown -> "Show me used"
     }
     Row(

@@ -50,14 +50,14 @@ internal fun ResultHero(result: ChapterResult, modifier: Modifier = Modifier) {
     val newly = result.outcome == ChapterOutcome.NewlyMastered
     val (title, badge, sentence) = when (result.outcome) {
         ChapterOutcome.NewlyMastered ->
-            Triple("Mastered!", "Newly mastered", "$MasteryRun right in a row did it. Your best run was ${result.best}.")
+            Triple("Mastered!", "Newly mastered", "$MasteryRun right without a miss did it. Your best streak was ${result.best}.")
         ChapterOutcome.StillMastered ->
-            Triple("Still mastered", "Mastered", "You already had this one. Your best run was ${result.best} right in a row.")
+            Triple("Still mastered", "Mastered", "You already had this one. Your best streak was ${result.best}.")
         ChapterOutcome.NotMastered ->
             Triple(
                 "Not mastered yet",
-                "${minOf(result.best, MasteryRun)} of $MasteryRun in a row",
-                "Your best run was ${result.best} right in a row. $MasteryRun in a row masters it.",
+                "Streak ${minOf(result.best, MasteryRun)} of $MasteryRun",
+                "Your best streak was ${result.best}. $MasteryRun right without a miss masters it.",
             )
     }
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {

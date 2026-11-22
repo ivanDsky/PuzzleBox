@@ -83,17 +83,31 @@ class PracticeIntroTest {
         assertEquals(3, intro.first.tag)
     }
 
-    /** Bug caught: Start practice opening some other puzzle than the one just watched, or the watched puzzle coming round again as board 2. */
+    /** Bug caught: board 1 replaying the demo's own puzzle, so the first move asked for is the one just watched. */
     @Test
-    fun `start practice opens board 1 on the first entry's puzzle and it is not used again`() {
+    fun `start practice opens board 1 on a puzzle other than the one the demo used`() {
         val rig = rig(on = mapOf(0 to 2, 1 to 3))
 
         rig.vm.startPractice()
-        assertEquals(2, rig.board.tag)
+        assertNotEquals(2, rig.board.tag)
         assertEquals(1, rig.game.boards.size)
         rig.finishBoard(main)
 
         assertNotEquals(2, rig.board.tag)
+    }
+
+    /** Bug caught: a device with only the demo's puzzle opening nothing for board 1. */
+    @Test
+    fun `start practice falls back to the demo's puzzle when it is the only one`() {
+        val progress = FakeTrainerProgressRepository()
+        val rig = PracticeRig(named, device = listOf(puzzle(2)), attempt = null, progress = progress)
+        rig.game.variantList = variants
+        rig.game.demoFor = { puzzle, _, variant -> if (variant == 0 && puzzle.tag == 2) StandInIntroDemo(variant, listOf("a", "b", "c")) else null }
+        rig.vm.start(1)
+
+        rig.vm.startPractice()
+
+        assertEquals(2, rig.board.tag)
     }
 
     /** Bug caught: Start practice working from a board (a stray tap on a button that is not on screen) and replacing it. */

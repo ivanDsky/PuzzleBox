@@ -26,14 +26,14 @@ import com.ivandsky.puzzlebox.data.trainer.TechniqueProgress
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
-/** Right moves in a row that make a technique mastered (A5): the pips on the title row. */
+/** Right moves without a miss that make a technique mastered (A5): the pips on the title row. */
 private const val PIPS = 5
 
 private val PipSize = 20.dp
 
 /**
  * The compact title row above the board: the back arrow if [showBack], the [chapter]'s technique name (with the "How it
- * works" chip after it when there is one, [howItWorks]) over how many trained moves are right in a row and which board
+ * works" chip after it when there is one, [howItWorks]) over the streak of trained moves right without a miss and which board
  * of the chapter is up ("Board 2 of 5"), and the pips that count the moves. "Mastered" replaces the count for a
  * technique that is, and fills every pip. While the intro is up ([watching]) the second line says "Watch first" and the
  * pips are hidden, still taking their room so the row does not reflow.
@@ -65,7 +65,7 @@ internal fun PracticeHeader(
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     Text(
-                        if (mastered) "Mastered" else "${minOf(progress.inRow, PIPS)} of $PIPS in a row",
+                        if (mastered) "Mastered" else "Streak ${minOf(progress.inRow, PIPS)} of $PIPS",
                         style = MaterialTheme.typography.bodySmall,
                         color = quiet,
                         modifier = Modifier.testTag("train.count"),
@@ -83,10 +83,10 @@ internal fun PracticeHeader(
     }
 }
 
-/** [filled] of [PIPS] discs, one image to a screen reader: "3 of 5 right in a row". [hidden] keeps their room but draws and says nothing. */
+/** [filled] of [PIPS] discs, one image to a screen reader: "3 of 5, right without a miss". [hidden] keeps their room but draws and says nothing. */
 @Composable
 private fun Pips(filled: Int, hidden: Boolean) {
-    val semantics = if (hidden) Modifier.alpha(0f).clearAndSetSemantics {} else Modifier.clearAndSetSemantics { contentDescription = "$filled of $PIPS right in a row" }
+    val semantics = if (hidden) Modifier.alpha(0f).clearAndSetSemantics {} else Modifier.clearAndSetSemantics { contentDescription = "$filled of $PIPS, right without a miss" }
     Row(semantics, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         repeat(PIPS) { index ->
             val on = index < filled
