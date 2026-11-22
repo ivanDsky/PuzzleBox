@@ -18,7 +18,7 @@ import com.ivandsky.puzzlebox.play.YoursSummary
  * The Custom seams of the Community tab: [CustomSlot.yours] is create's drafts and published rows ([YoursBody]), which open
  * their screens on the current stack, or pick a published puzzle for the tablet's right pane ([LocalCommunityPicker]),
  * which [publishedPuzzlePane] draws; [CustomSlot.yoursSummary] is their count; [CustomSlot.newPuzzle] is create's New puzzle
- * sheet ([NewPuzzleHost]), whose drafts open in the Studio on the current stack.
+ * sheet ([NewPuzzleHost]), or with a game a new draft of it at once, whose drafts open in the Studio on the current stack.
  */
 @Composable
 internal fun rememberCustomSlot(navigator: Navigator): CustomSlot = remember(navigator) {

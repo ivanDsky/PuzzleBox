@@ -26,6 +26,7 @@ import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.editor.GameEditor
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
@@ -74,7 +75,7 @@ class NewPuzzleHostTest {
 
     @Test
     fun `open shows the New puzzle sheet and a pick reports its draft once, with no list on screen`() {
-        showHost { open -> Button(onClick = open, modifier = Modifier.testTag(OPEN)) { Text("Create") } }
+        showHost { open -> Button(onClick = { open(null) }, modifier = Modifier.testTag(OPEN)) { Text("Create") } }
 
         assertFalse(composeRule.exists(SHEET))
         composeRule.onNodeWithTag(OPEN).performClick()
@@ -93,7 +94,7 @@ class NewPuzzleHostTest {
         store("plain")
         showHost { open ->
             CustomBody(rememberLazyListState(), onOpenDraft = { openedDrafts += it }, onOpenPublished = {})
-            Button(onClick = open, modifier = Modifier.testTag(OPEN)) { Text("Create") }
+            Button(onClick = { open(null) }, modifier = Modifier.testTag(OPEN)) { Text("Create") }
         }
         awaitTag(DRAFT_ROW)
 
@@ -117,6 +118,20 @@ class NewPuzzleHostTest {
 
         awaitTag(IMPORT_SHEET)
         assertEquals(1, composeRule.count(IMPORT_SHEET))
+    }
+
+    @Test
+    fun `open with a game starts a draft of that game at once, with no sheet`() {
+        showHost { open -> Button(onClick = { open(editor.gameId) }, modifier = Modifier.testTag(OPEN)) { Text("Make") } }
+
+        composeRule.onNodeWithTag(OPEN).performClick()
+
+        awaitTrue { openedDrafts.isNotEmpty() }
+        composeRule.waitForIdle()
+        assertEquals(listOf("draft-1"), openedDrafts)
+        assertEquals(editor.gameId, drafts.rows.getValue("draft-1").gameId)
+        assertEquals(editor.variants.first(), drafts.rows.getValue("draft-1").variant)
+        assertFalse(composeRule.exists(SHEET))
     }
 
     @Test
@@ -146,7 +161,7 @@ class NewPuzzleHostTest {
         )
     }
 
-    private fun showHost(content: @androidx.compose.runtime.Composable (open: () -> Unit) -> Unit) {
+    private fun showHost(content: @androidx.compose.runtime.Composable (open: (GameId?) -> Unit) -> Unit) {
         startKoin()
         composeRule.setContent {
             PuzzleBoxTheme {

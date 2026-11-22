@@ -4,6 +4,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
+import com.ivandsky.puzzlebox.model.GameId
 
 /**
  * The Community tab's Custom seams, handed in by the app shell so this module needs no create edge (ADR-0008).
@@ -20,11 +21,12 @@ import androidx.compose.ui.unit.Dp
  * [newPuzzle] is the New puzzle sheet's host, behind the create FAB flag (null: the host has no such action, so no FAB).
  * It wraps the Community screen and gives its content the call that opens the sheet, and it is told the [Dp] the FAB
  * covers at a list's end, which its own Yours list leaves free and lifts its snackbar by. With the host in place
- * the Yours list has no New puzzle row of its own.
+ * the Yours list has no New puzzle row of its own. The call takes a nullable [GameId]: null opens the New puzzle sheet,
+ * a game starts a new draft of it at once, with no sheet, and opens its Studio (Community's "Make a puzzle" cards).
  */
 class CustomSlot(
     val published: (@Composable (code: String, modifier: Modifier) -> Unit)? = null,
     val yours: (@Composable (LazyListState) -> Unit)? = null,
     val yoursSummary: @Composable () -> YoursSummary = { YoursSummary.None },
-    val newPuzzle: (@Composable (clearance: Dp, content: @Composable (onNewPuzzle: () -> Unit) -> Unit) -> Unit)? = null,
+    val newPuzzle: (@Composable (clearance: Dp, content: @Composable (onNewPuzzle: (GameId?) -> Unit) -> Unit) -> Unit)? = null,
 )

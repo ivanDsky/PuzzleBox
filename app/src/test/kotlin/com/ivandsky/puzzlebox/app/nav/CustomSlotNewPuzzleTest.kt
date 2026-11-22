@@ -87,7 +87,7 @@ class CustomSlotNewPuzzleTest {
     fun `open shows the New puzzle sheet, and a Queens size starts a draft and opens its Studio`() {
         show { slot ->
             checkNotNull(slot.newPuzzle) { "the app fills the New puzzle seam" }(88.dp) { open ->
-                Button(onClick = open, modifier = Modifier.testTag(OPEN)) { Text("Create") }
+                Button(onClick = { open(null) }, modifier = Modifier.testTag(OPEN)) { Text("Create") }
             }
         }
 
@@ -97,6 +97,21 @@ class CustomSlotNewPuzzleTest {
 
         awaitTrue { navigator.state.currentStack.last() is EditorKey }
         assertEquals(listOf(PlayKey, EditorKey("draft-new")), navigator.state.currentStack)
+    }
+
+    @Test
+    fun `open with Queens starts a Queens draft and opens its Studio with no sheet`() {
+        show { slot ->
+            checkNotNull(slot.newPuzzle) { "the app fills the New puzzle seam" }(88.dp) { open ->
+                Button(onClick = { open(QueensDefinition.id) }, modifier = Modifier.testTag(OPEN)) { Text("Make") }
+            }
+        }
+
+        composeRule.onNodeWithTag(OPEN).performClick()
+
+        awaitTrue { navigator.state.currentStack.last() is EditorKey }
+        assertEquals(listOf(PlayKey, EditorKey("draft-new")), navigator.state.currentStack)
+        assertFalse(composeRule.exists("create.new.sheet"))
     }
 
     @Test

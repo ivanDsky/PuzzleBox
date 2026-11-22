@@ -72,11 +72,13 @@ internal fun CommunityRoute(
     if (!enteringCode && codePrefill.isNotEmpty()) LaunchedEffect(Unit) { codePrefill = "" }
     val onEnterCode = { enteringCode = true }
     val flags by koinInject<ReleaseFlags>().enabled.collectAsStateWithLifecycle()
-    WithNewPuzzle(custom, enabled = PlayFlag.CreateFab in flags) { onNewPuzzle ->
+    WithNewPuzzle(custom, enabled = PlayFlag.CreateFab in flags) { create ->
+        // The create button, the old tabs' Make card and the FAB open the New puzzle sheet; only a shelves Make card names a game.
+        val onNewPuzzle = create?.let { host -> { host(null) } }
         val clearance = if (onNewPuzzle != null) CreateFabClearance else 0.dp
         Box(modifier.fillMaxSize().testTag("route.community")) {
             if (PlayFlag.CommunityShelves in flags) {
-                CommunityShelvesRoute(layout, custom, onOpen, onPlay, onEnterCode, onNewPuzzle, clearance)
+                CommunityShelvesRoute(layout, custom, onOpen, onPlay, onEnterCode, create, clearance)
             } else if (layout == PlayLayout.SinglePane) {
                 CommunityBound(community, communityState, onOpen) { actions ->
                     CommunityTabs(

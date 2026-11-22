@@ -25,6 +25,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.community.shelves.CommunityShelvesScreen
@@ -48,7 +49,7 @@ private val DETAIL_RISE = 14.dp
  * screen; a card opens its page through [onOpen]. On [PlayLayout.TwoPane] it is a [ShelvesListPaneWidth] list pane with
  * the card's page beside it (Play opens the board through [onPlay]), which rises and fades in. Enter code runs
  * [onEnterCode]; the entry tiles, Search and a shelf's See all open a page over the home (in the list pane on the tablet) that back
- * closes, and a row picked on it opens like one on the home. [onNewPuzzle] (null: the create button is off) is what a Make card runs. [clearance] is what the list
+ * closes, and a row picked on it opens like one on the home. [onNewPuzzle] (null: the create button is off) is what a Make card runs (null: the New puzzle sheet; a game: a draft of it). [clearance] is what the list
  * leaves free for the create button that floats over it.
  */
 @Composable
@@ -58,7 +59,7 @@ internal fun CommunityShelvesRoute(
     onOpen: (ShareCode) -> Unit,
     onPlay: (CustomGameKey) -> Unit,
     onEnterCode: () -> Unit,
-    onNewPuzzle: (() -> Unit)?,
+    onNewPuzzle: ((GameId?) -> Unit)?,
     clearance: Dp,
     modifier: Modifier = Modifier,
 ) {
@@ -78,7 +79,7 @@ internal fun CommunityShelvesRoute(
         onFriends = { openPage(ShelvesPage.SeeAll(SeeAllScope.Friends)) },
         onYours = { openPage(ShelvesPage.Yours) },
         onSeeAll = { openPage(ShelvesPage.SeeAll(it)) },
-        onMake = { onNewPuzzle?.invoke() },
+        onMake = { onNewPuzzle?.invoke(null) },
     )
     if (layout == PlayLayout.SinglePane) {
         ShelvesPageHost(
@@ -114,7 +115,7 @@ internal fun CommunityShelvesRoute(
             },
             detail = { pick, clear -> ShelvesDetail(pick) { CommunityPage(pick, clear, custom, onPlay) } },
             modifier = modifier,
-            listOverlay = onNewPuzzle?.let { open -> { CommunityCreateFab(open, Modifier.align(Alignment.BottomEnd)) } },
+            listOverlay = onNewPuzzle?.let { open -> { CommunityCreateFab({ open(null) }, Modifier.align(Alignment.BottomEnd)) } },
             listPaneWidth = ShelvesListPaneWidth,
         )
     }
