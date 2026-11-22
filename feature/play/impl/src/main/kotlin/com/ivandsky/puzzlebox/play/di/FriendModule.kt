@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.play.api.CustomResultKey
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
 import com.ivandsky.puzzlebox.play.community.CommunityViewModel
 import com.ivandsky.puzzlebox.play.community.shelves.ShelvesViewModel
+import com.ivandsky.puzzlebox.play.community.shelves.seeall.SeeAllViewModel
 import com.ivandsky.puzzlebox.play.friend.CustomResultViewModel
 import com.ivandsky.puzzlebox.play.friend.EnterCodeViewModel
 import com.ivandsky.puzzlebox.play.friend.FriendPuzzleBoard
@@ -45,6 +46,7 @@ val friendModule = module {
     viewModel { (key: CustomResultKey) -> CustomResultViewModel(key, get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { CommunityViewModel(get(), get(), get(), get(), get(), get(), System::currentTimeMillis) }
     viewModel { ShelvesViewModel(get(), get(), get(), get(), get(), get(), get(), System::currentTimeMillis) }
+    viewModel { SeeAllViewModel(get(), get(), get(), get(), get(), get(), get(), System::currentTimeMillis) }
 }
 
 private const val OPEN_BUDGET_MS = 5_000L
