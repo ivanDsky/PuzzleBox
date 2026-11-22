@@ -28,7 +28,8 @@ import org.junit.Test
  *
  * The puzzles pin moved with the ADR-0020 amendment (the community list rule and the two optional fields), and
  * the puzzle reports block is pinned beside it. The puzzle's key and word lists are also checked against its
- * codec.
+ * codec. It moved again with the solve counter (#2032): `solves` may rise by one only beside the
+ * writer's own first entry.
  */
 class FirestoreRulesCloudSpaceTest {
 
