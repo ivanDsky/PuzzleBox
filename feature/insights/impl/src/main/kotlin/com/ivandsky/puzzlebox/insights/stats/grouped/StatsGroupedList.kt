@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -15,7 +17,8 @@ import com.ivandsky.puzzlebox.model.GameId
 /**
  * The Ready page with the StatsFilters flag on: [sections] in their four groups, each under a header that sticks to the
  * top of the list as its group scrolls, i.e. right under the filter bar, which sits above the list. [game] null is the
- * all-games page.
+ * all-games page. The blocks arrive with the page's calm motion ([StatsMotion]): each group body lifts in once, its
+ * charts draw in and its headline numbers count up, and a Since or game change morphs them in place.
  */
 @Composable
 internal fun StatsGroupedList(
@@ -26,14 +29,23 @@ internal fun StatsGroupedList(
     modifier: Modifier = Modifier,
 ) {
     val blocks = groupStatsSections(sections, game)
-    LazyColumn(
-        modifier = modifier.fillMaxSize().testTag("stats.sections"),
-        contentPadding = PaddingValues(bottom = Spacing.xl),
-    ) {
-        blocks.forEachIndexed { index, block ->
-            stickyHeader(key = "header.${block.group.name}") { StatsGroupHeader(block.group, divided = index > 0) }
-            item(key = "body.${block.group.name}") {
-                StatsGroupFrame(block, gameName, onOpenSolve, singleGame = game != null, modifier = Modifier.padding(bottom = Spacing.xl))
+    val motion = remember { StatsMotion() }
+    CompositionLocalProvider(LocalStatsMotion provides motion) {
+        LazyColumn(
+            modifier = modifier.fillMaxSize().testTag("stats.sections"),
+            contentPadding = PaddingValues(bottom = Spacing.xl),
+        ) {
+            blocks.forEachIndexed { index, block ->
+                stickyHeader(key = "header.${block.group.name}") { StatsGroupHeader(block.group, divided = index > 0) }
+                item(key = "body.${block.group.name}") {
+                    StatsGroupFrame(
+                        block,
+                        gameName,
+                        onOpenSolve,
+                        singleGame = game != null,
+                        modifier = Modifier.statsArrival(index, key = "body.${block.group.name}").padding(bottom = Spacing.xl),
+                    )
+                }
             }
         }
     }
