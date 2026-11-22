@@ -11,7 +11,9 @@ import androidx.compose.ui.unit.width
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -26,6 +28,8 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
+import com.ivandsky.puzzlebox.data.repository.DraftRepository
+import com.ivandsky.puzzlebox.data.repository.PublishedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
@@ -53,7 +57,9 @@ import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeHiddenPuzzles
+import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
@@ -81,7 +87,7 @@ import org.robolectric.annotation.Config
 
 /**
  * The Community tab behind [PlayFlag.CommunityShelves] (epic community-browse): off, the route is today's three tabs; on,
- * it is the shelves home stub, whose Enter code opens the same code sheet.
+ * it is the shelves home (one Community header, Enter code opening the same code sheet), and on the tablet a 600dp list pane.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -118,6 +124,8 @@ class CommunityRouteFlagTest {
                     single<HiddenPuzzles> { FakeHiddenPuzzles() }
                     single<SharedPuzzleRepository> { FakeSharedPuzzleRepository() }
                     single<SharedTextStore> { FakeSharedTextStore() }
+                    single<DraftRepository> { FakeDraftRepository() }
+                    single<PublishedPuzzleRepository> { FakePublishedPuzzleRepository() }
                     single<MatchRepository> { FakeMatchRepository() }
                     single<UserPreferencesRepository> { FakeUserPreferencesRepository() }
                     single<GameCalendar> { FakeGameCalendar(LocalDate.parse("2026-11-04")) }
@@ -240,5 +248,62 @@ class CommunityRouteFlagTest {
         awaitTag("community.fab")
         assertEquals(CreateFabClearance, host.clearance)
         assertTrue(CreateFabClearance >= 56.dp + 16.dp)
+    }
+
+    @Test
+    fun `flag on draws the Community header once on the phone`() {
+        show(PlayFlag.CommunityShelves)
+        awaitTag("community.shelves")
+        composeRule.onAllNodesWithText("Community").assertCountEquals(1)
+        composeRule.onNodeWithTag("community.enterCode").assertIsDisplayed()
+    }
+
+    @Test
+    fun `flag on with nothing published shows the empty hero on the phone`() {
+        show(PlayFlag.CommunityShelves)
+        awaitText("NOTHING HERE YET")
+    }
+
+    @Test
+    @Config(sdk = [34], qualifiers = "w1280dp-h800dp")
+    fun `flag on draws the Community header once on the tablet and the list pane is 600dp`() {
+        show(previewYoursSlot(count = 0), PlayLayout.TwoPane, PlayFlag.CommunityShelves)
+        awaitTag("community.shelves")
+        composeRule.onAllNodesWithText("Community").assertCountEquals(1)
+        assertEquals(ShelvesListPaneWidth, composeRule.onNodeWithTag("community.shelves").getUnclippedBoundsInRoot().width)
+        composeRule.onNodeWithText("Pick a puzzle to see it here").assertIsDisplayed()
+    }
+
+    @Test
+    @Config(sdk = [34], qualifiers = "w1280dp-h800dp")
+    fun `flag off shows no shelves home or its empty detail text on the tablet`() {
+        show(previewYoursSlot(count = 0), PlayLayout.TwoPane)
+        awaitTag("route.community")
+        composeRule.onNodeWithTag("community.shelves").assertDoesNotExist()
+        composeRule.onNodeWithText("Pick a puzzle to see it here").assertDoesNotExist()
+    }
+
+    /** Tab S9 Ultra, portrait (about 1112dp wide): the detail pane keeps room beside the 600dp list. */
+    @Test
+    @Config(sdk = [34], qualifiers = "w1112dp-h1848dp")
+    fun `a 600dp list pane leaves the detail pane room on the Tab S9 Ultra in portrait`() = detailLeavesRoom(minDetail = 400.dp)
+
+    /** Tab S9 Ultra, landscape (about 1848dp wide). */
+    @Test
+    @Config(sdk = [34], qualifiers = "w1848dp-h1112dp")
+    fun `a 600dp list pane leaves the detail pane room on the Tab S9 Ultra in landscape`() = detailLeavesRoom(minDetail = 400.dp)
+
+    private fun detailLeavesRoom(minDetail: androidx.compose.ui.unit.Dp) {
+        show(previewYoursSlot(count = 0), PlayLayout.TwoPane, PlayFlag.CommunityShelves)
+        awaitTag("community.shelves")
+        val list = composeRule.onNodeWithTag("community.shelves").getUnclippedBoundsInRoot()
+        val root = composeRule.onNodeWithTag("route.community").getUnclippedBoundsInRoot()
+        // the panes' spacer (24dp) and end gutter (32dp) sit between the list and the detail
+        val detail = root.width - list.right - 56.dp
+        assertTrue("detail pane $detail", detail >= minDetail)
+    }
+
+    private fun awaitText(text: String) {
+        composeRule.waitUntil(5_000L) { composeRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty() }
     }
 }

@@ -23,7 +23,6 @@ import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
 import com.ivandsky.puzzlebox.play.community.CommunityBound
 import com.ivandsky.puzzlebox.play.community.CommunityViewModel
-import com.ivandsky.puzzlebox.play.community.shelves.CommunityShelvesScreen
 import com.ivandsky.puzzlebox.play.flags.PlayFlag
 import com.ivandsky.puzzlebox.play.friend.EnterCodeSheet
 import com.ivandsky.puzzlebox.play.friend.FriendPuzzleRoute
@@ -77,7 +76,7 @@ internal fun CommunityRoute(
         val clearance = if (onNewPuzzle != null) CreateFabClearance else 0.dp
         Box(modifier.fillMaxSize().testTag("route.community")) {
             if (PlayFlag.CommunityShelves in flags) {
-                CommunityShelvesScreen(onEnterCode, phone = layout == PlayLayout.SinglePane, Modifier.fillMaxSize())
+                CommunityShelvesRoute(layout, custom, onOpen, onPlay, onEnterCode, onNewPuzzle, clearance)
             } else if (layout == PlayLayout.SinglePane) {
                 CommunityBound(community, communityState, onOpen) { actions ->
                     CommunityTabs(
@@ -135,7 +134,7 @@ internal fun CommunityRoute(
 
 /** The right pane's page for [pick]: the friend puzzle page, or the app's published page for one of your own. */
 @Composable
-private fun CommunityPage(pick: CommunityPick, clear: () -> Unit, custom: CustomSlot, onPlay: (CustomGameKey) -> Unit) {
+internal fun CommunityPage(pick: CommunityPick, clear: () -> Unit, custom: CustomSlot, onPlay: (CustomGameKey) -> Unit) {
     when (pick) {
         is CommunityPick.Puzzle -> FriendPuzzleRoute(FriendPuzzleKey(pick.code), onPlay = onPlay, onBack = clear, showUp = false)
         is CommunityPick.Published -> custom.published?.invoke(pick.code, Modifier.fillMaxSize())
