@@ -2,11 +2,13 @@ package com.ivandsky.puzzlebox.insights.stats
 
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
-import com.ivandsky.puzzlebox.common.log.FailureLog
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.log.FailureLog
 import com.ivandsky.puzzlebox.data.cloud.CloudSyncState
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapHistoryFixture
 import com.ivandsky.puzzlebox.insights.domain.stats.ObserveStatsPage
+import com.ivandsky.puzzlebox.insights.domain.stats.ObserveStatsSince
+import com.ivandsky.puzzlebox.insights.domain.stats.StatsSince
 import com.ivandsky.puzzlebox.insights.flags.InsightsFlag
 import com.ivandsky.puzzlebox.insights.domain.stats.SectionState
 import com.ivandsky.puzzlebox.insights.domain.stats.StatsRange
@@ -58,6 +60,7 @@ class StatsViewModelTest {
         cloudSync = cloudSync,
         savedState = savedState,
         releaseFlags = releaseFlags,
+        observeSince = ObserveStatsSince(fixture.observeHistory, fixture.calendar, fixture.registry),
     )
 
     /** The next state that is no longer [StatsBody.Loading]. */
@@ -222,6 +225,61 @@ class StatsViewModelTest {
         viewModel(savedState = saved()).uiState.test {
             awaitItem()
             assertEquals(listOf(beta), awaitBody().recordGames())
+        }
+    }
+
+    @Test
+    fun `with the stats filters flag on the page opens on the week and reads the dates the Since rows use`() = runTest {
+        fixture.store(fixture.solve(alpha, day(9, month = 8)), fixture.solve(beta, day(18)))
+
+        viewModel(releaseFlags = FakeReleaseFlags(InsightsFlag.StatsFilters)).uiState.test {
+            assertEquals(StatsUiState.loading(StatsRange.Week, null, filters = true), awaitItem())
+            val ready = awaitBody()
+            assertEquals(StatsRange.Week, ready.range)
+            assertTrue(ready.filters)
+            assertEquals(StatsSince(today = day(20), firstSolve = day(9, month = 8)), ready.since)
+        }
+    }
+
+    @Test
+    fun `with the flag on a saved range wins over the week and an unread one falls back to it`() = runTest {
+        fixture.store(fixture.solve(alpha, day(18)))
+        val on = FakeReleaseFlags(InsightsFlag.StatsFilters)
+
+        viewModel(savedState = SavedStateHandle(mapOf("stats.range" to "All")), releaseFlags = on).uiState.test {
+            assertEquals(StatsRange.All, awaitItem().range)
+        }
+        viewModel(savedState = SavedStateHandle(mapOf("stats.range" to "Decade")), releaseFlags = on).uiState.test {
+            assertEquals(StatsRange.Week, awaitItem().range)
+        }
+    }
+
+    @Test
+    fun `with the flag off the page opens on the month with no filters and no dates`() = runTest {
+        fixture.store(fixture.solve(alpha, day(18)))
+
+        viewModel().uiState.test {
+            awaitItem()
+            val ready = awaitBody()
+            assertEquals(StatsRange.Month, ready.range)
+            assertEquals(false, ready.filters)
+            assertEquals(null, ready.since)
+        }
+    }
+
+    @Test
+    fun `with the flag on picking a game words Since from that game's own first solve`() = runTest {
+        fixture.store(fixture.solve(alpha, day(9, month = 8)), fixture.solve(beta, day(2, month = 6)))
+        val viewModel = viewModel(releaseFlags = FakeReleaseFlags(InsightsFlag.StatsFilters))
+
+        viewModel.uiState.test {
+            assertEquals(day(2, month = 6), awaitBody().since?.firstSolve)
+
+            viewModel.selectGame(alpha)
+
+            var picked = awaitItem()
+            while (picked.game != alpha || picked.body == StatsBody.Loading) picked = awaitItem()
+            assertEquals(StatsSince(today = day(20), firstSolve = day(9, month = 8)), picked.since)
         }
     }
 }

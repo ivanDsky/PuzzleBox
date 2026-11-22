@@ -18,7 +18,7 @@ import com.ivandsky.puzzlebox.insights.domain.recap.SolveRef
 import com.ivandsky.puzzlebox.insights.domain.stats.StatsRange
 import com.ivandsky.puzzlebox.model.GameId
 
-/** The page under the bar: the range chips, then the sections for [state], or a quiet message while there are none. */
+/** The page under the bar: the [filters] (the range chips by default), then the sections for [state], or a quiet message while there are none. */
 @Composable
 internal fun StatsContent(
     state: StatsUiState,
@@ -26,9 +26,10 @@ internal fun StatsContent(
     onSelectRange: (StatsRange) -> Unit,
     onOpenSolve: (SolveRef) -> Unit,
     modifier: Modifier = Modifier,
+    filters: @Composable () -> Unit = { StatsRangeChips(state.range, onSelectRange, Modifier.padding(horizontal = Spacing.lg)) },
 ) {
     Column(modifier.fillMaxSize().maxContentWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        StatsRangeChips(state.range, onSelectRange, Modifier.padding(horizontal = Spacing.lg))
+        filters()
         when (val body = state.body) {
             StatsBody.Loading -> Box(Modifier.fillMaxSize())
             StatsBody.Restoring -> EmptyState(
