@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.SubmitError
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitResult
 import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
 import com.ivandsky.puzzlebox.game.RankOrder
+import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.contract.CustomBoardRepositoryContract
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -27,9 +28,10 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34])
 class FirestoreCustomBoardRepositoryContractTest : CustomBoardRepositoryContract() {
 
-    /** Server-side view of `puzzles/{code}/entries/{uid}`; offline makes every call fail. */
+    /** Server-side view of `puzzles/{code}/entries/{uid}` and each puzzle's `solves`; offline makes every call fail. */
     private class FakeCustomBoardStore : CustomBoardStore {
         val boards = HashMap<String, LinkedHashMap<String, Map<String, Any?>>>()
+        val solves = HashMap<String, Int>()
         val queriedFields = mutableListOf<List<String>>()
         var offline = false
 
@@ -47,11 +49,17 @@ class FirestoreCustomBoardRepositoryContractTest : CustomBoardRepositoryContract
             emit(ranked.map { it.value })
         }
 
-        override suspend fun createIfAbsent(code: String, uid: String, data: Map<String, Any?>): Map<String, Any?>? {
+        override suspend fun createIfAbsent(
+            code: String,
+            uid: String,
+            data: Map<String, Any?>,
+            countSolve: Boolean,
+        ): Map<String, Any?>? {
             failIfOffline()
             val board = boards.getOrPut(code) { LinkedHashMap() }
             board[uid]?.let { return it }
             board[uid] = data
+            if (countSolve) solves[code] = (solves[code] ?: 0) + 1
             return null
         }
 
@@ -62,10 +70,11 @@ class FirestoreCustomBoardRepositoryContractTest : CustomBoardRepositoryContract
     }
 
     private var signedIn: String? = VIEWER
+    private var counting = false
     private val store = FakeCustomBoardStore()
 
     override val repository: CustomBoardRepository =
-        FirestoreCustomBoardRepository(store = store, currentUid = { signedIn })
+        FirestoreCustomBoardRepository(store = store, currentUid = { signedIn }, countSolves = { counting })
 
     override fun signInAs(uid: String) {
         signedIn = uid
@@ -78,6 +87,12 @@ class FirestoreCustomBoardRepositoryContractTest : CustomBoardRepositoryContract
     override fun goOffline() {
         store.offline = true
     }
+
+    override fun countSolves(on: Boolean) {
+        counting = on
+    }
+
+    override fun solvesField(code: ShareCode): Int? = store.solves[code.value]
 
     @Test
     fun `time then hints queries timeMs then hints`() {
@@ -118,6 +133,17 @@ class FirestoreCustomBoardRepositoryContractTest : CustomBoardRepositoryContract
 
         assertTrue((repository.submit(code(), MIDDLE) as SubmitResult.Err).error is SubmitError.Unavailable)
         assertNull(repository.solvesCount(code()))
+    }
+
+    @Test
+    fun `the flag is read at each submit, not once at construction`() = runTest {
+        submitAll(FAST_MANY_HINTS)
+        countSolves(true)
+        submitAll(MIDDLE)
+        countSolves(false)
+        submitAll(SLOW_NO_HINTS)
+
+        assertEquals(1, store.solves[CODE])
     }
 
     @Test

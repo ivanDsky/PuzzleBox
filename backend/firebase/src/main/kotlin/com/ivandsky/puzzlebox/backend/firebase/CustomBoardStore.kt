@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.backend.firebase
 
 import com.google.firebase.firestore.AggregateSource
 import com.google.firebase.firestore.FieldPath
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.TransactionOptions
@@ -20,8 +21,11 @@ internal interface CustomBoardStore {
     /** Live documents of one board, ascending by [orderBy] then doc id, at most [limit]. */
     fun observeEntries(code: String, orderBy: List<String>, limit: Long): Flow<List<Map<String, Any?>>>
 
-    /** Creates the uid's entry iff absent; returns the existing doc's fields, or null when created. */
-    suspend fun createIfAbsent(code: String, uid: String, data: Map<String, Any?>): Map<String, Any?>?
+    /**
+     * Creates the uid's entry iff absent; returns the existing doc's fields, or null when created. When [countSolve],
+     * the create also bumps `puzzles/{code}.solves` by one in the same write (#2032); a repeat bumps nothing.
+     */
+    suspend fun createIfAbsent(code: String, uid: String, data: Map<String, Any?>, countSolve: Boolean): Map<String, Any?>?
 
     /** Server-side count() of the board's entries. */
     suspend fun count(code: String): Long
@@ -65,6 +69,7 @@ internal class FirestoreCustomBoardStore : CustomBoardStore {
         code: String,
         uid: String,
         data: Map<String, Any?>,
+        countSolve: Boolean,
     ): Map<String, Any?>? {
         val doc = entries(code).document(uid)
         return firestore.runTransaction(SINGLE_ATTEMPT) { tx ->
@@ -73,6 +78,8 @@ internal class FirestoreCustomBoardStore : CustomBoardStore {
                 existing.data.orEmpty()
             } else {
                 tx.set(doc, data)
+                // The rules see the increment resolved, so it is checked as exactly the stored count + 1.
+                if (countSolve) tx.update(firestore.collection(PUZZLES).document(code), SOLVES, FieldValue.increment(1))
                 null
             }
         }.await()
@@ -84,6 +91,7 @@ internal class FirestoreCustomBoardStore : CustomBoardStore {
     private companion object {
         const val PUZZLES = "puzzles"
         const val ENTRIES = "entries"
+        const val SOLVES = SharedPuzzleDocCodec.FIELD_SOLVES
 
         // The SDK retries UNAVAILABLE with backoff; one attempt makes offline fail at once.
         val SINGLE_ATTEMPT: TransactionOptions = TransactionOptions.Builder().setMaxAttempts(1).build()

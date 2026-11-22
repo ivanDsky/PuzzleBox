@@ -4,6 +4,7 @@ import app.cash.turbine.test
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitError
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitResult
 import com.ivandsky.puzzlebox.game.RankOrder
+import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.contract.CustomBoardRepositoryContract
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import kotlinx.coroutines.test.runTest
@@ -33,6 +34,12 @@ class CustomBoardRepositoryContractTest : CustomBoardRepositoryContract() {
     override fun goOffline() {
         fake.online = false
     }
+
+    override fun countSolves(on: Boolean) {
+        fake.countSolves = on
+    }
+
+    override fun solvesField(code: ShareCode): Int? = fake.solves[code]
 
     @Test
     fun `rejectSubmits is Err Rejected and writes nothing`() = runTest {

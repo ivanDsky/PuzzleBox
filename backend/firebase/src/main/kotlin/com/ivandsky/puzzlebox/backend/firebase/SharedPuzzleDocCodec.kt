@@ -18,6 +18,9 @@ import java.util.Base64
  * without `visibility`, so it is the document every released client writes, and a doc without the
  * field, or with any word but `public`, reads as link only: a puzzle is never listed by
  * mistake. An unknown `difficulty` reads as none.
+ *
+ * `solves` (#2032) is the server's first-solve counter: never written here (a new puzzle starts without it; the
+ * board's first entry bumps it), read as null when absent, mistyped or negative, and outside [sameContent].
  */
 internal object SharedPuzzleDocCodec {
 
@@ -38,6 +41,7 @@ internal object SharedPuzzleDocCodec {
     const val FIELD_UNPUBLISHED = "unpublished"
     const val FIELD_VISIBILITY = "visibility"
     const val FIELD_DIFFICULTY = "difficulty"
+    const val FIELD_SOLVES = "solves"
 
     const val VISIBILITY_PUBLIC = "public"
 
@@ -125,6 +129,7 @@ internal object SharedPuzzleDocCodec {
             unpublished = data[FIELD_UNPUBLISHED] as? Boolean ?: return SharedFetchResult.NotFound,
             visibility = visibility(data),
             difficulty = difficulty(data),
+            solves = data.int(FIELD_SOLVES)?.takeIf { it >= 0 },
         )
         return SharedFetchResult.Found(doc)
     }

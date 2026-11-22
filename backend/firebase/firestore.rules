@@ -32,6 +32,9 @@ rules_version = '2';
 //   (public | link; a doc without it is link only) and `difficulty` (easy | medium | hard | expert).
 //   Listed only by a query for public, still-published puzzles with a limit of at most 30, so a
 //   link-only puzzle cannot be enumerated.
+//   One counter (#2032): `solves` (int, absent on a new puzzle and on one no new client has solved)
+//   counts first solves. Any signed-in player may move it, but only by +1 and only in the batch that
+//   creates their own puzzles/{code}/entries/{uid}. An older client's entry without the bump stays valid.
 // Layout: puzzles/{code}/reports/{uid} = {formatVersion, uid, createdAt} — one report per puzzle and
 //   reporter, created by a signed-in player who is not the author. No client reads, lists, changes
 //   or deletes it; the project owner reviews reports in the console.
@@ -164,10 +167,8 @@ service cloud.firestore {
         && bumpsPublishQuota();
 
       allow update: if request.auth != null
-        && resource.data.authorUid == request.auth.uid
         && resource.data.unpublished == false
-        && request.resource.data.unpublished == true
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['unpublished']);
+        && (isUnpublish() || isSolveBump());
 
       allow delete: if false;
 
@@ -206,6 +207,25 @@ service cloud.firestore {
           && puzzle.authorHints >= 0
           && puzzle.createdAt == request.time
           && puzzle.unpublished == false;
+      }
+
+      // The author's tombstone: `unpublished` false to true and nothing else.
+      function isUnpublish() {
+        return resource.data.authorUid == request.auth.uid
+          && request.resource.data.unpublished == true
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['unpublished']);
+      }
+
+      // The solve counter (#2032): `solves` moves by exactly +1 (from an absent field, by 0 + 1) and only in
+      // the write that creates the writer's own first entry on this puzzle's board; that entry must pass its
+      // own create rule, so the author, a repeat and an unpublished puzzle all bump nothing.
+      function isSolveBump() {
+        let entry = /databases/$(database)/documents/puzzles/$(code)/entries/$(request.auth.uid);
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['solves'])
+          && request.resource.data.solves is int
+          && request.resource.data.solves == resource.data.get('solves', 0) + 1
+          && !exists(entry)
+          && existsAfter(entry);
       }
 
       // The author's quota doc must move by exactly one publish in this same write, and name
