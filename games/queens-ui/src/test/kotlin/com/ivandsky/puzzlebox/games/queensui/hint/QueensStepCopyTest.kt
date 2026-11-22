@@ -68,13 +68,64 @@ class QueensStepCopyTest {
     fun `deductions are pinned for one rung per unit kind`() {
         fun text(rungId: String, kind: HintReason.Kind): String {
             val rung = QueensLadder.Stepwise.rungs.first { it.captionKey == "queens.hint.rung.$rungId" }
-            return QueensStepCopy.text(QueensStep.Deduction(HintReason(kind, 0, rung), emptySet(), Result.LastCell(Cell(0))))
+            return QueensStepCopy.text(QueensStep.Deduction(HintReason(kind, 0, rung), emptySet(), Result.Cross(setOf(Cell(0), Cell(1)))))
         }
 
         assertEquals("A color fits one row only, so the rest of that row is out.", text("line-lock", HintReason.Kind.ROW))
         assertEquals("This color has one open square left, so the queen goes there.", text("singles", HintReason.Kind.REGION))
-        assertEquals("A queen here would block every open square of a column.", text("squeeze", HintReason.Kind.COLUMN))
-        assertEquals("These colors use up these lines, so the rest are out.", text("pigeonhole", HintReason.Kind.ROW))
+        assertEquals(
+            "A queen on any of these squares would rule out every open square of a column.",
+            text("squeeze", HintReason.Kind.COLUMN),
+        )
+        assertEquals(
+            "A queen on any of these squares would touch every open square of a color.",
+            text("shared-neighbours", HintReason.Kind.REGION),
+        )
+        assertEquals(
+            "These colors and these rows or columns use each other up, so the rest are out.",
+            text("pigeonhole", HintReason.Kind.ROW),
+        )
+        assertEquals(
+            "These rows and these columns use each other up, so the rest are out.",
+            text("line-group-pigeonhole", HintReason.Kind.ROW),
+        )
+        assertEquals(
+            "A queen on any of these squares would leave rows, columns or colors short of room.",
+            text("count-squeeze", HintReason.Kind.ROW),
+        )
+        assertEquals(
+            "A queen here forces moves that leave a row or a group of lines no room.",
+            text("short-look-ahead", HintReason.Kind.ROW),
+        )
+    }
+
+    @Test
+    fun `no sentence says ringed, and a hint about several squares says any of these`() {
+        for (rung in QueensLadder.Stepwise.rungs) {
+            assertFalse(rung.captionKey, QueensStepCopy.technique(rung.captionKey).contains("ringed"))
+            for (kind in HintReason.Kind.entries) {
+                val text = QueensStepCopy.text(
+                    QueensStep.Deduction(HintReason(kind, 0, rung), emptySet(), Result.LastCell(Cell(0))),
+                )
+                assertFalse(text, text.contains("ringed"))
+                assertFalse(text, text.contains("row, column, or"))
+            }
+        }
+    }
+
+    /** Catches "any of these squares" over a step that crosses one square. */
+    @Test
+    fun `a step that crosses one square says this square`() {
+        fun text(rungId: String, cells: Set<Cell>): String {
+            val rung = QueensLadder.Stepwise.rungs.first { it.captionKey == "queens.hint.rung.$rungId" }
+            return QueensStepCopy.text(QueensStep.Deduction(HintReason(HintReason.Kind.ROW, 0, rung), emptySet(), Result.Cross(cells)))
+        }
+        val one = setOf(Cell(0))
+
+        assertEquals("A queen on this square would rule out every open square of a row.", text("squeeze", one))
+        assertEquals("A queen on this square would touch every open square of a row.", text("shared-neighbours", one))
+        assertEquals("A queen on this square would leave rows, columns or colors short of room.", text("count-squeeze", one))
+        assertTrue(text("squeeze", setOf(Cell(0), Cell(1))).contains("any of these squares"))
     }
 
     @Test
@@ -92,6 +143,6 @@ class QueensStepCopyTest {
 
     private companion object {
         /** The longest handoff example, until 06's golden measures a real two-line fit at 360dp (SC10). */
-        const val BUDGET = 70
+        const val BUDGET = 85
     }
 }

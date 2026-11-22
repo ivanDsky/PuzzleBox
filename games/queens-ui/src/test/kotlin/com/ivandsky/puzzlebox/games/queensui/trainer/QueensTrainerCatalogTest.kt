@@ -1,9 +1,6 @@
 package com.ivandsky.puzzlebox.games.queensui.trainer
 
-import com.ivandsky.puzzlebox.games.queens.Cell
-import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.HintReason
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensLadder
-import com.ivandsky.puzzlebox.games.queens.engine.hints.step.QueensStep
 import com.ivandsky.puzzlebox.games.queensui.hint.QueensStepCopy
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -18,7 +15,7 @@ class QueensTrainerCatalogTest {
         assertEquals(rungs.map { it.trainerId }, QueensTrainerFixtures.trainer.catalog().map { it.id })
         assertEquals(
             listOf(
-                "Singles", "Line lock", "Shared squares", "Pigeonhole (regions)", "Pigeonhole (rows and columns)",
+                "Singles", "Line lock", "Shared squares", "Pigeonhole (colors)", "Pigeonhole (rows and columns)",
                 "Leftover queen", "Squeeze", "Count squeeze", "Short look-ahead", "Long look-ahead",
             ),
             QueensTrainerFixtures.trainer.catalog().map { it.name },
@@ -35,18 +32,32 @@ class QueensTrainerCatalogTest {
     }
 
     @Test
-    fun `a rung whose hint sentence names no unit is its line word for word`() {
-        val catalog = QueensTrainerFixtures.trainer.catalog().associateBy { it.id }
-        var shared = 0
-        for (rung in rungs) {
-            val hints = HintReason.Kind.entries.map { kind ->
-                QueensStepCopy.text(QueensStep.Deduction(HintReason(kind, 0, rung), emptySet(), QueensStep.Deduction.Result.LastCell(Cell(0))))
-            }
-            if (hints.distinct().size == 1) {
-                assertEquals(rung.captionKey, hints.first(), catalog.getValue(rung.trainerId!!).line)
-                shared++
-            }
-        }
-        assertTrue("some rungs name no unit", shared > 0)
+    fun `the technique lines are plain sentences that read with no board in sight`() {
+        val lines = QueensTrainerFixtures.trainer.catalog().associate { it.id.value to it.line }
+
+        assertEquals("When a row, column or color has one open square left, its queen goes there.", lines.getValue("singles"))
+        assertEquals(
+            "When a color's open squares all sit in one row or column, or a row's open squares are all one color, " +
+                "cross out the rest of that row, column or color.",
+            lines.getValue("line-lock"),
+        )
+        assertEquals(
+            "A square that touches every open square of a row, column or color can't hold a queen.",
+            lines.getValue("shared-squares"),
+        )
+        assertEquals(
+            "Some colors fit in exactly as many rows or columns (or the other way round), so the rest of those lines or colors is out.",
+            lines.getValue("pigeonhole-regions"),
+        )
+        assertEquals(
+            "Some rows fit in exactly as many columns (or columns in rows), so the rest of those lines is out.",
+            lines.getValue("pigeonhole-lines"),
+        )
+        assertEquals(
+            "A queen here would leave two or more rows, columns or colors needing more queens than the lines they still reach.",
+            lines.getValue("count-squeeze"),
+        )
+        assertTrue(lines.values.none { it.contains("ringed") || it.contains("regions") })
+        assertTrue(lines.getValue("leftover-queen").contains("last queen"))
     }
 }

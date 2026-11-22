@@ -110,7 +110,8 @@ private fun PracticeBody(
     onSkip: () -> Unit,
 ) {
     val status by board.status.collectAsStateWithLifecycle()
-    val done = status is PracticeStatus.Done
+    val current = status
+    val done = current is PracticeStatus.Done
     Column(Modifier.fillMaxSize()) {
         BoardSteps(chapter.board, chapter.boards, currentDone = done, Modifier.padding(top = 6.dp, bottom = Spacing.md))
         // The band and the board are one frame, centered in what the idea and Show me leave.
@@ -118,7 +119,11 @@ private fun PracticeBody(
             val narrow = maxWidth < NarrowPane
             BandOverBoard(
                 band = {
-                    if (done) DoneBand(chapter, hold, narrow, onSkip) else StatusBand(status, chapter, onGotIt = board::gotIt)
+                    if (current is PracticeStatus.Done) {
+                        DoneBand(chapter, hold, narrow, onSkip, needsOtherTechnique = current.needsOtherTechnique)
+                    } else {
+                        StatusBand(status, chapter, onGotIt = board::gotIt)
+                    }
                 },
                 board = { boardContent(board, Modifier) },
                 modifier = Modifier.glow(done),

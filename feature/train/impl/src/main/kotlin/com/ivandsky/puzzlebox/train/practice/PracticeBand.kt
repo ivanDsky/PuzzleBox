@@ -81,41 +81,65 @@ internal fun BandFrame(container: Color, tag: String, modifier: Modifier = Modif
     )
 }
 
+/** "This move has 2 more squares. Find them." for a game that names its unit, else the neutral "2 more in this step.". */
+private fun keepGoingLine(status: PracticeStatus.KeepGoing): String = when {
+    status.unit == null -> "${status.left} more in this step."
+    status.left == 1 -> "This move has 1 more ${status.unit}. Find it."
+    else -> "This move has ${status.left} more ${status.unit}s. Find them."
+}
+
 @Composable
 private fun band(status: PracticeStatus, chapter: PracticeChapter): Band {
     val name = chapter.technique.name
     val scheme = MaterialTheme.colorScheme
     val quiet = scheme.surfaceContainerHigh to scheme.onSurface
     return when (status) {
-        PracticeStatus.FindNextMove ->
-            Band(PuzzleIcons.Info, "Find the next move", "Play it on the board. Moves that use $name count.", quiet.first, quiet.second)
+        PracticeStatus.FindNextMove -> Band(
+            PuzzleIcons.Info,
+            "Find the next move",
+            if (chapter.isReview) {
+                "Mixed board: use any technique up to $name. Easier moves come first."
+            } else {
+                "Play it on the board. Moves that use $name count."
+            },
+            quiet.first,
+            quiet.second,
+        )
         is PracticeStatus.KeepGoing -> Band(
             PuzzleIcons.Info,
             "Keep going",
-            "${status.left} more in this step.",
+            keepGoingLine(status),
             scheme.primaryContainer,
             scheme.onPrimaryContainer,
         )
-        is PracticeStatus.Right -> Band(
-            PuzzleIcons.Check,
-            "Right",
+        is PracticeStatus.Right ->
             if (status.trained) {
-                "That uses $name, so it counts. Find the next move."
+                Band(PuzzleIcons.Check, "Right", "That uses $name, so it counts. Find the next move.", scheme.primaryContainer, scheme.onPrimaryContainer)
             } else {
-                "An easier technique makes that, so it does not count toward $name. Find the next move."
-            },
-            scheme.primaryContainer,
-            scheme.onPrimaryContainer,
-        )
-        is PracticeStatus.Easier -> Band(
-            PuzzleIcons.Hint,
-            "An easier move exists",
-            "That fits the puzzle, but it is undone. Look for ${status.technique} first. Then tap Got it.",
-            scheme.tertiaryContainer,
-            scheme.onTertiaryContainer,
-        )
-        is PracticeStatus.Wrong -> Band(PuzzleIcons.Undo, "Not there, undone", status.why, scheme.errorContainer, scheme.onErrorContainer)
-        is PracticeStatus.Shown -> Band(PuzzleIcons.Info, "Here is the next move", "Look at the board, then tap Got it.", quiet.first, quiet.second)
+                val other = status.technique?.let { "a $it" } ?: "another technique's"
+                Band(PuzzleIcons.Check, "Fits", "That is $other move. Only $name moves count here.", scheme.primaryContainer, scheme.onPrimaryContainer)
+            }
+        is PracticeStatus.Easier ->
+            if (status.technique == name) {
+                Band(
+                    PuzzleIcons.Hint,
+                    "Not yet",
+                    "Right square, but $name can't show it yet. Find a $name move first.",
+                    scheme.tertiaryContainer,
+                    scheme.onTertiaryContainer,
+                )
+            } else {
+                Band(
+                    PuzzleIcons.Hint,
+                    "An easier move exists",
+                    "That fits the puzzle, but it is undone. Look for ${status.technique} first.",
+                    scheme.tertiaryContainer,
+                    scheme.onTertiaryContainer,
+                )
+            }
+        is PracticeStatus.Wrong -> Band(PuzzleIcons.Undo, "Undone", status.why, scheme.errorContainer, scheme.onErrorContainer)
+        is PracticeStatus.Shown ->
+            Band(PuzzleIcons.Info, "Here is the next move", "Look at the board, then tap Got it or the board to go on.", quiet.first, quiet.second)
         is PracticeStatus.Done -> error("A done board shows the DoneBand, not the status band")
     }
 }

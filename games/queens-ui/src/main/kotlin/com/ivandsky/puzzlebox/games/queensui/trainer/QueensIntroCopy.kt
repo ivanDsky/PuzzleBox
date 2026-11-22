@@ -11,23 +11,23 @@ import com.ivandsky.puzzlebox.gameui.trainer.IntroVariant
  */
 internal object QueensIntroCopy {
 
-    /** Index of Line lock's "Fill the line" variant: a color's open squares all sit in one line. */
+    /** Index of Line lock's "Color inside one line" variant: a color's open squares all sit in one line. */
     const val FILL_LINE = 0
 
-    /** Index of Line lock's "Fill the region" variant: a line's open squares all belong to one color. */
+    /** Index of Line lock's "Line inside one color" variant: a line's open squares all belong to one color. */
     const val FILL_REGION = 1
 
     private val lineLock = TechniqueId("line-lock")
 
     private val fillLine = IntroVariant(
-        title = "Fill the line",
+        title = "Color inside one line",
         rule = "All of a color's open squares sit in one row or column. Its queen must be in that line, so the rest of the line is out.",
         spotIt = "A color whose open squares are all in one row or column.",
         doIt = "Cross out the rest of that row or column.",
     )
 
     private val fillRegion = IntroVariant(
-        title = "Fill the region",
+        title = "Line inside one color",
         rule = "All of a row or column's open squares belong to one color. That color's queen must be in that line, so the rest of the color is out.",
         spotIt = "A row or column where every open square is the same color.",
         doIt = "Cross out the rest of that color.",
@@ -45,73 +45,76 @@ internal object QueensIntroCopy {
         TechniqueId("shared-squares") to { name ->
             IntroVariant(
                 title = name,
-                rule = "A queen on some square would touch every open square of a row, column or color that still needs its queen. " +
-                    "That leaves it no room, so the square is out.",
-                spotIt = "A row, column or color with a few open squares that one other square touches all of.",
-                doIt = "Cross out that other square.",
+                rule = "A queen on some square would touch (even corner to corner) every open square of a row, column or color " +
+                    "that still needs its queen. That leaves it no room, so the square is out.",
+                spotIt = "A row, column or color whose open squares are all touched by one other square.",
+                doIt = "Cross out every square like that.",
             )
         },
         TechniqueId("pigeonhole-regions") to { name ->
             IntroVariant(
                 title = name,
-                rule = "Some colors have all their open squares in the same number of rows or columns. Those lines have no queens to spare, " +
-                    "so every other open square in them is out. It works the other way round too.",
-                spotIt = "Two or more colors whose open squares all sit in the same number of rows or columns.",
-                doIt = "Cross out the other open squares in those rows or columns.",
+                rule = "Two colors whose open squares all sit in the same two rows (or three colors in three rows) take those rows' " +
+                    "queens, so the rows' other open squares are out. Also: two rows whose open squares are only two colors use up those colors.",
+                spotIt = "Some colors whose open squares all sit in as many rows or columns, or the same with rows or columns " +
+                    "and colors swapped.",
+                doIt = "Cross out the other open squares of those rows or columns, or, the other way round, of those colors.",
             )
         },
         TechniqueId("pigeonhole-lines") to { name ->
             IntroVariant(
                 title = name,
-                rule = "Some rows have all their open squares in the same number of columns. Those columns have no queens to spare, " +
-                    "so every other open square in them is out. It works the other way round too.",
-                spotIt = "Two or more rows whose open squares all sit in the same number of columns, or columns in rows.",
-                doIt = "Cross out the other open squares in those columns or rows.",
+                rule = "Two rows whose open squares all sit in the same two columns take those columns' queens, so the columns' " +
+                    "other open squares are out. The same works with columns and rows swapped.",
+                spotIt = "Two or more rows whose open squares all sit in as many columns, or columns whose open squares sit in as many rows.",
+                doIt = "Cross out the other open squares of those columns, or, the other way round, of those rows.",
             )
         },
         TechniqueId("leftover-queen") to { name ->
             IntroVariant(
                 title = name,
-                rule = "Some colors sit wholly inside a few rows or columns and use up all but one of their queens. " +
-                    "The ringed squares are left to hold that last queen, so a square that would rule out all of them is out.",
-                spotIt = "A few rows or columns that wholly hold one color fewer than their number, leaving some ringed squares.",
-                doIt = "Cross out the square that would rule out every ringed square.",
+                rule = "Take three rows. If two colors sit entirely inside them, those colors use two of the rows' three queens. " +
+                    "The last queen must go on the rows' other open squares, so any square that would rule out all of those is out. " +
+                    "It works the other way round too: if two rows sit entirely inside three colors, the last queen goes on the colors' other open squares.",
+                spotIt = "A few rows or columns, or colors, with one more queen than the colors or lines sitting entirely inside them.",
+                doIt = "Cross out every square that would rule out all of the squares left for that last queen.",
             )
         },
         TechniqueId("squeeze") to { name ->
             IntroVariant(
                 title = name,
-                rule = "A queen on some square would block every open square of a row, column or color that still needs its queen. " +
-                    "That leaves it no room, so the square is out.",
-                spotIt = "A square outside a row, column or color whose queen would block all of that line's open squares.",
-                doIt = "Cross out that square.",
+                rule = "A queen on some square would rule out every open square of a row, column or color, by touching them or by " +
+                    "sharing a row, column or color with them. That leaves it no room, so the square is out.",
+                spotIt = "A square whose queen would rule out all of that row, column or color's open squares.",
+                doIt = "Cross out every square like that.",
             )
         },
         TechniqueId("count-squeeze") to { name ->
             IntroVariant(
                 title = name,
-                rule = "A queen on some square would leave a few colors with fewer lines open to them than queens they need. " +
-                    "That is not enough room, so the square is out.",
-                spotIt = "A square whose queen would leave some colors too little room.",
-                doIt = "Cross out that square.",
+                rule = "A queen on some square would leave two or more rows, columns or colors needing more queens than the lines " +
+                    "they still reach. That is not enough room, so the square is out.",
+                spotIt = "A square whose queen would leave two or more rows, columns or colors needing more queens than the lines they still reach.",
+                doIt = "Cross out every square like that.",
             )
         },
         TechniqueId("short-look-ahead") to { name ->
             IntroVariant(
                 title = name,
-                rule = "Try a queen on a square. If it forces one more queen, and that leaves a row, column or color with no room, " +
+                rule = "Try a queen on a square, then make the moves it forces right away (every row, column or color left with one " +
+                    "open square gets its queen, or else the first easy cross-out applies). If that leaves some row, column or color, or a group of them, without room, " +
                     "the first square is out.",
-                spotIt = "A square whose queen forces one more square and then leaves a row, column or color no room.",
-                doIt = "Cross out that square.",
+                spotIt = "A square whose queen, with the moves it forces, leaves a row, column or color, or a group of them, no room.",
+                doIt = "Cross out every square like that.",
             )
         },
         TechniqueId("long-look-ahead") to { name ->
             IntroVariant(
                 title = name,
-                rule = "Try a queen on a square. If it forces a chain of queens, and the chain ends with a row, column or color with no room, " +
-                    "the first square is out.",
-                spotIt = "A square whose queen sets off a chain of forced squares that ends in a dead end.",
-                doIt = "Cross out that square.",
+                rule = "Try a queen on a square and keep making the moves it forces. If, several moves later, a row, column or color " +
+                    "has no room left, the first square is out.",
+                spotIt = "A square whose queen sets off forced moves that, several moves later, leave a row, column or color no room.",
+                doIt = "Cross out every square like that.",
             )
         },
     )

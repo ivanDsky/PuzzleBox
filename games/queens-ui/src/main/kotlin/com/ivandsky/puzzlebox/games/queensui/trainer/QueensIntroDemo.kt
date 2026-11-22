@@ -13,8 +13,8 @@ import com.ivandsky.puzzlebox.games.queensui.hint.QueensSpotlightMapper
 /**
  * A recorded Queens demo (spec §2.7): the step that opens a Focus board of the technique, cut into [frames]: 2 + one
  * per square the step settles. Frame 0 is the position before the step, which is the board practice opens on. Frame 1
- * lights the evidence. Then one frame per square, in the order they land, each the position with that square made; the
- * last is the position after the whole step. A frame's [Frame.board] is the position it shows, so the host can seek to
+ * lights the evidence and marks the squares it will cross. Then one frame per square, in the order they land, each the position with that square made; the
+ * last is the position after the whole step. The evidence stays lit through all of them. A frame's [Frame.board] is the position it shows, so the host can seek to
  * any of them.
  */
 internal class QueensIntroDemo(
@@ -43,7 +43,7 @@ internal class QueensIntroDemo(
             val base = QueensSpotlightMapper.map(opening.step, puzzle, playId = 0).copy(callout = null)
             val frames = ArrayList<Frame>(captions.size)
             frames += Frame(opening.board, null, captions.first())
-            frames += Frame(opening.board, base.copy(roles = evidence), captions[1])
+            frames += Frame(opening.board, base.copy(roles = evidence + crossing(opening.step)), captions[1])
             // One frame per square, each with that square made on top of those before it; the last is the whole step.
             opening.landing.indices.forEach { i ->
                 val board = if (i == opening.landing.lastIndex) {
@@ -51,7 +51,7 @@ internal class QueensIntroDemo(
                 } else {
                     opening.board.copy(manual = opening.board.manual + opening.landing.take(i + 1).toSet())
                 }
-                frames += Frame(board, null, captions[2 + i])
+                frames += Frame(board, base.copy(roles = evidence), captions[2 + i])
             }
             return QueensIntroDemo(variant, puzzle, frames)
         }
@@ -59,6 +59,10 @@ internal class QueensIntroDemo(
         /** The index in [QueensIntroCopy.variants] of the variant [step] shows. */
         private fun variantOf(puzzle: QueensPuzzle, technique: TechniqueId, step: QueensStep.Deduction): Int =
             if (technique == LINE_LOCK && !QueensIntro.fillsLine(puzzle, step)) QueensIntroCopy.FILL_REGION else QueensIntroCopy.FILL_LINE
+
+        /** The squares the step crosses, marked in step one so "here" has a square to point at (a queen's step marks none). */
+        private fun crossing(step: QueensStep.Deduction): Map<Int, SpotlightRole> =
+            (step.result as? QueensStep.Deduction.Result.Cross)?.cells.orEmpty().associate { it.idx to SpotlightRole.EXCLUDED }
 
         private fun evidenceRoles(step: QueensStep.Deduction): Map<Int, SpotlightRole> =
             step.evidence.associate { it.idx to SpotlightRole.EVIDENCE }

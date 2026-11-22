@@ -41,7 +41,7 @@ import kotlinx.coroutines.withContext
  * first technique has the focus boards only), each a [PracticeBoard] cut from a puzzle on the device (the [source]'s,
  * newest first, then the technique's bundled ones) and played until it says [PracticeStatus.Done]. A technique never
  * answered opens with its intro when it has one ([intros]; the board's chip replays it any time): demos to watch, then
- * [startPractice] opens board 1 on the first demo's puzzle. A done board is held ([hold], [skip]), then the next opens on its own; after the last
+ * [startPractice] opens board 1 on another puzzle than the demo's (the demo's own only when it is the one there is). A done board is held ([hold], [skip]), then the next opens on its own; after the last
  * the state is [PracticeState.Result]. The next chapter ([nextChapter]) and a fresh run ([practiceAgain]) open only from
  * that page. Boards live in memory only: turning the device keeps them, a new attempt starts the opened technique again
  * (A6, A15). Each trained turn is recorded through [recordAnswer] as it happens ([progress]); nothing but the
@@ -190,11 +190,11 @@ internal class PracticeViewModel(
         replaceBoard { if (!introduce()) openNext() }
     }
 
-    /** The intro's Skip and Start practice: board 1 opens on the puzzle the intro was recorded on. Ignored anywhere but the opening intro. */
+    /** The intro's Skip and Start practice: board 1 opens on another puzzle than the intro was recorded on, which is already played; on that one when it is all there is. Ignored anywhere but the opening intro. */
     fun startPractice() {
         val first = (mutableState.value as? PracticeState.Intro)?.intro?.first ?: return
         intros.handedOver()
-        replaceBoard(loading = false) { if (!open(first)) openNext() }
+        replaceBoard(loading = false) { if (!openFromDevice() && !open(first)) openNext() }
     }
 
     /** Finds the chapter's intro for the board's chip and shows it first for a technique never answered (spec §2.7); false when not shown. */

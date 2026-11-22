@@ -83,6 +83,26 @@ class TangoPracticeBoardPlayTest {
         assertEquals(listOf(TrainerVerdict.Wrong) + trainedTurns(right), play.turns)
     }
 
+    /** Catches a second identical wrong move that reaches no one: an equal status is dropped by the StateFlow, so each undone move needs its own attempt. */
+    @Test
+    fun `two identical wrong moves are two different statuses`() = runTest {
+        val play = TangoPracticePlay.all(this).first { board -> board.moves().any { it.verdict is TangoPracticeVerdict.Wrong } }
+        val wrong = play.moves().first { it.verdict is TangoPracticeVerdict.Wrong }
+
+        play.board.onTap(wrong.idx)
+        if (wrong.value == TangoCell.MOON) play.board.onTap(wrong.idx)
+        play.settle()
+        val first = play.status as PracticeStatus.Wrong
+
+        play.board.onTap(wrong.idx)
+        if (wrong.value == TangoCell.MOON) play.board.onTap(wrong.idx)
+        play.settle()
+        val second = play.status as PracticeStatus.Wrong
+
+        assertEquals(first.why, second.why)
+        assertEquals(first.attempt + 1, second.attempt)
+    }
+
     @Test
     fun `a given and a filled square take no tap`() = runTest {
         val (play, right) = TangoPracticePlay.all(this).firstWith("a Right move") { it.isTrainedRight }

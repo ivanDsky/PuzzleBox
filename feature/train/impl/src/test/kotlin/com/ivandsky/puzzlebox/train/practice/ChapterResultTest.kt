@@ -84,6 +84,7 @@ class ChapterResultTest {
         assertEquals(9, result.rights)
         assertEquals(1, result.shown)
         assertEquals(1, result.slips)
+        assertEquals(0, result.undone)
         assertEquals(5, result.best)
         assertEquals(
             listOf(
@@ -95,6 +96,55 @@ class ChapterResultTest {
             ),
             result.rows,
         )
+    }
+
+    /** Bug caught: moves undone as Wrong never tallied, so a board full of mistakes reads "All right". */
+    @Test
+    fun `moves undone are counted per board and make the board's row an undone row`() {
+        val rig = rig()
+        rig.say(PracticeStatus.Wrong("Two queens would touch.", attempt = 1))
+        rig.say(PracticeStatus.Wrong("Two queens would touch.", attempt = 2))
+        rig.say(PracticeStatus.Wrong("Not in the solution.", attempt = 3))
+        rig.end()
+        rig.turn(right)
+        rig.end()
+        repeat(3) { rig.turn(right); rig.end() }
+
+        val result = rig.result()
+        assertEquals(3, result.undone)
+        assertEquals(BoardRow(1, BoardRowKind.Undone, 0, undone = 3), result.rows[0])
+        assertEquals(BoardRow(2, BoardRowKind.Clean, 1), result.rows[1])
+    }
+
+    /** Bug caught: a status that repeats being dropped as equal, so a second identical undo is not counted. */
+    @Test
+    fun `an undone move repeated for the same reason is counted again`() {
+        val rig = rig()
+        rig.say(PracticeStatus.Wrong("Two queens would touch.", attempt = 1))
+        rig.say(PracticeStatus.FindNextMove)
+        rig.say(PracticeStatus.Wrong("Two queens would touch.", attempt = 2))
+        rig.end()
+        repeat(4) { rig.turn(right); rig.end() }
+
+        assertEquals(2, rig.result().rows[0].undone)
+    }
+
+    /** Bug caught: an undone board showing the milder slip row, or hiding a Show me. */
+    @Test
+    fun `a board with undone moves and a slip is an undone board, and Show me still wins`() {
+        val rig = rig()
+        rig.say(PracticeStatus.Easier("Naked single", standInSpotlight()))
+        rig.say(PracticeStatus.Wrong("x", attempt = 1))
+        rig.end()
+        rig.say(PracticeStatus.Wrong("x", attempt = 2))
+        rig.say(PracticeStatus.Shown(standInSpotlight()))
+        rig.end()
+        repeat(3) { rig.turn(right); rig.end() }
+
+        val rows = rig.result().rows
+        assertEquals(BoardRowKind.Undone, rows[0].kind)
+        assertEquals(BoardRowKind.Shown, rows[1].kind)
+        assertEquals(1, rows[1].undone)
     }
 
     /** Bug caught: a board that went wrong in two ways showing the milder row, or a streak capped at the mastery count. */

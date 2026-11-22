@@ -77,7 +77,7 @@ class TangoPracticeBoardTest {
                     assertTrue(label, play.status.isTrainedRightOrDone())
                     assertEquals(label, listOf(TrainerVerdict.Right), play.turns)
                 } else {
-                    assertEquals(label, PracticeStatus.KeepGoing(move.stepSquares - 1, trained = true), play.status)
+                    assertEquals(label, PracticeStatus.KeepGoing(move.stepSquares - 1, trained = true, unit = "square"), play.status)
                     assertEquals(label, emptyList<TrainerVerdict>(), play.turns)
                 }
             }
@@ -92,7 +92,7 @@ class TangoPracticeBoardTest {
         val others = step.squares.filter { it.idx != first.idx }
 
         play.play(first)
-        assertEquals(PracticeStatus.KeepGoing(left = others.size, trained = true), play.status)
+        assertEquals(PracticeStatus.KeepGoing(left = others.size, trained = true, unit = "square"), play.status)
 
         others.forEachIndexed { done, square ->
             assertEquals(emptyList<TrainerVerdict>(), play.turns)
@@ -100,7 +100,7 @@ class TangoPracticeBoardTest {
             assertEquals(square.value, play.grid[square.idx])
             val left = others.size - done - 1
             if (left > 0) {
-                assertEquals(PracticeStatus.KeepGoing(left, trained = true), play.status)
+                assertEquals(PracticeStatus.KeepGoing(left, trained = true, unit = "square"), play.status)
             } else {
                 assertTrue(play.status.isTrainedRightOrDone())
             }

@@ -101,6 +101,8 @@ internal class TangoPracticeBoard(
         get() = state.value.let { it is PracticeStatus.Easier || it is PracticeStatus.Shown || it is PracticeStatus.Done }
 
     private var playId = 0
+    /** The undone moves so far, which makes each Wrong status its own value (the StateFlow drops an equal one). */
+    private var wrongs = 0
     private var lastMove: Int? = null
 
     /** The tap cycle on one square: the session from before its first tap, and the wait that judges it. */
@@ -223,7 +225,7 @@ internal class TangoPracticeBoard(
                 val why = whyWrong(before, idx, value)
                 controller.revertTo(base)
                 if (verdict.rung?.trainerId == technique) onTrainedTurn(TrainerVerdict.Wrong)
-                state.value = PracticeStatus.Wrong(why)
+                state.value = PracticeStatus.Wrong(why, attempt = ++wrongs)
             }
         }
     }
@@ -232,7 +234,7 @@ internal class TangoPracticeBoard(
     private fun advance(progress: InProgress) {
         if (progress.remaining.isNotEmpty()) {
             inProgress = progress
-            state.value = PracticeStatus.KeepGoing(progress.remaining.size, progress.trained)
+            state.value = PracticeStatus.KeepGoing(progress.remaining.size, progress.trained, unit = "square")
             return
         }
         inProgress = null

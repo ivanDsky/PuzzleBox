@@ -78,13 +78,14 @@ internal class QueensPracticeBoard(
     private var halted = false
     private var showing = false
     private var playId = 0
+    private var wrongs = 0
 
     /** The real play board's state: the board is drawn, tapped and dragged as in play. */
     val state = QueensBoardState(unplayedSession(puzzle, start), mode = HintMode.Stepwise(compute), scope = scope)
 
     init {
         state.judge = this
-        if (QueensPractice.isDone(puzzle, state.session.board, technique, kind)) mutableStatus.value = PracticeStatus.Done(null)
+        if (QueensPractice.isDone(puzzle, state.session.board, technique, kind)) mutableStatus.value = done(null, state.session)
     }
 
     /** A cross waiting for its tap cycle to settle: the session from before it, and the pause that settles it. */
@@ -93,7 +94,10 @@ internal class QueensPracticeBoard(
     }
 
     /** The deduction the player is partway through crossing: the squares it still crosses, and what it showed. */
-    private data class Running(val spotlight: Spotlight, val trained: Boolean, val remaining: Set<Cell>)
+    private data class Running(val spotlight: Spotlight, val trained: Boolean, val other: String?, val remaining: Set<Cell>)
+
+    /** The board ends on [session]: solved, or stopped because the next move needs another technique. */
+    private fun done(last: Spotlight?, session: QueensSession) = PracticeStatus.Done(last, needsOtherTechnique = !session.isComplete)
 
     /** An easier-move or Show me explanation stands: the board takes no move until [gotIt]. */
     private val explaining: Boolean
@@ -164,31 +168,35 @@ internal class QueensPracticeBoard(
      * Right, and counted, only when none are: and then, if [after] ends the board, the status is Done with the step
      * in hand, not Right.
      */
-    private fun progressed(spotlight: Spotlight, trained: Boolean, left: Set<Cell>, after: QueensSession) {
+    private fun progressed(spotlight: Spotlight, trained: Boolean, other: String?, left: Set<Cell>, after: QueensSession) {
         if (left.isNotEmpty()) {
-            running = Running(spotlight, trained, left)
-            mutableStatus.value = PracticeStatus.KeepGoing(left.size, trained)
+            running = Running(spotlight, trained, other, left)
+            mutableStatus.value = PracticeStatus.KeepGoing(left.size, trained, unit = "square")
             return
         }
         running = null
         if (trained) onTrainedTurn(TrainerVerdict.Right)
         mutableStatus.value =
-            if (after.isComplete || QueensPractice.isDone(puzzle, after.board, technique, kind)) PracticeStatus.Done(spotlight)
-            else PracticeStatus.Right(spotlight, trained)
+            if (after.isComplete || QueensPractice.isDone(puzzle, after.board, technique, kind)) done(spotlight, after)
+            else PracticeStatus.Right(spotlight, trained, other)
     }
 
     /** Judges [move] made on [before], which left [after], and reports it; true when the move stays. */
     private fun accepts(before: QueensSession, after: QueensSession, move: QueensPracticeMove): Boolean {
         val partway = running
         if (move is QueensPracticeMove.Cross && partway != null && move.cell in partway.remaining) {
-            progressed(partway.spotlight, partway.trained, partway.remaining - move.cell, after)
+            progressed(partway.spotlight, partway.trained, partway.other, partway.remaining - move.cell, after)
             return true
         }
         return when (val verdict = QueensPractice.judge(puzzle, before.board, move)) {
             // No rung has a deduction here: nothing to judge by, and nothing to count.
             null -> true
             is QueensPracticeVerdict.Right -> {
-                progressed(spotlightOf(verdict.step), verdict.rung.trainerId == technique, verdict.remaining, after)
+                val trained = verdict.rung.trainerId == technique
+                progressed(
+                    spotlightOf(verdict.step), trained, if (trained) null else QueensPracticeCopy.technique(verdict.rung),
+                    verdict.remaining, after,
+                )
                 true
             }
             is QueensPracticeVerdict.Easier -> {
@@ -198,7 +206,7 @@ internal class QueensPracticeBoard(
             }
             is QueensPracticeVerdict.Wrong -> {
                 undone(verdict.rung)
-                mutableStatus.value = PracticeStatus.Wrong(QueensPracticeCopy.why(verdict.why))
+                mutableStatus.value = PracticeStatus.Wrong(QueensPracticeCopy.why(verdict.why), attempt = ++wrongs)
                 false
             }
         }
@@ -212,7 +220,7 @@ internal class QueensPracticeBoard(
         mutableStatus.value = when (mutableStatus.value) {
             is PracticeStatus.Easier -> PracticeStatus.FindNextMove
             is PracticeStatus.Shown ->
-                if (QueensPractice.isDone(puzzle, state.session.board, technique, kind)) PracticeStatus.Done(null) else PracticeStatus.FindNextMove
+                if (QueensPractice.isDone(puzzle, state.session.board, technique, kind)) done(null, state.session) else PracticeStatus.FindNextMove
             else -> return
         }
     }
