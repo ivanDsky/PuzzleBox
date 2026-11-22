@@ -166,14 +166,17 @@ private fun DrawScope.drawRing(ring: DialRing, sweep: Float, totalMs: Int, comet
     val crackTicks = max(MIN_TICKS, TICK_CRACK_MS * perMs)
     val head = sweep * (ring.count + igniteTicks + crackTicks)
     val track = DialTrack(radius = outer, straight = straight)
+    // [by] in from a point on the ring. The plain circle keeps its first arithmetic so its pixels stay where they were.
+    fun inward(point: Offset, u: Offset, by: Float) =
+        if (straight == 0f) center + u * (outer - by) else point - u * by
     // The tick's outer end, with the unit vector pointing out from the ring there.
     fun place(index: Float): Pair<Offset, Offset> {
-        val at = track.at(index / n)
+        val at = track.at(index.toDouble() / n)
         return Pair(center + Offset(at.x, at.y), Offset(at.nx, at.ny))
     }
     ring.ticks.forEachIndexed { i, tick ->
         val (to, u) = place(i.toFloat())
-        val from = to - u * length
+        val from = inward(to, u, length)
         val ignite = if (tick.fill > 0f) ((head - (i - ring.first)) / igniteTicks).coerceIn(0f, 1f) else 0f
         val burning = ignite > 0f
         if (!(tick.frozen && burning)) {
@@ -201,7 +204,7 @@ private fun DrawScope.drawRing(ring: DialRing, sweep: Float, totalMs: Int, comet
         repeat(TRAIL) { k ->
             val fade = cometAlpha * (1f - k.toFloat() / TRAIL)
             val (tip, u) = place(cometIndex - k * TRAIL_STEP)
-            drawCircle(ink.copy(alpha = fade), width * (1.2f - 0.25f * k), tip - u * (length / 2f))
+            drawCircle(ink.copy(alpha = fade), width * (1.2f - 0.25f * k), inward(tip, u, length / 2f))
         }
     }
 }
