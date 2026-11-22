@@ -3,8 +3,8 @@ package com.ivandsky.puzzlebox.app.widget
 import android.content.Context
 import android.os.Build
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceId
@@ -28,6 +28,9 @@ import androidx.glance.layout.padding
 import com.ivandsky.puzzlebox.app.R
 import com.ivandsky.puzzlebox.app.shortcut.ShortcutIntents
 import com.ivandsky.puzzlebox.app.shortcut.ShortcutTarget
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 
 /**
  * The home-screen widget, and the only class that draws it: the streak line, Today's games and the action pill, drawn once
@@ -37,7 +40,8 @@ import com.ivandsky.puzzlebox.app.shortcut.ShortcutTarget
  *
  * Each session draws the last good picture first ([CachedWidgetReader.cached], the empty state on a first draw) and the fresh
  * read over it when that lands, so a slow or failed read, or a session killed before its read ends, never leaves the
- * launcher's initial layout on screen. A failed fresh read keeps the cached picture.
+ * launcher's initial layout on screen. A failed fresh read keeps the cached picture. The fresh read runs once per session,
+ * outside the composition, however many responsive sizes are composed.
  */
 class PuzzleBoxWidget(private val pictures: CachedWidgetReader) : GlanceAppWidget() {
 
@@ -45,9 +49,15 @@ class PuzzleBoxWidget(private val pictures: CachedWidgetReader) : GlanceAppWidge
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val cached = pictures.cached()
-        provideContent {
-            val state by produceState(cached) { pictures.fresh()?.let { value = it } }
-            WidgetContent(state)
+        val picture = MutableStateFlow(cached)
+        coroutineScope {
+            // The one fresh read of the session. Glance composes the content once per responsive size, so a read started
+            // inside the composition would run once per size ([WidgetSizes.ALL]), all in parallel, and time out together.
+            launch { pictures.fresh()?.let { picture.value = it } }
+            provideContent {
+                val state by picture.collectAsState()
+                WidgetContent(state)
+            }
         }
     }
 }
