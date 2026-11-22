@@ -45,7 +45,7 @@ val friendModule = module {
     viewModel { (key: FriendPuzzleKey) -> FriendPuzzleViewModel(key, get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { (key: CustomResultKey) -> CustomResultViewModel(key, get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { CommunityViewModel(get(), get(), get(), get(), get(), get(), System::currentTimeMillis) }
-    viewModel { ShelvesViewModel(get(), get(), get(), get(), get(), get(), get(), System::currentTimeMillis) }
+    viewModel { ShelvesViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), System::currentTimeMillis) }
     viewModel { SeeAllViewModel(get(), get(), get(), get(), get(), get(), get(), System::currentTimeMillis) }
 }
 

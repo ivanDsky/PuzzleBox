@@ -243,4 +243,16 @@ class ShelvesViewModelTest {
 
         assertEquals(listOf(ALPHA, BETA), shelves.map { it.game })
     }
+
+    @Test
+    fun `a reported puzzle leaves the shelves at once and the home says so`() = runTest {
+        fixture.publishMany(3)
+        val viewModel = fixture.viewModel()
+
+        viewModel.report(codeOf(2))
+
+        assertFalse(codeOf(2).value in viewModel.content().plan.codes())
+        assertEquals(2, viewModel.content().plan.codes().size)
+        assertEquals("Reported. It's hidden on this device.", viewModel.reportState.value.notice?.message)
+    }
 }

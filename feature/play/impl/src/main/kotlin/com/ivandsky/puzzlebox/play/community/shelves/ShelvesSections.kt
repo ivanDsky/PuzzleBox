@@ -26,10 +26,10 @@ internal fun LazyListScope.shelvesSections(content: ShelvesUiState.Content, acti
     content.plan.sections.forEach { section ->
         when (section) {
             is Section.Spotlight -> item(key = "spotlight", contentType = "spotlight") {
-                PlanSpotlight(section.card, content, actions.onOpen, Modifier.padding(horizontal = Spacing.lg))
+                PlanSpotlight(section.card, content, actions, Modifier.padding(horizontal = Spacing.lg))
             }
             is Section.MostPlayed -> item(key = "most", contentType = "shelf") {
-                ShelfRow("Most played", "all time", onSeeAll = { actions.onSeeAll(SeeAllScope.MostPlayed) }, seeAllTag = "shelves.seeall.most") { items(section.cards, key = { it.code.value }) { PlanCard(it, content, actions.onOpen) } }
+                ShelfRow("Most played", "all time", onSeeAll = { actions.onSeeAll(SeeAllScope.MostPlayed) }, seeAllTag = "shelves.seeall.most") { items(section.cards, key = { it.code.value }) { PlanCard(it, content, actions) } }
             }
             is Section.Newest -> item(key = "newest", contentType = "shelf") {
                 ShelfRow(
@@ -38,7 +38,7 @@ internal fun LazyListScope.shelvesSections(content: ShelvesUiState.Content, acti
                     Modifier.testTag("shelves.shelf.newest"),
                     onSeeAll = { actions.onSeeAll(SeeAllScope.Newest) },
                     seeAllTag = "shelves.seeall.newest",
-                ) { items(section.cards, key = { it.code.value }) { PlanCard(it, content, actions.onOpen) } }
+                ) { items(section.cards, key = { it.code.value }) { PlanCard(it, content, actions) } }
             }
             is Section.GameShelf -> item(key = "game:${section.game.value}", contentType = "shelf") {
                 val game = content.games[section.game] ?: return@item
@@ -51,7 +51,7 @@ internal fun LazyListScope.shelvesSections(content: ShelvesUiState.Content, acti
                     onSeeAll = if (section.summary == Section.GameShelf.Summary.None) null else ({ actions.onSeeAll(SeeAllScope.Game(game.id)) }),
                     seeAllTag = "shelves.seeall.${game.id.value}",
                 ) {
-                    items(section.cards, key = { it.code.value }) { PlanCard(it, content, actions.onOpen) }
+                    items(section.cards, key = { it.code.value }) { PlanCard(it, content, actions) }
                     item(key = "make", contentType = "make") { MakeCard(game.id, game.name, section.cards.isEmpty(), actions) }
                 }
             }

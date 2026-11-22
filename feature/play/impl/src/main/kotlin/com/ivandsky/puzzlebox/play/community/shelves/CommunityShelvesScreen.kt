@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,7 +30,8 @@ import com.ivandsky.puzzlebox.play.mainTabBarBleed
  * the head (Community, Enter code), the search stand-in, the two entry tiles, then [state]'s body: the skeleton while it
  * loads, the shelves of the plan, the empty hero, or the offline or refused message with Retry. On the tablet ([phone]
  * false) the bar reaches into the panes' gutters ([mainTabBarBleed]). [bottomPadding] is what the list leaves free at
- * its end, for the create button that floats over it.
+ * its end, for the create button that floats over it. The list scrolls with [listState], the caller's so a reselect
+ * of the tab can send it to the top and a page over the home leaves its place alone.
  */
 @Composable
 internal fun CommunityShelvesScreen(
@@ -37,6 +40,7 @@ internal fun CommunityShelvesScreen(
     phone: Boolean,
     modifier: Modifier = Modifier,
     bottomPadding: Dp = 0.dp,
+    listState: LazyListState = rememberLazyListState(),
 ) {
     Column(modifier.testTag("community.shelves")) {
         LargeTopBar(
@@ -46,7 +50,8 @@ internal fun CommunityShelvesScreen(
             actions = { SecondaryButton(text = "Enter code", onClick = actions.onEnterCode, modifier = Modifier.testTag("community.enterCode")) },
         )
         LazyColumn(
-            Modifier.fillMaxSize(),
+            Modifier.fillMaxSize().testTag("shelves.list"),
+            state = listState,
             contentPadding = PaddingValues(top = Spacing.sm, bottom = Spacing.xl + bottomPadding),
             verticalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {

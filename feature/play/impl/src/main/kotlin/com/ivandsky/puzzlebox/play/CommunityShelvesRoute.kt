@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,6 +24,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
+import com.ivandsky.puzzlebox.designsystem.OnTabReselect
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
@@ -34,6 +36,7 @@ import com.ivandsky.puzzlebox.play.community.shelves.ShelvesPage
 import com.ivandsky.puzzlebox.play.community.shelves.ShelvesPageContent
 import com.ivandsky.puzzlebox.play.community.shelves.ShelvesPageHost
 import com.ivandsky.puzzlebox.play.community.shelves.ShelvesPageSaver
+import com.ivandsky.puzzlebox.play.community.shelves.ShelvesReportHost
 import com.ivandsky.puzzlebox.play.community.shelves.ShelvesViewModel
 import com.ivandsky.puzzlebox.play.community.shelves.seeall.SeeAllScope
 import org.koin.androidx.compose.koinViewModel
@@ -49,8 +52,15 @@ private val DETAIL_RISE = 14.dp
  * screen; a card opens its page through [onOpen]. On [PlayLayout.TwoPane] it is a [ShelvesListPaneWidth] list pane with
  * the card's page beside it (Play opens the board through [onPlay]), which rises and fades in. Enter code runs
  * [onEnterCode]; the entry tiles, Search and a shelf's See all open a page over the home (in the list pane on the tablet) that back
- * closes, and a row picked on it opens like one on the home. [onNewPuzzle] (null: the create button is off) is what a Make card runs (null: the New puzzle sheet; a game: a draft of it). [clearance] is what the list
- * leaves free for the create button that floats over it.
+ * closes, and a row picked on it opens like one on the home.
+ *
+ * What the old tabs did stays: a card's long press reports it (a friend's card can also be removed, [onRemoveFriend]),
+ * a share waiting in the store ([sharePending]) opens Your puzzles where the import takes it, the home and each page keep
+ * their scroll, and reselecting the tab closes an open page first and then scrolls the home to the top.
+ *
+ * [onNewPuzzle] (null: the create button is off) is what a Make card and the create button run (null: the New puzzle
+ * sheet; a game: a draft of it); the button floats over the home and every page. [clearance] is what the lists leave
+ * free for it.
  */
 @Composable
 internal fun CommunityShelvesRoute(
@@ -62,15 +72,23 @@ internal fun CommunityShelvesRoute(
     onNewPuzzle: ((GameId?) -> Unit)?,
     clearance: Dp,
     modifier: Modifier = Modifier,
+    onRemoveFriend: (ShareCode) -> Unit = {},
+    sharePending: Boolean = false,
 ) {
     val viewModel: ShelvesViewModel = koinViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val report by viewModel.reportState.collectAsStateWithLifecycle()
     // The page over the home: a See all page or Your puzzles, behind the entry tiles, Search and a shelf's See all.
     var page by rememberSaveable(stateSaver = ShelvesPageSaver) { mutableStateOf<ShelvesPage?>(null) }
     // Counts the opens: a page opened from the home starts clean even when it is the same one as before, while a rotation or a
     // return from a row (no open) keeps its filters. Counted on open, not close, so a page sliding out is not reset under the eye.
     var visit by rememberSaveable { mutableIntStateOf(0) }
     val openPage = { next: ShelvesPage -> page = next; visit++ }
+    val homeList = rememberLazyListState()
+    // A shared text waits for the import on Your puzzles, on the first look and when one arrives.
+    LaunchedEffect(sharePending) { if (sharePending) openPage(ShelvesPage.Yours) }
+    // The page takes the reselect first: it closes; the next one scrolls the home to the top.
+    OnTabReselect { if (page != null) page = null else homeList.animateScrollToItem(0) }
     fun actionsFor(open: (ShareCode) -> Unit) = ShelvesActions(
         onEnterCode = onEnterCode,
         onOpen = open,
@@ -79,30 +97,34 @@ internal fun CommunityShelvesRoute(
         onFriends = { openPage(ShelvesPage.SeeAll(SeeAllScope.Friends)) },
         onYours = { openPage(ShelvesPage.Yours) },
         onSeeAll = { openPage(ShelvesPage.SeeAll(it)) },
-        onMake = { onNewPuzzle?.invoke(null) },
+        onMake = { onNewPuzzle?.invoke(it) },
+        onReport = viewModel::report,
+        onRemoveFriend = onRemoveFriend,
     )
+    val pages: @Composable (Boolean, (ShareCode) -> Unit, Modifier) -> Unit = { phone, open, size ->
+        Box(size) {
+            ShelvesPageHost(
+                page = page,
+                onBack = { page = null },
+                modifier = Modifier.fillMaxSize(),
+                home = { CommunityShelvesScreen(state, actionsFor(open), phone, Modifier.fillMaxSize(), clearance, homeList) },
+                content = { ShelvesPageContent(it, custom, onBack = { page = null }, onOpen = open, visit = visit, bottomPadding = clearance) },
+            )
+            ShelvesReportHost(report, viewModel::noticeShown, viewModel::signIn, viewModel::dismissSignIn, Modifier.fillMaxSize(), clearance)
+        }
+    }
     if (layout == PlayLayout.SinglePane) {
-        ShelvesPageHost(
-            page = page,
-            onBack = { page = null },
-            modifier = modifier.fillMaxSize(),
-            home = { CommunityShelvesScreen(state, actionsFor(onOpen), phone = true, Modifier.fillMaxSize(), bottomPadding = clearance) },
-            content = { ShelvesPageContent(it, custom, onBack = { page = null }, onOpen = onOpen, visit = visit, bottomPadding = clearance) },
-        )
+        Box(modifier.fillMaxSize()) {
+            pages(true, onOpen, Modifier.fillMaxSize())
+            onNewPuzzle?.let { make -> CommunityCreateFab({ make(null) }, Modifier.align(Alignment.BottomEnd)) }
+        }
     } else {
         CommunityPanes(
             default = { null },
             list = { size, picks ->
                 picks.ProvideFor(CommunityTab.NewToday) {
                     val picker = LocalCommunityPicker.current
-                    val open = { code: ShareCode -> picker?.puzzle(code.value) ?: onOpen(code) }
-                    ShelvesPageHost(
-                        page = page,
-                        onBack = { page = null },
-                        modifier = size,
-                        home = { CommunityShelvesScreen(state, actionsFor(open), phone = false, Modifier.fillMaxSize(), bottomPadding = clearance) },
-                        content = { ShelvesPageContent(it, custom, onBack = { page = null }, onOpen = open, visit = visit, bottomPadding = clearance) },
-                    )
+                    pages(false, { code: ShareCode -> picker?.puzzle(code.value) ?: onOpen(code) }, size)
                 }
             },
             empty = {
@@ -115,7 +137,7 @@ internal fun CommunityShelvesRoute(
             },
             detail = { pick, clear -> ShelvesDetail(pick) { CommunityPage(pick, clear, custom, onPlay) } },
             modifier = modifier,
-            listOverlay = onNewPuzzle?.let { open -> { CommunityCreateFab({ open(null) }, Modifier.align(Alignment.BottomEnd)) } },
+            listOverlay = onNewPuzzle?.let { make -> { CommunityCreateFab({ make(null) }, Modifier.align(Alignment.BottomEnd)) } },
             listPaneWidth = ShelvesListPaneWidth,
         )
     }

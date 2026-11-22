@@ -78,7 +78,11 @@ internal fun CommunityRoute(
         val clearance = if (onNewPuzzle != null) CreateFabClearance else 0.dp
         Box(modifier.fillMaxSize().testTag("route.community")) {
             if (PlayFlag.CommunityShelves in flags) {
-                CommunityShelvesRoute(layout, custom, onOpen, onPlay, onEnterCode, create, clearance)
+                CommunityShelvesRoute(
+                    layout, custom, onOpen, onPlay, onEnterCode, create, clearance,
+                    onRemoveFriend = viewModel::removeFriend,
+                    sharePending = sharePending != null,
+                )
             } else if (layout == PlayLayout.SinglePane) {
                 CommunityBound(community, communityState, onOpen) { actions ->
                     CommunityTabs(
@@ -105,8 +109,9 @@ internal fun CommunityRoute(
                     )
                 }
             }
-            // The FAB floats over the whole screen on the phone; on the tablet the list pane draws it over itself.
-            if (onNewPuzzle != null && layout == PlayLayout.SinglePane) {
+            // The old tabs' FAB floats over the whole screen on the phone; on the tablet the list pane draws it over itself.
+            // The shelves route draws its own, over the home and every page.
+            if (onNewPuzzle != null && layout == PlayLayout.SinglePane && PlayFlag.CommunityShelves !in flags) {
                 CommunityCreateFab(onNewPuzzle, Modifier.align(Alignment.BottomEnd))
             }
             FriendRemovedSnackbar(
