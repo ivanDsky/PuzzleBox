@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.insights.stats
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -16,10 +15,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -33,7 +34,8 @@ import com.ivandsky.puzzlebox.model.GameId
 /**
  * The Records section: each game's fastest solve, the longest streak and the longest hint-free run, as one block of
  * rows. A row with a solve behind it opens that solve through [onOpenSolve] (A13): its replay when it has one, the
- * day otherwise (an import). A row with nothing to open (a streak held only by freezes) is plain.
+ * day otherwise (an import). A row with nothing to open (a streak held only by freezes) is plain. The grouped page draws
+ * one per group, with its own [title] (set in [titleStyle] and [titleColor] when given) and [tag].
  */
 @Composable
 internal fun RecordsSection(
@@ -41,18 +43,16 @@ internal fun RecordsSection(
     gameName: (GameId) -> String,
     onOpenSolve: (SolveRef) -> Unit,
     modifier: Modifier = Modifier,
+    title: AnnotatedString = AnnotatedString("Records"),
+    tag: String = "stats.records",
+    titleStyle: TextStyle? = null,
+    titleColor: Color = Color.Unspecified,
 ) {
-    StatsSectionFrame(title = "Records", state = state, tag = "stats.records", modifier = modifier) { records ->
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .clip(MaterialTheme.shapes.large)
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                .testTag("stats.records.rows"),
-        ) {
+    StatsSectionFrame(title, state, tag, modifier, titleStyle, titleColor) { records ->
+        Column(Modifier.fillMaxWidth().statsCard().testTag("$tag.rows")) {
             val rows = recordRows(records, gameName)
             rows.forEachIndexed { index, row ->
-                if (index > 0) HorizontalDivider(Modifier.padding(horizontal = Spacing.lg), color = MaterialTheme.colorScheme.outlineVariant)
+                if (index > 0) HorizontalDivider(Modifier.padding(horizontal = statsCardInset()), color = MaterialTheme.colorScheme.outlineVariant)
                 RecordRow(row, onOpenSolve)
             }
         }
@@ -112,7 +112,7 @@ private fun RecordRow(line: RecordLine, onOpenSolve: (SolveRef) -> Unit) {
             .fillMaxWidth()
             .heightIn(min = RowMinHeight)
             .then(open)
-            .padding(start = Spacing.lg)
+            .padding(start = statsCardInset())
             .semantics(mergeDescendants = true) {}
             .testTag(line.tag),
         verticalAlignment = Alignment.CenterVertically,
