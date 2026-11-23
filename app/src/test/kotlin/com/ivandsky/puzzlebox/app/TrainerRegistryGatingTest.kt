@@ -32,49 +32,13 @@ import org.robolectric.annotation.Config
 class TrainerRegistryGatingTest {
 
     @Test
-    fun `the registry always holds the Queens trainer`() {
+    fun `the registry always holds the Queens and Tango trainers in the game order`() {
         withGraph(FakeReleaseFlags()) { koin ->
-            val registry = koin.get<TrainerRegistry>()
-
-            assertEquals(listOf(GameId("queens")), registry.all.map { it.gameId })
-            assertEquals(10, registry[GameId("queens")]!!.catalog().size)
-        }
-    }
-
-    @Test
-    fun `with TrainTango on the registry holds the Tango trainer`() {
-        withGraph(FakeReleaseFlags(GameUiFlag.TrainTango)) { koin ->
             val registry = koin.get<TrainerRegistry>()
 
             assertEquals(listOf(GameId("queens"), GameId("tango")), registry.all.map { it.gameId })
+            assertEquals(10, registry[GameId("queens")]!!.catalog().size)
             assertEquals(9, registry[GameId("tango")]!!.catalog().size)
-        }
-    }
-
-    @Test
-    fun `with TrainTango off the registry has no Tango trainer though the game binds a holder`() {
-        withGraph(FakeReleaseFlags()) { koin ->
-            val bindings = koin.getAll<TrainerGame.Binding>()
-
-            assertNull(koin.get<TrainerRegistry>()[GameId("tango")])
-            assertEquals("only Queens' holder holds a trainer", listOf(GameId("queens")), bindings.mapNotNull { it.game?.gameId })
-            assertTrue("Tango binds an empty holder", bindings.any { it.game == null })
-        }
-    }
-
-    @Test
-    fun `another game's Train flag leaves the Tango trainer out`() {
-        val others: Array<ReleaseFlagKey> = GameUiFlag.entries.filter { it != GameUiFlag.TrainTango }.toTypedArray()
-
-        withGraph(FakeReleaseFlags(*others)) { koin ->
-            assertNull(koin.get<TrainerRegistry>()[GameId("tango")])
-        }
-    }
-
-    @Test
-    fun `Queens and Tango both on list in the registry's game order`() {
-        withGraph(FakeReleaseFlags(GameUiFlag.TrainTango)) { koin ->
-            assertEquals(listOf(GameId("queens"), GameId("tango")), koin.get<TrainerRegistry>().all.map { it.gameId })
         }
     }
 
@@ -83,15 +47,14 @@ class TrainerRegistryGatingTest {
         withGraph(FakeReleaseFlags(GameUiFlag.TrainSudoku)) { koin ->
             val registry = koin.get<TrainerRegistry>()
 
-            assertEquals(listOf(GameId("queens"), GameId("minisudoku")), registry.all.map { it.gameId })
+            assertEquals(listOf(GameId("queens"), GameId("tango"), GameId("minisudoku")), registry.all.map { it.gameId })
             assertEquals(8, registry[GameId("minisudoku")]!!.catalog().size)
-            assertNull("Tango's flag is off", registry[GameId("tango")])
         }
     }
 
     @Test
     fun `with TrainSudoku off the registry has no Mini Sudoku trainer though the game binds a holder`() {
-        withGraph(FakeReleaseFlags(GameUiFlag.TrainTango)) { koin ->
+        withGraph(FakeReleaseFlags()) { koin ->
             val bindings = koin.getAll<TrainerGame.Binding>()
 
             assertNull(koin.get<TrainerRegistry>()[GameId("minisudoku")])
@@ -115,7 +78,7 @@ class TrainerRegistryGatingTest {
 
     @Test
     fun `Queens, Tango and Mini Sudoku all on list in the registry's game order`() {
-        withGraph(FakeReleaseFlags(GameUiFlag.TrainSudoku, GameUiFlag.TrainTango)) { koin ->
+        withGraph(FakeReleaseFlags(GameUiFlag.TrainSudoku)) { koin ->
             assertEquals(
                 listOf(GameId("queens"), GameId("tango"), GameId("minisudoku")),
                 koin.get<TrainerRegistry>().all.map { it.gameId },

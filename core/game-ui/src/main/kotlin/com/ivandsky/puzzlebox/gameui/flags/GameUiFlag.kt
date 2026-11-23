@@ -13,16 +13,8 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
  */
 enum class GameUiFlag(override val label: String, override val releaseDefault: Boolean) : ReleaseFlagKey {
     /**
-     * Technique trainer for Tango (epic trainer): Tango's UI module binds its trainer adapter only while this is on.
-     * Read by that game UI module's DI (the adapter binding) and by :app's sync binding: while any Train flag is on the
-     * `trainer` kind syncs Trainer progress, and it joins or leaves sync at the next app start (ADR-0022 §3).
-     */
-    TrainTango(label = "Tango in the Train tab", releaseDefault = true),
-
-    /**
      * Technique trainer for Mini Sudoku (epic trainer): Mini Sudoku's UI module binds its trainer adapter only while this
-     * is on. Read by that game UI module's DI (the adapter binding) and by :app's sync binding: while any Train flag is
-     * on the `trainer` kind syncs Trainer progress, and it joins or leaves sync at the next app start (ADR-0022 §3).
+     * is on. Read only in a game UI module's DI (ADR-0022 §3).
      */
     TrainSudoku(label = "Mini Sudoku in the Train tab", releaseDefault = true),
     ;
