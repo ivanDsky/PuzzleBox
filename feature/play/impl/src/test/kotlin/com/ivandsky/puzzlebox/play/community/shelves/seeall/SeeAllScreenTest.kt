@@ -33,7 +33,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** The See all page for each [SeeAllUiState]: its chrome, its filter bar, its no-match state, and what a tap reports. */
+/** The See all page for each [SeeAllUiState]: its chrome, its filter bar (no sort), its no-match state, and what a tap reports. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class SeeAllScreenTest {
@@ -49,7 +49,6 @@ class SeeAllScreenTest {
         onQuery = { calls += "query $it" },
         onGame = { calls += "game ${it?.value}" },
         onDifficulty = { calls += "difficulty ${it?.name}" },
-        onSort = { calls += "sort ${it.label}" },
         onClearFilters = { calls += "clear" },
         onOpen = { calls += "open ${it.value}" },
         onReport = { calls += "report ${it.value}" },
@@ -141,11 +140,15 @@ class SeeAllScreenTest {
     }
 
     @Test
-    fun `the sort menu lists what the state offers and a pick is reported`() {
-        show(SeeAllSampleStates.ready(SeeAllScope.Search).copy(sortOptions = SeeAllSort.entries, sort = SeeAllSort.MostPlayed))
-        composeRule.onNodeWithTag("seeall.sort").performClick()
-        composeRule.onNodeWithText("Newest").performClick()
-        assertEquals(listOf("sort Newest"), calls)
+    fun `no page has a sort control`() {
+        val scopes = listOf(SeeAllScope.MostPlayed, SeeAllScope.Newest, SeeAllScope.Friends, SeeAllScope.Search, SeeAllScope.Game(ALPHA))
+        show(SeeAllSampleStates.ready(scopes.first()))
+        scopes.forEach { scope ->
+            state = SeeAllSampleStates.ready(scope)
+            composeRule.waitForIdle()
+            composeRule.onNodeWithTag("seeall.sort").assertDoesNotExist()
+            composeRule.onNodeWithTag("seeall.filter.difficulty").assertExists()
+        }
     }
 
     @Test
@@ -186,12 +189,5 @@ class SeeAllScreenTest {
         val page = composeRule.onNodeWithTag("seeall.page").getUnclippedBoundsInRoot().bottom
         val row = composeRule.onNodeWithTag(last).getUnclippedBoundsInRoot().bottom
         assertTrue("row ends at $row, page at $page", row <= page - 80.dp)
-    }
-
-    @Test
-    fun `From friends has no sort menu`() {
-        show(SeeAllSampleStates.ready(SeeAllScope.Friends).copy(sortOptions = emptyList()))
-        composeRule.onNodeWithTag("seeall.sort").assertDoesNotExist()
-        composeRule.onNodeWithTag("seeall.filter.difficulty").assertExists()
     }
 }

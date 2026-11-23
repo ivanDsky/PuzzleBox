@@ -40,7 +40,7 @@ abstract class SeeAllGoldenScreenshots(private val tablet: Boolean) {
     @get:Rule
     val rule = createAndroidComposeRule<ComponentActivity>()
 
-    private val actions = SeeAllActions({}, {}, {}, {}, {}, {}, {}, {}, {})
+    private val actions = SeeAllActions({}, {}, {}, {}, {}, {}, {}, {})
 
     @Test fun `newest light`() = capture("seeall-newest", SeeAllSampleStates.ready(), dark = false)
     @Test fun `newest dark`() = capture("seeall-newest", SeeAllSampleStates.ready(), dark = true)

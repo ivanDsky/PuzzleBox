@@ -47,7 +47,6 @@ internal fun SeeAllPage(
         onQuery = viewModel::setQuery,
         onGame = viewModel::setGame,
         onDifficulty = viewModel::setDifficulty,
-        onSort = viewModel::setSort,
         onClearFilters = viewModel::clearFilters,
         onOpen = onOpen,
         onReport = viewModel::report,
