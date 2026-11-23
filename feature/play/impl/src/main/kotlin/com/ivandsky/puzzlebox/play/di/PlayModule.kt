@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.play.di
 
-import com.ivandsky.puzzlebox.common.di.flagSet
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.WriteLane
 import com.ivandsky.puzzlebox.play.domain.DeleteReceivedPuzzle
@@ -18,12 +17,11 @@ import com.ivandsky.puzzlebox.play.domain.nextthing.ObserveResultNextThing
 import com.ivandsky.puzzlebox.play.domain.random.LoadRandomDay
 import com.ivandsky.puzzlebox.play.domain.random.LoadRandomPuzzle
 import com.ivandsky.puzzlebox.play.domain.random.LoadRandomShared
-import com.ivandsky.puzzlebox.play.flags.PlayFlag
 import kotlin.random.Random
 import org.koin.dsl.module
 
 /**
- * Play feature wiring: the feature's release flags ([PlayFlag]) and the per-feature modules it includes, each in its
+ * Play feature wiring: the per-feature modules it includes, each in its
  * own file so a new shelf, use case or view model adds a file here, not an edit to this one. The
  * [com.ivandsky.puzzlebox.game.GameRegistry] and the
  * [com.ivandsky.puzzlebox.gameui.GamePlayRegistry] come from the app's aggregation
@@ -62,5 +60,4 @@ val playModule = module {
         replayModule,
         matchLegModule,
     )
-    flagSet("play", PlayFlag.entries)
 }

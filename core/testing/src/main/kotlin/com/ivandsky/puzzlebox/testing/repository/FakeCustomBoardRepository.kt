@@ -43,9 +43,6 @@ class FakeCustomBoardRepository : CustomBoardRepository {
         get() = state.value.signedIn
         set(value) = state.update { it.copy(signedIn = value) }
 
-    /** The solve counter's flag (#2032, PlayFlag.SolveCounter), read at each submit; off, as in a release build. */
-    @Volatile var countSolves: Boolean = false
-
     /** Each puzzle's `solves` field as the server holds it; a code without a key has no field. */
     val solves: Map<ShareCode, Int> get() = state.value.solves
 
@@ -75,13 +72,14 @@ class FakeCustomBoardRepository : CustomBoardRepository {
                 existing != null -> SubmitResult.Deduped(existing)
                 else -> SubmitResult.Ok(entry)
             }
-            when {
-                result !is SubmitResult.Ok -> current
-                countSolves -> current.copy(
+            // A first entry also bumps the puzzle's `solves`, as the backend does in the same write.
+            if (result !is SubmitResult.Ok) {
+                current
+            } else {
+                current.copy(
                     boards = current.boards + (code to board + entry),
                     solves = current.solves + (code to (current.solves[code] ?: 0) + 1),
                 )
-                else -> current.copy(boards = current.boards + (code to board + entry))
             }
         }
         return result

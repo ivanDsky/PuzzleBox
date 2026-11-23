@@ -7,6 +7,18 @@ object RuleCheck {
 
     fun assertClean(rule: Rule) = assertClean(rule, SourceTree.real, Allowlist.load(rule.id))
 
+    /**
+     * [assertClean] for a rule whose subjects may all be gone from the real tree, as the release-flag rules' are while no
+     * flag is declared (ADR-0022). The rule's fixture test still proves it judges; an allowlist entry for a path that is
+     * gone still fails here.
+     */
+    fun assertCleanWhenScopeMayBeEmpty(rule: Rule) {
+        val tree = SourceTree.real
+        val result = rule.check(tree)
+        val verdict = judge(rule.id, result.violations, Allowlist.load(rule.id), scopePaths(rule, tree))
+        if (!verdict.ok) fail(verdict.message())
+    }
+
     /** The real-tree check over any tree and allowlist; [assertClean] is this with the repo and the rule's file. */
     internal fun assertClean(rule: Rule, tree: SourceTree, allowlist: Allowlist) {
         val result = rule.check(tree)

@@ -19,13 +19,12 @@ import kotlinx.coroutines.flow.map
 /**
  * Firestore implementation of the per-puzzle board over `puzzles/{code}/entries/{uid}`. Entries
  * use the daily board's document format; submissions are create-if-absent so the first win
- * stands. Every Firebase exception is mapped to a typed result here. [countSolves] is read at each submit
- * (PlayFlag.SolveCounter, ADR-0022): when on, a first entry also bumps the puzzle's `solves` in the same write.
+ * stands. Every Firebase exception is mapped to a typed result here. A first entry also bumps the puzzle's `solves` in the
+ * same write (#2032); a repeat bumps nothing.
  */
 internal class FirestoreCustomBoardRepository(
     private val store: CustomBoardStore,
     private val currentUid: () -> String?,
-    private val countSolves: () -> Boolean,
 ) : CustomBoardRepository {
 
     override fun observe(
@@ -52,7 +51,7 @@ internal class FirestoreCustomBoardRepository(
             return SubmitResult.Err(SubmitError.Rejected("puzzleRef ${entry.puzzleRef} is not puzzle ${code.value}"))
         }
         return try {
-            val existing = store.createIfAbsent(code.value, entry.uid, LeaderboardDocCodec.encode(entry), countSolve = countSolves())
+            val existing = store.createIfAbsent(code.value, entry.uid, LeaderboardDocCodec.encode(entry))
             if (existing == null) {
                 SubmitResult.Ok(entry)
             } else {
