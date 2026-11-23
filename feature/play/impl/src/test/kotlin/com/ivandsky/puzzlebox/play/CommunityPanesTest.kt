@@ -22,7 +22,6 @@ import com.ivandsky.puzzlebox.designsystem.LocalSelectedRowCode
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.selectedRow
 import com.ivandsky.puzzlebox.game.editor.Difficulty
-import com.ivandsky.puzzlebox.play.community.CommunityPhase
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -262,20 +261,6 @@ class CommunityPanesTest {
     }
 
     @Test
-    fun `each tab's default is its own first puzzle`() {
-        val phase = CommunityPhase.Loaded(listOf(CommunityRowModels.first))
-        val friends = FriendPreviewCards.take(2)
-        val yours = YoursSummary(count = 3, firstPublishedCode = "MINE99")
-
-        assertEquals(CommunityPick.Puzzle(CommunityRowModels.first.code.value), defaultCommunityPick(CommunityTab.NewToday, phase, friends, yours))
-        assertEquals(CommunityPick.Puzzle(friends.first().row.code.value), defaultCommunityPick(CommunityTab.Friends, phase, friends, yours))
-        assertEquals(CommunityPick.Published("MINE99"), defaultCommunityPick(CommunityTab.Yours, phase, friends, yours))
-        assertEquals(null, defaultCommunityPick(CommunityTab.Yours, phase, friends, YoursSummary(count = 2, firstPublishedCode = null)))
-        assertEquals(null, defaultCommunityPick(CommunityTab.NewToday, CommunityPhase.Loaded(emptyList()), friends, yours))
-        assertEquals(null, defaultCommunityPick(CommunityTab.Friends, phase, emptyList(), yours))
-    }
-
-    @Test
     fun `the list pane is as wide as it is told, Games' list width when it is not`() {
         rule.setContent {
             PuzzleBoxTheme {
@@ -290,8 +275,4 @@ class CommunityPanesTest {
         }
         rule.onNodeWithTag("list").assertWidthIsEqualTo(ShelvesListPaneWidth)
     }
-}
-
-private object CommunityRowModels {
-    val first = CommunityPanesGoldenScreenshots.row("K7Q2MX", "Zip", CommunityPanesGoldenScreenshots.ZIP, "Spiral", Difficulty.Level.Hard, "5 min ago")
 }

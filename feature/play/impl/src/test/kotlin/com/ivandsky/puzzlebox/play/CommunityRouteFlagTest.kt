@@ -86,8 +86,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The Community tab behind [PlayFlag.CommunityShelves] (epic community-browse): off, the route is today's three tabs; on,
- * it is the shelves home (one Community header, Enter code opening the same code sheet), and on the tablet a 600dp list pane.
+ * The Community tab (epic community-browse): the shelves home (one Community header, Enter code opening the code sheet),
+ * on the tablet a 600dp list pane, and the create FAB behind [PlayFlag.CreateFab].
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -160,25 +160,15 @@ class CommunityRouteFlagTest {
     }
 
     @Test
-    fun `flag off keeps the three tabs and no shelves home`() {
+    fun `shows the shelves home`() {
         show()
-        awaitTag("route.community")
-        composeRule.onNodeWithText("New today").assertIsDisplayed()
-        composeRule.onNodeWithText("Friends").assertIsDisplayed()
-        composeRule.onNodeWithTag("community.shelves").assertDoesNotExist()
-    }
-
-    @Test
-    fun `flag on shows the shelves home instead of the tabs`() {
-        show(PlayFlag.CommunityShelves)
         awaitTag("community.shelves")
         composeRule.onNodeWithTag("community.shelves").assertIsDisplayed()
-        composeRule.onNodeWithText("New today").assertDoesNotExist()
     }
 
     @Test
     fun `the shelves home Enter code opens the code sheet`() {
-        show(PlayFlag.CommunityShelves)
+        show()
         awaitTag("community.enterCode")
         composeRule.onNodeWithTag("community.enterCode").performClick()
         awaitTag("friend.code.sheet")
@@ -199,18 +189,14 @@ class CommunityRouteFlagTest {
     }
 
     @Test
-    fun `flag on shows the create FAB on every tab and a tap opens the sheet`() {
+    fun `flag on shows the create FAB and a tap opens the sheet`() {
         val host = NewPuzzleStandIn()
         show(host.slot, PlayLayout.SinglePane, PlayFlag.CreateFab)
         awaitTag("community.fab")
-        for (tab in listOf("community.tab.new", "community.tab.friends", "community.tab.yours")) {
-            composeRule.onNodeWithTag(tab).performClick()
-            composeRule.waitForIdle()
-            composeRule.onNodeWithTag("community.fab").assertIsDisplayed().assertHasClickAction()
-            composeRule.onNodeWithTag("community.fab").performClick()
-            composeRule.onNodeWithTag("new.sheet").assertIsDisplayed()
-            composeRule.onNodeWithContentDescription("New puzzle").assertIsDisplayed()
-        }
+        composeRule.onNodeWithTag("community.fab").assertIsDisplayed().assertHasClickAction()
+        composeRule.onNodeWithTag("community.fab").performClick()
+        composeRule.onNodeWithTag("new.sheet").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("New puzzle").assertIsDisplayed()
     }
 
     @Test
@@ -225,26 +211,15 @@ class CommunityRouteFlagTest {
 
     @Test
     fun `the create FAB shows over the shelves home too`() {
-        show(NewPuzzleStandIn().slot, PlayLayout.SinglePane, PlayFlag.CreateFab, PlayFlag.CommunityShelves)
+        show(NewPuzzleStandIn().slot, PlayLayout.SinglePane, PlayFlag.CreateFab)
         awaitTag("community.shelves")
         composeRule.onNodeWithTag("community.fab").assertIsDisplayed()
     }
 
     @Test
     @Config(sdk = [34], qualifiers = "w1280dp-h800dp")
-    fun `on the tablet the create FAB floats over the list pane, not the detail pane`() {
-        show(NewPuzzleStandIn().slot, PlayLayout.TwoPane, PlayFlag.CreateFab)
-        awaitTag("community.fab")
-        val fab = composeRule.onNodeWithTag("community.fab").getUnclippedBoundsInRoot()
-        assertTrue("inside the list pane: ${fab.right}", fab.right <= ListPaneWidth + 24.dp + 1.dp)
-        composeRule.onNodeWithTag("community.fab").performClick()
-        composeRule.onNodeWithTag("new.sheet").assertIsDisplayed()
-    }
-
-    @Test
-    @Config(sdk = [34], qualifiers = "w1280dp-h800dp")
     fun `on the tablet the create FAB floats over the shelves list pane, not the detail pane`() {
-        show(NewPuzzleStandIn().slot, PlayLayout.TwoPane, PlayFlag.CreateFab, PlayFlag.CommunityShelves)
+        show(NewPuzzleStandIn().slot, PlayLayout.TwoPane, PlayFlag.CreateFab)
         awaitTag("community.fab")
         composeRule.onAllNodesWithTag("community.fab").assertCountEquals(1)
         val fab = composeRule.onNodeWithTag("community.fab").getUnclippedBoundsInRoot()
@@ -263,36 +238,27 @@ class CommunityRouteFlagTest {
     }
 
     @Test
-    fun `flag on draws the Community header once on the phone`() {
-        show(PlayFlag.CommunityShelves)
+    fun `draws the Community header once on the phone`() {
+        show()
         awaitTag("community.shelves")
         composeRule.onAllNodesWithText("Community").assertCountEquals(1)
         composeRule.onNodeWithTag("community.enterCode").assertIsDisplayed()
     }
 
     @Test
-    fun `flag on with nothing published shows the empty hero on the phone`() {
-        show(PlayFlag.CommunityShelves)
+    fun `with nothing published shows the empty hero on the phone`() {
+        show()
         awaitText("NOTHING HERE YET")
     }
 
     @Test
     @Config(sdk = [34], qualifiers = "w1280dp-h800dp")
-    fun `flag on draws the Community header once on the tablet and the list pane is 600dp`() {
-        show(previewYoursSlot(count = 0), PlayLayout.TwoPane, PlayFlag.CommunityShelves)
+    fun `draws the Community header once on the tablet and the list pane is 600dp`() {
+        show(previewYoursSlot(count = 0), PlayLayout.TwoPane)
         awaitTag("community.shelves")
         composeRule.onAllNodesWithText("Community").assertCountEquals(1)
         assertEquals(ShelvesListPaneWidth, composeRule.onNodeWithTag("community.shelves").getUnclippedBoundsInRoot().width)
         composeRule.onNodeWithText("Pick a puzzle to see it here").assertIsDisplayed()
-    }
-
-    @Test
-    @Config(sdk = [34], qualifiers = "w1280dp-h800dp")
-    fun `flag off shows no shelves home or its empty detail text on the tablet`() {
-        show(previewYoursSlot(count = 0), PlayLayout.TwoPane)
-        awaitTag("route.community")
-        composeRule.onNodeWithTag("community.shelves").assertDoesNotExist()
-        composeRule.onNodeWithText("Pick a puzzle to see it here").assertDoesNotExist()
     }
 
     /** Tab S9 Ultra, portrait (about 1112dp wide): the detail pane keeps room beside the 600dp list. */
@@ -306,7 +272,7 @@ class CommunityRouteFlagTest {
     fun `a 600dp list pane leaves the detail pane room on the Tab S9 Ultra in landscape`() = detailLeavesRoom(minDetail = 400.dp)
 
     private fun detailLeavesRoom(minDetail: androidx.compose.ui.unit.Dp) {
-        show(previewYoursSlot(count = 0), PlayLayout.TwoPane, PlayFlag.CommunityShelves)
+        show(previewYoursSlot(count = 0), PlayLayout.TwoPane)
         awaitTag("community.shelves")
         val list = composeRule.onNodeWithTag("community.shelves").getUnclippedBoundsInRoot()
         val root = composeRule.onNodeWithTag("route.community").getUnclippedBoundsInRoot()

@@ -199,7 +199,7 @@ class StudioDoorsE2ETest {
         const val DUELS_PILL = "library.tab.duels"
         const val CUSTOM_PILL = "library.tab.custom"
         const val FRIENDS_PILL = "library.tab.friends"
-        const val YOURS_TAB = "community.tab.yours"
+        const val YOURS_TAB = "shelves.entry.yours"
         const val DRAFT_ROW = "create.draft.row"
         const val PUBLISHED_ROW = "create.published.row"
         const val ZIP_ROW = "library.row.zip"

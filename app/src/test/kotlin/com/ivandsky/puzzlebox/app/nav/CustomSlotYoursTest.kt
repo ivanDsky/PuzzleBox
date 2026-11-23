@@ -25,7 +25,6 @@ import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
-import com.ivandsky.puzzlebox.play.YoursSummary
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
@@ -36,7 +35,6 @@ import java.time.Instant
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.runBlocking
 import org.junit.After
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -65,7 +63,6 @@ class CustomSlotYoursTest {
     private val drafts = FakeDraftRepository()
     private val published = FakePublishedPuzzleRepository()
     private val navigator = Navigator(NavigationState(PlayKey, listOf(listOf(PlayKey))))
-    private var summary = YoursSummary.None
 
     @After
     fun tearDown() {
@@ -96,19 +93,6 @@ class CustomSlotYoursTest {
         awaitTag(EMPTY)
 
         assertFalse(composeRule.exists(NEW))
-        assertEquals(YoursSummary(count = 0, firstPublishedCode = null), summary)
-    }
-
-    @Test
-    fun `the summary counts drafts and published puzzles and names the newest published code`() {
-        runBlocking { newDraft("draft-1") }
-        publish("OLD2MX", minutesAgo = 60)
-        publish("K7Q2MX", minutesAgo = 5)
-        show()
-
-        awaitTrue { summary.count == 3 }
-
-        assertEquals(YoursSummary(count = 3, firstPublishedCode = "K7Q2MX"), summary)
     }
 
     private suspend fun newDraft(id: String) =
@@ -157,7 +141,6 @@ class CustomSlotYoursTest {
         composeRule.setContent {
             PuzzleBoxTheme {
                 val slot = rememberCustomSlot(navigator)
-                summary = slot.yoursSummary()
                 checkNotNull(slot.yours) { "the app fills the Yours seam" }(rememberLazyListState())
             }
         }

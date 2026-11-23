@@ -92,7 +92,7 @@ class ReachabilityInventoryE2ETest {
 
         tapTab(CommunityKey)
         reached(COMMUNITY, width)
-        tap("community.tab.yours")
+        tap("shelves.entry.yours")
         tap("create.empty.game.queens")
         awaitTag("create.editor.board")
         reached(EDITOR, width)
@@ -105,7 +105,7 @@ class ReachabilityInventoryE2ETest {
                 val code = world.publishAsAuthor(this, ZipCorridor.board, TITLE)
                 back()
                 awaitTag(COMMUNITY)
-                tap("community.tab.yours")
+                tap("shelves.entry.yours")
                 tap("create.published.row")
                 reachedPublished(width)
                 world.signInFriend()

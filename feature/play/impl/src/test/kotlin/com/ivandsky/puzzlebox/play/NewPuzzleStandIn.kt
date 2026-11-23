@@ -21,7 +21,6 @@ internal class NewPuzzleStandIn {
 
     val slot = CustomSlot(
         yours = previewYoursSlot(count = 0).yours,
-        yoursSummary = previewYoursSlot(count = 0).yoursSummary,
         newPuzzle = { clearance, content ->
             this.clearance = clearance
             var open by remember { mutableStateOf(false) }

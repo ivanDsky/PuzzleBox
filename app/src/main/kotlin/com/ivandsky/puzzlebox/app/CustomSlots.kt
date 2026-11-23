@@ -7,17 +7,15 @@ import com.ivandsky.puzzlebox.create.CustomBody
 import com.ivandsky.puzzlebox.create.NewPuzzleHost
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
-import com.ivandsky.puzzlebox.create.navigation.YoursState
 import com.ivandsky.puzzlebox.create.published.publishedPuzzlePane
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.CustomSlot
 import com.ivandsky.puzzlebox.play.LocalCommunityPicker
-import com.ivandsky.puzzlebox.play.YoursSummary
 
 /**
  * The Custom seams of the Community tab: [CustomSlot.yours] is create's drafts and published rows ([YoursBody]), which open
  * their screens on the current stack, or pick a published puzzle for the tablet's right pane ([LocalCommunityPicker]),
- * which [publishedPuzzlePane] draws; [CustomSlot.yoursSummary] is their count; [CustomSlot.newPuzzle] is create's New puzzle
+ * which [publishedPuzzlePane] draws; [CustomSlot.newPuzzle] is create's New puzzle
  * sheet ([NewPuzzleHost]), or with a game a new draft of it at once, whose drafts open in the Studio on the current stack.
  */
 @Composable
@@ -25,10 +23,6 @@ internal fun rememberCustomSlot(navigator: Navigator): CustomSlot = remember(nav
     CustomSlot(
         published = publishedPuzzlePane(onOpen = { navigator.pushOnce(EditorKey(it)) }),
         yours = { listState -> YoursBody(navigator, listState) },
-        yoursSummary = {
-            val yours = YoursState.current()
-            YoursSummary(yours.count, yours.firstPublishedCode)
-        },
         newPuzzle = { clearance, content ->
             NewPuzzleHost(clearance, onOpenDraft = { navigator.pushOnce(EditorKey(it)) }, content = content)
         },
