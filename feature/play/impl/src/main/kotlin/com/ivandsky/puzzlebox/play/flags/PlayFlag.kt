@@ -15,7 +15,7 @@ enum class PlayFlag(override val label: String, override val releaseDefault: Boo
      * Community shelves (epic community-browse): the Community tab shows the shelves home instead of its three tabs.
      * Read by the Community route, which gates the tab's whole body (ADR-0022 §5: gate the entry).
      */
-    CommunityShelves(label = "Community shelves", releaseDefault = true),
+    CommunityShelves(label = "Community shelves", releaseDefault = false),
 
     /**
      * Community create FAB (#2013): a New puzzle button floats over every Community tab and Yours' New puzzle row is
@@ -27,9 +27,9 @@ enum class PlayFlag(override val label: String, override val releaseDefault: Boo
      * Per-puzzle solve counter (#2032): a player's first entry on a shared puzzle's board also bumps the puzzle's
      * `solves` in the same write. Read by [com.ivandsky.puzzlebox.play.di.playModule]'s
      * [com.ivandsky.puzzlebox.data.repository.SolveCounterSwitch] binding, which the backend's board submit asks at
-     * each write. On in release: the production rules that allow the bump and the backfill must be live before this ships.
+     * each write. Flip only after the rules that allow the bump are deployed, and after the backfill.
      */
-    SolveCounter(label = "Per-puzzle solve counter", releaseDefault = true),
+    SolveCounter(label = "Per-puzzle solve counter", releaseDefault = false),
     ;
 
     /** The entry's own name: the stored override's key in `release_flags`. Never change it. */
