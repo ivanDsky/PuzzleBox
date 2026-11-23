@@ -5,7 +5,7 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInOwnResult
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSendResult
 import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -38,11 +38,32 @@ class LinkedInPostBoardReadTest {
     private fun TestScope.rig(callLimit: Int = 100): LinkedInPostRig =
         LinkedInPostRig(this, folder.newFolder(), callLimit = callLimit).also { rigs += it }
 
-    /** Runs everything the post left scheduled, Room's own thread included: a store's answer is what schedules the next step. */
-    private suspend fun TestScope.settle(rig: LinkedInPostRig) {
+    /**
+     * Runs the scheduler until the post's board reads have reached [reads] and stored a board. Room answers on its own
+     * thread, which the test scheduler does not see, so a fixed number of rounds is a race on a loaded machine; this
+     * waits for the thing itself. The clock stays put unless [pastRetry]: the retry's delay lives in the app scope,
+     * which the test treats as background, and advanceUntilIdle does not wait for background work, so the retry is
+     * fired by moving the clock past it, never by idling.
+     */
+    private suspend fun TestScope.awaitBoard(
+        rig: LinkedInPostRig,
+        reads: Int = 1,
+        ghosts: Int = 1,
+        pastRetry: Boolean = false,
+    ) {
+        val deadline = System.nanoTime() + AWAIT_NANOS
+        while ((rig.boardReads < reads || rig.storedGhosts().size < ghosts) && System.nanoTime() < deadline) {
+            if (pastRetry) advanceTimeBy(BOARD_RETRY_MS)
+            runCurrent()
+        }
+    }
+
+    /** Lets the clock run far past any retry, Room's thread included, to show that no read is left to come. */
+    private suspend fun TestScope.settleLate(rig: LinkedInPostRig) {
         repeat(3) {
             rig.storedGhosts()
-            advanceUntilIdle()
+            advanceTimeBy(10 * BOARD_RETRY_MS)
+            runCurrent()
         }
     }
 
@@ -55,13 +76,13 @@ class LinkedInPostBoardReadTest {
         rig.boardable()
 
         val result = rig.submit()
-        runCurrent()
+        awaitBoard(rig, ghosts = 2)
 
         assertEquals(LinkedInPostState.Posted, result)
         assertEquals(1, rig.boardReads)
         assertEquals(listOf("board:me:6:712:0"), rig.source.calls.filter { it.startsWith("board:") })
         assertEquals(listOf("friend", "me"), rig.storedGhosts().sorted())
-        settle(rig)
+        settleLate(rig)
         assertEquals(1, rig.boardReads)
     }
 
@@ -73,7 +94,8 @@ class LinkedInPostBoardReadTest {
         rig.poster.sendReply = LinkedInSendResult.AlreadyPlayed
 
         val result = rig.submit()
-        settle(rig)
+        awaitBoard(rig, ghosts = 2)
+        settleLate(rig)
 
         assertEquals(LinkedInPostState.AlreadyOnLinkedIn, result)
         assertEquals(1, rig.boardReads)
@@ -88,7 +110,8 @@ class LinkedInPostBoardReadTest {
         rig.source.respondOwn("me", 6, 712, LinkedInRead.Ok(LinkedInOwnResult.Solved(timeSeconds = 70, hintFree = true)))
 
         val result = rig.submit()
-        settle(rig)
+        awaitBoard(rig)
+        settleLate(rig)
 
         assertEquals(LinkedInPostState.AlreadyOnLinkedIn, result)
         assertEquals(1, rig.boardReads)
@@ -102,7 +125,8 @@ class LinkedInPostBoardReadTest {
         rig.logBoardRead(fetchedAtMs = LinkedInPostRig.NOW)
 
         rig.submit()
-        settle(rig)
+        awaitBoard(rig)
+        settleLate(rig)
 
         assertEquals(1, rig.boardReads)
     }
@@ -122,7 +146,7 @@ class LinkedInPostBoardReadTest {
             rig.boardable()
             rig.poster.sendReply = reply
             rig.submit()
-            settle(rig)
+            settleLate(rig)
             rig.boardReads
         }
         val refused = rig().apply {
@@ -131,7 +155,7 @@ class LinkedInPostBoardReadTest {
             link.setPosting(null)
         }
         refused.submit()
-        settle(refused)
+        settleLate(refused)
 
         assertEquals(List(sends.size) { 0 }, reads)
         assertEquals(0, refused.boardReads)
@@ -144,7 +168,7 @@ class LinkedInPostBoardReadTest {
         rig.boardable()
 
         rig.submit()
-        runCurrent()
+        awaitBoard(rig)
 
         assertEquals(false, rig.budget.tryAcquire())
     }
@@ -156,11 +180,12 @@ class LinkedInPostBoardReadTest {
         rig.boardable(withoutMe)
 
         rig.submit()
-        runCurrent()
+        awaitBoard(rig)
         assertEquals(1, rig.boardReads)
 
         rig.source.respondBoard("me", 6, 712, 0, LinkedInRead.Ok(LinkedInPostRig.BOARD))
-        settle(rig)
+        awaitBoard(rig, reads = 2, ghosts = 2, pastRetry = true)
+        settleLate(rig)
 
         assertEquals(2, rig.boardReads)
         assertEquals(listOf("friend", "me"), rig.storedGhosts().sorted())
@@ -173,7 +198,8 @@ class LinkedInPostBoardReadTest {
         rig.boardable(withoutMe)
 
         rig.submit()
-        settle(rig)
+        awaitBoard(rig, reads = 2, pastRetry = true)
+        settleLate(rig)
 
         assertEquals(2, rig.boardReads)
     }
@@ -185,8 +211,13 @@ class LinkedInPostBoardReadTest {
         rig.boardable(LinkedInRead.Offline)
 
         rig.submit()
-        settle(rig)
+        awaitBoard(rig, ghosts = 0)
+        settleLate(rig)
 
         assertEquals(1, rig.boardReads)
+    }
+
+    private companion object {
+        const val AWAIT_NANOS = 20_000_000_000L
     }
 }
