@@ -21,7 +21,6 @@ import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.ranks.LoadFriendsPastPage
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
-import com.ivandsky.puzzlebox.gameui.flags.GameUiFlag
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.cloud.kinds.TrainerProgressKind
@@ -130,10 +129,8 @@ val appModule = module {
     // Every game module's editor UI (ADR-0019); a duplicate game id throws.
     single { GameEditorRegistry(getAll<GameEditorUi>()) }
 
-    // Every game's Trainer adapter, bound inside a TrainerGame.Binding that holds it only while that game's flag is on
-    // (a definition cannot be left out by a flag). A factory, so each resolve reads
-    // the flags afresh. Empty until a game's flag is on, and the Train tab shows only while it is not.
-    factory { TrainerRegistry(getAll<TrainerGame.Binding>().mapNotNull { it.game }, TRAINER_ORDER) }
+    // Every game module's Trainer adapter, listed in TRAINER_ORDER; the Train tab shows while it holds one.
+    single { TrainerRegistry(getAll<TrainerGame>(), TRAINER_ORDER) }
 
     // The trainer progress kind joins the cloud sync only while a Train flag is on (the same Binding shape; :core:data
     // cannot read the game UI flags). cloudSyncModule's SyncedKinds reads this once per process, when the sync graph is
@@ -147,8 +144,6 @@ val appModule = module {
     // Every module's release flags, ordered by owner (ADR-0022). A duplicate key throws on first resolve; a repeated
     // owner is caught by konsist P15 (Koin keeps the last set).
     single { DeclaredFlags(getAll<FlagSet>()) }
-    // Declared in core:game-ui, which has no Koin, so registered here.
-    flagSet("game-ui", GameUiFlag.entries)
 
     // The installed build GetAppUpdate compares against; debug never checks.
     single {

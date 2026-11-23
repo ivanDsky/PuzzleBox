@@ -4,14 +4,13 @@ import com.ivandsky.puzzlebox.model.GameId
 
 /**
  * The Trainer adapters the app bound, in the order the Train tab lists them. Each game's UI module
- * binds its own adapter only while its flag is on, so [all] holds the games that are on.
+ * binds its own adapter, so [all] holds the games that have one.
  *
  * The app module passes `TRAINER_ORDER` (Queens, Tango, Mini Sudoku) as [order]; the registry keeps
  * its own order because DI hands over adapters in no stable order.
  *
  * @param games the bound adapters, in any order
- * @param order the games to list first, in this order; an id with no adapter is skipped (its flag is
- *   off), and an adapter not named here follows, sorted by game id
+ * @param order the games to list first, in this order; an id with no adapter is skipped, and an adapter not named here follows, sorted by game id
  */
 class TrainerRegistry(games: List<TrainerGame>, order: List<GameId>) {
     private val byId: Map<GameId, TrainerGame> = buildMap {

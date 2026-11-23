@@ -23,7 +23,7 @@ val tangoUiModule: Module = module {
         TangoPlayUi(HintMode.Stepwise(compute))
     }
     single<GameEditorUi>(qualifier = qualifier("${TangoDefinition.id.value}.editor")) { TangoEditorUi }
-    factory(qualifier = qualifier("${TangoDefinition.id.value}.trainer")) {
-        TrainerGame.Binding(TangoTrainer(get<DispatcherProvider>().default))
+    single<TrainerGame>(qualifier = qualifier("${TangoDefinition.id.value}.trainer")) {
+        TangoTrainer(get<DispatcherProvider>().default)
     }
 }

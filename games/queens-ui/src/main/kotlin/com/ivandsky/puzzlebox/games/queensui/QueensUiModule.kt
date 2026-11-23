@@ -21,7 +21,7 @@ val queensUiModule: Module = module {
         QueensPlayUi(get<QueensSettings>(), { HintMode.Stepwise(compute) }, offersPlaceIt = true)
     }
     single<GameEditorUi>(qualifier = qualifier("${QueensDefinition.id.value}.editor")) { QueensEditorUi() }
-    factory(qualifier = qualifier("${QueensDefinition.id.value}.trainer")) {
-        TrainerGame.Binding(QueensTrainer(get<DispatcherProvider>().default))
+    single<TrainerGame>(qualifier = qualifier("${QueensDefinition.id.value}.trainer")) {
+        QueensTrainer(get<DispatcherProvider>().default)
     }
 }

@@ -31,7 +31,7 @@ import kotlinx.coroutines.CoroutineScope
  * shares its sentences with the hints ([SudokuTrainerCatalog]), and a practice board is the daily's own play board
  * ([SudokuPracticeBoard]) over a drill puzzle, its status Spotlight the hint's own ([com.ivandsky.puzzlebox.games.sudokuui.hint.SudokuSpotlightMapper]).
  *
- * [com.ivandsky.puzzlebox.games.sudokuui.miniSudokuUiModule] binds it while TrainSudoku is on. Only Mini Sudoku trains:
+ * [com.ivandsky.puzzlebox.games.sudokuui.miniSudokuUiModule] binds it. Only Mini Sudoku trains:
  * classic Sudoku has no daily archive and no trainer.
  */
 internal class SudokuTrainer : TrainerGame {

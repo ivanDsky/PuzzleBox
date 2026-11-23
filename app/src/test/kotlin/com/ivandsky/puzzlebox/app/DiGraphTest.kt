@@ -434,8 +434,8 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<GameViewModel> { parametersOf(GameKey("zip", "2000-01-01")) }.play)
             assertNotNull(koin.get<ResultViewModel> { parametersOf(ResultKey("zip", "2026-11-04", 12_340L, 0)) })
 
-            // Trainer mode: the registry resolves off the games' Trainer bindings. Every Train flag ships on, so the
-            // registry holds the Queens, Tango and Mini Sudoku adapters (TrainerRegistryGatingTest covers each flag off).
+            // Trainer mode: the registry resolves off the games' Trainer bindings. The registry
+            // holds the Queens, Tango and Mini Sudoku adapters.
             assertEquals(
                 setOf(GameId("queens"), GameId("tango"), GameId("minisudoku")),
                 koin.get<TrainerRegistry>().all.map { it.gameId }.toSet(),
