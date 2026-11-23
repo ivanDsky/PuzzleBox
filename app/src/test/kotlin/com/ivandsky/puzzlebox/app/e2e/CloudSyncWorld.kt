@@ -279,7 +279,7 @@ internal class CloudSyncWorld(
         fun storedRows(ownerUid: String): Map<String, Int> {
             fun count(db: RoomDatabase, table: String): Int =
                 db.openHelper.readableDatabase.query("SELECT COUNT(*) FROM $table WHERE ownerUid = ?", arrayOf(ownerUid)).use { it.moveToFirst(); it.getInt(0) }
-            return listOf("completions", "drafts", "published_puzzles", "received_puzzles").associateWith { count(puzzleDb, it) } +
+            return listOf("completions", "drafts", "published_puzzles", "received_puzzles", "trainer_progress").associateWith { count(puzzleDb, it) } +
                 ("saved_boards" to count(linkedInDb, "saved_boards"))
         }
 

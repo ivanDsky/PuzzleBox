@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.map
 
 /** The per-kind contract the sync engine drives; each kind of synced data implements it. */
 interface SyncedKind {
-    /** The kind name in the cloud space: `completions`, `drafts`, `published`, `received`, `boards`, `replays` or `reveals`. */
+    /** The kind name in the cloud space: `completions`, `drafts`, `published`, `received`, `boards`, `replays`, `reveals` or `trainer`. */
     val kind: String
 
     /** Ids with changes not yet acknowledged: what a run has left to do, read by the engine after it. */

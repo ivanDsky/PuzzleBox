@@ -52,8 +52,6 @@ class StatsTabletTest {
         rule.onNodeWithTag("stats.games").assertIsDisplayed()
         rule.onNodeWithTag("stats.game.all").assertIsSelected()
         rule.onNodeWithTag("stats.game.zip").assertIsNotSelected()
-        rule.onNodeWithTag("stats.records").assertIsDisplayed()
-        rule.onNodeWithTag("stats.range").assertIsDisplayed()
     }
 
     @Test

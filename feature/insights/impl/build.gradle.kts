@@ -12,7 +12,7 @@ dependencies {
     implementation(projects.feature.insights.api)
     // ReplayKey: the key a Fastest solve row opens; the play feature's api, never its impl.
     implementation(projects.feature.play.api)
-    // InsightsFlag implements ReleaseFlagKey, and the module declares its set with flagSet (ADR-0022).
+    // DispatcherProvider and FailureLog.
     implementation(projects.core.common)
     // CloudSync.restoring: the recap and the hub wait out the first restore before they say there is nothing.
     implementation(projects.core.data)

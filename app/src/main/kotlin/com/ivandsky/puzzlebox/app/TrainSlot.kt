@@ -11,8 +11,7 @@ import org.koin.compose.koinInject
 
 /**
  * The Games screen's Train tab from the train module, or null while no game has a trainer so Games lists no Train tab.
- * The tab follows the [TrainerRegistry], not a flag of its own: each game binds its trainer adapter only while its own
- * flag is on. On the two-pane [layout] the tab body is the technique list and the open technique's practice board is the
+ * The tab follows the [TrainerRegistry], which holds each game's trainer adapter; an empty registry shows no tab. On the two-pane [layout] the tab body is the technique list and the open technique's practice board is the
  * right [TrainSlot.pane]; on the phone the board covers the list inside the tab body, and the pane is never drawn.
  */
 internal fun trainSlotOrNull(registry: TrainerRegistry, layout: PlayLayout): TrainSlot? = if (registry.isEmpty) {

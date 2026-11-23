@@ -37,18 +37,12 @@ import kotlinx.coroutines.flow.map
  * a missing or negative number, a technique that is not a map, a doc without a `techniques` map or with another
  * `formatVersion`) skips that technique or doc and never throws.
  *
- * The app binds this kind only while a Train flag is on ([Binding]).
+ * The kind always syncs: `cloudSyncModule` binds it like the other kinds.
  */
 class TrainerProgressKind internal constructor(
     private val db: PuzzleBoxDatabase,
     private val dao: TrainerProgressDao,
 ) : SyncedKind {
-
-    /**
-     * What the composition root binds for the sync graph: the [kind] while a Train flag is on, else none. Koin cannot
-     * bind a null, so the root's answer travels in this (the `LoadFriendsPastPage.Binding` shape).
-     */
-    class Binding(val kind: TrainerProgressKind?)
 
     override val kind: String = TRAINER
 

@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.app.e2e
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodesWithText
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.data.cloud.CloudDoc
 import com.ivandsky.puzzlebox.data.cloud.CloudResult
 import com.ivandsky.puzzlebox.data.cloud.CloudSpaceKinds
 import com.ivandsky.puzzlebox.data.cloud.RestoreSummary
@@ -14,8 +13,13 @@ import com.ivandsky.puzzlebox.data.model.PublishedPuzzle
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.repository.PublishedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
+import com.ivandsky.puzzlebox.data.trainer.TechniqueProgress
+import com.ivandsky.puzzlebox.data.trainer.TechniqueProgress.Mark
+import com.ivandsky.puzzlebox.data.trainer.TrainerProgressRepository
 import com.ivandsky.puzzlebox.game.VariantId
+import com.ivandsky.puzzlebox.game.trainer.TechniqueId
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.model.SolveReplay
 import java.time.Instant
@@ -37,7 +41,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Criterion 13, Delete my cloud data, over the real flag-on graph in [CloudSyncWorld] with both flags on. A syncs a row
+ * Criterion 13, Delete my cloud data, over the real graph in [CloudSyncWorld]. A syncs a row
  * of every kind and erases its cloud data: every kind the space holds is empty, A is signed out, and A's own rows stay on
  * A. A fresh phone B that signs in to the same account restores nothing and shows no welcome.
  */
@@ -68,9 +72,11 @@ class CloudSyncEraseE2ETest {
                 phoneA.graph.koin.get<MatchLocalRepository>().markRevealSeen(code("D7Q2MX"), Instant.parse("2026-11-10T20:00:00Z"), 2, 1)
             }
             phoneA.signIn(ada)
-            // The trainer kind is bound only while a Train flag is on (all off in this world), so no device writes it:
-            // put one doc straight into the space, so the erase is shown to clear that kind too.
-            runBlocking { world.space.put(ada.uid, "trainer", listOf(CloudDoc("queens", mapOf("formatVersion" to 1L)))) }
+            // The trainer kind always syncs, so A's own Trainer progress travels like every other kind.
+            runBlocking {
+                phoneA.graph.koin.get<TrainerProgressRepository>()
+                    .update(GameId("queens"), TechniqueId("line-lock")) { TechniqueProgress(Mark.Practicing, 2, 1_000L) }
+            }
             awaitCloud("every kind in A's space") {
                 CloudSpaceKinds.ALL.all { world.space.docs(ada.uid, it).isNotEmpty() } && phoneA.uploaded(ada.uid) && phoneA.synced()
             }

@@ -30,7 +30,7 @@ import kotlinx.coroutines.CoroutineScope
  * shares its sentences with the hints ([TangoTrainerCatalog]); a practice board ([TangoPracticeBoard]) is the daily's
  * own board and controller over a drill puzzle, and its Spotlights are the hint's own.
  *
- * [com.ivandsky.puzzlebox.games.tangoui.tangoUiModule] binds it while TrainTango is on. [compute] is the dispatcher
+ * [com.ivandsky.puzzlebox.games.tangoui.tangoUiModule] binds it. [compute] is the dispatcher
  * of the controller's Stepwise hint search, which a practice board never presses.
  */
 internal class TangoTrainer(private val compute: CoroutineDispatcher) : TrainerGame {

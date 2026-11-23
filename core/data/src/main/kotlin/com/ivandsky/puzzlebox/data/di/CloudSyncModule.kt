@@ -36,18 +36,14 @@ import org.koin.dsl.module
  * Every kind is a `SyncedKind` under its own qualifier: Koin keys a definition by type and qualifier, so unqualified
  * lines would replace one another, and `getAll<SyncedKind>()` still collects them all. `linkedInCloudSyncModule` adds
  * the boards kind to the same list, so the engine, the erase and the runner always see one list.
- *
- * The trainer kind is the exception: it is a plain definition of its own type, not a `SyncedKind` under a qualifier, and
- * joins the list through the `TrainerProgressKind.Binding` the app binds while a Train flag is on (`core:data` cannot
- * read the game UI flags). [SyncedKinds] gathers both once, so the three consumers share one list.
+ * The trainer kind always syncs: it is bound like the others, so [SyncedKinds] gathers every kind once and the three
+ * consumers share one list.
  */
 val cloudSyncModule = module {
     single<SyncStateStore> { DataStoreSyncStateStore(get()) }
     // Collects from construction and is the only writer of the last uid; the app creates it before any starter runs.
     single<OwnerScope> { SignedInOwnerScope(get<IdentityService>(), get(), get<CoroutineScope>()) }
-    single {
-        SyncedKinds(inSyncOrder(getAll<SyncedKind>() + getAll<TrainerProgressKind.Binding>().mapNotNull { it.kind }))
-    }
+    single { SyncedKinds(inSyncOrder(getAll<SyncedKind>())) }
     single {
         CloudErase(space = get(), kinds = get<SyncedKinds>().all, store = get(), identity = get<IdentityService>())
     }
@@ -99,7 +95,7 @@ val cloudSyncModule = module {
         val db = get<PuzzleBoxDatabase>()
         RevealsKind(db, db.matchLocalDao())
     }
-    single {
+    single<SyncedKind>(named("cloud.kind.trainer")) {
         val db = get<PuzzleBoxDatabase>()
         TrainerProgressKind(db, db.trainerProgressDao())
     }

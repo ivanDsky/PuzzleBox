@@ -34,7 +34,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The grouped stats page on a phone (StatsFilters on): four groups with sticky headers, Records split per group, and the filter bar in every state. */
+/** The grouped stats page on a phone: four groups with sticky headers, Records split per group, and the filter bar in every state. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp-420dpi")
@@ -45,8 +45,8 @@ class StatsGroupedPhoneTest {
 
     private val opened = mutableListOf<SolveRef>()
 
-    private fun lines(game: com.ivandsky.puzzlebox.model.GameId? = StatsFixtures.zip, filters: Boolean = true) =
-        StatsFixtures.readyWithLines(range = StatsRange.Week, game = game).copy(filters = filters, since = StatsFixtures.since)
+    private fun lines(game: com.ivandsky.puzzlebox.model.GameId? = StatsFixtures.zip) =
+        StatsFixtures.readyWithLines(range = StatsRange.Week, game = game).copy(since = StatsFixtures.since)
 
     private fun show(state: StatsUiState) = rule.setContent {
         PuzzleBoxTheme {
@@ -157,7 +157,7 @@ class StatsGroupedPhoneTest {
     @Test
     fun `locked friends show their lines and no titles`() {
         val locked = SectionState.Ready(VsFriendsStanding.Locked(VsFriendsStanding.Unlock.SignIn))
-        show(StatsFixtures.readyWithLines(range = StatsRange.Week, game = null, vsFriends = locked).copy(filters = true, since = StatsFixtures.since))
+        show(StatsFixtures.readyWithLines(range = StatsRange.Week, game = null, vsFriends = locked).copy(since = StatsFixtures.since))
 
         scrollTo("stats.vsFriends.locked")
         rule.onNodeWithTag("stats.vsFriends").assertDoesNotExist()
@@ -178,7 +178,7 @@ class StatsGroupedPhoneTest {
             StatsBody.Restoring,
             StatsBody.Empty,
         ).forEach { body ->
-            val state = StatsUiState(StatsRange.Week, null, body, filters = true, since = StatsFixtures.since)
+            val state = StatsUiState(StatsRange.Week, null, body, since = StatsFixtures.since)
             show(state)
             rule.onNodeWithTag("stats.filters").assertIsDisplayed()
             rule.onNodeWithTag("stats.filter.since").assertIsDisplayed()
@@ -193,13 +193,5 @@ class StatsGroupedPhoneTest {
 
         rule.onNodeWithTag("stats.sections").performScrollToNode(hasTestTag("stats.group.friends"))
         rule.onNodeWithTag("stats.filters").assertIsDisplayed()
-    }
-
-    @Test
-    fun `flag off keeps the flat page`() {
-        show(lines(filters = false))
-
-        rule.onNodeWithTag("stats.group.speed").assertDoesNotExist()
-        rule.onNodeWithTag("stats.records").assertIsDisplayed()
     }
 }

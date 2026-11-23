@@ -20,6 +20,7 @@ import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.home.HomeSummaries
 import com.ivandsky.puzzlebox.home.RecapSlot
 import com.ivandsky.puzzlebox.home.navigation.homeEntry
+import com.ivandsky.puzzlebox.insights.api.InsightsKey
 import com.ivandsky.puzzlebox.insights.api.InsightsRecapKey
 import com.ivandsky.puzzlebox.insights.navigation.insightsEntry
 import com.ivandsky.puzzlebox.model.GameId
@@ -68,12 +69,12 @@ import java.time.LocalDate
  *
  * Today's day and streak summaries open the hub ([homeSummaries]).
  * Profile's own pages (Settings, the LinkedIn login, the catalog) stack on Profile inside the layer above the tabs
- * ([Navigator.pushLayer]). [onOpenInsights] (null: Insights is off, see [insightsOpener]) is Profile's Insights row;
+ * ([Navigator.pushLayer]). Profile's Insights row opens the hub;
  * the hub opens a month's recap as a layer page too. A recap's fastest solve opens its replay through
- * [openRecapReplay]: the Games tab, with the layer closed on the way. [recap] (null: none due or the flag is off, see
+ * [openRecapReplay]: the Games tab, with the layer closed on the way. [recap] (null: none due, see
  * [recapSlot]) is the card Home's Today list shows for the month just ended. [train] (null: no game has a trainer) is
- * the Train tab on Games, after Duels. [onOpenStats] (null: the stats page is off, see [statsOpener]) opens the stats
- * page: the game page's "See all stats" for that game, the hub's row for every game. A stats record opens its replay as
+ * the Train tab on Games, after Duels. The stats page opens ([openStats]) from
+ * the game page's "See all stats" for that game and the hub's row for every game. A stats record opens its replay as
  * a recap does, or History at its day ([openRanks]) when it has none.
  */
 internal fun puzzleBoxEntryProvider(
@@ -89,8 +90,6 @@ internal fun puzzleBoxEntryProvider(
     train: TrainSlot? = null,
     libraryRequests: LibraryRequests = LibraryRequests(),
     visibility: VisibilitySlot,
-    onOpenInsights: (() -> Unit)? = null,
-    onOpenStats: ((GameId?) -> Unit)? = null,
     recap: RecapSlot? = null,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
     homeEntry(
@@ -112,7 +111,7 @@ internal fun puzzleBoxEntryProvider(
         onReconnectLinkedIn = { navigator.pushOnce(LinkedInLoginKey) },
         onOpenRanks = openRanks(navigator),
         onMakeOne = { game -> makeOne(game) },
-        onOpenStats = onOpenStats,
+        onOpenStats = openStats(navigator),
     )
     communityEntry(
         navigator,
@@ -137,7 +136,7 @@ internal fun puzzleBoxEntryProvider(
         onOpenSettings = { navigator.pushLayer(SettingsKey) },
         onOpenLinkedInLogin = { navigator.pushLayer(LinkedInLoginKey) },
         onOpenWhatsNew = { navigator.pushLayer(WhatsNewKey) },
-        onOpenInsights = onOpenInsights,
+        onOpenInsights = { navigator.pushLayer(InsightsKey) },
         debugSections = { DebugSettingsSlot(openGame = { navigator.pushOnce(GameKey(it)) }) },
         visibility = visibility,
     )
@@ -146,7 +145,7 @@ internal fun puzzleBoxEntryProvider(
         onBack = back,
         onOpenRecap = { period -> navigator.pushLayer(InsightsRecapKey(period)) },
         onOpenReplay = openRecapReplay(navigator),
-        onOpenStats = onOpenStats?.let { open -> { open(null) } },
+        onOpenStats = { openStats(navigator)(null) },
         onOpenDay = { game, day -> openRanks(navigator)(game, day) },
     )
     entry<CatalogKey> { CatalogScreen() }

@@ -3,8 +3,7 @@ package com.ivandsky.puzzlebox.app
 import com.ivandsky.puzzlebox.app.debug.flags.DebugReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.DeclaredFlags
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.gameui.flags.GameUiFlag
-import com.ivandsky.puzzlebox.insights.flags.InsightsFlag
+import com.ivandsky.puzzlebox.play.flags.PlayFlag
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
@@ -45,14 +44,14 @@ class DebugReleaseFlagsBindingTest {
 
     /** The Release flags section lists the app's declared flags, set by set in owner order; a set keeps its enum's order. */
     @Test
-    fun `debug graph declares the play kit's flags in their enum order`() {
+    fun `debug graph declares the play feature's flags in their enum order`() {
         val koin = startKoin {
             androidContext(RuntimeEnvironment.getApplication())
             modules(PuzzleBoxApplication.appModules)
         }.koin
         try {
             val declared = koin.get<DeclaredFlags>().all
-            assertEquals(GameUiFlag.entries, declared.filterIsInstance<GameUiFlag>())
+            assertEquals(PlayFlag.entries, declared.filterIsInstance<PlayFlag>())
             assertEquals(declared, koin.get<DebugReleaseFlags>().declared)
         } finally {
             stopKoin()
@@ -75,8 +74,7 @@ class DebugReleaseFlagsBindingTest {
             assertEquals(declared.size, enumBacked.size)
             assertEquals(enumBacked.map { it.name }, declared.map { it.key })
             val keys = declared.map { it.key }
-            assertTrue(keys.containsAll(GameUiFlag.entries.map { it.key }))
-            assertTrue(keys.containsAll(InsightsFlag.entries.map { it.key }))
+            assertTrue(keys.containsAll(PlayFlag.entries.map { it.key }))
         } finally {
             stopKoin()
         }
@@ -89,10 +87,10 @@ class DebugReleaseFlagsBindingTest {
             .edit().putBoolean("ZipEditor", false).putBoolean("TangoEditor", false).putBoolean("SudokuEditor", false)
             .putBoolean("StrandsEditor", false).putBoolean("BoardErgonomics", false).putBoolean("SheetScreens", false).commit()
 
-        val flags = DebugReleaseFlags(context, GameUiFlag.entries)
+        val flags = DebugReleaseFlags(context, PlayFlag.entries)
 
-        assertEquals(emptyMap<GameUiFlag, Boolean>(), flags.overrides.value)
-        assertEquals(GameUiFlag.entries.filter { it.releaseDefault }.toSet(), flags.enabled.value)
+        assertEquals(emptyMap<PlayFlag, Boolean>(), flags.overrides.value)
+        assertEquals(PlayFlag.entries.filter { it.releaseDefault }.toSet(), flags.enabled.value)
     }
 
     /**
@@ -102,10 +100,10 @@ class DebugReleaseFlagsBindingTest {
      */
     @Test
     fun `an override is stored under the flag's name in release_flags and reset removes it`() {
-        val flag = GameUiFlag.entries.first()
+        val flag = PlayFlag.entries.first()
         val context = RuntimeEnvironment.getApplication()
         val prefs = context.getSharedPreferences("release_flags", android.content.Context.MODE_PRIVATE)
-        val flags = DebugReleaseFlags(context, GameUiFlag.entries)
+        val flags = DebugReleaseFlags(context, PlayFlag.entries)
 
         flags.setOverride(flag, !flag.releaseDefault)
 
@@ -123,15 +121,15 @@ class DebugReleaseFlagsBindingTest {
      */
     @Test
     fun `a Boolean stored under a flag's name before launch is that flag's override`() {
-        val flag = GameUiFlag.entries.first()
+        val flag = PlayFlag.entries.first()
         val context = RuntimeEnvironment.getApplication()
         context.getSharedPreferences("release_flags", android.content.Context.MODE_PRIVATE)
             .edit().putBoolean(flag.name, !flag.releaseDefault).commit()
 
-        val flags = DebugReleaseFlags(context, GameUiFlag.entries)
+        val flags = DebugReleaseFlags(context, PlayFlag.entries)
 
         assertEquals(mapOf(flag to !flag.releaseDefault), flags.overrides.value)
-        val defaults = GameUiFlag.entries.filter { it.releaseDefault }.toSet()
+        val defaults = PlayFlag.entries.filter { it.releaseDefault }.toSet()
         val expected = if (flag.releaseDefault) defaults - flag else defaults + flag
         assertEquals(expected, flags.enabled.value)
     }

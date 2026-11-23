@@ -51,7 +51,7 @@ class StatsFilterBarTest {
     }
 
     private fun on(range: StatsRange = StatsRange.Week, game: GameId? = null) =
-        StatsFixtures.ready(range = range, game = game, filters = true, since = StatsFixtures.since)
+        StatsFixtures.ready(range = range, game = game, since = StatsFixtures.since)
 
     @Test
     fun `the bar replaces the range chips and the title stays Stats whatever game is picked`() {
@@ -129,14 +129,5 @@ class StatsFilterBarTest {
 
         assertEquals(listOf(StatsRange.Month), ranges)
         assertEquals(emptyList<GameId?>(), picked)
-    }
-
-    @Test
-    fun `with the flag off the chips stay and there is no bar`() {
-        show(StatsFixtures.ready())
-
-        rule.onNodeWithTag("stats.range").assertIsDisplayed()
-        rule.onNodeWithTag("stats.filters").assertDoesNotExist()
-        rule.onNodeWithText("All games stats").assertIsDisplayed()
     }
 }

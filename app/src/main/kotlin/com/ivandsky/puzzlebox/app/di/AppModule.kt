@@ -12,8 +12,6 @@ import com.ivandsky.puzzlebox.common.di.flagSet
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.DeclaredFlags
 import com.ivandsky.puzzlebox.common.flags.FlagSet
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.domain.AppBuild
 import com.ivandsky.puzzlebox.domain.insights.rankhistory.SyncRankHistory
 import com.ivandsky.puzzlebox.domain.ranks.SubmitDailyReplay
@@ -21,10 +19,8 @@ import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.ranks.LoadFriendsPastPage
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
-import com.ivandsky.puzzlebox.gameui.flags.GameUiFlag
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
-import com.ivandsky.puzzlebox.data.cloud.kinds.TrainerProgressKind
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatusTracker
@@ -82,9 +78,9 @@ val appModule = module {
         )
     }
     single { DailyReplayPublisher(publish = get<SubmitDailyReplay>(), scope = get<CoroutineScope>()) }
-    // The weekly rank history filler (Insights): started only while the stats page or the year recap is on.
+    // The weekly rank history filler (Insights): started with the app.
     single {
-        RankHistoryStarter(flags = get<ReleaseFlags>(), fill = get<SyncRankHistory>()::invoke, scope = get<CoroutineScope>())
+        RankHistoryStarter(fill = get<SyncRankHistory>()::invoke, scope = get<CoroutineScope>())
     }
     // The ranks outside the hub and Result's Friends board also count the friends a full global page leaves out.
     factory { LoadFriendsPastPage(get<LeaderboardRepository>()) }
@@ -130,25 +126,12 @@ val appModule = module {
     // Every game module's editor UI (ADR-0019); a duplicate game id throws.
     single { GameEditorRegistry(getAll<GameEditorUi>()) }
 
-    // Every game's Trainer adapter, bound inside a TrainerGame.Binding that holds it only while that game's flag is on
-    // (a definition cannot be left out by a flag). A factory, so each resolve reads
-    // the flags afresh. Empty until a game's flag is on, and the Train tab shows only while it is not.
-    factory { TrainerRegistry(getAll<TrainerGame.Binding>().mapNotNull { it.game }, TRAINER_ORDER) }
-
-    // The trainer progress kind joins the cloud sync only while a Train flag is on (the same Binding shape; :core:data
-    // cannot read the game UI flags). cloudSyncModule's SyncedKinds reads this once per process, when the sync graph is
-    // built, so a flag flipped in the debug Settings reaches the sync on the next start, unlike the registry above.
-    factory {
-        val flags = get<ReleaseFlags>()
-        val trainerOn = TRAIN_FLAGS.any { flags.isEnabled(it) }
-        TrainerProgressKind.Binding(if (trainerOn) get<TrainerProgressKind>() else null)
-    }
+    // Every game module's Trainer adapter, listed in TRAINER_ORDER; the Train tab shows while it holds one.
+    single { TrainerRegistry(getAll<TrainerGame>(), TRAINER_ORDER) }
 
     // Every module's release flags, ordered by owner (ADR-0022). A duplicate key throws on first resolve; a repeated
     // owner is caught by konsist P15 (Koin keeps the last set).
     single { DeclaredFlags(getAll<FlagSet>()) }
-    // Declared in core:game-ui, which has no Koin, so registered here.
-    flagSet("game-ui", GameUiFlag.entries)
 
     // The installed build GetAppUpdate compares against; debug never checks.
     single {
@@ -178,9 +161,6 @@ private val GAME_ORDER = listOf("zip", "tango", "queens", "minisudoku", "strands
 
 /** The Train tab's game order: Queens, Tango, then Mini Sudoku. A game with no adapter bound is skipped. */
 private val TRAINER_ORDER = listOf(GameId("queens"), GameId("tango"), GameId("minisudoku"))
-
-/** The flags that put a game in the Train tab; the trainer progress syncs while any of them is on. */
-private val TRAIN_FLAGS = listOf(GameUiFlag.TrainQueens, GameUiFlag.TrainTango, GameUiFlag.TrainSudoku)
 
 /** [GAME_ORDER] rank; an unlisted game sorts after every listed one, then by id. */
 private val gameOrder: Comparator<GamePlugin<*, *, *>> =

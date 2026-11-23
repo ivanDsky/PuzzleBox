@@ -19,7 +19,7 @@ import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.flow.first
 
 /**
- * The Ready page with the StatsFilters flag on: [sections] in their four groups, each under a header that sticks to the
+ * The Ready page: [sections] in their four groups, each under a header that sticks to the
  * top of the list as its group scrolls, i.e. right under the filter bar, which sits above the list. [game] null is the
  * all-games page. The blocks arrive with the page's calm motion ([StatsMotion]): each group body lifts in once as it
  * reaches the screen, its charts draw in and its headline numbers count up, and a Since or game change morphs them

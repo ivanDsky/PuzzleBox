@@ -34,7 +34,6 @@ import com.ivandsky.puzzlebox.data.cloud.OwnerScope
 import com.ivandsky.puzzlebox.data.cloud.SavedBoardsCloud
 import com.ivandsky.puzzlebox.data.cloud.SignedInOwnerScope
 import com.ivandsky.puzzlebox.data.cloud.SyncStateStore
-import com.ivandsky.puzzlebox.gameui.flags.GameUiFlag
 import com.ivandsky.puzzlebox.data.cloud.SyncedKind
 import com.ivandsky.puzzlebox.data.cloud.SyncedKinds
 import com.ivandsky.puzzlebox.data.di.MatchRemote
@@ -434,8 +433,8 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<GameViewModel> { parametersOf(GameKey("zip", "2000-01-01")) }.play)
             assertNotNull(koin.get<ResultViewModel> { parametersOf(ResultKey("zip", "2026-11-04", 12_340L, 0)) })
 
-            // Trainer mode: the registry resolves off the games' Trainer bindings. Every Train flag ships on, so the
-            // registry holds the Queens, Tango and Mini Sudoku adapters (TrainerRegistryGatingTest covers each flag off).
+            // Trainer mode: the registry resolves off the games' Trainer bindings. The registry
+            // holds the Queens, Tango and Mini Sudoku adapters.
             assertEquals(
                 setOf(GameId("queens"), GameId("tango"), GameId("minisudoku")),
                 koin.get<TrainerRegistry>().all.map { it.gameId }.toSet(),
@@ -572,8 +571,8 @@ class DiGraphTest : KoinTest {
     }
 
     /**
-     * The five app-database kinds and the boards kind are bound, and saved boards can be deleted everywhere. With every
-     * Train flag off the trainer kind is not among them: the plain definition is not a `SyncedKind` of its own accord.
+     * The five app-database kinds, the trainer kind and the boards kind are bound, and saved boards can be deleted
+     * everywhere: the engine, the runner and the erase share the one list.
      */
     @Test
     fun `the boards kind and saved-board deletion are bound`() {
@@ -584,11 +583,11 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<OversizedDrafts>())
             assertTrue(koin.get<OwnerScope>() is SignedInOwnerScope)
             assertEquals(
-                listOf("boards", "completions", "drafts", "published", "received", "replays", "reveals"),
+                listOf("boards", "completions", "drafts", "published", "received", "replays", "reveals", "trainer"),
                 koin.getAll<SyncedKind>().map { it.kind }.sorted(),
             )
             assertEquals(
-                listOf("boards", "completions", "drafts", "published", "received", "replays", "reveals"),
+                listOf("boards", "completions", "drafts", "published", "received", "replays", "reveals", "trainer"),
                 koin.get<SyncedKinds>().all.map { it.kind }.sorted(),
             )
             assertNotNull(koin.get<SavedBoardsCloud>())
@@ -599,27 +598,6 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<CloudSyncRunner>())
         } finally {
             stopKoin()
-        }
-    }
-
-    /** Any one Train flag puts the trainer kind in the list the engine, the runner and the erase share. */
-    @Test
-    fun `the trainer kind joins the sync graph while any Train flag is on`() {
-        for (flag in listOf(GameUiFlag.TrainQueens, GameUiFlag.TrainTango, GameUiFlag.TrainSudoku)) {
-            val koinApp = startCloud(flags = FakeReleaseFlags(flag))
-            try {
-                val koin = koinApp.koin
-                PuzzleBoxApplication.prepareCloudSync(koin)
-                assertEquals(
-                    "$flag",
-                    listOf("boards", "completions", "drafts", "published", "received", "replays", "reveals", "trainer"),
-                    koin.get<SyncedKinds>().all.map { it.kind }.sorted(),
-                )
-                assertNotNull(koin.get<CloudSync>())
-                assertNotNull(koin.get<CloudSyncRunner>())
-            } finally {
-                stopKoin()
-            }
         }
     }
 
@@ -640,13 +618,12 @@ class DiGraphTest : KoinTest {
 
     private fun startCloud(
         identity: FakeIdentityService = FakeIdentityService(),
-        flags: ReleaseFlags = FakeReleaseFlags(),
     ) = startKoin {
         androidContext(RuntimeEnvironment.getApplication())
         modules(
             PuzzleBoxApplication.appModules + module {
                 single<IdentityService> { identity }
-                single<ReleaseFlags> { flags }
+                single<ReleaseFlags> { FakeReleaseFlags() }
             },
         )
     }

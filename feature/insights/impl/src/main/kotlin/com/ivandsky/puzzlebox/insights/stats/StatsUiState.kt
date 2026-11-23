@@ -6,29 +6,26 @@ import com.ivandsky.puzzlebox.insights.domain.stats.StatsSince
 import com.ivandsky.puzzlebox.model.GameId
 
 /**
- * What the stats page shows: the [range] chip and [game] picked (null is every game) and the [body] read for them.
- * [filters] is the StatsFilters release flag, read at the view model (ADR-0022): the filter bar replaces the chips.
- * [since] is the puzzle day and first solve its Since rows are worded from, null with the flag off or until read.
+ * What the stats page shows: the [range] and [game] picked (null is every game) and the [body] read for them.
+ * [since] is the puzzle day and first solve its Since rows are worded from, null until read.
  */
 internal data class StatsUiState(
     val range: StatsRange,
     val game: GameId?,
     val body: StatsBody,
-    val filters: Boolean = false,
     val since: StatsSince? = null,
 ) {
 
     companion object {
         fun loading(
-            range: StatsRange = StatsRange.Month,
+            range: StatsRange = StatsRange.Week,
             game: GameId? = null,
-            filters: Boolean = false,
             since: StatsSince? = null,
-        ) = StatsUiState(range, game, StatsBody.Loading, filters, since)
+        ) = StatsUiState(range, game, StatsBody.Loading, since)
     }
 }
 
-/** What the page shows under the range chips. */
+/** What the page shows under the filters. */
 internal sealed interface StatsBody {
 
     /** The sections are being read. */

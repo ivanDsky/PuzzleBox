@@ -14,18 +14,17 @@ import java.time.LocalDate
 
 /**
  * Registers Insights' routes: the hub ([InsightsKey]), a recap story ([InsightsRecapKey]) and the stats page
- * ([InsightsStatsKey]). The routes are ungated; each entry point that opens one is gated by its own
- * [com.ivandsky.puzzlebox.insights.flags.InsightsFlag]. [onBack] leaves the hub, a recap or the stats page;
+ * ([InsightsStatsKey]). [onBack] leaves the hub, a recap or the stats page;
  * [onOpenRecap] opens the recap of the period whose id (`YYYY-MM` or `YYYY`) it is given; [onOpenReplay] opens the
  * replay a recap's fastest solve row or a stats record names (the play feature's page, reached through its api key
  * only); [onOpenDay] opens History at a game and day, for a record with no replay. [onOpenStats] is the hub's
- * "Stats for all games" row, null while the stats page is dark so the hub shows no row.
+ * "Stats for all games" row.
  */
 fun EntryProviderScope<NavKey>.insightsEntry(
     onBack: () -> Unit,
     onOpenRecap: (periodId: String) -> Unit,
     onOpenReplay: (ReplayKey) -> Unit,
-    onOpenStats: (() -> Unit)?,
+    onOpenStats: () -> Unit,
     onOpenDay: (GameId, LocalDate) -> Unit,
 ) {
     entry<InsightsKey> { InsightsHubRoute(onOpenRecap = onOpenRecap, onOpenStats = onOpenStats, onBack = onBack) }

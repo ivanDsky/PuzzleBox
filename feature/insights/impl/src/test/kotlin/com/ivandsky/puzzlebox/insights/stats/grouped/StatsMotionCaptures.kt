@@ -130,7 +130,7 @@ class StatsMotionCaptures {
     @Test
     fun groupedPageArrivalFrames() {
         animations(1f)
-        val state = StatsFixtures.readyWithLines(range = StatsRange.Week, game = null).copy(filters = true, since = StatsFixtures.since)
+        val state = StatsFixtures.readyWithLines(range = StatsRange.Week, game = null).copy(since = StatsFixtures.since)
         rule.setContent {
             PuzzleBoxTheme(darkTheme = true) {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {

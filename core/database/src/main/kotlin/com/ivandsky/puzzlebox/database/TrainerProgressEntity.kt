@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 
 /**
  * One technique's Trainer progress for one owner (schema v18): its [mark], the right answers in a row ([inRow]) and
- * when the last answer was recorded ([answeredAtMs]). It syncs as the `trainer` kind while a Train flag is on.
+ * when the last answer was recorded ([answeredAtMs]). It always syncs as the `trainer` kind.
  *
  * [ownerUid] follows the other synced rows (ADR-0029): null means nobody was signed in, and the first account to
  * sign in claims it. SQLite treats NULLs as distinct, so no unique index can hold one row per (owner, game,

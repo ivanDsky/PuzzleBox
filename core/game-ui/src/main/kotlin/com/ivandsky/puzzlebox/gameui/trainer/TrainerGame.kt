@@ -79,12 +79,4 @@ interface TrainerGame {
      */
     @Composable
     fun Demo(demo: IntroDemo, frame: Int, modifier: Modifier)
-
-    /**
-     * What a game UI module binds so the [TrainerRegistry] can collect its adapter: [game] while the
-     * game's Train flag is on, null while it is off. The module binds one of these per game, always
-     * (a factory that reads the flag when asked), so a game whose flag is off adds nothing to the
-     * registry and a flag flipped between launches is read afresh.
-     */
-    class Binding(val game: TrainerGame?)
 }

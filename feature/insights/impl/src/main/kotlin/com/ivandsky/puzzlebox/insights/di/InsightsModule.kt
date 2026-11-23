@@ -1,12 +1,10 @@
 package com.ivandsky.puzzlebox.insights.di
 
-import com.ivandsky.puzzlebox.common.di.flagSet
-import com.ivandsky.puzzlebox.insights.flags.InsightsFlag
 import org.koin.core.module.Module
 import org.koin.dsl.module
 
 /**
- * Insights feature wiring: the feature's release flags ([InsightsFlag]) and the per-feature modules it includes, each in
+ * Insights feature wiring: the per-feature modules it includes, each in
  * its own file so a new card or use case adds a file here, not an edit to this one. The recap's use cases and its story
  * view model are [recapModule]; its share files and card view model are [recapShareModule]; the stats page's use cases
  * and view model are [statsModule]; the hub's view model is [insightsHubModule]; the kept weeks' one reader is
@@ -22,5 +20,4 @@ import org.koin.dsl.module
  */
 val insightsModule: Module = module {
     includes(rankHistoryModule, recapModule, recapShareModule, statsModule, insightsHubModule)
-    flagSet("insights", InsightsFlag.entries)
 }

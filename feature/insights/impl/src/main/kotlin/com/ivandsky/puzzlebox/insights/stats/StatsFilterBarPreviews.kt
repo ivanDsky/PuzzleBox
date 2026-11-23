@@ -14,7 +14,7 @@ import com.ivandsky.puzzlebox.insights.domain.stats.StatsSince
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 
-// The stats page with the StatsFilters flag on: the phone's filter bar and the tablet's "Overall" list with a quiet Since, light and dark, with no game picked and with one picked.
+// The stats page: the phone's filter bar and the tablet's "Overall" list with a quiet Since, light and dark, with no game picked and with one picked.
 
 private val Zip = GameId("zip")
 private val Games = listOf(Zip, GameId("queens"), GameId("tango"))
@@ -27,7 +27,6 @@ private fun filtered(game: GameId?, range: StatsRange = StatsRange.Week) = Stats
     range = range,
     game = game,
     body = StatsBody.Ready(listOf(StatsSection.Records(SectionState.Unavailable))),
-    filters = true,
     since = Since,
 )
 

@@ -11,10 +11,10 @@ import org.koin.compose.koinInject
 
 /**
  * The hub's route: its view model's list on [InsightsHubScreen]. [onOpenRecap] gets the id of the period tapped;
- * [onOpenStats] opens the all-games stats page, null to show no row for it.
+ * [onOpenStats] opens the all-games stats page.
  */
 @Composable
-internal fun InsightsHubRoute(onOpenRecap: (periodId: String) -> Unit, onOpenStats: (() -> Unit)?, onBack: () -> Unit) {
+internal fun InsightsHubRoute(onOpenRecap: (periodId: String) -> Unit, onOpenStats: () -> Unit, onBack: () -> Unit) {
     val viewModel = koinViewModel<InsightsHubViewModel>()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val registry = koinInject<GamePlayRegistry>()

@@ -28,7 +28,7 @@ import com.ivandsky.puzzlebox.model.GameId
 import java.time.DayOfWeek
 import java.time.LocalDate
 
-// The grouped stats page (StatsFilters on), light and dark on a phone and a tablet: default, empty, loading, error, longest names and values, and locked friends.
+// The grouped stats page light and dark on a phone and a tablet: default, empty, loading, error, longest names and values, and locked friends.
 
 private val Zip = GameId("zip")
 private val Queens = GameId("queens")
@@ -98,11 +98,10 @@ private fun page(
             add(StatsSection.VsFriends(vsFriends))
         },
     ),
-    filters = true,
     since = Since,
 )
 
-private fun waiting(body: StatsBody) = StatsUiState(StatsRange.Week, null, body, filters = true, since = Since)
+private fun waiting(body: StatsBody) = StatsUiState(StatsRange.Week, null, body, since = Since)
 
 @Composable
 private fun Page(state: StatsUiState) = PuzzleBoxTheme {

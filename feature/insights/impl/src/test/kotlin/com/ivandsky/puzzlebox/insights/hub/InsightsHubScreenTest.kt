@@ -45,13 +45,13 @@ class InsightsHubScreenTest {
 
     private var retried = 0
 
-    private fun show(state: InsightsHubUiState, stats: Boolean = false) = rule.setContent {
+    private fun show(state: InsightsHubUiState) = rule.setContent {
         PuzzleBoxTheme {
             InsightsHubScreen(
                 state,
                 onOpen = { opened += it },
                 onBack = { backed++ },
-                onOpenStats = if (stats) ({ statsOpened++ }) else null,
+                onOpenStats = { statsOpened++ },
                 onRetry = { retried++ },
             )
         }
@@ -67,21 +67,14 @@ class InsightsHubScreenTest {
     }
 
     @Test
-    fun `with the stats page on the list starts with a row for the stats of every game`() {
-        show(InsightsHubUiState.Ready(listOf(summarized(november))), stats = true)
+    fun `the list starts with a row for the stats of every game`() {
+        show(InsightsHubUiState.Ready(listOf(summarized(november))))
 
         rule.onNodeWithTag("insights.hub.stats").assertIsDisplayed().assertHasClickAction().performClick()
 
         assertEquals(1, statsOpened)
         assertEquals(emptyList<RecapPeriod>(), opened)
         rule.onNodeWithTag("insights.hub.month.2026-11").assertIsDisplayed()
-    }
-
-    @Test
-    fun `with the stats page off the list has no stats row`() {
-        show(InsightsHubUiState.Ready(listOf(summarized(november))), stats = false)
-
-        rule.onNodeWithTag("insights.hub.stats").assertDoesNotExist()
     }
 
     @Test
