@@ -43,6 +43,7 @@ class TrainerProgressDaoTest {
         game: String = "queens",
         mark: String = "practicing",
         inRow: Int = 1,
+        answeredAtMs: Long = 1_000L,
         uploaded: Boolean = false,
     ) = TrainerProgressEntity(
         ownerUid = owner,
@@ -50,7 +51,7 @@ class TrainerProgressDaoTest {
         techniqueId = technique,
         mark = mark,
         inRow = inRow,
-        answeredAtMs = 1_000L,
+        answeredAtMs = answeredAtMs,
         uploaded = uploaded,
     )
 
@@ -112,13 +113,38 @@ class TrainerProgressDaoTest {
     }
 
     @Test
-    fun `a write marks the row not uploaded`() = runTest {
+    fun `a write that changes the count marks the row not uploaded`() = runTest {
         dao.insert(row(owner = "a", uploaded = true))
         assertTrue(dao.find("queens", "line-lock", "a")!!.uploaded)
 
         dao.upsert(row(owner = "a", inRow = 2, uploaded = true))
 
         assertFalse(dao.find("queens", "line-lock", "a")!!.uploaded)
+    }
+
+    @Test
+    fun `a write that changes the mark marks the row not uploaded`() = runTest {
+        dao.insert(row(owner = "a", mark = "practicing", inRow = 4, uploaded = true))
+
+        dao.upsert(row(owner = "a", mark = "mastered", inRow = 4, uploaded = true))
+
+        assertFalse(dao.find("queens", "line-lock", "a")!!.uploaded)
+    }
+
+    @Test
+    fun `a write that changes only the answer time keeps the row's flag and takes the new time`() = runTest {
+        dao.insert(row(owner = "a", answeredAtMs = 1_000L, uploaded = true))
+        dao.insert(row(owner = "a", technique = "pairs", answeredAtMs = 1_000L, uploaded = false))
+
+        dao.upsert(row(owner = "a", answeredAtMs = 5_000L))
+        dao.upsert(row(owner = "a", technique = "pairs", answeredAtMs = 5_000L))
+
+        val sent = dao.find("queens", "line-lock", "a")!!
+        assertTrue(sent.uploaded)
+        assertEquals(5_000L, sent.answeredAtMs)
+        val unsent = dao.find("queens", "pairs", "a")!!
+        assertFalse(unsent.uploaded)
+        assertEquals(5_000L, unsent.answeredAtMs)
     }
 
     @Test
@@ -145,5 +171,111 @@ class TrainerProgressDaoTest {
         assertEquals(5, dao.find("queens", "line-lock", "a")!!.inRow)
         assertEquals(1, dao.find("queens", "line-lock", null)!!.inRow)
         assertEquals(9, dao.find("queens", "line-lock", "b")!!.inRow)
+    }
+
+    @Test
+    fun `pendingGames holds every row of the owner's games that have a pending row, and no other`() = runTest {
+        dao.insert(row(owner = "a", game = "queens", technique = "line-lock", uploaded = false))
+        dao.insert(row(owner = "a", game = "queens", technique = "pairs", uploaded = true))
+        dao.insert(row(owner = "a", game = "tango", technique = "pairs", uploaded = true))
+        dao.insert(row(owner = "b", game = "tango", technique = "pairs", uploaded = false))
+        dao.insert(row(owner = null, game = "tango", technique = "loose", uploaded = false))
+
+        assertEquals(
+            listOf("queens/line-lock", "queens/pairs"),
+            dao.pendingGames("a").map { "${it.gameId}/${it.techniqueId}" },
+        )
+        assertEquals(listOf("tango/pairs"), dao.pendingGames("b").map { "${it.gameId}/${it.techniqueId}" })
+        assertTrue(dao.pendingGames("c").isEmpty())
+    }
+
+    @Test
+    fun `observePendingGames follows a game turning pending and leaving once it is marked uploaded`() = runTest {
+        dao.insert(row(owner = "a", uploaded = true))
+        assertTrue(dao.observePendingGames("a").first().isEmpty())
+
+        dao.upsert(row(owner = "a", inRow = 2))
+        assertEquals(listOf(2), dao.observePendingGames("a").first().map { it.inRow })
+
+        dao.markUploaded("a", "queens", "line-lock", "practicing", 2, 1_000L)
+        assertTrue(dao.observePendingGames("a").first().isEmpty())
+    }
+
+    @Test
+    fun `markUploaded marks the row only while it still holds the value that was sent`() = runTest {
+        dao.insert(row(owner = "a", mark = "practicing", inRow = 2, answeredAtMs = 1_000L))
+
+        assertEquals(0, dao.markUploaded("a", "queens", "line-lock", "practicing", 1, 1_000L))
+        assertEquals(0, dao.markUploaded("a", "queens", "line-lock", "mastered", 2, 1_000L))
+        assertEquals(0, dao.markUploaded("a", "queens", "line-lock", "practicing", 2, 999L))
+        assertEquals(0, dao.markUploaded("b", "queens", "line-lock", "practicing", 2, 1_000L))
+        assertFalse(dao.find("queens", "line-lock", "a")!!.uploaded)
+
+        assertEquals(1, dao.markUploaded("a", "queens", "line-lock", "practicing", 2, 1_000L))
+        assertTrue(dao.find("queens", "line-lock", "a")!!.uploaded)
+    }
+
+    @Test
+    fun `clearUploaded clears the owner's flags only`() = runTest {
+        dao.insert(row(owner = "a", uploaded = true))
+        dao.insert(row(owner = "b", uploaded = true))
+        dao.insert(row(owner = null, technique = "loose", uploaded = true))
+
+        dao.clearUploaded("a")
+
+        assertFalse(dao.find("queens", "line-lock", "a")!!.uploaded)
+        assertTrue(dao.find("queens", "line-lock", "b")!!.uploaded)
+        assertTrue(dao.find("queens", "loose", null)!!.uploaded)
+    }
+
+    @Test
+    fun `restore keeps the flag it is given and the stored row's id`() = runTest {
+        dao.insert(row(owner = "a", inRow = 1, uploaded = false))
+        val id = dao.find("queens", "line-lock", "a")!!.id
+
+        dao.restore(row(owner = "a", inRow = 3, uploaded = true))
+        dao.restore(row(owner = "a", technique = "pairs", inRow = 1, uploaded = true))
+
+        val restored = dao.find("queens", "line-lock", "a")!!
+        assertEquals(id, restored.id)
+        assertEquals(3, restored.inRow)
+        assertTrue(restored.uploaded)
+        assertTrue(dao.find("queens", "pairs", "a")!!.uploaded)
+        assertEquals(1, dao.ownedRowsOfGame("a", "queens").count { it.techniqueId == "line-lock" })
+    }
+
+    @Test
+    fun `adopt folds each ownerless row into the owner's row, deletes it and leaves the result pending`() = runTest {
+        dao.insert(row(owner = null, technique = "line-lock", inRow = 4))
+        dao.insert(row(owner = null, technique = "solo", game = "tango", inRow = 1))
+        dao.insert(row(owner = "a", technique = "line-lock", inRow = 2, uploaded = true))
+        dao.insert(row(owner = "b", technique = "line-lock", inRow = 9, uploaded = true))
+        val seen = mutableListOf<Pair<Int?, Int>>()
+
+        dao.adopt("a") { owned, loose ->
+            seen += owned?.inRow to loose.inRow
+            loose.copy(inRow = loose.inRow + (owned?.inRow ?: 0))
+        }
+
+        assertEquals(setOf<Pair<Int?, Int>>(2 to 4, null to 1), seen.toSet())
+        assertTrue(dao.ownerlessRows().isEmpty())
+        val folded = dao.find("queens", "line-lock", "a")!!
+        assertEquals(6, folded.inRow)
+        assertFalse(folded.uploaded)
+        assertEquals(1, dao.ownedRowsOfGame("a", "queens").size)
+        val created = dao.find("tango", "solo", "a")!!
+        assertEquals(1, created.inRow)
+        assertFalse(created.uploaded)
+        assertEquals(9, dao.find("queens", "line-lock", "b")!!.inRow)
+        assertTrue(dao.find("queens", "line-lock", "b")!!.uploaded)
+    }
+
+    @Test
+    fun `adopt with nothing ownerless changes nothing`() = runTest {
+        dao.insert(row(owner = "a", uploaded = true))
+
+        dao.adopt("a") { _, loose -> loose }
+
+        assertTrue(dao.find("queens", "line-lock", "a")!!.uploaded)
     }
 }

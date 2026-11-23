@@ -45,9 +45,9 @@ internal class RoomTrainerProgressRepository(
 private fun List<TrainerProgressEntity>.merged(): Map<TechniqueId, TechniqueProgress> =
     fold(emptyMap()) { all, row -> TrainerProgressMerge.merge(all, mapOf(TechniqueId(row.techniqueId) to row.toProgress())) }
 
-private fun TrainerProgressEntity.toProgress() = TechniqueProgress(mark.toMark(), inRow, answeredAtMs)
+internal fun TrainerProgressEntity.toProgress() = TechniqueProgress(mark.toMark(), inRow, answeredAtMs)
 
-private fun TechniqueProgress.toEntity(ownerUid: String?, game: GameId, technique: TechniqueId) = TrainerProgressEntity(
+internal fun TechniqueProgress.toEntity(ownerUid: String?, game: GameId, technique: TechniqueId) = TrainerProgressEntity(
     ownerUid = ownerUid,
     gameId = game.value,
     techniqueId = technique.value,
@@ -56,14 +56,15 @@ private fun TechniqueProgress.toEntity(ownerUid: String?, game: GameId, techniqu
     answeredAtMs = answeredAtMs,
 )
 
-// The stored words are persisted and later wire data: named here, never taken from the enum's name.
-private fun Mark.stored(): String = when (this) {
+// The stored words are persisted and later wire data: named here, never taken from the enum's name. The trainer
+// cloud kind reuses them, so a mark means the same word in Room and in the cloud doc.
+internal fun Mark.stored(): String = when (this) {
     Mark.New -> "new"
     Mark.Practicing -> "practicing"
     Mark.Mastered -> "mastered"
 }
 
-private fun String.toMark(): Mark = when (this) {
+internal fun String.toMark(): Mark = when (this) {
     "practicing" -> Mark.Practicing
     "mastered" -> Mark.Mastered
     else -> Mark.New
