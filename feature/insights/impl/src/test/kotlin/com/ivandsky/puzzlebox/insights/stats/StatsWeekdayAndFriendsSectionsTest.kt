@@ -85,6 +85,7 @@ class StatsWeekdayAndFriendsSectionsTest {
     fun `one game shows only the best`() {
         showFriends(SectionState.Ready(VsFriendsStanding.Ranked(GameStanding(StatsFixtures.queens, 90.0, place = 2, players = 3), weakest = null)), game = StatsFixtures.queens)
 
+        reveal("stats.vsFriends.best")
         rule.onNodeWithTag("stats.vsFriends.best").assertIsDisplayed()
         rule.onNodeWithTag("stats.vsFriends.best").assertTextContains("Your standing · place 2 of 3", substring = true)
         rule.onAllNodesWithTag("stats.vsFriends.weakest").assertCountEquals(0)

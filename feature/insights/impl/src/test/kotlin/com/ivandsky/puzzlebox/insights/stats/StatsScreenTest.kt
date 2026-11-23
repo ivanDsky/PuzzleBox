@@ -2,8 +2,6 @@ package com.ivandsky.puzzlebox.insights.stats
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsNotSelected
-import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -28,7 +26,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The stats page on a phone: the range chips, the Records rows and what each one opens, and the page's waiting states. */
+/** The stats page on a phone: the filter bar, the Records rows and what each one opens, and the page's waiting states. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp-420dpi")
@@ -37,7 +35,6 @@ class StatsScreenTest {
     @get:Rule
     val rule = createAndroidComposeRule<ComponentActivity>()
 
-    private val ranges = mutableListOf<StatsRange>()
     private val opened = mutableListOf<SolveRef>()
     private var backed = 0
 
@@ -47,7 +44,7 @@ class StatsScreenTest {
                 state = state,
                 games = games,
                 gameName = StatsFixtures::gameName,
-                onSelectRange = { ranges += it },
+                onSelectRange = {},
                 onSelectGame = {},
                 onOpenSolve = { opened += it },
                 onBack = { backed++ },
@@ -56,28 +53,10 @@ class StatsScreenTest {
     }
 
     @Test
-    fun `the title names the game, or every game`() {
-        show(StatsFixtures.ready(game = zip))
-        rule.onNodeWithText("Zip stats").assertIsDisplayed()
-    }
-
-    @Test
-    fun `the title of every game says so`() {
-        show(StatsFixtures.ready())
-        rule.onNodeWithText("All games stats").assertIsDisplayed()
-    }
-
-    @Test
-    fun `the picked range chip is selected and a tap on another reports it`() {
-        show(StatsFixtures.ready(range = StatsRange.Month))
-
-        rule.onNodeWithTag("stats.range.Month").assertIsSelected()
-        rule.onNodeWithTag("stats.range.Week").assertIsNotSelected()
-        rule.onNodeWithTag("stats.range.All").assertIsNotSelected()
-
-        rule.onNodeWithTag("stats.range.Week").performClick()
-
-        assertEquals(listOf(StatsRange.Week), ranges)
+    fun `the phone's title says Stats over the filter bar`() {
+        show(StatsFixtures.ready(game = zip, since = StatsFixtures.since))
+        rule.onNodeWithText("Stats").assertIsDisplayed()
+        rule.onNodeWithTag("stats.filters").assertIsDisplayed()
     }
 
     @Test
@@ -129,27 +108,11 @@ class StatsScreenTest {
     }
 
     @Test
-    fun `a records section that cannot load says so in its own place`() {
-        show(StatsFixtures.ready(state = SectionState.Unavailable))
-
-        rule.onNodeWithTag("stats.records.unavailable").assertIsDisplayed().assertTextContains("Can't load right now")
-        rule.onNodeWithTag("stats.records.rows").assertDoesNotExist()
-        rule.onNodeWithTag("stats.range").assertIsDisplayed()
-    }
-
-    @Test
-    fun `a records section still loading shows its own note`() {
-        show(StatsFixtures.ready(state = SectionState.Loading))
-
-        rule.onNodeWithTag("stats.records.loading").assertIsDisplayed()
-    }
-
-    @Test
-    fun `an empty range says so under the chips`() {
+    fun `an empty range says so under the filters`() {
         show(StatsUiState(StatsRange.Week, null, StatsBody.Empty))
 
         rule.onNodeWithTag("stats.empty").assertIsDisplayed()
-        rule.onNodeWithTag("stats.range").assertIsDisplayed()
+        rule.onNodeWithTag("stats.filters").assertIsDisplayed()
     }
 
     @Test

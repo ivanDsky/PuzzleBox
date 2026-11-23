@@ -2,20 +2,17 @@ package com.ivandsky.puzzlebox.insights.stats
 
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.log.FailureLog
 import com.ivandsky.puzzlebox.data.cloud.CloudSyncState
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapHistoryFixture
 import com.ivandsky.puzzlebox.insights.domain.stats.ObserveStatsPage
 import com.ivandsky.puzzlebox.insights.domain.stats.ObserveStatsSince
 import com.ivandsky.puzzlebox.insights.domain.stats.StatsSince
-import com.ivandsky.puzzlebox.insights.flags.InsightsFlag
 import com.ivandsky.puzzlebox.insights.domain.stats.SectionState
 import com.ivandsky.puzzlebox.insights.domain.stats.StatsRange
 import com.ivandsky.puzzlebox.insights.domain.stats.StatsSection
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
 import java.time.LocalDate
@@ -44,7 +41,6 @@ class StatsViewModelTest {
     private fun viewModel(
         initialGame: GameId? = null,
         savedState: SavedStateHandle = SavedStateHandle(),
-        releaseFlags: ReleaseFlags = FakeReleaseFlags(),
     ) = StatsViewModel(
         initialGame = initialGame,
         observeStatsPage = ObserveStatsPage(
@@ -59,7 +55,6 @@ class StatsViewModelTest {
         registry = fixture.registry,
         cloudSync = cloudSync,
         savedState = savedState,
-        releaseFlags = releaseFlags,
         observeSince = ObserveStatsSince(fixture.observeHistory, fixture.calendar, fixture.registry),
     )
 
@@ -83,13 +78,13 @@ class StatsViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     @Test
-    fun `opens on the month of every game, loading first`() = runTest {
+    fun `opens on the week of every game, loading first`() = runTest {
         fixture.store(fixture.solve(alpha, day(1)), fixture.solve(beta, day(2)))
 
         viewModel().uiState.test {
-            assertEquals(StatsUiState.loading(StatsRange.Month, null), awaitItem())
+            assertEquals(StatsUiState.loading(StatsRange.Week, null), awaitItem())
             val ready = awaitBody()
-            assertEquals(StatsRange.Month, ready.range)
+            assertEquals(StatsRange.Week, ready.range)
             assertEquals(null, ready.game)
             assertEquals(listOf(alpha, beta), ready.recordGames())
         }
@@ -149,22 +144,20 @@ class StatsViewModelTest {
     }
 
     @Test
-    fun `a saved game this build does not list and a saved range it does not read fall back to every game and the month`() = runTest {
+    fun `a saved game this build does not list and a saved range it does not read fall back to every game and the week`() = runTest {
         fixture.store(fixture.solve(alpha, day(1)))
         val saved = SavedStateHandle(mapOf("stats.range" to "Decade", "stats.game" to "retired"))
 
         viewModel(savedState = saved).uiState.test {
             val first = awaitItem()
-            assertEquals(StatsRange.Month, first.range)
+            assertEquals(StatsRange.Week, first.range)
             assertEquals(null, first.game)
             assertEquals(null, awaitBody().game)
         }
     }
 
     @Test
-    fun `a range with no solve is empty`() = runTest {
-        fixture.store(fixture.solve(alpha, day(1, month = 10)))
-
+    fun `a history with no solve is empty`() = runTest {
         viewModel().uiState.test {
             awaitItem()
             assertEquals(StatsBody.Empty, awaitBody().body)
@@ -214,63 +207,43 @@ class StatsViewModelTest {
     }
 
     @Test
-    fun `with the stats filters flag on the records read all time, off they stay in the range`() = runTest {
+    fun `the records read all time, not just the range`() = runTest {
         fixture.store(fixture.solve(alpha, day(1, month = 8)), fixture.solve(beta, day(18)))
-        val saved = { SavedStateHandle(mapOf("stats.range" to "Week")) }
 
-        viewModel(savedState = saved(), releaseFlags = FakeReleaseFlags(InsightsFlag.StatsFilters)).uiState.test {
+        viewModel(savedState = SavedStateHandle(mapOf("stats.range" to "Week"))).uiState.test {
             awaitItem()
             assertEquals(listOf(alpha, beta), awaitBody().recordGames())
-        }
-        viewModel(savedState = saved()).uiState.test {
-            awaitItem()
-            assertEquals(listOf(beta), awaitBody().recordGames())
         }
     }
 
     @Test
-    fun `with the stats filters flag on the page opens on the week and reads the dates the Since rows use`() = runTest {
+    fun `the page opens on the week and reads the dates the Since rows use`() = runTest {
         fixture.store(fixture.solve(alpha, day(9, month = 8)), fixture.solve(beta, day(18)))
 
-        viewModel(releaseFlags = FakeReleaseFlags(InsightsFlag.StatsFilters)).uiState.test {
-            assertEquals(StatsUiState.loading(StatsRange.Week, null, filters = true), awaitItem())
+        viewModel().uiState.test {
+            assertEquals(StatsUiState.loading(StatsRange.Week, null), awaitItem())
             val ready = awaitBody()
             assertEquals(StatsRange.Week, ready.range)
-            assertTrue(ready.filters)
             assertEquals(StatsSince(today = day(20), firstSolve = day(9, month = 8)), ready.since)
         }
     }
 
     @Test
-    fun `with the flag on a saved range wins over the week and an unread one falls back to it`() = runTest {
+    fun `a saved range wins over the week and an unread one falls back to it`() = runTest {
         fixture.store(fixture.solve(alpha, day(18)))
-        val on = FakeReleaseFlags(InsightsFlag.StatsFilters)
 
-        viewModel(savedState = SavedStateHandle(mapOf("stats.range" to "All")), releaseFlags = on).uiState.test {
+        viewModel(savedState = SavedStateHandle(mapOf("stats.range" to "All"))).uiState.test {
             assertEquals(StatsRange.All, awaitItem().range)
         }
-        viewModel(savedState = SavedStateHandle(mapOf("stats.range" to "Decade")), releaseFlags = on).uiState.test {
+        viewModel(savedState = SavedStateHandle(mapOf("stats.range" to "Decade"))).uiState.test {
             assertEquals(StatsRange.Week, awaitItem().range)
         }
     }
 
     @Test
-    fun `with the flag off the page opens on the month with no filters and no dates`() = runTest {
-        fixture.store(fixture.solve(alpha, day(18)))
-
-        viewModel().uiState.test {
-            awaitItem()
-            val ready = awaitBody()
-            assertEquals(StatsRange.Month, ready.range)
-            assertEquals(false, ready.filters)
-            assertEquals(null, ready.since)
-        }
-    }
-
-    @Test
-    fun `with the flag on picking a game words Since from that game's own first solve`() = runTest {
+    fun `picking a game words Since from that game's own first solve`() = runTest {
         fixture.store(fixture.solve(alpha, day(9, month = 8)), fixture.solve(beta, day(2, month = 6)))
-        val viewModel = viewModel(releaseFlags = FakeReleaseFlags(InsightsFlag.StatsFilters))
+        val viewModel = viewModel()
 
         viewModel.uiState.test {
             assertEquals(day(2, month = 6), awaitBody().since?.firstSolve)

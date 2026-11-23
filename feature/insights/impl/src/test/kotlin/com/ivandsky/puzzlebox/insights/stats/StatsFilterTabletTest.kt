@@ -36,7 +36,7 @@ class StatsFilterTabletTest {
     private fun show(game: GameId?, range: StatsRange = StatsRange.Week) = rule.setContent {
         PuzzleBoxTheme {
             StatsScreen(
-                state = StatsFixtures.ready(range = range, game = game, filters = true, since = StatsFixtures.since),
+                state = StatsFixtures.ready(range = range, game = game, since = StatsFixtures.since),
                 games = games,
                 gameName = StatsFixtures::gameName,
                 onSelectRange = { ranges += it },

@@ -43,7 +43,6 @@ class StatsFilterGoldenScreenshots {
         val state = StatsFixtures.ready(
             range = if (game) StatsRange.Month else StatsRange.Week,
             game = StatsFixtures.zip.takeIf { game },
-            filters = true,
             since = StatsFixtures.since,
         )
         rule.showGolden(dark = dark) {

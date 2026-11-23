@@ -52,17 +52,13 @@ internal fun StatsTwoPane(
                 .testTag("stats.games"),
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
-            GameChoice(if (state.filters) "Overall" else "All games", picked = state.game == null, tag = "stats.game.all") { onSelectGame(null) }
+            GameChoice("Overall", picked = state.game == null, tag = "stats.game.all") { onSelectGame(null) }
             games.forEach { game ->
                 GameChoice(gameName(game), picked = state.game == game, tag = "stats.game.${game.value}") { onSelectGame(game) }
             }
         }
-        StatsContent(state, gameName, onSelectRange, onOpenSolve, Modifier.weight(1f)) {
-            if (state.filters) {
-                StatsQuietSinceBar(state, onSelectRange)
-            } else {
-                StatsRangeChips(state.range, onSelectRange, Modifier.padding(horizontal = Spacing.lg))
-            }
+        StatsContent(state, gameName, onOpenSolve, Modifier.weight(1f)) {
+            StatsQuietSinceBar(state, onSelectRange)
         }
     }
 }

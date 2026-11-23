@@ -53,9 +53,8 @@ internal object StatsFixtures {
         range: StatsRange = StatsRange.Month,
         game: GameId? = null,
         state: SectionState<StatsRecords> = SectionState.Ready(records),
-        filters: Boolean = false,
         since: StatsSince? = null,
-    ) = StatsUiState(range, game, StatsBody.Ready(listOf(StatsSection.Records(state))), filters, since)
+    ) = StatsUiState(range, game, StatsBody.Ready(listOf(StatsSection.Records(state))), since)
 
     /** The puzzle day the filter bar's Since rows are worded from: Nov 19, the first solve on Mar 30, 2025. */
     val since = StatsSince(today = LocalDate.of(2026, 11, 19), firstSolve = LocalDate.of(2025, 3, 30))

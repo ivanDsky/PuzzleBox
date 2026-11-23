@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.app
 import com.ivandsky.puzzlebox.app.debug.flags.DebugReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.DeclaredFlags
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.insights.flags.InsightsFlag
 import com.ivandsky.puzzlebox.play.flags.PlayFlag
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -76,7 +75,6 @@ class DebugReleaseFlagsBindingTest {
             assertEquals(enumBacked.map { it.name }, declared.map { it.key })
             val keys = declared.map { it.key }
             assertTrue(keys.containsAll(PlayFlag.entries.map { it.key }))
-            assertTrue(keys.containsAll(InsightsFlag.entries.map { it.key }))
         } finally {
             stopKoin()
         }

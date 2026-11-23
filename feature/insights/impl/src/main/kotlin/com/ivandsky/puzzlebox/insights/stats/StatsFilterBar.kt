@@ -18,7 +18,7 @@ import com.ivandsky.puzzlebox.insights.domain.stats.StatsRange
 import com.ivandsky.puzzlebox.model.GameId
 
 /**
- * The phone's stats filter bar, which stands in for the range chips with the StatsFilters flag on: [StatsGameFilter] and
+ * The phone's stats filter bar, made of [StatsGameFilter] and
  * [StatsSinceFilter] side by side in a 52dp row over a hairline. It sits above the sections, so it stays put as they scroll.
  */
 @Composable

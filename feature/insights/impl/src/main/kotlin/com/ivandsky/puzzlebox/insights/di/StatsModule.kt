@@ -43,7 +43,6 @@ val statsModule = module {
             registry = get(),
             cloudSync = get(),
             savedState = get(),
-            releaseFlags = get(),
             observeSince = get(),
         )
     }

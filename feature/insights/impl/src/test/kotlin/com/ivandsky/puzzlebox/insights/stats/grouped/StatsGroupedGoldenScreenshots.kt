@@ -30,7 +30,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The grouped stats page (StatsFilters on) in its six states on a phone and the landscape tablet, light and dark: default
+ * The grouped stats page in its six states on a phone and the landscape tablet, light and dark: default
  * (one game, so rank history shows), any game, empty, loading, error, longest names and values, and locked friends.
  * Captures in `snapshots/stats-grouped/`.
  */
@@ -80,7 +80,7 @@ class StatsGroupedGoldenScreenshots {
     private fun state(name: String): StatsUiState {
         val zip = StatsFixtures.zip
         val withLines = StatsFixtures.readyWithLines(range = StatsRange.Week, game = zip)
-        val base = { s: StatsUiState -> s.copy(filters = true, since = StatsFixtures.since) }
+        val base = { s: StatsUiState -> s.copy(since = StatsFixtures.since) }
         return when (name) {
             "default" -> base(withLines)
             "anygame" -> base(StatsFixtures.readyWithLines(range = StatsRange.Week, game = null))

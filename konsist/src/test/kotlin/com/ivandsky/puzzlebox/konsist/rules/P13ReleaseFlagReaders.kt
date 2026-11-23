@@ -11,7 +11,7 @@ import com.lemonappdev.konsist.api.declaration.KoEnumConstantDeclaration
 /**
  * ADR-0022 §4: a shipped release flag entry gates something, so an entry no code reads is deleted, not kept. An entry
  * still dark (`releaseDefault = false`) may land before its first gate, as ticket 01 of a trunk feature does. Flag
- * enums are what [FlagEnums] matches, so the rule follows entries that move to an owner enum such as `InsightsFlag`.
+ * enums are what [FlagEnums] matches, so the rule follows entries that move to an owner enum such as `PlayFlag`.
  */
 object P13ReleaseFlagReaders : Rule {
     override val id = "P13"

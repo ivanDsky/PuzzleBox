@@ -3,8 +3,6 @@ package com.ivandsky.puzzlebox.insights.stats
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
 import com.ivandsky.puzzlebox.data.cloud.restoring
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -12,19 +10,17 @@ import com.ivandsky.puzzlebox.insights.domain.stats.ObserveStatsPage
 import com.ivandsky.puzzlebox.insights.domain.stats.ObserveStatsSince
 import com.ivandsky.puzzlebox.insights.domain.stats.StatsPage
 import com.ivandsky.puzzlebox.insights.domain.stats.StatsRange
-import com.ivandsky.puzzlebox.insights.flags.InsightsFlag
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 /**
- * The stats page: the range chip and the game picked, and the sections read for them ([ObserveStatsPage]). The page is
+ * The stats page: the range and the game picked, and the sections read for them ([ObserveStatsPage]). The page is
  * live, so a solve that lands while it is open updates it; the first cloud restore shows as [StatsBody.Restoring]
  * while the page has nothing (A23).
  *
@@ -38,24 +34,19 @@ internal class StatsViewModel(
     private val registry: GameRegistry,
     private val cloudSync: CloudSync,
     private val savedState: SavedStateHandle,
-    releaseFlags: ReleaseFlags,
     private val observeSince: ObserveStatsSince,
 ) : ViewModel() {
 
-    private val filters = releaseFlags.isEnabled(InsightsFlag.StatsFilters)
-    private val defaultRange = if (filters) StatsRange.Week else StatsRange.Month
-
-    private val range: StateFlow<String> = savedState.getStateFlow(RANGE_KEY, defaultRange.name)
+    private val range: StateFlow<String> = savedState.getStateFlow(RANGE_KEY, DEFAULT_RANGE.name)
     private val game: StateFlow<String?> = savedState.getStateFlow(GAME_KEY, initialGame?.value)
 
     val uiState: StateFlow<StatsUiState> = combine(range, game) { range, game -> Selection(readRange(range), readGame(game)) }
         .flatMapLatest { selection ->
-            val since = if (filters) observeSince(selection.game) else flowOf(null)
-            combine(observeStatsPage(selection.game, selection.range, filters), cloudSync.restoring, since) { page, restoring, since ->
-                StatsUiState(selection.range, selection.game, body(page, restoring), filters, since)
+            combine(observeStatsPage(selection.game, selection.range, allTimeRecords = true), cloudSync.restoring, observeSince(selection.game)) { page, restoring, since ->
+                StatsUiState(selection.range, selection.game, body(page, restoring), since)
             }
         }
-        .stateIn(viewModelScope, SharingStarted.Lazily, StatsUiState.loading(readRange(range.value), readGame(game.value), filters))
+        .stateIn(viewModelScope, SharingStarted.Lazily, StatsUiState.loading(readRange(range.value), readGame(game.value)))
 
     /** The player picked [range]. */
     fun selectRange(range: StatsRange) {
@@ -73,7 +64,7 @@ internal class StatsViewModel(
         else -> StatsBody.Empty
     }
 
-    private fun readRange(id: String?): StatsRange = StatsRange.parse(id) ?: defaultRange
+    private fun readRange(id: String?): StatsRange = StatsRange.parse(id) ?: DEFAULT_RANGE
 
     private fun readGame(id: String?): GameId? = id?.let(::GameId)?.takeIf { registry[it] != null }
 
@@ -82,5 +73,6 @@ internal class StatsViewModel(
     private companion object {
         const val RANGE_KEY = "stats.range"
         const val GAME_KEY = "stats.game"
+        val DEFAULT_RANGE = StatsRange.Week
     }
 }

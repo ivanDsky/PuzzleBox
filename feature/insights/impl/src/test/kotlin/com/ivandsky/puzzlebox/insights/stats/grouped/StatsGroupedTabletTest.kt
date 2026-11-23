@@ -18,7 +18,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The grouped stats page on a tablet (StatsFilters on): a group lays its chart and side block two-up at 1.3 : 1. */
+/** The grouped stats page on a tablet: a group lays its chart and side block two-up at 1.3 : 1. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w1280dp-h800dp-land-mdpi")
@@ -32,7 +32,7 @@ class StatsGroupedTabletTest {
         rule.setContent {
             PuzzleBoxTheme {
                 StatsScreen(
-                    state = StatsFixtures.readyWithLines(range = StatsRange.Week, game = StatsFixtures.zip).copy(filters = true, since = StatsFixtures.since),
+                    state = StatsFixtures.readyWithLines(range = StatsRange.Week, game = StatsFixtures.zip).copy(since = StatsFixtures.since),
                     games = StatsFixtures.games,
                     gameName = StatsFixtures::gameName,
                     onSelectRange = {},
@@ -57,7 +57,7 @@ class StatsGroupedTabletTest {
         rule.setContent {
             PuzzleBoxTheme {
                 StatsScreen(
-                    state = StatsFixtures.readyWithLines(range = StatsRange.Week, game = StatsFixtures.zip).copy(filters = true, since = StatsFixtures.since),
+                    state = StatsFixtures.readyWithLines(range = StatsRange.Week, game = StatsFixtures.zip).copy(since = StatsFixtures.since),
                     games = StatsFixtures.games,
                     gameName = StatsFixtures::gameName,
                     onSelectRange = {},
