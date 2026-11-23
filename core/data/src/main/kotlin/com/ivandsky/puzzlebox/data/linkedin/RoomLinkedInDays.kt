@@ -46,7 +46,7 @@ internal class RoomLinkedInDays(
     postLog: LinkedInPostLog,
     ownerScope: OwnerScope,
     private val clock: () -> Long,
-) : LinkedInDays {
+) : LinkedInDays, LinkedInBoardAfterPost {
 
     /** The only state kept between calls; everything else is read from the link and the database. */
     internal val syncState = LinkedInSyncState()
@@ -68,6 +68,9 @@ internal class RoomLinkedInDays(
         val profileId = linked.profileId
         return syncState.shared(DayKey(profileId, game, day)) { daySync.sync(game, day, profileId) }
     }
+
+    override suspend fun read(game: GameId, day: LocalDate, profileId: String): LinkedInBoardAfterPost.Result =
+        daySync.readBoardAfterPost(game, day, profileId)
 
     override fun willRead(game: GameId, day: LocalDate): Boolean = daySync.willRead(game, day)
 
