@@ -33,11 +33,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
-import com.ivandsky.puzzlebox.designsystem.ResultBeats
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.TwoColumnFrame
 import com.ivandsky.puzzlebox.designsystem.TwoColumnMinWidth
-import com.ivandsky.puzzlebox.designsystem.resultBeat
 import com.ivandsky.puzzlebox.insights.api.InsightsRecapKey
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapPeriod
 import com.ivandsky.puzzlebox.insights.domain.recap.SummarizedPeriod
@@ -101,19 +99,18 @@ private fun HubGrid(
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         item(key = "stats", span = FullSpan) { StatsRow(onOpenStats) }
-        section("YEARS", years, state, selectedId, onTile, firstIndex = 0)
-        section("MONTHS", months, state, selectedId, onTile, firstIndex = years.size)
+        section("YEARS", years, state, selectedId, onTile)
+        section("MONTHS", months, state, selectedId, onTile)
     }
 }
 
-/** A full-width [label] over [items]' tiles, none at all when [items] is empty. [firstIndex] is the first tile's place in the grid. */
+/** A full-width [label] over [items]' tiles, none at all when [items] is empty. */
 private fun LazyGridScope.section(
     label: String,
     items: List<SummarizedPeriod>,
     state: InsightsHubUiState.Ready,
     selectedId: String?,
     onTile: (SummarizedPeriod) -> Unit,
-    firstIndex: Int,
 ) {
     if (items.isEmpty()) return
     item(key = label, span = FullSpan) {
@@ -121,16 +118,12 @@ private fun LazyGridScope.section(
     }
     items(items.size, key = { items[it].period.id }, span = { GridItemSpan(if (items[it].period is RecapPeriod.Year) maxLineSpan else 1) }) { i ->
         val item = items[i]
-        val enters = entersWithGrid(firstIndex + i)
-        val beat = if (enters) Modifier.resultBeat(ResultBeats.Glyph, firstIndex + i) else Modifier
         HubCoverTile(
             item,
             opened = item.period.id in state.opened,
             yearSoFar = state.yearSoFar,
             selected = item.period.id == selectedId,
             onClick = { onTile(item) },
-            modifier = beat,
-            entry = enters,
             // A phone tile opens its story, so the story grows out of it; a tablet tile only selects (the pane opens).
             liftKey = if (selectedId == null) InsightsRecapKey(item.period.id) else null,
         )
@@ -165,9 +158,3 @@ private val HubMaxContentWidth = 1080.dp
 private val TileColumn = 170.dp
 private val StatsRowHeight = 56.dp
 private val RowRadius = 20.dp
-
-/** How many of the grid's first tiles enter with motion: the first screenful, which the eye is on when the hub opens. */
-internal const val ENTERING_TILES = 5
-
-/** True for the tile at [index] in the grid's order when it plays its entry motion; a tile scrolled in later is static. */
-internal fun entersWithGrid(index: Int): Boolean = index < ENTERING_TILES
