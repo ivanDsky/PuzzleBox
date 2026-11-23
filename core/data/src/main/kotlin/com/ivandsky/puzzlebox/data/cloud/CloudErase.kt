@@ -5,7 +5,7 @@ import com.ivandsky.puzzlebox.data.identity.IdentityService
 /**
  * "Delete my cloud data" (ADR-0029 decision 8): wipes [uid]'s cloud space of every kind in
  * [CloudSpaceKinds], then forgets what this install knew about it so a later sign-in uploads everything again. The wipe
- * does not depend on which [kinds] the install registered (a flag can leave one unbound); only the registered ones have
+ * does not depend on which [kinds] the install registered; only the registered ones have
  * upload markers to forget. Local rows stay and keep their owner. The engine runs it under its mutex.
  */
 class CloudErase(
