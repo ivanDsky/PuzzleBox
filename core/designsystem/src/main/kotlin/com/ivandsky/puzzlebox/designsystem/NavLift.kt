@@ -103,6 +103,16 @@ val LocalNavLift = staticCompositionLocalOf<NavLift?> { null }
 /** The nav scene a [navLiftSource] or [navLiftTarget] sits in; the shell provides each scene's. */
 val LocalNavLiftVisibility = compositionLocalOf<AnimatedVisibilityScope?> { null }
 
+// The source card's fade on and off the growing container: the same two transitions for every card, built once.
+private val SourceEnter = fadeIn(
+    tween(
+        (MotionTokens.LiftExit * MotionTokens.MixLiftCardFade).roundToInt(),
+        (MotionTokens.LiftExit * CARD_RETURN_START).roundToInt(),
+        MotionTokens.EasingStandard,
+    ),
+)
+private val SourceExit = fadeOut(tween((MotionTokens.LiftEnter * MotionTokens.MixLiftCardFade).roundToInt(), easing = MotionTokens.EasingStandard))
+
 /**
  * Marks a card the screen keyed [key] lifts out of. The card's own content fades off the
  * growing container over its first [MotionTokens.MixLiftCardFade], and back on late in the
@@ -117,15 +127,12 @@ fun Modifier.navLiftSource(key: Any, scaleContent: Boolean = true): Modifier = c
         lift.register(key)
         onDispose { lift.unregister(key) }
     }
-    val fadeOutMillis = (MotionTokens.LiftEnter * MotionTokens.MixLiftCardFade).roundToInt()
-    val fadeInMillis = (MotionTokens.LiftExit * MotionTokens.MixLiftCardFade).roundToInt()
-    val fadeInDelay = (MotionTokens.LiftExit * CARD_RETURN_START).roundToInt()
     with(lift.sharedScope) {
         this@composed.sharedBounds(
             sharedContentState = rememberSharedContentState(key, lift.config),
             animatedVisibilityScope = visibility,
-            enter = fadeIn(tween(fadeInMillis, fadeInDelay, MotionTokens.EasingStandard)),
-            exit = fadeOut(tween(fadeOutMillis, easing = MotionTokens.EasingStandard)),
+            enter = SourceEnter,
+            exit = SourceExit,
             boundsTransform = lift.boundsTransform,
             resizeMode = scaleToBounds(if (scaleContent) ContentScale.FillWidth else ContentScale.None, Alignment.Center),
             zIndexInOverlay = 1f,

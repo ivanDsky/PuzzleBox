@@ -6,5 +6,10 @@
         <profileable
             android:shell="true"
             tools:targetApi="q" />
+        <!-- Benchmark build only: the Insights journeys seed their solve history through it (BenchmarkSeedProvider). -->
+        <provider
+            android:name="com.ivandsky.puzzlebox.app.benchmark.BenchmarkSeedProvider"
+            android:authorities="${applicationId}.seed"
+            android:exported="true" />
     </application>
 </manifest>

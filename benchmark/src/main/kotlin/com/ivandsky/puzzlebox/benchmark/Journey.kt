@@ -48,12 +48,21 @@ internal sealed interface DataState {
      * stored and its tutorial is seen. Idempotent: a tutorial already seen is not shown again.
      */
     data class Opened(val game: BenchmarkGame) : DataState
+
+    /**
+     * Launched to Today with two years of solved dailies in the install's history (the app's benchmark-build
+     * seed provider, [seedHistory]): the Insights hub lists year and month tiles. The seed skips the newest four
+     * months, so today's puzzles stay unsolved, but it stays in the install: run the journeys that expect an
+     * empty history before this one, or on a fresh install.
+     */
+    data object SeededHistory : DataState
 }
 
 /** Puts [data] in place once the app is on Today; [setup] runs after it. */
 internal fun MacrobenchmarkScope.prepare(data: DataState) = when (data) {
     DataState.OnToday -> Unit
     is DataState.Opened -> skipTutorial(data.game)
+    DataState.SeededHistory -> seedHistory()
 }
 
 /**

@@ -85,7 +85,8 @@ private const val SHEEN_DELAY_MS = 1500
  * tile of Today, or a compact year or month tile of the hub ([RecapTileSize]), where [title] is the period's label
  * and [subtitle] the unit that follows the count. [liftKey], when set, is the nav key of the story the tile opens: the
  * story grows out of the tile ([navLiftSource], text never scaled) and, once it has shrunk back, the kicker pulses once
- * ([navLiftPulse]).
+ * ([navLiftPulse]). [entry] false keeps the entry motion off: a tile a grid scrolls in later shows its final state at once
+ * (no fade, count-up, blur, stamp or sheen), so scrolling composes nothing but the tile.
  */
 @Composable
 fun RecapCoverTile(
@@ -104,13 +105,14 @@ fun RecapCoverTile(
     onDismiss: (() -> Unit)? = null,
     variant: RecapTileSize = RecapTileSize.Full,
     liftKey: Any? = null,
+    entry: Boolean = true,
 ) {
     val field = card.field
     val ink = card.ink
     val plate = card.plate
     val reduced = rememberReducedMotion()
     var played by rememberSaveable(playKey) { mutableStateOf(false) }
-    val play = remember(playKey) { !played && !opened }
+    val play = remember(playKey, entry) { entry && !played && !opened }
     LaunchedEffect(playKey) { played = true }
     val fade = remember(playKey) { Animatable(if (play && reduced) 0f else 1f) }
     LaunchedEffect(play, reduced) { if (play && reduced) fade.animateTo(1f, tween(MotionTokens.ReducedFadeDuration)) }
@@ -121,7 +123,8 @@ fun RecapCoverTile(
             sheen.animateTo(1f, tween(RecapMotion.SheenDuration, easing = MotionTokens.EasingStandard))
         }
     }
-    val background = if (opened) Modifier.background(field) else Modifier.background(Brush.linearGradient(listOf(field, plate)))
+    val brush = remember(field, plate) { Brush.linearGradient(listOf(field, plate)) }
+    val background = if (opened) Modifier.background(field) else Modifier.background(brush)
     val kicker = if (liftKey != null) Modifier.navLiftPulse(liftKey) else Modifier
     Box(
         modifier
@@ -215,13 +218,14 @@ internal fun SolvedCount(
     numberSize: TextUnit = 40.sp,
 ) {
     val shown = if (animate) rememberCountUp(solved.toLong(), NUMBER_DELAY_MS, MotionTokens.ScoreCountUpDuration).toInt() else solved
+    val numberFormat = remember { NumberFormat.getIntegerInstance() }
     val peek = remember(animate) { Animatable(if (animate) 1f else 0f) }
     LaunchedEffect(animate) {
         if (animate) peek.animateTo(0f, tween(MotionTokens.ScoreCountUpDuration, NUMBER_DELAY_MS, MotionTokens.EasingEmphasizedDecelerate))
     }
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.Bottom) {
         Text(
-            NumberFormat.getIntegerInstance().format(shown),
+            numberFormat.format(shown),
             if (peek.value > 0f) Modifier.blur(PeekBlur * peek.value) else Modifier,
             style = MaterialTheme.typography.displaySmall.copy(fontSize = numberSize, fontWeight = FontWeight.Bold).tabular(),
             color = ink,
