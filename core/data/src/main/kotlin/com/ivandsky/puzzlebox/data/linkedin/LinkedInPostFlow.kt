@@ -52,6 +52,7 @@ internal class LinkedInPostFlow(
     private val fetchLog: FetchLogDao,
     private val budget: LinkedInCallBudget,
     private val storeLock: LinkedInStoreLock,
+    private val boardAfterPost: LinkedInBoardAfterPost,
     private val scope: CoroutineScope,
 ) : LinkedInPosts {
 
@@ -119,7 +120,10 @@ internal class LinkedInPostFlow(
         val fresh = scope.async(start = CoroutineStart.LAZY) {
             var outcome: LinkedInPostState? = null
             try {
-                post(key).also { outcome = it }
+                post(key).also {
+                    outcome = it
+                    scope.readBoardAfterPost(boardAfterPost, it, key.game, key.day, key.profileId)
+                }
             } finally {
                 // Released and told in one step, so the button never shows Ready between Sending and the outcome.
                 val told = outcome?.takeIf { it in UNSTORED }

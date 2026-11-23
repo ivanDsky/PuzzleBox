@@ -160,7 +160,7 @@ val dataModule = module {
     single<SkippedPosts> { DataStoreSkippedPosts(get()) }
     single<HiddenPuzzles> { DataStoreHiddenPuzzles(get()) }
     single<LinkedInLink> { DataStoreLinkedInLink(get(), get(), get(), get(), get()) }
-    single<LinkedInDays> {
+    single {
         RoomLinkedInDays(
             link = get(), source = get(), completions = get(), daily = get(), calendar = get(),
             registry = get(), db = get(), budget = get(), avatars = get(), storeLock = get(), postLog = LinkedInPostLog(get()),
@@ -168,12 +168,13 @@ val dataModule = module {
             clock = System::currentTimeMillis,
         )
     }
+    single<LinkedInDays> { get<RoomLinkedInDays>() }
     // The post runs in the app's scope: it may be on the wire when the result page is left, and must still be recorded.
     single<LinkedInPosts> {
         LinkedInPostFlow(
             link = get(), source = get(), poster = get(), completions = get(), daily = get(), calendar = get(),
             registry = get(), log = LinkedInPostLog(get()), fetchLog = get(), budget = get(), storeLock = get(),
-            scope = get<CoroutineScope>(),
+            boardAfterPost = get<RoomLinkedInDays>(), scope = get<CoroutineScope>(),
         )
     }
     single<LinkedInAccount> { RoomLinkedInAccount(link = get(), db = get(), avatars = get(), ownerScope = get()) }

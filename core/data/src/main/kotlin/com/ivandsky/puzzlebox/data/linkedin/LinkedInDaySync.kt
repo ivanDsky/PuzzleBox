@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.database.linkedin.FetchLogDao
 import com.ivandsky.puzzlebox.database.linkedin.FetchLogEntity
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInAccountSource
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInBoard
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInOwnResult
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead
 import com.ivandsky.puzzlebox.model.GameId
@@ -87,9 +88,32 @@ internal class LinkedInDaySync(
         }
     }
 
-    /** Null when the board is done (read, or not due); else the result that ends the sync. */
-    private suspend fun syncBoard(request: Request, todayNumber: Int): LinkedInSync? {
-        if (!due(request, LinkedInItem.Board, clock())) return null
+    /**
+     * Reads the board now, the day's own result having just landed on LinkedIn: unlike [sync] it does not ask the
+     * cache window, since a board read before the result was there says nothing of the connections.
+     */
+    suspend fun readBoardAfterPost(game: GameId, day: LocalDate, profileId: String): LinkedInBoardAfterPost.Result {
+        val readable = readable(game, day) ?: return LinkedInBoardAfterPost.Result.NotRead
+        val request = Request(game, day, readable.delta, profileId, readable.typeId)
+        if (!window.inBoardWindow(request.delta)) return LinkedInBoardAfterPost.Result.NotRead
+        val todayNumber = daily.puzzleNumber(game, request.today) ?: return LinkedInBoardAfterPost.Result.NotRead
+        var listed = false
+        val ended = syncBoard(request, todayNumber, force = true) { board -> listed = board.rows.any { it.memberRef == profileId } }
+        return when {
+            ended != null -> LinkedInBoardAfterPost.Result.NotRead
+            listed -> LinkedInBoardAfterPost.Result.Published
+            else -> LinkedInBoardAfterPost.Result.NotYet
+        }
+    }
+
+    /** Null when the board is done (read, or not due and not [force]d); else the result that ends the sync. */
+    private suspend fun syncBoard(
+        request: Request,
+        todayNumber: Int,
+        force: Boolean = false,
+        stored: (LinkedInBoard) -> Unit = {},
+    ): LinkedInSync? {
+        if (!force && !due(request, LinkedInItem.Board, clock())) return null
         awaitSlot(request)?.let { return it }
         val nowMs = clock()
         val read = source.board(request.profileId, request.typeId, todayNumber, request.delta)
@@ -104,6 +128,7 @@ internal class LinkedInDaySync(
             // A board read while its day is still running is partial; the outcome marks it for one more read.
             val outcome = if (request.delta == 0) LinkedInOutcome.BoardToday else LinkedInOutcome.Board
             log(request, LinkedInItem.Board, outcome, nowMs)
+            stored(board)
             null
         }
     }

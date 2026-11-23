@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInAccountSource
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInBoard
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInGamePage
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInProgress
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInOwnResult
@@ -23,6 +24,7 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
+import com.ivandsky.puzzlebox.testing.cloud.FakeOwnerScope
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInAccountSource
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInResultPoster
@@ -48,7 +50,7 @@ import org.robolectric.RuntimeEnvironment
  */
 internal class LinkedInPostRig(
     private val test: TestScope,
-    root: File,
+    private val root: File,
     cookies: LinkedInSessionCookies = FakeLinkedInSessionCookies(null),
     callLimit: Int = 100,
 ) {
@@ -98,6 +100,10 @@ internal class LinkedInPostRig(
         fetchLog = db.fetchLogDao(),
         budget = budget,
         storeLock = storeLock,
+        boardAfterPost = RoomLinkedInDays(
+            link, source, completions, daily, calendar, registry, db, budget, testAvatars(File(root, "linkedin_avatars")), storeLock,
+            LinkedInPostLog(data), FakeOwnerScope(),
+        ) { NOW },
         scope = CoroutineScope(test.backgroundScope.coroutineContext + SupervisorJob(test.backgroundScope.coroutineContext.job)),
     )
 
@@ -124,6 +130,23 @@ internal class LinkedInPostRig(
 
     suspend fun ownRead(): FetchLogEntity? = db.fetchLogDao().get("fixture", "2026-11-05", "Own", "me")
 
+    /** Today has a puzzle number, so its board can be addressed, and LinkedIn answers the board read with [board]. */
+    fun boardable(board: LinkedInRead<LinkedInBoard> = LinkedInRead.Ok(BOARD)) {
+        daily.setPuzzleNumbers(game) { 712 }
+        source.respondBoard("me", 6, 712, 0, board)
+    }
+
+    /** The day's board as the day card's sync left it. */
+    suspend fun logBoardRead(fetchedAtMs: Long) {
+        db.fetchLogDao().put(FetchLogEntity("fixture", "2026-11-05", "Board", "me", fetchedAtMs = fetchedAtMs, outcome = "BoardToday"))
+    }
+
+    /** Every board read so far. */
+    val boardReads: Int get() = source.calls.count { it.startsWith("board:") }
+
+    /** The connections the stored board of today holds, by member. */
+    suspend fun storedGhosts(): List<String> = db.ghostDao().board("fixture", "2026-11-05").map { it.memberRef }
+
     fun close() {
         process.cancel()
         db.close()
@@ -147,6 +170,13 @@ internal class LinkedInPostRig(
             totalPlays = 40,
             wins = 38,
             requestTime = 1_762_300_800_000,
+        )
+        /** A board that holds the player's own row, as LinkedIn serves it once the day's result is there, and one connection. */
+        val BOARD = LinkedInBoard(
+            listOf(
+                LinkedInBoard.Row("friend", "Friend", timeSeconds = 70, hintFree = true, flawless = true),
+                LinkedInBoard.Row("me", "Me", timeSeconds = 83, hintFree = true, flawless = true),
+            ),
         )
         val POST = LinkedInPost(
             gamePath = "games/fixture/",
