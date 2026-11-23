@@ -78,7 +78,7 @@ val appModule = module {
         )
     }
     single { DailyReplayPublisher(publish = get<SubmitDailyReplay>(), scope = get<CoroutineScope>()) }
-    // The weekly rank history filler (Insights): started only while the stats page or the year recap is on.
+    // The weekly rank history filler (Insights): started with the app.
     single {
         RankHistoryStarter(fill = get<SyncRankHistory>()::invoke, scope = get<CoroutineScope>())
     }
