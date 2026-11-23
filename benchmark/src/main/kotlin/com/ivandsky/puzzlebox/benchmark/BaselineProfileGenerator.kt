@@ -7,9 +7,11 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
+private const val HUB_FLINGS = 2
+
 /**
- * Generates the baseline profile from the critical journeys: cold start, all four tabs, and every
- * game's page and board. Run on demand with `connectedBenchmarkAndroidTest` and
+ * Generates the baseline profile from the critical journeys: cold start, all four tabs, every
+ * game's page and board, and the Insights hub's grid scroll. Run on demand with `connectedBenchmarkAndroidTest` and
  * `-Ppuzzlebox.baselineProfileGeneration=true`; its filtered output is the committed
  * `app/src/main/baseline-prof.txt` (command and filter in `benchmark/README.md`).
  */
@@ -30,6 +32,11 @@ class BaselineProfileGenerator {
             startBoard()
             leaveGame()
         }
+        selectTab(BenchmarkTab.Today)
+        seedHistory()
+        openInsightsHub()
+        flingHub(HUB_FLINGS)
+        leaveInsightsHub()
         selectTab(BenchmarkTab.Ranks)
         tap(RANKS_WHEN_CHIP)
         tap(By.desc("Close"))

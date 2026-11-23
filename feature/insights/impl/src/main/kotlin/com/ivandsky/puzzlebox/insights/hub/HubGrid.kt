@@ -121,7 +121,8 @@ private fun LazyGridScope.section(
     }
     items(items.size, key = { items[it].period.id }, span = { GridItemSpan(if (items[it].period is RecapPeriod.Year) maxLineSpan else 1) }) { i ->
         val item = items[i]
-        val beat = if (firstIndex + i < ENTERING_TILES) Modifier.resultBeat(ResultBeats.Glyph, firstIndex + i) else Modifier
+        val enters = entersWithGrid(firstIndex + i)
+        val beat = if (enters) Modifier.resultBeat(ResultBeats.Glyph, firstIndex + i) else Modifier
         HubCoverTile(
             item,
             opened = item.period.id in state.opened,
@@ -129,6 +130,7 @@ private fun LazyGridScope.section(
             selected = item.period.id == selectedId,
             onClick = { onTile(item) },
             modifier = beat,
+            entry = enters,
             // A phone tile opens its story, so the story grows out of it; a tablet tile only selects (the pane opens).
             liftKey = if (selectedId == null) InsightsRecapKey(item.period.id) else null,
         )
@@ -163,4 +165,9 @@ private val HubMaxContentWidth = 1080.dp
 private val TileColumn = 170.dp
 private val StatsRowHeight = 56.dp
 private val RowRadius = 20.dp
-private const val ENTERING_TILES = 5
+
+/** How many of the grid's first tiles enter with motion: the first screenful, which the eye is on when the hub opens. */
+internal const val ENTERING_TILES = 5
+
+/** True for the tile at [index] in the grid's order when it plays its entry motion; a tile scrolled in later is static. */
+internal fun entersWithGrid(index: Int): Boolean = index < ENTERING_TILES

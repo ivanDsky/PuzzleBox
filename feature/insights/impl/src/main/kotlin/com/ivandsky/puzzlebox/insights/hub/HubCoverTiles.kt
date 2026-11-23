@@ -32,9 +32,13 @@ internal val SummarizedPeriod.kind: String get() = if (period is RecapPeriod.Yea
 internal fun SummarizedPeriod.art(ink: Color): RecapTileArt {
     if (period is RecapPeriod.Year) return RecapTileArt.Bars(summary.months, ink)
     val brands = LocalGameBrands.current
-    val colors = remember(summary.byGame, brands) { summary.byGame.associate { it.first to brands(it.first).accent } }
-    val cells = remember(period.id, summary.byGame) { recapMosaic(summary.byGame, period.id) }
-    return RecapTileArt.Mosaic(cells.map { game -> colors[game]?.colors()?.accent ?: Color.Gray }, empty = ink)
+    // The theme's accent per game is a composition read, so it is read here (one lookup per game, at most five) and
+    // the 25 cell colors are derived only when the games, their accents or the ink change.
+    val accents = summary.byGame.map { (game, _) -> brands(game).accent.colors().accent }
+    return remember(period.id, summary.byGame, accents, ink) {
+        val colors = summary.byGame.map { it.first }.zip(accents).toMap()
+        RecapTileArt.Mosaic(recapMosaic(summary.byGame, period.id).map { game -> colors[game] ?: Color.Gray }, empty = ink)
+    }
 }
 
 /** What a screen reader says of the period's tile or pane: it opens the recap, with the count and, if unwatched, "new". */
@@ -42,10 +46,14 @@ internal fun SummarizedPeriod.description(opened: Boolean): String =
     "Open your ${period.label()} recap. ${NumberFormat.getIntegerInstance().format(summary.solved)} puzzles solved." +
         if (opened) "" else " New."
 
+/** [description], worded once per period and watched state instead of on every recomposition of a scrolling tile. */
+@Composable
+private fun SummarizedPeriod.rememberedDescription(opened: Boolean): String = remember(this, opened) { description(opened) }
+
 /**
  * One period's compact tile: a year (bars, "N so far" for the running year) or a month (mosaic). [selected] outlines it
  * on a tablet, where a tap selects; [yearSoFar] is the running year, if its tile is listed. [liftKey]: the story key the
- * tile opens and grows ([RecapCoverTile]).
+ * tile opens and grows ([RecapCoverTile]). [entry] is whether it plays its entry motion.
  */
 @Composable
 internal fun HubCoverTile(
@@ -56,6 +64,7 @@ internal fun HubCoverTile(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     liftKey: Any? = null,
+    entry: Boolean = true,
 ) {
     val period = item.period
     val card = item.card
@@ -70,12 +79,13 @@ internal fun HubCoverTile(
         art = item.art(ink),
         opened = opened,
         playKey = period.id,
-        description = item.description(opened),
+        description = item.rememberedDescription(opened),
         onOpen = onClick,
         tag = "insights.hub.${item.kind}.${period.id}",
         modifier = modifier.then(outline),
         variant = if (year) RecapTileSize.Year else RecapTileSize.Month,
         liftKey = liftKey,
+        entry = entry,
     )
 }
 

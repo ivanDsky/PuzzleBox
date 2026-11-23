@@ -24,7 +24,8 @@ journey names.
 | `ArchiveBenchmark` | calendar day taps and month arrows | `OnToday` | frame timing |
 | `RanksBenchmark` | open, Who/When sheet, day arrows, board swipes | `OnToday` | frame timing |
 | `ZipDragBenchmark` | drag from 1 toward 2 on the board, Clear, three times | `Opened(Zip)` | frame timing |
-| `BaselineProfileGenerator` | cold start, tabs, every game board | no data state: the install's data, so class order in the run matters | writes a profile; `app/src/main/baseline-prof.txt` is its filtered copy |
+| `InsightsHubBenchmark` | scroll: four flings down and four up the hub grid; openAndScroll: Profile, Insights, the same flings, Back | `SeededHistory`: two years of solved dailies | frame timing |
+| `BaselineProfileGenerator` | cold start, tabs, every game board, the Insights hub | no declared data state; it seeds the history itself before the hub, so class order in the run matters | writes a profile; `app/src/main/baseline-prof.txt` is its filtered copy |
 
 Frame timing reports `frameDurationCpuMs` and `frameOverrunMs` as P50, P90, P99. No journey finishes
 a puzzle. Selectors are text and content descriptions; the app has no benchmark test tags.
@@ -65,10 +66,16 @@ shows "See result" instead of Play, and the journeys stop there.
 `GameOpenBenchmark` measures the stored open only. There is no unstored variant here: the Today launch
 stores today's puzzles for all five games before the measured block (Home and Games prefetch), and a
 first Play always opens the tutorial, so an unstored open cannot be reached from this module without an
-app hook. The unstored path is covered by the JVM tests `ActivePlayBoardFirstTest`, `SlotOpeningTest`
+app hook (the history seed above is the one benchmark-only hook). The unstored path is covered by the JVM tests `ActivePlayBoardFirstTest`, `SlotOpeningTest`
 and `RealGamesBoardFirstTest`, plus a visual check on the Pixel.
 
-Startup and the baseline profile declare no data state: they measure the install's data as it is.
+`SeededHistory` is the one data state that writes: it calls the benchmark build's `BenchmarkSeedProvider`
+(`app/src/benchmark`, not in the release or debug builds), which stores a solved daily for most days of 26 months
+through the app's own completion repository, skipping days already stored and the four newest months, so today and
+the archive's current months stay unsolved. The seed stays in the install, so run `InsightsHubBenchmark` last or on a
+fresh install; a journey that needs untouched history reads it differently from then on.
+
+Startup declares no data state: it measures the install's data as it is. The baseline profile generator declares none either but calls the same history seed before it opens the hub.
 
 A journey never holds a `UiObject2` across a wait or a transition; it finds and acts in one `poll`,
 which finds the node again when a recomposition makes it stale.
