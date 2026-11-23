@@ -20,7 +20,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
-/** The See all page's view model over the real use cases and the fakes: scope, search, filters, sort and the no-match state. */
+/** The See all page's view model over the real use cases and the fakes: scope, search, filters, the newest-first order and the no-match state. */
 class SeeAllViewModelTest {
 
     private val fixture = SeeAllFixture()
@@ -186,39 +186,14 @@ class SeeAllViewModelTest {
     }
 
     @Test
-    fun `with no solve counts yet the only sort is Newest`() = runTest {
-        fixture.publish(1)
-
-        val viewModel = fixture.viewModel().opened(SeeAllScope.MostPlayed)
-
-        assertEquals(listOf(SeeAllSort.Newest), viewModel.state.value.sortOptions)
-        assertEquals(SeeAllSort.Newest, viewModel.state.value.sort)
-    }
-
-    @Test
-    fun `with solve counts the sorts are Most played and Newest, and Most played has the most solved first`() = runTest {
+    fun `every page lists newest first, even when puzzles carry solve counts`() = runTest {
         fixture.publish(1, agoMs = 1_000, solves = 2)
         fixture.publish(2, agoMs = 2_000, solves = 9)
         fixture.publish(3, agoMs = 3_000)
-        val viewModel = fixture.viewModel().opened(SeeAllScope.MostPlayed)
 
-        assertEquals(listOf(SeeAllSort.MostPlayed, SeeAllSort.Newest), viewModel.state.value.sortOptions)
-        assertEquals(SeeAllSort.MostPlayed, viewModel.state.value.sort)
-        assertEquals(listOf(code(2), code(1), code(3)), viewModel.codes())
-
-        viewModel.setSort(SeeAllSort.Newest)
-        assertEquals(listOf(code(1), code(2), code(3)), viewModel.codes())
-    }
-
-    @Test
-    fun `Newest opens on Newest even when there are solve counts`() = runTest {
-        fixture.publish(1, agoMs = 1_000, solves = 2)
-        fixture.publish(2, agoMs = 2_000, solves = 9)
-
-        val viewModel = fixture.viewModel().opened(SeeAllScope.Newest)
-
-        assertEquals(SeeAllSort.Newest, viewModel.state.value.sort)
-        assertEquals(listOf(code(1), code(2)), viewModel.codes())
+        listOf(SeeAllScope.MostPlayed, SeeAllScope.Newest, SeeAllScope.Search, SeeAllScope.Game(ALPHA)).forEach { scope ->
+            assertEquals(scope.toString(), listOf(code(1), code(2), code(3)), fixture.viewModel().opened(scope).codes())
+        }
     }
 
     @Test
@@ -242,11 +217,10 @@ class SeeAllViewModelTest {
     }
 
     @Test
-    fun `Clear filters drops the query, the game and the difficulty and keeps the sort`() = runTest {
+    fun `Clear filters drops the query, the game and the difficulty`() = runTest {
         fixture.publish(1, title = "Sunny", solves = 1)
         fixture.publish(2, title = "Night", game = BETA, difficulty = Level.Easy)
         val viewModel = fixture.viewModel().opened(SeeAllScope.Search)
-        viewModel.setSort(SeeAllSort.Newest)
         viewModel.setQuery("zzz")
         viewModel.setGame(BETA)
         viewModel.setDifficulty(DifficultyChoice.Hard)
@@ -259,7 +233,6 @@ class SeeAllViewModelTest {
         assertNull(state.game)
         assertNull(state.difficulty)
         assertFalse(state.noMatch)
-        assertEquals(SeeAllSort.Newest, state.sort)
         assertEquals(2, viewModel.codes().size)
     }
 
@@ -283,7 +256,6 @@ class SeeAllViewModelTest {
         val viewModel = fixture.viewModel().opened(SeeAllScope.Search)
         viewModel.setQuery("sun")
         viewModel.setDifficulty(DifficultyChoice.Easy)
-        viewModel.setSort(SeeAllSort.Newest)
 
         viewModel.open(SeeAllScope.Search)
 
@@ -315,7 +287,7 @@ class SeeAllViewModelTest {
     }
 
     @Test
-    fun `From friends keeps the friends' own order and offers no sort`() = runTest {
+    fun `From friends keeps the friends' own order`() = runTest {
         // Friend 2 is also in the community list and newest there, yet the friends' order (newest opened first) has 9 first.
         fixture.publish(2, agoMs = 1_000)
         fixture.receive(9, title = "Old friend", openedAtMs = NOW)
@@ -324,7 +296,6 @@ class SeeAllViewModelTest {
         val viewModel = fixture.viewModel().opened(SeeAllScope.Friends)
 
         assertEquals(listOf(code(9), code(2)), viewModel.codes())
-        assertTrue(viewModel.state.value.sortOptions.isEmpty())
     }
 
     @Test

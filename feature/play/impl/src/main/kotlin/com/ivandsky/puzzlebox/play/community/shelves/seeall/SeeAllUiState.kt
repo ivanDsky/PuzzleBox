@@ -22,9 +22,8 @@ internal sealed interface SeeAllPhase {
 }
 
 /**
- * A See all page: its [scope] and what the player typed ([query]) and picked ([game], [difficulty], [sort]) over the
- * loaded puzzles, as the [phase]. [sortOptions] is every order the loaded puzzles can be put in, [showGameFilter] is
- * false on a game's own page, and [noMatch] is true when the query or a filter leaves nothing of a scope that has puzzles.
+ * A See all page: its [scope] and what the player typed ([query]) and picked ([game], [difficulty]) over the
+ * loaded puzzles, as the [phase]. [showGameFilter] is false on a game's own page, and [noMatch] is true when the query or a filter leaves nothing of a scope that has puzzles.
  * [signInPrompt] is the dialog a signed-out Report opens, with [signIn] saying how the last try went.
  */
 internal data class SeeAllUiState(
@@ -33,8 +32,6 @@ internal data class SeeAllUiState(
     val query: String = "",
     val game: GameId? = null,
     val difficulty: DifficultyChoice? = null,
-    val sort: SeeAllSort = SeeAllSort.Newest,
-    val sortOptions: List<SeeAllSort> = listOf(SeeAllSort.Newest),
     val games: List<GameChoice> = emptyList(),
     val showGameFilter: Boolean = true,
     val noMatch: Boolean = false,

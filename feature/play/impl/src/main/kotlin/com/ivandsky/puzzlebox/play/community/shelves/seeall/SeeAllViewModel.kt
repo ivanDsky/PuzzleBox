@@ -35,11 +35,9 @@ private const val FRIEND_AGE = "sent to you"
 /**
  * The See all page of the shelves home: one page for Most played, Newest, a game, From friends and Search ([open] picks
  * which). It lists the community's newest puzzles of any age (one read through [list], capped at 30 by the repository, no
- * paging), narrowed by a query over title, author and game name and by a game and a difficulty, in the order the sort
- * menu has. The shelves home does not keep its puzzles' age, game or solve count, so this reads the list once for the
+ * paging), narrowed by a query over title, author and game name and by a game and a difficulty, newest first. The shelves home does not keep its puzzles' age, game or solve count, so this reads the list once for the
  * first page opened and again on [retry]; every page after it reuses what was read.
  *
- * Until a puzzle in the list has a solve count the only sort is Newest; once one has, Most played is offered too.
  * From friends is the puzzles the player's friends sent ([friendPuzzles], local data, so it works offline); one that is
  * also in the community list keeps that list's level and age. A puzzle of a game this build cannot make is left out of
  * the community list.
@@ -79,7 +77,7 @@ internal class SeeAllViewModel(
         .stateIn(viewModelScope, SharingStarted.Eagerly, SeeAllUiState(games = choices))
 
     /**
-     * Opens [page]: clean (no query, no filters, its own sort) when it is another page or another [visit] (the page was
+     * Opens [page]: clean (no query, no filters) when it is another page or another [visit] (the page was
      * closed in between), and as it was left when the same page opens again, as after a rotation or a return from a
      * row. The community list is read when nothing good is held yet.
      */
@@ -96,9 +94,7 @@ internal class SeeAllViewModel(
 
     fun setDifficulty(difficulty: DifficultyChoice?) = filters.update { it.copy(difficulty = difficulty) }
 
-    fun setSort(sort: SeeAllSort) = filters.update { it.copy(sort = sort) }
-
-    /** Drops the query, the game and the difficulty; the sort stays. */
+    /** Drops the query, the game and the difficulty. */
     fun clearFilters() = filters.update { it.copy(query = "", game = null, difficulty = null) }
 
     /** Reads the community list again; Retry after an offline or refused list. */
@@ -131,7 +127,7 @@ internal class SeeAllViewModel(
                     result.puzzles.filter { GameId(it.gameId) in shipped }.map {
                         val game = GameId(it.gameId)
                         val row = it.toRow(games.displayName(game), plays.brandOf(game), clock())
-                        SeeAllEntry(row, game, it.createdAtMs, it.solves)
+                        SeeAllEntry(row, game, it.createdAtMs)
                     },
                 )
             }
@@ -141,11 +137,9 @@ internal class SeeAllViewModel(
     private fun stateOf(page: Page, friends: List<FriendPuzzleRow>, report: SeeAllReportState): SeeAllUiState {
         val community = (page.read as? Loaded.Listed)?.entries.orEmpty().filter { it.row.code !in page.dropped }
         val everything = if (page.scope == SeeAllScope.Friends) friendEntries(friends, community) else community.inScope(page.scope)
-        // From friends is the friends' own order (non-solved first, newest opened first), so it has no sort menu.
+        // From friends is the friends' own order (non-solved first, newest opened first); every other page is newest first.
         val friendsPage = page.scope == SeeAllScope.Friends
-        val options = if (friendsPage) emptyList() else sortOptionsOf(community)
-        val sort = page.filters.sort?.takeIf { it in options } ?: defaultSortOf(page.scope, options)
-        val shown = if (friendsPage) everything.narrowed(page.filters) else everything.selected(page.filters, sort)
+        val shown = if (friendsPage) everything.narrowed(page.filters) else everything.selected(page.filters)
         val phase = when {
             page.scope == null || page.scope != SeeAllScope.Friends && page.read == Loaded.Reading -> SeeAllPhase.Loading
             page.scope != SeeAllScope.Friends && page.read == Loaded.Offline -> SeeAllPhase.Offline
@@ -158,8 +152,6 @@ internal class SeeAllViewModel(
             query = page.filters.query,
             game = page.filters.game,
             difficulty = page.filters.difficulty,
-            sort = sort,
-            sortOptions = options,
             games = choices,
             showGameFilter = page.scope !is SeeAllScope.Game,
             noMatch = phase is SeeAllPhase.Ready && shown.isEmpty() && everything.isNotEmpty() && page.filters.narrowing,
@@ -173,7 +165,7 @@ internal class SeeAllViewModel(
     private fun friendEntries(friends: List<FriendPuzzleRow>, community: List<SeeAllEntry>): List<SeeAllEntry> {
         val byCode = community.associateBy { it.row.code }
         return friends.map { friend ->
-            byCode[friend.code] ?: SeeAllEntry(friend.toRow(), friend.gameId, createdAtMs = null, solves = null)
+            byCode[friend.code] ?: SeeAllEntry(friend.toRow(), friend.gameId, createdAtMs = null)
         }
     }
 
