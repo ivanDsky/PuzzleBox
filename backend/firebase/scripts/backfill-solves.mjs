@@ -3,9 +3,8 @@
 // puzzles/{code}/entries. The Admin SDK skips the rules, which let a client move `solves` only by +1 beside its
 // own first entry, so a recount can never run on a client.
 //
-// Order: deploy the rules, run this, then flip PlayFlag.SolveCounter. With the flag still off no client bumps,
-// so the count stays exact while this runs. A rerun is safe only while the flag is off (a puzzle whose stored count already
-// matches is skipped); after the flip the count()-then-write gap can drop a live bump, so never rerun it then.
+// Order: deploy the rules, run this once. Every current client bumps beside its first entry, so the count()-then-write
+// gap can drop a live bump on a rerun (a puzzle whose stored count already matches is skipped); never rerun it.
 //
 // Dry run by default; --write applies. The project id is required, never inferred:
 //   npm i --no-save firebase-admin

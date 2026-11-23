@@ -462,7 +462,7 @@ any module but `:core:data` (and `:app` test configurations) → `:core:database
   tagging a leg solve with its match), `friend/` (a friend's puzzle: `FromFriendsSection`,
   `EnterCodeSheet`, `FriendPuzzleRoute`, `CustomResultRoute`), `di/PlayModule`; `navigation/PlayEntries` (`playEntry`,
   `resultEntry`) and `navigation/GameEntry`; `random/` (`RandomPuzzleSheet`, the picker a game page's Random chip opens: `RandomPuzzleViewModel` picks one past day or New today puzzle by game and difficulty, a pick plays through `onPlay` or opens a card through `onOpenCode`); `GameStatsPanel` is the tablet side panel's content (`PlayStatsPanel`: timer, today's progress and the day board).
-  `flags/PlayFlag` (`ArchiveMonthSwipe`, `ResultHeroPolish`, `ZipDotPulse`, `MakeOwnLink`; the `play` set). `domain/`
+  `domain/`
   (`com.ivandsky.puzzlebox.play.domain`, the use cases only play reads): `LoadPastDay` (a past day by date — cached, or
   fetched once for an archive game — → the game's session blob as `PastDayOutcome`), `ObservePlayStats` (one slot's tablet
   side-panel data → `PlayStats`), `nextUnsolved`, the archive reads `ObserveArchiveMonth`/`ObserveArchiveProgress`,

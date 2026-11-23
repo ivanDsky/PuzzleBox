@@ -23,13 +23,13 @@ import org.junit.Test
  * it resolves to another symbol, and two flag enums with one simple name share their qualified reads.
  * `valueOf("<Entry>")` and a read through a variable that holds an entry are not seen. Any reference counts as a
  * reader, whether it gates a branch or only lists the entry. A dark entry with no reader is never flagged, however
- * long it waits. A tree with no flag enum at all fails as an empty scope.
+ * long it waits. A real tree with no flag enum is clean (the fixture test keeps the rule honest); a fixture with none fails as an empty scope.
  * Contract and allowlist rules: ADR-0009 (docs/adr/0009-in-module-structure-rules.md); flag lifecycle: ADR-0022.
  */
 class P13ReleaseFlagReadersTest {
     @Test
     fun `P13 real tree is clean against allowlist`() {
-        RuleCheck.assertClean(P13ReleaseFlagReaders)
+        RuleCheck.assertCleanWhenScopeMayBeEmpty(P13ReleaseFlagReaders)
     }
 
     @Test

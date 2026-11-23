@@ -22,10 +22,10 @@ internal interface CustomBoardStore {
     fun observeEntries(code: String, orderBy: List<String>, limit: Long): Flow<List<Map<String, Any?>>>
 
     /**
-     * Creates the uid's entry iff absent; returns the existing doc's fields, or null when created. When [countSolve],
-     * the create also bumps `puzzles/{code}.solves` by one in the same write (#2032); a repeat bumps nothing.
+     * Creates the uid's entry iff absent; returns the existing doc's fields, or null when created. The create also bumps
+     * `puzzles/{code}.solves` by one in the same write (#2032); a repeat bumps nothing.
      */
-    suspend fun createIfAbsent(code: String, uid: String, data: Map<String, Any?>, countSolve: Boolean): Map<String, Any?>?
+    suspend fun createIfAbsent(code: String, uid: String, data: Map<String, Any?>): Map<String, Any?>?
 
     /** Server-side count() of the board's entries. */
     suspend fun count(code: String): Long
@@ -69,7 +69,6 @@ internal class FirestoreCustomBoardStore : CustomBoardStore {
         code: String,
         uid: String,
         data: Map<String, Any?>,
-        countSolve: Boolean,
     ): Map<String, Any?>? {
         val doc = entries(code).document(uid)
         return firestore.runTransaction(SINGLE_ATTEMPT) { tx ->
@@ -79,7 +78,7 @@ internal class FirestoreCustomBoardStore : CustomBoardStore {
             } else {
                 tx.set(doc, data)
                 // The rules see the increment resolved, so it is checked as exactly the stored count + 1.
-                if (countSolve) tx.update(firestore.collection(PUZZLES).document(code), SOLVES, FieldValue.increment(1))
+                tx.update(firestore.collection(PUZZLES).document(code), SOLVES, FieldValue.increment(1))
                 null
             }
         }.await()

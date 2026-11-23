@@ -9,7 +9,6 @@ import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.replay.DailyReplayRepository
 import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
-import com.ivandsky.puzzlebox.data.repository.SolveCounterSwitch
 import com.ivandsky.puzzlebox.data.visibility.VisibilityRepository
 import kotlinx.coroutines.CoroutineScope
 import org.koin.dsl.module
@@ -54,8 +53,6 @@ val firebaseBackendModule = module {
         FirestoreCustomBoardRepository(
             store = get(),
             currentUid = { get<IdentityService>().current.value?.uid },
-            // Bound by the play feature (PlayFlag.SolveCounter); a graph without it counts nothing.
-            countSolves = { getOrNull<SolveCounterSwitch>()?.isOn() == true },
         )
     }
     single<MatchStore> { FirestoreMatchStore() }

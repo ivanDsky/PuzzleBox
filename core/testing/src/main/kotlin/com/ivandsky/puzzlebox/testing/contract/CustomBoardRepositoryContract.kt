@@ -30,9 +30,6 @@ abstract class CustomBoardRepositoryContract {
     /** Cuts the backend off for the calls that follow. */
     protected abstract fun goOffline()
 
-    /** Turns the solve counter (#2032, PlayFlag.SolveCounter) on or off for the submits that follow; it starts off. */
-    protected abstract fun countSolves(on: Boolean)
-
     /** The puzzle doc's `solves` field as the server holds it; null while the field is absent. */
     protected abstract fun solvesField(code: ShareCode): Int?
 
@@ -93,15 +90,7 @@ abstract class CustomBoardRepositoryContract {
     }
 
     @Test
-    fun withTheCounterOffASubmitLeavesTheSolvesFieldAbsent() = runTest {
-        submitAll(FAST_MANY_HINTS, MIDDLE)
-
-        assertNull(solvesField(code()))
-    }
-
-    @Test
-    fun withTheCounterOnEachFirstSubmitBumpsSolvesByOneAndARepeatDoesNot() = runTest {
-        countSolves(true)
+    fun eachFirstSubmitBumpsSolvesByOneAndARepeatDoesNot() = runTest {
         submitAll(FAST_MANY_HINTS)
         assertEquals(1, solvesField(code()))
 
@@ -115,7 +104,6 @@ abstract class CustomBoardRepositoryContract {
 
     @Test
     fun aFailedSubmitBumpsNothing() = runTest {
-        countSolves(true)
         signOut()
         repository.submit(code(), MIDDLE)
         signInAs(MIDDLE.uid)
