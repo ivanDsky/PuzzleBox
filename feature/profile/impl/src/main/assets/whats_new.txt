@@ -2,6 +2,13 @@
 # A release adds its entry at the top in the same commit as its version bump.
 # "## <version> <date>" starts a release; "- " starts a note; "#" lines are comments.
 
+## 0.42.0 2026-11-23
+- Community is now a shelves home: the newest puzzles, a spotlight and a shelf per game, with Friends and Your puzzles one tap away and See all pages that search and filter.
+- A round New puzzle button floats over Community, so making a puzzle is always one tap away.
+- A shared puzzle now counts how many people solved it.
+- Stats group your records by game and period, and the Insights hub scrolls smoothly.
+- The trainer explains each technique in plainer words, and your Train progress syncs between your devices.
+
 ## 0.41.0 2026-11-22
 - A new Train tab teaches the tricks behind Queens, Tango and Mini Sudoku. Pick a technique and it shows you the idea on a small board first.
 - Then you practise: find the next move on a board played to the end, step by step, with a short explanation after each move.
