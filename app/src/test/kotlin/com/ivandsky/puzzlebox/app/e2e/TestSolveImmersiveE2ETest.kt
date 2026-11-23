@@ -32,7 +32,7 @@ class TestSolveImmersiveE2ETest {
 
             tapTab(CommunityKey)
             assertRoute(COMMUNITY)
-            tap(TAB_YOURS)
+            tap(ENTRY_YOURS)
             awaitTag(DRAFT_ROW)
             tap(DRAFT_ROW)
             assertRoute(EDITOR)
@@ -48,7 +48,8 @@ class TestSolveImmersiveE2ETest {
         const val LIBRARY = "route.library"
         const val COMMUNITY = "route.community"
         const val EDITOR = "route.editor"
-        const val TAB_YOURS = "community.tab.yours"
+        /** The shelves home's Yours entry: shipped, the Community tab has no Yours tab. */
+        const val ENTRY_YOURS = "shelves.entry.yours"
         const val DRAFT_ROW = "create.draft.row"
     }
 }
