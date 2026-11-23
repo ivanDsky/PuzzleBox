@@ -9,4 +9,7 @@ import com.ivandsky.puzzlebox.designsystem.bleedSides
  * so its title sits where Today's does, and the [Spacing.lg] past the list's end, so its actions end with the list.
  */
 internal fun Modifier.mainTabBarBleed(phone: Boolean): Modifier =
-    if (phone) this else bleedSides(start = Spacing.xl, end = Spacing.lg)
+    if (phone) this else bleedSides(start = MainTabBarBleedStart, end = Spacing.lg)
+
+/** How far a large top bar reaches into the start gutter on the tablet; whatever covers the list must cover it too. */
+internal val MainTabBarBleedStart = Spacing.xl
