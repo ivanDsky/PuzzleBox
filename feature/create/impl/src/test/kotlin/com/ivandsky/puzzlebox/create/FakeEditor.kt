@@ -25,6 +25,7 @@ import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import com.ivandsky.puzzlebox.model.GameId
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -46,8 +47,11 @@ open class FakeGameEditor(
 
     override val draftFormatVersion: Int = 1
 
-    /** Every board [analyze] was asked about, in call order. */
-    val analyzed = mutableListOf<TestDraft>()
+    /**
+     * Every board [analyze] was asked about, in call order. Thread safe: the Custom list analyses
+     * each draft on `dispatchers.default`, so two rows call [analyze] at once (#2086).
+     */
+    val analyzed: MutableList<TestDraft> = CopyOnWriteArrayList()
 
     var analysis: (TestDraft, Budget) -> Verdict = { draft, _ -> defaultVerdict(draft) }
 
