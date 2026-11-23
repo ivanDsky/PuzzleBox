@@ -1,9 +1,7 @@
 package com.ivandsky.puzzlebox.insights.hub
 
 import app.cash.turbine.test
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
 import com.ivandsky.puzzlebox.data.cloud.CloudSyncState
-import com.ivandsky.puzzlebox.insights.flags.InsightsFlag
 import com.ivandsky.puzzlebox.common.log.FailureLog
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.insights.domain.recap.ObserveRecapAvailability
@@ -11,7 +9,6 @@ import com.ivandsky.puzzlebox.insights.domain.recap.RecapHistoryFixture
 import com.ivandsky.puzzlebox.insights.domain.recap.RecapPeriod
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.insights.FakeRecapOpenings
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
 import com.ivandsky.puzzlebox.model.GameId
@@ -27,7 +24,6 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -40,8 +36,8 @@ class InsightsHubViewModelTest {
 
     private val openings = FakeRecapOpenings()
 
-    private fun viewModel(vararg flags: ReleaseFlagKey, availability: ObserveRecapAvailability = fixture.availability()) =
-        InsightsHubViewModel(availability, cloudSync, FakeReleaseFlags(*flags), openings, fixture.puzzleDay, FailureLog { _, _, _ -> })
+    private fun viewModel(availability: ObserveRecapAvailability = fixture.availability()) =
+        InsightsHubViewModel(availability, cloudSync, openings, fixture.puzzleDay, FailureLog { _, _, _ -> })
 
     /** The periods the hub lists, in order. */
     private fun InsightsHubUiState.periods() = (this as InsightsHubUiState.Ready).periods.map { it.period }
@@ -110,19 +106,10 @@ class InsightsHubViewModelTest {
     }
 
     @Test
-    fun `year rows are left out while the yearly recap is dark`() = runTest {
+    fun `year rows come before the months`() = runTest {
         fixture.store(fixture.imported(alpha, LocalDate.of(2025, 6, 1)), fixture.solve(alpha, LocalDate.of(2026, 11, 1)))
 
         viewModel().uiState.test {
-            assertEquals(listOf(month(2026, 11), month(2025, 6)), expectMostRecentItem().periods())
-        }
-    }
-
-    @Test
-    fun `year rows come before the months once the yearly recap is on`() = runTest {
-        fixture.store(fixture.imported(alpha, LocalDate.of(2025, 6, 1)), fixture.solve(alpha, LocalDate.of(2026, 11, 1)))
-
-        viewModel(InsightsFlag.YearRecap).uiState.test {
             assertEquals(listOf(RecapPeriod.Year(2025), month(2026, 11), month(2025, 6)), expectMostRecentItem().periods())
         }
     }
@@ -169,15 +156,6 @@ class InsightsHubViewModelTest {
             viewModel.retry()
 
             assertEquals(listOf(month(2026, 11)), expectMostRecentItem().periods())
-        }
-    }
-
-    @Test
-    fun `the year with solves is not listed with the yearly recap off`() = runTest {
-        fixture.store(fixture.imported(alpha, LocalDate.of(2025, 6, 1)))
-
-        viewModel().uiState.test {
-            assertTrue(expectMostRecentItem().periods().none { it is RecapPeriod.Year })
         }
     }
 

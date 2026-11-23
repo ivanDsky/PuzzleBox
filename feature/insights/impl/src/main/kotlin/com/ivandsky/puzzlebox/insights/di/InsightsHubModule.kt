@@ -7,6 +7,6 @@ import org.koin.dsl.module
 /** The hub's wiring, included by [insightsModule]: its view model. */
 val insightsHubModule = module {
     viewModel {
-        InsightsHubViewModel(observeRecapAvailability = get(), cloudSync = get(), releaseFlags = get(), openings = get(), puzzleDay = get())
+        InsightsHubViewModel(observeRecapAvailability = get(), cloudSync = get(), openings = get(), puzzleDay = get())
     }
 }

@@ -13,12 +13,6 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
  */
 enum class InsightsFlag(override val label: String, override val releaseDefault: Boolean) : ReleaseFlagKey {
     /**
-     * The yearly recap (epic insights): a Profile entry from Dec 20 and a Today card in early January, and past years
-     * from Profile. Read only in a ViewModel, a DI module or the app (ADR-0022 §3).
-     */
-    YearRecap(label = "Yearly recap", releaseDefault = true),
-
-    /**
      * The stats page (epic insights): the game page's stats block and Profile open a game's or all games' trends,
      * records and friends comparison. Read only in a ViewModel, a DI module or the app (ADR-0022 §3).
      */

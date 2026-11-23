@@ -1,14 +1,11 @@
 package com.ivandsky.puzzlebox.app.nav
 
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
 import com.ivandsky.puzzlebox.home.RecapSlot
 import com.ivandsky.puzzlebox.insights.api.InsightsRecapKey
 import com.ivandsky.puzzlebox.insights.domain.recap.DueRecap
-import com.ivandsky.puzzlebox.insights.flags.InsightsFlag
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.Navigator
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -20,14 +17,12 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.time.LocalDate
 
-/** Home's recap card gate (A2, A3): the year's flag, what is due, what the player dismissed, and the two taps. */
+/** Home's recap card gate (A2, A3): what is due, what the player dismissed, and the two taps. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = DrainTestApplication::class)
 class RecapSlotTest {
 
     private val navigator = Navigator(puzzleBoxNavigationState())
-    private val on = FakeReleaseFlags().enabled.value
-    private val both = FakeReleaseFlags(InsightsFlag.YearRecap).enabled.value
     private val october = DueRecap("2026-10", "October 2026", yearly = false)
     private val year = DueRecap("2026", "2026", yearly = true)
     private val dismissedPeriods = mutableListOf<String>()
@@ -35,12 +30,11 @@ class RecapSlotTest {
     private fun slot(
         due: List<DueRecap> = listOf(october),
         dismissed: Set<String> = emptySet(),
-        enabled: Set<ReleaseFlagKey> = on,
         opened: Set<String> = emptySet(),
-    ) = recapSlot(enabled, due, dismissed, opened, today = LocalDate.of(2026, 11, 2), navigator) { dismissedPeriods += it } as RecapSlot.Due?
+    ) = recapSlot(due, dismissed, opened, today = LocalDate.of(2026, 11, 2), navigator) { dismissedPeriods += it } as RecapSlot.Due?
 
-    private fun loading(enabled: Set<ReleaseFlagKey> = on, today: LocalDate?) =
-        recapSlot(enabled, due = null, dismissed = emptySet(), opened = emptySet(), today = today, navigator = navigator) {}
+    private fun loading(today: LocalDate?) =
+        recapSlot(due = null, dismissed = emptySet(), opened = emptySet(), today = today, navigator = navigator) {}
 
     @Test
     fun `nothing due is no card`() {
@@ -76,21 +70,15 @@ class RecapSlotTest {
     }
 
     @Test
-    fun `a year is never shown while the yearly recap is off`() {
-        assertNull(slot(due = listOf(year), enabled = on))
-        assertEquals("October 2026", slot(due = listOf(year, october), enabled = on)!!.label)
-    }
-
-    @Test
     fun `the year is shown before the month, and the month once the year is dismissed`() {
-        assertEquals("2026", slot(due = listOf(year, october), enabled = both)!!.label)
-        assertEquals("October 2026", slot(due = listOf(year, october), dismissed = setOf("2026"), enabled = both)!!.label)
-        assertNull(slot(due = listOf(year, october), dismissed = setOf("2026", "2026-10"), enabled = both))
+        assertEquals("2026", slot(due = listOf(year, october))!!.label)
+        assertEquals("October 2026", slot(due = listOf(year, october), dismissed = setOf("2026"))!!.label)
+        assertNull(slot(due = listOf(year, october), dismissed = setOf("2026", "2026-10")))
     }
 
     @Test
     fun `opening the year pushes its recap and dismissing reports its id`() {
-        val shown = slot(due = listOf(year), enabled = both)!!
+        val shown = slot(due = listOf(year))!!
 
         shown.onOpen()
         shown.onDismiss()
@@ -134,8 +122,8 @@ class RecapSlotTest {
         val today = LocalDate.of(2026, 11, 2)
         val gates = listOf(null to emptySet<String>(), emptySet<String>() to null, null to null)
         for ((dismissed, opened) in gates) {
-            assertNull(recapSlot(on, listOf(october), dismissed, opened, today, navigator) {})
-            assertNull(recapSlot(on, null, dismissed, opened, today, navigator) {})
+            assertNull(recapSlot(listOf(october), dismissed, opened, today, navigator) {})
+            assertNull(recapSlot(null, dismissed, opened, today, navigator) {})
         }
     }
 }

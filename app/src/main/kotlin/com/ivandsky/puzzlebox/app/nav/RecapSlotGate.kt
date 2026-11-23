@@ -1,18 +1,15 @@
 package com.ivandsky.puzzlebox.app.nav
 
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
 import com.ivandsky.puzzlebox.home.RecapSlot
 import com.ivandsky.puzzlebox.insights.api.InsightsRecapKey
 import com.ivandsky.puzzlebox.insights.api.RecapWindow
 import com.ivandsky.puzzlebox.insights.domain.recap.DueRecap
-import com.ivandsky.puzzlebox.insights.flags.InsightsFlag
 import com.ivandsky.puzzlebox.navigation.Navigator
 import java.time.LocalDate
 
 /**
- * Home's recap card: the first of the [due] recaps, the year before the month, whose flag is in [enabled]
- * ([InsightsFlag.YearRecap] for a year; a month needs none) and whose period is not in [dismissed]; null otherwise,
- * and Home draws no card. On Jan 1–3 both can be due: Home shows the year, and
+ * Home's recap card: the first of the [due] recaps, the year before the month, whose period is not in [dismissed];
+ * null otherwise, and Home draws no card. On Jan 1–3 both can be due: Home shows the year, and
  * the month once the year is dismissed. Opening pushes that period's [InsightsRecapKey] as a layer page and dismissing
  * reports its period id to [dismiss].
  *
@@ -22,7 +19,6 @@ import java.time.LocalDate
  * dismissed tile never flashes in and a watched one never shows New first.
  */
 internal fun recapSlot(
-    enabled: Set<ReleaseFlagKey>,
     due: List<DueRecap>?,
     dismissed: Set<String>?,
     opened: Set<String>?,
@@ -32,7 +28,7 @@ internal fun recapSlot(
 ): RecapSlot? {
     if (dismissed == null || opened == null) return null
     if (due == null) return RecapSlot.Loading.takeIf { today != null && RecapWindow.isOpen(today) }
-    val shown = due.firstOrNull { it.isEnabled(enabled) && it.periodId !in dismissed } ?: return null
+    val shown = due.firstOrNull { it.periodId !in dismissed } ?: return null
     return RecapSlot.Due(
         periodId = shown.periodId,
         label = shown.label,
@@ -46,5 +42,3 @@ internal fun recapSlot(
         liftKey = InsightsRecapKey(shown.periodId),
     )
 }
-
-private fun DueRecap.isEnabled(enabled: Set<ReleaseFlagKey>): Boolean = !yearly || InsightsFlag.YearRecap in enabled
