@@ -20,8 +20,6 @@ import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
@@ -49,11 +47,9 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.domain.FinishLeg
-import com.ivandsky.puzzlebox.play.flags.PlayFlag
 import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
 import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -87,11 +83,11 @@ import org.robolectric.annotation.Config
 
 /**
  * The Community tab (epic community-browse): the shelves home (one Community header, Enter code opening the code sheet),
- * on the tablet a 600dp list pane, and the create FAB behind [PlayFlag.CreateFab].
+ * on the tablet a 600dp list pane, and the create FAB the host's New puzzle seam draws over it.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
-class CommunityRouteFlagTest {
+class CommunityRouteTest {
 
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
@@ -103,9 +99,7 @@ class CommunityRouteFlagTest {
         koin?.close()
     }
 
-    private fun show(vararg flags: ReleaseFlagKey) = show(previewYoursSlot(count = 0), PlayLayout.SinglePane, *flags)
-
-    private fun show(custom: CustomSlot, layout: PlayLayout, vararg flags: ReleaseFlagKey) {
+    private fun show(custom: CustomSlot = previewYoursSlot(count = 0), layout: PlayLayout = PlayLayout.SinglePane) {
         stopKoin() // tests share the JVM-global Koin context
         val zip = GameId("zip")
         val fakes = FakeGames(listOf(zip))
@@ -137,7 +131,6 @@ class CommunityRouteFlagTest {
                     single<LeaderboardRepository> { FakeLeaderboardRepository(emptyMap()) }
                     single<GoogleIdTokenProvider> { dismissedGoogleSignIn }
                     factory { ObserveLeaderboard(get(), get(), get(), get()) }
-                    single<ReleaseFlags> { FakeReleaseFlags(*flags) }
                 },
                 module { single<com.ivandsky.puzzlebox.data.cloud.CloudSync> { com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync() } },
                 playModule,
@@ -175,23 +168,16 @@ class CommunityRouteFlagTest {
     }
 
     @Test
-    fun `flag off draws no create FAB even when the host has the action`() {
-        show(NewPuzzleStandIn().slot, PlayLayout.SinglePane)
+    fun `without a host action there is no create FAB`() {
+        show(previewYoursSlot(count = 0), PlayLayout.SinglePane)
         awaitTag("route.community")
         composeRule.onNodeWithTag("community.fab").assertDoesNotExist()
     }
 
     @Test
-    fun `flag on without a host action draws no create FAB`() {
-        show(previewYoursSlot(count = 0), PlayLayout.SinglePane, PlayFlag.CreateFab)
-        awaitTag("route.community")
-        composeRule.onNodeWithTag("community.fab").assertDoesNotExist()
-    }
-
-    @Test
-    fun `flag on shows the create FAB and a tap opens the sheet`() {
+    fun `the create FAB shows and a tap opens the sheet`() {
         val host = NewPuzzleStandIn()
-        show(host.slot, PlayLayout.SinglePane, PlayFlag.CreateFab)
+        show(host.slot, PlayLayout.SinglePane)
         awaitTag("community.fab")
         composeRule.onNodeWithTag("community.fab").assertIsDisplayed().assertHasClickAction()
         composeRule.onNodeWithTag("community.fab").performClick()
@@ -201,7 +187,7 @@ class CommunityRouteFlagTest {
 
     @Test
     fun `the create FAB is at least 48dp and floats at the bottom end`() {
-        show(NewPuzzleStandIn().slot, PlayLayout.SinglePane, PlayFlag.CreateFab)
+        show(NewPuzzleStandIn().slot, PlayLayout.SinglePane)
         awaitTag("community.fab")
         val fab = composeRule.onNodeWithTag("community.fab").getUnclippedBoundsInRoot()
         val root = composeRule.onNodeWithTag("route.community").getUnclippedBoundsInRoot()
@@ -211,7 +197,7 @@ class CommunityRouteFlagTest {
 
     @Test
     fun `the create FAB shows over the shelves home too`() {
-        show(NewPuzzleStandIn().slot, PlayLayout.SinglePane, PlayFlag.CreateFab)
+        show(NewPuzzleStandIn().slot, PlayLayout.SinglePane)
         awaitTag("community.shelves")
         composeRule.onNodeWithTag("community.fab").assertIsDisplayed()
     }
@@ -219,7 +205,7 @@ class CommunityRouteFlagTest {
     @Test
     @Config(sdk = [34], qualifiers = "w1280dp-h800dp")
     fun `on the tablet the create FAB floats over the shelves list pane, not the detail pane`() {
-        show(NewPuzzleStandIn().slot, PlayLayout.TwoPane, PlayFlag.CreateFab)
+        show(NewPuzzleStandIn().slot, PlayLayout.TwoPane)
         awaitTag("community.fab")
         composeRule.onAllNodesWithTag("community.fab").assertCountEquals(1)
         val fab = composeRule.onNodeWithTag("community.fab").getUnclippedBoundsInRoot()
@@ -231,7 +217,7 @@ class CommunityRouteFlagTest {
     @Test
     fun `the create FAB keeps clear of the list end by the clearance the host is told`() {
         val host = NewPuzzleStandIn()
-        show(host.slot, PlayLayout.SinglePane, PlayFlag.CreateFab)
+        show(host.slot, PlayLayout.SinglePane)
         awaitTag("community.fab")
         assertEquals(CreateFabClearance, host.clearance)
         assertTrue(CreateFabClearance >= 56.dp + 16.dp)

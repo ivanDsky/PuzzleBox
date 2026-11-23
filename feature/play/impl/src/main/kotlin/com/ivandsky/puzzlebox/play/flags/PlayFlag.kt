@@ -12,12 +12,6 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
  */
 enum class PlayFlag(override val label: String, override val releaseDefault: Boolean) : ReleaseFlagKey {
     /**
-     * Community create FAB (#2013): a New puzzle button floats over every Community tab and Yours' New puzzle row is
-     * gone. Read by the Community route, which hands the FAB and the sheet host to the screen (ADR-0022 §5).
-     */
-    CreateFab(label = "Community create FAB", releaseDefault = false),
-
-    /**
      * Per-puzzle solve counter (#2032): a player's first entry on a shared puzzle's board also bumps the puzzle's
      * `solves` in the same write. Read by [com.ivandsky.puzzlebox.play.di.playModule]'s
      * [com.ivandsky.puzzlebox.data.repository.SolveCounterSwitch] binding, which the backend's board submit asks at

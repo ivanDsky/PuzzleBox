@@ -18,7 +18,7 @@ import com.ivandsky.puzzlebox.model.GameId
  * Published by you on the [LazyListState] it is given, or the first-time screen when there are none (null: the host has
  * no such list).
  *
- * [newPuzzle] is the New puzzle sheet's host, behind the create FAB flag (null: the host has no such action, so no FAB).
+ * [newPuzzle] is the New puzzle sheet's host (null: the host has no such action, so no FAB).
  * It wraps the Community screen and gives its content the call that opens the sheet, and it is told the [Dp] the FAB
  * covers at a list's end, which its own Yours list leaves free and lifts its snackbar by. With the host in place
  * the Yours list has no New puzzle row of its own. The call takes a nullable [GameId]: null opens the New puzzle sheet,
