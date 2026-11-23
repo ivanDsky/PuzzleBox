@@ -53,7 +53,8 @@ private fun SummarizedPeriod.rememberedDescription(opened: Boolean): String = re
 /**
  * One period's compact tile: a year (bars, "N so far" for the running year) or a month (mosaic). [selected] outlines it
  * on a tablet, where a tap selects; [yearSoFar] is the running year, if its tile is listed. [liftKey]: the story key the
- * tile opens and grows ([RecapCoverTile]). [entry] is whether it plays its entry motion.
+ * tile opens and grows ([RecapCoverTile]).
+ * No hub tile plays an entry motion, first screenful or scrolled in: every tile shows its final state at once.
  */
 @Composable
 internal fun HubCoverTile(
@@ -64,7 +65,6 @@ internal fun HubCoverTile(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     liftKey: Any? = null,
-    entry: Boolean = true,
 ) {
     val period = item.period
     val card = item.card
@@ -85,7 +85,7 @@ internal fun HubCoverTile(
         modifier = modifier.then(outline),
         variant = if (year) RecapTileSize.Year else RecapTileSize.Month,
         liftKey = liftKey,
-        entry = entry,
+        entry = false,
     )
 }
 
