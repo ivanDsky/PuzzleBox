@@ -119,6 +119,7 @@ internal fun CommunityShelvesRoute(
                 page = page,
                 onBack = { page = null },
                 modifier = Modifier.fillMaxSize(),
+                coverStart = if (phone) 0.dp else MainTabBarBleedStart,
                 home = { CommunityShelvesScreen(state, actionsFor(open), phone, Modifier.fillMaxSize(), clearance, homeList) },
                 content = { ShelvesPageContent(it, custom, onBack = { page = null }, onOpen = open, visit = visit, bottomPadding = clearance, removedFriends = removedFriends) },
             )

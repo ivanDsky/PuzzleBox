@@ -9,7 +9,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -19,7 +18,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 
@@ -34,13 +38,16 @@ private val EnterEasing = MotionTokens.EasingEmphasizedDecelerate
  * The shelves [home] with the open [page] (null: none) over it. A page slides in from [ENTER_SHIFT] of its width while it
  * fades in over [ENTER_MILLIS] ms (emphasized decelerate) and leaves by sliding [EXIT_SHIFT] while it fades over
  * [EXIT_MILLIS] ms; under reduced motion it just appears and goes. The page is opaque and takes the touches, and system
- * back asks [onBack]. The same host fills the phone's screen and the tablet's list pane.
+ * back asks [onBack]. The same host fills the phone's screen and the tablet's list pane. The page's background also
+ * covers [coverStart] before the host, where the tablet's home bar bleeds into the gutter, so none of the home shows
+ * beside the page; its content stays inside the host.
  */
 @Composable
 internal fun ShelvesPageHost(
     page: ShelvesPage?,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    coverStart: Dp = 0.dp,
     home: @Composable () -> Unit,
     content: @Composable (ShelvesPage) -> Unit,
 ) {
@@ -58,7 +65,12 @@ internal fun ShelvesPageHost(
             exit = if (reduced) ExitTransition.None else slideOutHorizontally(tween(EXIT_MILLIS, easing = MotionTokens.EasingStandard)) { (it * EXIT_SHIFT).toInt() } +
                 fadeOut(tween(EXIT_MILLIS, easing = MotionTokens.EasingStandard)),
         ) {
-            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).pointerInput(Unit) {}) {
+            val background = MaterialTheme.colorScheme.background
+            Box(
+                Modifier.fillMaxSize()
+                    .drawBehind { drawRect(background, Offset(-coverStart.toPx(), 0f), Size(size.width + coverStart.toPx(), size.height)) }
+                    .pointerInput(Unit) {},
+            ) {
                 last?.let { content(it) }
             }
         }

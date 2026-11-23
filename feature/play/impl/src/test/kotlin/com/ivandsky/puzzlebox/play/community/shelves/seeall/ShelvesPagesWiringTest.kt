@@ -4,14 +4,20 @@ import android.content.Context
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.play.CommunityShelvesRoute
 import com.ivandsky.puzzlebox.play.GOLDEN_PHONE
@@ -22,6 +28,8 @@ import com.ivandsky.puzzlebox.play.community.shelves.ShelvesViewModel
 import com.ivandsky.puzzlebox.play.previewYoursSlot
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -61,7 +69,9 @@ internal abstract class ShelvesPagesWiringTest(private val layout: PlayLayout) {
         }
         rule.setContent {
             PuzzleBoxTheme {
-                CommunityShelvesRoute(layout, previewYoursSlot(count = 0), onOpen = {}, onPlay = {}, onEnterCode = {}, onNewPuzzle = null, clearance = 0.dp, modifier = Modifier.fillMaxSize())
+                Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    CommunityShelvesRoute(layout, previewYoursSlot(count = 0), onOpen = {}, onPlay = {}, onEnterCode = {}, onNewPuzzle = null, clearance = 0.dp, modifier = Modifier.fillMaxSize())
+                }
             }
         }
         rule.waitForIdle()
@@ -109,6 +119,29 @@ internal abstract class ShelvesPagesWiringTest(private val layout: PlayLayout) {
         rule.waitForIdle()
         rule.onNodeWithTag("seeall.page").assertExists()
         rule.onNodeWithTag("seeall.filter.game").assertDoesNotExist()
+    }
+
+    /**
+     * The tablet's home bar bleeds into the panes' start gutter, so a page that only fills the list pane left that strip
+     * showing the home's title and subtitle beside it (#2081). Every pixel of the strip, down the bar's height, must be
+     * the screen's background, as the page's own is. The phone has no gutter: its page is the screen.
+     */
+    @Test
+    fun `a pushed page leaves no strip of the home beside it`() {
+        assumeTrue(layout == PlayLayout.TwoPane)
+        listOf("shelves.entry.yours", "shelves.entry.friends", "shelves.search").forEach { open ->
+            rule.onNodeWithTag(open).performClick()
+            rule.waitForIdle()
+            val pixels = rule.onRoot().captureToImage().toPixelMap()
+            val density = rule.density.density
+            val background = pixels[0, (700 * density).toInt()]
+            val strip = (Spacing.xl.value * density).toInt()
+            val stray = (0 until strip).flatMap { x -> (0 until (200 * density).toInt()).map { y -> x to y } }
+                .filter { (x, y) -> pixels[x, y] != background }
+            assertEquals("$open: ${stray.size} pixels of the home show in the start strip, first at ${stray.firstOrNull()}", emptyList<Pair<Int, Int>>(), stray)
+            back()
+            rule.waitForIdle()
+        }
     }
 
     @Test
