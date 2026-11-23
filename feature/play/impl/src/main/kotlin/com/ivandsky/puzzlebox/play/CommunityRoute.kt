@@ -14,14 +14,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.data.repository.SharedTextStore
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
-import com.ivandsky.puzzlebox.play.flags.PlayFlag
 import com.ivandsky.puzzlebox.play.friend.EnterCodeSheet
 import com.ivandsky.puzzlebox.play.friend.FriendPuzzleRoute
 import org.koin.androidx.compose.koinViewModel
@@ -64,8 +62,7 @@ internal fun CommunityRoute(
     // A closed sheet forgets the draft: the next Enter code opens empty.
     if (!enteringCode && codePrefill.isNotEmpty()) LaunchedEffect(Unit) { codePrefill = "" }
     val onEnterCode = { enteringCode = true }
-    val flags by koinInject<ReleaseFlags>().enabled.collectAsStateWithLifecycle()
-    WithNewPuzzle(custom, enabled = PlayFlag.CreateFab in flags) { create ->
+    WithNewPuzzle(custom) { create ->
         val clearance = if (create != null) CreateFabClearance else 0.dp
         Box(modifier.fillMaxSize().testTag("route.community")) {
             CommunityShelvesRoute(
