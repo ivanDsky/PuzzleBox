@@ -68,7 +68,7 @@ class PublishOpenLoopE2ETest {
             graph(),
             openDraft = {
                 tapTab(CommunityKey)
-                tap("community.tab.yours")
+                tap("shelves.entry.yours")
                 tap("create.draft.row")
             },
             toGames = {

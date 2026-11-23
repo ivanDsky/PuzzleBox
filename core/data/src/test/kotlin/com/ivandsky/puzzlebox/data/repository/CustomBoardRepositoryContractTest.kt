@@ -35,10 +35,6 @@ class CustomBoardRepositoryContractTest : CustomBoardRepositoryContract() {
         fake.online = false
     }
 
-    override fun countSolves(on: Boolean) {
-        fake.countSolves = on
-    }
-
     override fun solvesField(code: ShareCode): Int? = fake.solves[code]
 
     @Test

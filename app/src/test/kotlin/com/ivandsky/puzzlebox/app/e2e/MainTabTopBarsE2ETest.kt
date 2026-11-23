@@ -98,11 +98,11 @@ abstract class MainTabTopBarsE2ETest(private val phone: Boolean) {
             HistoryRootKey to "route.ranks",
         )
 
-        // What each tab shows first under its bar: Today's summary card, the underline tabs, Ranks' calendar (its chip row on the phone).
+        // What each tab shows first under its bar: Today's summary card, the Games underline tabs, Community's shelves list (it pads its own first row), Ranks' calendar (its chip row on the phone).
         val FIRST_CONTENT: Map<NavKey, String> = mapOf(
             HomeKey to "home.today",
             PlayKey to "underline.tabs",
-            CommunityKey to "underline.tabs",
+            CommunityKey to "shelves.list",
             HistoryRootKey to "ranks.calendar",
         )
     }

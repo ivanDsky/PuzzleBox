@@ -51,8 +51,8 @@ class FirestoreSolveCounterEmulatorTest {
         publishAsNewAuthor()
         val player = EmulatorBackend.signInAsNewUser()
 
-        assertNull(boardStore.createIfAbsent(CODE, player, entryFields(player), countSolve = true))
-        val repeat = boardStore.createIfAbsent(CODE, player, entryFields(player, timeMs = 9_000), countSolve = true)
+        assertNull(boardStore.createIfAbsent(CODE, player, entryFields(player)))
+        val repeat = boardStore.createIfAbsent(CODE, player, entryFields(player, timeMs = 9_000))
 
         assertEquals(42_000L, repeat?.get("timeMs"))
         assertEquals(1L, solves())
@@ -63,7 +63,7 @@ class FirestoreSolveCounterEmulatorTest {
         publishAsNewAuthor()
         val player = EmulatorBackend.signInAsNewUser()
 
-        assertNull(boardStore.createIfAbsent(CODE, player, entryFields(player), countSolve = false))
+        entry(player).set(entryFields(player)).await()
 
         assertEquals(1, entries().size)
         assertNull(solves())

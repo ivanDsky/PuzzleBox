@@ -102,8 +102,9 @@ class ResumeSolveE2ETest {
         awaitZip()
         val resumedAt = System.currentTimeMillis()
         rule.runOnIdle { ZipPlayFixture.solution.drop(MID_GAME.size).forEach { zip().extend(it) } }
-        awaitTag(RESULT)
+        // The clock stops at the winning move, not when the result route paints: stamp it here.
         val solvedAt = System.currentTimeMillis()
+        awaitTag(RESULT)
 
         // The record write is fire-and-observe on Room's executor: wait for the row.
         rule.waitUntil(TIMEOUT_MS) { zipRecords().isNotEmpty() }

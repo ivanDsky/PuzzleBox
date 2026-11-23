@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
 /**
- * Community's tabs, in strip order. The phone pages them ([CommunityTabs]); on the tablet each one also keeps a pick of
- * its own for the right pane ([CommunityTabPicks]). Yours is there only when the app's slot has that list.
+ * The tablet Community's pick slots, each keeping a pick of its own for the right pane ([CommunityTabPicks]). The shelves
+ * home picks as [NewToday]; the old three tabs are gone (the CommunityShelves flag was removed in 0.42.0).
  */
 internal enum class CommunityTab { NewToday, Friends, Yours }

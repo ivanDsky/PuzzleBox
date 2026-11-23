@@ -27,7 +27,7 @@ class P15FlagSetRegisteredTest {
 
     @Test
     fun `P15 real tree is clean against allowlist`() {
-        RuleCheck.assertClean(P15FlagSetRegistered)
+        RuleCheck.assertCleanWhenScopeMayBeEmpty(P15FlagSetRegistered)
     }
 
     @Test

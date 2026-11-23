@@ -6,7 +6,6 @@ import com.ivandsky.puzzlebox.play.domain.SyncReceivedStatus
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.play.api.CustomResultKey
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
-import com.ivandsky.puzzlebox.play.community.CommunityViewModel
 import com.ivandsky.puzzlebox.play.community.shelves.ShelvesViewModel
 import com.ivandsky.puzzlebox.play.community.shelves.seeall.SeeAllViewModel
 import com.ivandsky.puzzlebox.play.friend.CustomResultViewModel
@@ -44,7 +43,6 @@ val friendModule = module {
     factory { SyncReceivedStatus(get(), get()) }
     viewModel { (key: FriendPuzzleKey) -> FriendPuzzleViewModel(key, get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { (key: CustomResultKey) -> CustomResultViewModel(key, get(), get(), get(), get(), get(), get(), get(), get()) }
-    viewModel { CommunityViewModel(get(), get(), get(), get(), get(), get(), System::currentTimeMillis) }
     viewModel { ShelvesViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), System::currentTimeMillis) }
     viewModel { SeeAllViewModel(get(), get(), get(), get(), get(), get(), get(), get(), System::currentTimeMillis) }
 }

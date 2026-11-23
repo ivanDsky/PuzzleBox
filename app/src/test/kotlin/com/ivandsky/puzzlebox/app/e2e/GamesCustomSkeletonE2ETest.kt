@@ -77,7 +77,7 @@ class GamesCustomSkeletonE2ETest {
 
     private companion object {
         const val COMMUNITY = "route.community"
-        const val YOURS = "community.tab.yours"
+        const val YOURS = "shelves.entry.yours"
         const val EDITOR = "route.editor"
         const val BOARD = "create.editor.board"
         const val PILL = "create.editor.pill"
