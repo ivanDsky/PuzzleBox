@@ -217,6 +217,9 @@ class ShareTargetE2ETest {
             assertRoute(COMMUNITY)
             rule.onNodeWithTag("nav.tab.community").assertIsSelected()
 
+            // The share opened Your puzzles over the shelves home; the first back closes that page, the next leaves the tab.
+            back()
+            assertRoute(COMMUNITY)
             back()
             assertRoute(HOME)
         }
@@ -307,7 +310,7 @@ class ShareTargetE2ETest {
         const val COMMUNITY = "route.community"
         const val RANKS = "route.ranks"
         const val EDITOR = "route.editor"
-        const val YOURS = "community.tab.yours"
+        const val YOURS = "shelves.entry.yours"
         const val VERDICT = "create.editor.pill"
         const val SIZE = 5
         const val TIMEOUT_MS = 10_000L

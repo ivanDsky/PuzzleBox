@@ -26,7 +26,7 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.play.mainTabBarBleed
 
 /**
- * The Community tab's shelves home (epic community-browse), behind [com.ivandsky.puzzlebox.play.flags.PlayFlag.CommunityShelves]:
+ * The Community tab's shelves home (epic community-browse):
  * the head (Community, Enter code), the search stand-in, the two entry tiles, then [state]'s body: the skeleton while it
  * loads, the shelves of the plan, the empty hero, or the offline or refused message with Retry. On the tablet ([phone]
  * false) the bar reaches into the panes' gutters ([mainTabBarBleed]). [bottomPadding] is what the list leaves free at

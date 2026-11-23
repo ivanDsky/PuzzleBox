@@ -1,23 +1,16 @@
 package com.ivandsky.puzzlebox.play.community
 
-import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
 import com.ivandsky.puzzlebox.data.repository.CommunityFilter
 import com.ivandsky.puzzlebox.data.repository.CommunityListResult
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
 import com.ivandsky.puzzlebox.game.GamePlugin
-import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.AlphaShareEditor
-import com.ivandsky.puzzlebox.play.FakeGames
-import com.ivandsky.puzzlebox.play.domain.ListCommunityPuzzles
-import com.ivandsky.puzzlebox.play.domain.ReportPuzzle
-import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeHiddenPuzzles
-import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 
 internal const val NOW = 1_800_000_000_000L
@@ -60,7 +53,7 @@ internal class RecordingSharedPuzzleRepository(private val inner: FakeSharedPuzz
 }
 
 /**
- * [CommunityViewModel] over the real use cases and the fake repository: alpha and beta have editors, gamma does not;
+ * The fake community repository and registries for the shelves' view models: alpha and beta have editors, gamma does not;
  * "me" is signed in, "other" writes the puzzles, and the clock stands at [NOW].
  */
 internal class CommunityFixture(signedIn: Boolean = true) {
@@ -70,9 +63,6 @@ internal class CommunityFixture(signedIn: Boolean = true) {
     }
     val hidden = FakeHiddenPuzzles()
     val recording = RecordingSharedPuzzleRepository(shared)
-    private val identity = FakeIdentityService(Identity(uid = ME, displayName = "Me", photoUrl = null).takeIf { signedIn })
-    private val fakeGames = FakeGames(listOf(ALPHA, BETA))
-    private val games = GameRegistry(listOf(editorGame(ALPHA), editorGame(BETA), TestGames.plugin(NO_EDITOR)))
 
     /** Published as another player, so it lists for "me" and can be reported. */
     suspend fun publish(
@@ -95,16 +85,6 @@ internal class CommunityFixture(signedIn: Boolean = true) {
         )
         shared.signedInUid = before
     }
-
-    fun viewModel() = CommunityViewModel(
-        list = ListCommunityPuzzles(recording, hidden, identity, clock = { NOW }),
-        reportPuzzle = ReportPuzzle(recording, hidden),
-        games = games,
-        plays = fakeGames.registry,
-        identity = identity,
-        idTokens = dismissedGoogleSignIn,
-        clock = { NOW },
-    )
 
     companion object {
         const val ME = "me"

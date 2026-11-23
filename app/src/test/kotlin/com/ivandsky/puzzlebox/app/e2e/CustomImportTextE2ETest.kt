@@ -64,7 +64,7 @@ class CustomImportTextE2ETest {
 
     private companion object {
         const val COMMUNITY = "route.community"
-        const val YOURS = "community.tab.yours"
+        const val YOURS = "shelves.entry.yours"
         const val EDITOR = "route.editor"
         const val PILL = "create.empty.import"
         const val SHEET = "create.import.sheet"

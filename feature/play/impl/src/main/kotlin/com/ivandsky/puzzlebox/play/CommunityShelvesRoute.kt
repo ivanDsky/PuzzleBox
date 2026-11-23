@@ -48,13 +48,13 @@ private const val DETAIL_ENTER_MILLIS = 280
 private val DETAIL_RISE = 14.dp
 
 /**
- * The Community tab's shelves home (epic community-browse), behind the CommunityShelves flag. On the phone it is the
+ * The Community tab's shelves home (epic community-browse). On the phone it is the
  * screen; a card opens its page through [onOpen]. On [PlayLayout.TwoPane] it is a [ShelvesListPaneWidth] list pane with
  * the card's page beside it (Play opens the board through [onPlay]), which rises and fades in. Enter code runs
  * [onEnterCode]; the entry tiles, Search and a shelf's See all open a page over the home (in the list pane on the tablet) that back
  * closes, and a row picked on it opens like one on the home.
  *
- * What the old tabs did stays: a card's long press reports it (a friend's card can also be removed, [onRemoveFriend]; [removedFriends] are the ones in their Undo window, which the home and From friends leave out),
+ * What the old three tabs did stays: a card's long press reports it (a friend's card can also be removed, [onRemoveFriend]; [removedFriends] are the ones in their Undo window, which the home and From friends leave out),
  * a share waiting in the store ([sharePending]) opens Your puzzles where the import takes it, the home and each page keep
  * their scroll, and reselecting the tab closes an open page first and then scrolls the home to the top.
  *

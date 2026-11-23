@@ -9,13 +9,8 @@ import org.junit.Test
 import org.koin.core.qualifier.named
 import org.koin.dsl.koinApplication
 
-/** Community shelves and the solve counter ship on, the create FAB still dark (ADR-0022 §4), and the enum reaches the app's [FlagSet]s through [playModule]. */
+/** The solve counter ships on, the create FAB still dark (ADR-0022 §4), and the enum reaches the app's [FlagSet]s through [playModule]. */
 class PlayFlagTest {
-    @Test
-    fun `community shelves is on in release`() {
-        assertTrue(PlayFlag.CommunityShelves.releaseDefault)
-    }
-
     @Test
     fun `solve counter is on in release`() {
         assertTrue(PlayFlag.SolveCounter.releaseDefault)

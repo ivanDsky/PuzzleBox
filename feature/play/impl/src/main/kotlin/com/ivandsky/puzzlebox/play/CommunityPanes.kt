@@ -16,28 +16,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.designsystem.EmptyState
 import com.ivandsky.puzzlebox.designsystem.HoldCrossfade
 import com.ivandsky.puzzlebox.designsystem.LocalTabFadeLink
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.TabFadeLink
 import com.ivandsky.puzzlebox.designsystem.TabFadePane
-import com.ivandsky.puzzlebox.play.community.CommunityPhase
 
 /** The list pane's width on the tablet: Games' list column. */
 internal val ListPaneWidth = 400.dp
 
 /**
- * The Community tab on the tablet, in Games' two-pane geometry: [list] on the left at [ListPaneWidth] (it is given that
- * width), the page of the current tab's pick on the right through [detail]. [list] is the three tabs under the head;
- * it is given the [CommunityTabPicks] that hold the current tab and one saved pick per tab, so a row picks through
- * [LocalCommunityPicker] for its own tab only, updates the right pane and pushes nothing, and switching tab shows that
- * tab's pick. The picks are saved, so a rotation and process death keep them. A tab with no pick of its own shows its
- * [default] (a list that fills in later supplies one when it has one). [detail] is told how to `clear` the pick (a
- * reported puzzle leaves its page), which returns that tab to its default. With no pick at all the pane shows [empty]
- * for the current tab, never a blank. A [listOverlay] floats over the list pane's own box (the create FAB, at its bottom
- * end), never over the right pane. The list pane is [listPaneWidth] wide (the shelves home takes more than Games' list)
- * and reaches the window's top, under Today's large top bar.
+ * The Community tab on the tablet, in Games' two-pane geometry: [list] on the left at [listPaneWidth] (it is given that
+ * width), the page of the current tab's pick on the right through [detail]. [list] is the shelves home; it is given the
+ * [CommunityTabPicks] that hold the current tab and one saved pick per tab, so a row picks through
+ * [LocalCommunityPicker] for its own tab only, updates the right pane and pushes nothing. The picks are saved, so a
+ * rotation and process death keep them. A tab with no pick of its own shows its [default]. [detail] is told how to
+ * `clear` the pick (a reported puzzle leaves its page), which returns that tab to its default. With no pick at all the
+ * pane shows [empty] for the current tab, never a blank. A [listOverlay] floats over the list pane's own box (the
+ * create FAB, at its bottom end), never over the right pane. The list pane is [listPaneWidth] wide (the shelves home
+ * takes more than Games' list) and reaches the window's top, under Today's large top bar.
  */
 @Composable
 internal fun CommunityPanes(
@@ -82,18 +79,4 @@ internal fun CommunityPanes(
             }
         }
     }
-}
-
-/**
- * What the right pane says with nothing to open on [tab]. On New today loaded and empty it says what the list says;
- * while loading or after an error, and on Friends and Yours, it only says what the pane is for.
- */
-@Composable
-internal fun CommunityEmptyPane(tab: CommunityTab, phase: CommunityPhase, modifier: Modifier = Modifier) {
-    val none = tab == CommunityTab.NewToday && (phase as? CommunityPhase.Loaded)?.rows?.isEmpty() == true
-    EmptyState(
-        title = if (none) "No new puzzles today" else "Pick a puzzle",
-        message = if (none) "Make one or check back later." else "Its page shows here.",
-        modifier = modifier,
-    )
 }

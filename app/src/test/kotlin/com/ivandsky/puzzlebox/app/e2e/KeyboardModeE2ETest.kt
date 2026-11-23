@@ -113,7 +113,7 @@ class KeyboardModeE2ETest {
         // platform has no non-deprecated constant for reading that mode back from the window.
         @Suppress("DEPRECATION")
         const val RESIZE = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
-        const val YOURS = "community.tab.yours"
+        const val YOURS = "shelves.entry.yours"
         const val IMPORT = "create.empty.import"
         const val TEXT = "create.import.text"
         const val TIMEOUT_MS = 10_000L

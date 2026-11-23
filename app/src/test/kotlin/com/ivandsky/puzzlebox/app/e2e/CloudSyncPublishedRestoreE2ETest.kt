@@ -69,7 +69,7 @@ class CloudSyncPublishedRestoreE2ETest {
         assertEquals("the cloud holds the kept draft's code", CODE, world.space.docs(ada.uid, "drafts").mapNotNull { it.fields["reservedCode"] }.single())
 
         phoneB.shell(CommunityKey) {
-            tap("community.tab.yours")
+            tap("shelves.entry.yours")
             phoneB.signIn(ada)
             awaitCloud("B's restore") { phoneB.synced() && phoneB.shownDrafts().size == 2 && phoneB.published() != null }
 

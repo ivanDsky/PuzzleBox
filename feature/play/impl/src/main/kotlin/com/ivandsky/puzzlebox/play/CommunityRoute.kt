@@ -21,8 +21,6 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
-import com.ivandsky.puzzlebox.play.community.CommunityBound
-import com.ivandsky.puzzlebox.play.community.CommunityViewModel
 import com.ivandsky.puzzlebox.play.flags.PlayFlag
 import com.ivandsky.puzzlebox.play.friend.EnterCodeSheet
 import com.ivandsky.puzzlebox.play.friend.FriendPuzzleRoute
@@ -31,16 +29,13 @@ import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 
 /**
- * The Community tab's root (nav-rethink M10-1): Custom's list and the friend puzzles, as a tab of their own. A
- * [codeDraft] opens the code sheet with that text in the field and is handed back through [onCodeDraftTaken]; the
- * sheet's code opens through [onOpen], and a code that names a duel through [onOpenDuel] (null: duels are off, the
+ * The Community tab's root: the shelves home ([CommunityShelvesRoute]) with the friend puzzles and Custom's list behind
+ * it. A [codeDraft] opens the code sheet with that text in the field and is handed back through [onCodeDraftTaken];
+ * the sheet's code opens through [onOpen], and a code that names a duel through [onOpenDuel] (null: duels are off, the
  * sheet never tries a code as one).
  *
- * On the phone it is three tabs under the head ([CommunityTabs]: New today, Friends, Yours) and a row opens a page of
- * its own through [onOpen]. [PlayLayout.TwoPane] is Games' two-pane ([CommunityPanes]): the same three tabs at Games'
- * list width, and on the right the page of the current tab's pick, the page that tap opens on the phone, with Play
- * opening the board full screen through [onPlay]. Each tab keeps its own pick; until one is made the tab's first
- * puzzle shows (a draft never does: it opens the Studio).
+ * On the phone a card opens a page of its own through [onOpen]. [PlayLayout.TwoPane] keeps the home in a list pane
+ * and opens the card's page on the right, with Play opening the board full screen through [onPlay].
  */
 @Composable
 internal fun CommunityRoute(
@@ -54,11 +49,8 @@ internal fun CommunityRoute(
     onOpenDuel: ((DuelKey) -> Unit)? = null,
 ) {
     val viewModel: LibraryViewModel = koinViewModel(parameters = { parametersOf(false) })
-    val friends by viewModel.friends.collectAsStateWithLifecycle()
     val removedFriend by viewModel.removedFriend.collectAsStateWithLifecycle()
     val removedFriends by viewModel.removedFriends.collectAsStateWithLifecycle()
-    val community: CommunityViewModel = koinViewModel()
-    val communityState by community.state.collectAsStateWithLifecycle()
     val sharePending by koinInject<SharedTextStore>().pending.collectAsStateWithLifecycle()
     var enteringCode by rememberSaveable { mutableStateOf(false) }
     var codePrefill by rememberSaveable { mutableStateOf("") }
@@ -74,48 +66,14 @@ internal fun CommunityRoute(
     val onEnterCode = { enteringCode = true }
     val flags by koinInject<ReleaseFlags>().enabled.collectAsStateWithLifecycle()
     WithNewPuzzle(custom, enabled = PlayFlag.CreateFab in flags) { create ->
-        // The create button, the old tabs' Make card and the FAB open the New puzzle sheet; only a shelves Make card names a game.
-        val onNewPuzzle = create?.let { host -> { host(null) } }
-        val clearance = if (onNewPuzzle != null) CreateFabClearance else 0.dp
+        val clearance = if (create != null) CreateFabClearance else 0.dp
         Box(modifier.fillMaxSize().testTag("route.community")) {
-            if (PlayFlag.CommunityShelves in flags) {
-                CommunityShelvesRoute(
-                    layout, custom, onOpen, onPlay, onEnterCode, create, clearance,
-                    onRemoveFriend = viewModel::removeFriend,
-                    sharePending = sharePending != null,
-                    removedFriends = removedFriends,
-                )
-            } else if (layout == PlayLayout.SinglePane) {
-                CommunityBound(community, communityState, onOpen) { actions ->
-                    CommunityTabs(
-                        communityState, actions, friends, custom, onOpen, viewModel::removeFriend, onEnterCode, Modifier.fillMaxSize(),
-                        sharePending = sharePending != null,
-                        onNewPuzzle = onNewPuzzle,
-                    )
-                }
-            } else {
-                val yours = custom.yoursSummary()
-                CommunityBound(community, communityState, onOpen) { actions ->
-                    CommunityPanes(
-                        default = { tab -> defaultCommunityPick(tab, communityState.phase, friends, yours) },
-                        list = { size, picks ->
-                            CommunityTabs(
-                                communityState, actions, friends, custom, onOpen, viewModel::removeFriend, onEnterCode, size, picks,
-                                sharePending = sharePending != null,
-                                onNewPuzzle = onNewPuzzle,
-                            )
-                        },
-                        empty = { tab -> CommunityEmptyPane(tab, communityState.phase) },
-                        detail = { pick, clear -> CommunityPage(pick, clear, custom, onPlay) },
-                        listOverlay = onNewPuzzle?.let { open -> { CommunityCreateFab(open, Modifier.align(Alignment.BottomEnd)) } },
-                    )
-                }
-            }
-            // The old tabs' FAB floats over the whole screen on the phone; on the tablet the list pane draws it over itself.
-            // The shelves route draws its own, over the home and every page.
-            if (onNewPuzzle != null && layout == PlayLayout.SinglePane && PlayFlag.CommunityShelves !in flags) {
-                CommunityCreateFab(onNewPuzzle, Modifier.align(Alignment.BottomEnd))
-            }
+            CommunityShelvesRoute(
+                layout, custom, onOpen, onPlay, onEnterCode, create, clearance,
+                onRemoveFriend = viewModel::removeFriend,
+                sharePending = sharePending != null,
+                removedFriends = removedFriends,
+            )
             FriendRemovedSnackbar(
                 removedFriend,
                 onUndo = viewModel::undoRemoveFriend,
