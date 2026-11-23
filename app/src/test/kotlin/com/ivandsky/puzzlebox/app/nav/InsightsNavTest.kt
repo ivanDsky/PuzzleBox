@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.app.nav
 
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.visibility.OwnTier
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.history.HistoryLayout
@@ -20,41 +19,19 @@ import com.ivandsky.puzzlebox.profile.settings.VisibilitySlot
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** The Insights way in: Profile's row behind the MonthlyRecap flag, the hub, a month's recap above it, and the stats page behind its own flag. */
+/** The Insights way in: the hub, a month's recap above it, and the stats page behind its own flag. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = DrainTestApplication::class)
 class InsightsNavTest {
 
     private val navigator = Navigator(puzzleBoxNavigationState())
-
-    private fun opener(flags: FakeReleaseFlags) = insightsOpener(flags.enabled.value, navigator)
-
-    @Test
-    fun `with the flag off Profile has no way into Insights`() {
-        assertFalse(FakeReleaseFlags().isEnabled(InsightsFlag.MonthlyRecap))
-
-        assertNull(opener(FakeReleaseFlags()))
-    }
-
-    @Test
-    fun `with the flag on Profile opens the hub over itself`() {
-        navigator.pushLayer(ProfileKey)
-
-        val open = opener(FakeReleaseFlags(InsightsFlag.MonthlyRecap))
-        assertNotNull(open)
-        open!!()
-
-        assertEquals(listOf(ProfileKey, InsightsKey), navigator.state.layer)
-    }
 
     @Test
     fun `a month opens its recap over the hub and back returns to the hub`() {
@@ -99,12 +76,6 @@ class InsightsNavTest {
         openRecapReplay(navigator)(replay)
 
         assertEquals(listOf<NavKey>(PlayKey, replay), navigator.state.currentStack)
-    }
-
-    @Test
-    fun `with the stats flag off nothing opens the stats page, whatever the recap flag says`() {
-        assertNull(statsOpener(FakeReleaseFlags().enabled.value, navigator))
-        assertNull(statsOpener(FakeReleaseFlags(InsightsFlag.MonthlyRecap).enabled.value, navigator))
     }
 
     @Test

@@ -13,12 +13,6 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
  */
 enum class InsightsFlag(override val label: String, override val releaseDefault: Boolean) : ReleaseFlagKey {
     /**
-     * The monthly recap (epic insights): a Today card on the first days of a month and a Profile entry that open the
-     * month's story. Read only in a ViewModel, a DI module or the app (ADR-0022 §3).
-     */
-    MonthlyRecap(label = "Monthly recap", releaseDefault = true),
-
-    /**
      * The yearly recap (epic insights): a Profile entry from Dec 20 and a Today card in early January, and past years
      * from Profile. Read only in a ViewModel, a DI module or the app (ADR-0022 §3).
      */

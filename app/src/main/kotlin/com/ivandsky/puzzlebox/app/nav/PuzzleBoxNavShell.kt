@@ -104,7 +104,6 @@ internal fun PuzzleBoxNavShell(
             makeOne = makeOne,
             libraryRequests = libraryRequests,
             visibility = visibility,
-            onOpenInsights = insightsOpener(releaseFlags, navigator),
             onOpenStats = statsOpener(releaseFlags, navigator),
             recap = recap,
         ).withHintCooldown(),

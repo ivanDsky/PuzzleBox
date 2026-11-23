@@ -10,11 +10,11 @@ import com.ivandsky.puzzlebox.navigation.Navigator
 import java.time.LocalDate
 
 /**
- * Home's recap card, behind the recap flags (ADR-0022): the first of the [due] recaps, the year before the month, whose
- * flag is in [enabled] ([InsightsFlag.YearRecap] for a year, [InsightsFlag.MonthlyRecap] for a month) and whose period
- * is not in [dismissed]; null otherwise, and Home draws no card. On Jan 1–3 both can be due: Home shows the year, and
+ * Home's recap card: the first of the [due] recaps, the year before the month, whose flag is in [enabled]
+ * ([InsightsFlag.YearRecap] for a year; a month needs none) and whose period is not in [dismissed]; null otherwise,
+ * and Home draws no card. On Jan 1–3 both can be due: Home shows the year, and
  * the month once the year is dismissed. Opening pushes that period's [InsightsRecapKey] as a layer page and dismissing
- * reports its period id to [dismiss]. The one gate, so a card never shows before its flag turns on (A2, A3).
+ * reports its period id to [dismiss].
  *
  * A null [due] is a list still loading: inside a recap window on the puzzle day [today] (see [RecapWindow]) the slot is
  * [RecapSlot.Loading], a skeleton, and anywhere else null, so no tile, no skeleton and no reserved space. A period in
@@ -31,8 +31,8 @@ internal fun recapSlot(
     dismiss: (periodId: String) -> Unit,
 ): RecapSlot? {
     if (dismissed == null || opened == null) return null
-    if (due == null) return RecapSlot.Loading.takeIf { enabled.any { it == InsightsFlag.MonthlyRecap || it == InsightsFlag.YearRecap } && today != null && RecapWindow.isOpen(today) }
-    val shown = due.firstOrNull { it.flag() in enabled && it.periodId !in dismissed } ?: return null
+    if (due == null) return RecapSlot.Loading.takeIf { today != null && RecapWindow.isOpen(today) }
+    val shown = due.firstOrNull { it.isEnabled(enabled) && it.periodId !in dismissed } ?: return null
     return RecapSlot.Due(
         periodId = shown.periodId,
         label = shown.label,
@@ -47,4 +47,4 @@ internal fun recapSlot(
     )
 }
 
-private fun DueRecap.flag(): InsightsFlag = if (yearly) InsightsFlag.YearRecap else InsightsFlag.MonthlyRecap
+private fun DueRecap.isEnabled(enabled: Set<ReleaseFlagKey>): Boolean = !yearly || InsightsFlag.YearRecap in enabled

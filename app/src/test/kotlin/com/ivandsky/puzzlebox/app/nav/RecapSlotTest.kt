@@ -20,14 +20,14 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.time.LocalDate
 
-/** Home's recap card gate (A2, A3): the flag, what is due, what the player dismissed, and the two taps. */
+/** Home's recap card gate (A2, A3): the year's flag, what is due, what the player dismissed, and the two taps. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = DrainTestApplication::class)
 class RecapSlotTest {
 
     private val navigator = Navigator(puzzleBoxNavigationState())
-    private val on = FakeReleaseFlags(InsightsFlag.MonthlyRecap).enabled.value
-    private val both = FakeReleaseFlags(InsightsFlag.MonthlyRecap, InsightsFlag.YearRecap).enabled.value
+    private val on = FakeReleaseFlags().enabled.value
+    private val both = FakeReleaseFlags(InsightsFlag.YearRecap).enabled.value
     private val october = DueRecap("2026-10", "October 2026", yearly = false)
     private val year = DueRecap("2026", "2026", yearly = true)
     private val dismissedPeriods = mutableListOf<String>()
@@ -41,11 +41,6 @@ class RecapSlotTest {
 
     private fun loading(enabled: Set<ReleaseFlagKey> = on, today: LocalDate?) =
         recapSlot(enabled, due = null, dismissed = emptySet(), opened = emptySet(), today = today, navigator = navigator) {}
-
-    @Test
-    fun `with the flag off there is no card even when a recap is due`() {
-        assertNull(slot(enabled = FakeReleaseFlags().enabled.value))
-    }
 
     @Test
     fun `nothing due is no card`() {
@@ -81,17 +76,9 @@ class RecapSlotTest {
     }
 
     @Test
-    fun `a year is never shown while only the monthly recap is on`() {
+    fun `a year is never shown while the yearly recap is off`() {
         assertNull(slot(due = listOf(year), enabled = on))
         assertEquals("October 2026", slot(due = listOf(year, october), enabled = on)!!.label)
-    }
-
-    @Test
-    fun `a month is not shown while only the yearly recap is on`() {
-        val onlyYear = FakeReleaseFlags(InsightsFlag.YearRecap).enabled.value
-
-        assertNull(slot(enabled = onlyYear))
-        assertEquals("2026", slot(due = listOf(year, october), enabled = onlyYear)!!.label)
     }
 
     @Test
@@ -140,11 +127,6 @@ class RecapSlotTest {
         for (day in listOf(LocalDate.of(2026, 11, 4), LocalDate.of(2026, 12, 20), LocalDate.of(2027, 1, 8), null)) {
             assertNull(loading(today = day))
         }
-    }
-
-    @Test
-    fun `with the flags off a loading list shows no skeleton even inside a window`() {
-        assertNull(loading(enabled = FakeReleaseFlags().enabled.value, today = LocalDate.of(2026, 11, 2)))
     }
 
     @Test

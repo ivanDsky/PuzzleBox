@@ -19,8 +19,8 @@ import kotlinx.coroutines.launch
 
 /**
  * The [RecapSlot] Home hosts, live: it follows the day's first solve, the puzzle-day rollover and a dismissal as
- * they happen, with no polling. While neither [InsightsFlag.MonthlyRecap] nor [InsightsFlag.YearRecap] is in [enabled]
- * nothing is observed at all. The dismissals and the openings are read before any card shows (see [recapSlot]).
+ * they happen, with no polling. A year shows only while [InsightsFlag.YearRecap] is in [enabled].
+ * The dismissals and the openings are read before any card shows (see [recapSlot]).
  */
 @Composable
 internal fun rememberRecapSlot(
@@ -32,12 +32,11 @@ internal fun rememberRecapSlot(
     calendar: GameCalendar,
     games: GameRegistry,
 ): RecapSlot? {
-    val on = InsightsFlag.MonthlyRecap in enabled || InsightsFlag.YearRecap in enabled
-    val due by remember(on, observeDueRecap) { if (on) observeDueRecap() else flowOf(emptyList()) }
+    val due by remember(observeDueRecap) { observeDueRecap() }
         .collectAsStateWithLifecycle(initialValue = null)
-    val today by remember(on, calendar, games) {
+    val today by remember(calendar, games) {
         val game = games.all.firstOrNull()?.definition?.id
-        if (on && game != null) calendar.observeToday(game) else flowOf(null)
+        if (game != null) calendar.observeToday(game) else flowOf(null)
     }.collectAsStateWithLifecycle(initialValue = null)
     val dismissed by remember(dismissals) { dismissals.observe() }.collectAsStateWithLifecycle(initialValue = null)
     val opened by remember(openings) { openings.observe() }.collectAsStateWithLifecycle(initialValue = null)

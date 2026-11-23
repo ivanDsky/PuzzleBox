@@ -37,13 +37,6 @@ class RankHistoryStarterTest {
     }
 
     @Test
-    fun `the monthly recap alone does not start it`() {
-        start(InsightsFlag.MonthlyRecap)
-
-        assertEquals(0, started)
-    }
-
-    @Test
     fun `the stats page starts it`() {
         start(InsightsFlag.StatsPage)
 
