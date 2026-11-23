@@ -5,17 +5,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.ui.NavDisplay
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.designsystem.LocalNavLift
 import com.ivandsky.puzzlebox.designsystem.NavLift
@@ -78,7 +75,6 @@ internal fun PuzzleBoxNavShell(
     identityService: IdentityService = koinInject(),
 ) {
     val visibility = rememberVisibilitySlot(koinInject())
-    val releaseFlags by koinInject<ReleaseFlags>().enabled.collectAsStateWithLifecycle()
     val recap = rememberRecapSlot(navigator, koinInject(), koinInject(), koinInject(), koinInject(), koinInject())
     val reduceMotion = rememberReducedMotion()
     val layoutDirection = LocalLayoutDirection.current
@@ -104,7 +100,6 @@ internal fun PuzzleBoxNavShell(
             makeOne = makeOne,
             libraryRequests = libraryRequests,
             visibility = visibility,
-            onOpenStats = statsOpener(releaseFlags, navigator),
             recap = recap,
         ).withHintCooldown(),
         shellChrome = shellChrome,

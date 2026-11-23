@@ -48,7 +48,7 @@ import com.ivandsky.puzzlebox.insights.domain.recap.SummarizedPeriod
  * selected until another is chosen.
  */
 @Composable
-internal fun HubReady(state: InsightsHubUiState.Ready, onOpen: (RecapPeriod) -> Unit, onOpenStats: (() -> Unit)?, topBar: @Composable () -> Unit) {
+internal fun HubReady(state: InsightsHubUiState.Ready, onOpen: (RecapPeriod) -> Unit, onOpenStats: () -> Unit, topBar: @Composable () -> Unit) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         if (maxWidth < TwoColumnMinWidth) {
             Column(Modifier.fillMaxSize()) {
@@ -88,7 +88,7 @@ private fun HubGrid(
     state: InsightsHubUiState.Ready,
     selectedId: String?,
     onTile: (SummarizedPeriod) -> Unit,
-    onOpenStats: (() -> Unit)?,
+    onOpenStats: () -> Unit,
     modifier: Modifier,
 ) {
     val years = state.periods.filter { it.period is RecapPeriod.Year }
@@ -100,7 +100,7 @@ private fun HubGrid(
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        if (onOpenStats != null) item(key = "stats", span = FullSpan) { StatsRow(onOpenStats) }
+        item(key = "stats", span = FullSpan) { StatsRow(onOpenStats) }
         section("YEARS", years, state, selectedId, onTile, firstIndex = 0)
         section("MONTHS", months, state, selectedId, onTile, firstIndex = years.size)
     }

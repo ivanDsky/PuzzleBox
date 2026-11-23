@@ -13,12 +13,6 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlagKey
  */
 enum class InsightsFlag(override val label: String, override val releaseDefault: Boolean) : ReleaseFlagKey {
     /**
-     * The stats page (epic insights): the game page's stats block and Profile open a game's or all games' trends,
-     * records and friends comparison. Read only in a ViewModel, a DI module or the app (ADR-0022 §3).
-     */
-    StatsPage(label = "Stats page", releaseDefault = true),
-
-    /**
      * The stats page's filters (epic stats-page): the filter bar and its sheets on a game's and all games' stats. Ships
      * dark until its flip PR; nothing reads it yet. Read only in a ViewModel, a DI module or the app (ADR-0022 §3).
      */

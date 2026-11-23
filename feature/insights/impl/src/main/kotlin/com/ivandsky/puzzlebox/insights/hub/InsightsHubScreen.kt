@@ -35,15 +35,15 @@ import com.ivandsky.puzzlebox.insights.domain.recap.RecapPeriod
  * The Insights hub: a bar with a back arrow over a grid of cover tiles, the years and then the months that have a
  * recap, newest first; on a tablet the tiles select and a large cover beside them opens. [onOpen] opens one period's
  * story; [onBack] leaves the hub; [onRetry] reads again after a failed read. [onOpenStats] adds the "Stats for all
- * games" row above the tiles and opens the all-games stats page; null (the page is dark) leaves the row out.
+ * games" row above the tiles and opens the all-games stats page.
  */
 @Composable
 internal fun InsightsHubScreen(
     state: InsightsHubUiState,
     onOpen: (RecapPeriod) -> Unit,
     onBack: () -> Unit,
+    onOpenStats: () -> Unit,
     modifier: Modifier = Modifier,
-    onOpenStats: (() -> Unit)? = null,
     onRetry: () -> Unit = {},
 ) {
     val topBar: @Composable () -> Unit = {

@@ -73,8 +73,8 @@ import java.time.LocalDate
  * the hub opens a month's recap as a layer page too. A recap's fastest solve opens its replay through
  * [openRecapReplay]: the Games tab, with the layer closed on the way. [recap] (null: none due, see
  * [recapSlot]) is the card Home's Today list shows for the month just ended. [train] (null: no game has a trainer) is
- * the Train tab on Games, after Duels. [onOpenStats] (null: the stats page is off, see [statsOpener]) opens the stats
- * page: the game page's "See all stats" for that game, the hub's row for every game. A stats record opens its replay as
+ * the Train tab on Games, after Duels. The stats page opens ([openStats]) from
+ * the game page's "See all stats" for that game and the hub's row for every game. A stats record opens its replay as
  * a recap does, or History at its day ([openRanks]) when it has none.
  */
 internal fun puzzleBoxEntryProvider(
@@ -90,7 +90,6 @@ internal fun puzzleBoxEntryProvider(
     train: TrainSlot? = null,
     libraryRequests: LibraryRequests = LibraryRequests(),
     visibility: VisibilitySlot,
-    onOpenStats: ((GameId?) -> Unit)? = null,
     recap: RecapSlot? = null,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
     homeEntry(
@@ -112,7 +111,7 @@ internal fun puzzleBoxEntryProvider(
         onReconnectLinkedIn = { navigator.pushOnce(LinkedInLoginKey) },
         onOpenRanks = openRanks(navigator),
         onMakeOne = { game -> makeOne(game) },
-        onOpenStats = onOpenStats,
+        onOpenStats = openStats(navigator),
     )
     communityEntry(
         navigator,
@@ -146,7 +145,7 @@ internal fun puzzleBoxEntryProvider(
         onBack = back,
         onOpenRecap = { period -> navigator.pushLayer(InsightsRecapKey(period)) },
         onOpenReplay = openRecapReplay(navigator),
-        onOpenStats = onOpenStats?.let { open -> { open(null) } },
+        onOpenStats = { openStats(navigator)(null) },
         onOpenDay = { game, day -> openRanks(navigator)(game, day) },
     )
     entry<CatalogKey> { CatalogScreen() }

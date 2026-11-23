@@ -8,7 +8,7 @@ class InsightsFlagTest {
     @Test
     fun `the epic ships on, one flag per part, and the stats filters ship dark`() {
         assertEquals(
-            mapOf("StatsPage" to true, "StatsFilters" to false),
+            mapOf("StatsFilters" to false),
             InsightsFlag.entries.associate { it.key to it.releaseDefault },
         )
     }

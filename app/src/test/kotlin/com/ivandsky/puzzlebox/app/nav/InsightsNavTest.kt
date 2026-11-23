@@ -9,17 +9,14 @@ import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.insights.api.InsightsKey
 import com.ivandsky.puzzlebox.insights.api.InsightsRecapKey
 import com.ivandsky.puzzlebox.insights.api.InsightsStatsKey
-import com.ivandsky.puzzlebox.insights.flags.InsightsFlag
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import com.ivandsky.puzzlebox.profile.settings.VisibilitySlot
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -79,11 +76,10 @@ class InsightsNavTest {
     }
 
     @Test
-    fun `with the stats flag on a game opens its stats page as a layer page and null opens every game`() {
-        val open = statsOpener(FakeReleaseFlags(InsightsFlag.StatsPage).enabled.value, navigator)
-        assertNotNull(open)
+    fun `a game opens its stats page as a layer page and null opens every game`() {
+        val open = openStats(navigator)
 
-        open!!(GameId("zip"))
+        open(GameId("zip"))
         assertEquals(listOf<NavKey>(InsightsStatsKey("zip")), navigator.state.layer)
 
         assertTrue(navigator.pop())
@@ -92,7 +88,7 @@ class InsightsNavTest {
     }
 
     @Test
-    fun `the stats key resolves, with and without the stats way in`() {
+    fun `the stats key resolves`() {
         val entries = puzzleBoxEntryProvider(
             navigator = navigator,
             homeLayout = HomeLayout.SinglePane,
@@ -101,7 +97,6 @@ class InsightsNavTest {
             custom = testCustomSlot(),
             makeOne = testMakeOne(navigator),
             visibility = VisibilitySlot(flowOf(OwnTier.Unset)) {},
-            onOpenStats = { },
         )
 
         val key = InsightsStatsKey("zip")
