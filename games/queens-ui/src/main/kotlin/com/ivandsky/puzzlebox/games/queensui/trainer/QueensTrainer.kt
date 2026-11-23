@@ -31,7 +31,7 @@ import kotlinx.coroutines.CoroutineScope
  * shares its sentences with the hints ([QueensTrainerCatalog]), a practice board is the real play board over a board
  * the walk reached ([QueensPracticeBoard]), and the Spotlight over it is the hint's own.
  *
- * [com.ivandsky.puzzlebox.games.queensui.queensUiModule] binds it while TrainQueens is on. [compute] is the dispatcher
+ * [com.ivandsky.puzzlebox.games.queensui.queensUiModule] binds it. [compute] is the dispatcher
  * the play board's hint stepper is given; a practice board has no hint button, so it never runs on it.
  */
 internal class QueensTrainer(private val compute: CoroutineDispatcher) : TrainerGame {
